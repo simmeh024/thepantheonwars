@@ -984,6 +984,38 @@ footer.site-footer {
   text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint); margin-top: 0.5em;
 }
 
+.layer-sublocations {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 1.2em;
+}
+.sublocation-tag {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-faint); border: 1px solid var(--border-soft);
+  padding: 6px 12px; border-radius: 2px; background: rgba(124,79,214,0.06);
+}
+
+.sub-landmark {
+  margin-top: 1.6em; padding: 18px 20px;
+  border: 1px solid var(--border-soft); border-left: 2px solid var(--purple-bright);
+  background: rgba(74,32,80,0.12);
+}
+.sub-landmark.restricted { border-left-color: #c96bd1; }
+.sub-landmark-name {
+  font-family: 'Cinzel', serif; font-size: 0.98rem; color: var(--purple-bright);
+  display: inline-block; margin-right: 10px;
+}
+.sub-landmark-tag {
+  font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint);
+}
+.sub-landmark p { font-size: 0.9rem; margin: 0.8em 0 0.8em; }
+.sub-landmark blockquote {
+  border-left: 2px solid var(--gold-dim); margin: 0.8em 0 0; padding-left: 14px;
+  font-family: 'Cinzel', serif; font-size: 0.88rem; color: var(--text-dim); font-style: italic;
+}
+.sub-landmark blockquote cite {
+  display: block; font-family: 'Jost', sans-serif; font-style: normal; font-size: 0.66rem;
+  text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-faint); margin-top: 0.5em;
+}
+
 .city-layer.spires { background: linear-gradient(90deg, rgba(198,154,63,0.10), transparent); }
 .city-layer.uppercircuit { background: linear-gradient(90deg, rgba(162,121,236,0.08), transparent); }
 .city-layer.street { background: linear-gradient(90deg, rgba(124,79,214,0.10), transparent); }
