@@ -1749,10 +1749,30 @@ footer.site-footer {
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.95rem; resize: vertical;
 }
 .community-form textarea:focus { outline: none; border-color: var(--purple-bright); }
-.board-tabs { margin-bottom: 0.8em; }
-.board-desc {
-  color: var(--text-faint); font-size: 0.82rem; margin-bottom: 1.8em;
+.board-tabs { display: flex; flex-direction: column; gap: 14px; margin-bottom: 2em; }
+.board-tab {
+  display: flex; align-items: center; gap: 18px; text-align: left;
+  background: var(--panel); border: 1px solid var(--border); color: var(--text-dim);
+  padding: 20px 24px; cursor: pointer; transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
 }
+.board-tab:hover { border-color: var(--purple-bright); transform: translateY(-2px); }
+.board-tab.active {
+  border-color: var(--gold-dim); background: rgba(124,79,214,0.1);
+}
+.board-tab-icon {
+  flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--border-soft); background: var(--panel-2);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-faint); transition: color 0.2s ease, border-color 0.2s ease;
+}
+.board-tab-icon svg { width: 20px; height: 20px; }
+.board-tab.active .board-tab-icon { color: var(--gold-bright); border-color: var(--gold-dim); }
+.board-tab-text { display: flex; flex-direction: column; gap: 4px; }
+.board-tab-title {
+  font-family: 'Cinzel', serif; font-size: 1rem; letter-spacing: 0.02em; color: var(--text);
+}
+.board-tab.active .board-tab-title { color: var(--gold-bright); }
+.board-tab-desc { font-size: 0.82rem; color: var(--text-faint); }
 
 .comment-item {
   border: 1px solid var(--border-soft); background: var(--panel); padding: 16px 20px; margin-bottom: 10px;
