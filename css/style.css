@@ -1043,7 +1043,6 @@ footer.site-footer {
   height: 9px;
   background: rgba(255,255,255,0.05);
   border: 1px solid var(--border-soft);
-  overflow: hidden;
 }
 .book-progress-fill {
   position: relative;
@@ -1052,6 +1051,7 @@ footer.site-footer {
   box-shadow: 0 0 10px var(--glow);
   transition: width 0.6s ease;
   overflow: hidden;
+  pointer-events: none;
 }
 .book-progress-fill::after {
   content: '';
@@ -1066,16 +1066,77 @@ footer.site-footer {
 }
 .book-progress-ticks {
   position: absolute; inset: 0;
-  display: flex; pointer-events: none;
+  display: flex;
 }
-.book-progress-ticks span { flex: 1; border-right: 1px solid rgba(10,7,21,0.55); }
-.book-progress-ticks span:last-child { border-right: none; }
+.book-progress-ticks .tick {
+  flex: 1;
+  position: relative;
+  border-right: 1px solid rgba(10,7,21,0.55);
+  cursor: help;
+}
+.book-progress-ticks .tick:last-child { border-right: none; }
 .book-progress-marker {
   position: absolute; top: 50%; width: 8px; height: 8px;
   background: var(--gold-bright);
   box-shadow: 0 0 8px var(--glow), 0 0 14px rgba(236,201,135,0.5);
   transform: translate(-50%, -50%) rotate(45deg);
   transition: left 0.6s ease;
+  pointer-events: none;
+}
+
+/* Phase tooltip */
+.tick::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 11px);
+  left: 50%;
+  width: 210px;
+  background: var(--bg-alt);
+  border: 1px solid var(--gold-dim);
+  color: var(--text-dim);
+  font-family: 'Jost', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
+  text-align: left;
+  padding: 11px 14px;
+  box-shadow: 0 14px 30px rgba(0,0,0,0.55);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform: translateX(-50%) translateY(5px);
+  z-index: 30;
+}
+.tick::before {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  width: 8px; height: 8px;
+  background: var(--bg-alt);
+  border-right: 1px solid var(--gold-dim);
+  border-bottom: 1px solid var(--gold-dim);
+  transform: translateX(-50%) translateY(5px) rotate(45deg);
+  opacity: 0;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 31;
+}
+.tick:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+.tick:hover::before { opacity: 1; transform: translateX(-50%) translateY(0) rotate(45deg); }
+
+.tick:nth-child(1)::after, .tick:nth-child(2)::after, .tick:nth-child(3)::after {
+  left: 0; transform: translateX(0) translateY(5px);
+}
+.tick:nth-child(1):hover::after, .tick:nth-child(2):hover::after, .tick:nth-child(3):hover::after {
+  transform: translateX(0) translateY(0);
+}
+.tick:nth-last-child(1)::after, .tick:nth-last-child(2)::after, .tick:nth-last-child(3)::after {
+  left: auto; right: 0; transform: translateX(0) translateY(5px);
+}
+.tick:nth-last-child(1):hover::after, .tick:nth-last-child(2):hover::after, .tick:nth-last-child(3):hover::after {
+  transform: translateX(0) translateY(0);
 }
 
 
