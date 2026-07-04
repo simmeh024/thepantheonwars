@@ -178,8 +178,38 @@ header.site-header {
   text-transform: uppercase;
   display: inline-flex;
   align-items: center;
+  position: relative;
+  padding-bottom: 6px;
 }
-.logo span { color: var(--gold); }
+.logo-name { color: var(--gold); transition: color 0.4s ease; }
+.logo:hover .logo-name { color: var(--purple-bright); }
+
+.logo::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 0%;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--purple-bright), var(--gold-bright), var(--purple-bright), transparent);
+  transform: translateX(-50%);
+  transition: width 0.45s ease;
+}
+.logo:hover::after { width: 100%; }
+.logo::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -3px;
+  width: 6px;
+  height: 6px;
+  background: var(--gold-bright);
+  transform: translateX(-50%) rotate(45deg) scale(0);
+  box-shadow: 0 0 8px var(--glow);
+  transition: transform 0.4s ease 0.05s;
+  z-index: 1;
+}
+.logo:hover::before { transform: translateX(-50%) rotate(45deg) scale(1); }
 .logo-shard {
   display: inline-block;
   width: 9px; height: 14px;
