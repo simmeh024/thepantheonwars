@@ -865,6 +865,55 @@ footer.site-footer {
 .post-share .btn.share-reddit { padding: 10px 22px; font-size: 0.72rem; }
 
 /* ---------------- Neoh: vertical city cross-section ---------------- */
+.city-cross-wrap { display: flex; gap: 40px; align-items: flex-start; }
+.city-cross-wrap .city-cross-section { flex: 1; min-width: 0; }
+
+.city-map-figure { width: 260px; flex-shrink: 0; }
+.map-thumb-btn {
+  display: block; position: relative; width: 100%; padding: 0; margin: 0;
+  border: 1px solid var(--border); background: none; cursor: zoom-in; overflow: hidden;
+  line-height: 0;
+}
+.map-thumb-btn img { width: 100%; display: block; transition: filter 0.25s ease, transform 0.4s ease; }
+.map-thumb-btn:hover img { filter: brightness(1.15); transform: scale(1.03); }
+.map-expand-hint {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 8px;
+  background: linear-gradient(to top, rgba(10,7,21,0.92), transparent);
+  color: var(--gold-bright); font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em;
+  opacity: 0; transition: opacity 0.25s ease; text-align: center;
+}
+.map-thumb-btn:hover .map-expand-hint { opacity: 1; }
+.map-caption {
+  font-size: 0.72rem; color: var(--text-faint); margin-top: 0.8em; text-align: center;
+  font-style: italic;
+}
+@media (max-width: 860px) {
+  .city-cross-wrap { flex-direction: column; }
+  .city-map-figure { width: 100%; max-width: 300px; margin: 0 auto; }
+}
+
+.map-lightbox {
+  position: fixed; inset: 0; z-index: 500;
+  display: flex; align-items: center; justify-content: center; padding: 40px 20px;
+}
+.map-lightbox-backdrop { position: absolute; inset: 0; background: rgba(5,3,10,0.92); }
+.map-lightbox-inner {
+  position: relative; max-width: 90vw; max-height: 90vh; overflow: auto;
+  animation: result-reveal 0.3s ease;
+}
+.map-lightbox-inner img {
+  display: block; max-width: 100%; height: auto;
+  border: 1px solid var(--gold-dim); box-shadow: 0 0 60px rgba(124,79,214,0.45);
+}
+.map-lightbox-close {
+  position: absolute; top: -16px; right: -16px; width: 36px; height: 36px; border-radius: 50%;
+  background: var(--panel); border: 1px solid var(--gold-dim); color: var(--text);
+  font-size: 1.3rem; line-height: 1; cursor: pointer; z-index: 1;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.map-lightbox-close:hover { border-color: var(--gold); color: var(--gold-bright); }
+
 .city-cross-section { display: flex; gap: 22px; align-items: stretch; }
 .city-ruler {
   width: 26px; flex-shrink: 0;

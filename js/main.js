@@ -56,6 +56,21 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  // Map lightbox (Worlds > Neoh full map viewer)
+  document.querySelectorAll('.map-thumb-btn').forEach(function (btn) {
+    var lightbox = document.getElementById(btn.getAttribute('data-lightbox'));
+    if (!lightbox) return;
+    btn.addEventListener('click', function () { lightbox.hidden = false; });
+  });
+  document.querySelectorAll('.map-lightbox').forEach(function (lightbox) {
+    var close = function () { lightbox.hidden = true; };
+    lightbox.querySelector('.map-lightbox-close').addEventListener('click', close);
+    lightbox.querySelector('.map-lightbox-backdrop').addEventListener('click', close);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !lightbox.hidden) close();
+    });
+  });
+
   // Planetary two-scene view (Worlds > High Hammer) — arrow flips between scenes.
   document.querySelectorAll('.planet-view').forEach(function (view) {
     var arrows = view.querySelectorAll('.scene-arrow');
