@@ -626,10 +626,29 @@ blockquote.myth cite {
 
 /* ---------------- Newsletter ---------------- */
 .newsletter {
+  position: relative;
+  overflow: hidden;
   background: var(--panel-2);
   border-top: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
   text-align: center;
+}
+.newsletter-bh4 {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 130%;
+  max-width: 42%;
+  object-fit: cover;
+  object-position: top center;
+  opacity: 0.45;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(to right, black 55%, transparent 95%);
+  mask-image: linear-gradient(to right, black 55%, transparent 95%);
+}
+@media (max-width: 760px) {
+  .newsletter-bh4 { display: none; }
 }
 .newsletter .container { max-width: 640px; }
 .newsletter form {
