@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Which Overlord Are You? — The Pantheon Wars</title>
+<meta name="description" content="Twenty questions. One Godcore. Find out which Pantheon Wars Overlord you'd become — Syn Dravus, Malric Thorne, Korrus Vale, Lysara Venthe, or Zura Kaleth.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-inner">
+    <a href="index.html" class="logo"><span class="logo-shard"></span>The <span>Pantheon</span> Wars</a>
+    <nav class="main-nav">
+      <a href="index.html">Home</a>
+      <a href="books.html">The Books</a>
+      <a href="worlds.html">Worlds</a>
+      <a href="about.html">About</a>
+      <a href="news.html">News</a>
+      <a href="quiz.html" class="active">Quiz</a>
+    </nav>
+    <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main>
+
+  <div class="page-banner ornate">
+    <div class="hero-bg" style="background-image: url('images/world-nexusveil.jpg'); opacity: 0.3;"></div>
+    <div class="hero-veil"></div>
+    <span class="orn-bl"></span><span class="orn-br"></span>
+    <div class="container">
+      <span class="eyebrow">The Pantheon Wars</span>
+      <h1>Which Overlord Are You?</h1>
+      <p class="lede">Twenty questions. One Godcore. Answer honestly — the Nexus Veil always knows when you don't.</p>
+    </div>
+  </div>
+
+  <section>
+    <div class="container quiz-wrap">
+      <div class="quiz-app">
+
+        <div class="quiz-progress"><div class="quiz-progress-bar"></div></div>
+
+        <div class="quiz-card">
+          <span class="quiz-counter">Question 1 of 20</span>
+          <h2 class="quiz-question">Loading...</h2>
+          <div class="quiz-options"></div>
+        </div>
+
+        <div class="quiz-terminal" hidden>
+          <div class="term-line" data-line="1">&gt; SELECTING GODCORE<span class="dots">...</span></div>
+          <div class="term-line" data-line="2">&gt; WAITING<span class="dots">...</span></div>
+          <div class="term-line glitch" data-line="3">&gt; INPUT MISSING<span class="dots">...</span></div>
+          <div class="term-line" data-line="4">&gt; CORRECTING<span class="dots">...</span></div>
+        </div>
+
+        <div class="quiz-result" hidden>
+          <span class="eyebrow result-tag">You Are</span>
+          <div class="overlord-portrait-frame result-portrait"><img src="" alt=""></div>
+          <h2 class="result-name"></h2>
+          <span class="overlord-epithet result-epithet"></span>
+          <span class="overlord-domain-tag result-domain"></span>
+          <p class="result-blurb"></p>
+          <div class="result-actions">
+            <a href="#" class="btn btn-solid result-link">Learn more →</a>
+            <button type="button" class="btn quiz-retry">Retake the Quiz</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="newsletter">
+    <div class="container">
+      <span class="eyebrow">Join the Pantheon</span>
+      <h2>Get word when a new world opens</h2>
+      <p>No spam, no Overcode surveillance — just updates on new books, lore drops, and the soundtrack as it's released.</p>
+      <form class="newsletter-form" action="#" method="post">
+        <input type="email" placeholder="your@email.com" required aria-label="Email address">
+        <button type="submit" class="btn btn-solid">Subscribe</button>
+      </form>
+      <p class="confirm"></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>The Pantheon Wars</h4>
+        <p>A fourteen-book saga by Pascal Slettenaar — twelve worlds, twelve tyrants, and the prophecy that could end them all.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="books.html">The Books</a></li>
+          <li><a href="worlds.html">Worlds</a></li>
+          <li><a href="about.html">About the Author</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="quiz.html">Which Overlord Are You?</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Stay Connected</h4>
+        <ul>
+          <li><a href="https://www.amazon.com/stores/Pascal-Slettenaar/author/B0BYQPN4F9?ref=ap_rdr&shoppingPortalEnabled=true" target="_blank" rel="noopener">Shop on Amazon</a></li>
+          <li><a href="https://open.spotify.com/album/4F3gZb2oOUarb0gM2KwSar?si=FUDqkC25TPewM4YBTeNTIg" target="_blank" rel="noopener">Book One Soundtrack</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2026 Pascal Slettenaar. All rights reserved. &nbsp;•&nbsp; “Twelve thrones will fall. One will rise.”
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var quizApp = document.querySelector('.quiz-app');
+  if (!quizApp) return;
+
+  var questions = [
+    { q: "Someone crosses you badly. What's your first move?", options: [
+      "I find out everything about them before I decide anything.",
+      "I make an example of them, publicly, so no one else tries.",
+      "I calculate whether removing them is worth the resources it costs.",
+      "I let them think they got away with it — for now.",
+      "I let them come closer. Closer things are easier to prune."
+    ]},
+    { q: "What's the most valuable currency in your world?", options: [
+      "Information. Everything else is downstream of it.",
+      "Order. Chaos is the only real enemy.",
+      "Efficiency. Waste is the only sin.",
+      "Trust. Even the false kind, if it's convincing.",
+      "Patience. Everything grows if you wait long enough."
+    ]},
+    { q: "How do you feel about being loved by your people?", options: [
+      "Irrelevant. I only need them to believe I already know their secrets.",
+      "Unnecessary. Feared is more durable than loved.",
+      "A statistic. Loyalty is measured, not felt.",
+      "Essential. I need them to call me “mother” and mean it.",
+      "Complicated. Love and fear grow from the same root here."
+    ]},
+    { q: "A rival Overlord insults you at the Nexus Veil. You:", options: [
+      "Say nothing — and mention something private of theirs, just once.",
+      "Remind the room, calmly, who annexed their last neighbor.",
+      "Note the insult in a ledger. It'll matter eventually.",
+      "Smile. Let them think they won this round.",
+      "Compliment them. Let them wonder why that feels like a threat."
+    ]},
+    { q: "What's your biggest weakness, honestly?", options: [
+      "I trust my own records more than I trust people.",
+      "I mistake obedience for loyalty.",
+      "I forget that people aren't components.",
+      "I care more than my reputation can afford.",
+      "I've stopped being able to tell where I end and my world begins."
+    ]},
+    { q: "Pick a punishment for a low-level betrayal:", options: [
+      "Erase their memory of ever being useful to me.",
+      "Public demotion. Let their peers watch.",
+      "Reassignment to a sector with worse survival odds.",
+      "Forgiveness — with a debt attached that never quite clears.",
+      "A slow one. Let it teach a lesson to everyone watching."
+    ]},
+    { q: "What does your throne room actually look like?", options: [
+      "Dim, layered with screens no one else can read.",
+      "Iron and red banners. Impossible to mistake for anything soft.",
+      "Function over form — a control room, not a court.",
+      "Warm, open, deceptively unguarded.",
+      "Alive. The walls occasionally rearrange themselves."
+    ]},
+    { q: "How do you make decisions under pressure?", options: [
+      "I already decided three moves ago. I'm just watching it land.",
+      "Fast, and I don't revisit it.",
+      "I run the numbers, even if the numbers are grim.",
+      "I read the room first. The room usually tells me.",
+      "I let it grow into an answer instead of forcing one."
+    ]},
+    { q: "What's the one rule you never break?", options: [
+      "Never let anyone know what you actually know.",
+      "Never apologize where it can be seen.",
+      "Never spend a resource you can't justify losing.",
+      "Never let them see the cost of what you protect them from.",
+      "Never waste a threat you could grow instead."
+    ]},
+    { q: "Someone begs you for mercy. What actually moves you?", options: [
+      "A secret I didn't already have.",
+      "Nothing. Mercy is a resource I ration on my terms.",
+      "A good argument that keeping them alive is more efficient.",
+      "Genuine fear, not performed fear.",
+      "The way they remind me of something I used to be."
+    ]},
+    { q: "What do you think of the Thirteenth Key myth?", options: [
+      "It's data nobody's indexed correctly yet.",
+      "A fairy tale rebels use to justify losing.",
+      "An unaccounted variable. Which bothers me more than I'd admit.",
+      "A story worth being afraid of, quietly.",
+      "Something that's already growing, whether the Pantheon likes it or not."
+    ]},
+    { q: "How do you handle your own mistakes?", options: [
+      "I rewrite the narrative before anyone else gets to.",
+      "I don't have mistakes. I have decisions others misunderstood.",
+      "I audit it, fix the process, move on without ceremony.",
+      "I absorb the blame so it doesn't reach the people I protect.",
+      "I let it rot until it becomes fertilizer for something better."
+    ]},
+    { q: "What's your relationship with the other eleven Overlords?", options: [
+      "Useful sources. Nothing more.",
+      "Rivals I'm still deciding whether to outlast or outgun.",
+      "Variables in a system I'd rather simplify.",
+      "Careful. Everyone at that table wants something from me.",
+      "Distant. Roots don't need to touch to be connected."
+    ]},
+    { q: "Pick the compliment that actually lands:", options: [
+      "“No one sees you coming.”",
+      "“No one questions you twice.”",
+      "“Nothing you run is wasted.”",
+      "“Everyone who meets you feels safe — even when they shouldn't.”",
+      "“Nothing near you stays the same shape for long.”"
+    ]},
+    { q: "What's a luxury you allow yourself?", options: [
+      "Knowing things before anyone else in the room does.",
+      "Silence, immediately, whenever I want it.",
+      "A win column that's always, technically, positive.",
+      "Being underestimated. It's useful and it's restful.",
+      "Watching something grow that I planted myself."
+    ]},
+    { q: "How do you view the god-core bound to you?", options: [
+      "A library that occasionally talks back.",
+      "A weapon I inherited and refuse to be afraid of.",
+      "A machine I maintain, not a god I worship.",
+      "Something I protect my people from more than I let on.",
+      "Something we're slowly becoming the same thing as."
+    ]},
+    { q: "Your world is dying slowly and no one knows yet. What do you do?", options: [
+      "Quietly move the pieces that matter before the truth leaks.",
+      "Double down on control before anyone can exploit the panic.",
+      "Recalculate the timeline and start rationing what's left.",
+      "Shoulder it alone so the fear doesn't spread.",
+      "Let it die where it must, and plant something new in the wreckage."
+    ]},
+    { q: "What's your idea of a perfect ally?", options: [
+      "Someone who tells me the truth and nothing they shouldn't.",
+      "Someone who follows the order before they finish hearing it.",
+      "Someone who doesn't need to be managed to be useful.",
+      "Someone who lets me protect them without asking why.",
+      "Someone patient enough to grow alongside me."
+    ]},
+    { q: "How do outsiders usually describe you, behind your back?", options: [
+      "“You never know what she already knows.”",
+      "“He built a throne out of everyone who doubted him.”",
+      "“Cold. Efficient. Occasionally right, which is worse.”",
+      "“Everyone loves her. That's what worries me.”",
+      "“Get too close and you start to wonder if you were ever really free.”"
+    ]},
+    { q: "If your reign ended tomorrow, what would you want people to remember?", options: [
+      "That I always knew more than I let on — and used it well.",
+      "That order held because I was the one holding it.",
+      "That the system I built outlasted the mess it replaced.",
+      "That I kept them safer than they ever realized.",
+      "That something of me kept growing long after I was gone."
+    ]}
+  ];
+
+  var overlords = [
+    { name: "Syn Dravus", epithet: "The Mindweaver", domain: "Overlord of Neoh", img: "images/char-syn.jpg", href: "overlord-syn-dravus.html",
+      blurb: "You rule through knowledge no one else has. People fear what you might already know about them — and they're right to." },
+    { name: "Malric Thorne", epithet: "The Black Regent", domain: "Overlord of Cerius", img: "images/char-malric.jpg", href: "overlord-malric-thorne.html",
+      blurb: "You rule through control, seized and never loosened. Order is the only mercy you believe in." },
+    { name: "Korrus Vale", epithet: "The Reactor King", domain: "Overlord of Reanium", img: "images/char-korrus.jpg", href: "overlord-korrus-vale.html",
+      blurb: "You rule through efficiency, even when the numbers are grim. The system survives — that's the point." },
+    { name: "Lysara Venthe", epithet: "The Tidekeeper", domain: "Overlord of Asmecu", img: "images/char-lysara.jpg", href: "overlord-lysara-venthe.html",
+      blurb: "You rule through care that looks like softness and isn't. Everyone feels safe near you. Not everyone should." },
+    { name: "Zura Kaleth", epithet: "The Rootbinder", domain: "Overlord of Babki Prime", img: "images/char-zura.jpg", href: "overlord-zura-kaleth.html",
+      blurb: "You rule through patience, letting things take the shape they need to. Nothing near you stays the same for long." }
+  ];
+
+  var current = 0;
+  var scores = [0, 0, 0, 0, 0];
+
+  var counterEl = quizApp.querySelector('.quiz-counter');
+  var questionEl = quizApp.querySelector('.quiz-question');
+  var optionsEl = quizApp.querySelector('.quiz-options');
+  var barEl = quizApp.querySelector('.quiz-progress-bar');
+  var cardEl = quizApp.querySelector('.quiz-card');
+  var terminalEl = quizApp.querySelector('.quiz-terminal');
+  var resultEl = quizApp.querySelector('.quiz-result');
+  var retryBtn = quizApp.querySelector('.quiz-retry');
+
+  function renderQuestion() {
+    var q = questions[current];
+    counterEl.textContent = 'Question ' + (current + 1) + ' of ' + questions.length;
+    barEl.style.width = ((current / questions.length) * 100) + '%';
+    questionEl.textContent = q.q;
+    optionsEl.innerHTML = '';
+    q.options.forEach(function (opt, idx) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'quiz-option';
+      btn.textContent = opt;
+      btn.addEventListener('click', function () { selectAnswer(idx); });
+      optionsEl.appendChild(btn);
+    });
+  }
+
+  function selectAnswer(idx) {
+    scores[idx]++;
+    current++;
+    if (current < questions.length) {
+      renderQuestion();
+    } else {
+      barEl.style.width = '100%';
+      cardEl.style.display = 'none';
+      runTerminal();
+    }
+  }
+
+  function runTerminal() {
+    terminalEl.hidden = false;
+    var lines = terminalEl.querySelectorAll('.term-line');
+    lines.forEach(function (l) { l.classList.remove('show'); });
+    var delays = [200, 1100, 2200, 3200];
+    lines.forEach(function (line, i) {
+      setTimeout(function () { line.classList.add('show'); }, delays[i] || i * 1000);
+    });
+    setTimeout(showResult, 4400);
+  }
+
+  function showResult() {
+    terminalEl.hidden = true;
+    var maxIdx = 0;
+    for (var i = 1; i < scores.length; i++) {
+      if (scores[i] > scores[maxIdx]) maxIdx = i;
+    }
+    var ov = overlords[maxIdx];
+    resultEl.hidden = false;
+    var img = resultEl.querySelector('.result-portrait img');
+    img.src = ov.img;
+    img.alt = ov.name;
+    resultEl.querySelector('.result-name').textContent = ov.name;
+    resultEl.querySelector('.result-epithet').textContent = ov.epithet;
+    resultEl.querySelector('.result-domain').textContent = ov.domain;
+    resultEl.querySelector('.result-blurb').textContent = ov.blurb;
+    var link = resultEl.querySelector('.result-link');
+    link.href = ov.href;
+    link.textContent = 'Learn more about ' + ov.name + ' →';
+  }
+
+  retryBtn.addEventListener('click', function () {
+    current = 0;
+    scores = [0, 0, 0, 0, 0];
+    resultEl.hidden = true;
+    cardEl.style.display = '';
+    renderQuestion();
+  });
+
+  renderQuestion();
+});
+</script>
+</body>
+</html>
