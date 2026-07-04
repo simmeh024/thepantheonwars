@@ -22,6 +22,39 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Random glitch bursts — hero image (homepage only)
+  var heroEl = document.querySelector('.hero');
+  var heroGlitchLayer = document.querySelector('.hero-glitch');
+  if (heroEl && heroGlitchLayer) {
+    (function scheduleHeroGlitch() {
+      var delay = 3500 + Math.random() * 6000;
+      setTimeout(function () {
+        heroEl.classList.add('is-glitching');
+        heroGlitchLayer.classList.add('is-glitching');
+        setTimeout(function () {
+          heroEl.classList.remove('is-glitching');
+          heroGlitchLayer.classList.remove('is-glitching');
+        }, 350 + Math.random() * 150);
+        scheduleHeroGlitch();
+      }, delay);
+    })();
+  }
+
+  // Random glitch bursts — nav logo (every page)
+  var logoEl = document.querySelector('.logo');
+  if (logoEl) {
+    (function scheduleLogoGlitch() {
+      var delay = 6000 + Math.random() * 10000;
+      setTimeout(function () {
+        logoEl.classList.add('is-glitching');
+        setTimeout(function () {
+          logoEl.classList.remove('is-glitching');
+        }, 300 + Math.random() * 150);
+        scheduleLogoGlitch();
+      }, delay);
+    })();
+  }
+
   // Newsletter forms — client-side only.
   // NOTE for Pascal: this currently just shows a confirmation message and does not
   // send the email anywhere. To actually collect subscribers, sign up for an email
