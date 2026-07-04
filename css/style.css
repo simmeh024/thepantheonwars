@@ -27,6 +27,30 @@
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
 
+/* Themed scrollbar — replaces default OS grey bar site-wide */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--purple-bright) var(--panel);
+}
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--panel);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--gold-bright), var(--purple-bright));
+  border-radius: 8px;
+  border: 2px solid var(--panel);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--gold), var(--purple));
+}
+::-webkit-scrollbar-corner {
+  background: var(--panel);
+}
+
 body {
   margin: 0;
   background: var(--bg);
