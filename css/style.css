@@ -802,6 +802,13 @@ footer.site-footer {
 .book-body p { margin-bottom: 0; font-size: 0.95rem; }
 .book-body .meta { color: var(--text-faint); font-size: 0.8rem; margin-bottom: 0.5em; }
 .book-cta { margin-top: 14px; }
+.book-meta-row { display: flex; align-items: center; gap: 10px; margin-bottom: 0.5em; }
+.book-meta-row .meta { margin-bottom: 0; }
+.book-figure {
+  width: 34px; height: 34px; border-radius: 50%; overflow: hidden;
+  flex-shrink: 0; border: 1px solid var(--gold-dim);
+}
+.book-figure img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 
 /* ---------------- About page ---------------- */
 .about-body { max-width: 720px; margin: 0 auto; }
@@ -936,7 +943,13 @@ footer.site-footer {
 .city-layer.vault .layer-name { color: var(--purple-bright); }
 .city-layer.vault .layer-toggle .layer-tag { color: #7a5a9a; }
 
-.world-detail-head { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: 0.6em; }
+.world-detail-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 0.6em; }
+.world-detail-portrait {
+  width: 52px; height: 52px; border-radius: 50%; overflow: hidden;
+  flex-shrink: 0; border: 2px solid var(--gold-dim);
+  box-shadow: 0 0 14px rgba(124,79,214,0.35);
+}
+.world-detail-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: top; }
 .world-detail-head h2 { margin: 0; }
 .world-detail-head .overlord-tag { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--purple-bright); }
 
