@@ -1,0 +1,6 @@
+# Defense in depth: block any config.php that might accidentally end up here,
+# and stop directory listing.
+Options -Indexes
+<FilesMatch "^config\.php$">
+  Require all denied
+</FilesMatch>

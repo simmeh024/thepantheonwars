@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Profile — The Pantheon Wars</title>
+<meta name="description" content="Your Pantheon Wars profile — saved Overlord result and community activity.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-inner">
+    <a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a>
+    <nav class="main-nav">
+      <a href="index.html">Home</a>
+      <a href="books.html">The Books</a>
+      <a href="worlds.html">Worlds</a>
+      <a href="about.html">About</a>
+      <a href="news.html">News</a>
+      <a href="quiz.html">Quiz</a>
+      <a href="community.html">Community</a>
+      <span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span>
+    </nav>
+    <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main>
+
+  <section>
+    <div class="container" style="max-width: 720px;">
+
+      <div id="profile-gate" class="profile-gate" hidden>
+        <span class="eyebrow">Members Only</span>
+        <h2>Log in to see your profile</h2>
+        <p>Your saved Overlord result and community posts live here once you're signed in.</p>
+        <button type="button" class="btn btn-solid auth-trigger" data-tab="login">Log In</button>
+        <button type="button" class="btn auth-trigger" data-tab="register">Create an Account</button>
+      </div>
+
+      <div id="profile-content" hidden>
+        <div class="profile-head">
+          <h1 id="profile-name">—</h1>
+        </div>
+
+        <div class="profile-affinity" id="profile-affinity-box" hidden>
+          <span class="eyebrow">Your Overlord Affinity</span>
+          <h2 id="profile-affinity-name">—</h2>
+        </div>
+        <p id="profile-no-quiz" class="lore-status" hidden>You haven't taken the quiz yet — <a href="quiz.html">find out which Overlord you are</a>.</p>
+
+        <h3>Quiz History</h3>
+        <div id="profile-quiz-history"></div>
+
+        <h3 style="margin-top: 1.6em;">Your Community Posts</h3>
+        <div id="profile-comments"></div>
+        <p id="profile-no-comments" class="lore-status" hidden>You haven't posted in the <a href="community.html">Assembly Floor</a> yet.</p>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>The Pantheon Wars</h4>
+        <p>A fourteen-book saga by Pascal Slettenaar — twelve worlds, twelve tyrants, and the prophecy that could end them all.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="books.html">The Books</a></li>
+          <li><a href="worlds.html">Worlds</a></li>
+          <li><a href="about.html">About the Author</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="quiz.html">Which Overlord Are You?</a></li>
+          <li><a href="community.html">Community</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Stay Connected</h4>
+        <ul>
+          <li><a href="https://open.spotify.com/album/4F3gZb2oOUarb0gM2KwSar?si=FUDqkC25TPewM4YBTeNTIg" target="_blank" rel="noopener">Book One Soundtrack</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2026 Pascal Slettenaar. All rights reserved. &nbsp;•&nbsp; “Twelve thrones will fall. One will rise.”
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/members.js"></script>
+<script>
+(function () {
+  var gate = document.getElementById('profile-gate');
+  var content = document.getElementById('profile-content');
+
+  function fmtDate(iso) {
+    var d = new Date(iso.replace(' ', 'T') + 'Z');
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function load() {
+    if (!window.PW_AUTH.loggedIn) {
+      gate.hidden = false;
+      content.hidden = true;
+      return;
+    }
+    gate.hidden = true;
+    content.hidden = false;
+
+    fetch('/api/get-profile.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+
+        document.getElementById('profile-name').textContent = data.user.display_name;
+
+        var affBox = document.getElementById('profile-affinity-box');
+        if (data.user.overlord_affinity) {
+          affBox.hidden = false;
+          document.getElementById('profile-affinity-name').textContent = data.user.overlord_affinity;
+        } else {
+          affBox.hidden = true;
+        }
+
+        var historyEl = document.getElementById('profile-quiz-history');
+        historyEl.innerHTML = '';
+        if (data.quizHistory && data.quizHistory.length) {
+          document.getElementById('profile-no-quiz').hidden = true;
+          data.quizHistory.forEach(function (h) {
+            var item = document.createElement('div');
+            item.className = 'profile-history-item';
+            item.textContent = h.overlord_result + ' — ' + fmtDate(h.created_at);
+            historyEl.appendChild(item);
+          });
+        } else {
+          document.getElementById('profile-no-quiz').hidden = false;
+        }
+
+        var commentsEl = document.getElementById('profile-comments');
+        commentsEl.innerHTML = '';
+        if (data.comments && data.comments.length) {
+          document.getElementById('profile-no-comments').hidden = true;
+          data.comments.forEach(function (c) {
+            var item = document.createElement('div');
+            item.className = 'profile-history-item';
+            item.textContent = c.body + ' — ' + fmtDate(c.created_at);
+            commentsEl.appendChild(item);
+          });
+        } else {
+          document.getElementById('profile-no-comments').hidden = false;
+        }
+      });
+  }
+
+  document.addEventListener('pw-auth-ready', load);
+  load();
+})();
+</script>
+</body>
+</html>

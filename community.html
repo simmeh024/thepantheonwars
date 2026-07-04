@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Community — The Pantheon Wars</title>
+<meta name="description" content="Talk Pantheon Wars lore, theories, and Overlords with other readers.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Community — The Pantheon Wars">
+<meta property="og:description" content="Talk Pantheon Wars lore, theories, and Overlords with other readers.">
+<meta property="og:url" content="https://thepantheonwars.com/community.html">
+<meta property="og:image" content="https://thepantheonwars.com/images/hero-main.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Community — The Pantheon Wars">
+<meta name="twitter:description" content="Talk Pantheon Wars lore, theories, and Overlords with other readers.">
+<meta name="twitter:image" content="https://thepantheonwars.com/images/hero-main.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-inner">
+    <a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a>
+    <nav class="main-nav">
+      <a href="index.html">Home</a>
+      <a href="books.html">The Books</a>
+      <a href="worlds.html">Worlds</a>
+      <a href="about.html">About</a>
+      <a href="news.html">News</a>
+      <a href="quiz.html">Quiz</a>
+      <a href="community.html" class="active">Community</a>
+      <span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span>
+    </nav>
+    <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main>
+
+  <div class="page-banner ornate">
+    <div class="hero-bg" style="background-image: url('images/world-nexusveil.jpg'); opacity: 0.3;"></div>
+    <div class="hero-veil"></div>
+    <span class="orn-bl"></span><span class="orn-br"></span>
+    <div class="container">
+      <span class="eyebrow">The Nexus Veil</span>
+      <h1>The Assembly Floor</h1>
+      <p class="lede">Neutral ground for readers. Talk lore, theories, and who deserves to fall first.</p>
+    </div>
+  </div>
+
+  <section>
+    <div class="container" style="max-width: 720px;">
+
+      <div id="community-gate" class="profile-gate" hidden>
+        <p>You need an account to post here — but you can read every message below without one.</p>
+        <button type="button" class="btn btn-solid auth-trigger" data-tab="register">Create an Account</button>
+        <button type="button" class="btn auth-trigger" data-tab="login">Log In</button>
+      </div>
+
+      <form id="community-form" class="community-form" hidden>
+        <div class="auth-field">
+          <label for="community-body">Post a message</label>
+          <textarea id="community-body" maxlength="2000" placeholder="What's on your mind, traveler?" required></textarea>
+        </div>
+        <p class="auth-error" id="community-error"></p>
+        <button type="submit" class="btn btn-solid">Post</button>
+      </form>
+
+      <div id="community-feed"></div>
+      <p id="community-empty" class="lore-status" hidden>No messages yet — be the first to speak.</p>
+
+    </div>
+  </section>
+
+  <section class="newsletter">
+      <img src="images/bh4-dispatch.jpg" alt="" class="newsletter-bh4" aria-hidden="true">
+    <div class="container">
+      <span class="eyebrow">Join the Pantheon</span>
+      <h2>Get word when a new world opens</h2>
+      <p>No spam, no Overcode surveillance — just updates on new books, lore drops, and the soundtrack as it's released.</p>
+      <form class="newsletter-form" action="#" method="post">
+        <input type="email" placeholder="your@email.com" required aria-label="Email address">
+        <button type="submit" class="btn btn-solid">Subscribe</button>
+      </form>
+      <p class="confirm"></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>The Pantheon Wars</h4>
+        <p>A fourteen-book saga by Pascal Slettenaar — twelve worlds, twelve tyrants, and the prophecy that could end them all.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="books.html">The Books</a></li>
+          <li><a href="worlds.html">Worlds</a></li>
+          <li><a href="about.html">About the Author</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="quiz.html">Which Overlord Are You?</a></li>
+          <li><a href="community.html">Community</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Stay Connected</h4>
+        <ul>
+          <li><a href="https://open.spotify.com/album/4F3gZb2oOUarb0gM2KwSar?si=FUDqkC25TPewM4YBTeNTIg" target="_blank" rel="noopener">Book One Soundtrack</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2026 Pascal Slettenaar. All rights reserved. &nbsp;•&nbsp; “Twelve thrones will fall. One will rise.”
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/members.js"></script>
+<script>
+(function () {
+  var gate = document.getElementById('community-gate');
+  var form = document.getElementById('community-form');
+  var body = document.getElementById('community-body');
+  var errorEl = document.getElementById('community-error');
+  var feed = document.getElementById('community-feed');
+  var emptyEl = document.getElementById('community-empty');
+
+  function fmtTime(iso) {
+    var d = new Date(iso.replace(' ', 'T') + 'Z');
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) +
+      ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function renderComment(c, isReply) {
+    var el = document.createElement('div');
+    el.className = 'comment-item' + (isReply ? ' is-reply' : '');
+    var meta = document.createElement('div');
+    meta.className = 'comment-meta';
+    var author = document.createElement('span');
+    author.className = 'comment-author';
+    author.textContent = c.display_name;
+    meta.appendChild(author);
+    if (c.overlord_affinity) {
+      var aff = document.createElement('span');
+      aff.className = 'comment-affinity';
+      aff.textContent = c.overlord_affinity;
+      meta.appendChild(aff);
+    }
+    var time = document.createElement('span');
+    time.className = 'comment-time';
+    time.textContent = fmtTime(c.created_at);
+    meta.appendChild(time);
+    el.appendChild(meta);
+
+    var bodyEl = document.createElement('div');
+    bodyEl.className = 'comment-body';
+    bodyEl.textContent = c.body; // textContent only — never innerHTML with user text
+    el.appendChild(bodyEl);
+
+    if (c.canDelete) {
+      var actions = document.createElement('div');
+      actions.className = 'comment-actions';
+      var delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.textContent = 'Delete';
+      delBtn.addEventListener('click', function () { deleteComment(c.id); });
+      actions.appendChild(delBtn);
+      el.appendChild(actions);
+    }
+    return el;
+  }
+
+  function loadFeed() {
+    fetch('/api/comments/list.php?board=community', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        feed.innerHTML = '';
+        if (!data.ok || !data.comments || !data.comments.length) {
+          emptyEl.hidden = false;
+          return;
+        }
+        emptyEl.hidden = true;
+        var byParent = {};
+        data.comments.forEach(function (c) {
+          var key = c.parent_id || 'root';
+          if (!byParent[key]) byParent[key] = [];
+          byParent[key].push(c);
+        });
+        (byParent.root || []).forEach(function (c) {
+          feed.appendChild(renderComment(c, false));
+          (byParent[c.id] || []).forEach(function (child) {
+            feed.appendChild(renderComment(child, true));
+          });
+        });
+      });
+  }
+
+  function deleteComment(id) {
+    if (!window.PW_AUTH.csrf) return;
+    fetch('/api/comments/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id, csrf: window.PW_AUTH.csrf }),
+    }).then(function () { loadFeed(); });
+  }
+
+  function syncGate() {
+    var loggedIn = window.PW_AUTH.loggedIn;
+    gate.hidden = loggedIn;
+    form.hidden = !loggedIn;
+  }
+
+  document.addEventListener('pw-auth-ready', syncGate);
+  syncGate();
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    errorEl.classList.remove('show');
+    var text = body.value.trim();
+    if (!text) return;
+    fetch('/api/comments/post.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ board: 'community', body: text, csrf: window.PW_AUTH.csrf }),
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (data.ok) {
+        body.value = '';
+        loadFeed();
+      } else {
+        errorEl.textContent = data.error || 'Could not post that.';
+        errorEl.classList.add('show');
+      }
+    });
+  });
+
+  loadFeed();
+})();
+</script>
+</body>
+</html>
