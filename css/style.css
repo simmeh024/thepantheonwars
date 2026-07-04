@@ -1748,6 +1748,11 @@ footer.site-footer {
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.95rem; resize: vertical;
 }
 .community-form textarea:focus { outline: none; border-color: var(--purple-bright); }
+.board-tabs { margin-bottom: 0.8em; }
+.board-desc {
+  color: var(--text-faint); font-size: 0.82rem; margin-bottom: 1.8em;
+}
+
 .comment-item {
   border: 1px solid var(--border-soft); background: var(--panel); padding: 16px 20px; margin-bottom: 10px;
 }

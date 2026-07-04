@@ -70,11 +70,20 @@
   <section>
     <div class="container" style="max-width: 720px;">
 
+      <div class="auth-tabs board-tabs" id="board-tabs">
+        <button type="button" class="auth-tab active" data-board="announcements">Announcements</button>
+        <button type="button" class="auth-tab" data-board="assembly">The Assembly</button>
+        <button type="button" class="auth-tab" data-board="offworld">Offworld</button>
+      </div>
+      <p class="meta board-desc" id="board-desc">Important information is shared here by the author or moderators.</p>
+
       <div id="community-gate" class="profile-gate" hidden>
         <p>You need an account to post here — but you can read every message below without one.</p>
         <button type="button" class="btn btn-solid auth-trigger" data-tab="register">Create an Account</button>
         <button type="button" class="btn auth-trigger" data-tab="login">Log In</button>
       </div>
+
+      <p id="community-locked" class="lore-status" hidden>Only the author and moderators can post in Announcements.</p>
 
       <form id="community-form" class="community-form" hidden>
         <div class="auth-field">
@@ -144,12 +153,22 @@
 <script src="js/members.js"></script>
 <script>
 (function () {
+  var boardTabs = document.getElementById('board-tabs');
+  var boardDesc = document.getElementById('board-desc');
   var gate = document.getElementById('community-gate');
+  var lockedEl = document.getElementById('community-locked');
   var form = document.getElementById('community-form');
   var body = document.getElementById('community-body');
   var errorEl = document.getElementById('community-error');
   var feed = document.getElementById('community-feed');
   var emptyEl = document.getElementById('community-empty');
+
+  var boardDescriptions = {
+    announcements: "Important information is shared here by the author or moderators.",
+    assembly: "Discussions about each book.",
+    offworld: "Off-topic discussion about anything."
+  };
+  var currentBoard = 'announcements';
 
   function fmtTime(iso) {
     var d = new Date(iso.replace(' ', 'T') + 'Z');
@@ -198,7 +217,7 @@
   }
 
   function loadFeed() {
-    fetch('/api/comments/list.php?board=community', { credentials: 'same-origin' })
+    fetch('/api/comments/list.php?board=' + encodeURIComponent(currentBoard), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         feed.innerHTML = '';
@@ -234,9 +253,30 @@
 
   function syncGate() {
     var loggedIn = window.PW_AUTH.loggedIn;
+    var isAdmin = loggedIn && window.PW_AUTH.user && window.PW_AUTH.user.is_admin;
+    var announcementsLocked = currentBoard === 'announcements' && !isAdmin;
+
     gate.hidden = loggedIn;
-    form.hidden = !loggedIn;
+    lockedEl.hidden = !loggedIn || !announcementsLocked;
+    form.hidden = !loggedIn || announcementsLocked;
   }
+
+  function switchBoard(boardKey) {
+    currentBoard = boardKey;
+    boardDesc.textContent = boardDescriptions[boardKey] || '';
+    Array.prototype.forEach.call(boardTabs.querySelectorAll('.auth-tab'), function (tab) {
+      tab.classList.toggle('active', tab.getAttribute('data-board') === boardKey);
+    });
+    errorEl.classList.remove('show');
+    syncGate();
+    loadFeed();
+  }
+
+  boardTabs.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-board]');
+    if (!btn) return;
+    switchBoard(btn.getAttribute('data-board'));
+  });
 
   document.addEventListener('pw-auth-ready', syncGate);
   syncGate();
@@ -250,7 +290,7 @@
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ board: 'community', body: text, csrf: window.PW_AUTH.csrf }),
+      body: JSON.stringify({ board: currentBoard, body: text, csrf: window.PW_AUTH.csrf }),
     }).then(function (r) { return r.json(); }).then(function (data) {
       if (data.ok) {
         body.value = '';

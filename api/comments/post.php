@@ -14,6 +14,10 @@ if (!preg_match('/^[a-z0-9\-]{1,50}$/', $board)) {
     $board = 'community';
 }
 
+if ($board === 'announcements' && empty($user['is_admin'])) {
+    pw_error('Only the author and moderators can post in Announcements.', 403);
+}
+
 $body = isset($input['body']) ? trim($input['body']) : '';
 if ($body === '') {
     pw_error('Your message is empty.');
