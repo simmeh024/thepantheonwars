@@ -31,12 +31,22 @@
     <a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a>
     <nav class="main-nav">
       <a href="index.html">Home</a>
-      <a href="books.html">The Books</a>
-      <a href="worlds.html">Worlds</a>
-      <a href="about.html">About</a>
+      <div class="nav-item has-dropdown">
+        <span class="nav-parent">The Universe<span class="nav-caret">⌄</span></span>
+        <div class="nav-dropdown">
+          <a href="books.html">The Books</a>
+          <a href="worlds.html">The Worlds</a>
+          <a href="overlords.html">The Overlords</a>
+        </div>
+      </div>
       <a href="news.html">News</a>
-      <a href="quiz.html" class="active">Quiz</a>
-      <a href="community.html">Community</a>
+      <a href="about.html">About</a>
+      <div class="nav-item has-dropdown">
+        <a href="community.html" class="nav-parent active">Community<span class="nav-caret">⌄</span></a>
+        <div class="nav-dropdown">
+          <a href="quiz.html" class="active">Quiz</a>
+        </div>
+      </div>
       <span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span>
     </nav>
     <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
@@ -135,6 +145,7 @@
           <li><a href="index.html">Home</a></li>
           <li><a href="books.html">The Books</a></li>
           <li><a href="worlds.html">Worlds</a></li>
+          <li><a href="overlords.html">The Overlords</a></li>
           <li><a href="about.html">About the Author</a></li>
           <li><a href="news.html">News</a></li>
           <li><a href="quiz.html">Which Overlord Are You?</a></li>

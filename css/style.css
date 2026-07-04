@@ -256,6 +256,54 @@ header.site-header {
   100% { box-shadow: 0 0 5px var(--glow), 0 0 0px var(--gold-bright); filter: brightness(0.95); }
 }
 nav.main-nav { display: flex; gap: 30px; align-items: center; }
+.nav-item { position: relative; display: flex; align-items: center; }
+.nav-parent {
+  font-family: 'Jost', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: default;
+  background: none;
+  border: none;
+  padding: 0;
+}
+a.nav-parent { cursor: pointer; }
+.nav-item:hover .nav-parent, .nav-item:focus-within .nav-parent,
+.nav-parent.active { color: var(--gold); }
+.nav-caret { font-size: 0.65rem; transform: translateY(1px); transition: transform 0.2s ease; }
+.nav-item:hover .nav-caret, .nav-item:focus-within .nav-caret { transform: translateY(1px) rotate(180deg); }
+.nav-dropdown {
+  position: absolute;
+  top: 100%; left: 50%;
+  transform: translate(-50%, 6px);
+  min-width: 168px;
+  background: var(--bg-alt);
+  border: 1px solid var(--border-soft);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.45);
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 5;
+}
+.nav-item:hover .nav-dropdown, .nav-item:focus-within .nav-dropdown {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+}
+.nav-dropdown a {
+  padding: 8px 20px;
+  white-space: nowrap;
+  color: var(--text-dim);
+}
+.nav-dropdown a:hover, .nav-dropdown a.active { color: var(--gold); background: rgba(124,79,214,0.12); }
+
 nav.main-nav a {
   font-family: 'Jost', sans-serif;
   text-transform: uppercase;
@@ -289,6 +337,20 @@ nav.main-nav a:hover, nav.main-nav a.active { color: var(--gold); }
   }
   nav.main-nav.open { display: flex; }
   .nav-toggle { display: flex; }
+  .nav-item { flex-direction: column; align-items: flex-start; width: 100%; }
+  .nav-caret { display: none; }
+  .nav-dropdown {
+    position: static;
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+    background: none;
+    border: none;
+    box-shadow: none;
+    padding: 10px 0 0 16px;
+    gap: 12px;
+  }
+  .nav-dropdown a { padding: 0; }
 }
 
 /* ---------------- Hero ---------------- */
@@ -1322,6 +1384,38 @@ footer.site-footer {
   color: var(--text-faint); display: block; margin-top: 0.6em;
 }
 .overlord-backlink { text-align: center; margin-top: 2.4em; }
+
+/* ---------------- Overlords hub page ---------------- */
+.overlord-card { text-align: center; }
+.overlord-card .thumb-circle {
+  width: 140px; height: 140px; border-radius: 50%; overflow: hidden;
+  margin: 0 auto 18px;
+  border: 2px solid var(--tag-dim, var(--gold-dim));
+  box-shadow: 0 0 26px var(--tag-color, rgba(124,79,214,0.35));
+  transition: box-shadow 0.3s ease;
+}
+.overlord-card .thumb-circle img { width: 100%; height: 100%; object-fit: cover; }
+.overlord-card:hover .thumb-circle { box-shadow: 0 0 38px var(--tag-color, var(--glow)); }
+.overlord-card h3 { font-size: 1.1rem; margin-bottom: 0.15em; }
+.overlord-card .overlord-epithet-tag {
+  display: block; font-family: 'Cinzel', serif; font-size: 0.82rem;
+  color: var(--tag-color, var(--purple-bright)); margin-bottom: 0.5em;
+}
+.overlord-card .overlord-domain-tag {
+  display: block; font-size: 0.66rem; text-transform: uppercase;
+  letter-spacing: 0.12em; color: var(--text-faint); margin-bottom: 0.9em;
+}
+.overlord-card p { font-size: 0.9rem; }
+.overlord-card .learn-more {
+  display: inline-block; margin-top: 0.8em; font-size: 0.78rem;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold);
+}
+.overlord-card .learn-more:hover { color: var(--purple-bright); }
+.overlords-note {
+  text-align: center; color: var(--text-faint); font-size: 0.92rem;
+  margin-top: 2.2em;
+}
+
 
 /* ---------------- Which Overlord Are You? quiz ---------------- */
 .quiz-wrap { max-width: 760px; margin: 0 auto; }
