@@ -907,9 +907,9 @@ footer.site-footer {
   border: 1px solid var(--gold-dim); box-shadow: 0 0 60px rgba(124,79,214,0.45);
 }
 .map-lightbox-close {
-  position: absolute; top: -16px; right: -16px; width: 36px; height: 36px; border-radius: 50%;
+  position: absolute; top: 24px; right: 24px; width: 40px; height: 40px; border-radius: 50%;
   background: var(--panel); border: 1px solid var(--gold-dim); color: var(--text);
-  font-size: 1.3rem; line-height: 1; cursor: pointer; z-index: 1;
+  font-size: 1.4rem; line-height: 1; cursor: pointer; z-index: 10;
   display: flex; align-items: center; justify-content: center;
   transition: border-color 0.2s ease, color 0.2s ease;
 }
