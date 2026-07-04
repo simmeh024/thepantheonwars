@@ -771,6 +771,7 @@ footer.site-footer {
 }
 .book-body p { margin-bottom: 0; font-size: 0.95rem; }
 .book-body .meta { color: var(--text-faint); font-size: 0.8rem; margin-bottom: 0.5em; }
+.book-cta { margin-top: 14px; }
 
 /* ---------------- About page ---------------- */
 .about-body { max-width: 720px; margin: 0 auto; }
@@ -823,6 +824,8 @@ footer.site-footer {
   color: var(--text-faint); margin-top: 1.4em;
 }
 .post .stamp img { width: 22px; height: 22px; object-fit: cover; object-position: top; border-radius: 50%; border: 1px solid var(--border); }
+.post-share { margin-top: 1em; }
+.post-share .btn.share-reddit { padding: 10px 22px; font-size: 0.72rem; }
 
 /* ---------------- Neoh: vertical city cross-section ---------------- */
 .city-cross-section { display: flex; gap: 22px; align-items: stretch; }
@@ -1067,6 +1070,41 @@ footer.site-footer {
 .result-tag { display: block; }
 .result-blurb { max-width: 520px; margin: 1em auto 1.6em; }
 .result-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 1.4em; }
+
+.result-share {
+  margin-top: 1.8em;
+  padding-top: 1.4em;
+  border-top: 1px solid var(--border);
+}
+.result-share .share-label {
+  display: block;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-faint);
+  margin-bottom: 0.9em;
+}
+.share-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-family: 'Jost', sans-serif;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.2s ease;
+}
+.share-btn:hover {
+  border-color: var(--gold);
+  color: var(--gold-bright);
+  background: rgba(209,169,85,0.08);
+}
 
 .quiz-teaser {
   background: linear-gradient(160deg, var(--panel) 0%, var(--panel-2) 100%);

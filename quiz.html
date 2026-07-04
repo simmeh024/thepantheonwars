@@ -70,6 +70,15 @@
             <a href="#" class="btn btn-solid result-link">Learn more →</a>
             <button type="button" class="btn quiz-retry">Retake the Quiz</button>
           </div>
+
+          <div class="result-share">
+            <span class="share-label">Share Your Overlord</span>
+            <div class="share-btns">
+              <a href="#" target="_blank" rel="noopener" class="share-btn share-x">Share on X</a>
+              <button type="button" class="share-btn share-mastodon">Share on Mastodon</button>
+              <a href="#" target="_blank" rel="noopener" class="share-btn share-whatsapp">Share on WhatsApp</a>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -354,6 +363,24 @@ document.addEventListener('DOMContentLoaded', function () {
     var link = resultEl.querySelector('.result-link');
     link.href = ov.href;
     link.textContent = 'Learn more about ' + ov.name + ' →';
+
+    var shareText = "I got " + ov.name + ", " + ov.epithet + " \u2014 which Overlord are you?";
+    var pageUrl = "https://thepantheonwars.com/quiz.html";
+
+    var xLink = resultEl.querySelector('.share-x');
+    xLink.href = 'https://twitter.com/intent/tweet?text=' + encodeURIComponent(shareText) + '&url=' + encodeURIComponent(pageUrl);
+
+    var waLink = resultEl.querySelector('.share-whatsapp');
+    waLink.href = 'https://wa.me/?text=' + encodeURIComponent(shareText + ' ' + pageUrl);
+
+    var mastoBtn = resultEl.querySelector('.share-mastodon');
+    mastoBtn.onclick = function () {
+      var instance = window.prompt('Which Mastodon instance are you on? (e.g. mastodon.social)', 'mastodon.social');
+      if (!instance) return;
+      instance = instance.trim().replace(/^https?:\/\//, '').replace(/\/$/, '');
+      var shareUrl = 'https://' + instance + '/share?text=' + encodeURIComponent(shareText + ' ' + pageUrl);
+      window.open(shareUrl, '_blank', 'noopener');
+    };
   }
 
   retryBtn.addEventListener('click', function () {
