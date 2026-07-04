@@ -74,14 +74,15 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // City cross-section layers (Worlds > Neoh) — click a floor to expand it.
+  // City cross-section layers (Worlds > Neoh, Worlds > High Hammer) — click a district to expand it.
   document.querySelectorAll('.city-layer').forEach(function (layer) {
     var toggleBtn = layer.querySelector('.layer-toggle');
     if (!toggleBtn) return;
     toggleBtn.addEventListener('click', function () {
       var wasOpen = layer.classList.contains('open');
-      if (layer.closest('.city-stack')) {
-        layer.closest('.city-stack').querySelectorAll('.city-layer.open').forEach(function (other) {
+      var group = layer.closest('.city-stack, .harbor-row');
+      if (group) {
+        group.querySelectorAll('.city-layer.open').forEach(function (other) {
           if (other !== layer) other.classList.remove('open');
         });
       }

@@ -1126,6 +1126,64 @@ footer.site-footer {
 .city-layer.vault .layer-name { color: var(--purple-bright); }
 .city-layer.vault .layer-toggle .layer-tag { color: #7a5a9a; }
 
+/* ---------------- High Hammer: horizontal harbor cross-section ---------------- */
+/* Scoped steampunk palette — brass, copper, and teal patina instead of Neoh's purple/gold */
+#high-hammer-view {
+  --gold: #c98a3c;
+  --gold-dim: #8a5a26;
+  --gold-bright: #f0c479;
+  --purple: #2f7a72;
+  --purple-bright: #5fc2b6;
+  --purple-deep: #163f3a;
+  --glow: rgba(240, 196, 121, 0.45);
+  --border: #5a4326;
+  --border-soft: #3a2c1a;
+  --panel: #1c160f;
+  --panel-2: #241d13;
+  --text-dim: #c9b89a;
+  --text-faint: #9c8a68;
+}
+#high-hammer-view .map-lightbox-inner img { box-shadow: 0 0 60px var(--glow); }
+
+.harbor-map-figure {
+  width: 100%;
+  max-width: 640px;
+  flex-shrink: initial;
+  margin: 0 auto 2rem;
+}
+
+.harbor-cross-section { display: flex; flex-direction: column; }
+.harbor-row { display: flex; flex-wrap: wrap; gap: 3px; }
+.harbor-row .city-layer { flex: 1 1 170px; min-width: 150px; order: 1; }
+.harbor-row .city-layer.open { flex: 1 0 100%; order: 99; }
+.harbor-row .layer-toggle {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px;
+  padding: 18px 40px 18px 18px; position: relative; min-height: 92px;
+}
+.harbor-row .layer-toggle .layer-idx { width: auto; }
+.harbor-row .layer-toggle .layer-tag {
+  flex-basis: 100%; margin-left: 0; text-align: left; display: block; margin-top: 4px;
+}
+.harbor-row .layer-toggle .layer-plus { position: absolute; top: 16px; right: 16px; }
+.harbor-row .city-layer.open .inner-pad { padding: 0 22px 24px 22px; }
+
+.harbor-district.sapphire-sea    { background: linear-gradient(90deg, rgba(70,150,160,0.14), transparent); }
+.harbor-district.merchant-harbor { background: linear-gradient(90deg, rgba(180,140,70,0.14), transparent); }
+.harbor-district.lower-city      { background: linear-gradient(90deg, rgba(120,90,60,0.16), transparent); }
+.harbor-district.grand-market    { background: linear-gradient(90deg, rgba(210,170,90,0.16), transparent); }
+.harbor-district.guild-quarter   { background: linear-gradient(90deg, rgba(190,110,50,0.16), transparent); }
+.harbor-district.grand-citadel   { background: linear-gradient(90deg, rgba(220,190,120,0.16), transparent); }
+.harbor-district.noble-heights   { background: linear-gradient(90deg, rgba(150,180,170,0.14), transparent); }
+.harbor-district.iron-mountains  { background: linear-gradient(90deg, rgba(110,110,120,0.18), transparent); }
+.harbor-district.great-foundries { background: linear-gradient(90deg, rgba(210,90,40,0.2), transparent); }
+
+.sub-landmark.distant { border-left-color: #d9762e; }
+.sub-landmark.distant .sub-landmark-name { color: #f0a35f; }
+
+@media (max-width: 640px) {
+  .harbor-row .city-layer { flex: 1 1 100%; }
+}
+
 .world-detail-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 0.6em; }
 .world-detail-portrait {
   width: 52px; height: 52px; border-radius: 50%; overflow: hidden;
