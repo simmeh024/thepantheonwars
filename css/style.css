@@ -1906,11 +1906,6 @@ footer.site-footer {
   70% { opacity: 0.6; transform: translateX(-2%) scaleX(1.01); }
   100% { opacity: 0.25; transform: translateX(0) scaleX(1); }
 }
-.resonance-pct.tier-pure.overlord-syn-dravus {
-  background: linear-gradient(90deg, #5fd6e0, #a279ec, #ecc987, #5fd6e0, #a279ec);
-  background-size: 400% 100%;
-  animation: synGlitchFlow 1.6s steps(10) infinite;
-}
 
 /* Lysara Venthe -- water drips / ripples, blue-gold */
 .resonance-bar-fill.tier-pure.overlord-lysara-venthe {
@@ -1928,11 +1923,6 @@ footer.site-footer {
 }
 @keyframes lysaraFlow { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
 @keyframes lysaraRipple { 0% { background-position: 0 0; } 100% { background-position: 160px 0; } }
-.resonance-pct.tier-pure.overlord-lysara-venthe {
-  background: linear-gradient(90deg, #4fb0e8, #eccf87, #4fb0e8);
-  background-size: 300% 100%;
-  animation: lysaraFlow 3.2s ease-in-out infinite;
-}
 
 /* Maerion Thal -- steady traveling golden sparks, bronze-gold */
 .resonance-bar-fill.tier-pure.overlord-maerion-thal {
@@ -1950,10 +1940,49 @@ footer.site-footer {
 }
 @keyframes maerionFlow { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
 @keyframes maerionSpark { 0% { background-position: -10% 50%; } 100% { background-position: 110% 50%; } }
-.resonance-pct.tier-pure.overlord-maerion-thal {
-  background: linear-gradient(90deg, #8a5a26, #f0c479, #8a5a26);
+
+/* Malric Thorne -- red/gold wave */
+.resonance-bar-fill.tier-pure.overlord-malric-thorne {
+  background: linear-gradient(90deg, #b3232f, #f0c479, #b3232f, #f0c479);
   background-size: 300% 100%;
-  animation: maerionFlow 3.4s linear infinite;
+  animation: malricWave 2.4s ease-in-out infinite;
+}
+.resonance-bar-fill.tier-pure.overlord-malric-thorne::after {
+  background: repeating-linear-gradient(90deg, transparent 0 10%, rgba(255,255,255,0.35) 10% 14%, transparent 14% 24%);
+  background-size: 60px 100%;
+  opacity: 0.5;
+  animation: malricWaveMove 1.4s ease-in-out infinite;
+}
+@keyframes malricWave { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes malricWaveMove { 0%, 100% { background-position: 0 0; } 50% { background-position: 60px 0; } }
+
+/* Korrus Vale -- green radiation glowing outwards */
+.resonance-bar-fill.tier-pure.overlord-korrus-vale {
+  background: linear-gradient(90deg, #2f7a3a, #baff6b, #2f7a3a);
+  background-size: 300% 100%;
+  animation: korrusFlow 2.8s linear infinite;
+}
+.resonance-bar-fill.tier-pure.overlord-korrus-vale::after {
+  background: radial-gradient(circle, rgba(186,255,107,0.95) 0%, rgba(186,255,107,0.35) 40%, transparent 70%);
+  opacity: 0.7;
+  transform-origin: center;
+  animation: korrusGlow 1.8s ease-out infinite;
+}
+@keyframes korrusFlow { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
+@keyframes korrusGlow {
+  0% { transform: scale(0.25); opacity: 0.9; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* Zura Kaleth -- dark green slowly taking over brown, then brown fighting back */
+.resonance-bar-fill.tier-pure.overlord-zura-kaleth {
+  background: linear-gradient(90deg, #1f4d2b 0%, #1f4d2b 46%, #3d3521 50%, #6b4a2b 54%, #6b4a2b 100%);
+  background-size: 240% 100%;
+  animation: zuraBattle 4.5s ease-in-out infinite;
+}
+@keyframes zuraBattle {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
 .resonance-pct-wrap {
