@@ -2613,9 +2613,12 @@ footer.site-footer {
   .dispatch-tag-filter-panel { right: auto; left: 0; }
 }
 
-/* BH-4 "Verified" easter egg badge (floats beside the dispatch log) */
+/* BH-4 "Verified" easter egg badge (fixed spot, bottom-right of the dispatch log) */
+.bh4-verify-row {
+  display: flex; justify-content: flex-end; margin-top: 22px;
+}
 .bh4-verify {
-  position: fixed; top: 130px; right: max(16px, calc((100vw - 1180px) / 2 - 60px)); z-index: 45;
+  position: relative; z-index: 5;
   display: flex; align-items: center; gap: 9px;
   cursor: pointer; user-select: none; text-align: left;
 }
@@ -2644,11 +2647,11 @@ footer.site-footer {
 .bh4-verify:hover .bh4-verify-label,
 .bh4-verify:focus-visible .bh4-verify-label { color: var(--gold-bright); }
 .bh4-verify-tooltip {
-  position: absolute; top: calc(100% + 12px); right: 0; width: 250px;
+  position: absolute; bottom: calc(100% + 12px); top: auto; right: 0; width: 250px;
   background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
   padding: 13px 15px; font-family: 'Jost', sans-serif; font-size: 0.78rem; line-height: 1.6;
   color: var(--text-dim); text-transform: none; letter-spacing: normal;
-  opacity: 0; visibility: hidden; transform: translateY(-4px);
+  opacity: 0; visibility: hidden; transform: translateY(4px);
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
   box-shadow: 0 10px 28px rgba(0,0,0,0.5); z-index: 10; pointer-events: none;
 }
@@ -2656,11 +2659,8 @@ footer.site-footer {
 .bh4-verify:focus-visible .bh4-verify-tooltip {
   opacity: 1; visibility: visible; transform: translateY(0);
 }
-@media (max-width: 900px) {
+@media (max-width: 480px) {
   .bh4-verify-label { display: none; }
-}
-@media (max-width: 720px) {
-  .bh4-verify { top: 78px; right: 12px; }
   .bh4-verify-tooltip { right: -10px; width: 220px; }
 }
 
