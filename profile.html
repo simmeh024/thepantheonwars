@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=6">
+<link rel="stylesheet" href="css/style.css?v=7">
 </head>
 <body>
 
@@ -80,7 +80,20 @@
 
         <div class="profile-affinity" id="profile-affinity-box" hidden>
           <span class="eyebrow">Your Overlord Affinity</span>
-          <h2 id="profile-affinity-name">—</h2>
+          <div class="affinity-main">
+            <div class="affinity-portrait"><img id="profile-affinity-img" src="" alt=""></div>
+            <div class="affinity-info">
+              <h2 id="profile-affinity-name">—</h2>
+              <span class="overlord-epithet" id="profile-affinity-epithet"></span>
+              <span class="overlord-domain-tag" id="profile-affinity-domain"></span>
+              <p class="affinity-blurb" id="profile-affinity-blurb"></p>
+              <a href="#" class="affinity-link" id="profile-affinity-link">Learn more →</a>
+            </div>
+          </div>
+          <div class="affinity-scores" id="profile-affinity-scores" hidden>
+            <span class="affinity-scores-label">Match Breakdown</span>
+            <div id="profile-affinity-scores-list"></div>
+          </div>
         </div>
         <p id="profile-no-quiz" class="lore-status" hidden>You haven't taken the quiz yet — <a href="quiz.html">find out which Overlord you are</a>.</p>
 
@@ -179,6 +192,31 @@
   var avatarInput = document.getElementById('profile-avatar-input');
   var avatarStatus = document.getElementById('profile-avatar-status');
   var currentUserId = null;
+
+  // Same roster as quiz.html's overlords array -- kept here too since this
+  // page needs the portrait/epithet/domain/blurb for whichever result the
+  // user already has saved, independent of ever visiting the quiz page.
+  var overlordMeta = [
+    { name: "Syn Dravus", epithet: "The Mindweaver", domain: "Overlord of Neoh", img: "images/char-syn.jpg", href: "overlord-syn-dravus.html",
+      blurb: "You rule through knowledge no one else has. People fear what you might already know about them — and they're right to." },
+    { name: "Malric Thorne", epithet: "The Black Regent", domain: "Overlord of Cerius", img: "images/char-malric.jpg", href: "overlord-malric-thorne.html",
+      blurb: "You rule through control, seized and never loosened. Order is the only mercy you believe in." },
+    { name: "Korrus Vale", epithet: "The Reactor King", domain: "Overlord of Reanium", img: "images/char-korrus.jpg", href: "overlord-korrus-vale.html",
+      blurb: "You rule through efficiency, even when the numbers are grim. The system survives — that's the point." },
+    { name: "Lysara Venthe", epithet: "The Tidekeeper", domain: "Overlord of Asmecu", img: "images/char-lysara.jpg", href: "overlord-lysara-venthe.html",
+      blurb: "You rule through care that looks like softness and isn't. Everyone feels safe near you. Not everyone should." },
+    { name: "Zura Kaleth", epithet: "The Rootbinder", domain: "Overlord of Babki Prime", img: "images/char-zura.jpg", href: "overlord-zura-kaleth.html",
+      blurb: "You rule through patience, letting things take the shape they need to. Nothing near you stays the same for long." },
+    { name: "Maerion Thal", epithet: "The Sky Duke", domain: "Overlord of High Hammer", img: "images/char-maerion.jpg", href: "overlord-maerion-thal.html",
+      blurb: "You rule through honor and reputation, staged as carefully as any duel. Your word is the one currency you never let devalue." }
+  ];
+
+  function overlordByName(name) {
+    for (var i = 0; i < overlordMeta.length; i++) {
+      if (overlordMeta[i].name === name) return overlordMeta[i];
+    }
+    return null;
+  }
 
   function fmtDate(iso) {
     var d = new Date(iso.replace(' ', 'T') + 'Z');
@@ -339,11 +377,66 @@
         lockedNameInput.value = data.user.display_name;
 
         var affBox = document.getElementById('profile-affinity-box');
+        var scoresBox = document.getElementById('profile-affinity-scores');
         if (data.user.overlord_affinity) {
           affBox.hidden = false;
-          document.getElementById('profile-affinity-name').textContent = data.user.overlord_affinity;
+          var ov = overlordByName(data.user.overlord_affinity);
+          var affImg = document.getElementById('profile-affinity-img');
+          if (ov) {
+            affImg.src = ov.img;
+            affImg.alt = ov.name;
+            document.getElementById('profile-affinity-name').textContent = ov.name;
+            document.getElementById('profile-affinity-epithet').textContent = ov.epithet;
+            document.getElementById('profile-affinity-domain').textContent = ov.domain;
+            document.getElementById('profile-affinity-blurb').textContent = ov.blurb;
+            var affLink = document.getElementById('profile-affinity-link');
+            affLink.href = ov.href;
+            affLink.textContent = 'Learn more about ' + ov.name + ' →';
+          } else {
+            document.getElementById('profile-affinity-name').textContent = data.user.overlord_affinity;
+          }
+
+          // Match breakdown: percentages from the most recent quiz attempt's
+          // per-overlord scores, top 3 only. Older attempts taken before
+          // Maerion Thal existed only have 5 scores -- overlordMeta[i] still
+          // lines up correctly since his slot was appended last.
+          var scoresListEl = document.getElementById('profile-affinity-scores-list');
+          scoresListEl.innerHTML = '';
+          var latest = (data.quizHistory && data.quizHistory.length) ? data.quizHistory[0] : null;
+          var scores = latest && latest.scores && latest.scores.length ? latest.scores : null;
+          if (scores) {
+            var total = scores.reduce(function (a, b) { return a + b; }, 0) || 1;
+            var ranked = scores.map(function (s, i) {
+              return { name: overlordMeta[i] ? overlordMeta[i].name : ('Overlord ' + (i + 1)), pct: Math.round((s / total) * 100) };
+            });
+            ranked.sort(function (a, b) { return b.pct - a.pct; });
+            ranked.slice(0, 3).forEach(function (w) {
+              var row = document.createElement('div');
+              row.className = 'affinity-score-row';
+              var nameEl = document.createElement('span');
+              nameEl.className = 'affinity-score-name';
+              nameEl.textContent = w.name;
+              var trackEl = document.createElement('div');
+              trackEl.className = 'affinity-score-bar-track';
+              var fillEl = document.createElement('div');
+              fillEl.className = 'affinity-score-bar-fill';
+              fillEl.style.width = w.pct + '%';
+              trackEl.appendChild(fillEl);
+              var pctEl = document.createElement('span');
+              pctEl.className = 'affinity-score-pct';
+              pctEl.textContent = w.pct + '%';
+              row.appendChild(nameEl);
+              row.appendChild(trackEl);
+              row.appendChild(pctEl);
+              scoresListEl.appendChild(row);
+            });
+            scoresBox.hidden = false;
+          } else {
+            scoresBox.hidden = true;
+          }
         } else {
           affBox.hidden = true;
+          scoresBox.hidden = true;
         }
 
         var historyEl = document.getElementById('profile-quiz-history');

@@ -9,14 +9,14 @@ $user = pw_require_login();
 $input = pw_input();
 pw_require_csrf($input);
 
-$validOverlords = ['Syn Dravus', 'Malric Thorne', 'Korrus Vale', 'Lysara Venthe', 'Zura Kaleth'];
+$validOverlords = ['Syn Dravus', 'Malric Thorne', 'Korrus Vale', 'Lysara Venthe', 'Zura Kaleth', 'Maerion Thal'];
 $overlord = isset($input['overlord']) ? trim($input['overlord']) : '';
 
 if (!in_array($overlord, $validOverlords, true)) {
     pw_error('Unrecognized result.');
 }
 
-$scores = isset($input['scores']) && is_array($input['scores']) ? array_slice(array_map('intval', $input['scores']), 0, 5) : [];
+$scores = isset($input['scores']) && is_array($input['scores']) ? array_slice(array_map('intval', $input['scores']), 0, 6) : [];
 $scoresJson = json_encode($scores);
 
 $db = pw_db();

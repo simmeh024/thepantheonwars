@@ -4,9 +4,17 @@ require_once __DIR__ . '/helpers.php';
 $user = pw_require_login();
 $db = pw_db();
 
-$stmt = $db->prepare('SELECT overlord_result, created_at FROM quiz_results WHERE user_id = ? ORDER BY created_at DESC LIMIT 20');
+$stmt = $db->prepare('SELECT overlord_result, scores_json, created_at FROM quiz_results WHERE user_id = ? ORDER BY created_at DESC LIMIT 20');
 $stmt->execute([$user['id']]);
-$quizHistory = $stmt->fetchAll();
+$quizHistory = array_map(function ($row) {
+    return [
+        'overlord_result' => $row['overlord_result'],
+        'created_at' => $row['created_at'],
+        // Older rows predate Maerion Thal and may have only 5 scores, or
+        // predate scores_json entirely -- both are handled client-side.
+        'scores' => $row['scores_json'] ? json_decode($row['scores_json']) : null,
+    ];
+}, $stmt->fetchAll());
 
 $stmt = $db->prepare('SELECT id, body, created_at FROM comments WHERE user_id = ? AND is_deleted = 0 ORDER BY created_at DESC LIMIT 20');
 $stmt->execute([$user['id']]);
