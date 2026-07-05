@@ -188,15 +188,75 @@
       ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   }
 
-  function renderComment(c, isReply) {
-    var el = document.createElement('div');
-    el.className = 'comment-item' + (isReply ? ' is-reply' : '');
-    var meta = document.createElement('div');
-    meta.className = 'comment-meta';
+  function capitalize(s) {
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+  }
+
+  function buildCommentProfile(c) {
+    var profile = document.createElement('div');
+    profile.className = 'comment-profile';
+
+    var avatarWrap = document.createElement('div');
+    avatarWrap.className = 'profile-avatar-wrap comment-avatar-wrap role-' + (c.role || 'member');
+
+    var avatarImg = document.createElement('img');
+    avatarImg.className = 'profile-avatar';
+    avatarImg.alt = '';
+    avatarImg.hidden = true;
+    avatarWrap.appendChild(avatarImg);
+
+    var avatarFallback = document.createElement('div');
+    avatarFallback.className = 'profile-avatar profile-avatar-fallback';
+    avatarFallback.textContent = (c.display_name || '?').charAt(0).toUpperCase();
+    avatarWrap.appendChild(avatarFallback);
+
+    var probe = new Image();
+    probe.onload = function () {
+      avatarImg.src = probe.src;
+      avatarImg.hidden = false;
+      avatarFallback.hidden = true;
+    };
+    probe.src = '/uploads/avatars/' + c.user_id + '.jpg';
+
+    profile.appendChild(avatarWrap);
+
+    var info = document.createElement('div');
+    info.className = 'comment-profile-info';
+
     var author = document.createElement('span');
     author.className = 'comment-author';
     author.textContent = c.display_name;
-    meta.appendChild(author);
+    info.appendChild(author);
+
+    var role = document.createElement('span');
+    role.className = 'comment-role comment-role-' + (c.role || 'member');
+    role.textContent = capitalize(c.role || 'member');
+    info.appendChild(role);
+
+    var postCount = document.createElement('span');
+    postCount.className = 'comment-postcount';
+    postCount.textContent = c.post_count + (c.post_count === 1 ? ' post' : ' posts');
+    info.appendChild(postCount);
+
+    profile.appendChild(info);
+    return profile;
+  }
+
+  function renderComment(c, isReply) {
+    var el = document.createElement('div');
+    el.className = 'comment-item' + (isReply ? ' is-reply' : '');
+
+    el.appendChild(buildCommentProfile(c));
+
+    var divider = document.createElement('div');
+    divider.className = 'comment-divider';
+    el.appendChild(divider);
+
+    var main = document.createElement('div');
+    main.className = 'comment-main';
+
+    var meta = document.createElement('div');
+    meta.className = 'comment-meta';
     if (c.overlord_affinity) {
       var aff = document.createElement('span');
       aff.className = 'comment-affinity';
@@ -207,12 +267,12 @@
     time.className = 'comment-time';
     time.textContent = fmtTime(c.created_at);
     meta.appendChild(time);
-    el.appendChild(meta);
+    main.appendChild(meta);
 
     var bodyEl = document.createElement('div');
     bodyEl.className = 'comment-body';
     bodyEl.textContent = c.body; // textContent only — never innerHTML with user text
-    el.appendChild(bodyEl);
+    main.appendChild(bodyEl);
 
     if (c.canDelete) {
       var actions = document.createElement('div');
@@ -222,8 +282,10 @@
       delBtn.textContent = 'Delete';
       delBtn.addEventListener('click', function () { deleteComment(c.id); });
       actions.appendChild(delBtn);
-      el.appendChild(actions);
+      main.appendChild(actions);
     }
+
+    el.appendChild(main);
     return el;
   }
 
