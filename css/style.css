@@ -1882,6 +1882,11 @@ footer.site-footer {
   font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--text-faint);
 }
 .quiz-history-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.quiz-history-text { flex: 1; }
+.quiz-history-pct {
+  flex-shrink: 0; font-variant-numeric: tabular-nums; font-size: 0.82rem;
+  color: var(--gold-bright); font-family: 'Cinzel', serif;
+}
 .history-pagination { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 1.2em; }
 .history-pagination[hidden] { display: none; }
 .history-page-arrow {

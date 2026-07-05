@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=10">
+<link rel="stylesheet" href="css/style.css?v=11">
 </head>
 <body>
 
@@ -256,6 +256,16 @@
       text.className = 'quiz-history-text';
       text.textContent = h.overlord_result + ' — ' + fmtDate(h.created_at);
       item.appendChild(text);
+
+      if (h.scores && h.scores.length) {
+        var hTotal = h.scores.reduce(function (a, b) { return a + b; }, 0) || 1;
+        var hMax = Math.max.apply(Math, h.scores);
+        var hPct = Math.round((hMax / hTotal) * 100);
+        var pctEl = document.createElement('span');
+        pctEl.className = 'quiz-history-pct';
+        pctEl.textContent = hPct + '%';
+        item.appendChild(pctEl);
+      }
 
       historyEl.appendChild(item);
     });
