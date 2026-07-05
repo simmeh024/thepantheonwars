@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=12">
+<link rel="stylesheet" href="css/style.css?v=13">
 </head>
 <body>
 
@@ -523,6 +523,14 @@
             ranked.sort(function (a, b) { return b.pct - a.pct; });
             var fillEls = [];
             ranked.slice(0, 3).forEach(function (w) {
+              var wTier, wTierLabel;
+              if (w.pct >= 100) { wTier = 'tier-pure'; wTierLabel = 'Pure Resonance'; }
+              else if (w.pct >= 85) { wTier = 'tier-dominant'; wTierLabel = 'Dominant Resonance'; }
+              else if (w.pct >= 70) { wTier = 'tier-strong'; wTierLabel = 'Strong Resonance'; }
+              else if (w.pct >= 55) { wTier = 'tier-mixed'; wTierLabel = 'Mixed Resonance'; }
+              else if (w.pct >= 40) { wTier = 'tier-unstable'; wTierLabel = 'Unstable Resonance'; }
+              else { wTier = 'tier-fractured'; wTierLabel = 'Fractured Resonance'; }
+
               var row = document.createElement('div');
               row.className = 'resonance-row';
               var nameEl = document.createElement('span');
@@ -531,14 +539,21 @@
               var trackEl = document.createElement('div');
               trackEl.className = 'resonance-bar-track';
               var fillEl = document.createElement('div');
-              fillEl.className = 'resonance-bar-fill';
+              fillEl.className = 'resonance-bar-fill ' + wTier;
               trackEl.appendChild(fillEl);
+              var pctWrap = document.createElement('span');
+              pctWrap.className = 'resonance-pct-wrap';
               var pctEl = document.createElement('span');
-              pctEl.className = 'resonance-pct';
+              pctEl.className = 'resonance-pct ' + wTier;
               pctEl.textContent = w.pct + '%';
+              pctWrap.appendChild(pctEl);
+              var wTooltip = document.createElement('span');
+              wTooltip.className = 'resonance-tooltip ' + wTier;
+              wTooltip.textContent = wTierLabel;
+              pctWrap.appendChild(wTooltip);
               row.appendChild(nameEl);
               row.appendChild(trackEl);
-              row.appendChild(pctEl);
+              row.appendChild(pctWrap);
               scoresListEl.appendChild(row);
               fillEls.push({ el: fillEl, pct: w.pct });
             });
