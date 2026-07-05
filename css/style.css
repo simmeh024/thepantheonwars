@@ -1672,6 +1672,7 @@ footer.site-footer {
 .result-tag { display: block; }
 .result-blurb { max-width: 520px; margin: 1em auto 1.6em; }
 .result-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-top: 1.4em; }
+.result-save-login[hidden] { display: none; }
 
 .result-share {
   margin-top: 1.8em;
