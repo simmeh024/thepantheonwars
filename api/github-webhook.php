@@ -93,7 +93,15 @@ foreach ($payload['commits'] as $commit) {
     $tag = pw_dispatch_tag($rawSubject);
     $author = !empty($commit['author']['name']) ? $commit['author']['name'] : 'Unknown';
     $timestamp = !empty($commit['timestamp']) ? $commit['timestamp'] : gmdate('c');
-    $committedAt = date('Y-m-d H:i:s', strtotime($timestamp));
+    // Keep the commit author's literal local wall-clock time (matching the
+    // git-log-derived backfill data) instead of converting through the
+    // server's default PHP timezone, which would shift it and break sort
+    // order against the backfilled rows.
+    if (preg_match('/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})/', $timestamp, $tsMatch)) {
+        $committedAt = $tsMatch[1] . ' ' . $tsMatch[2];
+    } else {
+        $committedAt = date('Y-m-d H:i:s', strtotime($timestamp));
+    }
     $url = !empty($commit['url']) ? $commit['url'] : null;
 
     $stmt->execute([
