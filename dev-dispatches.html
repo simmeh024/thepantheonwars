@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=29">
+<link rel="stylesheet" href="css/style.css?v=30">
 </head>
 <body>
 
@@ -111,22 +111,24 @@
         <p class="dispatch-log-loading">Loading dispatches…</p>
       </div>
 
-      <div class="dispatch-log-pagination" id="dispatch-pagination-bottom"></div>
+      <div class="dispatch-pagination-wrap">
+        <div class="dispatch-log-pagination" id="dispatch-pagination-bottom"></div>
 
-      <div class="bh4-verify-row">
-        <div class="bh4-verify" id="bh4-verify" tabindex="0" role="button" aria-label="Verified by BH-4">
-          <div class="bh4-verify-avatar">
-            <img src="images/bh4-dispatch.jpg" alt="">
-            <span class="bh4-verify-check">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-            </span>
-          </div>
-          <span class="bh4-verify-label">Verified by BH-4</span>
-          <div class="bh4-verify-tooltip">
-            Every dispatch has been verified by me. The data comes directly from GitHub, untouched and unedited.<br>
-            Don't take my word for it.<br>
-            Check the commit yourself.<br>
-            I did.
+        <div class="bh4-verify-row">
+          <div class="bh4-verify" id="bh4-verify" tabindex="0" role="button" aria-label="Verified by BH-4">
+            <div class="bh4-verify-avatar">
+              <img src="images/bh4-dispatch.jpg" alt="">
+              <span class="bh4-verify-check">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+            </div>
+            <span class="bh4-verify-label">Verified by BH-4</span>
+            <div class="bh4-verify-tooltip">
+              Every dispatch has been verified by me. The data comes directly from GitHub, untouched and unedited.<br>
+              Don't take my word for it.<br>
+              Check the commit yourself.<br>
+              I did.
+            </div>
           </div>
         </div>
       </div>

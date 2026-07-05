@@ -2613,10 +2613,14 @@ footer.site-footer {
   .dispatch-tag-filter-panel { right: auto; left: 0; }
 }
 
-/* BH-4 "Verified" easter egg badge (fixed spot, bottom-right of the dispatch log) */
+/* BH-4 "Verified" easter egg badge (inline with the pagination row) */
+.dispatch-pagination-wrap { position: relative; }
 .bh4-verify-row {
-  display: flex; justify-content: flex-end; margin-top: -8px;
+  position: absolute; top: 0; right: 0; bottom: 0;
+  display: flex; align-items: flex-start; justify-content: flex-end; padding-top: 2px;
+  pointer-events: none;
 }
+.bh4-verify-row .bh4-verify { pointer-events: auto; }
 .bh4-verify {
   position: relative; z-index: 5;
   display: flex; align-items: center; gap: 9px;
