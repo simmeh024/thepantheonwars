@@ -2883,23 +2883,23 @@ footer.site-footer {
   0%, 100% { box-shadow: 0 0 16px 0 var(--glow-soft), inset 0 0 20px 0 var(--glow-soft); }
   50% { box-shadow: 0 0 34px 4px var(--glow-strong), inset 0 0 26px 0 var(--glow-soft); }
 }
-.metric-box.tag-feature { --glow-soft: rgba(236,201,135,0.22); --glow-strong: rgba(236,201,135,0.55); border-color: rgba(236,201,135,0.35); animation: metric-glow 3.2s ease-in-out infinite; }
+.metric-box.tag-feature { --glow-soft: rgba(236,201,135,0.22); --glow-strong: rgba(236,201,135,0.55); border-color: rgba(236,201,135,0.35); animation: metric-glow 5.5s ease-in-out infinite; }
 .metric-box.tag-feature .metric-box-icon, .metric-box.tag-feature .metric-box-count { color: var(--gold-bright); }
-.metric-box.tag-improvement { --glow-soft: rgba(162,121,236,0.22); --glow-strong: rgba(162,121,236,0.55); border-color: rgba(162,121,236,0.35); animation: metric-glow 3.2s ease-in-out infinite 0.2s; }
+.metric-box.tag-improvement { --glow-soft: rgba(162,121,236,0.22); --glow-strong: rgba(162,121,236,0.55); border-color: rgba(162,121,236,0.35); animation: metric-glow 5.5s ease-in-out infinite 0.2s; }
 .metric-box.tag-improvement .metric-box-icon, .metric-box.tag-improvement .metric-box-count { color: var(--purple-bright); }
-.metric-box.tag-fix { --glow-soft: rgba(225,75,90,0.22); --glow-strong: rgba(225,75,90,0.55); border-color: rgba(225,75,90,0.35); animation: metric-glow 3.2s ease-in-out infinite 0.4s; }
+.metric-box.tag-fix { --glow-soft: rgba(225,75,90,0.22); --glow-strong: rgba(225,75,90,0.55); border-color: rgba(225,75,90,0.35); animation: metric-glow 5.5s ease-in-out infinite 0.4s; }
 .metric-box.tag-fix .metric-box-icon, .metric-box.tag-fix .metric-box-count { color: #e14b5a; }
-.metric-box.tag-performance { --glow-soft: rgba(226,152,79,0.22); --glow-strong: rgba(226,152,79,0.55); border-color: rgba(226,152,79,0.35); animation: metric-glow 3.2s ease-in-out infinite 0.6s; }
+.metric-box.tag-performance { --glow-soft: rgba(226,152,79,0.22); --glow-strong: rgba(226,152,79,0.55); border-color: rgba(226,152,79,0.35); animation: metric-glow 5.5s ease-in-out infinite 0.6s; }
 .metric-box.tag-performance .metric-box-icon, .metric-box.tag-performance .metric-box-count { color: #e2984f; }
-.metric-box.tag-ui_ux { --glow-soft: rgba(69,209,201,0.22); --glow-strong: rgba(69,209,201,0.55); border-color: rgba(69,209,201,0.35); animation: metric-glow 3.2s ease-in-out infinite 0.8s; }
+.metric-box.tag-ui_ux { --glow-soft: rgba(69,209,201,0.22); --glow-strong: rgba(69,209,201,0.55); border-color: rgba(69,209,201,0.35); animation: metric-glow 5.5s ease-in-out infinite 0.8s; }
 .metric-box.tag-ui_ux .metric-box-icon, .metric-box.tag-ui_ux .metric-box-count { color: #45d1c9; }
-.metric-box.tag-lore { --glow-soft: rgba(62,207,142,0.22); --glow-strong: rgba(62,207,142,0.55); border-color: rgba(62,207,142,0.35); animation: metric-glow 3.2s ease-in-out infinite 1s; }
+.metric-box.tag-lore { --glow-soft: rgba(62,207,142,0.22); --glow-strong: rgba(62,207,142,0.55); border-color: rgba(62,207,142,0.35); animation: metric-glow 5.5s ease-in-out infinite 1s; }
 .metric-box.tag-lore .metric-box-icon, .metric-box.tag-lore .metric-box-count { color: #3ecf8e; }
-.metric-box.tag-infrastructure { --glow-soft: rgba(154,160,172,0.2); --glow-strong: rgba(154,160,172,0.5); border-color: rgba(154,160,172,0.3); animation: metric-glow 3.2s ease-in-out infinite 1.2s; }
+.metric-box.tag-infrastructure { --glow-soft: rgba(154,160,172,0.2); --glow-strong: rgba(154,160,172,0.5); border-color: rgba(154,160,172,0.3); animation: metric-glow 5.5s ease-in-out infinite 1.2s; }
 .metric-box.tag-infrastructure .metric-box-icon, .metric-box.tag-infrastructure .metric-box-count { color: #9aa0ac; }
-.metric-box.tag-refactor { --glow-soft: rgba(111,118,232,0.22); --glow-strong: rgba(111,118,232,0.55); border-color: rgba(111,118,232,0.35); animation: metric-glow 3.2s ease-in-out infinite 1.4s; }
+.metric-box.tag-refactor { --glow-soft: rgba(111,118,232,0.22); --glow-strong: rgba(111,118,232,0.55); border-color: rgba(111,118,232,0.35); animation: metric-glow 5.5s ease-in-out infinite 1.4s; }
 .metric-box.tag-refactor .metric-box-icon, .metric-box.tag-refactor .metric-box-count { color: #6f76e8; }
-.metric-box.tag-experimental { --glow-soft: rgba(224,116,176,0.22); --glow-strong: rgba(224,116,176,0.55); border-color: rgba(224,116,176,0.35); animation: metric-glow 3.2s ease-in-out infinite 1.6s; }
+.metric-box.tag-experimental { --glow-soft: rgba(224,116,176,0.22); --glow-strong: rgba(224,116,176,0.55); border-color: rgba(224,116,176,0.35); animation: metric-glow 5.5s ease-in-out infinite 1.6s; }
 .metric-box.tag-experimental .metric-box-icon, .metric-box.tag-experimental .metric-box-count { color: #e074b0; }
 
 @media (max-width: 480px) {
