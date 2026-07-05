@@ -258,6 +258,136 @@
 
   var leaderboardList = document.getElementById('leaderboard-list');
   var leaderboardEmpty = document.getElementById('leaderboard-empty');
+
+  // ---------- Lightweight BBCode-style formatting ----------
+  // Users can type [b][/b] [i][/i] [u][/u] [c][/c] [color=#hex][/color]
+  // [url]http://...[/url] [url=http://...]label[/url] [img]http://...[/img].
+  // We escape all raw HTML first, then whitelist just these patterns back
+  // into real tags -- this is the only user text that is ever set via
+  // innerHTML in this file, and only after this escape+whitelist pass.
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatBody(raw) {
+    var s = escapeHtml(raw);
+    s = s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>');
+    s = s.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<em>$1</em>');
+    s = s.replace(/\[u\]([\s\S]*?)\[\/u\]/gi, '<u>$1</u>');
+    s = s.replace(/\[c\]([\s\S]*?)\[\/c\]/gi, '<code>$1</code>');
+    s = s.replace(/\[color=(#[0-9a-fA-F]{3,8})\]([\s\S]*?)\[\/color\]/gi, function (m, hex, inner) {
+      return '<span style="color:' + hex + '">' + inner + '</span>';
+    });
+    s = s.replace(/\[url=(https?:\/\/[^\s\[\]"]+)\]([\s\S]*?)\[\/url\]/gi, function (m, url, label) {
+      return '<a href="' + url + '" target="_blank" rel="noopener noreferrer nofollow">' + label + '</a>';
+    });
+    s = s.replace(/\[url\](https?:\/\/[^\s\[\]"]+)\[\/url\]/gi, function (m, url) {
+      return '<a href="' + url + '" target="_blank" rel="noopener noreferrer nofollow">' + url + '</a>';
+    });
+    s = s.replace(/\[img\](https?:\/\/[^\s\[\]"]+)\[\/img\]/gi, function (m, url) {
+      return '<img src="' + url + '" alt="" loading="lazy" class="comment-img">';
+    });
+    return s;
+  }
+
+  // ---------- Formatting toolbar for reply / topic textareas ----------
+
+  function attachEditorToolbar(textarea) {
+    var bar = document.createElement('div');
+    bar.className = 'editor-toolbar';
+
+    function wrapSelection(before, after, placeholder) {
+      var start = textarea.selectionStart;
+      var end = textarea.selectionEnd;
+      var val = textarea.value;
+      var selected = val.slice(start, end) || placeholder;
+      textarea.value = val.slice(0, start) + before + selected + after + val.slice(end);
+      var curStart = start + before.length;
+      var curEnd = curStart + selected.length;
+      textarea.focus();
+      textarea.setSelectionRange(curStart, curEnd);
+    }
+
+    function insertAtCursor(text) {
+      var start = textarea.selectionStart;
+      var end = textarea.selectionEnd;
+      var val = textarea.value;
+      textarea.value = val.slice(0, start) + text + val.slice(end);
+      var pos = start + text.length;
+      textarea.focus();
+      textarea.setSelectionRange(pos, pos);
+    }
+
+    function promptUrl(label) {
+      var url = window.prompt(label + ' (must start with http:// or https://):', 'https://');
+      if (!url) return null;
+      url = url.trim();
+      if (!/^https?:\/\//i.test(url)) {
+        window.alert('That link needs to start with http:// or https://');
+        return null;
+      }
+      return url;
+    }
+
+    function makeBtn(label, title, handler) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'editor-btn';
+      btn.title = title;
+      btn.textContent = label;
+      btn.addEventListener('click', handler);
+      bar.appendChild(btn);
+      return btn;
+    }
+
+    makeBtn('B', 'Bold', function () { wrapSelection('[b]', '[/b]', 'bold text'); });
+    makeBtn('I', 'Italic', function () { wrapSelection('[i]', '[/i]', 'italic text'); });
+    makeBtn('U', 'Underline', function () { wrapSelection('[u]', '[/u]', 'underlined text'); });
+    makeBtn('C', 'Code', function () { wrapSelection('[c]', '[/c]', 'code'); });
+
+    makeBtn('Link', 'Insert link (URL only)', function () {
+      var start = textarea.selectionStart;
+      var end = textarea.selectionEnd;
+      var selected = textarea.value.slice(start, end);
+      var url = promptUrl('Link URL');
+      if (!url) return;
+      var tag = selected ? '[url=' + url + ']' + selected + '[/url]' : '[url]' + url + '[/url]';
+      var val = textarea.value;
+      textarea.value = val.slice(0, start) + tag + val.slice(end);
+      var pos = start + tag.length;
+      textarea.focus();
+      textarea.setSelectionRange(pos, pos);
+    });
+
+    makeBtn('Img', 'Insert image (URL only, no upload)', function () {
+      var url = promptUrl('Image URL');
+      if (!url) return;
+      insertAtCursor('[img]' + url + '[/img]');
+    });
+
+    var colorWrap = document.createElement('label');
+    colorWrap.className = 'editor-color-btn';
+    colorWrap.title = 'Text color';
+    colorWrap.textContent = 'A';
+    var colorInput = document.createElement('input');
+    colorInput.type = 'color';
+    colorInput.value = '#c9a86a';
+    colorInput.addEventListener('change', function () {
+      wrapSelection('[color=' + colorInput.value + ']', '[/color]', 'colored text');
+    });
+    colorWrap.appendChild(colorInput);
+    bar.appendChild(colorWrap);
+
+    textarea.parentNode.insertBefore(bar, textarea);
+    return bar;
+  }
+
+  attachEditorToolbar(topicBodyInput);
+  attachEditorToolbar(body);
   var popularTabs = document.getElementById('popular-tabs');
   var popularList = document.getElementById('popular-list');
   var popularEmpty = document.getElementById('popular-empty');
@@ -619,7 +749,7 @@
 
     var bodyEl = document.createElement('div');
     bodyEl.className = 'comment-body';
-    bodyEl.textContent = t.body;
+    bodyEl.innerHTML = formatBody(t.body); // formatBody escapes raw HTML, then whitelists bbcode tags
     main.appendChild(bodyEl);
 
     var hasAction = false;
@@ -780,6 +910,7 @@
     ta.maxLength = 2000;
     ta.placeholder = 'Write a reply...';
     wrap.appendChild(ta);
+    attachEditorToolbar(ta);
 
     var err = document.createElement('p');
     err.className = 'auth-error';
@@ -869,7 +1000,7 @@
 
     var bodyEl = document.createElement('div');
     bodyEl.className = 'comment-body';
-    bodyEl.textContent = c.body; // textContent only — never innerHTML with user text
+    bodyEl.innerHTML = formatBody(c.body); // formatBody escapes raw HTML, then whitelists bbcode tags
     main.appendChild(bodyEl);
 
     main.appendChild(buildReactionBar(c));
