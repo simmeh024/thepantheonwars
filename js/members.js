@@ -51,6 +51,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   function closeModal() { modal.hidden = true; }
 
+  // Exposed so other pages (e.g. Development Dispatches reactions) can open
+  // the login modal from a click handler without needing a .auth-trigger element.
+  window.openAuthModal = openModal;
+
   function setTab(name) {
     tabs.forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-tab') === name); });
     forms.forEach(function (f) {

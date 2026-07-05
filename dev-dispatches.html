@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=21">
+<link rel="stylesheet" href="css/style.css?v=22">
 </head>
 <body>
 
@@ -177,6 +177,60 @@
       ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
   }
 
+  var REACTIONS = [
+    { type: 'like', label: 'Like',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M7 10v10H4V10h3zm3 10h8.5a2 2 0 0 0 2-1.6l1.2-6A2 2 0 0 0 19.7 10H14l.8-4.4A2 2 0 0 0 12.9 3L7 10v10z"/></svg>' },
+    { type: 'dislike', label: 'Dislike',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><g transform="rotate(180 12 12)"><path d="M7 10v10H4V10h3zm3 10h8.5a2 2 0 0 0 2-1.6l1.2-6A2 2 0 0 0 19.7 10H14l.8-4.4A2 2 0 0 0 12.9 3L7 10v10z"/></g></svg>' }
+  ];
+
+  function buildReactionBar(entry) {
+    var bar = document.createElement('div');
+    bar.className = 'dispatch-reactions';
+    REACTIONS.forEach(function (r) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      var count = r.type === 'like' ? entry.like_count : entry.dislike_count;
+      var isActive = entry.my_reaction === r.type;
+      btn.className = 'dispatch-reaction-btn tag-' + r.type + (isActive ? ' active' : '');
+      btn.innerHTML = r.icon + '<span class="dispatch-reaction-count">' + count + '</span>';
+      btn.setAttribute('aria-label', r.label);
+      btn.setAttribute('title', r.label);
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        if (!window.PW_AUTH || !window.PW_AUTH.loggedIn) {
+          if (window.openAuthModal) window.openAuthModal('login');
+          return;
+        }
+        sendReaction(entry, r.type, bar);
+      });
+      bar.appendChild(btn);
+    });
+    return bar;
+  }
+
+  function sendReaction(entry, type, barEl) {
+    if (!window.PW_AUTH || !window.PW_AUTH.csrf) return;
+    fetch('/api/dispatches/react.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dispatch_id: entry.id, reaction_type: type, csrf: window.PW_AUTH.csrf }),
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) return;
+      entry.like_count = data.reactions.like;
+      entry.dislike_count = data.reactions.dislike;
+      entry.my_reaction = data.myReaction;
+      var buttons = barEl.querySelectorAll('.dispatch-reaction-btn');
+      REACTIONS.forEach(function (r, i) {
+        var b = buttons[i];
+        var count = r.type === 'like' ? entry.like_count : entry.dislike_count;
+        b.classList.toggle('active', entry.my_reaction === r.type);
+        b.querySelector('.dispatch-reaction-count').textContent = count;
+      });
+    });
+  }
+
   function buildEntry(entry) {
     var row = document.createElement('div');
     row.className = 'dispatch-entry';
@@ -208,10 +262,23 @@
 
     var right = document.createElement('div');
     right.className = 'dispatch-entry-right';
-    right.innerHTML =
-      '<span class="dispatch-entry-sha">' + escapeHtml(entry.short_sha) + '</span>' +
-      '<span class="dispatch-entry-date">' + escapeHtml(fmtDate(entry.committed_at)) + '</span>' +
-      '<span class="dispatch-entry-caret">⌄</span>';
+    right.appendChild(buildReactionBar(entry));
+
+    var meta = document.createElement('span');
+    meta.className = 'dispatch-entry-sha';
+    meta.textContent = entry.short_sha;
+    right.appendChild(meta);
+
+    var dateEl = document.createElement('span');
+    dateEl.className = 'dispatch-entry-date';
+    dateEl.textContent = fmtDate(entry.committed_at);
+    right.appendChild(dateEl);
+
+    var caret = document.createElement('span');
+    caret.className = 'dispatch-entry-caret';
+    caret.textContent = '⌄';
+    right.appendChild(caret);
+
     main.appendChild(right);
 
     wrap.appendChild(main);
