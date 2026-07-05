@@ -40,3 +40,17 @@ CREATE TABLE IF NOT EXISTS comments (
   KEY idx_parent_id (parent_id),
   CONSTRAINT fk_comments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS dispatch_entries (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  sha VARCHAR(40) NOT NULL,
+  subject VARCHAR(500) NOT NULL,
+  body TEXT DEFAULT NULL,
+  tag ENUM('feature','fix','update') NOT NULL DEFAULT 'update',
+  author VARCHAR(100) NOT NULL,
+  committed_at DATETIME NOT NULL,
+  url VARCHAR(255) DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_sha (sha),
+  KEY idx_committed_at (committed_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

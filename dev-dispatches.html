@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Development Dispatches — The Pantheon Wars</title>
+<meta name="description" content="A live build log of thepantheonwars.com, straight from the commit history. Every feature and fix, tagged and expandable.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Development Dispatches — The Pantheon Wars">
+<meta property="og:description" content="A live build log of thepantheonwars.com, straight from the commit history. Every feature and fix, tagged and expandable.">
+<meta property="og:url" content="https://thepantheonwars.com/dev-dispatches.html">
+<meta property="og:image" content="https://thepantheonwars.com/images/hero-main.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Development Dispatches — The Pantheon Wars">
+<meta name="twitter:description" content="A live build log of thepantheonwars.com, straight from the commit history. Every feature and fix, tagged and expandable.">
+<meta name="twitter:image" content="https://thepantheonwars.com/images/hero-main.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/style.css?v=21">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-inner">
+    <a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a>
+    <nav class="main-nav">
+      <a href="index.html">Home</a>
+      <div class="nav-item has-dropdown">
+        <span class="nav-parent">The Universe<span class="nav-caret">⌄</span></span>
+        <div class="nav-dropdown">
+          <a href="books.html">The Books</a>
+          <a href="worlds.html">The Worlds</a>
+          <a href="overlords.html">The Overlords</a>
+        </div>
+      </div>
+      <div class="nav-item has-dropdown">
+        <span class="nav-parent">News<span class="nav-caret">⌄</span></span>
+        <div class="nav-dropdown">
+          <a href="news.html">Latest News</a>
+          <a href="dev-dispatches.html">Development Dispatches</a>
+        </div>
+      </div>
+      <a href="about.html">About</a>
+      <div class="nav-item has-dropdown">
+        <span class="nav-parent">Community<span class="nav-caret">⌄</span></span>
+        <div class="nav-dropdown">
+          <a href="community.html">Nexus Veil (Forum)</a>
+          <a href="memberlist.html">Member List</a>
+          <a href="quiz.html">Quiz</a>
+        </div>
+      </div>
+      <span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span>
+    </nav>
+    <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main>
+
+  <div class="page-banner ornate">
+    <div class="hero-bg" style="background-image: url('images/world-reanium.jpg');"></div>
+    <div class="hero-veil"></div>
+    <span class="orn-bl"></span><span class="orn-br"></span>
+    <div class="container">
+      <span class="eyebrow">Straight From the Godcore</span>
+      <h1>Development Dispatches</h1>
+      <p class="lede">A live build log of this site, pulled straight from the commit history. Every feature and fix, tagged and ready to expand.</p>
+    </div>
+  </div>
+
+  <section>
+    <div class="container">
+
+      <div class="dispatch-log-toolbar">
+        <div class="dispatch-log-pagination" id="dispatch-pagination-top"></div>
+        <div class="dispatch-log-pagesize">
+          <label for="dispatch-page-size">Show</label>
+          <select id="dispatch-page-size">
+            <option value="10">10</option>
+            <option value="25">25</option>
+            <option value="50">50</option>
+            <option value="all">All</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="dispatch-log" id="dispatch-log">
+        <p class="dispatch-log-loading">Loading dispatches…</p>
+      </div>
+
+      <div class="dispatch-log-pagination" id="dispatch-pagination-bottom"></div>
+
+    </div>
+  </section>
+
+  <section class="newsletter">
+      <img src="images/bh4-dispatch.jpg" alt="" class="newsletter-bh4" aria-hidden="true">
+    <div class="container">
+      <span class="eyebrow">Join the Pantheon</span>
+      <h2>Get word when a new world opens</h2>
+      <p>No spam, no Overcode surveillance — just updates on new books, lore drops, and the soundtrack as it's released.</p>
+      <form class="newsletter-form" action="#" method="post">
+        <input type="email" placeholder="your@email.com" required aria-label="Email address">
+        <button type="submit" class="btn btn-solid">Subscribe</button>
+      </form>
+      <p class="confirm"></p>
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>The Pantheon Wars</h4>
+        <p>A fourteen-book saga by Pascal Slettenaar — twelve worlds, twelve tyrants, and the prophecy that could end them all.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="books.html">The Books</a></li>
+          <li><a href="worlds.html">Worlds</a></li>
+          <li><a href="overlords.html">The Overlords</a></li>
+          <li><a href="about.html">About the Author</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="dev-dispatches.html">Development Dispatches</a></li>
+          <li><a href="quiz.html">Which Overlord Are You?</a></li>
+          <li><a href="community.html">Community</a></li>
+          <li><a href="memberlist.html">Member List</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Stay Connected</h4>
+        <ul>
+          <li><a href="https://open.spotify.com/album/4F3gZb2oOUarb0gM2KwSar?si=FUDqkC25TPewM4YBTeNTIg" target="_blank" rel="noopener">Book One Soundtrack</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2026 Pascal Slettenaar. All rights reserved. &nbsp;•&nbsp; "Twelve thrones will fall. One will rise."
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/members.js"></script>
+<script>
+(function () {
+  var logEl = document.getElementById('dispatch-log');
+  var pagTop = document.getElementById('dispatch-pagination-top');
+  var pagBottom = document.getElementById('dispatch-pagination-bottom');
+  var pageSizeSelect = document.getElementById('dispatch-page-size');
+
+  var state = { page: 1, perPage: 10, totalPages: 1, total: 0 };
+
+  var TAG_LABELS = { feature: 'Feature', fix: 'Fix', update: 'Update' };
+
+  function escapeHtml(s) {
+    var div = document.createElement('div');
+    div.textContent = s == null ? '' : String(s);
+    return div.innerHTML;
+  }
+
+  function fmtDate(iso) {
+    var d = new Date((iso || '').replace(' ', 'T'));
+    if (isNaN(d.getTime())) return iso || '';
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) +
+      ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function buildEntry(entry) {
+    var row = document.createElement('div');
+    row.className = 'dispatch-entry';
+
+    var bar = document.createElement('div');
+    bar.className = 'dispatch-entry-bar tag-' + entry.tag;
+    row.appendChild(bar);
+
+    var wrap = document.createElement('div');
+    wrap.className = 'dispatch-entry-wrap';
+
+    var main = document.createElement('div');
+    main.className = 'dispatch-entry-main';
+
+    var left = document.createElement('div');
+    left.className = 'dispatch-entry-left';
+
+    var tagPill = document.createElement('span');
+    tagPill.className = 'dispatch-entry-tag tag-' + entry.tag;
+    tagPill.textContent = TAG_LABELS[entry.tag] || 'Update';
+    left.appendChild(tagPill);
+
+    var title = document.createElement('span');
+    title.className = 'dispatch-entry-title';
+    title.textContent = entry.subject;
+    left.appendChild(title);
+
+    main.appendChild(left);
+
+    var right = document.createElement('div');
+    right.className = 'dispatch-entry-right';
+    right.innerHTML =
+      '<span class="dispatch-entry-sha">' + escapeHtml(entry.short_sha) + '</span>' +
+      '<span class="dispatch-entry-date">' + escapeHtml(fmtDate(entry.committed_at)) + '</span>' +
+      '<span class="dispatch-entry-caret">⌄</span>';
+    main.appendChild(right);
+
+    wrap.appendChild(main);
+
+    var body = document.createElement('div');
+    body.className = 'dispatch-entry-body';
+    var bodyInner = document.createElement('div');
+    bodyInner.className = 'dispatch-entry-body-inner';
+    var bodyText = entry.body && entry.body.trim() ? entry.body : 'No further details on this commit.';
+    bodyInner.innerHTML =
+      '<pre class="dispatch-entry-full-message">' + escapeHtml(bodyText) + '</pre>' +
+      '<div class="dispatch-entry-footer">' +
+      '<span>Committed by ' + escapeHtml(entry.author) + '</span>' +
+      (entry.url ? '<a href="' + escapeHtml(entry.url) + '" target="_blank" rel="noopener">View on GitHub ↗</a>' : '') +
+      '</div>';
+    body.appendChild(bodyInner);
+    wrap.appendChild(body);
+
+    row.appendChild(wrap);
+
+    main.addEventListener('click', function () {
+      var isOpen = row.classList.contains('is-expanded');
+      row.classList.toggle('is-expanded', !isOpen);
+      if (!isOpen) {
+        body.style.maxHeight = bodyInner.scrollHeight + 'px';
+      } else {
+        body.style.maxHeight = null;
+      }
+    });
+
+    return row;
+  }
+
+  function buildPagination(container) {
+    container.innerHTML = '';
+    if (state.total === 0) return;
+
+    var nav = document.createElement('div');
+    nav.className = 'dispatch-pager';
+
+    function pageBtn(label, page, opts) {
+      opts = opts || {};
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'dispatch-pager-btn' + (opts.active ? ' active' : '');
+      btn.textContent = label;
+      if (opts.disabled) {
+        btn.disabled = true;
+      } else {
+        btn.addEventListener('click', function () {
+          state.page = page;
+          load();
+        });
+      }
+      return btn;
+    }
+
+    nav.appendChild(pageBtn('« First', 1, { disabled: state.page <= 1 }));
+    nav.appendChild(pageBtn('‹ Prev', state.page - 1, { disabled: state.page <= 1 }));
+
+    var windowSize = 2;
+    var start = Math.max(1, state.page - windowSize);
+    var end = Math.min(state.totalPages, state.page + windowSize);
+
+    if (start > 1) {
+      nav.appendChild(pageBtn('1', 1));
+      if (start > 2) {
+        var dots = document.createElement('span');
+        dots.className = 'dispatch-pager-dots';
+        dots.textContent = '…';
+        nav.appendChild(dots);
+      }
+    }
+
+    for (var p = start; p <= end; p++) {
+      nav.appendChild(pageBtn(String(p), p, { active: p === state.page }));
+    }
+
+    if (end < state.totalPages) {
+      if (end < state.totalPages - 1) {
+        var dots2 = document.createElement('span');
+        dots2.className = 'dispatch-pager-dots';
+        dots2.textContent = '…';
+        nav.appendChild(dots2);
+      }
+      nav.appendChild(pageBtn(String(state.totalPages), state.totalPages));
+    }
+
+    nav.appendChild(pageBtn('Next ›', state.page + 1, { disabled: state.page >= state.totalPages }));
+    nav.appendChild(pageBtn('Last »', state.totalPages, { disabled: state.page >= state.totalPages }));
+
+    container.appendChild(nav);
+
+    var summary = document.createElement('div');
+    summary.className = 'dispatch-pager-summary';
+    summary.textContent = 'Page ' + state.page + ' of ' + state.totalPages + ' (' + state.total + ' dispatches)';
+    container.appendChild(summary);
+  }
+
+  function load() {
+    logEl.innerHTML = '<p class="dispatch-log-loading">Loading dispatches…</p>';
+    var perPageParam = state.perPage === 'all' ? 100000 : state.perPage;
+    fetch('/api/dispatches/list.php?page=' + state.page + '&per_page=' + perPageParam, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          logEl.innerHTML = '<p class="dispatch-log-empty">Could not load dispatches right now.</p>';
+          return;
+        }
+        state.page = data.page;
+        state.total = data.total;
+        state.totalPages = data.total_pages;
+
+        if (!data.entries.length) {
+          logEl.innerHTML = '<p class="dispatch-log-empty">No dispatches yet. Check back after the next push.</p>';
+        } else {
+          logEl.innerHTML = '';
+          data.entries.forEach(function (entry) {
+            logEl.appendChild(buildEntry(entry));
+          });
+        }
+
+        buildPagination(pagTop);
+        buildPagination(pagBottom);
+      })
+      .catch(function () {
+        logEl.innerHTML = '<p class="dispatch-log-empty">Could not load dispatches right now.</p>';
+      });
+  }
+
+  pageSizeSelect.addEventListener('change', function () {
+    var v = pageSizeSelect.value;
+    state.perPage = v === 'all' ? 'all' : parseInt(v, 10);
+    state.page = 1;
+    load();
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
