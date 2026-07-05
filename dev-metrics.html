@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=36">
+<link rel="stylesheet" href="css/style.css?v=37">
 </head>
 <body>
 
@@ -106,6 +106,7 @@
 
       <div class="lang-section" id="lang-section">
         <h3 class="lang-title">Languages</h3>
+        <p class="lang-subtitle" id="lang-subtitle"></p>
         <div class="lang-bar" id="lang-bar"></div>
         <div class="lang-legend" id="lang-legend">
           <p class="metrics-loading">Loading language stats&hellip;</p>
@@ -170,6 +171,36 @@
 <script src="js/main.js"></script>
 <script src="js/members.js"></script>
 <script>
+function pwGetRangeBounds(value) {
+  var now = new Date();
+  var y = now.getFullYear();
+  var m = now.getMonth();
+  var start, end = now;
+  switch (value) {
+    case 'this_month':
+      start = new Date(y, m, 1, 0, 0, 0);
+      break;
+    case 'last_month':
+      start = new Date(y, m - 1, 1, 0, 0, 0);
+      end = new Date(y, m, 1, 0, 0, 0);
+      break;
+    case 'last_3_months':
+      start = new Date(y, m - 3, now.getDate(), 0, 0, 0);
+      break;
+    case 'last_6_months':
+      start = new Date(y, m - 6, now.getDate(), 0, 0, 0);
+      break;
+    case 'last_9_months':
+      start = new Date(y, m - 9, now.getDate(), 0, 0, 0);
+      break;
+    case 'this_year':
+    default:
+      start = new Date(y, 0, 1, 0, 0, 0);
+      break;
+  }
+  return { start: start, end: end };
+}
+
 (function () {
   var gridEl = document.getElementById('metrics-grid');
   var totalNumEl = document.getElementById('metrics-total-num');
@@ -235,36 +266,6 @@
 
   var allEntries = [];
 
-  function getRangeBounds(value) {
-    var now = new Date();
-    var y = now.getFullYear();
-    var m = now.getMonth();
-    var start, end = now;
-    switch (value) {
-      case 'this_month':
-        start = new Date(y, m, 1, 0, 0, 0);
-        break;
-      case 'last_month':
-        start = new Date(y, m - 1, 1, 0, 0, 0);
-        end = new Date(y, m, 1, 0, 0, 0);
-        break;
-      case 'last_3_months':
-        start = new Date(y, m - 3, now.getDate(), 0, 0, 0);
-        break;
-      case 'last_6_months':
-        start = new Date(y, m - 6, now.getDate(), 0, 0, 0);
-        break;
-      case 'last_9_months':
-        start = new Date(y, m - 9, now.getDate(), 0, 0, 0);
-        break;
-      case 'this_year':
-      default:
-        start = new Date(y, 0, 1, 0, 0, 0);
-        break;
-    }
-    return { start: start, end: end };
-  }
-
   function renderMetrics(entries) {
     var counts = {};
     TAG_ORDER.forEach(function (t) { counts[t] = 0; });
@@ -282,7 +283,7 @@
   }
 
   function applyDateFilter() {
-    var range = getRangeBounds(dateSelect.value);
+    var range = pwGetRangeBounds(dateSelect.value);
     var filtered = allEntries.filter(function (e) {
       var d = new Date(String(e.committed_at).replace(' ', 'T'));
       return d >= range.start && d <= range.end;
@@ -310,6 +311,8 @@
 (function () {
   var barEl = document.getElementById('lang-bar');
   var legendEl = document.getElementById('lang-legend');
+  var subtitleEl = document.getElementById('lang-subtitle');
+  var dateSelect = document.getElementById('metrics-date-select');
 
   var LANG_COLORS = {
     HTML: '#ecc987',
@@ -339,58 +342,90 @@
     return LANG_REASONS[name] || 'Part of what keeps this site running.';
   }
 
-  fetch('/api/repo-languages.php', { credentials: 'same-origin' })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      if (!data.ok || !data.languages || !data.languages.length) {
-        legendEl.innerHTML = '<p class="metrics-loading">Could not load language stats right now.</p>';
-        return;
-      }
+  function formatCapturedAt(sqlDate) {
+    if (!sqlDate) return '';
+    var d = new Date(String(sqlDate).replace(' ', 'T'));
+    if (isNaN(d.getTime())) return '';
+    var dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    var timeStr = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return dateStr + ' at ' + timeStr;
+  }
 
+  function renderLanguages(data) {
+    if (!data.found || !data.languages || !data.languages.length) {
       barEl.innerHTML = '';
-      legendEl.innerHTML = '';
+      subtitleEl.textContent = '';
+      legendEl.innerHTML = '<p class="metrics-loading">No language snapshot recorded for that period yet &mdash; snapshots only started Jul 5, 2026.</p>';
+      return;
+    }
 
-      data.languages.forEach(function (lang) {
-        var color = colorFor(lang.name);
+    var when = formatCapturedAt(data.captured_at);
+    subtitleEl.textContent = when ? ('Snapshot from ' + when) : '';
 
-        var seg = document.createElement('div');
-        seg.className = 'lang-bar-seg';
-        seg.style.width = lang.pct + '%';
-        seg.style.background = color;
-        seg.title = lang.name + ' — ' + lang.pct + '%';
-        barEl.appendChild(seg);
+    barEl.innerHTML = '';
+    legendEl.innerHTML = '';
 
-        var item = document.createElement('div');
-        item.className = 'lang-legend-item';
-        item.tabIndex = 0;
-        item.setAttribute('aria-label', lang.name + ', ' + lang.pct + ' percent. ' + reasonFor(lang.name));
+    data.languages.forEach(function (lang) {
+      var color = colorFor(lang.name);
 
-        var dot = document.createElement('span');
-        dot.className = 'lang-legend-dot';
-        dot.style.background = color;
-        item.appendChild(dot);
+      var seg = document.createElement('div');
+      seg.className = 'lang-bar-seg';
+      seg.style.width = lang.pct + '%';
+      seg.style.background = color;
+      seg.title = lang.name + ' — ' + lang.pct + '%';
+      barEl.appendChild(seg);
 
-        var nameEl = document.createElement('span');
-        nameEl.className = 'lang-legend-name';
-        nameEl.textContent = lang.name;
-        item.appendChild(nameEl);
+      var item = document.createElement('div');
+      item.className = 'lang-legend-item';
+      item.tabIndex = 0;
+      item.setAttribute('aria-label', lang.name + ', ' + lang.pct + ' percent. ' + reasonFor(lang.name));
 
-        var pctEl = document.createElement('span');
-        pctEl.className = 'lang-legend-pct';
-        pctEl.textContent = lang.pct + '%';
-        item.appendChild(pctEl);
+      var dot = document.createElement('span');
+      dot.className = 'lang-legend-dot';
+      dot.style.background = color;
+      item.appendChild(dot);
 
-        var tooltip = document.createElement('div');
-        tooltip.className = 'lang-legend-tooltip';
-        tooltip.textContent = reasonFor(lang.name);
-        item.appendChild(tooltip);
+      var nameEl = document.createElement('span');
+      nameEl.className = 'lang-legend-name';
+      nameEl.textContent = lang.name;
+      item.appendChild(nameEl);
 
-        legendEl.appendChild(item);
-      });
-    })
-    .catch(function () {
-      legendEl.innerHTML = '<p class="metrics-loading">Could not load language stats right now.</p>';
+      var pctEl = document.createElement('span');
+      pctEl.className = 'lang-legend-pct';
+      pctEl.textContent = lang.pct + '%';
+      item.appendChild(pctEl);
+
+      var tooltip = document.createElement('div');
+      tooltip.className = 'lang-legend-tooltip';
+      tooltip.textContent = reasonFor(lang.name);
+      item.appendChild(tooltip);
+
+      legendEl.appendChild(item);
     });
+  }
+
+  function loadLanguages() {
+    var range = pwGetRangeBounds(dateSelect.value);
+    var qs = 'start=' + encodeURIComponent(range.start.toISOString()) + '&end=' + encodeURIComponent(range.end.toISOString());
+
+    legendEl.innerHTML = '<p class="metrics-loading">Loading language stats&hellip;</p>';
+
+    fetch('/api/repo-languages.php?' + qs, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          legendEl.innerHTML = '<p class="metrics-loading">Could not load language stats right now.</p>';
+          return;
+        }
+        renderLanguages(data);
+      })
+      .catch(function () {
+        legendEl.innerHTML = '<p class="metrics-loading">Could not load language stats right now.</p>';
+      });
+  }
+
+  dateSelect.addEventListener('change', loadLanguages);
+  loadLanguages();
 })();
 </script>
 </body>

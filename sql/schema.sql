@@ -66,3 +66,12 @@ CREATE TABLE IF NOT EXISTS dispatch_reactions (
   CONSTRAINT fk_dispatch_reactions_dispatch FOREIGN KEY (dispatch_id) REFERENCES dispatch_entries(id) ON DELETE CASCADE,
   CONSTRAINT fk_dispatch_reactions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS repo_language_snapshots (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  captured_at DATETIME NOT NULL,
+  total_bytes BIGINT UNSIGNED NOT NULL,
+  languages_json TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_captured_at (captured_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -1,8 +1,7 @@
 <?php
 require_once __DIR__ . '/helpers.php';
 
-$cacheFile = __DIR__ . '/../uploads/repo-languages-cache.json';
-$cacheTtl = 3600; // 1 hour
+const PW_LANG_SNAPSHOT_TTL = 3600; // don't pull a fresh snapshot more than once per hour
 
 function pw_fetch_github_languages() {
     $url = 'https://api.github.com/repos/simmeh024/thepantheonwars/languages';
@@ -26,48 +25,91 @@ function pw_fetch_github_languages() {
     return $data;
 }
 
-$langs = null;
-
-if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTtl) {
-    $cached = json_decode(file_get_contents($cacheFile), true);
-    if (is_array($cached)) {
-        $langs = $cached;
-    }
-}
-
-if ($langs === null) {
-    $fresh = pw_fetch_github_languages();
-    if ($fresh !== null && !empty($fresh)) {
-        $langs = $fresh;
-        @file_put_contents($cacheFile, json_encode($fresh));
-    } elseif (file_exists($cacheFile)) {
-        // GitHub call failed or returned empty; serve stale cache if we have one
-        $stale = json_decode(file_get_contents($cacheFile), true);
-        if (is_array($stale)) {
-            $langs = $stale;
+function pw_langs_to_out($langs) {
+    $total = array_sum($langs);
+    $out = [];
+    if ($total > 0) {
+        arsort($langs);
+        foreach ($langs as $name => $bytes) {
+            $out[] = [
+                'name' => $name,
+                'bytes' => $bytes,
+                'pct' => round(($bytes / $total) * 1000) / 10,
+            ];
         }
     }
+    return [$out, $total];
 }
 
-if ($langs === null) {
-    pw_error('Could not load language stats right now.', 502);
-}
+$db = pw_db();
 
-$total = array_sum($langs);
-$out = [];
-if ($total > 0) {
-    arsort($langs);
-    foreach ($langs as $name => $bytes) {
-        $out[] = [
-            'name' => $name,
-            'bytes' => $bytes,
-            'pct' => round(($bytes / $total) * 1000) / 10,
-        ];
+// --- Step 1: record a fresh snapshot if the last one is stale (or missing) ---
+$latest = $db->query('SELECT captured_at FROM repo_language_snapshots ORDER BY captured_at DESC LIMIT 1')->fetch();
+$needsRefresh = true;
+if ($latest) {
+    $age = time() - strtotime($latest['captured_at']);
+    if ($age < PW_LANG_SNAPSHOT_TTL) {
+        $needsRefresh = false;
     }
+}
+
+if ($needsRefresh) {
+    $fresh = pw_fetch_github_languages();
+    if ($fresh !== null && !empty($fresh)) {
+        list($out, $total) = pw_langs_to_out($fresh);
+        $stmt = $db->prepare('INSERT INTO repo_language_snapshots (captured_at, total_bytes, languages_json) VALUES (NOW(), :total, :json)');
+        $stmt->execute([':total' => $total, ':json' => json_encode($out)]);
+    }
+}
+
+// --- Step 2: resolve the requested date range -------------------------------
+$start = isset($_GET['start']) ? trim($_GET['start']) : '';
+$end = isset($_GET['end']) ? trim($_GET['end']) : '';
+
+$startSql = null;
+$endSql = null;
+if ($start !== '' && strtotime($start) !== false) {
+    $startSql = date('Y-m-d H:i:s', strtotime($start));
+}
+if ($end !== '' && strtotime($end) !== false) {
+    $endSql = date('Y-m-d H:i:s', strtotime($end));
+}
+
+$where = [];
+$params = [];
+if ($startSql !== null) {
+    $where[] = 'captured_at >= :start';
+    $params[':start'] = $startSql;
+}
+if ($endSql !== null) {
+    $where[] = 'captured_at <= :end';
+    $params[':end'] = $endSql;
+}
+$whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+$stmt = $db->prepare("SELECT captured_at, total_bytes, languages_json FROM repo_language_snapshots $whereSql ORDER BY captured_at DESC LIMIT 1");
+$stmt->execute($params);
+$row = $stmt->fetch();
+
+if (!$row) {
+    pw_json([
+        'ok' => true,
+        'found' => false,
+        'languages' => [],
+        'captured_at' => null,
+        'total_bytes' => 0,
+    ]);
+}
+
+$languages = json_decode($row['languages_json'], true);
+if (!is_array($languages)) {
+    $languages = [];
 }
 
 pw_json([
     'ok' => true,
-    'total_bytes' => $total,
-    'languages' => $out,
+    'found' => true,
+    'languages' => $languages,
+    'captured_at' => $row['captured_at'],
+    'total_bytes' => (int)$row['total_bytes'],
 ]);
