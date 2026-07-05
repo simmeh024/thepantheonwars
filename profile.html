@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=9">
+<link rel="stylesheet" href="css/style.css?v=10">
 </head>
 <body>
 
@@ -237,8 +237,26 @@
     var start = (quizHistoryPage - 1) * QUIZ_HISTORY_PAGE_SIZE;
     quizHistoryData.slice(start, start + QUIZ_HISTORY_PAGE_SIZE).forEach(function (h) {
       var item = document.createElement('div');
-      item.className = 'profile-history-item';
-      item.textContent = h.overlord_result + ' — ' + fmtDate(h.created_at);
+      item.className = 'quiz-history-row';
+
+      var ov = overlordByName(h.overlord_result);
+      var avatar = document.createElement('div');
+      avatar.className = 'quiz-history-avatar';
+      if (ov) {
+        var img = document.createElement('img');
+        img.src = ov.img;
+        img.alt = ov.name;
+        avatar.appendChild(img);
+      } else {
+        avatar.textContent = (h.overlord_result || '?').charAt(0).toUpperCase();
+      }
+      item.appendChild(avatar);
+
+      var text = document.createElement('span');
+      text.className = 'quiz-history-text';
+      text.textContent = h.overlord_result + ' — ' + fmtDate(h.created_at);
+      item.appendChild(text);
+
       historyEl.appendChild(item);
     });
 

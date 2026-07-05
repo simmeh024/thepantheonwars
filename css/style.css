@@ -1868,6 +1868,20 @@ footer.site-footer {
 .profile-history-item {
   border-bottom: 1px solid var(--border-soft); padding: 10px 0; font-size: 0.9rem; color: var(--text-dim);
 }
+.quiz-history-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 12px; border-bottom: 1px solid var(--border-soft);
+  font-size: 0.9rem; color: var(--text-dim);
+}
+.quiz-history-row:last-child { border-bottom: none; }
+.quiz-history-row:nth-child(odd) { background: rgba(124, 79, 214, 0.05); }
+.quiz-history-avatar {
+  width: 34px; height: 34px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
+  border: 1px solid var(--border-soft); background: var(--panel-2);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Cinzel', serif; font-size: 0.85rem; color: var(--text-faint);
+}
+.quiz-history-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .history-pagination { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 1.2em; }
 .history-pagination[hidden] { display: none; }
 .history-page-arrow {
