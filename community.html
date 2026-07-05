@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=19">
+<link rel="stylesheet" href="css/style.css?v=20">
 </head>
 <body>
 
@@ -458,7 +458,7 @@
 
   function buildBoardRow(b, stat) {
     var row = document.createElement('div');
-    row.className = 'board-index-row';
+    row.className = 'board-index-row' + (b.slug === 'announcements' ? ' is-announcement-board' : '');
 
     var forumCell = document.createElement('div');
     forumCell.className = 'board-index-forum';
@@ -558,6 +558,16 @@
           return;
         }
         topicListEmptyEl.hidden = true;
+
+        var head = document.createElement('div');
+        head.className = 'topic-list-head';
+        head.innerHTML =
+          '<span>Topic</span>' +
+          '<span class="topic-list-head-stat">Topic Starter</span>' +
+          '<span class="topic-list-head-stat">Last Reply</span>' +
+          '<span class="topic-list-head-stat">Replies</span>';
+        topicListEl.appendChild(head);
+
         data.topics.forEach(function (t) {
           topicListEl.appendChild(buildTopicRow(t));
         });
@@ -565,48 +575,41 @@
   }
 
   function buildTopicRow(t) {
-    var isAnnouncement = currentBoard === 'announcements';
     var row = document.createElement('div');
-    row.className = 'topic-row' + (t.is_pinned ? ' is-pinned' : '') + (isAnnouncement ? ' is-announcement' : '');
+    row.className = 'topic-row' + (t.is_pinned ? ' is-pinned' : '');
     row.addEventListener('click', function () { goToTopic(t.id); });
 
-    if (isAnnouncement) {
-      var announce = document.createElement('span');
-      announce.className = 'topic-row-announce-tag';
-      announce.textContent = 'Announcement';
-      row.appendChild(announce);
-    }
+    var topicCell = document.createElement('div');
+    topicCell.className = 'topic-row-topic';
 
     if (t.is_pinned) {
       var pin = document.createElement('span');
       pin.className = 'topic-row-pin-tag';
       pin.textContent = 'Pinned';
-      row.appendChild(pin);
+      topicCell.appendChild(pin);
     }
 
     var title = document.createElement('div');
     title.className = 'topic-row-title';
     title.textContent = t.title;
-    row.appendChild(title);
+    topicCell.appendChild(title);
+    row.appendChild(topicCell);
 
-    var meta = document.createElement('div');
-    meta.className = 'topic-row-meta';
+    var starterCell = document.createElement('div');
+    starterCell.className = 'topic-row-starter role-' + (t.role || 'member');
+    starterCell.textContent = t.display_name;
+    row.appendChild(starterCell);
 
-    var author = document.createElement('span');
-    author.className = 'topic-row-author role-' + (t.role || 'member');
-    author.textContent = t.display_name;
-    meta.appendChild(author);
+    var lastReplyCell = document.createElement('div');
+    lastReplyCell.className = 'topic-row-lastreply';
+    lastReplyCell.textContent = fmtTime(t.last_activity);
+    row.appendChild(lastReplyCell);
 
-    var sep1 = document.createElement('span');
-    sep1.textContent = ' · ' + t.reply_count + (t.reply_count === 1 ? ' reply' : ' replies');
-    meta.appendChild(sep1);
+    var repliesCell = document.createElement('div');
+    repliesCell.className = 'topic-row-replies';
+    repliesCell.textContent = t.reply_count;
+    row.appendChild(repliesCell);
 
-    var sep2 = document.createElement('span');
-    sep2.className = 'topic-row-time';
-    sep2.textContent = 'Last activity ' + fmtTime(t.last_activity);
-    meta.appendChild(sep2);
-
-    row.appendChild(meta);
     return row;
   }
 
