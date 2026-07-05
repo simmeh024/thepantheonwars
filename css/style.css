@@ -2546,6 +2546,73 @@ footer.site-footer {
 }
 
 /* Development Dispatches (GitHub commit log page) */
+.dispatch-log-filterbar {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: 12px; margin-bottom: 14px;
+}
+.dispatch-search {
+  position: relative; display: flex; align-items: center; flex: 1; min-width: 200px; max-width: 320px;
+}
+.dispatch-search-icon {
+  position: absolute; left: 10px; width: 14px; height: 14px; color: var(--text-faint); pointer-events: none;
+}
+.dispatch-search input {
+  width: 100%; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 30px 8px 32px; border-radius: 3px; font-family: 'Jost', sans-serif; font-size: 0.85rem;
+}
+.dispatch-search input:focus { outline: none; border-color: var(--gold-bright); }
+.dispatch-search-clear {
+  position: absolute; right: 6px; background: none; border: none; color: var(--text-faint);
+  font-size: 1.1rem; line-height: 1; cursor: pointer; padding: 4px 6px;
+}
+.dispatch-search-clear:hover { color: var(--gold-bright); }
+.dispatch-tag-filter { position: relative; flex-shrink: 0; }
+.dispatch-tag-filter-btn {
+  display: flex; align-items: center; gap: 7px; background: var(--panel-2); border: 1px solid var(--border);
+  color: var(--text); padding: 8px 12px; border-radius: 3px; font-family: 'Jost', sans-serif;
+  font-size: 0.85rem; cursor: pointer;
+}
+.dispatch-tag-filter-btn:hover { border-color: var(--gold-bright); }
+.dispatch-tag-filter-count {
+  background: var(--purple-bright); color: #fff; border-radius: 10px; padding: 1px 7px;
+  font-size: 0.7rem; line-height: 1.5;
+}
+.dispatch-tag-filter-caret { color: var(--text-faint); font-size: 0.8rem; }
+.dispatch-tag-filter-panel {
+  position: absolute; top: calc(100% + 6px); right: 0; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 4px; padding: 10px; min-width: 220px; z-index: 30; box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+}
+.dispatch-tag-filter-list { display: flex; flex-direction: column; gap: 2px; }
+.dispatch-tag-filter-option {
+  display: flex; align-items: center; gap: 9px; padding: 7px 6px; cursor: pointer; border-radius: 3px;
+  font-family: 'Jost', sans-serif; font-size: 0.82rem; color: var(--text);
+}
+.dispatch-tag-filter-option:hover { background: rgba(124, 79, 214, 0.1); }
+.dispatch-tag-filter-option input[type="checkbox"] { accent-color: var(--purple-bright); cursor: pointer; }
+.dispatch-tag-filter-option-icon { display: inline-flex; width: 13px; height: 13px; flex-shrink: 0; }
+.dispatch-tag-filter-option.tag-feature .dispatch-tag-filter-option-icon { color: var(--gold-bright); }
+.dispatch-tag-filter-option.tag-improvement .dispatch-tag-filter-option-icon { color: var(--purple-bright); }
+.dispatch-tag-filter-option.tag-fix .dispatch-tag-filter-option-icon { color: #e14b5a; }
+.dispatch-tag-filter-option.tag-performance .dispatch-tag-filter-option-icon { color: #e2984f; }
+.dispatch-tag-filter-option.tag-ui_ux .dispatch-tag-filter-option-icon { color: #45d1c9; }
+.dispatch-tag-filter-option.tag-lore .dispatch-tag-filter-option-icon { color: #3ecf8e; }
+.dispatch-tag-filter-option.tag-infrastructure .dispatch-tag-filter-option-icon { color: #9aa0ac; }
+.dispatch-tag-filter-option.tag-refactor .dispatch-tag-filter-option-icon { color: #6f76e8; }
+.dispatch-tag-filter-option.tag-experimental .dispatch-tag-filter-option-icon { color: #e074b0; }
+.dispatch-tag-filter-option-icon svg { width: 100%; height: 100%; }
+.dispatch-tag-filter-actions {
+  display: flex; justify-content: space-between; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-soft);
+}
+.dispatch-tag-filter-actions button {
+  background: none; border: none; color: var(--text-faint); font-family: 'Jost', sans-serif;
+  font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; cursor: pointer; padding: 4px 2px;
+}
+.dispatch-tag-filter-actions button:hover { color: var(--gold-bright); }
+@media (max-width: 600px) {
+  .dispatch-search { max-width: none; width: 100%; }
+  .dispatch-tag-filter-panel { right: auto; left: 0; }
+}
+
 .dispatch-log-toolbar {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
   gap: 14px; margin-bottom: 1.2em;

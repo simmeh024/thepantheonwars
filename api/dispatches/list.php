@@ -12,7 +12,41 @@ if ($perPage > 500) {
 
 $db = pw_db();
 
-$total = (int)$db->query('SELECT COUNT(*) AS c FROM dispatch_entries')->fetch()['c'];
+$q = isset($_GET['q']) ? trim($_GET['q']) : '';
+if (strlen($q) > 200) {
+    $q = substr($q, 0, 200);
+}
+
+$validTags = ['feature', 'improvement', 'fix', 'performance', 'ui_ux', 'lore', 'infrastructure', 'refactor', 'experimental'];
+$tags = [];
+if (isset($_GET['tags']) && trim($_GET['tags']) !== '') {
+    $requested = array_map('trim', explode(',', $_GET['tags']));
+    $tags = array_values(array_intersect($validTags, $requested));
+}
+
+$where = [];
+$params = [];
+if ($q !== '') {
+    $where[] = '(d.subject LIKE :q OR d.body LIKE :q)';
+    $params[':q'] = '%' . $q . '%';
+}
+if ($tags) {
+    $tagPlaceholders = [];
+    foreach ($tags as $i => $t) {
+        $key = ':tag' . $i;
+        $tagPlaceholders[] = $key;
+        $params[$key] = $t;
+    }
+    $where[] = 'd.tag IN (' . implode(',', $tagPlaceholders) . ')';
+}
+$whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+$countStmt = $db->prepare('SELECT COUNT(*) AS c FROM dispatch_entries d ' . $whereSql);
+foreach ($params as $k => $v) {
+    $countStmt->bindValue($k, $v);
+}
+$countStmt->execute();
+$total = (int)$countStmt->fetch()['c'];
 $totalPages = $total > 0 ? (int)ceil($total / $perPage) : 1;
 if ($page > $totalPages) {
     $page = $totalPages;
@@ -31,9 +65,13 @@ $stmt = $db->prepare(
        FROM dispatch_reactions
        GROUP BY dispatch_id
      ) rc ON rc.dispatch_id = d.id
+     ' . $whereSql . '
      ORDER BY d.committed_at DESC, d.id DESC
      LIMIT :limit OFFSET :offset'
 );
+foreach ($params as $k => $v) {
+    $stmt->bindValue($k, $v);
+}
 $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
