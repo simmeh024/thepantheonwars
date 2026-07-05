@@ -11,7 +11,7 @@ if ($topicId <= 0) {
 
 $db = pw_db();
 $stmt = $db->prepare(
-    'SELECT c.id, c.parent_id, c.depth, c.body, c.created_at, c.user_id,
+    'SELECT c.id, c.parent_id, c.depth, c.body, c.created_at, c.edited_at, c.user_id,
             u.username, u.display_name, u.overlord_affinity, u.role
      FROM comments c
      JOIN users u ON u.id = c.user_id
@@ -81,6 +81,7 @@ $out = array_map(function ($r) use ($currentId, $isAdmin, $postCounts, $reaction
         'depth' => (int)$r['depth'],
         'body' => $r['body'],
         'created_at' => $r['created_at'],
+        'edited_at' => $r['edited_at'],
         'user_id' => $userId,
         'username' => $r['username'],
         'display_name' => $r['display_name'],
@@ -88,6 +89,7 @@ $out = array_map(function ($r) use ($currentId, $isAdmin, $postCounts, $reaction
         'role' => $r['role'],
         'post_count' => isset($postCounts[$userId]) ? $postCounts[$userId] : 0,
         'canDelete' => $isAdmin || ($currentId !== null && $currentId === $userId),
+        'canModerate' => $isAdmin,
         'reactions' => isset($reactionCounts[$id]) ? $reactionCounts[$id] : ['shard' => 0, 'ward' => 0, 'ember' => 0],
         'myReaction' => isset($myReactions[$id]) ? $myReactions[$id] : null,
     ];

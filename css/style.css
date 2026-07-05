@@ -2475,10 +2475,71 @@ footer.site-footer {
 
 /* Pinned comment */
 .comment-item.is-pinned { border-color: var(--gold-dim); background: rgba(226, 165, 92, 0.06); }
-.comment-pinned-tag {
-  display: inline-flex; align-items: center; font-size: 0.66rem; text-transform: uppercase;
-  letter-spacing: 0.1em; color: var(--gold-bright); margin-bottom: 0.5em;
+.comment-item.is-locked { border-color: var(--border); }
+.comment-tag-row { display: flex; align-items: center; gap: 14px; margin-bottom: 0.5em; }
+.comment-pinned-tag, .comment-locked-tag {
+  display: inline-flex; align-items: center; gap: 5px; font-size: 0.66rem; text-transform: uppercase;
+  letter-spacing: 0.1em; margin: 0;
 }
+.comment-pinned-tag { color: var(--gold-bright); }
+.comment-locked-tag { color: var(--text-faint); }
+.comment-pinned-tag svg, .comment-locked-tag svg { width: 13px; height: 13px; flex-shrink: 0; }
+.comment-edited-marker {
+  font-size: 0.68rem; color: var(--text-faint); font-style: italic; cursor: help;
+}
+
+/* Moderation dropdown: kebab trigger, top-right of each message card, above the date */
+.comment-item { position: relative; }
+.mod-menu { position: absolute; top: 14px; right: 18px; z-index: 6; }
+.mod-menu-trigger {
+  width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+  background: none; border: 1px solid transparent; border-radius: 4px; color: var(--text-faint);
+  cursor: pointer; transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+.mod-menu-trigger svg { width: 16px; height: 16px; }
+.mod-menu-trigger:hover, .mod-menu.is-open .mod-menu-trigger {
+  color: var(--purple-bright); border-color: var(--border-soft); background: var(--panel-2);
+}
+.mod-menu-panel {
+  position: absolute; top: calc(100% + 6px); right: 0; min-width: 190px;
+  background: var(--panel-2); border: 1px solid var(--border); box-shadow: 0 14px 34px rgba(0,0,0,0.5);
+  padding: 6px; display: flex; flex-direction: column; gap: 1px;
+  opacity: 0; visibility: hidden; transform: translateY(-6px); pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+}
+.mod-menu.is-open .mod-menu-panel { opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto; }
+.mod-menu-item {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: none; border: none; color: var(--text-dim); cursor: pointer;
+  font-family: 'Jost', sans-serif; font-size: 0.8rem; padding: 8px 10px; border-radius: 3px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.mod-menu-item:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.mod-menu-item-icon { display: flex; flex-shrink: 0; width: 15px; height: 15px; color: var(--text-faint); }
+.mod-menu-item-icon svg { width: 100%; height: 100%; }
+.mod-menu-item:hover .mod-menu-item-icon { color: var(--purple-bright); }
+.mod-menu-item-danger { color: #e2a5a0; }
+.mod-menu-item-danger:hover { color: #e14b5a; background: rgba(225,75,90,0.08); }
+.mod-menu-item-danger .mod-menu-item-icon { color: #e2a5a0; }
+.mod-menu-item-danger:hover .mod-menu-item-icon { color: #e14b5a; }
+.mod-menu-divider { height: 1px; background: var(--border-soft); margin: 4px 2px; }
+
+@media (max-width: 620px) {
+  .mod-menu { top: 10px; right: 10px; }
+}
+
+/* Inline edit form (topic title/body or a single reply body) */
+.inline-edit-form { margin: 0.4em 0 0.6em; }
+.inline-edit-title {
+  width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 12px; font-family: 'Cinzel', serif; font-size: 1rem; margin-bottom: 10px;
+}
+.inline-edit-title:focus { outline: none; border-color: var(--purple-bright); }
+.inline-edit-form textarea {
+  width: 100%; min-height: 90px; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 12px; font-family: 'Jost', sans-serif; font-size: 0.9rem; resize: vertical;
+}
+.inline-edit-form textarea:focus { outline: none; border-color: var(--purple-bright); }
 
 /* Reactions */
 .reaction-bar { display: flex; gap: 8px; margin-top: 0.7em; flex-wrap: wrap; }

@@ -8,7 +8,7 @@ if (!preg_match('/^[a-z0-9\-]{1,50}$/', $board)) {
 
 $db = pw_db();
 $stmt = $db->prepare(
-    'SELECT t.id, t.title, t.created_at, t.is_pinned, t.user_id,
+    'SELECT t.id, t.title, t.created_at, t.is_pinned, t.is_locked, t.user_id,
             u.display_name, u.role,
             COALESCE(rc.reply_count, 0) AS reply_count,
             COALESCE(rc.last_reply_at, t.created_at) AS last_activity
@@ -34,6 +34,7 @@ $out = array_map(function ($r) {
         'created_at' => $r['created_at'],
         'last_activity' => $r['last_activity'],
         'is_pinned' => (bool)$r['is_pinned'],
+        'is_locked' => (bool)$r['is_locked'],
         'user_id' => (int)$r['user_id'],
         'display_name' => $r['display_name'],
         'role' => $r['role'],

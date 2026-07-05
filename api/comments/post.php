@@ -15,10 +15,14 @@ if ($topicId <= 0) {
 }
 
 $db = pw_db();
-$stmt = $db->prepare('SELECT id FROM topics WHERE id = ? AND is_deleted = 0');
+$stmt = $db->prepare('SELECT id, is_locked FROM topics WHERE id = ? AND is_deleted = 0');
 $stmt->execute([$topicId]);
-if (!$stmt->fetch()) {
+$topicRow = $stmt->fetch();
+if (!$topicRow) {
     pw_error('That topic no longer exists.', 404);
+}
+if ((int)$topicRow['is_locked'] === 1) {
+    pw_error('This topic is locked. A moderator must unlock it before new replies can be posted.', 403);
 }
 
 // Note: anyone logged in may reply inside an existing topic, including in

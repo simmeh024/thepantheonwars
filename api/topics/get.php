@@ -11,8 +11,8 @@ if ($id <= 0) {
 
 $db = pw_db();
 $stmt = $db->prepare(
-    'SELECT t.id, t.board, t.title, t.body, t.created_at, t.is_pinned, t.user_id,
-            u.display_name, u.role
+    'SELECT t.id, t.board, t.title, t.body, t.created_at, t.is_pinned, t.is_locked,
+            t.edited_at, t.user_id, u.display_name, u.role
      FROM topics t
      JOIN users u ON u.id = t.user_id
      WHERE t.id = ? AND t.is_deleted = 0'
@@ -45,6 +45,8 @@ pw_json([
         'body' => $topic['body'],
         'created_at' => $topic['created_at'],
         'is_pinned' => (bool)$topic['is_pinned'],
+        'is_locked' => (bool)$topic['is_locked'],
+        'edited_at' => $topic['edited_at'],
         'user_id' => (int)$topic['user_id'],
         'display_name' => $topic['display_name'],
         'role' => $topic['role'],

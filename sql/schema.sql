@@ -28,15 +28,40 @@ CREATE TABLE IF NOT EXISTS quiz_results (
   CONSTRAINT fk_quiz_results_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Nexus Veil forum: one row per topic (thread starter). board is one of
+-- 'announcements' | 'assembly' | 'offworld' (see BOARDS in community.html).
+-- is_locked/locked_at gate new replies (see api/comments/post.php); Move
+-- (api/topics/move.php) just rewrites `board`; Edit (api/topics/edit.php)
+-- stamps edited_at so the front-end can show an "(edited)" marker.
+CREATE TABLE IF NOT EXISTS topics (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  board VARCHAR(50) NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  body TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  is_pinned TINYINT(1) NOT NULL DEFAULT 0,
+  pinned_at DATETIME DEFAULT NULL,
+  is_locked TINYINT(1) NOT NULL DEFAULT 0,
+  locked_at DATETIME DEFAULT NULL,
+  edited_at DATETIME DEFAULT NULL,
+  is_deleted TINYINT(1) NOT NULL DEFAULT 0,
+  KEY idx_board (board),
+  CONSTRAINT fk_topics_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Threaded replies within a topic (max depth 2 -- see api/comments/post.php).
 CREATE TABLE IF NOT EXISTS comments (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,
-  board VARCHAR(50) NOT NULL DEFAULT 'community',
+  topic_id INT UNSIGNED NOT NULL,
   parent_id INT UNSIGNED DEFAULT NULL,
+  depth TINYINT UNSIGNED NOT NULL DEFAULT 0,
   body TEXT NOT NULL,
   is_deleted TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  KEY idx_board (board),
+  edited_at DATETIME DEFAULT NULL,
+  KEY idx_topic_id (topic_id),
   KEY idx_parent_id (parent_id),
   CONSTRAINT fk_comments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
