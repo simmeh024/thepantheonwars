@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=22">
+<link rel="stylesheet" href="css/style.css?v=23">
 </head>
 <body>
 
@@ -162,7 +162,7 @@
 
   var state = { page: 1, perPage: 10, totalPages: 1, total: 0 };
 
-  var TAG_LABELS = { feature: 'Feature', fix: 'Fix', update: 'Update' };
+  var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
 
   function escapeHtml(s) {
     var div = document.createElement('div');
@@ -250,7 +250,7 @@
 
     var tagPill = document.createElement('span');
     tagPill.className = 'dispatch-entry-tag tag-' + entry.tag;
-    tagPill.textContent = TAG_LABELS[entry.tag] || 'Update';
+    tagPill.textContent = TAG_LABELS[entry.tag] || 'Feature';
     left.appendChild(tagPill);
 
     var title = document.createElement('span');

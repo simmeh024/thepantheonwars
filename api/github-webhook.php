@@ -50,21 +50,60 @@ if (!is_array($payload) || empty($payload['commits']) || !is_array($payload['com
     gh_respond(['ok' => true, 'message' => 'No commits in payload']);
 }
 
-function pw_dispatch_tag($subject) {
-    $low = strtolower(trim($subject));
-    if (preg_match('/^fix(\(.+\))?:/', $low) || strpos($low, 'fix ') === 0) {
+/**
+ * Classifies a commit into one of 9 Development Dispatch categories, based on
+ * keywords in the subject + body. Mirrors the heuristic used to backfill and
+ * retag historical commits (see /tmp/dispatch_retag.sql in project history)
+ * so new commits land in the same buckets as old ones.
+ */
+function pw_dispatch_tag($subject, $body = '') {
+    $subject = trim($subject);
+    $text = strtolower($subject . ' ' . $body);
+    $subjLow = strtolower($subject);
+
+    $has = function (...$words) use ($text) {
+        foreach ($words as $w) {
+            if (strpos($text, $w) !== false) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    if (strpos($subjLow, 'fix') === 0 || preg_match('/^(feat|chore|docs|refactor|style|test)(\(.+\))?:\s*fix/', $subjLow)) {
         return 'fix';
     }
-    if (preg_match('/^feat(\(.+\))?:/', $low)) {
-        return 'feature';
+    if ($has('experimental', 'beta test', 'early access', 'prototype', 'proof of concept')) {
+        return 'experimental';
     }
-    if (strpos($low, 'add ') === 0 || strpos($low, 'build ') === 0 || strpos($low, 'create ') === 0) {
-        return 'feature';
+    if ($has('webhook', 'cpanel', 'ftp auto-deploy', 'ftp actions', 'database', 'schema', 'migration',
+             'github actions', 'workflow', 'git version control', '.htaccess', 'auto-deploy',
+             'deploy workflow', 'switch to cpanel', 'member system', 'session', 'csrf', 'initial commit')) {
+        return 'infrastructure';
     }
-    if (strpos($low, 'fix') === 0) {
-        return 'fix';
+    if ($has('performance', 'faster', 'optimi', 'lighthouse', 'preload', 'defer', 'lazy', 'right-size',
+             'stale css', 'stale browser', 'bust stale', 'prevent stale')) {
+        return 'performance';
     }
-    return 'update';
+    if ($has('refactor', 'reorganize', 'clean up', 'cleanup')) {
+        return 'refactor';
+    }
+    if ($has('lore', 'world', 'overlord', 'chapter', ' book', 'character', 'district', ' map',
+             'nexus veil', 'asmecu', 'neoh', 'high hammer', 'reanium', 'maerion', 'malric', 'korrus',
+             'zura', 'syn dravus', 'lysara', 'bh-4', 'kael', 'babki', 'sed ', 'geof', 'beoctica',
+             'terek', 'valerium', 'vermillia', 'quiz outcome', 'writing progress')) {
+        return 'lore';
+    }
+    if ($has('styling', 'css', 'color-code', 'redesign', 'scrollbar', 'favicon', 'lightbox', 'crop',
+             'framing', 'blurry', 'drop-cap', 'watermark', 'responsive', 'zebra', 'accent', 'emphasis',
+             'tooltip', 'stand out', 'hover brighten')) {
+        return 'ui_ux';
+    }
+    if ($has('improve', 'enhance', 'add match %', 'add percentages', 'add 3 boards',
+             'add popular topics', 'add formatting toolbar', 'increase', 'bump hover')) {
+        return 'improvement';
+    }
+    return 'feature';
 }
 
 function pw_dispatch_clean_subject($subject) {
@@ -90,7 +129,7 @@ foreach ($payload['commits'] as $commit) {
     $rawSubject = trim($lines[0]);
     $body = isset($lines[1]) ? trim($lines[1]) : '';
     $subject = pw_dispatch_clean_subject($rawSubject);
-    $tag = pw_dispatch_tag($rawSubject);
+    $tag = pw_dispatch_tag($rawSubject, $body);
     $author = !empty($commit['author']['name']) ? $commit['author']['name'] : 'Unknown';
     $timestamp = !empty($commit['timestamp']) ? $commit['timestamp'] : gmdate('c');
     // Keep the commit author's literal local wall-clock time (matching the
