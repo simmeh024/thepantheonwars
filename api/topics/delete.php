@@ -29,4 +29,9 @@ if (!in_array($user['role'], ['admin', 'moderator'], true) && (int)$topic['user_
 $stmt = $db->prepare('UPDATE topics SET is_deleted = 1 WHERE id = ?');
 $stmt->execute([$id]);
 
+// Cascade: replies of a deleted topic shouldn't keep counting toward post
+// counts / leaderboards even though the row itself is left intact.
+$stmt = $db->prepare('UPDATE comments SET is_deleted = 1 WHERE topic_id = ?');
+$stmt->execute([$id]);
+
 pw_json(['ok' => true]);
