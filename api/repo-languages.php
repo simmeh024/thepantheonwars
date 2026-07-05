@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/helpers.php';
 
-const PW_LANG_SNAPSHOT_TTL = 3600; // don't pull a fresh snapshot more than once per hour
+const PW_LANG_SNAPSHOT_TTL = 21600; // pull/push from GitHub at most once every 6 hours
 
 function pw_fetch_github_languages() {
     $url = 'https://api.github.com/repos/simmeh024/thepantheonwars/languages';
