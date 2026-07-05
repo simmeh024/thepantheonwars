@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=11">
+<link rel="stylesheet" href="css/style.css?v=12">
 </head>
 <body>
 
@@ -261,10 +261,29 @@
         var hTotal = h.scores.reduce(function (a, b) { return a + b; }, 0) || 1;
         var hMax = Math.max.apply(Math, h.scores);
         var hPct = Math.round((hMax / hTotal) * 100);
+
+        var hTier, hTierLabel;
+        if (hPct >= 100) { hTier = 'tier-pure'; hTierLabel = 'Pure Resonance'; }
+        else if (hPct >= 85) { hTier = 'tier-dominant'; hTierLabel = 'Dominant Resonance'; }
+        else if (hPct >= 70) { hTier = 'tier-strong'; hTierLabel = 'Strong Resonance'; }
+        else if (hPct >= 55) { hTier = 'tier-mixed'; hTierLabel = 'Mixed Resonance'; }
+        else if (hPct >= 40) { hTier = 'tier-unstable'; hTierLabel = 'Unstable Resonance'; }
+        else { hTier = 'tier-fractured'; hTierLabel = 'Fractured Resonance'; }
+
+        var pctWrap = document.createElement('span');
+        pctWrap.className = 'quiz-history-pct-wrap';
+
         var pctEl = document.createElement('span');
-        pctEl.className = 'quiz-history-pct';
+        pctEl.className = 'quiz-history-pct ' + hTier;
         pctEl.textContent = hPct + '%';
-        item.appendChild(pctEl);
+        pctWrap.appendChild(pctEl);
+
+        var tooltip = document.createElement('span');
+        tooltip.className = 'resonance-tooltip ' + hTier;
+        tooltip.textContent = hTierLabel;
+        pctWrap.appendChild(tooltip);
+
+        item.appendChild(pctWrap);
       }
 
       historyEl.appendChild(item);
