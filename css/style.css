@@ -2146,9 +2146,11 @@ footer.site-footer {
 .member-index-row {
   display: grid; grid-template-columns: 1fr 120px 170px 90px; gap: 10px; align-items: center;
   padding: 16px 22px; border-bottom: 1px solid var(--border-soft);
+  transition: filter 0.15s ease;
 }
 .member-index-row:nth-child(odd) { background: rgba(124, 79, 214, 0.06); }
 .member-index-row:last-child { border-bottom: none; }
+.member-index-row:hover { filter: brightness(1.04); }
 .member-row-profile { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .member-avatar-wrap.profile-avatar-wrap { width: 40px; height: 40px; }
 .member-avatar-wrap .profile-avatar { width: 40px; height: 40px; border-width: 2px; }
