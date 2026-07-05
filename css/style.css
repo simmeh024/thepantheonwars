@@ -2771,6 +2771,23 @@ footer.site-footer {
   .bh4-verify-tooltip { right: -10px; width: 220px; }
 }
 
+/* On narrow viewports the pagination row wraps to fill the full width, so the
+   metrics link and BH-4 badge (absolutely positioned into the corners above)
+   land on top of the pager buttons instead of beside them. Drop them into
+   normal flow and stack everything centered instead. */
+@media (max-width: 600px) {
+  .dispatch-pagination-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+  }
+  .dispatch-metrics-link-row,
+  .bh4-verify-row {
+    position: static;
+    padding-top: 0;
+    justify-content: center;
+    pointer-events: auto;
+  }
+}
+
 /* BH-4 easter egg popup (after 5 clicks) */
 .bh4-popup {
   position: fixed; inset: 0; z-index: 700;
