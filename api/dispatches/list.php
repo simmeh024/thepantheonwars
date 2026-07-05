@@ -27,8 +27,9 @@ if (isset($_GET['tags']) && trim($_GET['tags']) !== '') {
 $where = [];
 $params = [];
 if ($q !== '') {
-    $where[] = '(d.subject LIKE :q OR d.body LIKE :q)';
-    $params[':q'] = '%' . $q . '%';
+    $where[] = '(d.subject LIKE :q1 OR d.body LIKE :q2)';
+    $params[':q1'] = '%' . $q . '%';
+    $params[':q2'] = '%' . $q . '%';
 }
 if ($tags) {
     $tagPlaceholders = [];
