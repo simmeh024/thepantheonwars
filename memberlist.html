@@ -138,11 +138,42 @@
   var ROLE_RANK = { admin: 0, moderator: 1, member: 2 };
   var sortState = { key: 'status', dir: 'desc' };
 
+  function timeOfDay(d) {
+    return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function isSameCalendarDay(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  // "Last seen" reads as a relative ladder that gets coarser with age:
+  // seconds/minutes ago -> hours ago -> "Today at ..." -> "Yesterday at ..."
+  // -> a plain date once it's old enough that relative phrasing stops helping.
   function fmtTime(iso) {
     var d = new Date(iso.replace(' ', 'T') + 'Z');
     if (isNaN(d.getTime())) return iso;
+
+    var now = new Date();
+    var diffMs = now - d;
+    var diffMin = Math.floor(diffMs / 60000);
+    var diffHr = Math.floor(diffMs / 3600000);
+
+    if (diffMin < 1) return 'Just now';
+    if (diffMin < 60) return diffMin + ' minute' + (diffMin === 1 ? '' : 's') + ' ago';
+
+    if (isSameCalendarDay(d, now)) {
+      if (diffHr < 4) return diffHr + ' hour' + (diffHr === 1 ? '' : 's') + ' ago';
+      return 'Today at ' + timeOfDay(d);
+    }
+
+    var yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (isSameCalendarDay(d, yesterday)) {
+      return 'Yesterday at ' + timeOfDay(d);
+    }
+
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) +
-      ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+      ' ' + timeOfDay(d);
   }
 
   function capitalize(s) {
