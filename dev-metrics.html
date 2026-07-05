@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=35">
+<link rel="stylesheet" href="css/style.css?v=36">
 </head>
 <body>
 
@@ -312,17 +312,31 @@
   var legendEl = document.getElementById('lang-legend');
 
   var LANG_COLORS = {
-    HTML: '#e34c26',
-    CSS: '#563d7c',
-    PHP: '#4F5D95',
-    JavaScript: '#f1e05a',
-    TypeScript: '#3178c6',
-    Python: '#3572A5',
-    Shell: '#89e051'
+    HTML: '#ecc987',
+    CSS: '#a279ec',
+    PHP: '#6f76e8',
+    JavaScript: '#45d1c9',
+    TypeScript: '#3ecf8e',
+    Python: '#e2984f',
+    Shell: '#9aa0ac'
+  };
+
+  var LANG_REASONS = {
+    HTML: 'Every page\u2019s bones. Structure, content, the skeleton everything else hangs off.',
+    CSS: 'All the styling \u2014 the dark purple-and-gold look, the glow, the layout.',
+    PHP: 'Runs the backend: dispatches, the forum, accounts, the database queries behind all of it.',
+    JavaScript: 'The small interactive bits \u2014 filters, animations, this chart counting itself up.',
+    TypeScript: 'Used here and there for anything that benefits from stricter typing.',
+    Python: 'Occasional scripting and tooling on the side.',
+    Shell: 'Small scripts that keep the deploys and housekeeping tidy.'
   };
 
   function colorFor(name) {
-    return LANG_COLORS[name] || '#8b8fa3';
+    return LANG_COLORS[name] || '#e074b0';
+  }
+
+  function reasonFor(name) {
+    return LANG_REASONS[name] || 'Part of what keeps this site running.';
   }
 
   fetch('/api/repo-languages.php', { credentials: 'same-origin' })
@@ -348,6 +362,8 @@
 
         var item = document.createElement('div');
         item.className = 'lang-legend-item';
+        item.tabIndex = 0;
+        item.setAttribute('aria-label', lang.name + ', ' + lang.pct + ' percent. ' + reasonFor(lang.name));
 
         var dot = document.createElement('span');
         dot.className = 'lang-legend-dot';
@@ -363,6 +379,11 @@
         pctEl.className = 'lang-legend-pct';
         pctEl.textContent = lang.pct + '%';
         item.appendChild(pctEl);
+
+        var tooltip = document.createElement('div');
+        tooltip.className = 'lang-legend-tooltip';
+        tooltip.textContent = reasonFor(lang.name);
+        item.appendChild(tooltip);
 
         legendEl.appendChild(item);
       });

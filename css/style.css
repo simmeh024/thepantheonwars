@@ -2944,11 +2944,30 @@ footer.site-footer {
   display: flex; flex-wrap: wrap; row-gap: 12px; column-gap: 32px;
 }
 .lang-legend-item {
-  display: flex; align-items: center; gap: 8px; font-family: 'Jost', sans-serif; font-size: 0.85rem;
+  position: relative; display: flex; align-items: center; gap: 8px;
+  font-family: 'Jost', sans-serif; font-size: 0.85rem; cursor: default;
 }
 .lang-legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
 .lang-legend-name { color: var(--text); font-weight: 500; }
 .lang-legend-pct { color: var(--text-faint); }
+.lang-legend-tooltip {
+  position: absolute; bottom: calc(100% + 10px); left: 50%; width: 210px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
+  padding: 11px 13px; font-family: 'Jost', sans-serif; font-size: 0.76rem; line-height: 1.55;
+  color: var(--text-dim); font-weight: 400;
+  opacity: 0; visibility: hidden; transform: translateX(-50%) translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.5); z-index: 15; pointer-events: none;
+}
+.lang-legend-item:hover .lang-legend-tooltip,
+.lang-legend-item:focus-visible .lang-legend-tooltip {
+  opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
+}
+@media (max-width: 480px) {
+  .lang-legend-tooltip { width: 180px; left: 0; transform: translateY(4px); }
+  .lang-legend-item:hover .lang-legend-tooltip,
+  .lang-legend-item:focus-visible .lang-legend-tooltip { transform: translateY(0); }
+}
 
 @media (max-width: 480px) {
   .metrics-total-num { font-size: 2.6rem; }
