@@ -1739,14 +1739,17 @@ footer.site-footer {
   position: relative; flex-shrink: 0; width: 96px; height: 96px; border-radius: 50%;
 }
 .profile-avatar {
+  position: absolute; top: 0; left: 0;
   width: 96px; height: 96px; border-radius: 50%; object-fit: cover; display: block;
   border: 3px solid var(--border-soft); background: var(--panel-2);
   box-shadow: 0 0 0 1px rgba(0,0,0,0.4);
 }
+.profile-avatar[hidden] { display: none; }
 .profile-avatar-fallback {
   display: flex; align-items: center; justify-content: center;
   font-family: 'Cinzel', serif; font-size: 2rem; color: var(--text-faint);
 }
+.profile-avatar-fallback[hidden] { display: none; }
 .profile-avatar-wrap.role-member .profile-avatar { border-color: #c7ccd6; box-shadow: 0 0 14px rgba(199,204,214,0.35); }
 .profile-avatar-wrap.role-moderator .profile-avatar { border-color: #4caf6e; box-shadow: 0 0 14px rgba(76,175,110,0.4); }
 .profile-avatar-wrap.role-admin .profile-avatar { border-color: #d1483f; box-shadow: 0 0 14px rgba(209,72,63,0.4); }
