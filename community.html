@@ -492,6 +492,61 @@
     return el;
   }
 
+  // Wraps one comment plus (if it has replies) a collapsible thread: a small
+  // dot + label toggle, a connecting vertical line, and the nested replies.
+  // Threads are expanded by default -- collapsing is opt-in per thread.
+  function buildThread(c, byParent, depthClass) {
+    var wrapper = document.createElement('div');
+    wrapper.className = 'comment-thread';
+    wrapper.appendChild(renderComment(c, depthClass));
+
+    var children = byParent[c.id] || [];
+    if (children.length) {
+      var repliesWrap = document.createElement('div');
+      repliesWrap.className = 'thread-replies';
+
+      var toggleRow = document.createElement('div');
+      toggleRow.className = 'thread-toggle-row';
+
+      var dot = document.createElement('span');
+      dot.className = 'thread-toggle-dot';
+      dot.textContent = '−';
+      toggleRow.appendChild(dot);
+
+      var label = document.createElement('span');
+      label.className = 'thread-toggle-label';
+      var replyWord = children.length === 1 ? ' reply' : ' replies';
+      label.textContent = 'Hide ' + children.length + replyWord;
+      toggleRow.appendChild(label);
+
+      repliesWrap.appendChild(toggleRow);
+
+      var line = document.createElement('div');
+      line.className = 'thread-line';
+      repliesWrap.appendChild(line);
+
+      var childrenWrap = document.createElement('div');
+      childrenWrap.className = 'thread-children';
+      children.forEach(function (child) {
+        childrenWrap.appendChild(buildThread(child, byParent, depthClass ? 'is-reply-2' : 'is-reply'));
+      });
+      repliesWrap.appendChild(childrenWrap);
+
+      var collapsed = false;
+      toggleRow.addEventListener('click', function () {
+        collapsed = !collapsed;
+        line.hidden = collapsed;
+        childrenWrap.hidden = collapsed;
+        dot.textContent = collapsed ? '+' : '−';
+        label.textContent = (collapsed ? 'Show ' : 'Hide ') + children.length + replyWord;
+      });
+
+      wrapper.appendChild(repliesWrap);
+    }
+
+    return wrapper;
+  }
+
   function loadFeed() {
     if (!currentBoard) return;
     fetch('/api/comments/list.php?board=' + encodeURIComponent(currentBoard), { credentials: 'same-origin' })
@@ -510,13 +565,7 @@
           byParent[key].push(c);
         });
         (byParent.root || []).forEach(function (c) {
-          feed.appendChild(renderComment(c, null));
-          (byParent[c.id] || []).forEach(function (child) {
-            feed.appendChild(renderComment(child, 'is-reply'));
-            (byParent[child.id] || []).forEach(function (grandchild) {
-              feed.appendChild(renderComment(grandchild, 'is-reply-2'));
-            });
-          });
+          feed.appendChild(buildThread(c, byParent, null));
         });
       });
   }

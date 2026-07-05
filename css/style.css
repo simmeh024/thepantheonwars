@@ -1880,8 +1880,6 @@ footer.site-footer {
   display: flex; align-items: stretch; gap: 18px;
   border: 1px solid var(--border-soft); background: var(--panel); padding: 16px 20px; margin-bottom: 10px;
 }
-.comment-item.is-reply { margin-left: 34px; border-left: 2px solid var(--purple-bright); }
-
 .comment-profile {
   flex-shrink: 0; width: 132px; display: flex; flex-direction: column; align-items: flex-start; gap: 8px;
 }
@@ -1952,8 +1950,38 @@ footer.site-footer {
 .leaderboard-name.role-moderator { color: #4caf6e; }
 .leaderboard-count { font-size: 0.68rem; color: var(--text-faint); }
 
-/* Threaded replies, 2 levels deep */
-.comment-item.is-reply-2 { margin-left: 68px; border-left: 2px solid var(--gold-dim); }
+/* Threaded replies: collapsible thread with a connecting line, Reddit-style.
+   Each .comment-thread wraps one comment + (if it has replies) a
+   .thread-replies block containing the collapse toggle, the vertical line,
+   and a .thread-children container holding the nested .comment-thread(s). */
+.comment-thread { }
+.thread-replies { position: relative; margin-top: 10px; }
+.thread-toggle-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px; cursor: pointer; width: fit-content;
+}
+.thread-toggle-dot {
+  flex-shrink: 0; width: 18px; height: 18px; border-radius: 50%;
+  border: 1px solid var(--border-soft); background: var(--panel-2); color: var(--text-faint);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.8rem; line-height: 1; transition: border-color 0.2s ease, color 0.2s ease;
+}
+.thread-toggle-row:hover .thread-toggle-dot { border-color: var(--purple-bright); color: var(--text); }
+.thread-toggle-label {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-faint);
+}
+.thread-toggle-row:hover .thread-toggle-label { color: var(--text-dim); }
+.thread-line { position: absolute; top: 28px; bottom: 0; left: 8px; width: 2px; background: var(--purple-bright); }
+.thread-children { margin-left: 26px; }
+.thread-children[hidden] { display: none; }
+.thread-line[hidden] { display: none; }
+
+/* Nested (depth-2) reply threads get the gold accent to match the rest of the site's depth coloring */
+.comment-thread .comment-thread .thread-line { background: var(--gold-dim); }
+
+@media (max-width: 620px) {
+  .thread-children { margin-left: 16px; }
+  .thread-line { left: 8px; }
+}
 
 /* Inline reply composer */
 .reply-form-wrap { margin-top: 0.8em; }
