@@ -415,6 +415,19 @@ nav.main-nav a:hover, nav.main-nav a.active { color: var(--gold); }
   animation: hero-glitch-slice 0.4s steps(6, end);
 }
 
+/* The homepage hero art (hero-main-bg.jpg) has its subject -- the
+   knight -- positioned toward the right of the frame. background-size:
+   cover crops around a horizontally-centered point by default, which
+   pushes the knight out of view on narrower/taller viewports. Bias the
+   crop toward him on smaller screens without disturbing the wide-screen
+   framing (which already shows both the towers and the knight nicely). */
+@media (max-width: 900px) {
+  .hero-bg.effect-neoh,
+  .hero-glitch {
+    background-position: 78% 30%;
+  }
+}
+
 /* Random digital glitch bursts — nav logo */
 @keyframes logo-text-glitch {
   0%   { text-shadow: none; transform: translate(0, 0); }

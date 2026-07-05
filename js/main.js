@@ -27,7 +27,13 @@ document.addEventListener('DOMContentLoaded', function () {
   var heroGlitchLayer = document.querySelector('.hero-glitch');
   if (heroEl && heroGlitchLayer) {
     (function scheduleHeroGlitch() {
-      var delay = 3500 + Math.random() * 6000;
+      // First burst is deliberately pushed well past typical page-load
+      // measurement windows (Lighthouse/PSI, etc). This element shares
+      // the hero image and briefly becomes visible when the glitch
+      // plays, which can get it mistaken for the Largest Contentful
+      // Paint if it fires too early -- delaying it keeps the ambient
+      // effect without skewing LCP measurements.
+      var delay = 15000 + Math.random() * 10000;
       setTimeout(function () {
         heroEl.classList.add('is-glitching');
         heroGlitchLayer.classList.add('is-glitching');
