@@ -648,7 +648,7 @@ blockquote.myth cite {
 #high-hammer     { --tag-color: #f0c479; --tag-dim: #8a5a26; }
 #cerius          { --tag-color: #e05a4a; --tag-dim: #4a1712; }
 #reanium         { --tag-color: #8fe04a; --tag-dim: #335c22; }
-#asmecu          { --tag-color: #4fb3e8; --tag-dim: #1c4666; }
+#asmecu-card, #asmecu { --tag-color: #4fb3e8; --tag-dim: #1c4666; }
 #babki-prime     { --tag-color: #4f9d5c; --tag-dim: #1c3820; }
 #sed             { --tag-color: #ff7a3c; --tag-dim: #7a2e12; }
 #geof-v          { --tag-color: #b8c4d1; --tag-dim: #454b52; }
@@ -1412,6 +1412,40 @@ footer.site-footer {
 @media (max-width: 640px) {
   .harbor-row .city-layer { flex: 1 1 100%; }
 }
+
+/* ---------------- Asmecu: sunken coral-palace ocean cross-section ---------------- */
+/* Scoped ocean/coral palette — teal, aqua, and coral-gold instead of Neoh's purple/gold */
+#asmecu {
+  --gold: #e2a55c;
+  --gold-dim: #8a6a2a;
+  --gold-bright: #ffd98a;
+  --purple: #1f8a9c;
+  --purple-bright: #5fd6e0;
+  --purple-deep: #0d3a42;
+  --glow: rgba(95, 214, 224, 0.45);
+  --border: #2a5a66;
+  --border-soft: #1c3d46;
+  --panel: #0d1f24;
+  --panel-2: #12282e;
+  --text-dim: #b8dde2;
+  --text-faint: #6f9aa3;
+}
+#asmecu .map-lightbox-inner img { box-shadow: 0 0 60px var(--glow); }
+#asmecu .sub-landmark { background: rgba(13, 58, 66, 0.35); }
+#asmecu .sublocation-tag { background: rgba(31, 138, 156, 0.10); }
+
+.harbor-district.coral-palace     { background: linear-gradient(90deg, rgba(232,140,110,0.16), transparent); }
+.harbor-district.royal-harbor     { background: linear-gradient(90deg, rgba(70,160,190,0.16), transparent); }
+.harbor-district.the-market       { background: linear-gradient(90deg, rgba(210,170,90,0.14), transparent); }
+.harbor-district.merchant-republic{ background: linear-gradient(90deg, rgba(90,180,150,0.14), transparent); }
+.harbor-district.canal-district   { background: linear-gradient(90deg, rgba(80,130,190,0.16), transparent); }
+.harbor-district.great-lighthouse { background: linear-gradient(90deg, rgba(230,210,150,0.18), transparent); }
+.harbor-district.temple-ocean     { background: linear-gradient(90deg, rgba(40,110,120,0.22), transparent); }
+
+#asmecu .sub-landmark.restricted { border-left-color: #29e0c9; background: rgba(4,14,16,0.55); }
+#asmecu .sub-landmark.restricted .sub-landmark-name { color: #29e0c9; }
+#asmecu .sub-landmark.distant { border-left-color: #6fd6e8; }
+#asmecu .sub-landmark.distant .sub-landmark-name { color: #6fd6e8; }
 
 .world-detail-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 0.6em; }
 .world-detail-portrait {
