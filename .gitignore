@@ -1,2 +1,3 @@
 # Never commit real credentials
 api/config.php
+uploads/avatars/*.jpg

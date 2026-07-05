@@ -11,7 +11,7 @@ pw_json([
         'username' => $user['username'],
         'display_name' => $user['display_name'],
         'overlord_affinity' => $user['overlord_affinity'],
-        'is_admin' => (bool)$user['is_admin'],
+        'role' => $user['role'],
     ] : null,
     'csrf' => pw_csrf_token(),
 ]);

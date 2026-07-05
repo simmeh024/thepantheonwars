@@ -23,7 +23,7 @@ $rows = $stmt->fetchAll();
 
 $currentUser = pw_current_user();
 $currentId = $currentUser ? (int)$currentUser['id'] : null;
-$isAdmin = $currentUser ? (bool)$currentUser['is_admin'] : false;
+$isAdmin = $currentUser ? in_array($currentUser['role'], ['admin', 'moderator'], true) : false;
 
 $out = array_map(function ($r) use ($currentId, $isAdmin) {
     return [

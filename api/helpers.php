@@ -57,7 +57,7 @@ function pw_current_user() {
     if (empty($_SESSION['user_id'])) {
         return null;
     }
-    $stmt = pw_db()->prepare('SELECT id, username, email, display_name, overlord_affinity, is_admin, created_at FROM users WHERE id = ?');
+    $stmt = pw_db()->prepare('SELECT id, username, email, display_name, overlord_affinity, role, created_at FROM users WHERE id = ?');
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch();
     return $user ?: null;

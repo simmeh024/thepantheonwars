@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   display_name VARCHAR(50) NOT NULL,
   overlord_affinity VARCHAR(50) DEFAULT NULL,
-  is_admin TINYINT(1) NOT NULL DEFAULT 0,
+  role ENUM('member','moderator','admin') NOT NULL DEFAULT 'member',
   failed_login_attempts INT UNSIGNED NOT NULL DEFAULT 0,
   locked_until DATETIME DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,

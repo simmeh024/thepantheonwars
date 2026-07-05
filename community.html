@@ -264,7 +264,8 @@
 
   function syncGate() {
     var loggedIn = window.PW_AUTH.loggedIn;
-    var isAdmin = loggedIn && window.PW_AUTH.user && window.PW_AUTH.user.is_admin;
+    var userRole = loggedIn && window.PW_AUTH.user ? window.PW_AUTH.user.role : null;
+    var isAdmin = userRole === 'admin' || userRole === 'moderator';
     var announcementsLocked = currentBoard === 'announcements' && !isAdmin;
 
     gate.hidden = loggedIn;

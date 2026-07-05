@@ -14,7 +14,7 @@ if (!preg_match('/^[a-z0-9\-]{1,50}$/', $board)) {
     $board = 'community';
 }
 
-if ($board === 'announcements' && empty($user['is_admin'])) {
+if ($board === 'announcements' && !in_array($user['role'], ['admin', 'moderator'], true)) {
     pw_error('Only the author and moderators can post in Announcements.', 403);
 }
 

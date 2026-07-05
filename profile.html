@@ -61,8 +61,20 @@
 
       <div id="profile-content" hidden>
         <div class="profile-head">
+          <div class="profile-avatar-wrap role-member" id="profile-avatar-wrap">
+            <img id="profile-avatar-img" class="profile-avatar" alt="" hidden>
+            <div id="profile-avatar-fallback" class="profile-avatar profile-avatar-fallback">?</div>
+            <label for="profile-avatar-input" class="profile-avatar-upload" title="Change avatar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"></path>
+                <circle cx="12" cy="13" r="4"></circle>
+              </svg>
+            </label>
+            <input type="file" id="profile-avatar-input" accept="image/png,image/jpeg,image/webp" hidden>
+          </div>
           <h1 id="profile-name">—</h1>
         </div>
+        <p id="profile-avatar-status" class="profile-avatar-status" hidden></p>
 
         <div class="profile-affinity" id="profile-affinity-box" hidden>
           <span class="eyebrow">Your Overlord Affinity</span>
@@ -122,12 +134,86 @@
 (function () {
   var gate = document.getElementById('profile-gate');
   var content = document.getElementById('profile-content');
+  var avatarWrap = document.getElementById('profile-avatar-wrap');
+  var avatarImg = document.getElementById('profile-avatar-img');
+  var avatarFallback = document.getElementById('profile-avatar-fallback');
+  var avatarInput = document.getElementById('profile-avatar-input');
+  var avatarStatus = document.getElementById('profile-avatar-status');
+  var currentUserId = null;
 
   function fmtDate(iso) {
     var d = new Date(iso.replace(' ', 'T') + 'Z');
     if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
   }
+
+  function setRole(role) {
+    avatarWrap.classList.remove('role-member', 'role-moderator', 'role-admin');
+    avatarWrap.classList.add(role === 'admin' ? 'role-admin' : role === 'moderator' ? 'role-moderator' : 'role-member');
+  }
+
+  function loadAvatar(userId, displayName) {
+    currentUserId = userId;
+    avatarFallback.textContent = (displayName || '?').charAt(0).toUpperCase();
+    var probe = new Image();
+    probe.onload = function () {
+      avatarImg.src = probe.src;
+      avatarImg.hidden = false;
+      avatarFallback.hidden = true;
+    };
+    probe.onerror = function () {
+      avatarImg.hidden = true;
+      avatarFallback.hidden = false;
+    };
+    probe.src = '/uploads/avatars/' + userId + '.jpg?v=' + Date.now();
+  }
+
+  function showAvatarStatus(message, isError) {
+    avatarStatus.textContent = message;
+    avatarStatus.hidden = !message;
+    avatarStatus.classList.toggle('show-error', !!isError);
+    avatarStatus.classList.toggle('show-ok', !isError && !!message);
+  }
+
+  avatarInput.addEventListener('change', function () {
+    var file = avatarInput.files && avatarInput.files[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      showAvatarStatus('That image is too large. Please choose a file under 5MB.', true);
+      avatarInput.value = '';
+      return;
+    }
+
+    var formData = new FormData();
+    formData.append('avatar', file);
+    formData.append('csrf', window.PW_AUTH.csrf);
+
+    showAvatarStatus('Uploading...', false);
+
+    fetch('/api/upload-avatar.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      body: formData,
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          showAvatarStatus(data.error || 'Upload failed. Please try again.', true);
+          return;
+        }
+        avatarImg.src = data.avatarUrl;
+        avatarImg.hidden = false;
+        avatarFallback.hidden = true;
+        showAvatarStatus('Avatar updated.', false);
+      })
+      .catch(function () {
+        showAvatarStatus('Upload failed. Please try again.', true);
+      })
+      .finally(function () {
+        avatarInput.value = '';
+      });
+  });
 
   function load() {
     if (!window.PW_AUTH.loggedIn) {
@@ -144,6 +230,8 @@
         if (!data.ok) return;
 
         document.getElementById('profile-name').textContent = data.user.display_name;
+        setRole(data.user.role);
+        loadAvatar(data.user.id, data.user.display_name);
 
         var affBox = document.getElementById('profile-affinity-box');
         if (data.user.overlord_affinity) {

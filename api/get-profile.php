@@ -20,6 +20,7 @@ pw_json([
         'display_name' => $user['display_name'],
         'email' => $user['email'],
         'overlord_affinity' => $user['overlord_affinity'],
+        'role' => $user['role'],
         'created_at' => $user['created_at'],
     ],
     'quizHistory' => $quizHistory,
