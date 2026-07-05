@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=34">
+<link rel="stylesheet" href="css/style.css?v=35">
 </head>
 <body>
 
@@ -100,6 +100,16 @@
 
       <div class="metrics-grid" id="metrics-grid">
         <p class="metrics-loading">Crunching the numbers&hellip;</p>
+      </div>
+
+      <div class="metrics-divider"></div>
+
+      <div class="lang-section" id="lang-section">
+        <h3 class="lang-title">Languages</h3>
+        <div class="lang-bar" id="lang-bar"></div>
+        <div class="lang-legend" id="lang-legend">
+          <p class="metrics-loading">Loading language stats&hellip;</p>
+        </div>
       </div>
 
     </div>
@@ -294,6 +304,71 @@
     })
     .catch(function () {
       gridEl.innerHTML = '<p class="metrics-loading">Could not load metrics right now.</p>';
+    });
+})();
+
+(function () {
+  var barEl = document.getElementById('lang-bar');
+  var legendEl = document.getElementById('lang-legend');
+
+  var LANG_COLORS = {
+    HTML: '#e34c26',
+    CSS: '#563d7c',
+    PHP: '#4F5D95',
+    JavaScript: '#f1e05a',
+    TypeScript: '#3178c6',
+    Python: '#3572A5',
+    Shell: '#89e051'
+  };
+
+  function colorFor(name) {
+    return LANG_COLORS[name] || '#8b8fa3';
+  }
+
+  fetch('/api/repo-languages.php', { credentials: 'same-origin' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      if (!data.ok || !data.languages || !data.languages.length) {
+        legendEl.innerHTML = '<p class="metrics-loading">Could not load language stats right now.</p>';
+        return;
+      }
+
+      barEl.innerHTML = '';
+      legendEl.innerHTML = '';
+
+      data.languages.forEach(function (lang) {
+        var color = colorFor(lang.name);
+
+        var seg = document.createElement('div');
+        seg.className = 'lang-bar-seg';
+        seg.style.width = lang.pct + '%';
+        seg.style.background = color;
+        seg.title = lang.name + ' — ' + lang.pct + '%';
+        barEl.appendChild(seg);
+
+        var item = document.createElement('div');
+        item.className = 'lang-legend-item';
+
+        var dot = document.createElement('span');
+        dot.className = 'lang-legend-dot';
+        dot.style.background = color;
+        item.appendChild(dot);
+
+        var nameEl = document.createElement('span');
+        nameEl.className = 'lang-legend-name';
+        nameEl.textContent = lang.name;
+        item.appendChild(nameEl);
+
+        var pctEl = document.createElement('span');
+        pctEl.className = 'lang-legend-pct';
+        pctEl.textContent = lang.pct + '%';
+        item.appendChild(pctEl);
+
+        legendEl.appendChild(item);
+      });
+    })
+    .catch(function () {
+      legendEl.innerHTML = '<p class="metrics-loading">Could not load language stats right now.</p>';
     });
 })();
 </script>
