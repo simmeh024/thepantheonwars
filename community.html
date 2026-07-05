@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=18">
+<link rel="stylesheet" href="css/style.css?v=19">
 </head>
 <body>
 
@@ -565,9 +565,17 @@
   }
 
   function buildTopicRow(t) {
+    var isAnnouncement = currentBoard === 'announcements';
     var row = document.createElement('div');
-    row.className = 'topic-row' + (t.is_pinned ? ' is-pinned' : '');
+    row.className = 'topic-row' + (t.is_pinned ? ' is-pinned' : '') + (isAnnouncement ? ' is-announcement' : '');
     row.addEventListener('click', function () { goToTopic(t.id); });
+
+    if (isAnnouncement) {
+      var announce = document.createElement('span');
+      announce.className = 'topic-row-announce-tag';
+      announce.textContent = 'Announcement';
+      row.appendChild(announce);
+    }
 
     if (t.is_pinned) {
       var pin = document.createElement('span');
