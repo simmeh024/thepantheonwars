@@ -2929,13 +2929,46 @@ footer.site-footer {
 }
 
 .lang-section {}
+.lang-header-row {
+  display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap;
+  gap: 14px; margin-bottom: 16px;
+}
+.lang-header-text { flex: 1; min-width: 200px; }
 .lang-title {
   font-family: 'Cinzel', serif; font-weight: 600; font-size: 1.15rem; color: var(--text);
   margin-bottom: 4px;
 }
 .lang-subtitle {
   font-family: 'Jost', sans-serif; font-size: 0.75rem; color: var(--text-faint);
-  margin: 0 0 16px; min-height: 1.1em;
+  margin: 0; min-height: 1.1em;
+}
+.lang-bh4 { flex-shrink: 0; padding-top: 2px; }
+.lang-bh4-tooltip {
+  position: absolute; top: calc(100% + 12px); right: 0; width: 270px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
+  padding: 14px 16px; font-family: 'Jost', sans-serif; font-size: 0.78rem; line-height: 1.6;
+  color: var(--text-dim);
+  opacity: 0; visibility: hidden; transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.5); z-index: 20; pointer-events: none;
+}
+.lang-bh4.is-open .lang-bh4-tooltip { opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto; }
+.lang-bh4-tooltip-head {
+  font-family: 'Cinzel', serif; font-weight: 600; font-size: 0.85rem; color: var(--gold-bright); margin-bottom: 6px;
+}
+.lang-bh4-tooltip-line { margin: 0 0 10px; }
+.lang-bh4-tooltip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 3px 0; }
+.lang-bh4-tooltip-row span { color: var(--text-faint); }
+.lang-bh4-tooltip-row strong { color: var(--text); font-weight: 500; text-align: right; white-space: nowrap; }
+.bh4-status-ok { color: #3ecf8e; }
+.bh4-status-warn { color: #e14b5a; }
+.lang-bh4-tooltip-footnote {
+  margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--border-soft);
+  font-size: 0.72rem; color: var(--text-faint);
+}
+@media (max-width: 480px) {
+  .lang-bh4-tooltip { right: -10px; width: 230px; }
+  .bh4-verify-label { display: none; }
 }
 .lang-bar {
   display: flex; height: 8px; border-radius: 5px; overflow: hidden;

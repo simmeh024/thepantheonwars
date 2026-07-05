@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=37">
+<link rel="stylesheet" href="css/style.css?v=38">
 </head>
 <body>
 
@@ -105,8 +105,32 @@
       <div class="metrics-divider"></div>
 
       <div class="lang-section" id="lang-section">
-        <h3 class="lang-title">Languages</h3>
-        <p class="lang-subtitle" id="lang-subtitle"></p>
+        <div class="lang-header-row">
+          <div class="lang-header-text">
+            <h3 class="lang-title">Languages</h3>
+            <p class="lang-subtitle" id="lang-subtitle"></p>
+          </div>
+
+          <div class="bh4-verify lang-bh4" id="lang-bh4" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="Verified by BH-4. Click for sync status.">
+            <div class="bh4-verify-avatar">
+              <img src="images/bh4-dispatch.jpg" alt="">
+              <span class="bh4-verify-check">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+            </div>
+            <span class="bh4-verify-label">Verified by BH-4</span>
+
+            <div class="lang-bh4-tooltip" id="lang-bh4-tooltip">
+              <div class="lang-bh4-tooltip-head">BH-4:</div>
+              <p class="lang-bh4-tooltip-line" id="lang-bh4-status-line">Development Metrics synchronized successfully.</p>
+              <div class="lang-bh4-tooltip-row"><span>Last GitHub sync</span><strong id="lang-bh4-last-sync">&mdash;</strong></div>
+              <div class="lang-bh4-tooltip-row"><span>Next scheduled sync</span><strong id="lang-bh4-next-sync">&mdash;</strong></div>
+              <div class="lang-bh4-tooltip-row"><span>Repository status</span><strong class="bh4-status-ok" id="lang-bh4-repo-status">Connected</strong></div>
+              <p class="lang-bh4-tooltip-footnote">All metrics below reflect the latest verified transmission.</p>
+            </div>
+          </div>
+        </div>
+
         <div class="lang-bar" id="lang-bar"></div>
         <div class="lang-legend" id="lang-legend">
           <p class="metrics-loading">Loading language stats&hellip;</p>
@@ -342,13 +366,39 @@ function pwGetRangeBounds(value) {
     return LANG_REASONS[name] || 'Part of what keeps this site running.';
   }
 
+  function parseUtcSqlDate(sqlDate) {
+    if (!sqlDate) return null;
+    var d = new Date(String(sqlDate).replace(' ', 'T') + 'Z');
+    return isNaN(d.getTime()) ? null : d;
+  }
+
   function formatCapturedAt(sqlDate) {
-    if (!sqlDate) return '';
-    var d = new Date(String(sqlDate).replace(' ', 'T'));
-    if (isNaN(d.getTime())) return '';
+    var d = parseUtcSqlDate(sqlDate);
+    if (!d) return '';
     var dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
     var timeStr = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
     return dateStr + ' at ' + timeStr;
+  }
+
+  function pad2(n) { return n < 10 ? '0' + n : '' + n; }
+
+  function formatUtcClock(d) {
+    return pad2(d.getUTCHours()) + ':' + pad2(d.getUTCMinutes()) + ' UTC';
+  }
+
+  function isSameUtcDate(a, b) {
+    return a.getUTCFullYear() === b.getUTCFullYear() &&
+      a.getUTCMonth() === b.getUTCMonth() &&
+      a.getUTCDate() === b.getUTCDate();
+  }
+
+  function formatLastSyncLabel(d) {
+    var now = new Date();
+    var yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    if (isSameUtcDate(d, now)) return 'Today at ' + formatUtcClock(d);
+    if (isSameUtcDate(d, yesterday)) return 'Yesterday at ' + formatUtcClock(d);
+    var dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    return dateStr + ' at ' + formatUtcClock(d);
   }
 
   function renderLanguages(data) {
@@ -426,6 +476,70 @@ function pwGetRangeBounds(value) {
 
   dateSelect.addEventListener('change', loadLanguages);
   loadLanguages();
+
+  // --- BH-4 sync status badge (mirrors the Languages title) ------------------
+  var bh4El = document.getElementById('lang-bh4');
+  var bh4StatusLine = document.getElementById('lang-bh4-status-line');
+  var bh4LastSync = document.getElementById('lang-bh4-last-sync');
+  var bh4NextSync = document.getElementById('lang-bh4-next-sync');
+  var bh4RepoStatus = document.getElementById('lang-bh4-repo-status');
+
+  function setBh4Connected(data) {
+    var last = parseUtcSqlDate(data.captured_at);
+    var next = parseUtcSqlDate(data.next_sync_at);
+    bh4StatusLine.textContent = 'Development Metrics synchronized successfully.';
+    bh4LastSync.textContent = last ? formatLastSyncLabel(last) : '—';
+    bh4NextSync.textContent = next ? formatUtcClock(next) : '—';
+    bh4RepoStatus.textContent = 'Connected';
+    bh4RepoStatus.className = 'bh4-status-ok';
+  }
+
+  function setBh4Disconnected() {
+    bh4StatusLine.textContent = 'No sync recorded yet — waiting on the first transmission.';
+    bh4LastSync.textContent = '—';
+    bh4NextSync.textContent = '—';
+    bh4RepoStatus.textContent = 'Reconnecting';
+    bh4RepoStatus.className = 'bh4-status-warn';
+  }
+
+  function loadBh4Status() {
+    fetch('/api/repo-languages.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok || !data.found) {
+          setBh4Disconnected();
+          return;
+        }
+        setBh4Connected(data);
+      })
+      .catch(function () {
+        setBh4Disconnected();
+      });
+  }
+
+  if (bh4El) {
+    loadBh4Status();
+
+    bh4El.addEventListener('click', function () {
+      var isOpen = bh4El.classList.toggle('is-open');
+      bh4El.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+    bh4El.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        bh4El.click();
+      } else if (e.key === 'Escape') {
+        bh4El.classList.remove('is-open');
+        bh4El.setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.addEventListener('click', function (e) {
+      if (bh4El.classList.contains('is-open') && !bh4El.contains(e.target)) {
+        bh4El.classList.remove('is-open');
+        bh4El.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
 })();
 </script>
 </body>

@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/helpers.php';
 
+date_default_timezone_set('UTC'); // store and compare snapshot times in UTC, unambiguously
+
 const PW_LANG_SNAPSHOT_TTL = 21600; // pull/push from GitHub at most once every 6 hours
 
 function pw_fetch_github_languages() {
@@ -57,8 +59,8 @@ if ($needsRefresh) {
     $fresh = pw_fetch_github_languages();
     if ($fresh !== null && !empty($fresh)) {
         list($out, $total) = pw_langs_to_out($fresh);
-        $stmt = $db->prepare('INSERT INTO repo_language_snapshots (captured_at, total_bytes, languages_json) VALUES (NOW(), :total, :json)');
-        $stmt->execute([':total' => $total, ':json' => json_encode($out)]);
+        $stmt = $db->prepare('INSERT INTO repo_language_snapshots (captured_at, total_bytes, languages_json) VALUES (:captured_at, :total, :json)');
+        $stmt->execute([':captured_at' => date('Y-m-d H:i:s'), ':total' => $total, ':json' => json_encode($out)]);
     }
 }
 
@@ -106,10 +108,13 @@ if (!is_array($languages)) {
     $languages = [];
 }
 
+$nextSyncAt = date('Y-m-d H:i:s', strtotime($row['captured_at']) + PW_LANG_SNAPSHOT_TTL);
+
 pw_json([
     'ok' => true,
     'found' => true,
     'languages' => $languages,
     'captured_at' => $row['captured_at'],
+    'next_sync_at' => $nextSyncAt,
     'total_bytes' => (int)$row['total_bytes'],
 ]);
