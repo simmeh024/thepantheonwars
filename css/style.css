@@ -529,6 +529,14 @@ nav.main-nav a:hover, nav.main-nav a.active { color: var(--gold); }
 /* ---------------- Sections ---------------- */
 section { padding: 90px 0; position: relative; }
 .section-alt { background: var(--bg-alt); }
+
+/* Divider placed between world detail sections so back-to-back sections
+   (e.g. High Hammer -> Asmecu, both on the default --bg) don't blend into
+   one undifferentiated block with no visible seam. Sits outside any
+   per-world scoped palette, so it always renders in the site's neutral
+   gold rather than whichever world's theme is above or below it. */
+.world-divider-wrap { padding: 60px 0; }
+.world-divider-wrap .profile-divider { margin: 0; }
 .section-head { max-width: 720px; margin: 0 auto 3rem; text-align: center; }
 .section-head p { font-size: 1.05rem; }
 
