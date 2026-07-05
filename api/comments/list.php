@@ -4,25 +4,25 @@ require_once __DIR__ . '/../helpers.php';
 // Rendering note: bodies/display names below are RAW text, not HTML-escaped.
 // The front-end must render them with textContent (never innerHTML) to stay XSS-safe.
 
-$board = isset($_GET['board']) ? trim($_GET['board']) : 'community';
-if (!preg_match('/^[a-z0-9\-]{1,50}$/', $board)) {
-    $board = 'community';
+$topicId = isset($_GET['topic_id']) ? (int)$_GET['topic_id'] : 0;
+if ($topicId <= 0) {
+    pw_error('Missing topic id.');
 }
 
 $db = pw_db();
 $stmt = $db->prepare(
-    'SELECT c.id, c.parent_id, c.depth, c.body, c.created_at, c.user_id, c.is_pinned, c.pinned_at,
+    'SELECT c.id, c.parent_id, c.depth, c.body, c.created_at, c.user_id,
             u.username, u.display_name, u.overlord_affinity, u.role
      FROM comments c
      JOIN users u ON u.id = c.user_id
-     WHERE c.board = ? AND c.is_deleted = 0
-     ORDER BY c.is_pinned DESC, c.created_at ASC
+     WHERE c.topic_id = ? AND c.is_deleted = 0
+     ORDER BY c.created_at ASC
      LIMIT 500'
 );
-$stmt->execute([$board]);
+$stmt->execute([$topicId]);
 $rows = $stmt->fetchAll();
 
-// Total (all-board) post counts per author, so the forum card can show
+// Total (all-time) post counts per author, so the forum card can show
 // "N posts" next to the profile info without an extra round trip per row.
 $postCounts = [];
 $commentIds = [];
@@ -88,8 +88,6 @@ $out = array_map(function ($r) use ($currentId, $isAdmin, $postCounts, $reaction
         'role' => $r['role'],
         'post_count' => isset($postCounts[$userId]) ? $postCounts[$userId] : 0,
         'canDelete' => $isAdmin || ($currentId !== null && $currentId === $userId),
-        'canModerate' => $isAdmin,
-        'isPinned' => (bool)$r['is_pinned'],
         'reactions' => isset($reactionCounts[$id]) ? $reactionCounts[$id] : ['shard' => 0, 'ward' => 0, 'ember' => 0],
         'myReaction' => isset($myReactions[$id]) ? $myReactions[$id] : null,
     ];

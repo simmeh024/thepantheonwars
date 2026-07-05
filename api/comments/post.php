@@ -9,14 +9,21 @@ $user = pw_require_login();
 $input = pw_input();
 pw_require_csrf($input);
 
-$board = isset($input['board']) ? trim($input['board']) : 'community';
-if (!preg_match('/^[a-z0-9\-]{1,50}$/', $board)) {
-    $board = 'community';
+$topicId = isset($input['topic_id']) ? (int)$input['topic_id'] : 0;
+if ($topicId <= 0) {
+    pw_error('Missing topic id.');
 }
 
-if ($board === 'announcements' && !in_array($user['role'], ['admin', 'moderator'], true)) {
-    pw_error('Only the author and moderators can post in Announcements.', 403);
+$db = pw_db();
+$stmt = $db->prepare('SELECT id FROM topics WHERE id = ? AND is_deleted = 0');
+$stmt->execute([$topicId]);
+if (!$stmt->fetch()) {
+    pw_error('That topic no longer exists.', 404);
 }
+
+// Note: anyone logged in may reply inside an existing topic, including in
+// Announcements -- only *starting* a new Announcements topic is staff-only
+// (enforced in api/topics/create.php).
 
 $body = isset($input['body']) ? trim($input['body']) : '';
 if ($body === '') {
@@ -28,11 +35,10 @@ if (function_exists('mb_strlen') ? mb_strlen($body) > 2000 : strlen($body) > 200
 
 $parentId = null;
 $depth = 0;
-$db = pw_db();
 if (!empty($input['parent_id'])) {
     $parentId = (int)$input['parent_id'];
-    $stmt = $db->prepare('SELECT id, depth FROM comments WHERE id = ? AND board = ? AND is_deleted = 0');
-    $stmt->execute([$parentId, $board]);
+    $stmt = $db->prepare('SELECT id, depth FROM comments WHERE id = ? AND topic_id = ? AND is_deleted = 0');
+    $stmt->execute([$parentId, $topicId]);
     $parent = $stmt->fetch();
     if (!$parent) {
         pw_error('The message you are replying to no longer exists.');
@@ -43,7 +49,7 @@ if (!empty($input['parent_id'])) {
     }
 }
 
-$stmt = $db->prepare('INSERT INTO comments (user_id, board, parent_id, depth, body) VALUES (?, ?, ?, ?, ?)');
-$stmt->execute([$user['id'], $board, $parentId, $depth, $body]);
+$stmt = $db->prepare('INSERT INTO comments (user_id, topic_id, parent_id, depth, body) VALUES (?, ?, ?, ?, ?)');
+$stmt->execute([$user['id'], $topicId, $parentId, $depth, $body]);
 
 pw_json(['ok' => true, 'id' => (int)$db->lastInsertId()]);

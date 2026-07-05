@@ -73,54 +73,71 @@
 
         <div class="community-main">
 
-          <div class="board-tabs" id="board-tabs">
-            <button type="button" class="board-tab" data-board="announcements">
-              <span class="board-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v4a1 1 0 0 0 1 1h2l4 4V5L6 9H4a1 1 0 0 0-1 1z"/><path d="M14 8a4 4 0 0 1 0 8"/><path d="M17 5a8 8 0 0 1 0 14"/></svg></span>
-              <span class="board-tab-text">
-                <span class="board-tab-title">Announcements</span>
-                <span class="board-tab-desc">Important information is shared here by the author or moderators.</span>
-              </span>
-            </button>
-            <button type="button" class="board-tab" data-board="assembly">
-              <span class="board-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5c2-1.2 5-1.2 7 0v13c-2-1.2-5-1.2-7 0z"/><path d="M22 5.5c-2-1.2-5-1.2-7 0v13c2-1.2 5-1.2 7 0z"/></svg></span>
-              <span class="board-tab-text">
-                <span class="board-tab-title">The Assembly</span>
-                <span class="board-tab-desc">Discussions about each book.</span>
-              </span>
-            </button>
-            <button type="button" class="board-tab" data-board="offworld">
-              <span class="board-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><ellipse cx="12" cy="12" rx="9.5" ry="3.2"/></svg></span>
-              <span class="board-tab-text">
-                <span class="board-tab-title">Offworld</span>
-                <span class="board-tab-desc">Off-topic discussion about anything.</span>
-              </span>
-            </button>
+          <!-- Forum index: one row per board, phpBB-style -->
+          <div id="board-index-view">
+            <div class="board-index" id="board-index"></div>
           </div>
 
-          <p id="board-placeholder" class="lore-status">Choose a board above to read and join the discussion.</p>
+          <!-- One board's topic list -->
+          <div id="topic-list-view" hidden>
+            <button type="button" class="btn board-back" id="topic-list-back">&larr; All Forums</button>
+            <h2 class="board-heading" id="topic-list-heading"></h2>
+            <p class="board-heading-desc" id="topic-list-desc"></p>
 
-          <div id="board-content" hidden>
-
-            <div id="community-gate" class="profile-gate" hidden>
-              <p>You need an account to post here — but you can read every message below without one.</p>
+            <div id="topic-list-gate" class="profile-gate" hidden>
+              <p>You need an account to start a topic — but you can read every topic below without one.</p>
               <button type="button" class="btn btn-solid auth-trigger" data-tab="register">Create an Account</button>
               <button type="button" class="btn auth-trigger" data-tab="login">Log In</button>
             </div>
 
-            <p id="community-locked" class="lore-status" hidden>Only the author and moderators can post in Announcements.</p>
+            <p id="topic-list-locked" class="lore-status" hidden>Only the author and moderators can start new topics in Announcements. Anyone can still reply inside existing ones.</p>
+
+            <div id="new-topic-block" hidden>
+              <button type="button" class="btn btn-solid" id="new-topic-toggle">+ New Topic</button>
+              <form id="topic-form" class="community-form" hidden>
+                <div class="auth-field">
+                  <label for="topic-title">Title</label>
+                  <input type="text" id="topic-title" maxlength="200" placeholder="Give your topic a title" required>
+                </div>
+                <div class="auth-field">
+                  <label for="topic-body">Message</label>
+                  <textarea id="topic-body" maxlength="2000" placeholder="What's on your mind, traveler?" required></textarea>
+                </div>
+                <p class="auth-error" id="topic-error"></p>
+                <div class="reply-form-actions">
+                  <button type="submit" class="btn btn-solid">Post Topic</button>
+                  <button type="button" class="btn" id="topic-cancel">Cancel</button>
+                </div>
+              </form>
+            </div>
+
+            <div id="topic-list"></div>
+            <p id="topic-list-empty" class="lore-status" hidden>No topics yet — be the first to start one.</p>
+          </div>
+
+          <!-- A single topic + its threaded replies -->
+          <div id="topic-detail-view" hidden>
+            <button type="button" class="btn board-back" id="topic-detail-back">&larr; Back to Topics</button>
+
+            <div id="topic-op"></div>
+
+            <div id="community-gate" class="profile-gate" hidden>
+              <p>You need an account to reply — but you can read every reply below without one.</p>
+              <button type="button" class="btn btn-solid auth-trigger" data-tab="register">Create an Account</button>
+              <button type="button" class="btn auth-trigger" data-tab="login">Log In</button>
+            </div>
 
             <form id="community-form" class="community-form" hidden>
               <div class="auth-field">
-                <label for="community-body">Post a message</label>
+                <label for="community-body">Post a reply</label>
                 <textarea id="community-body" maxlength="2000" placeholder="What's on your mind, traveler?" required></textarea>
               </div>
               <p class="auth-error" id="community-error"></p>
-              <button type="submit" class="btn btn-solid">Post</button>
+              <button type="submit" class="btn btn-solid">Reply</button>
             </form>
 
             <div id="community-feed"></div>
-            <p id="community-empty" class="lore-status" hidden>No messages yet — be the first to speak.</p>
-
+            <p id="community-empty" class="lore-status" hidden>No replies yet — be the first to respond.</p>
           </div>
 
         </div>
@@ -190,23 +207,50 @@
 <script src="js/members.js"></script>
 <script>
 (function () {
-  var boardTabs = document.getElementById('board-tabs');
-  var placeholder = document.getElementById('board-placeholder');
-  var boardContent = document.getElementById('board-content');
+  var BOARDS = [
+    { slug: 'announcements', name: 'Announcements', desc: 'Important information is shared here by the author or moderators.',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v4a1 1 0 0 0 1 1h2l4 4V5L6 9H4a1 1 0 0 0-1 1z"/><path d="M14 8a4 4 0 0 1 0 8"/><path d="M17 5a8 8 0 0 1 0 14"/></svg>' },
+    { slug: 'assembly', name: 'The Assembly', desc: 'Discussions about each book.',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5c2-1.2 5-1.2 7 0v13c-2-1.2-5-1.2-7 0z"/><path d="M22 5.5c-2-1.2-5-1.2-7 0v13c2-1.2 5-1.2 7 0z"/></svg>' },
+    { slug: 'offworld', name: 'Offworld', desc: 'Off-topic discussion about anything.',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><ellipse cx="12" cy="12" rx="9.5" ry="3.2"/></svg>' }
+  ];
+
+  var boardIndexEl = document.getElementById('board-index');
+
+  var indexView = document.getElementById('board-index-view');
+  var listView = document.getElementById('topic-list-view');
+  var detailView = document.getElementById('topic-detail-view');
+
+  var topicListBack = document.getElementById('topic-list-back');
+  var topicListHeading = document.getElementById('topic-list-heading');
+  var topicListDesc = document.getElementById('topic-list-desc');
+  var topicListGate = document.getElementById('topic-list-gate');
+  var topicListLocked = document.getElementById('topic-list-locked');
+  var newTopicBlock = document.getElementById('new-topic-block');
+  var newTopicToggle = document.getElementById('new-topic-toggle');
+  var topicForm = document.getElementById('topic-form');
+  var topicTitleInput = document.getElementById('topic-title');
+  var topicBodyInput = document.getElementById('topic-body');
+  var topicErrorEl = document.getElementById('topic-error');
+  var topicCancelBtn = document.getElementById('topic-cancel');
+  var topicListEl = document.getElementById('topic-list');
+  var topicListEmptyEl = document.getElementById('topic-list-empty');
+
+  var topicDetailBack = document.getElementById('topic-detail-back');
+  var topicOpEl = document.getElementById('topic-op');
   var gate = document.getElementById('community-gate');
-  var lockedEl = document.getElementById('community-locked');
   var form = document.getElementById('community-form');
   var body = document.getElementById('community-body');
   var errorEl = document.getElementById('community-error');
   var feed = document.getElementById('community-feed');
   var emptyEl = document.getElementById('community-empty');
+
   var leaderboardList = document.getElementById('leaderboard-list');
   var leaderboardEmpty = document.getElementById('leaderboard-empty');
 
-  // No board is selected until the reader explicitly clicks one — deliberate
-  // UX choice so nobody can write a post or a reaction before choosing where
-  // it goes.
   var currentBoard = null;
+  var currentTopicId = null;
 
   var REACTIONS = [
     { type: 'shard', label: 'Shard',
@@ -216,6 +260,13 @@
     { type: 'ember', label: 'Ember',
       icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2.5c1.2 3.6-2.4 5-2.4 8.6a2.4 2.4 0 0 0 4.8 0c0-.8-.3-1.5-.7-1.9.7 2.3-.7 3.3-1.7 3.3-1.2 0-1.8-1.2-1-2.6.9-1.6-.2-3.4-.6-4.9-1 1.7-3.4 3.6-3.4 6.9a4.2 4.2 0 0 0 8.4 0c0-4.3-2.4-5.3-3.4-9.4z"/></svg>' }
   ];
+
+  function boardMeta(slug) {
+    for (var i = 0; i < BOARDS.length; i++) {
+      if (BOARDS[i].slug === slug) return BOARDS[i];
+    }
+    return null;
+  }
 
   function fmtTime(iso) {
     var d = new Date(iso.replace(' ', 'T') + 'Z');
@@ -227,6 +278,389 @@
   function capitalize(s) {
     return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
   }
+
+  function showView(name) {
+    indexView.hidden = name !== 'index';
+    listView.hidden = name !== 'list';
+    detailView.hidden = name !== 'detail';
+  }
+
+  // ---------- Board index (forum home) ----------
+
+  function loadBoardIndex() {
+    boardIndexEl.innerHTML = '';
+
+    var head = document.createElement('div');
+    head.className = 'board-index-head';
+    head.innerHTML =
+      '<span class="board-index-col-forum">Forum</span>' +
+      '<span class="board-index-col-stat">Topics</span>' +
+      '<span class="board-index-col-stat">Posts</span>' +
+      '<span class="board-index-col-latest">Latest Post</span>';
+    boardIndexEl.appendChild(head);
+
+    fetch('/api/boards-summary.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var stats = (data.ok && data.boards) ? data.boards : {};
+        BOARDS.forEach(function (b) {
+          boardIndexEl.appendChild(buildBoardRow(b, stats[b.slug]));
+        });
+      });
+  }
+
+  function buildBoardRow(b, stat) {
+    var row = document.createElement('div');
+    row.className = 'board-index-row';
+
+    var forumCell = document.createElement('div');
+    forumCell.className = 'board-index-forum';
+    forumCell.innerHTML =
+      '<span class="board-index-icon">' + b.icon + '</span>' +
+      '<span class="board-index-text">' +
+        '<span class="board-index-title">' + b.name + '</span>' +
+        '<span class="board-index-desc"></span>' +
+      '</span>';
+    forumCell.querySelector('.board-index-desc').textContent = b.desc;
+    forumCell.addEventListener('click', function () { goToBoard(b.slug); });
+    row.appendChild(forumCell);
+
+    var topicsCell = document.createElement('div');
+    topicsCell.className = 'board-index-stat';
+    topicsCell.textContent = stat ? stat.topic_count : 0;
+    row.appendChild(topicsCell);
+
+    var postsCell = document.createElement('div');
+    postsCell.className = 'board-index-stat';
+    postsCell.textContent = stat ? stat.post_count : 0;
+    row.appendChild(postsCell);
+
+    var latestCell = document.createElement('div');
+    latestCell.className = 'board-index-latest';
+    if (stat && stat.latest) {
+      var titleLink = document.createElement('a');
+      titleLink.href = '#';
+      titleLink.className = 'board-index-latest-title';
+      titleLink.textContent = stat.latest.title;
+      titleLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        goToTopic(stat.latest.topic_id, b.slug);
+      });
+      latestCell.appendChild(titleLink);
+
+      var byLine = document.createElement('div');
+      byLine.className = 'board-index-latest-by';
+      var byName = document.createElement('span');
+      byName.className = 'board-index-latest-author role-' + (stat.latest.role || 'member');
+      byName.textContent = stat.latest.display_name;
+      byLine.appendChild(document.createTextNode('by '));
+      byLine.appendChild(byName);
+      latestCell.appendChild(byLine);
+
+      var timeLine = document.createElement('div');
+      timeLine.className = 'board-index-latest-time';
+      timeLine.textContent = fmtTime(stat.latest.created_at);
+      latestCell.appendChild(timeLine);
+    } else {
+      var empty = document.createElement('span');
+      empty.className = 'board-index-latest-empty';
+      empty.textContent = 'No posts yet';
+      latestCell.appendChild(empty);
+    }
+    row.appendChild(latestCell);
+
+    return row;
+  }
+
+  // ---------- Topic list (inside one board) ----------
+
+  function syncTopicListGate() {
+    var loggedIn = window.PW_AUTH.loggedIn;
+    var userRole = loggedIn && window.PW_AUTH.user ? window.PW_AUTH.user.role : null;
+    var isAdmin = userRole === 'admin' || userRole === 'moderator';
+    var announcementsLocked = currentBoard === 'announcements' && !isAdmin;
+
+    topicListGate.hidden = loggedIn;
+    topicListLocked.hidden = !loggedIn || !announcementsLocked;
+    newTopicBlock.hidden = !loggedIn || announcementsLocked;
+  }
+
+  function goToBoard(slug) {
+    currentBoard = slug;
+    currentTopicId = null;
+    var meta = boardMeta(slug);
+    topicListHeading.textContent = meta ? meta.name : slug;
+    topicListDesc.textContent = meta ? meta.desc : '';
+    topicForm.hidden = true;
+    topicTitleInput.value = '';
+    topicBodyInput.value = '';
+    topicErrorEl.textContent = '';
+    showView('list');
+    syncTopicListGate();
+    loadTopics();
+  }
+
+  function loadTopics() {
+    fetch('/api/topics/list.php?board=' + encodeURIComponent(currentBoard), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        topicListEl.innerHTML = '';
+        if (!data.ok || !data.topics || !data.topics.length) {
+          topicListEmptyEl.hidden = false;
+          return;
+        }
+        topicListEmptyEl.hidden = true;
+        data.topics.forEach(function (t) {
+          topicListEl.appendChild(buildTopicRow(t));
+        });
+      });
+  }
+
+  function buildTopicRow(t) {
+    var row = document.createElement('div');
+    row.className = 'topic-row' + (t.is_pinned ? ' is-pinned' : '');
+    row.addEventListener('click', function () { goToTopic(t.id); });
+
+    if (t.is_pinned) {
+      var pin = document.createElement('span');
+      pin.className = 'topic-row-pin-tag';
+      pin.textContent = 'Pinned';
+      row.appendChild(pin);
+    }
+
+    var title = document.createElement('div');
+    title.className = 'topic-row-title';
+    title.textContent = t.title;
+    row.appendChild(title);
+
+    var meta = document.createElement('div');
+    meta.className = 'topic-row-meta';
+
+    var author = document.createElement('span');
+    author.className = 'topic-row-author role-' + (t.role || 'member');
+    author.textContent = t.display_name;
+    meta.appendChild(author);
+
+    var sep1 = document.createElement('span');
+    sep1.textContent = ' · ' + t.reply_count + (t.reply_count === 1 ? ' reply' : ' replies');
+    meta.appendChild(sep1);
+
+    var sep2 = document.createElement('span');
+    sep2.className = 'topic-row-time';
+    sep2.textContent = 'Last activity ' + fmtTime(t.last_activity);
+    meta.appendChild(sep2);
+
+    row.appendChild(meta);
+    return row;
+  }
+
+  newTopicToggle.addEventListener('click', function () {
+    topicForm.hidden = !topicForm.hidden;
+    if (!topicForm.hidden) topicTitleInput.focus();
+  });
+
+  topicCancelBtn.addEventListener('click', function () {
+    topicForm.hidden = true;
+    topicTitleInput.value = '';
+    topicBodyInput.value = '';
+    topicErrorEl.textContent = '';
+  });
+
+  topicForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var title = topicTitleInput.value.trim();
+    var text = topicBodyInput.value.trim();
+    if (!title || !text) return;
+    fetch('/api/topics/create.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ board: currentBoard, title: title, body: text, csrf: window.PW_AUTH.csrf }),
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (data.ok) {
+        topicForm.hidden = true;
+        topicTitleInput.value = '';
+        topicBodyInput.value = '';
+        topicErrorEl.textContent = '';
+        goToTopic(data.id);
+      } else {
+        topicErrorEl.textContent = data.error || 'Could not post that topic.';
+        topicErrorEl.classList.add('show');
+      }
+    });
+  });
+
+  topicListBack.addEventListener('click', function () {
+    currentBoard = null;
+    currentTopicId = null;
+    showView('index');
+    loadBoardIndex();
+  });
+
+  // ---------- Topic detail (OP + threaded replies) ----------
+
+  function goToTopic(topicId, boardSlug) {
+    if (boardSlug) currentBoard = boardSlug;
+    currentTopicId = topicId;
+    showView('detail');
+    loadTopicDetail();
+  }
+
+  function loadTopicDetail() {
+    topicOpEl.innerHTML = '';
+    fetch('/api/topics/get.php?id=' + encodeURIComponent(currentTopicId), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        currentBoard = data.topic.board;
+        topicOpEl.appendChild(buildTopicOp(data.topic));
+        syncGate();
+        loadFeed();
+      });
+  }
+
+  function buildTopicProfile(t) {
+    var profile = document.createElement('div');
+    profile.className = 'comment-profile';
+
+    var avatarWrap = document.createElement('div');
+    avatarWrap.className = 'profile-avatar-wrap comment-avatar-wrap role-' + (t.role || 'member');
+
+    var avatarImg = document.createElement('img');
+    avatarImg.className = 'profile-avatar';
+    avatarImg.alt = '';
+    avatarImg.hidden = true;
+    avatarWrap.appendChild(avatarImg);
+
+    var avatarFallback = document.createElement('div');
+    avatarFallback.className = 'profile-avatar profile-avatar-fallback';
+    avatarFallback.textContent = (t.display_name || '?').charAt(0).toUpperCase();
+    avatarWrap.appendChild(avatarFallback);
+
+    var probe = new Image();
+    probe.onload = function () {
+      avatarImg.src = probe.src;
+      avatarImg.hidden = false;
+      avatarFallback.hidden = true;
+    };
+    probe.src = '/uploads/avatars/' + t.user_id + '.jpg';
+
+    profile.appendChild(avatarWrap);
+
+    var info = document.createElement('div');
+    info.className = 'comment-profile-info';
+
+    var author = document.createElement('span');
+    author.className = 'comment-author';
+    author.textContent = t.display_name;
+    info.appendChild(author);
+
+    var role = document.createElement('span');
+    role.className = 'comment-role comment-role-' + (t.role || 'member');
+    role.textContent = capitalize(t.role || 'member');
+    info.appendChild(role);
+
+    var postCount = document.createElement('span');
+    postCount.className = 'comment-postcount';
+    postCount.textContent = t.post_count + (t.post_count === 1 ? ' post' : ' posts');
+    info.appendChild(postCount);
+
+    profile.appendChild(info);
+    return profile;
+  }
+
+  function buildTopicOp(t) {
+    var el = document.createElement('div');
+    el.className = 'comment-item topic-op' + (t.is_pinned ? ' is-pinned' : '');
+
+    el.appendChild(buildTopicProfile(t));
+
+    var divider = document.createElement('div');
+    divider.className = 'comment-divider';
+    el.appendChild(divider);
+
+    var main = document.createElement('div');
+    main.className = 'comment-main';
+
+    if (t.is_pinned) {
+      var pinTag = document.createElement('div');
+      pinTag.className = 'comment-pinned-tag';
+      pinTag.textContent = 'Pinned';
+      main.appendChild(pinTag);
+    }
+
+    var titleEl = document.createElement('h2');
+    titleEl.className = 'topic-op-title';
+    titleEl.textContent = t.title;
+    main.appendChild(titleEl);
+
+    var meta = document.createElement('div');
+    meta.className = 'comment-meta';
+    var time = document.createElement('span');
+    time.className = 'comment-time';
+    time.textContent = fmtTime(t.created_at);
+    meta.appendChild(time);
+    main.appendChild(meta);
+
+    var bodyEl = document.createElement('div');
+    bodyEl.className = 'comment-body';
+    bodyEl.textContent = t.body;
+    main.appendChild(bodyEl);
+
+    var hasAction = false;
+    var actions = document.createElement('div');
+    actions.className = 'comment-actions';
+
+    if (t.canModerate) {
+      hasAction = true;
+      var pinBtn = document.createElement('button');
+      pinBtn.type = 'button';
+      pinBtn.textContent = t.is_pinned ? 'Unpin' : 'Pin';
+      pinBtn.addEventListener('click', function () { toggleTopicPin(t.id); });
+      actions.appendChild(pinBtn);
+    }
+
+    if (t.canDelete) {
+      hasAction = true;
+      var delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.textContent = 'Delete Topic';
+      delBtn.addEventListener('click', function () { deleteTopic(t.id); });
+      actions.appendChild(delBtn);
+    }
+
+    if (hasAction) main.appendChild(actions);
+
+    el.appendChild(main);
+    return el;
+  }
+
+  function toggleTopicPin(id) {
+    if (!window.PW_AUTH.csrf) return;
+    fetch('/api/topics/pin.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id, csrf: window.PW_AUTH.csrf }),
+    }).then(function () { loadTopicDetail(); });
+  }
+
+  function deleteTopic(id) {
+    if (!window.PW_AUTH.csrf) return;
+    fetch('/api/topics/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id, csrf: window.PW_AUTH.csrf }),
+    }).then(function () { goToBoard(currentBoard); });
+  }
+
+  topicDetailBack.addEventListener('click', function () {
+    goToBoard(currentBoard);
+  });
+
+  // ---------- Replies (threaded, reused from the comment system) ----------
 
   function buildCommentProfile(c) {
     var profile = document.createElement('div');
@@ -362,7 +796,7 @@
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ board: currentBoard, body: text, parent_id: c.id, csrf: window.PW_AUTH.csrf }),
+        body: JSON.stringify({ topic_id: currentTopicId, body: text, parent_id: c.id, csrf: window.PW_AUTH.csrf }),
       }).then(function (r) { return r.json(); }).then(function (data) {
         if (data.ok) {
           ta.value = '';
@@ -382,16 +816,6 @@
     return { wrap: wrap, textarea: ta };
   }
 
-  function togglePin(id) {
-    if (!window.PW_AUTH.csrf) return;
-    fetch('/api/comments/pin.php', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id, csrf: window.PW_AUTH.csrf }),
-    }).then(function () { loadFeed(); });
-  }
-
   function deleteComment(id) {
     if (!window.PW_AUTH.csrf) return;
     fetch('/api/comments/delete.php', {
@@ -404,7 +828,7 @@
 
   function renderComment(c, depthClass) {
     var el = document.createElement('div');
-    el.className = 'comment-item' + (depthClass ? ' ' + depthClass : '') + (c.isPinned ? ' is-pinned' : '');
+    el.className = 'comment-item' + (depthClass ? ' ' + depthClass : '');
 
     el.appendChild(buildCommentProfile(c));
 
@@ -414,13 +838,6 @@
 
     var main = document.createElement('div');
     main.className = 'comment-main';
-
-    if (c.isPinned) {
-      var pinTag = document.createElement('div');
-      pinTag.className = 'comment-pinned-tag';
-      pinTag.textContent = 'Pinned';
-      main.appendChild(pinTag);
-    }
 
     var meta = document.createElement('div');
     meta.className = 'comment-meta';
@@ -467,15 +884,6 @@
       actions.appendChild(replyBtn);
     }
 
-    if (c.canModerate && c.parent_id === null) {
-      hasAction = true;
-      var pinBtn = document.createElement('button');
-      pinBtn.type = 'button';
-      pinBtn.textContent = c.isPinned ? 'Unpin' : 'Pin';
-      pinBtn.addEventListener('click', function () { togglePin(c.id); });
-      actions.appendChild(pinBtn);
-    }
-
     if (c.canDelete) {
       hasAction = true;
       var delBtn = document.createElement('button');
@@ -492,9 +900,6 @@
     return el;
   }
 
-  // Wraps one comment plus (if it has replies) a collapsible thread: a small
-  // dot + label toggle, a connecting vertical line, and the nested replies.
-  // Threads are expanded by default -- collapsing is opt-in per thread.
   function buildThread(c, byParent, depthClass) {
     var wrapper = document.createElement('div');
     wrapper.className = 'comment-thread';
@@ -548,8 +953,8 @@
   }
 
   function loadFeed() {
-    if (!currentBoard) return;
-    fetch('/api/comments/list.php?board=' + encodeURIComponent(currentBoard), { credentials: 'same-origin' })
+    if (!currentTopicId) return;
+    fetch('/api/comments/list.php?topic_id=' + encodeURIComponent(currentTopicId), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         feed.innerHTML = '';
@@ -572,35 +977,13 @@
 
   function syncGate() {
     var loggedIn = window.PW_AUTH.loggedIn;
-    var userRole = loggedIn && window.PW_AUTH.user ? window.PW_AUTH.user.role : null;
-    var isAdmin = userRole === 'admin' || userRole === 'moderator';
-    var announcementsLocked = currentBoard === 'announcements' && !isAdmin;
-
     gate.hidden = loggedIn;
-    lockedEl.hidden = !loggedIn || !announcementsLocked;
-    form.hidden = !loggedIn || announcementsLocked;
+    form.hidden = !loggedIn;
   }
-
-  function switchBoard(boardKey) {
-    currentBoard = boardKey;
-    Array.prototype.forEach.call(boardTabs.querySelectorAll('.board-tab'), function (tab) {
-      tab.classList.toggle('active', tab.getAttribute('data-board') === boardKey);
-    });
-    errorEl.classList.remove('show');
-    placeholder.hidden = true;
-    boardContent.hidden = false;
-    syncGate();
-    loadFeed();
-  }
-
-  boardTabs.addEventListener('click', function (e) {
-    var btn = e.target.closest('[data-board]');
-    if (!btn) return;
-    switchBoard(btn.getAttribute('data-board'));
-  });
 
   document.addEventListener('pw-auth-ready', function () {
-    if (currentBoard) syncGate();
+    if (currentTopicId) syncGate();
+    if (currentBoard && currentTopicId === null && !listView.hidden) syncTopicListGate();
   });
 
   form.addEventListener('submit', function (e) {
@@ -612,7 +995,7 @@
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ board: currentBoard, body: text, csrf: window.PW_AUTH.csrf }),
+      body: JSON.stringify({ topic_id: currentTopicId, body: text, csrf: window.PW_AUTH.csrf }),
     }).then(function (r) { return r.json(); }).then(function (data) {
       if (data.ok) {
         body.value = '';
@@ -623,6 +1006,8 @@
       }
     });
   });
+
+  // ---------- Top Voices sidebar ----------
 
   function loadLeaderboard() {
     fetch('/api/leaderboard.php', { credentials: 'same-origin' })
@@ -673,6 +1058,8 @@
       });
   }
 
+  showView('index');
+  loadBoardIndex();
   loadLeaderboard();
 })();
 </script>
