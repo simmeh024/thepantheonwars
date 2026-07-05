@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=39">
+<link rel="stylesheet" href="css/style.css?v=40">
 </head>
 <body>
 
@@ -117,8 +117,11 @@
         <p>A fourteen-book saga by Pascal Slettenaar — twelve worlds, twelve tyrants, and the prophecy that could end them all.</p>
       </div>
       <div>
-        <h4>Explore</h4>
-        <ul>
+        <h4 class="footer-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="footer-explore-list">
+          Explore
+          <span class="footer-toggle-icon" aria-hidden="true">&#8964;</span>
+        </h4>
+        <ul id="footer-explore-list" class="footer-collapsible-list collapsed">
           <li><a href="index.html">Home</a></li>
           <li><a href="books.html">The Books</a></li>
           <li><a href="worlds.html">Worlds</a></li>

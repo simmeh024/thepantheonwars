@@ -13,6 +13,28 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Collapsible footer "Explore" list (mobile only — desktop's side-by-side
+  // columns don't need it, so the CSS only applies the collapsed state under
+  // 700px; on wider screens this toggle is a no-op).
+  document.querySelectorAll('.footer-toggle').forEach(function (toggleEl) {
+    var listId = toggleEl.getAttribute('aria-controls');
+    var list = listId && document.getElementById(listId);
+    if (!list) return;
+    var setState = function (expanded) {
+      toggleEl.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+      list.classList.toggle('collapsed', !expanded);
+    };
+    toggleEl.addEventListener('click', function () {
+      setState(toggleEl.getAttribute('aria-expanded') !== 'true');
+    });
+    toggleEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        setState(toggleEl.getAttribute('aria-expanded') !== 'true');
+      }
+    });
+  });
+
   // Header shadow on scroll
   var header = document.querySelector('.site-header');
   if (header) {

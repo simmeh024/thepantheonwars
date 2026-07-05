@@ -963,6 +963,23 @@ footer.site-footer {
   text-align: center; font-size: 0.78rem; color: var(--text-faint);
   border-top: 1px solid var(--border-soft); padding-top: 24px;
 }
+.footer-toggle-icon { display: none; }
+@media (max-width: 700px) {
+  .footer-toggle {
+    cursor: pointer; display: flex; align-items: center; justify-content: space-between;
+    user-select: none; -webkit-tap-highlight-color: transparent;
+  }
+  .footer-toggle-icon {
+    display: inline-block; font-size: 0.7rem; color: var(--text-faint);
+    transition: transform 0.25s ease;
+  }
+  .footer-toggle[aria-expanded="false"] .footer-toggle-icon { transform: rotate(-90deg); }
+  .footer-collapsible-list {
+    overflow: hidden; max-height: 1000px; opacity: 1;
+    transition: max-height 0.35s ease, opacity 0.25s ease, margin-top 0.35s ease;
+  }
+  .footer-collapsible-list.collapsed { max-height: 0; opacity: 0; }
+}
 
 /* ---------------- Page banner (books/about/news/worlds/overlords/quiz) ---------------- */
 .page-banner {
