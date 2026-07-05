@@ -2613,6 +2613,84 @@ footer.site-footer {
   .dispatch-tag-filter-panel { right: auto; left: 0; }
 }
 
+/* BH-4 "Verified" easter egg badge (Development Dispatches banner) */
+.bh4-verify {
+  position: absolute; top: 96px; right: 28px; z-index: 4;
+  display: flex; align-items: center; gap: 9px;
+  cursor: pointer; user-select: none; text-align: left;
+}
+.bh4-verify-avatar { position: relative; width: 32px; height: 32px; flex-shrink: 0; }
+.bh4-verify-avatar img {
+  width: 100%; height: 100%; border-radius: 50%; object-fit: cover; object-position: top;
+  border: 1px solid var(--border); display: block;
+  transition: filter 0.25s ease, box-shadow 0.25s ease;
+}
+.bh4-verify:hover .bh4-verify-avatar img,
+.bh4-verify:focus-visible .bh4-verify-avatar img {
+  filter: brightness(1.05);
+  box-shadow: 0 0 12px rgba(124, 79, 214, 0.55), 0 0 4px rgba(236, 201, 135, 0.35);
+}
+.bh4-verify-check {
+  position: absolute; bottom: -2px; right: -2px; width: 14px; height: 14px;
+  background: #3ecf8e; border-radius: 50%; border: 1.5px solid #07051a;
+  display: flex; align-items: center; justify-content: center; color: #07051a;
+}
+.bh4-verify-check svg { width: 9px; height: 9px; }
+.bh4-verify-label {
+  font-family: 'Jost', sans-serif; font-size: 0.7rem; color: var(--text-faint);
+  text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap;
+  transition: color 0.2s ease;
+}
+.bh4-verify:hover .bh4-verify-label,
+.bh4-verify:focus-visible .bh4-verify-label { color: var(--gold-bright); }
+.bh4-verify-tooltip {
+  position: absolute; top: calc(100% + 12px); right: 0; width: 250px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
+  padding: 13px 15px; font-family: 'Jost', sans-serif; font-size: 0.78rem; line-height: 1.6;
+  color: var(--text-dim); text-transform: none; letter-spacing: normal;
+  opacity: 0; visibility: hidden; transform: translateY(-4px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.5); z-index: 10; pointer-events: none;
+}
+.bh4-verify:hover .bh4-verify-tooltip,
+.bh4-verify:focus-visible .bh4-verify-tooltip {
+  opacity: 1; visibility: visible; transform: translateY(0);
+}
+@media (max-width: 720px) {
+  .bh4-verify { top: 70px; right: 16px; }
+  .bh4-verify-label { display: none; }
+  .bh4-verify-tooltip { right: -10px; width: 220px; }
+}
+
+/* BH-4 easter egg popup (after 5 clicks) */
+.bh4-popup {
+  position: fixed; inset: 0; z-index: 700;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.bh4-popup-backdrop { position: absolute; inset: 0; background: rgba(5,3,10,0.88); }
+.bh4-popup-inner {
+  position: relative; background: var(--panel); border: 1px solid var(--border);
+  max-width: 360px; width: 100%; padding: 30px 28px;
+  box-shadow: 0 0 60px rgba(124,79,214,0.3);
+  animation: result-reveal 0.3s ease; text-align: center;
+}
+.bh4-popup-close {
+  position: absolute; top: 14px; right: 14px; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--panel-2); border: 1px solid var(--gold-dim); color: var(--text);
+  font-size: 1.1rem; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.bh4-popup-close:hover { border-color: var(--gold); color: var(--gold-bright); }
+.bh4-popup-head {
+  display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 1.1em;
+}
+.bh4-popup-head img { width: 30px; height: 30px; border-radius: 50%; object-fit: cover; object-position: top; border: 1px solid var(--border); }
+.bh4-popup-head span {
+  font-family: 'Cinzel', serif; font-size: 1rem; letter-spacing: 0.08em; color: var(--gold-bright);
+}
+.bh4-popup-text { font-family: 'Jost', sans-serif; font-size: 1rem; font-style: italic; color: var(--text-dim); margin: 0; }
+
 .dispatch-log-toolbar {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
   gap: 14px; margin-bottom: 1.2em;

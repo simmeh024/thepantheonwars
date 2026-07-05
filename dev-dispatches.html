@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=25">
+<link rel="stylesheet" href="css/style.css?v=26">
 </head>
 <body>
 
@@ -68,6 +68,21 @@
     <div class="hero-bg" style="background-image: url('images/world-reanium.jpg');"></div>
     <div class="hero-veil"></div>
     <span class="orn-bl"></span><span class="orn-br"></span>
+    <div class="bh4-verify" id="bh4-verify" tabindex="0" role="button" aria-label="Verified by BH-4">
+      <div class="bh4-verify-avatar">
+        <img src="images/bh4-dispatch.jpg" alt="">
+        <span class="bh4-verify-check">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </span>
+      </div>
+      <span class="bh4-verify-label">Verified by BH-4</span>
+      <div class="bh4-verify-tooltip">
+        Every dispatch has been verified by me. The data comes directly from GitHub, untouched and unedited.<br>
+        Don't take my word for it.<br>
+        Check the commit yourself.<br>
+        I did.
+      </div>
+    </div>
     <div class="container">
       <span class="eyebrow">Straight From the Godcore</span>
       <h1>Development Dispatches</h1>
@@ -563,6 +578,54 @@
   });
 
   load();
+
+  // Easter egg: BH-4 verification badge. Click 5 times for a little acknowledgment.
+  var bh4Badge = document.getElementById('bh4-verify');
+  var bh4Clicks = 0;
+  if (bh4Badge) {
+    bh4Badge.addEventListener('click', function () {
+      bh4Clicks++;
+      if (bh4Clicks >= 5) {
+        bh4Clicks = 0;
+        showBh4Popup();
+      }
+    });
+    bh4Badge.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        bh4Badge.click();
+      }
+    });
+  }
+
+  function showBh4Popup() {
+    var overlay = document.createElement('div');
+    overlay.className = 'bh4-popup';
+
+    var backdrop = document.createElement('div');
+    backdrop.className = 'bh4-popup-backdrop';
+    overlay.appendChild(backdrop);
+
+    var inner = document.createElement('div');
+    inner.className = 'bh4-popup-inner';
+    inner.innerHTML =
+      '<button type="button" class="bh4-popup-close" aria-label="Close">×</button>' +
+      '<div class="bh4-popup-head"><img src="images/bh4-dispatch.jpg" alt=""><span>BH-4</span></div>' +
+      '<p class="bh4-popup-text">…Are you verifying the verifier?</p>';
+    overlay.appendChild(inner);
+
+    document.body.appendChild(overlay);
+
+    function close() { overlay.remove(); }
+    backdrop.addEventListener('click', close);
+    inner.querySelector('.bh4-popup-close').addEventListener('click', close);
+    document.addEventListener('keydown', function escHandler(e) {
+      if (e.key === 'Escape') {
+        close();
+        document.removeEventListener('keydown', escHandler);
+      }
+    });
+  }
 })();
 </script>
 </body>
