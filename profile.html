@@ -85,9 +85,45 @@
         <h3>Quiz History</h3>
         <div id="profile-quiz-history"></div>
 
-        <h3 style="margin-top: 1.6em;">Your Community Posts</h3>
-        <div id="profile-comments"></div>
-        <p id="profile-no-comments" class="lore-status" hidden>You haven't posted in the <a href="community.html">Assembly Floor</a> yet.</p>
+        <div class="profile-divider"><span class="profile-divider-shard"></span></div>
+
+        <div class="profile-menu" id="profile-menu">
+          <button type="button" class="profile-menu-tab active" data-panel="settings">Profile Settings</button>
+          <button type="button" class="profile-menu-tab" data-panel="posts">My Posts</button>
+        </div>
+
+        <div id="profile-panel-settings" class="profile-panel">
+          <h3>Change Password</h3>
+          <form id="password-form" class="auth-form">
+            <div class="auth-field">
+              <label for="current-password">Current Password</label>
+              <input type="password" id="current-password" autocomplete="current-password" required>
+            </div>
+            <div class="auth-field">
+              <label for="new-password">New Password</label>
+              <input type="password" id="new-password" autocomplete="new-password" minlength="8" required>
+            </div>
+            <div class="auth-field">
+              <label for="confirm-password">Confirm New Password</label>
+              <input type="password" id="confirm-password" autocomplete="new-password" minlength="8" required>
+            </div>
+            <p id="password-error" class="auth-error"></p>
+            <p id="password-success" class="profile-success" hidden>Password updated.</p>
+            <button type="submit" class="btn btn-solid auth-submit">Update Password</button>
+          </form>
+
+          <h3 style="margin-top: 2em;">Display Name</h3>
+          <div class="profile-field-locked">
+            <input type="text" id="profile-name-locked" disabled>
+            <p class="profile-field-note">To change your display name, please contact an admin.</p>
+          </div>
+        </div>
+
+        <div id="profile-panel-posts" class="profile-panel" hidden>
+          <h3>My Posts</h3>
+          <div id="profile-comments"></div>
+          <p id="profile-no-comments" class="lore-status" hidden>You haven't posted in the <a href="community.html">Assembly Floor</a> yet.</p>
+        </div>
       </div>
 
     </div>
@@ -215,6 +251,71 @@
       });
   });
 
+  var profileMenu = document.getElementById('profile-menu');
+  var panelSettings = document.getElementById('profile-panel-settings');
+  var panelPosts = document.getElementById('profile-panel-posts');
+  var lockedNameInput = document.getElementById('profile-name-locked');
+  var passwordForm = document.getElementById('password-form');
+  var passwordError = document.getElementById('password-error');
+  var passwordSuccess = document.getElementById('password-success');
+
+  profileMenu.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-panel]');
+    if (!btn) return;
+    var panel = btn.getAttribute('data-panel');
+    Array.prototype.forEach.call(profileMenu.querySelectorAll('.profile-menu-tab'), function (tab) {
+      tab.classList.toggle('active', tab === btn);
+    });
+    panelSettings.hidden = panel !== 'settings';
+    panelPosts.hidden = panel !== 'posts';
+  });
+
+  passwordForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    passwordError.classList.remove('show');
+    passwordSuccess.hidden = true;
+
+    var currentPassword = document.getElementById('current-password').value;
+    var newPassword = document.getElementById('new-password').value;
+    var confirmPassword = document.getElementById('confirm-password').value;
+
+    if (newPassword.length < 8) {
+      passwordError.textContent = 'New password needs to be at least 8 characters.';
+      passwordError.classList.add('show');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      passwordError.textContent = 'New password and confirmation do not match.';
+      passwordError.classList.add('show');
+      return;
+    }
+
+    fetch('/api/change-password.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        current_password: currentPassword,
+        new_password: newPassword,
+        csrf: window.PW_AUTH.csrf,
+      }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          passwordError.textContent = data.error || 'Could not update your password.';
+          passwordError.classList.add('show');
+          return;
+        }
+        passwordForm.reset();
+        passwordSuccess.hidden = false;
+      })
+      .catch(function () {
+        passwordError.textContent = 'Could not update your password. Please try again.';
+        passwordError.classList.add('show');
+      });
+  });
+
   function load() {
     if (!window.PW_AUTH.loggedIn) {
       gate.hidden = false;
@@ -232,6 +333,7 @@
         document.getElementById('profile-name').textContent = data.user.display_name;
         setRole(data.user.role);
         loadAvatar(data.user.id, data.user.display_name);
+        lockedNameInput.value = data.user.display_name;
 
         var affBox = document.getElementById('profile-affinity-box');
         if (data.user.overlord_affinity) {

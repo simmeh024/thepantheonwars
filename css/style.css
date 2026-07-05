@@ -1772,6 +1772,33 @@ footer.site-footer {
 }
 .profile-gate { text-align: center; padding: 60px 0; }
 
+/* Fancy divider between the profile head and the settings/posts menu */
+.profile-divider {
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  margin: 2em 0 1.6em; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border) 15%, var(--gold-dim) 50%, var(--border) 85%, transparent);
+}
+.profile-divider-shard {
+  flex-shrink: 0; width: 9px; height: 9px; transform: translateY(-4.5px) rotate(45deg);
+  background: var(--gold); box-shadow: 0 0 10px var(--glow);
+}
+
+.profile-menu { display: flex; gap: 6px; margin-bottom: 1.6em; border-bottom: 1px solid var(--border-soft); }
+.profile-menu-tab {
+  background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-faint);
+  padding: 10px 4px; margin-right: 22px; font-family: 'Cinzel', serif; font-size: 0.92rem;
+  cursor: pointer; transition: color 0.2s ease, border-color 0.2s ease;
+}
+.profile-menu-tab:hover { color: var(--text); }
+.profile-menu-tab.active { color: var(--gold-bright); border-bottom-color: var(--gold-dim); }
+.profile-panel[hidden] { display: none; }
+.profile-success { color: var(--gold-bright); font-size: 0.85rem; margin: 0; }
+.profile-field-locked input {
+  width: 100%; background: var(--panel-2); border: 1px solid var(--border-soft); color: var(--text-faint);
+  padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.95rem; cursor: not-allowed;
+}
+.profile-field-note { font-size: 0.78rem; color: var(--text-faint); margin: 0.6em 0 0; }
+
 /* Community board */
 .community-form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 2em; }
 .community-form[hidden] { display: none; }
