@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=13">
+<link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body>
 
@@ -439,12 +439,13 @@ document.addEventListener('DOMContentLoaded', function () {
       var trackEl = document.createElement('div');
       trackEl.className = 'resonance-bar-track';
       var fillEl = document.createElement('div');
-      fillEl.className = 'resonance-bar-fill ' + wTier;
+      var wSlug = wTier === 'tier-pure' ? ' overlord-' + w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : '';
+              fillEl.className = 'resonance-bar-fill ' + wTier + wSlug;
       trackEl.appendChild(fillEl);
       var pctWrap = document.createElement('span');
       pctWrap.className = 'resonance-pct-wrap';
       var pctEl = document.createElement('span');
-      pctEl.className = 'resonance-pct ' + wTier;
+      pctEl.className = 'resonance-pct ' + wTier + wSlug;
       pctEl.textContent = w.pct + '%';
       pctWrap.appendChild(pctEl);
       var wTooltip = document.createElement('span');

@@ -1880,6 +1880,82 @@ footer.site-footer {
   80% { transform: translateX(-3%); opacity: 0.3; }
   100% { transform: translateX(8%); opacity: 0.6; }
 }
+
+/* Per-overlord 100% bar effects, layered on top of the base Pure Resonance shimmer */
+
+/* Syn Dravus -- cyan/purple/gold glitch */
+.resonance-bar-fill.tier-pure.overlord-syn-dravus {
+  background: linear-gradient(90deg, #5fd6e0, #a279ec, #ecc987, #5fd6e0, #a279ec);
+  background-size: 400% 100%;
+  animation: synGlitchFlow 1.6s steps(10) infinite;
+}
+.resonance-bar-fill.tier-pure.overlord-syn-dravus::after {
+  background: repeating-linear-gradient(90deg,
+    transparent 0 8%, rgba(95,214,224,0.65) 8% 10%,
+    transparent 10% 22%, rgba(162,121,236,0.65) 22% 24%,
+    transparent 24% 36%, rgba(236,201,135,0.6) 36% 38%,
+    transparent 38% 50%);
+  opacity: 0.7;
+  animation: synGlitchJitter 0.32s steps(2) infinite;
+}
+@keyframes synGlitchFlow { 0% { background-position: 0% 50%; } 100% { background-position: 400% 50%; } }
+@keyframes synGlitchJitter {
+  0% { opacity: 0.15; transform: translateX(0) scaleX(1); }
+  20% { opacity: 0.75; transform: translateX(-4%) scaleX(1.02); }
+  45% { opacity: 0.1; transform: translateX(3%) scaleX(0.99); }
+  70% { opacity: 0.6; transform: translateX(-2%) scaleX(1.01); }
+  100% { opacity: 0.25; transform: translateX(0) scaleX(1); }
+}
+.resonance-pct.tier-pure.overlord-syn-dravus {
+  background: linear-gradient(90deg, #5fd6e0, #a279ec, #ecc987, #5fd6e0, #a279ec);
+  background-size: 400% 100%;
+  animation: synGlitchFlow 1.6s steps(10) infinite;
+}
+
+/* Lysara Venthe -- water drips / ripples, blue-gold */
+.resonance-bar-fill.tier-pure.overlord-lysara-venthe {
+  background: linear-gradient(90deg, #4fb0e8, #eccf87, #4fb0e8);
+  background-size: 300% 100%;
+  animation: lysaraFlow 3.2s ease-in-out infinite;
+}
+.resonance-bar-fill.tier-pure.overlord-lysara-venthe::after {
+  background: repeating-radial-gradient(circle at 0 50%,
+    rgba(255,255,255,0.55) 0, rgba(255,255,255,0.55) 2px,
+    transparent 3px, transparent 16px);
+  background-size: 32px 100%;
+  opacity: 0.55;
+  animation: lysaraRipple 1.8s linear infinite;
+}
+@keyframes lysaraFlow { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+@keyframes lysaraRipple { 0% { background-position: 0 0; } 100% { background-position: 160px 0; } }
+.resonance-pct.tier-pure.overlord-lysara-venthe {
+  background: linear-gradient(90deg, #4fb0e8, #eccf87, #4fb0e8);
+  background-size: 300% 100%;
+  animation: lysaraFlow 3.2s ease-in-out infinite;
+}
+
+/* Maerion Thal -- steady traveling golden sparks, bronze-gold */
+.resonance-bar-fill.tier-pure.overlord-maerion-thal {
+  background: linear-gradient(90deg, #8a5a26, #f0c479, #8a5a26);
+  background-size: 300% 100%;
+  animation: maerionFlow 3.4s linear infinite;
+}
+.resonance-bar-fill.tier-pure.overlord-maerion-thal::after {
+  background: radial-gradient(circle, #fff6d8 0%, rgba(255,246,216,0.85) 35%, transparent 72%);
+  background-size: 16px 16px;
+  background-repeat: no-repeat;
+  background-position: -16px 50%;
+  opacity: 0.95;
+  animation: maerionSpark 2.4s linear infinite;
+}
+@keyframes maerionFlow { 0% { background-position: 0% 50%; } 100% { background-position: 300% 50%; } }
+@keyframes maerionSpark { 0% { background-position: -10% 50%; } 100% { background-position: 110% 50%; } }
+.resonance-pct.tier-pure.overlord-maerion-thal {
+  background: linear-gradient(90deg, #8a5a26, #f0c479, #8a5a26);
+  background-size: 300% 100%;
+  animation: maerionFlow 3.4s linear infinite;
+}
+
 .resonance-pct-wrap {
   position: relative; width: 36px; flex-shrink: 0; display: inline-flex; justify-content: flex-end;
 }
