@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Member List — The Pantheon Wars</title>
+<meta name="description" content="Everyone who has crossed into the Nexus Veil — ranks, activity, and who's online right now.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Member List — The Pantheon Wars">
+<meta property="og:description" content="Everyone who has crossed into the Nexus Veil — ranks, activity, and who's online right now.">
+<meta property="og:url" content="https://thepantheonwars.com/memberlist.html">
+<meta property="og:image" content="https://thepantheonwars.com/images/hero-main.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Member List — The Pantheon Wars">
+<meta name="twitter:description" content="Everyone who has crossed into the Nexus Veil — ranks, activity, and who's online right now.">
+<meta name="twitter:image" content="https://thepantheonwars.com/images/hero-main.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-inner">
+    <a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a>
+    <nav class="main-nav">
+      <a href="index.html">Home</a>
+      <div class="nav-item has-dropdown">
+        <span class="nav-parent">The Universe<span class="nav-caret">⌄</span></span>
+        <div class="nav-dropdown">
+          <a href="books.html">The Books</a>
+          <a href="worlds.html">The Worlds</a>
+          <a href="overlords.html">The Overlords</a>
+        </div>
+      </div>
+      <a href="news.html">News</a>
+      <a href="about.html">About</a>
+      <div class="nav-item has-dropdown">
+        <span class="nav-parent active">Community<span class="nav-caret">⌄</span></span>
+        <div class="nav-dropdown">
+          <a href="community.html">Nexus Veil (Forum)</a>
+          <a href="memberlist.html" class="active">Member List</a>
+          <a href="quiz.html">Quiz</a>
+        </div>
+      </div>
+      <span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span>
+    </nav>
+    <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main>
+
+  <div class="page-banner ornate">
+    <div class="hero-bg" style="background-image: url('images/world-nexusveil.jpg'); opacity: 0.3;"></div>
+    <div class="hero-veil"></div>
+    <span class="orn-bl"></span><span class="orn-br"></span>
+    <div class="container">
+      <span class="eyebrow">The Nexus Veil</span>
+      <h1>Member List</h1>
+      <p class="lede">Everyone who has crossed into the Assembly. Ranks, activity, and who's online right now.</p>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container" style="max-width: 1040px;">
+
+      <div class="member-index">
+        <div class="member-index-head">
+          <span>Member</span>
+          <span>Role</span>
+          <span>Status</span>
+          <span class="member-index-col-center">Posts</span>
+        </div>
+        <div id="member-index-body"></div>
+        <p class="member-index-empty" id="member-index-empty" hidden>No members yet.</p>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>The Pantheon Wars</h4>
+        <p>A fourteen-book saga by Pascal Slettenaar — twelve worlds, twelve tyrants, and the prophecy that could end them all.</p>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <ul>
+          <li><a href="index.html">Home</a></li>
+          <li><a href="books.html">The Books</a></li>
+          <li><a href="worlds.html">Worlds</a></li>
+          <li><a href="overlords.html">The Overlords</a></li>
+          <li><a href="about.html">About the Author</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="quiz.html">Which Overlord Are You?</a></li>
+          <li><a href="community.html">Community</a></li>
+          <li><a href="memberlist.html">Member List</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Stay Connected</h4>
+        <ul>
+          <li><a href="https://open.spotify.com/album/4F3gZb2oOUarb0gM2KwSar?si=FUDqkC25TPewM4YBTeNTIg" target="_blank" rel="noopener">Book One Soundtrack</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2026 Pascal Slettenaar. All rights reserved. &nbsp;•&nbsp; “Twelve thrones will fall. One will rise.”
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+<script src="js/members.js"></script>
+<script>
+(function () {
+  var listBody = document.getElementById('member-index-body');
+  var emptyEl = document.getElementById('member-index-empty');
+
+  function fmtTime(iso) {
+    var d = new Date(iso.replace(' ', 'T') + 'Z');
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) +
+      ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function capitalize(s) {
+    return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
+  }
+
+  function buildRow(m) {
+    var row = document.createElement('div');
+    row.className = 'member-index-row';
+
+    // Member: avatar + name
+    var profile = document.createElement('div');
+    profile.className = 'member-row-profile';
+
+    var avatarWrap = document.createElement('div');
+    avatarWrap.className = 'profile-avatar-wrap member-avatar-wrap role-' + (m.role || 'member');
+
+    var avatarImg = document.createElement('img');
+    avatarImg.className = 'profile-avatar';
+    avatarImg.alt = '';
+    avatarImg.hidden = true;
+    avatarWrap.appendChild(avatarImg);
+
+    var avatarFallback = document.createElement('div');
+    avatarFallback.className = 'profile-avatar profile-avatar-fallback';
+    avatarFallback.textContent = (m.display_name || '?').charAt(0).toUpperCase();
+    avatarWrap.appendChild(avatarFallback);
+
+    var probe = new Image();
+    probe.onload = function () {
+      avatarImg.src = probe.src;
+      avatarImg.hidden = false;
+      avatarFallback.hidden = true;
+    };
+    probe.src = '/uploads/avatars/' + m.id + '.jpg';
+
+    profile.appendChild(avatarWrap);
+
+    var name = document.createElement('span');
+    name.className = 'member-row-name';
+    name.textContent = m.display_name;
+    profile.appendChild(name);
+
+    row.appendChild(profile);
+
+    // Role badge
+    var roleBadge = document.createElement('span');
+    roleBadge.className = 'member-role-badge role-' + (m.role || 'member');
+    roleBadge.textContent = capitalize(m.role || 'member');
+    row.appendChild(roleBadge);
+
+    // Status: online now, or last seen date
+    var status = document.createElement('div');
+    status.className = 'member-status' + (m.is_online ? ' is-online' : '');
+    var dot = document.createElement('span');
+    dot.className = 'member-status-dot';
+    status.appendChild(dot);
+    var statusText = document.createElement('span');
+    if (m.is_online) {
+      statusText.textContent = 'Online now';
+    } else if (m.last_active_at) {
+      statusText.textContent = 'Last seen ' + fmtTime(m.last_active_at);
+    } else if (m.last_login_at) {
+      statusText.textContent = 'Last seen ' + fmtTime(m.last_login_at);
+    } else {
+      statusText.textContent = 'Never logged in';
+    }
+    status.appendChild(statusText);
+    row.appendChild(status);
+
+    // Post count
+    var posts = document.createElement('div');
+    posts.className = 'member-index-posts';
+    posts.textContent = m.post_count;
+    row.appendChild(posts);
+
+    return row;
+  }
+
+  function loadMembers() {
+    fetch('/api/members/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        listBody.innerHTML = '';
+        if (!data.ok || !data.members || !data.members.length) {
+          emptyEl.hidden = false;
+          return;
+        }
+        emptyEl.hidden = true;
+        data.members.forEach(function (m) {
+          listBody.appendChild(buildRow(m));
+        });
+      });
+  }
+
+  loadMembers();
+})();
+</script>
+</body>
+</html>

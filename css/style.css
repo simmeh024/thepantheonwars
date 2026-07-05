@@ -2110,3 +2110,46 @@ footer.site-footer {
 .reaction-btn:hover { border-color: var(--purple-bright); color: var(--text); }
 .reaction-btn.active { border-color: var(--gold-dim); color: var(--gold-bright); background: rgba(226, 165, 92, 0.1); }
 .reaction-count { font-variant-numeric: tabular-nums; }
+
+/* ---------------- Member List ---------------- */
+.member-index { border: 1px solid var(--border); background: var(--panel); }
+.member-index-head {
+  display: grid; grid-template-columns: 1fr 120px 170px 90px; gap: 10px;
+  background: var(--panel-2); padding: 12px 22px; border-bottom: 1px solid var(--border);
+  font-family: 'Cinzel', serif; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--gold-bright);
+}
+.member-index-col-center { text-align: center; }
+.member-index-row {
+  display: grid; grid-template-columns: 1fr 120px 170px 90px; gap: 10px; align-items: center;
+  padding: 16px 22px; border-bottom: 1px solid var(--border-soft);
+}
+.member-index-row:last-child { border-bottom: none; }
+.member-row-profile { display: flex; align-items: center; gap: 14px; min-width: 0; }
+.member-avatar-wrap.profile-avatar-wrap { width: 40px; height: 40px; }
+.member-avatar-wrap .profile-avatar { width: 40px; height: 40px; border-width: 2px; }
+.member-avatar-wrap .profile-avatar-fallback { font-size: 1rem; }
+.member-row-name {
+  font-family: 'Cinzel', serif; font-size: 0.92rem; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.member-role-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 3px 10px; border-radius: 3px; font-family: 'Cinzel', serif; font-size: 0.68rem;
+  text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid currentColor; width: fit-content;
+}
+.member-role-badge.role-admin { color: #d1483f; }
+.member-role-badge.role-moderator { color: #4caf6e; }
+.member-role-badge.role-member { color: var(--text-faint); }
+.member-status { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text-faint); }
+.member-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--text-faint); }
+.member-status.is-online .member-status-dot { background: #4caf6e; box-shadow: 0 0 6px rgba(76,175,110,0.7); }
+.member-status.is-online { color: #4caf6e; }
+.member-index-posts { text-align: center; font-size: 0.95rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+.member-index-empty { padding: 24px 22px; color: var(--text-faint); }
+
+@media (max-width: 720px) {
+  .member-index-head { display: none; }
+  .member-index-row { grid-template-columns: 1fr; gap: 10px; }
+  .member-index-posts { text-align: left; }
+}

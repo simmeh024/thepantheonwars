@@ -165,4 +165,12 @@ document.addEventListener('DOMContentLoaded', function () {
   };
 
   refreshAuthNav();
+
+  // Heartbeat: session-check.php stamps last_active_at for logged-in users,
+  // which powers the "Online now" status on the member list. Re-ping every
+  // couple of minutes so it stays accurate for people who linger on one page
+  // instead of navigating (a single page-load ping wouldn't be enough).
+  setInterval(function () {
+    if (window.PW_AUTH.loggedIn) refreshAuthNav();
+  }, 2 * 60 * 1000);
 });

@@ -3,6 +3,13 @@ require_once __DIR__ . '/helpers.php';
 
 $user = pw_current_user();
 
+if ($user) {
+    // Heartbeat: this endpoint is called on every page load (js/members.js),
+    // so it doubles as an "online now" signal for the member list.
+    $stmt = pw_db()->prepare('UPDATE users SET last_active_at = NOW() WHERE id = ?');
+    $stmt->execute([$user['id']]);
+}
+
 pw_json([
     'ok' => true,
     'loggedIn' => $user !== null,
