@@ -68,52 +68,72 @@
   </div>
 
   <section>
-    <div class="container" style="max-width: 720px;">
+    <div class="container community-container">
+      <div class="community-layout">
 
-      <div class="board-tabs" id="board-tabs">
-        <button type="button" class="board-tab active" data-board="announcements">
-          <span class="board-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v4a1 1 0 0 0 1 1h2l4 4V5L6 9H4a1 1 0 0 0-1 1z"/><path d="M14 8a4 4 0 0 1 0 8"/><path d="M17 5a8 8 0 0 1 0 14"/></svg></span>
-          <span class="board-tab-text">
-            <span class="board-tab-title">Announcements</span>
-            <span class="board-tab-desc">Important information is shared here by the author or moderators.</span>
-          </span>
-        </button>
-        <button type="button" class="board-tab" data-board="assembly">
-          <span class="board-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5c2-1.2 5-1.2 7 0v13c-2-1.2-5-1.2-7 0z"/><path d="M22 5.5c-2-1.2-5-1.2-7 0v13c2-1.2 5-1.2 7 0z"/></svg></span>
-          <span class="board-tab-text">
-            <span class="board-tab-title">The Assembly</span>
-            <span class="board-tab-desc">Discussions about each book.</span>
-          </span>
-        </button>
-        <button type="button" class="board-tab" data-board="offworld">
-          <span class="board-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><ellipse cx="12" cy="12" rx="9.5" ry="3.2"/></svg></span>
-          <span class="board-tab-text">
-            <span class="board-tab-title">Offworld</span>
-            <span class="board-tab-desc">Off-topic discussion about anything.</span>
-          </span>
-        </button>
-      </div>
+        <div class="community-main">
 
-      <div id="community-gate" class="profile-gate" hidden>
-        <p>You need an account to post here — but you can read every message below without one.</p>
-        <button type="button" class="btn btn-solid auth-trigger" data-tab="register">Create an Account</button>
-        <button type="button" class="btn auth-trigger" data-tab="login">Log In</button>
-      </div>
+          <div class="board-tabs" id="board-tabs">
+            <button type="button" class="board-tab" data-board="announcements">
+              <span class="board-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v4a1 1 0 0 0 1 1h2l4 4V5L6 9H4a1 1 0 0 0-1 1z"/><path d="M14 8a4 4 0 0 1 0 8"/><path d="M17 5a8 8 0 0 1 0 14"/></svg></span>
+              <span class="board-tab-text">
+                <span class="board-tab-title">Announcements</span>
+                <span class="board-tab-desc">Important information is shared here by the author or moderators.</span>
+              </span>
+            </button>
+            <button type="button" class="board-tab" data-board="assembly">
+              <span class="board-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5c2-1.2 5-1.2 7 0v13c-2-1.2-5-1.2-7 0z"/><path d="M22 5.5c-2-1.2-5-1.2-7 0v13c2-1.2 5-1.2 7 0z"/></svg></span>
+              <span class="board-tab-text">
+                <span class="board-tab-title">The Assembly</span>
+                <span class="board-tab-desc">Discussions about each book.</span>
+              </span>
+            </button>
+            <button type="button" class="board-tab" data-board="offworld">
+              <span class="board-tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><ellipse cx="12" cy="12" rx="9.5" ry="3.2"/></svg></span>
+              <span class="board-tab-text">
+                <span class="board-tab-title">Offworld</span>
+                <span class="board-tab-desc">Off-topic discussion about anything.</span>
+              </span>
+            </button>
+          </div>
 
-      <p id="community-locked" class="lore-status" hidden>Only the author and moderators can post in Announcements.</p>
+          <p id="board-placeholder" class="lore-status">Choose a board above to read and join the discussion.</p>
 
-      <form id="community-form" class="community-form" hidden>
-        <div class="auth-field">
-          <label for="community-body">Post a message</label>
-          <textarea id="community-body" maxlength="2000" placeholder="What's on your mind, traveler?" required></textarea>
+          <div id="board-content" hidden>
+
+            <div id="community-gate" class="profile-gate" hidden>
+              <p>You need an account to post here — but you can read every message below without one.</p>
+              <button type="button" class="btn btn-solid auth-trigger" data-tab="register">Create an Account</button>
+              <button type="button" class="btn auth-trigger" data-tab="login">Log In</button>
+            </div>
+
+            <p id="community-locked" class="lore-status" hidden>Only the author and moderators can post in Announcements.</p>
+
+            <form id="community-form" class="community-form" hidden>
+              <div class="auth-field">
+                <label for="community-body">Post a message</label>
+                <textarea id="community-body" maxlength="2000" placeholder="What's on your mind, traveler?" required></textarea>
+              </div>
+              <p class="auth-error" id="community-error"></p>
+              <button type="submit" class="btn btn-solid">Post</button>
+            </form>
+
+            <div id="community-feed"></div>
+            <p id="community-empty" class="lore-status" hidden>No messages yet — be the first to speak.</p>
+
+          </div>
+
         </div>
-        <p class="auth-error" id="community-error"></p>
-        <button type="submit" class="btn btn-solid">Post</button>
-      </form>
 
-      <div id="community-feed"></div>
-      <p id="community-empty" class="lore-status" hidden>No messages yet — be the first to speak.</p>
+        <aside class="community-sidebar">
+          <div class="leaderboard-panel">
+            <h3 class="leaderboard-title">Top Voices</h3>
+            <div id="leaderboard-list"></div>
+            <p id="leaderboard-empty" class="lore-status" hidden>No posts yet.</p>
+          </div>
+        </aside>
 
+      </div>
     </div>
   </section>
 
@@ -171,6 +191,8 @@
 <script>
 (function () {
   var boardTabs = document.getElementById('board-tabs');
+  var placeholder = document.getElementById('board-placeholder');
+  var boardContent = document.getElementById('board-content');
   var gate = document.getElementById('community-gate');
   var lockedEl = document.getElementById('community-locked');
   var form = document.getElementById('community-form');
@@ -178,8 +200,22 @@
   var errorEl = document.getElementById('community-error');
   var feed = document.getElementById('community-feed');
   var emptyEl = document.getElementById('community-empty');
+  var leaderboardList = document.getElementById('leaderboard-list');
+  var leaderboardEmpty = document.getElementById('leaderboard-empty');
 
-  var currentBoard = 'announcements';
+  // No board is selected until the reader explicitly clicks one — deliberate
+  // UX choice so nobody can write a post or a reaction before choosing where
+  // it goes.
+  var currentBoard = null;
+
+  var REACTIONS = [
+    { type: 'shard', label: 'Shard',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M12 3l6 6-6 12-6-12z"/></svg>' },
+    { type: 'ward', label: 'Ward',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l7 3v6c0 5-3 8.3-7 9-4-0.7-7-4-7-9V6z"/></svg>' },
+    { type: 'ember', label: 'Ember',
+      icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2.5c1.2 3.6-2.4 5-2.4 8.6a2.4 2.4 0 0 0 4.8 0c0-.8-.3-1.5-.7-1.9.7 2.3-.7 3.3-1.7 3.3-1.2 0-1.8-1.2-1-2.6.9-1.6-.2-3.4-.6-4.9-1 1.7-3.4 3.6-3.4 6.9a4.2 4.2 0 0 0 8.4 0c0-4.3-2.4-5.3-3.4-9.4z"/></svg>' }
+  ];
 
   function fmtTime(iso) {
     var d = new Date(iso.replace(' ', 'T') + 'Z');
@@ -242,9 +278,133 @@
     return profile;
   }
 
-  function renderComment(c, isReply) {
+  function buildReactionBar(c) {
+    var bar = document.createElement('div');
+    bar.className = 'reaction-bar';
+    REACTIONS.forEach(function (r) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      var count = (c.reactions && c.reactions[r.type]) || 0;
+      var isActive = c.myReaction === r.type;
+      btn.className = 'reaction-btn' + (isActive ? ' active' : '');
+      btn.innerHTML = r.icon + '<span class="reaction-count">' + count + '</span>';
+      btn.setAttribute('aria-label', r.label);
+      btn.setAttribute('title', r.label);
+      if (window.PW_AUTH.loggedIn) {
+        btn.addEventListener('click', function () { sendReaction(c.id, r.type, btn); });
+      } else {
+        btn.classList.add('auth-trigger');
+        btn.setAttribute('data-tab', 'login');
+      }
+      bar.appendChild(btn);
+    });
+    return bar;
+  }
+
+  function sendReaction(commentId, type, btnEl) {
+    if (!window.PW_AUTH.csrf) return;
+    fetch('/api/comments/react.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ comment_id: commentId, reaction_type: type, csrf: window.PW_AUTH.csrf }),
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) return;
+      var bar = btnEl.closest('.reaction-bar');
+      if (!bar) return;
+      var buttons = bar.querySelectorAll('.reaction-btn');
+      REACTIONS.forEach(function (r, i) {
+        var b = buttons[i];
+        if (!b) return;
+        var count = (data.reactions && data.reactions[r.type]) || 0;
+        b.querySelector('.reaction-count').textContent = count;
+        b.classList.toggle('active', data.myReaction === r.type);
+      });
+    });
+  }
+
+  function buildReplyForm(c) {
+    var wrap = document.createElement('div');
+    wrap.className = 'reply-form-wrap';
+    wrap.hidden = true;
+
+    var ta = document.createElement('textarea');
+    ta.maxLength = 2000;
+    ta.placeholder = 'Write a reply...';
+    wrap.appendChild(ta);
+
+    var err = document.createElement('p');
+    err.className = 'auth-error';
+    wrap.appendChild(err);
+
+    var actions = document.createElement('div');
+    actions.className = 'reply-form-actions';
+
+    var sendBtn = document.createElement('button');
+    sendBtn.type = 'button';
+    sendBtn.className = 'btn btn-solid';
+    sendBtn.textContent = 'Reply';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'btn';
+    cancelBtn.textContent = 'Cancel';
+    cancelBtn.addEventListener('click', function () {
+      wrap.hidden = true;
+      ta.value = '';
+      err.textContent = '';
+    });
+
+    sendBtn.addEventListener('click', function () {
+      var text = ta.value.trim();
+      if (!text) return;
+      fetch('/api/comments/post.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ board: currentBoard, body: text, parent_id: c.id, csrf: window.PW_AUTH.csrf }),
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        if (data.ok) {
+          ta.value = '';
+          err.textContent = '';
+          wrap.hidden = true;
+          loadFeed();
+        } else {
+          err.textContent = data.error || 'Could not post that.';
+          err.classList.add('show');
+        }
+      });
+    });
+
+    actions.appendChild(sendBtn);
+    actions.appendChild(cancelBtn);
+    wrap.appendChild(actions);
+    return { wrap: wrap, textarea: ta };
+  }
+
+  function togglePin(id) {
+    if (!window.PW_AUTH.csrf) return;
+    fetch('/api/comments/pin.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id, csrf: window.PW_AUTH.csrf }),
+    }).then(function () { loadFeed(); });
+  }
+
+  function deleteComment(id) {
+    if (!window.PW_AUTH.csrf) return;
+    fetch('/api/comments/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: id, csrf: window.PW_AUTH.csrf }),
+    }).then(function () { loadFeed(); });
+  }
+
+  function renderComment(c, depthClass) {
     var el = document.createElement('div');
-    el.className = 'comment-item' + (isReply ? ' is-reply' : '');
+    el.className = 'comment-item' + (depthClass ? ' ' + depthClass : '') + (c.isPinned ? ' is-pinned' : '');
 
     el.appendChild(buildCommentProfile(c));
 
@@ -254,6 +414,13 @@
 
     var main = document.createElement('div');
     main.className = 'comment-main';
+
+    if (c.isPinned) {
+      var pinTag = document.createElement('div');
+      pinTag.className = 'comment-pinned-tag';
+      pinTag.textContent = 'Pinned';
+      main.appendChild(pinTag);
+    }
 
     var meta = document.createElement('div');
     meta.className = 'comment-meta';
@@ -274,22 +441,59 @@
     bodyEl.textContent = c.body; // textContent only — never innerHTML with user text
     main.appendChild(bodyEl);
 
+    main.appendChild(buildReactionBar(c));
+
+    var canReply = c.depth < 2;
+    var replyFormData = canReply ? buildReplyForm(c) : null;
+
+    var actions = document.createElement('div');
+    actions.className = 'comment-actions';
+    var hasAction = false;
+
+    if (canReply) {
+      hasAction = true;
+      var replyBtn = document.createElement('button');
+      replyBtn.type = 'button';
+      replyBtn.textContent = 'Reply';
+      if (window.PW_AUTH.loggedIn) {
+        replyBtn.addEventListener('click', function () {
+          replyFormData.wrap.hidden = !replyFormData.wrap.hidden;
+          if (!replyFormData.wrap.hidden) replyFormData.textarea.focus();
+        });
+      } else {
+        replyBtn.classList.add('auth-trigger');
+        replyBtn.setAttribute('data-tab', 'login');
+      }
+      actions.appendChild(replyBtn);
+    }
+
+    if (c.canModerate && c.parent_id === null) {
+      hasAction = true;
+      var pinBtn = document.createElement('button');
+      pinBtn.type = 'button';
+      pinBtn.textContent = c.isPinned ? 'Unpin' : 'Pin';
+      pinBtn.addEventListener('click', function () { togglePin(c.id); });
+      actions.appendChild(pinBtn);
+    }
+
     if (c.canDelete) {
-      var actions = document.createElement('div');
-      actions.className = 'comment-actions';
+      hasAction = true;
       var delBtn = document.createElement('button');
       delBtn.type = 'button';
       delBtn.textContent = 'Delete';
       delBtn.addEventListener('click', function () { deleteComment(c.id); });
       actions.appendChild(delBtn);
-      main.appendChild(actions);
     }
+
+    if (hasAction) main.appendChild(actions);
+    if (replyFormData) main.appendChild(replyFormData.wrap);
 
     el.appendChild(main);
     return el;
   }
 
   function loadFeed() {
+    if (!currentBoard) return;
     fetch('/api/comments/list.php?board=' + encodeURIComponent(currentBoard), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -306,22 +510,15 @@
           byParent[key].push(c);
         });
         (byParent.root || []).forEach(function (c) {
-          feed.appendChild(renderComment(c, false));
+          feed.appendChild(renderComment(c, null));
           (byParent[c.id] || []).forEach(function (child) {
-            feed.appendChild(renderComment(child, true));
+            feed.appendChild(renderComment(child, 'is-reply'));
+            (byParent[child.id] || []).forEach(function (grandchild) {
+              feed.appendChild(renderComment(grandchild, 'is-reply-2'));
+            });
           });
         });
       });
-  }
-
-  function deleteComment(id) {
-    if (!window.PW_AUTH.csrf) return;
-    fetch('/api/comments/delete.php', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: id, csrf: window.PW_AUTH.csrf }),
-    }).then(function () { loadFeed(); });
   }
 
   function syncGate() {
@@ -341,6 +538,8 @@
       tab.classList.toggle('active', tab.getAttribute('data-board') === boardKey);
     });
     errorEl.classList.remove('show');
+    placeholder.hidden = true;
+    boardContent.hidden = false;
     syncGate();
     loadFeed();
   }
@@ -351,8 +550,9 @@
     switchBoard(btn.getAttribute('data-board'));
   });
 
-  document.addEventListener('pw-auth-ready', syncGate);
-  syncGate();
+  document.addEventListener('pw-auth-ready', function () {
+    if (currentBoard) syncGate();
+  });
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -375,7 +575,56 @@
     });
   });
 
-  loadFeed();
+  function loadLeaderboard() {
+    fetch('/api/leaderboard.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        leaderboardList.innerHTML = '';
+        if (!data.ok || !data.leaders || !data.leaders.length) {
+          leaderboardEmpty.hidden = false;
+          return;
+        }
+        leaderboardEmpty.hidden = true;
+        data.leaders.forEach(function (u, i) {
+          var item = document.createElement('div');
+          item.className = 'leaderboard-item';
+
+          var rank = document.createElement('span');
+          rank.className = 'leaderboard-rank';
+          rank.textContent = '#' + (i + 1);
+          item.appendChild(rank);
+
+          var avatarWrap = document.createElement('div');
+          avatarWrap.className = 'leaderboard-avatar';
+          avatarWrap.textContent = (u.display_name || '?').charAt(0).toUpperCase();
+          var probe = new Image();
+          probe.onload = function () {
+            avatarWrap.textContent = '';
+            avatarWrap.appendChild(probe);
+          };
+          probe.src = '/uploads/avatars/' + u.id + '.jpg';
+          item.appendChild(avatarWrap);
+
+          var info = document.createElement('div');
+          info.className = 'leaderboard-info';
+
+          var name = document.createElement('span');
+          name.className = 'leaderboard-name role-' + (u.role || 'member');
+          name.textContent = u.display_name;
+          info.appendChild(name);
+
+          var count = document.createElement('span');
+          count.className = 'leaderboard-count';
+          count.textContent = u.post_count + (u.post_count === 1 ? ' post' : ' posts');
+          info.appendChild(count);
+
+          item.appendChild(info);
+          leaderboardList.appendChild(item);
+        });
+      });
+  }
+
+  loadLeaderboard();
 })();
 </script>
 </body>

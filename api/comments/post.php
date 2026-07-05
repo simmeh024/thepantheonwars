@@ -27,19 +27,23 @@ if (function_exists('mb_strlen') ? mb_strlen($body) > 2000 : strlen($body) > 200
 }
 
 $parentId = null;
+$depth = 0;
+$db = pw_db();
 if (!empty($input['parent_id'])) {
     $parentId = (int)$input['parent_id'];
-    $db = pw_db();
-    $stmt = $db->prepare('SELECT id FROM comments WHERE id = ? AND board = ? AND is_deleted = 0');
+    $stmt = $db->prepare('SELECT id, depth FROM comments WHERE id = ? AND board = ? AND is_deleted = 0');
     $stmt->execute([$parentId, $board]);
-    if (!$stmt->fetch()) {
+    $parent = $stmt->fetch();
+    if (!$parent) {
         pw_error('The message you are replying to no longer exists.');
     }
-} else {
-    $db = pw_db();
+    $depth = (int)$parent['depth'] + 1;
+    if ($depth > 2) {
+        pw_error('Replies can only go two levels deep.');
+    }
 }
 
-$stmt = $db->prepare('INSERT INTO comments (user_id, board, parent_id, body) VALUES (?, ?, ?, ?)');
-$stmt->execute([$user['id'], $board, $parentId, $body]);
+$stmt = $db->prepare('INSERT INTO comments (user_id, board, parent_id, depth, body) VALUES (?, ?, ?, ?, ?)');
+$stmt->execute([$user['id'], $board, $parentId, $depth, $body]);
 
 pw_json(['ok' => true, 'id' => (int)$db->lastInsertId()]);
