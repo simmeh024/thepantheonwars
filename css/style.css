@@ -2524,8 +2524,14 @@ footer.site-footer {
 .mod-menu-item-danger:hover .mod-menu-item-icon { color: #e14b5a; }
 .mod-menu-divider { height: 1px; background: var(--border-soft); margin: 4px 2px; }
 
+/* Replies have no title above the meta row (unlike the topic post), so the
+   date would otherwise sit directly under the kebab trigger -- push the
+   reply's content down to clear it instead. */
+.comment-item.has-mod-menu .comment-main { padding-top: 32px; }
+
 @media (max-width: 620px) {
   .mod-menu { top: 10px; right: 10px; }
+  .comment-item.has-mod-menu .comment-main { padding-top: 30px; }
 }
 
 /* Inline edit form (topic title/body or a single reply body) */
