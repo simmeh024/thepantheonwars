@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=38">
+<link rel="stylesheet" href="css/style.css?v=39">
 </head>
 <body>
 
@@ -80,16 +80,37 @@
 
       <div class="metrics-back-row">
         <a href="dev-dispatches.html" class="btn metrics-back-btn">&larr; Back to Development Dispatches</a>
-        <div class="metrics-date-filter">
-          <label for="metrics-date-select" class="metrics-date-filter-label">Showing</label>
-          <select id="metrics-date-select" class="metrics-date-select">
-            <option value="this_month">This Month</option>
-            <option value="last_month">Last Month</option>
-            <option value="last_3_months">Last 3 Months</option>
-            <option value="last_6_months">Last 6 Months</option>
-            <option value="last_9_months">Last 9 Months</option>
-            <option value="this_year" selected>This Year</option>
-          </select>
+
+        <div class="metrics-date-col">
+          <div class="metrics-date-filter">
+            <label for="metrics-date-select" class="metrics-date-filter-label">Showing</label>
+            <select id="metrics-date-select" class="metrics-date-select">
+              <option value="this_month">This Month</option>
+              <option value="last_month">Last Month</option>
+              <option value="last_3_months">Last 3 Months</option>
+              <option value="last_6_months">Last 6 Months</option>
+              <option value="last_9_months">Last 9 Months</option>
+              <option value="this_year" selected>This Year</option>
+            </select>
+          </div>
+
+          <div class="bh4-verify stats-bh4" id="stats-bh4" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="Verified by BH-4. Click for last commit info.">
+            <div class="bh4-verify-avatar">
+              <img src="images/bh4-dispatch.jpg" alt="">
+              <span class="bh4-verify-check">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              </span>
+            </div>
+            <span class="bh4-verify-label">Verified by BH-4</span>
+
+            <div class="bh4-status-tooltip" id="stats-bh4-tooltip">
+              <div class="bh4-status-tooltip-head">BH-4:</div>
+              <p class="bh4-status-tooltip-line">These counts are live &mdash; pulled straight from the database, no caching in between.</p>
+              <div class="bh4-status-tooltip-row"><span>Last commit</span><strong id="stats-bh4-last-commit">&mdash;</strong></div>
+              <div class="bh4-status-tooltip-row"><span>Repository status</span><strong class="bh4-status-ok" id="stats-bh4-repo-status">Connected</strong></div>
+              <p class="bh4-status-tooltip-footnote">All figures above reflect the latest commit.</p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -120,13 +141,13 @@
             </div>
             <span class="bh4-verify-label">Verified by BH-4</span>
 
-            <div class="lang-bh4-tooltip" id="lang-bh4-tooltip">
-              <div class="lang-bh4-tooltip-head">BH-4:</div>
-              <p class="lang-bh4-tooltip-line" id="lang-bh4-status-line">Development Metrics synchronized successfully.</p>
-              <div class="lang-bh4-tooltip-row"><span>Last GitHub sync</span><strong id="lang-bh4-last-sync">&mdash;</strong></div>
-              <div class="lang-bh4-tooltip-row"><span>Next scheduled sync</span><strong id="lang-bh4-next-sync">&mdash;</strong></div>
-              <div class="lang-bh4-tooltip-row"><span>Repository status</span><strong class="bh4-status-ok" id="lang-bh4-repo-status">Connected</strong></div>
-              <p class="lang-bh4-tooltip-footnote">All metrics below reflect the latest verified transmission.</p>
+            <div class="bh4-status-tooltip" id="lang-bh4-tooltip">
+              <div class="bh4-status-tooltip-head">BH-4:</div>
+              <p class="bh4-status-tooltip-line" id="lang-bh4-status-line">Development Metrics synchronized successfully.</p>
+              <div class="bh4-status-tooltip-row"><span>Last GitHub sync</span><strong id="lang-bh4-last-sync">&mdash;</strong></div>
+              <div class="bh4-status-tooltip-row"><span>Next scheduled sync</span><strong id="lang-bh4-next-sync">&mdash;</strong></div>
+              <div class="bh4-status-tooltip-row"><span>Repository status</span><strong class="bh4-status-ok" id="lang-bh4-repo-status">Connected</strong></div>
+              <p class="bh4-status-tooltip-footnote">All metrics below reflect the latest verified transmission.</p>
             </div>
           </div>
         </div>
@@ -225,6 +246,29 @@ function pwGetRangeBounds(value) {
   return { start: start, end: end };
 }
 
+function pwWireBh4Toggle(el) {
+  if (!el) return;
+  el.addEventListener('click', function () {
+    var isOpen = el.classList.toggle('is-open');
+    el.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+  });
+  el.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      el.click();
+    } else if (e.key === 'Escape') {
+      el.classList.remove('is-open');
+      el.setAttribute('aria-expanded', 'false');
+    }
+  });
+  document.addEventListener('click', function (e) {
+    if (el.classList.contains('is-open') && !el.contains(e.target)) {
+      el.classList.remove('is-open');
+      el.setAttribute('aria-expanded', 'false');
+    }
+  });
+}
+
 (function () {
   var gridEl = document.getElementById('metrics-grid');
   var totalNumEl = document.getElementById('metrics-total-num');
@@ -290,6 +334,37 @@ function pwGetRangeBounds(value) {
 
   var allEntries = [];
 
+  var statsBh4El = document.getElementById('stats-bh4');
+  var statsBh4LastCommit = document.getElementById('stats-bh4-last-commit');
+  var statsBh4RepoStatus = document.getElementById('stats-bh4-repo-status');
+
+  function formatLastCommitLabel(committedAt) {
+    if (!committedAt) return '—';
+    var d = new Date(String(committedAt).replace(' ', 'T'));
+    if (isNaN(d.getTime())) return '—';
+    var dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    var timeStr = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return dateStr + ' at ' + timeStr;
+  }
+
+  function updateStatsBh4(entries) {
+    if (!statsBh4LastCommit) return;
+    if (entries.length) {
+      // entries are ordered newest-first by the API, so entries[0] is the latest commit
+      statsBh4LastCommit.textContent = formatLastCommitLabel(entries[0].committed_at);
+      statsBh4RepoStatus.textContent = 'Connected';
+      statsBh4RepoStatus.className = 'bh4-status-ok';
+    } else {
+      statsBh4LastCommit.textContent = '—';
+      statsBh4RepoStatus.textContent = 'Reconnecting';
+      statsBh4RepoStatus.className = 'bh4-status-warn';
+    }
+  }
+
+  if (statsBh4El) {
+    pwWireBh4Toggle(statsBh4El);
+  }
+
   function renderMetrics(entries) {
     var counts = {};
     TAG_ORDER.forEach(function (t) { counts[t] = 0; });
@@ -325,6 +400,7 @@ function pwGetRangeBounds(value) {
         return;
       }
       allEntries = data.entries || [];
+      updateStatsBh4(allEntries);
       applyDateFilter();
     })
     .catch(function () {
@@ -519,26 +595,7 @@ function pwGetRangeBounds(value) {
 
   if (bh4El) {
     loadBh4Status();
-
-    bh4El.addEventListener('click', function () {
-      var isOpen = bh4El.classList.toggle('is-open');
-      bh4El.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    });
-    bh4El.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        bh4El.click();
-      } else if (e.key === 'Escape') {
-        bh4El.classList.remove('is-open');
-        bh4El.setAttribute('aria-expanded', 'false');
-      }
-    });
-    document.addEventListener('click', function (e) {
-      if (bh4El.classList.contains('is-open') && !bh4El.contains(e.target)) {
-        bh4El.classList.remove('is-open');
-        bh4El.setAttribute('aria-expanded', 'false');
-      }
-    });
+    pwWireBh4Toggle(bh4El);
   }
 })();
 </script>

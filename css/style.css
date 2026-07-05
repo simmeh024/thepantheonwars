@@ -2943,7 +2943,7 @@ footer.site-footer {
   margin: 0; min-height: 1.1em;
 }
 .lang-bh4 { flex-shrink: 0; padding-top: 2px; }
-.lang-bh4-tooltip {
+.bh4-status-tooltip {
   position: absolute; top: calc(100% + 12px); right: 0; width: 270px;
   background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
   padding: 14px 16px; font-family: 'Jost', sans-serif; font-size: 0.78rem; line-height: 1.6;
@@ -2952,22 +2952,24 @@ footer.site-footer {
   transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
   box-shadow: 0 10px 28px rgba(0,0,0,0.5); z-index: 20; pointer-events: none;
 }
-.lang-bh4.is-open .lang-bh4-tooltip { opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto; }
-.lang-bh4-tooltip-head {
+.bh4-verify.is-open .bh4-status-tooltip { opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto; }
+.bh4-status-tooltip-head {
   font-family: 'Cinzel', serif; font-weight: 600; font-size: 0.85rem; color: var(--gold-bright); margin-bottom: 6px;
 }
-.lang-bh4-tooltip-line { margin: 0 0 10px; }
-.lang-bh4-tooltip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 3px 0; }
-.lang-bh4-tooltip-row span { color: var(--text-faint); }
-.lang-bh4-tooltip-row strong { color: var(--text); font-weight: 500; text-align: right; white-space: nowrap; }
+.bh4-status-tooltip-line { margin: 0 0 10px; }
+.bh4-status-tooltip-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 3px 0; }
+.bh4-status-tooltip-row span { color: var(--text-faint); }
+.bh4-status-tooltip-row strong { color: var(--text); font-weight: 500; text-align: right; white-space: nowrap; }
 .bh4-status-ok { color: #3ecf8e; }
 .bh4-status-warn { color: #e14b5a; }
-.lang-bh4-tooltip-footnote {
+.bh4-status-tooltip-footnote {
   margin: 10px 0 0; padding-top: 10px; border-top: 1px solid var(--border-soft);
   font-size: 0.72rem; color: var(--text-faint);
 }
+.metrics-date-col { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.stats-bh4 { position: relative; }
 @media (max-width: 480px) {
-  .lang-bh4-tooltip { right: -10px; width: 230px; }
+  .bh4-status-tooltip { right: -10px; width: 230px; }
   .bh4-verify-label { display: none; }
 }
 .lang-bar {
