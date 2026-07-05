@@ -2615,7 +2615,7 @@ footer.site-footer {
 
 /* BH-4 "Verified" easter egg badge (fixed spot, bottom-right of the dispatch log) */
 .bh4-verify-row {
-  display: flex; justify-content: flex-end; margin-top: 22px;
+  display: flex; justify-content: flex-end; margin-top: -8px;
 }
 .bh4-verify {
   position: relative; z-index: 5;
