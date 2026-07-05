@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body>
 
@@ -90,8 +90,8 @@
               <a href="#" class="affinity-link" id="profile-affinity-link">Learn more →</a>
             </div>
           </div>
-          <div class="affinity-scores" id="profile-affinity-scores" hidden>
-            <span class="affinity-scores-label">Match Breakdown</span>
+          <div class="resonance-block" id="profile-affinity-scores" hidden>
+            <span class="resonance-label">Overlord Resonance</span>
             <div id="profile-affinity-scores-list"></div>
           </div>
         </div>
@@ -410,27 +410,36 @@
               return { name: overlordMeta[i] ? overlordMeta[i].name : ('Overlord ' + (i + 1)), pct: Math.round((s / total) * 100) };
             });
             ranked.sort(function (a, b) { return b.pct - a.pct; });
+            var fillEls = [];
             ranked.slice(0, 3).forEach(function (w) {
               var row = document.createElement('div');
-              row.className = 'affinity-score-row';
+              row.className = 'resonance-row';
               var nameEl = document.createElement('span');
-              nameEl.className = 'affinity-score-name';
+              nameEl.className = 'resonance-name';
               nameEl.textContent = w.name;
               var trackEl = document.createElement('div');
-              trackEl.className = 'affinity-score-bar-track';
+              trackEl.className = 'resonance-bar-track';
               var fillEl = document.createElement('div');
-              fillEl.className = 'affinity-score-bar-fill';
-              fillEl.style.width = w.pct + '%';
+              fillEl.className = 'resonance-bar-fill';
               trackEl.appendChild(fillEl);
               var pctEl = document.createElement('span');
-              pctEl.className = 'affinity-score-pct';
+              pctEl.className = 'resonance-pct';
               pctEl.textContent = w.pct + '%';
               row.appendChild(nameEl);
               row.appendChild(trackEl);
               row.appendChild(pctEl);
               scoresListEl.appendChild(row);
+              fillEls.push({ el: fillEl, pct: w.pct });
             });
             scoresBox.hidden = false;
+            // Bars start at width:0 (CSS default) and animate to their real
+            // width on the next frame, so the fill-in plays every time this
+            // section renders instead of snapping straight to the end state.
+            requestAnimationFrame(function () {
+              requestAnimationFrame(function () {
+                fillEls.forEach(function (f) { f.el.style.width = f.pct + '%'; });
+              });
+            });
           } else {
             scoresBox.hidden = true;
           }

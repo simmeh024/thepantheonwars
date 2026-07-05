@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body>
 
@@ -98,6 +98,11 @@
           <div class="result-actions">
             <a href="#" class="btn btn-solid result-link">Learn more →</a>
             <button type="button" class="btn quiz-retry">Retake the Quiz</button>
+          </div>
+
+          <div class="result-resonance" hidden>
+            <span class="resonance-label">Overlord Resonance</span>
+            <div class="result-resonance-list"></div>
           </div>
 
           <div class="result-share">
@@ -406,6 +411,47 @@ document.addEventListener('DOMContentLoaded', function () {
     setTimeout(showResult, 4400);
   }
 
+  function renderResonance() {
+    var box = resultEl.querySelector('.result-resonance');
+    var listEl = resultEl.querySelector('.result-resonance-list');
+    listEl.innerHTML = '';
+    var total = scores.reduce(function (a, b) { return a + b; }, 0) || 1;
+    var ranked = scores.map(function (s, i) {
+      return { name: overlords[i] ? overlords[i].name : ('Overlord ' + (i + 1)), pct: Math.round((s / total) * 100) };
+    });
+    ranked.sort(function (a, b) { return b.pct - a.pct; });
+
+    var fillEls = [];
+    ranked.slice(0, 3).forEach(function (w) {
+      var row = document.createElement('div');
+      row.className = 'resonance-row';
+      var nameEl = document.createElement('span');
+      nameEl.className = 'resonance-name';
+      nameEl.textContent = w.name;
+      var trackEl = document.createElement('div');
+      trackEl.className = 'resonance-bar-track';
+      var fillEl = document.createElement('div');
+      fillEl.className = 'resonance-bar-fill';
+      trackEl.appendChild(fillEl);
+      var pctEl = document.createElement('span');
+      pctEl.className = 'resonance-pct';
+      pctEl.textContent = w.pct + '%';
+      row.appendChild(nameEl);
+      row.appendChild(trackEl);
+      row.appendChild(pctEl);
+      listEl.appendChild(row);
+      fillEls.push({ el: fillEl, pct: w.pct });
+    });
+    box.hidden = false;
+    // Bars start at width:0 (CSS default) and animate in on the next frame
+    // rather than snapping straight to their final width.
+    requestAnimationFrame(function () {
+      requestAnimationFrame(function () {
+        fillEls.forEach(function (f) { f.el.style.width = f.pct + '%'; });
+      });
+    });
+  }
+
   function showResult() {
     terminalEl.hidden = true;
     var maxIdx = 0;
@@ -424,6 +470,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var link = resultEl.querySelector('.result-link');
     link.href = ov.href;
     link.textContent = 'Learn more about ' + ov.name + ' →';
+
+    renderResonance();
 
     var shareText = "I got " + ov.name + ", " + ov.epithet + " \u2014 which Overlord are you?";
     var pageUrl = "https://thepantheonwars.com/quiz.html";

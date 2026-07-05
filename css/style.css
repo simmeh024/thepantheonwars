@@ -1839,23 +1839,31 @@ footer.site-footer {
 .affinity-link { font-size: 0.74rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--gold); }
 .affinity-link:hover { color: var(--purple-bright); }
 
-.affinity-scores { margin-top: 1.4em; padding-top: 1.2em; border-top: 1px solid var(--border-soft); }
-.affinity-scores[hidden] { display: none; }
-.affinity-scores-label {
+.resonance-block { margin-top: 1.4em; padding-top: 1.2em; border-top: 1px solid var(--border-soft); }
+.resonance-block[hidden] { display: none; }
+.resonance-label {
   display: block; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.12em;
   color: var(--text-faint); margin-bottom: 0.7em;
 }
-.affinity-score-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.78rem; color: var(--text-dim); }
-.affinity-score-row:last-child { margin-bottom: 0; }
-.affinity-score-name { width: 128px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.affinity-score-bar-track { flex: 1; height: 5px; background: var(--border-soft); border-radius: 3px; overflow: hidden; }
-.affinity-score-bar-fill { height: 100%; background: linear-gradient(90deg, var(--purple-bright), var(--gold-bright)); border-radius: 3px; }
-.affinity-score-pct { width: 36px; flex-shrink: 0; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-faint); }
+.resonance-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.78rem; color: var(--text-dim); }
+.resonance-row:last-child { margin-bottom: 0; }
+.resonance-name { width: 128px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.resonance-bar-track { flex: 1; height: 5px; background: var(--border-soft); border-radius: 3px; overflow: hidden; }
+.resonance-bar-fill {
+  height: 100%; width: 0%; background: linear-gradient(90deg, var(--purple-bright), var(--gold-bright));
+  border-radius: 3px; transition: width 1.1s cubic-bezier(0.16, 0.72, 0.29, 0.99);
+}
+.resonance-pct { width: 36px; flex-shrink: 0; text-align: right; font-variant-numeric: tabular-nums; color: var(--text-faint); }
+
+/* Standalone version used on the quiz result screen (centered, no card wrapper) */
+.result-resonance { margin-top: 1.8em; padding-top: 1.6em; border-top: 1px solid var(--border); max-width: 420px; margin-left: auto; margin-right: auto; }
+.result-resonance[hidden] { display: none; }
+.result-resonance .resonance-row { text-align: left; }
 
 @media (max-width: 560px) {
   .affinity-main { flex-direction: column; align-items: center; text-align: center; }
   .affinity-info .affinity-blurb { max-width: none; }
-  .affinity-score-name { width: 100px; }
+  .resonance-name { width: 100px; }
 }
 .profile-history-item {
   border-bottom: 1px solid var(--border-soft); padding: 10px 0; font-size: 0.9rem; color: var(--text-dim);
