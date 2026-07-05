@@ -2613,9 +2613,9 @@ footer.site-footer {
   .dispatch-tag-filter-panel { right: auto; left: 0; }
 }
 
-/* BH-4 "Verified" easter egg badge (Development Dispatches banner) */
+/* BH-4 "Verified" easter egg badge (floats beside the dispatch log) */
 .bh4-verify {
-  position: absolute; top: 96px; right: 28px; z-index: 4;
+  position: fixed; top: 130px; right: max(16px, calc((100vw - 1180px) / 2 - 60px)); z-index: 45;
   display: flex; align-items: center; gap: 9px;
   cursor: pointer; user-select: none; text-align: left;
 }
@@ -2656,9 +2656,11 @@ footer.site-footer {
 .bh4-verify:focus-visible .bh4-verify-tooltip {
   opacity: 1; visibility: visible; transform: translateY(0);
 }
-@media (max-width: 720px) {
-  .bh4-verify { top: 70px; right: 16px; }
+@media (max-width: 900px) {
   .bh4-verify-label { display: none; }
+}
+@media (max-width: 720px) {
+  .bh4-verify { top: 78px; right: 12px; }
   .bh4-verify-tooltip { right: -10px; width: 220px; }
 }
 

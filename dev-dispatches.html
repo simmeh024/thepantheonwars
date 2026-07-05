@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=26">
+<link rel="stylesheet" href="css/style.css?v=27">
 </head>
 <body>
 
@@ -616,14 +616,10 @@
 
     document.body.appendChild(overlay);
 
-    function close() { overlay.remove(); }
-    backdrop.addEventListener('click', close);
-    inner.querySelector('.bh4-popup-close').addEventListener('click', close);
-    document.addEventListener('keydown', function escHandler(e) {
-      if (e.key === 'Escape') {
-        close();
-        document.removeEventListener('keydown', escHandler);
-      }
+    // Deliberately no backdrop-click or Escape-key dismissal here — BH-4 wants
+    // you to close this one yourself.
+    inner.querySelector('.bh4-popup-close').addEventListener('click', function () {
+      overlay.remove();
     });
   }
 })();
