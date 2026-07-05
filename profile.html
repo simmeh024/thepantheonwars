@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=15">
+<link rel="stylesheet" href="css/style.css?v=16">
 </head>
 <body>
 
@@ -79,6 +79,7 @@
         <p id="profile-avatar-status" class="profile-avatar-status" hidden></p>
 
         <div class="profile-affinity" id="profile-affinity-box" hidden>
+          <button type="button" class="resync-btn" id="resync-affinity-btn" data-text="Re-Sync Overlord Resonance">Re-Sync Overlord Resonance</button>
           <span class="eyebrow">Your Overlord Affinity</span>
           <div class="affinity-main">
             <div class="affinity-portrait"><img id="profile-affinity-img" src="" alt=""></div>
@@ -601,6 +602,13 @@
           document.getElementById('profile-no-comments').hidden = false;
         }
       });
+  }
+
+  var resyncBtn = document.getElementById('resync-affinity-btn');
+  if (resyncBtn) {
+    resyncBtn.addEventListener('click', function () {
+      load();
+    });
   }
 
   document.addEventListener('pw-auth-ready', load);
