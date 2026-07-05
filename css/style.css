@@ -2836,9 +2836,31 @@ footer.site-footer {
 }
 
 /* Development Metrics page */
-.metrics-back-row { margin-bottom: 30px; }
+.metrics-back-row {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
+  gap: 14px; margin-bottom: 30px;
+}
 .metrics-back-btn {
   padding: 10px 20px; font-size: 0.75rem;
+}
+.metrics-date-filter { display: flex; align-items: center; gap: 9px; }
+.metrics-date-filter-label {
+  font-family: 'Jost', sans-serif; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--text-faint);
+}
+.metrics-date-select {
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 30px 8px 12px; border-radius: 3px; font-family: 'Jost', sans-serif; font-size: 0.85rem;
+  cursor: pointer; appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%237a6b9e' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat; background-position: right 10px center; background-size: 10px 6px;
+}
+.metrics-date-select:hover { border-color: var(--gold-bright); }
+.metrics-date-select:focus { outline: none; border-color: var(--gold-bright); }
+@media (max-width: 560px) {
+  .metrics-back-row { flex-direction: column; align-items: flex-start; }
+  .metrics-date-filter { width: 100%; }
+  .metrics-date-select { flex: 1; }
 }
 .metrics-total {
   display: flex; flex-direction: column; align-items: center; text-align: center;

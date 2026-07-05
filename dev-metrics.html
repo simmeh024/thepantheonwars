@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=33">
+<link rel="stylesheet" href="css/style.css?v=34">
 </head>
 <body>
 
@@ -80,6 +80,17 @@
 
       <div class="metrics-back-row">
         <a href="dev-dispatches.html" class="btn metrics-back-btn">&larr; Back to Development Dispatches</a>
+        <div class="metrics-date-filter">
+          <label for="metrics-date-select" class="metrics-date-filter-label">Showing</label>
+          <select id="metrics-date-select" class="metrics-date-select">
+            <option value="this_month">This Month</option>
+            <option value="last_month">Last Month</option>
+            <option value="last_3_months">Last 3 Months</option>
+            <option value="last_6_months">Last 6 Months</option>
+            <option value="last_9_months">Last 9 Months</option>
+            <option value="this_year" selected>This Year</option>
+          </select>
+        </div>
       </div>
 
       <div class="metrics-total" id="metrics-total">
@@ -152,6 +163,7 @@
 (function () {
   var gridEl = document.getElementById('metrics-grid');
   var totalNumEl = document.getElementById('metrics-total-num');
+  var dateSelect = document.getElementById('metrics-date-select');
 
   var TAG_ORDER = ['feature', 'improvement', 'fix', 'performance', 'ui_ux', 'lore', 'infrastructure', 'refactor', 'experimental'];
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -211,6 +223,65 @@
     return box;
   }
 
+  var allEntries = [];
+
+  function getRangeBounds(value) {
+    var now = new Date();
+    var y = now.getFullYear();
+    var m = now.getMonth();
+    var start, end = now;
+    switch (value) {
+      case 'this_month':
+        start = new Date(y, m, 1, 0, 0, 0);
+        break;
+      case 'last_month':
+        start = new Date(y, m - 1, 1, 0, 0, 0);
+        end = new Date(y, m, 1, 0, 0, 0);
+        break;
+      case 'last_3_months':
+        start = new Date(y, m - 3, now.getDate(), 0, 0, 0);
+        break;
+      case 'last_6_months':
+        start = new Date(y, m - 6, now.getDate(), 0, 0, 0);
+        break;
+      case 'last_9_months':
+        start = new Date(y, m - 9, now.getDate(), 0, 0, 0);
+        break;
+      case 'this_year':
+      default:
+        start = new Date(y, 0, 1, 0, 0, 0);
+        break;
+    }
+    return { start: start, end: end };
+  }
+
+  function renderMetrics(entries) {
+    var counts = {};
+    TAG_ORDER.forEach(function (t) { counts[t] = 0; });
+    entries.forEach(function (e) {
+      if (counts.hasOwnProperty(e.tag)) counts[e.tag]++;
+    });
+    var total = entries.length;
+
+    animateCount(totalNumEl, total, 900);
+
+    gridEl.innerHTML = '';
+    TAG_ORDER.forEach(function (tag) {
+      gridEl.appendChild(buildBox(tag, counts[tag], total));
+    });
+  }
+
+  function applyDateFilter() {
+    var range = getRangeBounds(dateSelect.value);
+    var filtered = allEntries.filter(function (e) {
+      var d = new Date(String(e.committed_at).replace(' ', 'T'));
+      return d >= range.start && d <= range.end;
+    });
+    renderMetrics(filtered);
+  }
+
+  dateSelect.addEventListener('change', applyDateFilter);
+
   fetch('/api/dispatches/list.php?page=1&per_page=100000', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -218,20 +289,8 @@
         gridEl.innerHTML = '<p class="metrics-loading">Could not load metrics right now.</p>';
         return;
       }
-      var entries = data.entries || [];
-      var counts = {};
-      TAG_ORDER.forEach(function (t) { counts[t] = 0; });
-      entries.forEach(function (e) {
-        if (counts.hasOwnProperty(e.tag)) counts[e.tag]++;
-      });
-      var total = entries.length;
-
-      animateCount(totalNumEl, total, 1300);
-
-      gridEl.innerHTML = '';
-      TAG_ORDER.forEach(function (tag) {
-        gridEl.appendChild(buildBox(tag, counts[tag], total));
-      });
+      allEntries = data.entries || [];
+      applyDateFilter();
     })
     .catch(function () {
       gridEl.innerHTML = '<p class="metrics-loading">Could not load metrics right now.</p>';
