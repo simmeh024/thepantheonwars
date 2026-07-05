@@ -144,6 +144,16 @@
 
         <aside class="community-sidebar">
           <div class="leaderboard-panel">
+            <h3 class="leaderboard-title">Popular Topics</h3>
+            <div class="profile-menu" id="popular-tabs">
+              <button type="button" class="profile-menu-tab active" data-period="this_month">This Month</button>
+              <button type="button" class="profile-menu-tab" data-period="last_month">Last Month</button>
+            </div>
+            <div id="popular-list"></div>
+            <p id="popular-empty" class="lore-status" hidden>No activity yet.</p>
+          </div>
+
+          <div class="leaderboard-panel">
             <h3 class="leaderboard-title">Top Voices</h3>
             <div id="leaderboard-list"></div>
             <p id="leaderboard-empty" class="lore-status" hidden>No posts yet.</p>
@@ -248,6 +258,10 @@
 
   var leaderboardList = document.getElementById('leaderboard-list');
   var leaderboardEmpty = document.getElementById('leaderboard-empty');
+  var popularTabs = document.getElementById('popular-tabs');
+  var popularList = document.getElementById('popular-list');
+  var popularEmpty = document.getElementById('popular-empty');
+  var popularPeriod = 'this_month';
 
   var currentBoard = null;
   var currentTopicId = null;
@@ -1058,9 +1072,65 @@
       });
   }
 
+  // ---------- Popular Topics sidebar ----------
+
+  function loadPopularTopics() {
+    fetch('/api/topics/popular.php?period=' + encodeURIComponent(popularPeriod), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        popularList.innerHTML = '';
+        if (!data.ok || !data.topics || !data.topics.length) {
+          popularEmpty.hidden = false;
+          return;
+        }
+        popularEmpty.hidden = true;
+        data.topics.forEach(function (t, i) {
+          var item = document.createElement('div');
+          item.className = 'leaderboard-item';
+
+          var rank = document.createElement('span');
+          rank.className = 'leaderboard-rank';
+          rank.textContent = '#' + (i + 1);
+          item.appendChild(rank);
+
+          var info = document.createElement('div');
+          info.className = 'leaderboard-info';
+
+          var link = document.createElement('a');
+          link.href = '#';
+          link.className = 'popular-title';
+          link.textContent = t.title;
+          link.addEventListener('click', function (e) {
+            e.preventDefault();
+            goToTopic(t.id, t.board);
+          });
+          info.appendChild(link);
+
+          var count = document.createElement('span');
+          count.className = 'leaderboard-count';
+          count.textContent = t.reply_count + (t.reply_count === 1 ? ' reply' : ' replies');
+          info.appendChild(count);
+
+          item.appendChild(info);
+          popularList.appendChild(item);
+        });
+      });
+  }
+
+  popularTabs.querySelectorAll('.profile-menu-tab').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      if (tab.classList.contains('active')) return;
+      popularTabs.querySelectorAll('.profile-menu-tab').forEach(function (t) { t.classList.remove('active'); });
+      tab.classList.add('active');
+      popularPeriod = tab.getAttribute('data-period');
+      loadPopularTopics();
+    });
+  });
+
   showView('index');
   loadBoardIndex();
   loadLeaderboard();
+  loadPopularTopics();
 })();
 </script>
 </body>
