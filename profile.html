@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=8">
+<link rel="stylesheet" href="css/style.css?v=9">
 </head>
 <body>
 
@@ -99,6 +99,11 @@
 
         <h3>Quiz History</h3>
         <div id="profile-quiz-history"></div>
+        <div class="history-pagination" id="profile-quiz-pagination" hidden>
+          <button type="button" class="history-page-arrow" id="quiz-history-prev" aria-label="Previous page">‹</button>
+          <div class="history-page-numbers" id="quiz-history-pages"></div>
+          <button type="button" class="history-page-arrow" id="quiz-history-next" aria-label="Next page">›</button>
+        </div>
 
         <div class="profile-divider"><span class="profile-divider-shard"></span></div>
 
@@ -192,6 +197,9 @@
   var avatarInput = document.getElementById('profile-avatar-input');
   var avatarStatus = document.getElementById('profile-avatar-status');
   var currentUserId = null;
+  var QUIZ_HISTORY_PAGE_SIZE = 3;
+  var quizHistoryData = [];
+  var quizHistoryPage = 1;
 
   // Same roster as quiz.html's overlords array -- kept here too since this
   // page needs the portrait/epithet/domain/blurb for whichever result the
@@ -217,6 +225,62 @@
     }
     return null;
   }
+
+  function renderQuizHistoryPage() {
+    var historyEl = document.getElementById('profile-quiz-history');
+    var paginationEl = document.getElementById('profile-quiz-pagination');
+    var totalPages = Math.max(1, Math.ceil(quizHistoryData.length / QUIZ_HISTORY_PAGE_SIZE));
+    if (quizHistoryPage > totalPages) quizHistoryPage = totalPages;
+    if (quizHistoryPage < 1) quizHistoryPage = 1;
+
+    historyEl.innerHTML = '';
+    var start = (quizHistoryPage - 1) * QUIZ_HISTORY_PAGE_SIZE;
+    quizHistoryData.slice(start, start + QUIZ_HISTORY_PAGE_SIZE).forEach(function (h) {
+      var item = document.createElement('div');
+      item.className = 'profile-history-item';
+      item.textContent = h.overlord_result + ' — ' + fmtDate(h.created_at);
+      historyEl.appendChild(item);
+    });
+
+    if (quizHistoryData.length <= QUIZ_HISTORY_PAGE_SIZE) {
+      paginationEl.hidden = true;
+      return;
+    }
+    paginationEl.hidden = false;
+
+    var pagesEl = document.getElementById('quiz-history-pages');
+    pagesEl.innerHTML = '';
+    for (var p = 1; p <= totalPages; p++) {
+      (function (page) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'history-page-num' + (page === quizHistoryPage ? ' active' : '');
+        btn.textContent = String(page);
+        btn.addEventListener('click', function () {
+          quizHistoryPage = page;
+          renderQuizHistoryPage();
+        });
+        pagesEl.appendChild(btn);
+      })(p);
+    }
+
+    document.getElementById('quiz-history-prev').disabled = quizHistoryPage <= 1;
+    document.getElementById('quiz-history-next').disabled = quizHistoryPage >= totalPages;
+  }
+
+  document.getElementById('quiz-history-prev').addEventListener('click', function () {
+    if (quizHistoryPage > 1) {
+      quizHistoryPage--;
+      renderQuizHistoryPage();
+    }
+  });
+  document.getElementById('quiz-history-next').addEventListener('click', function () {
+    var totalPages = Math.max(1, Math.ceil(quizHistoryData.length / QUIZ_HISTORY_PAGE_SIZE));
+    if (quizHistoryPage < totalPages) {
+      quizHistoryPage++;
+      renderQuizHistoryPage();
+    }
+  });
 
   function fmtDate(iso) {
     var d = new Date(iso.replace(' ', 'T') + 'Z');
@@ -448,18 +512,16 @@
           scoresBox.hidden = true;
         }
 
-        var historyEl = document.getElementById('profile-quiz-history');
-        historyEl.innerHTML = '';
         if (data.quizHistory && data.quizHistory.length) {
           document.getElementById('profile-no-quiz').hidden = true;
-          data.quizHistory.forEach(function (h) {
-            var item = document.createElement('div');
-            item.className = 'profile-history-item';
-            item.textContent = h.overlord_result + ' — ' + fmtDate(h.created_at);
-            historyEl.appendChild(item);
-          });
+          quizHistoryData = data.quizHistory;
+          quizHistoryPage = 1;
+          renderQuizHistoryPage();
         } else {
           document.getElementById('profile-no-quiz').hidden = false;
+          quizHistoryData = [];
+          document.getElementById('profile-quiz-history').innerHTML = '';
+          document.getElementById('profile-quiz-pagination').hidden = true;
         }
 
         var commentsEl = document.getElementById('profile-comments');
