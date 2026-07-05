@@ -1593,6 +1593,8 @@ footer.site-footer {
 
 /* ---------------- Which Overlord Are You? quiz ---------------- */
 .quiz-wrap { max-width: 760px; margin: 0 auto; }
+.quiz-app { animation: quizAppFadeIn 0.7s ease; }
+@keyframes quizAppFadeIn { from { opacity: 0; } to { opacity: 1; } }
 .quiz-progress { height: 4px; background: var(--border-soft); margin-bottom: 2.4em; overflow: hidden; }
 .quiz-progress-bar { height: 100%; width: 0%; background: linear-gradient(90deg, var(--gold), var(--purple-bright)); transition: width 0.35s ease; }
 .quiz-card { background: var(--panel); border: 1px solid var(--border); padding: 40px; position: relative; }
@@ -1663,6 +1665,24 @@ footer.site-footer {
 }
 .term-line .dots { display: inline-block; animation: term-dots 1.2s steps(4) infinite; }
 @keyframes term-dots { from { opacity: 0.2; } to { opacity: 1; } }
+
+.resync-overlay {
+  position: fixed; inset: 0; z-index: 999;
+  background: rgba(5, 3, 16, 0.94);
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.5s ease;
+}
+.resync-overlay.show { opacity: 1; pointer-events: auto; }
+.resync-overlay.fade-out { opacity: 0; }
+.resync-terminal { width: 100%; max-width: 520px; }
+.term-line.resync-orange { color: #e2984a; }
+.term-line.resync-orange.glitch.show {
+  color: #e2984a;
+  animation: term-glitch 0.5s steps(2) infinite;
+}
+.term-line.resync-green { color: #2e7d32; }
 
 .quiz-result { text-align: center; animation: result-reveal 0.6s ease; }
 @keyframes result-reveal {

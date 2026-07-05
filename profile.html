@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=16">
+<link rel="stylesheet" href="css/style.css?v=17">
 </head>
 <body>
 
@@ -185,6 +185,17 @@
     </div>
   </div>
 </footer>
+
+<div class="resync-overlay" id="resync-overlay" hidden>
+  <div class="quiz-terminal resync-terminal">
+    <div class="term-line" data-line="1">&gt; WARNING.</div>
+    <div class="term-line" data-line="2">&gt; PREVIOUS RESONANCE WILL BE ARCHIVED.</div>
+    <div class="term-line" data-line="3">&gt; PREPARING NEW SCAN<span class="dots">...</span></div>
+    <div class="term-line" data-line="4">&gt; LOADING.. LOADING..</div>
+    <div class="term-line resync-orange glitch" data-line="5">&gt; RE-SYNCHRONIZING<span class="dots">...</span></div>
+    <div class="term-line resync-green" data-line="6">&gt; GODCORE READY.</div>
+  </div>
+</div>
 
 <script src="js/main.js"></script>
 <script src="js/members.js"></script>
@@ -605,9 +616,26 @@
   }
 
   var resyncBtn = document.getElementById('resync-affinity-btn');
-  if (resyncBtn) {
+  var resyncOverlay = document.getElementById('resync-overlay');
+  if (resyncBtn && resyncOverlay) {
     resyncBtn.addEventListener('click', function () {
-      load();
+      resyncOverlay.hidden = false;
+      var lines = resyncOverlay.querySelectorAll('.term-line');
+      lines.forEach(function (l) { l.classList.remove('show'); });
+      resyncOverlay.classList.remove('fade-out');
+      // Two rAFs so the overlay paints at opacity:0 first, then transitions in
+      // (same trick used for the resonance bar fill-in animation elsewhere).
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          resyncOverlay.classList.add('show');
+        });
+      });
+      var delays = [300, 1200, 2100, 3000, 4000, 5100];
+      lines.forEach(function (line, i) {
+        setTimeout(function () { line.classList.add('show'); }, delays[i] || i * 900);
+      });
+      setTimeout(function () { resyncOverlay.classList.add('fade-out'); }, 6300);
+      setTimeout(function () { window.location.href = 'quiz.html'; }, 6900);
     });
   }
 
