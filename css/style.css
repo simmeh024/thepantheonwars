@@ -2095,6 +2095,64 @@ footer.site-footer {
 .result-resonance[hidden] { display: none; }
 .result-resonance .resonance-row { text-align: left; }
 
+/* ---------------- Overlord-affinity themed box ----------------
+   Shared boxed treatment + per-overlord accent color for the "Your Overlord
+   Affinity" card on the profile page and the result card on the quiz page.
+   Same six colors already used for each overlord's domain card on the
+   Overlords hub page, kept consistent here. Falls back to the site's
+   default purple if no overlord slug class is present. */
+.affinity-themed {
+  --ov-accent: var(--purple-bright);
+  --ov-dim: var(--purple-deep);
+  --ov-glow: rgba(162, 121, 236, 0.38);
+  --ov-glow-soft: rgba(162, 121, 236, 0.16);
+  position: relative;
+  overflow: hidden;
+  border-radius: 6px;
+  border-color: var(--ov-dim) !important;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.25), 0 20px 46px -22px var(--ov-glow);
+  transition: border-color 0.4s ease, box-shadow 0.4s ease;
+}
+.affinity-themed::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 12% -14%, var(--ov-glow-soft), transparent 62%);
+  pointer-events: none;
+}
+.affinity-themed > * { position: relative; z-index: 1; }
+
+/* Quiz result screen has no card chrome by default -- give it the same
+   panel treatment as the profile affinity box once it's themed. */
+.quiz-result.affinity-themed {
+  background: linear-gradient(160deg, var(--panel) 0%, var(--panel-2) 100%);
+  border: 1px solid var(--ov-dim);
+  padding: 40px;
+}
+
+.affinity-themed .affinity-portrait { border-color: var(--ov-accent); box-shadow: 0 0 24px var(--ov-glow); }
+.affinity-themed .result-portrait,
+.affinity-themed .overlord-portrait-frame { border-color: var(--ov-accent); box-shadow: 0 0 34px var(--ov-glow); }
+.affinity-themed .overlord-epithet { color: var(--ov-accent); }
+.affinity-themed .affinity-link { color: var(--ov-accent); }
+.affinity-themed .affinity-link:hover { color: var(--gold-bright); }
+.affinity-themed .result-link.btn-solid {
+  background: linear-gradient(135deg, var(--ov-dim), var(--ov-accent));
+  border-color: var(--ov-accent);
+}
+.affinity-themed .result-link.btn-solid:hover {
+  background: linear-gradient(135deg, var(--ov-accent), var(--gold-bright));
+  border-color: var(--gold);
+  box-shadow: 0 0 24px var(--ov-glow);
+  color: #1a1220;
+}
+
+.affinity-themed.overlord-lysara-venthe { --ov-accent: #4fb3e8; --ov-dim: #1c4666; --ov-glow: rgba(79,179,232,0.4); --ov-glow-soft: rgba(79,179,232,0.18); }
+.affinity-themed.overlord-syn-dravus    { --ov-accent: #a279ec; --ov-dim: #4a2f85; --ov-glow: rgba(162,121,236,0.4); --ov-glow-soft: rgba(162,121,236,0.18); }
+.affinity-themed.overlord-malric-thorne { --ov-accent: #e05a4a; --ov-dim: #4a1712; --ov-glow: rgba(224,90,74,0.4); --ov-glow-soft: rgba(224,90,74,0.18); }
+.affinity-themed.overlord-zura-kaleth   { --ov-accent: #4f9d5c; --ov-dim: #1c3820; --ov-glow: rgba(79,157,92,0.4); --ov-glow-soft: rgba(79,157,92,0.18); }
+.affinity-themed.overlord-maerion-thal  { --ov-accent: #f0c479; --ov-dim: #8a5a26; --ov-glow: rgba(240,196,121,0.4); --ov-glow-soft: rgba(240,196,121,0.18); }
+.affinity-themed.overlord-korrus-vale   { --ov-accent: #8fe04a; --ov-dim: #335c22; --ov-glow: rgba(143,224,74,0.4); --ov-glow-soft: rgba(143,224,74,0.18); }
+
 @media (max-width: 560px) {
   .affinity-main { flex-direction: column; align-items: center; text-align: center; }
   .affinity-info .affinity-blurb { max-width: none; }

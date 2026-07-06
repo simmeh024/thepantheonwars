@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=43">
+<link rel="stylesheet" href="css/style.css?v=44">
 </head>
 <body>
 
@@ -85,7 +85,7 @@
         </div>
         <p id="profile-avatar-status" class="profile-avatar-status" hidden></p>
 
-        <div class="profile-affinity" id="profile-affinity-box" hidden>
+        <div class="profile-affinity affinity-themed" id="profile-affinity-box" hidden>
           <button type="button" class="resync-btn" id="resync-affinity-btn" data-text="Re-Sync Overlord Resonance">Re-Sync Overlord Resonance</button>
           <span class="eyebrow">Your Overlord Affinity</span>
           <div class="affinity-main">
@@ -516,6 +516,9 @@
           affBox.hidden = false;
           var ov = overlordByName(data.user.overlord_affinity);
           var affImg = document.getElementById('profile-affinity-img');
+          // Reset any previously-applied overlord color theme before
+          // (re-)applying the one that matches the current affinity.
+          affBox.className = affBox.className.replace(/\boverlord-[a-z-]+\b/g, '').replace(/\s+/g, ' ').trim();
           if (ov) {
             affImg.src = ov.img;
             affImg.alt = ov.name;
@@ -526,6 +529,7 @@
             var affLink = document.getElementById('profile-affinity-link');
             affLink.href = ov.href;
             affLink.textContent = 'Learn more about ' + ov.name + ' →';
+            affBox.classList.add(ov.href.replace('.html', ''));
           } else {
             document.getElementById('profile-affinity-name').textContent = data.user.overlord_affinity;
           }

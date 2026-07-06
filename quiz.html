@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=43">
+<link rel="stylesheet" href="css/style.css?v=44">
 </head>
 <body>
 
@@ -95,7 +95,7 @@
           <div class="term-line" data-line="4">&gt; CORRECTING<span class="dots">...</span></div>
         </div>
 
-        <div class="quiz-result" hidden>
+        <div class="quiz-result affinity-themed" hidden>
           <span class="eyebrow result-tag">You Are</span>
           <div class="overlord-portrait-frame result-portrait"><img src="" alt=""></div>
           <h2 class="result-name"></h2>
@@ -487,6 +487,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     var ov = overlords[maxIdx];
     resultEl.hidden = false;
+    resultEl.className = resultEl.className.replace(/\boverlord-[a-z-]+\b/g, '').replace(/\s+/g, ' ').trim();
+    resultEl.classList.add(ov.href.replace('.html', ''));
     var img = resultEl.querySelector('.result-portrait img');
     img.src = ov.img;
     img.alt = ov.name;
