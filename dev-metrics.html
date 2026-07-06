@@ -347,8 +347,8 @@ function pwWireBh4Toggle(el) {
     if (!committedAt) return '—';
     var d = new Date(String(committedAt).replace(' ', 'T'));
     if (isNaN(d.getTime())) return '—';
-    var dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-    var timeStr = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    var dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    var timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     return dateStr + ' at ' + timeStr;
   }
 
@@ -456,8 +456,8 @@ function pwWireBh4Toggle(el) {
   function formatCapturedAt(sqlDate) {
     var d = parseUtcSqlDate(sqlDate);
     if (!d) return '';
-    var dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
-    var timeStr = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    var dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    var timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     return dateStr + ' at ' + timeStr;
   }
 
@@ -478,7 +478,7 @@ function pwWireBh4Toggle(el) {
     var yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     if (isSameUtcDate(d, now)) return 'Today at ' + formatUtcClock(d);
     if (isSameUtcDate(d, yesterday)) return 'Yesterday at ' + formatUtcClock(d);
-    var dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    var dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
     return dateStr + ' at ' + formatUtcClock(d);
   }
 

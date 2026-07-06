@@ -588,8 +588,8 @@
   function fmtTime(iso) {
     var d = new Date(iso.replace(' ', 'T') + 'Z');
     if (isNaN(d.getTime())) return iso;
-    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) +
-      ' ' + d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) +
+      ' ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
   }
 
   function capitalize(s) {
@@ -1202,8 +1202,8 @@
   function fmtQuoteAttribution(displayName, iso) {
     var d = new Date(iso.replace(' ', 'T') + 'Z');
     if (isNaN(d.getTime())) return displayName + ' wrote:';
-    var weekday = d.toLocaleDateString(undefined, { weekday: 'long' });
-    var month = d.toLocaleDateString(undefined, { month: 'long' });
+    var weekday = d.toLocaleDateString('en-US', { weekday: 'long' });
+    var month = d.toLocaleDateString('en-US', { month: 'long' });
     var mm = d.getMinutes();
     var time = d.getHours() + ':' + (mm < 10 ? '0' : '') + mm;
     return displayName + ' wrote on ' + weekday + ' ' + d.getDate() + ' ' + month + ' ' + d.getFullYear() + ' @ ' + time + ':';
