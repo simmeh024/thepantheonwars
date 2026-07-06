@@ -32,9 +32,20 @@ $postCountStmt = $db->prepare(
 $postCountStmt->execute([(int)$topic['user_id'], (int)$topic['user_id']]);
 $postCountRow = $postCountStmt->fetch();
 
+$likeCountStmt = $db->prepare("SELECT COUNT(*) AS cnt FROM message_likes WHERE target_type = 'topic' AND target_id = ?");
+$likeCountStmt->execute([$id]);
+$likeCount = (int)$likeCountStmt->fetch()['cnt'];
+
 $currentUser = pw_current_user();
 $currentId = $currentUser ? (int)$currentUser['id'] : null;
 $isAdmin = $currentUser ? in_array($currentUser['role'], ['admin', 'moderator'], true) : false;
+
+$likedByMe = false;
+if ($currentId !== null) {
+    $myLikeStmt = $db->prepare("SELECT id FROM message_likes WHERE target_type = 'topic' AND target_id = ? AND user_id = ?");
+    $myLikeStmt->execute([$id, $currentId]);
+    $likedByMe = (bool)$myLikeStmt->fetch();
+}
 
 pw_json([
     'ok' => true,
@@ -53,5 +64,7 @@ pw_json([
         'post_count' => (int)$postCountRow['cnt'],
         'canDelete' => $isAdmin || ($currentId !== null && $currentId === (int)$topic['user_id']),
         'canModerate' => $isAdmin,
+        'like_count' => $likeCount,
+        'likedByMe' => $likedByMe,
     ],
 ]);

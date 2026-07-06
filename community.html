@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=45">
+<link rel="stylesheet" href="css/style.css?v=46">
 </head>
 <body>
 
@@ -289,6 +289,7 @@
 
   function formatBody(raw) {
     var s = escapeHtml(raw);
+    s = s.replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, '<blockquote class="comment-quote">$1</blockquote>');
     s = s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>');
     s = s.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<em>$1</em>');
     s = s.replace(/\[u\]([\s\S]*?)\[\/u\]/gi, '<u>$1</u>');
@@ -972,6 +973,15 @@
     bodyEl.innerHTML = formatBody(t.body); // formatBody escapes raw HTML, then whitelists bbcode tags
     main.appendChild(bodyEl);
 
+    main.appendChild(buildMsgToolbar({
+      kind: 'topic',
+      id: t.id,
+      body: t.body,
+      likeCount: t.like_count || 0,
+      likedByMe: !!t.likedByMe,
+      quoteTarget: function () { return { wrap: form, textarea: body }; }
+    }));
+
     function startTopicEdit() {
       var editWrap = document.createElement('div');
       editWrap.className = 'inline-edit-form';
@@ -1174,6 +1184,76 @@
     });
   }
 
+  var MSG_ICONS = {
+    quote: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.17 6.1C4.9 8 3.5 10.5 3.5 13.2c0 2.6 1.7 4.4 3.9 4.4 1.9 0 3.3-1.4 3.3-3.2 0-1.7-1.2-3-2.8-3-.3 0-.6 0-.8.1.3-1.6 1.5-3.2 3.1-4.3L7.17 6.1zm9 0c-2.3 1.9-3.7 4.4-3.7 7.1 0 2.6 1.7 4.4 3.9 4.4 1.9 0 3.3-1.4 3.3-3.2 0-1.7-1.2-3-2.8-3-.3 0-.6 0-.8.1.3-1.6 1.5-3.2 3.1-4.3L16.17 6.1z"/></svg>',
+    like: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11v9H4v-9h3z"/><path d="M7 11l3.4-6.8c.9 0 2.1.7 2.1 2.3V9h4.7c1.1 0 1.8.9 1.6 1.9l-1.2 5.8c-.2 1-1.1 1.7-2.1 1.7H7"/></svg>'
+  };
+
+  // Quote + Like toolbar -- shown inside every message (topic post and every
+  // reply), separate from the top-right mod-menu and (for comments) the
+  // Shard/Ward/Ember lore-reaction bar below it. Anyone logged in can quote
+  // or like any message; guests get the login prompt like the other actions.
+  //
+  // ctx: { kind: 'topic'|'comment', id, body, likeCount, likedByMe, quoteTarget }
+  // quoteTarget() must return { wrap, textarea } for the reply box to fill
+  // (wrap may be null if the box has no separate show/hide wrapper).
+  function buildMsgToolbar(ctx) {
+    var bar = document.createElement('div');
+    bar.className = 'msg-toolbar';
+
+    var quoteBtn = document.createElement('button');
+    quoteBtn.type = 'button';
+    quoteBtn.className = 'msg-quote-btn';
+    quoteBtn.innerHTML = MSG_ICONS.quote + '<span>Quote</span>';
+    if (window.PW_AUTH.loggedIn) {
+      quoteBtn.addEventListener('click', function () {
+        var target = ctx.quoteTarget();
+        if (!target || !target.textarea) return;
+        if (target.wrap) target.wrap.hidden = false;
+        var ta = target.textarea;
+        var quoteText = '[quote]' + ctx.body + '[/quote]\n';
+        ta.value = ta.value ? (ta.value.replace(/\s+$/, '') + '\n\n' + quoteText) : quoteText;
+        ta.focus();
+        ta.setSelectionRange(ta.value.length, ta.value.length);
+        ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      });
+    } else {
+      quoteBtn.classList.add('auth-trigger');
+      quoteBtn.setAttribute('data-tab', 'login');
+    }
+    bar.appendChild(quoteBtn);
+
+    var likeBtn = document.createElement('button');
+    likeBtn.type = 'button';
+    likeBtn.className = 'msg-like-btn' + (ctx.likedByMe ? ' active' : '');
+    likeBtn.innerHTML = MSG_ICONS.like + '<span class="msg-like-count">' + ctx.likeCount + '</span>';
+    likeBtn.setAttribute('aria-label', 'Like this message');
+    likeBtn.setAttribute('title', 'Like');
+    if (window.PW_AUTH.loggedIn) {
+      likeBtn.addEventListener('click', function () { sendLike(ctx.kind, ctx.id, likeBtn); });
+    } else {
+      likeBtn.classList.add('auth-trigger');
+      likeBtn.setAttribute('data-tab', 'login');
+    }
+    bar.appendChild(likeBtn);
+
+    return bar;
+  }
+
+  function sendLike(kind, id, btnEl) {
+    if (!window.PW_AUTH.csrf) return;
+    fetch('/api/messages/like.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target_type: kind, target_id: id, csrf: window.PW_AUTH.csrf }),
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) return;
+      btnEl.querySelector('.msg-like-count').textContent = data.likeCount;
+      btnEl.classList.toggle('active', data.liked);
+    });
+  }
+
   function buildReplyForm(c) {
     var wrap = document.createElement('div');
     wrap.className = 'reply-form-wrap';
@@ -1293,6 +1373,18 @@
     bodyEl.className = 'comment-body';
     bodyEl.innerHTML = formatBody(c.body); // formatBody escapes raw HTML, then whitelists bbcode tags
     main.appendChild(bodyEl);
+
+    main.appendChild(buildMsgToolbar({
+      kind: 'comment',
+      id: c.id,
+      body: c.body,
+      likeCount: c.like_count || 0,
+      likedByMe: !!c.likedByMe,
+      quoteTarget: function () {
+        if (c.depth < 2 && replyFormData) return { wrap: replyFormData.wrap, textarea: replyFormData.textarea };
+        return { wrap: form, textarea: body };
+      }
+    }));
 
     function startCommentEdit() {
       var editWrap = document.createElement('div');

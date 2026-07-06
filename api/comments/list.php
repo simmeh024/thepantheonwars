@@ -72,7 +72,31 @@ if ($currentId !== null && $commentIds) {
     }
 }
 
-$out = array_map(function ($r) use ($currentId, $isAdmin, $postCounts, $reactionCounts, $myReactions) {
+// Like counts per comment + whether the current viewer has liked it.
+$likeCounts = [];
+$myLikes = [];
+if ($commentIds) {
+    $placeholders = implode(',', array_fill(0, count($commentIds), '?'));
+    $lStmt = $db->prepare(
+        "SELECT target_id, COUNT(*) AS cnt FROM message_likes WHERE target_type = 'comment' AND target_id IN ($placeholders) GROUP BY target_id"
+    );
+    $lStmt->execute($commentIds);
+    foreach ($lStmt->fetchAll() as $row) {
+        $likeCounts[(int)$row['target_id']] = (int)$row['cnt'];
+    }
+
+    if ($currentId !== null) {
+        $myLikeStmt = $db->prepare(
+            "SELECT target_id FROM message_likes WHERE target_type = 'comment' AND user_id = ? AND target_id IN ($placeholders)"
+        );
+        $myLikeStmt->execute(array_merge([$currentId], $commentIds));
+        foreach ($myLikeStmt->fetchAll() as $row) {
+            $myLikes[(int)$row['target_id']] = true;
+        }
+    }
+}
+
+$out = array_map(function ($r) use ($currentId, $isAdmin, $postCounts, $reactionCounts, $myReactions, $likeCounts, $myLikes) {
     $userId = (int)$r['user_id'];
     $id = (int)$r['id'];
     return [
@@ -92,6 +116,8 @@ $out = array_map(function ($r) use ($currentId, $isAdmin, $postCounts, $reaction
         'canModerate' => $isAdmin,
         'reactions' => isset($reactionCounts[$id]) ? $reactionCounts[$id] : ['shard' => 0, 'ward' => 0, 'ember' => 0],
         'myReaction' => isset($myReactions[$id]) ? $myReactions[$id] : null,
+        'like_count' => isset($likeCounts[$id]) ? $likeCounts[$id] : 0,
+        'likedByMe' => isset($myLikes[$id]),
     ];
 }, $rows);
 

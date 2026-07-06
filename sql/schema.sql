@@ -100,3 +100,14 @@ CREATE TABLE IF NOT EXISTS repo_language_snapshots (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_captured_at (captured_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS message_likes (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  target_type ENUM('topic','comment') NOT NULL,
+  target_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_message_like (target_type, target_id, user_id),
+  KEY idx_target (target_type, target_id),
+  CONSTRAINT fk_message_likes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
