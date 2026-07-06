@@ -641,6 +641,14 @@
     });
   }
 })();
+
+// Mobile browsers (Safari in particular) often restore this page from the
+// back/forward cache instead of reloading it -- that reuses the exact DOM
+// snapshot from whenever it was last visited, dispatch list and all, with
+// no new network requests. Force a real reload whenever that happens.
+window.addEventListener('pageshow', function (e) {
+  if (e.persisted) location.reload();
+});
 </script>
 </body>
 </html>

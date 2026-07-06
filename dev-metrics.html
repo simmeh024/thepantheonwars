@@ -603,6 +603,15 @@ function pwWireBh4Toggle(el) {
     pwWireBh4Toggle(bh4El);
   }
 })();
+
+// Mobile browsers (Safari in particular) often restore this page from the
+// back/forward cache instead of reloading it -- that reuses the exact DOM
+// snapshot from whenever it was last visited, metrics and all, with no new
+// network requests. Force a real reload whenever that happens so the stats
+// shown are never more than a moment stale.
+window.addEventListener('pageshow', function (e) {
+  if (e.persisted) location.reload();
+});
 </script>
 </body>
 </html>

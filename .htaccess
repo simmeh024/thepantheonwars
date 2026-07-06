@@ -1,0 +1,12 @@
+# Force browsers (mobile in particular) to always revalidate HTML pages
+# with the server instead of serving a heuristically-cached copy for hours
+# or days. "no-cache" here means "cache it, but check with the server
+# every time before using it" -- the server still answers with a cheap
+# 304 Not Modified when nothing changed, so this doesn't add real load,
+# it just stops stale HTML (with stale script/style version tags baked
+# into it) from being served straight out of the phone's local cache.
+<IfModule mod_headers.c>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+</IfModule>
