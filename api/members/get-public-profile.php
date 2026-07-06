@@ -38,11 +38,13 @@ $postCount = (int)$countStmt->fetch()['cnt'];
 // Recent activity feed: topics and comments merged, newest first. Kept small
 // (10) since this is a public "recent posts" list, not the full paginated
 // history the owner sees on their own profile.
+// comments has no board column (only topics does), so it's left out of
+// this feed entirely -- the front-end doesn't render it anyway.
 $stmt = $db->prepare(
-    "(SELECT 'topic' AS kind, id, board, title AS heading, body, created_at
+    "(SELECT 'topic' AS kind, id, title AS heading, body, created_at
         FROM topics WHERE user_id = ? AND is_deleted = 0)
      UNION ALL
-     (SELECT 'comment' AS kind, id, board, NULL AS heading, body, created_at
+     (SELECT 'comment' AS kind, id, NULL AS heading, body, created_at
         FROM comments WHERE user_id = ? AND is_deleted = 0)
      ORDER BY created_at DESC
      LIMIT 10"
@@ -67,7 +69,6 @@ pw_json([
         return [
             'kind' => $r['kind'],
             'id' => (int)$r['id'],
-            'board' => $r['board'],
             'heading' => $r['heading'],
             'body' => $r['body'],
             'created_at' => $r['created_at'],
