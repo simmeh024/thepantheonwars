@@ -7,6 +7,8 @@
 # into it) from being served straight out of the phone's local cache.
 <IfModule mod_headers.c>
   <FilesMatch "\.html$">
-    Header set Cache-Control "no-cache, must-revalidate"
+    Header set Cache-Control "no-store, no-cache, must-revalidate, private, max-age=0"
+    Header set Pragma "no-cache"
+    Header set Expires "Thu, 19 Nov 1981 08:52:00 GMT"
   </FilesMatch>
 </IfModule>
