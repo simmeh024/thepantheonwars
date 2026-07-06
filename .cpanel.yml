@@ -3,4 +3,5 @@ deployment:
   tasks:
     - export DEPLOYPATH=/home/rdy3i6my40b0/public_html/
     - /bin/cp -R * $DEPLOYPATH
+    - /bin/cp -f .htaccess $DEPLOYPATH 2>/dev/null || true
     - /bin/rm -f $DEPLOYPATH/README.txt
