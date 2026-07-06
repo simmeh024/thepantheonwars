@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Member Profile — The Pantheon Wars</title>
+<meta name="description" content="A Pantheon Wars community member's public profile — Overlord affinity and recent activity.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/style.css?v=48">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-inner">
+    <a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a>
+    <nav class="main-nav">
+      <a href="index.html">Home</a>
+      <div class="nav-item has-dropdown">
+        <span class="nav-parent">The Universe<span class="nav-caret">⌄</span></span>
+        <div class="nav-dropdown">
+          <a href="books.html">The Books</a>
+          <a href="worlds.html">The Worlds</a>
+          <a href="overlords.html">The Overlords</a>
+          <a href="soundtracks.html">The Soundtracks</a>
+        </div>
+      </div>
+      <div class="nav-item has-dropdown">
+        <span class="nav-parent">News<span class="nav-caret">⌄</span></span>
+        <div class="nav-dropdown">
+          <a href="news.html">Latest News</a>
+          <a href="dev-dispatches.html">Development Dispatches</a>
+        </div>
+      </div>
+      <a href="about.html">About</a>
+      <div class="nav-item has-dropdown">
+        <span class="nav-parent active">Community<span class="nav-caret">⌄</span></span>
+        <div class="nav-dropdown">
+          <a href="community.html">Nexus Veil (Forum)</a>
+          <a href="memberlist.html" class="active">Member List</a>
+          <a href="quiz.html">Quiz</a>
+        </div>
+      </div>
+      <span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span>
+    </nav>
+    <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main>
+
+  <section>
+    <div class="container" style="max-width: 720px;">
+
+      <div id="member-gate" class="profile-gate" hidden>
+        <span class="eyebrow">Nexus Veil</span>
+        <h2 id="member-gate-heading">Member not found</h2>
+        <p id="member-gate-text">This member doesn't exist, or the link is missing an id.</p>
+        <a href="memberlist.html" class="btn btn-solid">Back to Member List</a>
+      </div>
+
+      <div id="member-content" hidden>
+        <div class="profile-head">
+          <div class="profile-avatar-wrap role-member" id="member-avatar-wrap">
+            <img id="member-avatar-img" class="profile-avatar" alt="" hidden>
+            <div id="member-avatar-fallback" class="profile-avatar profile-avatar-fallback">?</div>
+          </div>
+          <h1 id="member-name">—</h1>
+          <span class="member-role-badge" id="member-role-badge"></span>
+        </div>
+
+        <p class="lore-status" id="member-meta">
+          <span id="member-joined"></span>
+          <span class="member-status" id="member-status">
+            <span class="member-status-dot"></span>
+            <span id="member-status-text"></span>
+          </span>
+        </p>
+
+        <div class="profile-affinity affinity-themed" id="member-affinity-box" hidden>
+          <span class="eyebrow">Overlord Affinity</span>
+          <div class="affinity-main">
+            <div class="affinity-portrait"><img id="member-affinity-img" src="" alt=""></div>
+            <div class="affinity-info">
+              <h2 id="member-affinity-name">—</h2>
+              <span class="overlord-epithet" id="member-affinity-epithet"></span>
+              <span class="overlord-domain-tag" id="member-affinity-domain"></span>
+              <p class="affinity-blurb" id="member-affinity-blurb"></p>
+              <a href="#" class="affinity-link" id="member-affinity-link">Learn more →</a>
+            </div>
+          </div>
+        </div>
+        <p id="member-no-quiz" class="lore-status" hidden>Hasn't found their Overlord yet.</p>
+
+        <div class="profile-divider"><span class="profile-divider-shard"></span></div>
+
+        <h3>Recent Posts</h3>
+        <div id="member-posts"></div>
+        <p id="member-no-posts" class="lore-status" hidden>No posts yet in the <a href="community.html">Assembly Floor</a>.</p>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>The Pantheon Wars</h4>
+        <p>A fourteen-book saga by Pascal Slettenaar — twelve worlds, twelve tyrants, and the prophecy that could end them all.</p>
+      </div>
+      <div>
+        <h4 class="footer-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="footer-explore-list">
+          Explore
+          <span class="footer-toggle-icon" aria-hidden="true">&#8964;</span>
+        </h4>
+        <ul id="footer-explore-list" class="footer-collapsible-list collapsed">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="books.html">The Books</a></li>
+          <li><a href="worlds.html">Worlds</a></li>
+          <li><a href="overlords.html">The Overlords</a></li>
+          <li><a href="soundtracks.html">The Soundtracks</a></li>
+          <li><a href="about.html">About the Author</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="quiz.html">Which Overlord Are You?</a></li>
+          <li><a href="community.html">Community</a></li>
+          <li><a href="memberlist.html">Member List</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Stay Connected</h4>
+        <ul>
+          <li><a href="soundtracks.html">The Soundtracks</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2026 Pascal Slettenaar. All rights reserved. &nbsp;•&nbsp; “Twelve thrones will fall. One will rise.”
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js?v=1"></script>
+<script src="js/members.js?v=2"></script>
+<script>
+(function () {
+  var gate = document.getElementById('member-gate');
+  var content = document.getElementById('member-content');
+  var avatarImg = document.getElementById('member-avatar-img');
+  var avatarFallback = document.getElementById('member-avatar-fallback');
+  var avatarWrap = document.getElementById('member-avatar-wrap');
+
+  var overlordMeta = [
+    { name: "Syn Dravus", epithet: "The Mindweaver", domain: "Overlord of Neoh", img: "images/char-syn.jpg", href: "overlord-syn-dravus.html",
+      blurb: "You rule through knowledge no one else has. People fear what you might already know about them — and they're right to." },
+    { name: "Malric Thorne", epithet: "The Black Regent", domain: "Overlord of Cerius", img: "images/char-malric.jpg", href: "overlord-malric-thorne.html",
+      blurb: "You rule through control, seized and never loosened. Order is the only mercy you believe in." },
+    { name: "Korrus Vale", epithet: "The Reactor King", domain: "Overlord of Reanium", img: "images/char-korrus.jpg", href: "overlord-korrus-vale.html",
+      blurb: "You rule through efficiency, even when the numbers are grim. The system survives — that's the point." },
+    { name: "Lysara Venthe", epithet: "The Tidekeeper", domain: "Overlord of Asmecu", img: "images/char-lysara.jpg", href: "overlord-lysara-venthe.html",
+      blurb: "You rule through care that looks like softness and isn't. Everyone feels safe near you. Not everyone should." },
+    { name: "Zura Kaleth", epithet: "The Rootbinder", domain: "Overlord of Babki Prime", img: "images/char-zura.jpg", href: "overlord-zura-kaleth.html",
+      blurb: "You rule through patience, letting things take the shape they need to. Nothing near you stays the same for long." },
+    { name: "Maerion Thal", epithet: "The Sky Duke", domain: "Overlord of High Hammer", img: "images/char-maerion.jpg", href: "overlord-maerion-thal.html",
+      blurb: "You rule through honor and reputation, staged as carefully as any duel. Your word is the one currency you never let devalue." }
+  ];
+
+  function overlordByName(name) {
+    for (var i = 0; i < overlordMeta.length; i++) {
+      if (overlordMeta[i].name === name) return overlordMeta[i];
+    }
+    return null;
+  }
+
+  function fmtDate(iso) {
+    var d = new Date(iso.replace(' ', 'T') + 'Z');
+    if (isNaN(d.getTime())) return iso;
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function capitalize(s) {
+    s = String(s || '');
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  function getParam(name) {
+    var match = new RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match ? decodeURIComponent(match[1].replace(/\+/g, ' ')) : null;
+  }
+
+  function showNotFound(text) {
+    if (text) document.getElementById('member-gate-text').textContent = text;
+    gate.hidden = false;
+    content.hidden = true;
+  }
+
+  function load() {
+    var id = parseInt(getParam('id'), 10);
+    if (!id || id <= 0) {
+      showNotFound('This link is missing a member id.');
+      return;
+    }
+
+    fetch('/api/members/get-public-profile.php?id=' + encodeURIComponent(id), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          showNotFound();
+          return;
+        }
+        gate.hidden = true;
+        content.hidden = false;
+
+        var m = data.member;
+        document.title = m.display_name + ' — The Pantheon Wars';
+        document.getElementById('member-name').textContent = m.display_name;
+
+        avatarWrap.classList.remove('role-member', 'role-moderator', 'role-admin');
+        avatarWrap.classList.add(m.role === 'admin' ? 'role-admin' : m.role === 'moderator' ? 'role-moderator' : 'role-member');
+
+        var roleBadge = document.getElementById('member-role-badge');
+        roleBadge.textContent = capitalize(m.role || 'member');
+        roleBadge.className = 'member-role-badge role-' + (m.role || 'member');
+
+        avatarFallback.textContent = (m.display_name || '?').charAt(0).toUpperCase();
+        var probe = new Image();
+        probe.onload = function () {
+          avatarImg.src = probe.src;
+          avatarImg.hidden = false;
+          avatarFallback.hidden = true;
+        };
+        probe.src = '/uploads/avatars/' + m.id + '.jpg';
+
+        document.getElementById('member-joined').textContent = 'Joined ' + fmtDate(m.created_at);
+
+        var statusEl = document.getElementById('member-status');
+        var statusText = document.getElementById('member-status-text');
+        statusEl.classList.toggle('is-online', !!m.is_online);
+        if (m.is_online) {
+          statusText.textContent = 'Online now';
+        } else if (m.last_active_at) {
+          statusText.textContent = 'Last seen ' + fmtDate(m.last_active_at);
+        } else if (m.last_login_at) {
+          statusText.textContent = 'Last seen ' + fmtDate(m.last_login_at);
+        } else {
+          statusText.textContent = 'Never logged in';
+        }
+
+        var affBox = document.getElementById('member-affinity-box');
+        var noQuiz = document.getElementById('member-no-quiz');
+        if (m.overlord_affinity) {
+          affBox.hidden = false;
+          noQuiz.hidden = true;
+          var ov = overlordByName(m.overlord_affinity);
+          affBox.className = affBox.className.replace(/\boverlord-[a-z-]+\b/g, '').replace(/\s+/g, ' ').trim();
+          if (ov) {
+            document.getElementById('member-affinity-img').src = ov.img;
+            document.getElementById('member-affinity-img').alt = ov.name;
+            document.getElementById('member-affinity-name').textContent = ov.name;
+            document.getElementById('member-affinity-epithet').textContent = ov.epithet;
+            document.getElementById('member-affinity-domain').textContent = ov.domain;
+            document.getElementById('member-affinity-blurb').textContent = ov.blurb;
+            var affLink = document.getElementById('member-affinity-link');
+            affLink.href = ov.href;
+            affLink.textContent = 'Learn more about ' + ov.name + ' →';
+            affBox.classList.add(ov.href.replace('.html', ''));
+          } else {
+            document.getElementById('member-affinity-name').textContent = m.overlord_affinity;
+          }
+        } else {
+          affBox.hidden = true;
+          noQuiz.hidden = false;
+        }
+
+        var postsEl = document.getElementById('member-posts');
+        var noPosts = document.getElementById('member-no-posts');
+        postsEl.innerHTML = '';
+        if (data.recentPosts && data.recentPosts.length) {
+          noPosts.hidden = true;
+          data.recentPosts.forEach(function (p) {
+            var item = document.createElement('div');
+            item.className = 'profile-history-item';
+            var label = p.kind === 'topic' ? ('Started "' + p.heading + '"') : p.body;
+            item.textContent = label + ' — ' + fmtDate(p.created_at);
+            postsEl.appendChild(item);
+          });
+        } else {
+          noPosts.hidden = false;
+        }
+      })
+      .catch(function () { showNotFound('Could not load this profile right now.'); });
+  }
+
+  document.addEventListener('pw-auth-ready', load);
+  load();
+})();
+</script>
+</body>
+</html>

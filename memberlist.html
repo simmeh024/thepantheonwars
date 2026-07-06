@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=47">
+<link rel="stylesheet" href="css/style.css?v=48">
 </head>
 <body>
 
@@ -134,7 +134,7 @@
 </footer>
 
 <script src="js/main.js?v=1"></script>
-<script src="js/members.js?v=1"></script>
+<script src="js/members.js?v=2"></script>
 <script>
 (function () {
   var listBody = document.getElementById('member-index-body');
@@ -262,9 +262,10 @@
     var row = document.createElement('div');
     row.className = 'member-index-row';
 
-    // Member: avatar + name
-    var profile = document.createElement('div');
+    // Member: avatar + name (links through to their public profile)
+    var profile = document.createElement('a');
     profile.className = 'member-row-profile';
+    profile.href = 'member.html?id=' + encodeURIComponent(m.id);
 
     var avatarWrap = document.createElement('div');
     avatarWrap.className = 'profile-avatar-wrap member-avatar-wrap role-' + (m.role || 'member');

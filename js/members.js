@@ -139,16 +139,30 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   });
 
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  // Logged-in state is rendered as a .nav-item.has-dropdown, reusing the
+  // exact same hover/focus-within dropdown CSS that already drives the
+  // "The Universe" / "News" / "Community" nav menus (see css/style.css) --
+  // no extra JS toggle logic or new CSS needed, and it already behaves
+  // correctly in the mobile expanded-menu layout too.
   function renderNav() {
     var slot = document.getElementById('auth-nav-item');
     if (!slot) return;
     if (window.PW_AUTH.loggedIn && window.PW_AUTH.user) {
+      slot.className = 'nav-item has-dropdown auth-nav-item';
       slot.innerHTML =
-        '<span class="auth-nav-user">' +
-          '<a href="profile.html" class="auth-username">' + window.PW_AUTH.user.display_name + '</a>' +
+        '<span class="nav-parent auth-username">' + escapeHtml(window.PW_AUTH.user.display_name) + '<span class="nav-caret">⌄</span></span>' +
+        '<div class="nav-dropdown auth-nav-dropdown">' +
+          '<a href="member.html?id=' + encodeURIComponent(window.PW_AUTH.user.id) + '">Profile</a>' +
           '<button type="button" class="auth-logout-btn">Log Out</button>' +
-        '</span>';
+        '</div>';
     } else {
+      slot.className = 'auth-nav-item';
       slot.innerHTML = '<a href="#" class="auth-trigger">Login</a>';
     }
   }
