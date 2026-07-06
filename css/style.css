@@ -2546,9 +2546,11 @@ footer.site-footer {
   font-size: 0.68rem; color: var(--text-faint); font-style: italic; cursor: help;
 }
 
-/* Moderation dropdown: kebab trigger, top-right of each message card, above the date */
+/* Moderation dropdown: kebab trigger, now just a flex item inside
+   .msg-header-actions (top-right of each message card, above the date)
+   rather than positioned on its own. */
 .comment-item { position: relative; }
-.mod-menu { position: absolute; top: 14px; right: 18px; z-index: 6; }
+.mod-menu { position: relative; }
 .mod-menu-trigger {
   width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
   background: none; border: 1px solid transparent; border-radius: 4px; color: var(--text-faint);
@@ -2583,13 +2585,14 @@ footer.site-footer {
 .mod-menu-divider { height: 1px; background: var(--border-soft); margin: 4px 2px; }
 
 /* Replies have no title above the meta row (unlike the topic post), so the
-   date would otherwise sit directly under the kebab trigger -- push the
-   reply's content down to clear it instead. */
-.comment-item.has-mod-menu .comment-main { padding-top: 32px; }
+   date would otherwise sit directly under the top-right action row -- push
+   the reply's content down to clear it instead. Every reply gets this now
+   since Quote/Like/kebab are all always shown. */
+.comment-item.has-msg-actions .comment-main { padding-top: 32px; }
 
 @media (max-width: 620px) {
-  .mod-menu { top: 10px; right: 10px; }
-  .comment-item.has-mod-menu .comment-main { padding-top: 30px; }
+  .msg-header-actions { top: 10px; right: 10px; }
+  .comment-item.has-msg-actions .comment-main { padding-top: 30px; }
 }
 
 /* Inline edit form (topic title/body or a single reply body) */
@@ -2605,28 +2608,33 @@ footer.site-footer {
 }
 .inline-edit-form textarea:focus { outline: none; border-color: var(--purple-bright); }
 
-/* Quote + Like toolbar -- shown inside every message (topic post and every
-   reply), separate from the top-right mod-menu and the Shard/Ward/Ember
-   lore-reaction bar below it on comments. */
-.msg-toolbar { display: flex; align-items: center; gap: 8px; margin-top: 0.9em; }
-.msg-quote-btn, .msg-like-btn {
-  display: flex; align-items: center; gap: 6px; background: transparent; border: none;
-  color: var(--text-faint); padding: 4px 2px; cursor: pointer;
-  font-family: 'Jost', sans-serif; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em;
-  transition: color 0.2s ease;
+/* Top-right action row on every message: Quote, Like, then the moderation
+   kebab -- all three sit together above the timestamp. The kebab (.mod-menu)
+   is now just a flex item inside this row rather than positioned on its
+   own; .msg-header-actions owns the absolute top-right placement instead. */
+.msg-header-actions { position: absolute; top: 14px; right: 18px; z-index: 6; display: flex; align-items: center; gap: 4px; }
+.msg-header-btn {
+  display: flex; align-items: center; gap: 4px; height: 28px; padding: 0 7px;
+  background: none; border: 1px solid transparent; border-radius: 4px; color: var(--text-faint);
+  cursor: pointer; transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  font-family: 'Jost', sans-serif; font-size: 0.72rem;
 }
-.msg-quote-btn svg, .msg-like-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.msg-header-btn:hover { border-color: var(--border-soft); background: var(--panel-2); }
+.msg-header-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+.msg-quote-btn { width: 28px; padding: 0; justify-content: center; }
 .msg-quote-btn:hover { color: var(--gold-bright); }
 .msg-like-btn:hover { color: var(--purple-bright); }
 .msg-like-btn.active { color: var(--purple-bright); }
 .msg-like-btn.active svg { fill: var(--purple-bright); fill-opacity: 0.25; }
-.msg-like-count { font-variant-numeric: tabular-nums; text-transform: none; letter-spacing: normal; }
+.msg-like-count { font-variant-numeric: tabular-nums; }
 
 /* [quote] BBCode rendering */
 .comment-quote {
   margin: 0.8em 0; padding: 10px 16px; border-left: 3px solid var(--purple-bright);
-  background: var(--panel-2); color: var(--text-dim); font-size: 0.92rem;
-  font-style: italic;
+  background: var(--panel-2); color: var(--text-dim); font-size: 0.9rem;
+}
+.comment-quote-attr {
+  font-weight: 700; font-size: 1.08em; color: var(--text); margin-bottom: 0.4em;
 }
 
 /* Reactions */

@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=46">
+<link rel="stylesheet" href="css/style.css?v=47">
 </head>
 <body>
 
@@ -289,6 +289,13 @@
 
   function formatBody(raw) {
     var s = escapeHtml(raw);
+    // [quote=Author wrote on <date>:]text[/quote] -- the attribution line (set
+    // automatically by the Quote button) renders bold/slightly larger, above
+    // the quoted text at normal weight. Bare [quote]text[/quote] (no
+    // attribution) still works for anyone typing it by hand.
+    s = s.replace(/\[quote=([^\]]{1,150})\]([\s\S]*?)\[\/quote\]/gi, function (m, attr, inner) {
+      return '<blockquote class="comment-quote"><div class="comment-quote-attr">' + attr + '</div>' + inner + '</blockquote>';
+    });
     s = s.replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, '<blockquote class="comment-quote">$1</blockquote>');
     s = s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>');
     s = s.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<em>$1</em>');
@@ -483,6 +490,10 @@
 
     function renderMainPanel() {
       panel.innerHTML = '';
+
+      // The kebab itself is visible to everyone now (more will land here
+      // later), but the actual moderation actions stay moderator/admin-only.
+      if (!ctx.canModerate) return;
 
       panel.appendChild(modMenuItem(MOD_ICONS.pin, currentTopicIsPinned ? 'Unpin Topic' : 'Pin Topic', function () {
         toggleTopicPin(ctx.topicId);
@@ -920,16 +931,6 @@
     var main = document.createElement('div');
     main.className = 'comment-main';
 
-    if (t.canModerate) {
-      main.appendChild(buildModMenu({
-        kind: 'topic',
-        topicId: t.id,
-        board: t.board,
-        onEdit: function () { startTopicEdit(); },
-        onDelete: function () { deleteTopic(t.id); }
-      }));
-    }
-
     if (t.is_pinned || t.is_locked) {
       var tagRow = document.createElement('div');
       tagRow.className = 'comment-tag-row';
@@ -973,13 +974,20 @@
     bodyEl.innerHTML = formatBody(t.body); // formatBody escapes raw HTML, then whitelists bbcode tags
     main.appendChild(bodyEl);
 
-    main.appendChild(buildMsgToolbar({
+    main.appendChild(buildMsgHeaderActions({
       kind: 'topic',
       id: t.id,
       body: t.body,
+      authorName: t.display_name,
+      createdAt: t.created_at,
       likeCount: t.like_count || 0,
       likedByMe: !!t.likedByMe,
-      quoteTarget: function () { return { wrap: form, textarea: body }; }
+      quoteTarget: function () { return { wrap: form, textarea: body }; },
+      canModerate: t.canModerate,
+      topicId: t.id,
+      board: t.board,
+      onEdit: function () { startTopicEdit(); },
+      onDelete: function () { deleteTopic(t.id); }
     }));
 
     function startTopicEdit() {
@@ -1189,29 +1197,46 @@
     like: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11v9H4v-9h3z"/><path d="M7 11l3.4-6.8c.9 0 2.1.7 2.1 2.3V9h4.7c1.1 0 1.8.9 1.6 1.9l-1.2 5.8c-.2 1-1.1 1.7-2.1 1.7H7"/></svg>'
   };
 
-  // Quote + Like toolbar -- shown inside every message (topic post and every
-  // reply), separate from the top-right mod-menu and (for comments) the
-  // Shard/Ward/Ember lore-reaction bar below it. Anyone logged in can quote
-  // or like any message; guests get the login prompt like the other actions.
+  // "<Name> wrote on <full weekday> <day> <month> <year> @ <H:MM>:" -- used
+  // as the bold attribution line the Quote button prepends automatically.
+  function fmtQuoteAttribution(displayName, iso) {
+    var d = new Date(iso.replace(' ', 'T') + 'Z');
+    if (isNaN(d.getTime())) return displayName + ' wrote:';
+    var weekday = d.toLocaleDateString(undefined, { weekday: 'long' });
+    var month = d.toLocaleDateString(undefined, { month: 'long' });
+    var mm = d.getMinutes();
+    var time = d.getHours() + ':' + (mm < 10 ? '0' : '') + mm;
+    return displayName + ' wrote on ' + weekday + ' ' + d.getDate() + ' ' + month + ' ' + d.getFullYear() + ' @ ' + time + ':';
+  }
+
+  // Top-right action row shown on every message (topic post and every
+  // reply): Quote, Like, then the moderation kebab. The kebab trigger is
+  // now always visible for every viewer -- more may land in that dropdown
+  // later -- but the moderation items inside it stay gated to canModerate.
   //
-  // ctx: { kind: 'topic'|'comment', id, body, likeCount, likedByMe, quoteTarget }
+  // ctx: { kind: 'topic'|'comment', id, body, authorName, createdAt,
+  //        likeCount, likedByMe, quoteTarget, canModerate, topicId,
+  //        commentId, board, onEdit, onDelete }
   // quoteTarget() must return { wrap, textarea } for the reply box to fill
   // (wrap may be null if the box has no separate show/hide wrapper).
-  function buildMsgToolbar(ctx) {
-    var bar = document.createElement('div');
-    bar.className = 'msg-toolbar';
+  function buildMsgHeaderActions(ctx) {
+    var wrap = document.createElement('div');
+    wrap.className = 'msg-header-actions';
 
     var quoteBtn = document.createElement('button');
     quoteBtn.type = 'button';
-    quoteBtn.className = 'msg-quote-btn';
-    quoteBtn.innerHTML = MSG_ICONS.quote + '<span>Quote</span>';
+    quoteBtn.className = 'msg-header-btn msg-quote-btn';
+    quoteBtn.innerHTML = MSG_ICONS.quote;
+    quoteBtn.setAttribute('aria-label', 'Quote this message');
+    quoteBtn.setAttribute('title', 'Quote');
     if (window.PW_AUTH.loggedIn) {
       quoteBtn.addEventListener('click', function () {
         var target = ctx.quoteTarget();
         if (!target || !target.textarea) return;
         if (target.wrap) target.wrap.hidden = false;
         var ta = target.textarea;
-        var quoteText = '[quote]' + ctx.body + '[/quote]\n';
+        var attribution = fmtQuoteAttribution(ctx.authorName, ctx.createdAt);
+        var quoteText = '[quote=' + attribution + ']' + ctx.body + '[/quote]\n';
         ta.value = ta.value ? (ta.value.replace(/\s+$/, '') + '\n\n' + quoteText) : quoteText;
         ta.focus();
         ta.setSelectionRange(ta.value.length, ta.value.length);
@@ -1221,11 +1246,11 @@
       quoteBtn.classList.add('auth-trigger');
       quoteBtn.setAttribute('data-tab', 'login');
     }
-    bar.appendChild(quoteBtn);
+    wrap.appendChild(quoteBtn);
 
     var likeBtn = document.createElement('button');
     likeBtn.type = 'button';
-    likeBtn.className = 'msg-like-btn' + (ctx.likedByMe ? ' active' : '');
+    likeBtn.className = 'msg-header-btn msg-like-btn' + (ctx.likedByMe ? ' active' : '');
     likeBtn.innerHTML = MSG_ICONS.like + '<span class="msg-like-count">' + ctx.likeCount + '</span>';
     likeBtn.setAttribute('aria-label', 'Like this message');
     likeBtn.setAttribute('title', 'Like');
@@ -1235,9 +1260,11 @@
       likeBtn.classList.add('auth-trigger');
       likeBtn.setAttribute('data-tab', 'login');
     }
-    bar.appendChild(likeBtn);
+    wrap.appendChild(likeBtn);
 
-    return bar;
+    wrap.appendChild(buildModMenu(ctx));
+
+    return wrap;
   }
 
   function sendLike(kind, id, btnEl) {
@@ -1326,7 +1353,7 @@
 
   function renderComment(c, depthClass) {
     var el = document.createElement('div');
-    el.className = 'comment-item' + (depthClass ? ' ' + depthClass : '') + (c.canModerate ? ' has-mod-menu' : '');
+    el.className = 'comment-item' + (depthClass ? ' ' + depthClass : '') + ' has-msg-actions';
 
     el.appendChild(buildCommentProfile(c));
 
@@ -1336,17 +1363,6 @@
 
     var main = document.createElement('div');
     main.className = 'comment-main';
-
-    if (c.canModerate) {
-      main.appendChild(buildModMenu({
-        kind: 'comment',
-        topicId: currentTopicId,
-        commentId: c.id,
-        board: currentBoard,
-        onEdit: function () { startCommentEdit(); },
-        onDelete: function () { deleteComment(c.id); }
-      }));
-    }
 
     var meta = document.createElement('div');
     meta.className = 'comment-meta';
@@ -1374,16 +1390,24 @@
     bodyEl.innerHTML = formatBody(c.body); // formatBody escapes raw HTML, then whitelists bbcode tags
     main.appendChild(bodyEl);
 
-    main.appendChild(buildMsgToolbar({
+    main.appendChild(buildMsgHeaderActions({
       kind: 'comment',
       id: c.id,
       body: c.body,
+      authorName: c.display_name,
+      createdAt: c.created_at,
       likeCount: c.like_count || 0,
       likedByMe: !!c.likedByMe,
       quoteTarget: function () {
         if (c.depth < 2 && replyFormData) return { wrap: replyFormData.wrap, textarea: replyFormData.textarea };
         return { wrap: form, textarea: body };
-      }
+      },
+      canModerate: c.canModerate,
+      topicId: currentTopicId,
+      commentId: c.id,
+      board: currentBoard,
+      onEdit: function () { startCommentEdit(); },
+      onDelete: function () { deleteComment(c.id); }
     }));
 
     function startCommentEdit() {
