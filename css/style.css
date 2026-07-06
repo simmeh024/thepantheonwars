@@ -2119,7 +2119,7 @@ footer.site-footer {
   background: radial-gradient(circle at 12% -14%, var(--ov-glow-soft), transparent 62%);
   pointer-events: none;
 }
-.affinity-themed > * { position: relative; z-index: 1; }
+.affinity-themed > *:not(.resync-btn) { position: relative; z-index: 1; }
 
 /* Quiz result screen has no card chrome by default -- give it the same
    panel treatment as the profile affinity box once it's themed. */
