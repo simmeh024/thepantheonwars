@@ -11,12 +11,9 @@ css/style.css
 js/main.js
 images/      Character & world art pulled from your codex export
 
-Going live on thepantheonwars.com
-----------------------------------
-This is a plain static site — no build step. Upload this whole folder
-to any host (Netlify, Vercel, Cloudflare Pages, GitHub Pages, or your
-registrar's hosting) and point thepantheonwars.com at it. index.html
-is the homepage.
+Security & Code Quality
+
+This repository uses GitHub CodeQL analysis and Dependabot alerts to monitor code quality and dependency vulnerabilities. Security findings are reviewed and tracked as part of the development workflow.
 
 Things to double check / finish
 --------------------------------
@@ -28,13 +25,4 @@ Things to double check / finish
 2. Publication status: I didn't add "Buy Now" buttons or claim any
    book is for sale, since I wasn't sure which (if any) are published
    yet. Tell me and I'll add retailer links/status badges.
-3. Books 8, 9, 11, 13 don't have titles yet in your notes, so they're
-   marked "Title Forthcoming" with a teaser line. Send me titles/blurbs
-   whenever they're ready and I'll drop them in.
-4. Contact info: I left your email off the public site by default.
-   Let me know if you want a contact address or social links in the
-   footer.
-5. Character/world art came from your codex export's thumbnails
-   (250x250px). They look fine at the sizes used here, but if you want
-   larger, sharper hero images, higher-res versions of those pieces
-   would upgrade the look.
+
