@@ -3444,24 +3444,60 @@ footer.site-footer {
 .admin-nav-list-top { margin-bottom: 4px; }
 .admin-nav-list-top + .admin-nav-category { border-top: 1px solid var(--border-soft); padding-top: 14px; }
 
-.activity-row { cursor: default; align-items: flex-start; }
-.activity-row:hover { background: rgba(255,255,255,0.02); }
-.activity-row:nth-child(even):hover { background: rgba(255,255,255,0.03); }
-.activity-row-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.activity-row-icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-faint); }
-.activity-row-icon svg { width: 100%; height: 100%; }
-.activity-row-label {
-  font-family: 'Jost', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
-  color: var(--text-faint);
+.terminal-refresh-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--text-dim);
+  padding: 9px 15px; font-family: 'Jost', sans-serif; font-size: 0.74rem; text-transform: uppercase;
+  letter-spacing: 0.07em; cursor: pointer; transition: border-color 0.2s ease, color 0.2s ease; border-radius: 3px;
 }
-.activity-row-desc { font-size: 0.9rem; color: var(--text); margin: 0 0 6px; line-height: 1.5; }
-.activity-row-meta { font-size: 0.74rem; }
-.activity-row-user { color: var(--gold-bright); font-weight: 500; }
-.activity-row-ip { font-family: monospace; }
-.activity-login .activity-row-icon { color: var(--purple-bright); }
-.activity-translation_added .activity-row-icon { color: #3ecf8e; }
-.activity-translation_updated .activity-row-icon { color: var(--gold-bright); }
-.activity-category_edited .activity-row-icon { color: #45d1c9; }
+.terminal-refresh-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+.terminal-refresh-btn:hover { border-color: var(--purple-bright); color: var(--gold-bright); }
+.terminal-refresh-btn.is-spinning svg { animation: terminal-spin 0.6s linear; }
+@keyframes terminal-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+.terminal-window {
+  border-radius: 8px; overflow: hidden; background: #0a0d0a;
+  border: 1px solid #232823;
+  box-shadow: 0 0 0 1px rgba(62,207,142,0.12), 0 20px 44px rgba(0,0,0,0.45);
+}
+.terminal-titlebar {
+  display: flex; align-items: center; gap: 8px; padding: 11px 16px;
+  background: #161816; border-bottom: 1px solid #232823;
+}
+.terminal-dot { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
+.terminal-dot-red { background: #ff5f56; }
+.terminal-dot-yellow { background: #ffbd2e; }
+.terminal-dot-green { background: #27c93f; }
+.terminal-title {
+  margin-left: 6px; font-family: 'Courier New', Consolas, monospace; font-size: 0.72rem;
+  color: #64786a; letter-spacing: 0.02em;
+}
+.terminal-body {
+  padding: 20px 22px; font-family: 'Courier New', Consolas, monospace; font-size: 0.82rem;
+  line-height: 1.6; max-height: 560px; overflow-y: auto;
+}
+.terminal-line { color: #64786a; }
+.terminal-empty { font-style: italic; }
+.terminal-entry { margin-bottom: 16px; }
+.terminal-entry:last-of-type { margin-bottom: 10px; }
+.terminal-prompt { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.terminal-prompt-symbol { color: #3ecf8e; font-weight: 700; }
+.terminal-timestamp { color: #55684f; }
+.terminal-action {
+  color: var(--gold-bright); text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.74rem;
+}
+.terminal-user { color: #7ee8ba; }
+.terminal-at { color: #3f4d3f; }
+.terminal-ip { color: #55684f; }
+.terminal-desc { color: #cfe3d3; padding-left: 17px; margin-top: 3px; }
+.terminal-entry.terminal-login .terminal-action { color: #8fa8ff; }
+.terminal-entry.terminal-translation_added .terminal-action { color: #3ecf8e; }
+.terminal-entry.terminal-translation_updated .terminal-action { color: var(--gold-bright); }
+.terminal-entry.terminal-category_edited .terminal-action { color: #45d1c9; }
+.terminal-cursor-line { display: flex; align-items: center; gap: 8px; }
+.terminal-cursor { color: #3ecf8e; animation: terminal-blink 1s step-end infinite; }
+@keyframes terminal-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+#section-home .admin-pager { font-family: 'Courier New', Consolas, monospace; }
 .admin-status-badge {
   flex-shrink: 0; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
   padding: 4px 10px; border-radius: 3px; border: 1px solid var(--border);
