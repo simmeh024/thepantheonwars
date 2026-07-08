@@ -1481,6 +1481,13 @@ footer.site-footer {
 .harbor-district.canal-district   { background: linear-gradient(90deg, rgba(80,130,190,0.16), transparent); }
 .harbor-district.great-lighthouse { background: linear-gradient(90deg, rgba(230,210,150,0.18), transparent); }
 .harbor-district.temple-ocean     { background: linear-gradient(90deg, rgba(40,110,120,0.22), transparent); }
+.harbor-district.iron-gate            { background: linear-gradient(90deg, rgba(90,60,50,0.2), transparent); }
+.harbor-district.old-forum            { background: linear-gradient(90deg, rgba(120,110,95,0.14), transparent); }
+.harbor-district.smelter-rings        { background: linear-gradient(90deg, rgba(220,90,40,0.2), transparent); }
+.harbor-district.forge-canals         { background: linear-gradient(90deg, rgba(230,120,30,0.22), transparent); }
+.harbor-district.iron-yards           { background: linear-gradient(90deg, rgba(130,110,90,0.18), transparent); }
+.harbor-district.docking-spires       { background: linear-gradient(90deg, rgba(90,110,130,0.16), transparent); }
+.harbor-district.black-regents-keep   { background: linear-gradient(90deg, rgba(120,30,30,0.26), transparent); }
 
 #asmecu .sub-landmark.restricted { border-left-color: #29e0c9; background: rgba(4,14,16,0.55); }
 #asmecu .sub-landmark.restricted .sub-landmark-name { color: #29e0c9; }
