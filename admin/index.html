@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=63">
+<link rel="stylesheet" href="../css/style.css?v=64">
 </head>
 <body>
 
@@ -29,6 +29,7 @@
     </div>
     <ul class="admin-nav-list admin-nav-list-top">
       <li><button type="button" class="admin-nav-link active" data-section="home">Home</button></li>
+      <li><button type="button" class="admin-nav-link" data-section="audit-log">Audit Log</button></li>
     </ul>
     <div class="admin-nav-category">Development Dispatches</div>
     <ul class="admin-nav-list">
@@ -46,19 +47,48 @@
         <p>Recent admin activity across the console &mdash; end-user translations, category edits, and admin logins.</p>
       </div>
 
+      <div class="activity-widget">
+        <div class="activity-widget-head">
+          <div class="activity-widget-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            <span>Recent Activity</span>
+          </div>
+          <div class="activity-widget-actions">
+            <button type="button" class="activity-refresh-btn activity-refresh-btn-icon" id="home-activity-refresh-btn" title="Refresh" aria-label="Refresh activity">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              <span>Refresh</span>
+            </button>
+            <a href="#" class="activity-widget-link" id="home-activity-view-all">
+              View full audit log
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </a>
+          </div>
+        </div>
+        <div class="activity-card-list activity-card-list-compact" id="home-activity-list">
+          <div class="admin-list-empty">Loading activity&hellip;</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-audit-log" hidden>
+      <div class="admin-section-head">
+        <h1>Audit Log</h1>
+        <p>Full history of admin activity across the console &mdash; end-user translations, category edits, and admin logins.</p>
+      </div>
+
       <div class="admin-toolbar">
-        <button type="button" class="activity-refresh-btn" id="activity-refresh-btn" title="Refresh" aria-label="Refresh activity log">
+        <button type="button" class="activity-refresh-btn" id="audit-refresh-btn" title="Refresh" aria-label="Refresh activity log">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
           <span>Refresh</span>
         </button>
-        <span class="admin-count" id="activity-count"></span>
+        <span class="admin-count" id="audit-count"></span>
       </div>
 
-      <div class="admin-list activity-card-list" id="activity-log-list">
+      <div class="admin-list activity-card-list" id="audit-log-list">
         <div class="admin-list-empty">Loading activity&hellip;</div>
       </div>
 
-      <div class="admin-pagination" id="activity-pagination"></div>
+      <div class="admin-pagination" id="audit-pagination"></div>
     </section>
 
     <section class="admin-section" id="section-dispatch-control" hidden>
@@ -217,7 +247,8 @@
     sections.forEach(function (s) { s.hidden = (s.id !== 'section-' + name); });
     if (!loadedSections[name]) {
       loadedSections[name] = true;
-      if (name === 'home') loadActivityLog();
+      if (name === 'home') loadHomeActivity();
+      if (name === 'audit-log') loadAuditLog();
       if (name === 'dispatch-control') loadControlList();
       if (name === 'dispatch-translations') loadList();
     }
@@ -226,6 +257,15 @@
   navLinks.forEach(function (l) {
     l.addEventListener('click', function () { showSection(l.getAttribute('data-section')); });
   });
+
+  var homeViewAllLink = document.getElementById('home-activity-view-all');
+  if (homeViewAllLink) {
+    homeViewAllLink.addEventListener('click', function (e) {
+      e.preventDefault();
+      showSection('audit-log');
+      loadAuditLog();
+    });
+  }
 
   function checkAccess() {
     if (checkedAuth) return;
@@ -259,11 +299,14 @@
     category_edited: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M20.6 12.6 12.7 20.5a2 2 0 0 1-2.8 0l-6.4-6.4a2 2 0 0 1 0-2.8L11.4 3.3a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v6.6a2 2 0 0 1-.4 1.7z"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/></svg>'
   };
 
-  var activityLogEl = document.getElementById('activity-log-list');
-  var activityCountEl = document.getElementById('activity-count');
-  var activityPaginationEl = document.getElementById('activity-pagination');
-  var activityRefreshBtn = document.getElementById('activity-refresh-btn');
-  var activityState = { page: 1, perPage: 25, totalPages: 1 };
+  var homeActivityListEl = document.getElementById('home-activity-list');
+  var homeActivityRefreshBtn = document.getElementById('home-activity-refresh-btn');
+
+  var auditLogEl = document.getElementById('audit-log-list');
+  var auditCountEl = document.getElementById('audit-count');
+  var auditPaginationEl = document.getElementById('audit-pagination');
+  var auditRefreshBtn = document.getElementById('audit-refresh-btn');
+  var auditState = { page: 1, perPage: 25, totalPages: 1 };
 
   function fmtDateTime(sqlDate) {
     if (!sqlDate) return '\u2014';
@@ -291,43 +334,11 @@
     return Math.round(months / 12) + 'y ago';
   }
 
-  function loadActivityLog() {
-    activityLogEl.innerHTML = '<div class="admin-list-empty">Loading activity&hellip;</div>';
-    var params = new URLSearchParams();
-    params.set('page', activityState.page);
-    params.set('per_page', activityState.perPage);
-    fetch('/api/admin/activity-log/list.php?' + params.toString(), { credentials: 'same-origin' })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (!data.ok) {
-          activityLogEl.innerHTML = '<div class="admin-list-empty">Could not load activity.</div>';
-          return;
-        }
-        activityState.totalPages = data.total_pages || 1;
-        activityState.page = data.page || 1;
-        renderActivityLog(data.entries || [], data.total || 0);
-        renderActivityPagination();
-      })
-      .catch(function () {
-        activityLogEl.innerHTML = '<div class="admin-list-empty">Could not load activity.</div>';
-      });
-  }
-
-  if (activityRefreshBtn) {
-    activityRefreshBtn.addEventListener('click', function () {
-      if (activityRefreshBtn.classList.contains('is-spinning')) return;
-      activityRefreshBtn.classList.add('is-spinning');
-      loadActivityLog();
-      setTimeout(function () { activityRefreshBtn.classList.remove('is-spinning'); }, 600);
-    });
-  }
-
-  function renderActivityLog(entries, total) {
-    activityCountEl.textContent = total + (total === 1 ? ' event' : ' events');
-    activityLogEl.innerHTML = '';
+  function renderActivityCards(container, entries, emptyMessage) {
+    container.innerHTML = '';
 
     if (!entries.length) {
-      activityLogEl.innerHTML = '<div class="admin-list-empty">No admin activity recorded yet.</div>';
+      container.innerHTML = '<div class="admin-list-empty">' + emptyMessage + '</div>';
       return;
     }
 
@@ -349,35 +360,94 @@
             '<span>' + escapeHtml(fmtDateTime(entry.created_at)) + '</span>' +
           '</div>' +
         '</div>';
-      activityLogEl.appendChild(card);
+      container.appendChild(card);
     });
   }
 
-  function renderActivityPagination() {
-    activityPaginationEl.innerHTML = '';
-    if (activityState.totalPages <= 1) return;
+  // ----- Home widget: latest 5, no pagination -----
+  function loadHomeActivity() {
+    homeActivityListEl.innerHTML = '<div class="admin-list-empty">Loading activity&hellip;</div>';
+    fetch('/api/admin/activity-log/list.php?page=1&per_page=5', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          homeActivityListEl.innerHTML = '<div class="admin-list-empty">Could not load activity.</div>';
+          return;
+        }
+        renderActivityCards(homeActivityListEl, data.entries || [], 'No admin activity recorded yet.');
+      })
+      .catch(function () {
+        homeActivityListEl.innerHTML = '<div class="admin-list-empty">Could not load activity.</div>';
+      });
+  }
+
+  if (homeActivityRefreshBtn) {
+    homeActivityRefreshBtn.addEventListener('click', function () {
+      if (homeActivityRefreshBtn.classList.contains('is-spinning')) return;
+      homeActivityRefreshBtn.classList.add('is-spinning');
+      loadHomeActivity();
+      setTimeout(function () { homeActivityRefreshBtn.classList.remove('is-spinning'); }, 600);
+    });
+  }
+
+  // ----- Audit Log page: full paginated history -----
+  function loadAuditLog() {
+    auditLogEl.innerHTML = '<div class="admin-list-empty">Loading activity&hellip;</div>';
+    var params = new URLSearchParams();
+    params.set('page', auditState.page);
+    params.set('per_page', auditState.perPage);
+    fetch('/api/admin/activity-log/list.php?' + params.toString(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          auditLogEl.innerHTML = '<div class="admin-list-empty">Could not load activity.</div>';
+          return;
+        }
+        auditState.totalPages = data.total_pages || 1;
+        auditState.page = data.page || 1;
+        auditCountEl.textContent = (data.total || 0) + ((data.total || 0) === 1 ? ' event' : ' events');
+        renderActivityCards(auditLogEl, data.entries || [], 'No admin activity recorded yet.');
+        renderAuditPagination();
+      })
+      .catch(function () {
+        auditLogEl.innerHTML = '<div class="admin-list-empty">Could not load activity.</div>';
+      });
+  }
+
+  if (auditRefreshBtn) {
+    auditRefreshBtn.addEventListener('click', function () {
+      if (auditRefreshBtn.classList.contains('is-spinning')) return;
+      auditRefreshBtn.classList.add('is-spinning');
+      loadAuditLog();
+      setTimeout(function () { auditRefreshBtn.classList.remove('is-spinning'); }, 600);
+    });
+  }
+
+  function renderAuditPagination() {
+    auditPaginationEl.innerHTML = '';
+    if (auditState.totalPages <= 1) return;
     var wrap = document.createElement('div');
     wrap.className = 'admin-pager';
 
     var prev = document.createElement('button');
     prev.type = 'button';
     prev.textContent = '\u2039 Prev';
-    prev.disabled = activityState.page <= 1;
-    prev.addEventListener('click', function () { activityState.page--; loadActivityLog(); });
+    prev.disabled = auditState.page <= 1;
+    prev.addEventListener('click', function () { auditState.page--; loadAuditLog(); });
 
     var label = document.createElement('span');
-    label.textContent = 'Page ' + activityState.page + ' of ' + activityState.totalPages;
+    label.textContent = 'Page ' + auditState.page + ' of ' + auditState.totalPages;
 
     var next = document.createElement('button');
     next.type = 'button';
     next.textContent = 'Next \u203a';
-    next.disabled = activityState.page >= activityState.totalPages;
-    next.addEventListener('click', function () { activityState.page++; loadActivityLog(); });
+    next.disabled = auditState.page >= auditState.totalPages;
+    next.addEventListener('click', function () { auditState.page++; loadAuditLog(); });
 
     wrap.appendChild(prev);
     wrap.appendChild(label);
     wrap.appendChild(next);
-    activityPaginationEl.appendChild(wrap);
+    auditPaginationEl.appendChild(wrap);
   }
 
   // ===== Dispatch Control =====================================================
