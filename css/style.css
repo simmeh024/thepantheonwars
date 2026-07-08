@@ -3655,6 +3655,7 @@ footer.site-footer {
 .member-modal-avatar-wrap .profile-avatar-fallback { font-size: 1.4rem; }
 
 .member-ban-options { margin-top: 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.member-ban-options[hidden] { display: none; }
 .member-ban-radio {
   display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
   font-size: 0.84rem; color: var(--text-dim); text-transform: none; letter-spacing: normal;
