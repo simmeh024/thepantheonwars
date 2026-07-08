@@ -504,6 +504,15 @@ function pwWireBh4Toggle(el) {
     return dateStr + ' at ' + formatUtcClock(d);
   }
 
+  function formatNextSyncLabel(d) {
+    var now = new Date();
+    var tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    if (isSameUtcDate(d, now)) return 'Today at ' + formatUtcClock(d);
+    if (isSameUtcDate(d, tomorrow)) return 'Tomorrow at ' + formatUtcClock(d);
+    var dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+    return dateStr + ' at ' + formatUtcClock(d);
+  }
+
   function renderLanguages(data) {
     if (!data.found || !data.languages || !data.languages.length) {
       barEl.innerHTML = '';
@@ -685,7 +694,7 @@ function pwWireBh4Toggle(el) {
     var next = parseUtcSqlDate(data.next_sync_at);
     bh4StatusLine.textContent = 'Development Metrics synchronized successfully.';
     bh4LastSync.textContent = last ? formatLastSyncLabel(last) : '—';
-    bh4NextSync.textContent = next ? formatUtcClock(next) : '—';
+    bh4NextSync.textContent = next ? formatNextSyncLabel(next) : '—';
     bh4RepoStatus.textContent = 'Connected';
     bh4RepoStatus.className = 'bh4-status-ok';
   }
