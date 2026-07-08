@@ -10,7 +10,7 @@ function pw_fetch_github_languages() {
     $opts = [
         'http' => [
             'method' => 'GET',
-            'header' => "User-Agent: ThePantheonWars-Site\r\nAccept: application/vnd.github+json\r\n",
+            'header' => pw_github_stream_header('ThePantheonWars-Site'),
             'timeout' => 6,
             'ignore_errors' => true,
         ],

@@ -14,3 +14,14 @@ define('DB_HOST', 'localhost');
 define('DB_NAME', 'rdy3i6my40b0_pantheonwars');
 define('DB_USER', 'rdy3i6my40b0_pwuser');
 define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
+
+// Optional. Raises the GitHub REST API rate limit used by the System
+// Status card/page and the language-snapshot sync from 60 requests/hour
+// (unauthenticated) to 5,000 requests/hour (authenticated) -- see
+// https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api
+// Create a fine-grained personal access token at
+// https://github.com/settings/tokens with read-only "Contents" access to
+// the simmeh024/thepantheonwars repo (no other scopes needed), then
+// uncomment the line below with the real value. Leave it commented out
+// and everything keeps working at the lower unauthenticated limit.
+// define('GITHUB_TOKEN', 'REPLACE_WITH_REAL_TOKEN');

@@ -13,6 +13,9 @@
  *    would have thrown before we got here -- this is a defensive check, not
  *    the primary signal, since a hard DB outage surfaces as this whole
  *    request failing rather than a graceful "Unreachable" row.
+ *  - Database Load: how long a real query against the users table takes
+ *    right now, as a rough proxy for DB contention on this shared host (see
+ *    pw_check_database_load() in status-helpers.php for the thresholds).
  *  - Forum: a lightweight query against the topics table, standing in for
  *    "is the community/forum feature's storage reachable."
  *  - Dispatch Sync: compares the sha of the most recently stored dispatch
@@ -42,10 +45,7 @@ $latestGithubSha = null;
 $ch = curl_init('https://api.github.com/repos/simmeh024/thepantheonwars/commits/main');
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_HTTPHEADER => [
-        'User-Agent: ThePantheonWars-AdminConsole',
-        'Accept: application/vnd.github+json',
-    ],
+    CURLOPT_HTTPHEADER => pw_github_curl_headers(),
     CURLOPT_TIMEOUT => 6,
     CURLOPT_CONNECTTIMEOUT => 4,
 ]);
@@ -71,6 +71,9 @@ try {
     $dbStatus = 'bad';
     $dbLabel = 'Unreachable';
 }
+
+// --- Database Load --------------------------------------------------------------
+$dbLoad = pw_check_database_load($db);
 
 // --- Forum ----------------------------------------------------------------------
 $forumStatus = 'ok';
@@ -109,6 +112,7 @@ pw_json([
     'ok' => true,
     'github' => ['status' => $githubStatus, 'label' => $githubLabel],
     'database' => ['status' => $dbStatus, 'label' => $dbLabel],
+    'db_load' => $dbLoad,
     'forum' => ['status' => $forumStatus, 'label' => $forumLabel],
     'dispatch_sync' => ['status' => $dispatchSyncStatus, 'label' => $dispatchSyncLabel],
     'avatar_storage' => $avatarStorage,

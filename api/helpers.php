@@ -20,6 +20,33 @@ if (session_status() === PHP_SESSION_NONE) {
 
 header('Content-Type: application/json; charset=utf-8');
 
+// --- GitHub API auth -----------------------------------------------------------
+// Optional: define GITHUB_TOKEN in the outside-webroot secrets file (see
+// config.sample.php) to authenticate GitHub REST API calls. Authenticated
+// requests get 5,000 requests/hour instead of the unauthenticated primary
+// rate limit of 60/hour -- see "Primary rate limit for authenticated users"
+// at https://docs.github.com/en/rest/using-the-rest-api/rate-limits-for-the-rest-api
+// Every call site below falls back to unauthenticated requests if the
+// token isn't set, so this is safe to leave undefined.
+function pw_github_curl_headers() {
+    $headers = [
+        'User-Agent: ThePantheonWars-AdminConsole',
+        'Accept: application/vnd.github+json',
+    ];
+    if (defined('GITHUB_TOKEN') && GITHUB_TOKEN !== '') {
+        $headers[] = 'Authorization: Bearer ' . GITHUB_TOKEN;
+    }
+    return $headers;
+}
+
+function pw_github_stream_header($userAgent = 'ThePantheonWars-Site') {
+    $header = "User-Agent: {$userAgent}\r\nAccept: application/vnd.github+json\r\n";
+    if (defined('GITHUB_TOKEN') && GITHUB_TOKEN !== '') {
+        $header .= 'Authorization: Bearer ' . GITHUB_TOKEN . "\r\n";
+    }
+    return $header;
+}
+
 // --- Response helpers --------------------------------------------------------
 function pw_json($data, $status = 200) {
     http_response_code($status);

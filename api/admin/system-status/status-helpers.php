@@ -69,6 +69,35 @@ function pw_check_avatar_storage() {
     ];
 }
 
+// --- Database load (query latency) ----------------------------------------------
+// A rough "how loaded is the DB right now" signal for shared hosting, where
+// there's no access to OS-level metrics or SHOW GLOBAL STATUS-style admin
+// views: time a real query against a real table (not just SELECT 1, which
+// only measures connection overhead) and read the elapsed time as a proxy
+// for current load/contention. Thresholds are a starting point, not a
+// measured baseline -- tune them if they don't match how this host behaves
+// in practice.
+function pw_check_database_load($db) {
+    $start = microtime(true);
+    try {
+        $db->query('SELECT COUNT(*) FROM users')->fetchColumn();
+    } catch (Exception $e) {
+        return ['status' => 'bad', 'label' => 'Unreachable', 'ms' => null];
+    }
+    $elapsedMs = (microtime(true) - $start) * 1000;
+    $status = 'ok';
+    if ($elapsedMs >= 150) {
+        $status = 'bad';
+    } elseif ($elapsedMs >= 50) {
+        $status = 'warn';
+    }
+    return [
+        'status' => $status,
+        'label' => round($elapsedMs, 1) . ' ms',
+        'ms' => round($elapsedMs, 1),
+    ];
+}
+
 // --- SSL certificate expiry ------------------------------------------------------
 function pw_check_ssl_expiry($host = 'thepantheonwars.com') {
     $result = ['expires_at' => null, 'days_left' => null, 'status' => 'unknown', 'label' => 'Unknown'];

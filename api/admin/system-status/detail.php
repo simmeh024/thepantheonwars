@@ -5,8 +5,9 @@
  * limit, webhook delivery health (distinct from repo reachability -- this is
  * "has GitHub actually reached us recently", not "can we reach GitHub"),
  * the language-snapshot sync schedule that backs the Development Snapshot
- * language bar, SSL certificate expiry, and avatar storage (same check used
- * on the Home card).
+ * language bar, SSL certificate expiry, database load (same check used on
+ * the Home card), and avatar storage (also same check used on the Home
+ * card).
  */
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/status-helpers.php';
@@ -24,10 +25,7 @@ $ch = curl_init('https://api.github.com/repos/simmeh024/thepantheonwars/commits/
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_HEADER => true,
-    CURLOPT_HTTPHEADER => [
-        'User-Agent: ThePantheonWars-AdminConsole',
-        'Accept: application/vnd.github+json',
-    ],
+    CURLOPT_HTTPHEADER => pw_github_curl_headers(),
     CURLOPT_TIMEOUT => 6,
     CURLOPT_CONNECTTIMEOUT => 4,
 ]);
@@ -107,6 +105,9 @@ try {
     // leave defaults
 }
 
+// --- Database Load ----------------------------------------------------------------
+$dbLoad = pw_check_database_load($db);
+
 // --- SSL certificate + Avatar storage --------------------------------------------
 $ssl = pw_check_ssl_expiry();
 $avatarStorage = pw_check_avatar_storage();
@@ -119,5 +120,6 @@ pw_json([
     'last_sync' => ['label' => $lastSyncLabel],
     'next_sync' => ['label' => $nextSyncLabel],
     'ssl' => ['status' => $ssl['status'], 'label' => $ssl['label']],
+    'db_load' => $dbLoad,
     'avatar_storage' => $avatarStorage,
 ]);
