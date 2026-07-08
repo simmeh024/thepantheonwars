@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=51">
+<link rel="stylesheet" href="../css/style.css?v=56">
 </head>
 <body>
 
@@ -27,15 +27,50 @@
       <a href="../index.html">The Pantheon Wars</a>
       <span class="admin-brand-sub">Admin Console</span>
     </div>
+    <div class="admin-nav-category">Development Dispatches</div>
     <ul class="admin-nav-list">
-      <li><button type="button" class="admin-nav-link active" data-section="dispatch-translations">Dispatch Translations</button></li>
+      <li><button type="button" class="admin-nav-link active" data-section="dispatch-control">Dispatch Control</button></li>
+      <li><button type="button" class="admin-nav-link" data-section="dispatch-translations">Dispatch Translations</button></li>
     </ul>
     <div class="admin-back-link"><a href="../dev-dispatches.html">&larr; Back to site</a></div>
   </aside>
 
   <main class="admin-main">
 
-    <section class="admin-section" id="section-dispatch-translations">
+    <section class="admin-section" id="section-dispatch-control">
+      <div class="admin-section-head">
+        <h1>Dispatch Control</h1>
+        <p>All synced Development Dispatches. Force a re-sync straight from GitHub if a commit didn't come through, or edit a dispatch's title and category.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button type="button" class="btn btn-solid" id="resync-btn">Force Re-sync</button>
+        <select class="admin-search admin-tag-select" id="control-tag-filter">
+          <option value="">All categories</option>
+          <option value="feature">Feature</option>
+          <option value="improvement">Improvement</option>
+          <option value="fix">Fix</option>
+          <option value="performance">Performance</option>
+          <option value="ui_ux">UI / UX</option>
+          <option value="lore">Lore</option>
+          <option value="infrastructure">Infrastructure</option>
+          <option value="refactor">Refactor</option>
+          <option value="experimental">Experimental</option>
+        </select>
+        <input type="text" class="admin-search" id="control-search" placeholder="Search subject or SHA&hellip;">
+        <span class="admin-count" id="control-count"></span>
+      </div>
+
+      <p class="admin-resync-status" id="resync-status"></p>
+
+      <div class="admin-list" id="control-list">
+        <div class="admin-list-empty">Loading dispatches&hellip;</div>
+      </div>
+
+      <div class="admin-pagination" id="control-pagination"></div>
+    </section>
+
+    <section class="admin-section" id="section-dispatch-translations" hidden>
       <div class="admin-section-head">
         <h1>Dispatch Translations</h1>
         <p>End-user translations for development dispatches. Entries with a translation show a BH-4 badge on the public Development Dispatches page.</p>
@@ -58,6 +93,39 @@
 
   </main>
 
+</div>
+
+<div class="admin-modal" id="control-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner">
+    <button type="button" class="admin-modal-close" id="control-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title">Edit Dispatch</h3>
+    <p class="admin-modal-sub" id="control-modal-sub"></p>
+    <div class="admin-field">
+      <label for="control-subject-input">Title</label>
+      <input type="text" id="control-subject-input" maxlength="500">
+    </div>
+    <div class="admin-field">
+      <label for="control-tag-select">Category</label>
+      <select id="control-tag-select">
+        <option value="feature">Feature</option>
+        <option value="improvement">Improvement</option>
+        <option value="fix">Fix</option>
+        <option value="performance">Performance</option>
+        <option value="ui_ux">UI / UX</option>
+        <option value="lore">Lore</option>
+        <option value="infrastructure">Infrastructure</option>
+        <option value="refactor">Refactor</option>
+        <option value="experimental">Experimental</option>
+      </select>
+    </div>
+    <p class="admin-modal-error" id="control-modal-error"></p>
+    <p class="admin-modal-status" id="control-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="control-save-btn">Save</button>
+      <button type="button" class="btn" id="control-cancel-btn">Cancel</button>
+    </div>
+  </div>
 </div>
 
 <div class="admin-modal" id="admin-modal" hidden>
@@ -87,28 +155,13 @@
 <script src="../js/members.js?v=3"></script>
 <script>
 (function () {
+  var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
+
   var gate = document.getElementById('admin-gate');
   var shell = document.getElementById('admin-shell');
-  var listEl = document.getElementById('admin-list');
-  var countEl = document.getElementById('admin-count');
-  var searchEl = document.getElementById('admin-search');
-  var filterTabs = document.getElementById('admin-filter-tabs');
-  var modal = document.getElementById('admin-modal');
-  var modalTitle = document.getElementById('admin-modal-title');
-  var modalSub = document.getElementById('admin-modal-sub');
-  var commitBodyEl = document.getElementById('admin-commit-body');
-  var textarea = document.getElementById('admin-translation-text');
-  var modalError = document.getElementById('admin-modal-error');
-  var modalStatus = document.getElementById('admin-modal-status');
-  var saveBtn = document.getElementById('admin-save-btn');
-  var cancelBtn = document.getElementById('admin-cancel-btn');
-  var closeBtn = document.querySelector('.admin-modal-close');
-  var deleteBtn = document.getElementById('admin-delete-btn');
-
-  var currentFilter = 'all';
-  var currentQuery = '';
-  var currentEntry = null;
-  var searchDebounce = null;
+  var navLinks = document.querySelectorAll('.admin-nav-link');
+  var sections = document.querySelectorAll('.admin-section');
+  var loadedSections = {};
   var checkedAuth = false;
 
   function escapeHtml(s) {
@@ -123,6 +176,20 @@
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
+  function showSection(name) {
+    navLinks.forEach(function (l) { l.classList.toggle('active', l.getAttribute('data-section') === name); });
+    sections.forEach(function (s) { s.hidden = (s.id !== 'section-' + name); });
+    if (!loadedSections[name]) {
+      loadedSections[name] = true;
+      if (name === 'dispatch-control') loadControlList();
+      if (name === 'dispatch-translations') loadList();
+    }
+  }
+
+  navLinks.forEach(function (l) {
+    l.addEventListener('click', function () { showSection(l.getAttribute('data-section')); });
+  });
+
   function checkAccess() {
     if (checkedAuth) return;
     checkedAuth = true;
@@ -132,7 +199,7 @@
     }
     gate.hidden = true;
     shell.classList.add('is-ready');
-    loadList();
+    showSection('dispatch-control');
   }
 
   document.addEventListener('pw-auth-ready', checkAccess);
@@ -140,6 +207,242 @@
   // or never fires (network failure) — refreshAuthNav's own .catch() still
   // leaves PW_AUTH in its default logged-out state, so this will redirect.
   setTimeout(checkAccess, 4000);
+
+  // ===== Dispatch Control =====================================================
+  var controlListEl = document.getElementById('control-list');
+  var controlCountEl = document.getElementById('control-count');
+  var controlSearchEl = document.getElementById('control-search');
+  var controlTagFilterEl = document.getElementById('control-tag-filter');
+  var controlPaginationEl = document.getElementById('control-pagination');
+  var resyncBtn = document.getElementById('resync-btn');
+  var resyncStatusEl = document.getElementById('resync-status');
+
+  var controlModal = document.getElementById('control-modal');
+  var controlModalSub = document.getElementById('control-modal-sub');
+  var controlSubjectInput = document.getElementById('control-subject-input');
+  var controlTagSelect = document.getElementById('control-tag-select');
+  var controlModalError = document.getElementById('control-modal-error');
+  var controlModalStatus = document.getElementById('control-modal-status');
+  var controlSaveBtn = document.getElementById('control-save-btn');
+  var controlCancelBtn = document.getElementById('control-cancel-btn');
+  var controlCloseBtn = document.getElementById('control-modal-close');
+
+  var controlState = { page: 1, perPage: 25, q: '', tag: '', totalPages: 1 };
+  var currentControlEntry = null;
+  var controlSearchDebounce = null;
+
+  function buildControlUrl() {
+    var params = new URLSearchParams();
+    params.set('page', controlState.page);
+    params.set('per_page', controlState.perPage);
+    if (controlState.q) params.set('q', controlState.q);
+    if (controlState.tag) params.set('tag', controlState.tag);
+    return '/api/admin/dispatches/list.php?' + params.toString();
+  }
+
+  function loadControlList() {
+    controlListEl.innerHTML = '<div class="admin-list-empty">Loading dispatches&hellip;</div>';
+    fetch(buildControlUrl(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          controlListEl.innerHTML = '<div class="admin-list-empty">Could not load dispatches.</div>';
+          return;
+        }
+        controlState.totalPages = data.total_pages || 1;
+        controlState.page = data.page || 1;
+        renderControlList(data.entries || [], data.total || 0);
+        renderControlPagination();
+      })
+      .catch(function () {
+        controlListEl.innerHTML = '<div class="admin-list-empty">Could not load dispatches.</div>';
+      });
+  }
+
+  function renderControlList(entries, total) {
+    controlCountEl.textContent = total + (total === 1 ? ' dispatch' : ' dispatches');
+    if (!entries.length) {
+      controlListEl.innerHTML = '<div class="admin-list-empty">No dispatches match this filter.</div>';
+      return;
+    }
+    controlListEl.innerHTML = '';
+    entries.forEach(function (entry) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'admin-row';
+      row.innerHTML =
+        '<div class="admin-row-main">' +
+          '<p class="admin-row-subject">' + escapeHtml(entry.subject) + '</p>' +
+          '<div class="admin-row-meta">' +
+            '<span class="admin-sha">' + escapeHtml(entry.short_sha) + '</span>' +
+            '<span>' + escapeHtml(TAG_LABELS[entry.tag] || entry.tag) + '</span>' +
+            '<span>' + escapeHtml(fmtDate(entry.committed_at)) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<span class="admin-status-badge' + (entry.has_translation ? ' is-translated' : '') + '">' +
+          (entry.has_translation ? 'Translated' : 'Not translated') +
+        '</span>';
+      row.addEventListener('click', function () { openControlModal(entry); });
+      controlListEl.appendChild(row);
+    });
+  }
+
+  function renderControlPagination() {
+    controlPaginationEl.innerHTML = '';
+    if (controlState.totalPages <= 1) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'admin-pager';
+
+    var prev = document.createElement('button');
+    prev.type = 'button';
+    prev.textContent = '‹ Prev';
+    prev.disabled = controlState.page <= 1;
+    prev.addEventListener('click', function () { controlState.page--; loadControlList(); });
+
+    var label = document.createElement('span');
+    label.textContent = 'Page ' + controlState.page + ' of ' + controlState.totalPages;
+
+    var next = document.createElement('button');
+    next.type = 'button';
+    next.textContent = 'Next ›';
+    next.disabled = controlState.page >= controlState.totalPages;
+    next.addEventListener('click', function () { controlState.page++; loadControlList(); });
+
+    wrap.appendChild(prev);
+    wrap.appendChild(label);
+    wrap.appendChild(next);
+    controlPaginationEl.appendChild(wrap);
+  }
+
+  function openControlModal(entry) {
+    currentControlEntry = entry;
+    controlModalSub.innerHTML = '<span class="admin-sha">' + escapeHtml(entry.short_sha) + '</span> &mdash; ' +
+      escapeHtml(fmtDate(entry.committed_at)) + ' &mdash; committed by ' + escapeHtml(entry.author);
+    controlSubjectInput.value = entry.subject;
+    controlTagSelect.value = entry.tag;
+    controlModalError.classList.remove('show');
+    controlModalStatus.classList.remove('show');
+    controlModal.hidden = false;
+    setTimeout(function () { controlSubjectInput.focus(); }, 30);
+  }
+
+  function closeControlModal() {
+    controlModal.hidden = true;
+    currentControlEntry = null;
+  }
+
+  controlCloseBtn.addEventListener('click', closeControlModal);
+  controlCancelBtn.addEventListener('click', closeControlModal);
+  controlModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeControlModal);
+
+  controlSaveBtn.addEventListener('click', function () {
+    if (!currentControlEntry) return;
+    var subject = controlSubjectInput.value.trim();
+    if (!subject) {
+      controlModalError.textContent = 'Title can\'t be empty.';
+      controlModalError.classList.add('show');
+      return;
+    }
+    controlModalError.classList.remove('show');
+    controlSaveBtn.disabled = true;
+    fetch('/api/admin/dispatches/update.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        dispatch_id: currentControlEntry.id,
+        subject: subject,
+        tag: controlTagSelect.value,
+        csrf: window.PW_AUTH.csrf,
+      }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        controlSaveBtn.disabled = false;
+        if (!data.ok) {
+          controlModalError.textContent = data.error || 'Could not save changes.';
+          controlModalError.classList.add('show');
+          return;
+        }
+        controlModalStatus.textContent = 'Saved.';
+        controlModalStatus.classList.add('show');
+        loadControlList();
+        setTimeout(closeControlModal, 700);
+      })
+      .catch(function () {
+        controlSaveBtn.disabled = false;
+        controlModalError.textContent = 'Could not save changes. Please try again.';
+        controlModalError.classList.add('show');
+      });
+  });
+
+  resyncBtn.addEventListener('click', function () {
+    resyncBtn.disabled = true;
+    resyncStatusEl.className = 'admin-resync-status';
+    resyncStatusEl.textContent = 'Checking GitHub for new commits…';
+    fetch('/api/admin/dispatches/resync.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csrf: window.PW_AUTH.csrf }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        resyncBtn.disabled = false;
+        if (!data.ok) {
+          resyncStatusEl.textContent = data.error || 'Re-sync failed.';
+          resyncStatusEl.className = 'admin-resync-status is-error';
+          return;
+        }
+        resyncStatusEl.textContent = 'Checked ' + data.fetched + ' commits on GitHub — added ' +
+          data.inserted + ' new ' + (data.inserted === 1 ? 'dispatch' : 'dispatches') + '.';
+        resyncStatusEl.className = 'admin-resync-status is-ok';
+        controlState.page = 1;
+        loadControlList();
+      })
+      .catch(function () {
+        resyncBtn.disabled = false;
+        resyncStatusEl.textContent = 'Re-sync failed. Please try again.';
+        resyncStatusEl.className = 'admin-resync-status is-error';
+      });
+  });
+
+  controlTagFilterEl.addEventListener('change', function () {
+    controlState.tag = controlTagFilterEl.value;
+    controlState.page = 1;
+    loadControlList();
+  });
+
+  controlSearchEl.addEventListener('input', function () {
+    clearTimeout(controlSearchDebounce);
+    controlSearchDebounce = setTimeout(function () {
+      controlState.q = controlSearchEl.value.trim();
+      controlState.page = 1;
+      loadControlList();
+    }, 300);
+  });
+
+  // ===== Dispatch Translations =================================================
+  var listEl = document.getElementById('admin-list');
+  var countEl = document.getElementById('admin-count');
+  var searchEl = document.getElementById('admin-search');
+  var filterTabs = document.getElementById('admin-filter-tabs');
+  var modal = document.getElementById('admin-modal');
+  var modalTitle = document.getElementById('admin-modal-title');
+  var modalSub = document.getElementById('admin-modal-sub');
+  var commitBodyEl = document.getElementById('admin-commit-body');
+  var textarea = document.getElementById('admin-translation-text');
+  var modalError = document.getElementById('admin-modal-error');
+  var modalStatus = document.getElementById('admin-modal-status');
+  var saveBtn = document.getElementById('admin-save-btn');
+  var cancelBtn = document.getElementById('admin-cancel-btn');
+  var closeBtn = document.querySelector('#admin-modal .admin-modal-close');
+  var deleteBtn = document.getElementById('admin-delete-btn');
+
+  var currentFilter = 'all';
+  var currentQuery = '';
+  var currentEntry = null;
+  var searchDebounce = null;
 
   function buildUrl() {
     var params = new URLSearchParams();
@@ -180,7 +483,7 @@
           '<p class="admin-row-subject">' + escapeHtml(entry.subject) + '</p>' +
           '<div class="admin-row-meta">' +
             '<span class="admin-sha">' + escapeHtml(entry.short_sha) + '</span>' +
-            '<span>' + escapeHtml(entry.tag) + '</span>' +
+            '<span>' + escapeHtml(TAG_LABELS[entry.tag] || entry.tag) + '</span>' +
             '<span>' + escapeHtml(fmtDate(entry.committed_at)) + '</span>' +
           '</div>' +
         '</div>' +
@@ -214,7 +517,9 @@
   cancelBtn.addEventListener('click', closeModal);
   modal.querySelector('.admin-modal-backdrop').addEventListener('click', closeModal);
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && !modal.hidden) closeModal();
+    if (e.key !== 'Escape') return;
+    if (!modal.hidden) closeModal();
+    if (!controlModal.hidden) closeControlModal();
   });
 
   saveBtn.addEventListener('click', function () {

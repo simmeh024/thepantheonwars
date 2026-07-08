@@ -1,0 +1,49 @@
+<?php
+require_once __DIR__ . '/../../helpers.php';
+require_once __DIR__ . '/../../dispatch-helpers.php';
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    pw_error('Method not allowed.', 405);
+}
+
+pw_require_admin();
+
+$input = pw_input();
+pw_require_csrf($input);
+
+$dispatchId = isset($input['dispatch_id']) ? (int)$input['dispatch_id'] : 0;
+if ($dispatchId <= 0) {
+    pw_error('Missing dispatch id.');
+}
+
+$db = pw_db();
+$stmt = $db->prepare('SELECT id, subject, tag FROM dispatch_entries WHERE id = ?');
+$stmt->execute([$dispatchId]);
+$existing = $stmt->fetch();
+if (!$existing) {
+    pw_error('That dispatch no longer exists.', 404);
+}
+
+$subject = $existing['subject'];
+if (array_key_exists('subject', $input)) {
+    $subject = trim((string)$input['subject']);
+    if ($subject === '') {
+        pw_error('Title can\'t be empty.');
+    }
+    if (strlen($subject) > 500) {
+        pw_error('Title is too long (500 characters max).');
+    }
+}
+
+$tag = $existing['tag'];
+if (array_key_exists('tag', $input)) {
+    $tag = trim((string)$input['tag']);
+    if (!in_array($tag, pw_dispatch_valid_tags(), true)) {
+        pw_error('Not a valid category.');
+    }
+}
+
+$stmt = $db->prepare('UPDATE dispatch_entries SET subject = ?, tag = ? WHERE id = ?');
+$stmt->execute([$subject, $tag, $dispatchId]);
+
+pw_json(['ok' => true, 'subject' => $subject, 'tag' => $tag]);
