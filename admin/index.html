@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=81">
+<link rel="stylesheet" href="../css/style.css?v=82">
 </head>
 <body>
 
@@ -74,37 +74,77 @@
         <p>Recent admin activity across the console &mdash; end-user translations, category edits, and admin logins.</p>
       </div>
 
-      <div class="bh4-welcome-card" id="bh4-welcome-card">
-        <div class="bh4-welcome-head">
-          <span class="bh4-welcome-eyebrow">Behavioral Handler-4</span>
-          <span class="bh4-welcome-badge">BH-4</span>
-        </div>
-        <div class="bh4-welcome-body">
-          <img src="../images/bh4-dispatch.jpg" alt="BH-4" class="bh4-welcome-avatar">
-          <div class="bh4-welcome-content">
-            <p class="bh4-welcome-greeting">Welcome back, <span id="bh4-welcome-name">&hellip;</span>.</p>
-            <p class="bh4-welcome-sub">Since your last session:</p>
-            <ul class="bh4-welcome-stats">
-              <li>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-                <span id="bh4-stat-dispatches">&hellip;</span>
-              </li>
-              <li>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg>
-                <span id="bh4-stat-translations">&hellip;</span>
-              </li>
-              <li>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                <span id="bh4-stat-logins">&hellip;</span>
-              </li>
-            </ul>
-            <p class="bh4-welcome-status" id="bh4-welcome-status">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-              <span id="bh4-welcome-status-text">Checking systems&hellip;</span>
-            </p>
+      <div class="admin-home-top-row">
+        <div class="bh4-welcome-card" id="bh4-welcome-card">
+          <div class="bh4-welcome-head">
+            <span class="bh4-welcome-eyebrow">Behavioral Handler-4</span>
+            <span class="bh4-welcome-badge">BH-4</span>
           </div>
+          <div class="bh4-welcome-body">
+            <img src="../images/bh4-dispatch.jpg" alt="BH-4" class="bh4-welcome-avatar">
+            <div class="bh4-welcome-content">
+              <p class="bh4-welcome-greeting">Welcome back, <span id="bh4-welcome-name">&hellip;</span>.</p>
+              <p class="bh4-welcome-sub">Since your last session:</p>
+              <ul class="bh4-welcome-stats">
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+                  <span id="bh4-stat-dispatches">&hellip;</span>
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg>
+                  <span id="bh4-stat-translations">&hellip;</span>
+                </li>
+                <li>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  <span id="bh4-stat-logins">&hellip;</span>
+                </li>
+              </ul>
+              <p class="bh4-welcome-status" id="bh4-welcome-status">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                <span id="bh4-welcome-status-text">Checking systems&hellip;</span>
+              </p>
+            </div>
+          </div>
+          <p class="bh4-welcome-footer" id="bh4-welcome-footer">&nbsp;</p>
         </div>
-        <p class="bh4-welcome-footer" id="bh4-welcome-footer">&nbsp;</p>
+
+        <div class="system-status-card" id="system-status-card">
+          <div class="system-status-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            <span>System Status</span>
+          </div>
+          <ul class="system-status-list">
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.7 3.8 5.6 4.1 5.6 4.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.2 10.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V22"/></svg>
+                GitHub Repository
+              </span>
+              <span class="system-status-value" id="system-status-github">&hellip;</span>
+            </li>
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+                Database
+              </span>
+              <span class="system-status-value" id="system-status-database">&hellip;</span>
+            </li>
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Forum
+              </span>
+              <span class="system-status-value" id="system-status-forum">&hellip;</span>
+            </li>
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                Dispatch Sync
+              </span>
+              <span class="system-status-value" id="system-status-dispatch-sync">&hellip;</span>
+            </li>
+          </ul>
+          <p class="system-status-footer" id="system-status-footer">&nbsp;</p>
+        </div>
       </div>
 
       <div class="admin-home-grid">
@@ -594,7 +634,7 @@
     sections.forEach(function (s) { s.hidden = (s.id !== 'section-' + name); });
     if (!loadedSections[name]) {
       loadedSections[name] = true;
-      if (name === 'home') { loadHomeActivity(); loadPendingWork(); loadCommunityMetrics(); loadSiteStats(); loadDevSnapshotLanguages(); loadBh4Welcome(); }
+      if (name === 'home') { loadHomeActivity(); loadPendingWork(); loadCommunityMetrics(); loadSiteStats(); loadDevSnapshotLanguages(); loadBh4Welcome(); loadSystemStatus(); }
       if (name === 'audit-log') loadAuditLog();
       if (name === 'dispatch-control') loadControlList();
       if (name === 'dispatch-translations') loadList();
@@ -776,6 +816,63 @@
       .catch(function () {
         if (bh4StatusTextEl) bh4StatusTextEl.textContent = 'Could not reach BH-4.';
         if (bh4FooterEl) bh4FooterEl.textContent = 'Connection to the archive is unstable.';
+      });
+  }
+
+  // ===== Home / System Status ==================================================
+  var sysStatusGithubEl = document.getElementById('system-status-github');
+  var sysStatusDatabaseEl = document.getElementById('system-status-database');
+  var sysStatusForumEl = document.getElementById('system-status-forum');
+  var sysStatusDispatchSyncEl = document.getElementById('system-status-dispatch-sync');
+  var sysStatusFooterEl = document.getElementById('system-status-footer');
+  var sysStatusLastCheckedAt = null;
+  var sysStatusTickTimer = null;
+
+  function setSystemStatusValue(el, item) {
+    if (!el || !item) return;
+    el.textContent = item.label;
+    el.classList.remove('system-status-ok', 'system-status-bad', 'system-status-warn');
+    if (item.status === 'connected' || item.status === 'healthy' || item.status === 'online' || item.status === 'synced') {
+      el.classList.add('system-status-ok');
+    } else if (item.status === 'behind' || item.status === 'unknown') {
+      el.classList.add('system-status-warn');
+    } else {
+      el.classList.add('system-status-bad');
+    }
+  }
+
+  function tickSystemStatusFooter() {
+    if (!sysStatusFooterEl || !sysStatusLastCheckedAt) return;
+    var seconds = Math.max(0, Math.round((Date.now() - sysStatusLastCheckedAt.getTime()) / 1000));
+    var label = seconds < 60
+      ? pluralize(seconds, 'second', 'seconds') + ' ago'
+      : pluralize(Math.round(seconds / 60), 'minute', 'minutes') + ' ago';
+    sysStatusFooterEl.textContent = 'Last verification: ' + label;
+  }
+
+  function loadSystemStatus() {
+    fetch('/api/admin/system-status/summary.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        setSystemStatusValue(sysStatusGithubEl, data.github);
+        setSystemStatusValue(sysStatusDatabaseEl, data.database);
+        setSystemStatusValue(sysStatusForumEl, data.forum);
+        setSystemStatusValue(sysStatusDispatchSyncEl, data.dispatch_sync);
+
+        sysStatusLastCheckedAt = new Date();
+        tickSystemStatusFooter();
+        if (sysStatusTickTimer) clearInterval(sysStatusTickTimer);
+        sysStatusTickTimer = setInterval(tickSystemStatusFooter, 1000);
+      })
+      .catch(function () {
+        [sysStatusGithubEl, sysStatusDatabaseEl, sysStatusForumEl, sysStatusDispatchSyncEl].forEach(function (el) {
+          if (!el) return;
+          el.textContent = 'Unknown';
+          el.classList.remove('system-status-ok', 'system-status-bad');
+          el.classList.add('system-status-warn');
+        });
+        if (sysStatusFooterEl) sysStatusFooterEl.textContent = 'Could not verify systems.';
       });
   }
 

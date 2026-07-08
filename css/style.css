@@ -3662,12 +3662,19 @@ footer.site-footer {
 .activity-card.activity-report_resolved .activity-card-icon { background: rgba(62,207,142,0.15); color: #3ecf8e; }
 .activity-card.activity-report_resolved .activity-card-label { color: #3ecf8e; }
 
+.admin-home-top-row {
+  display: flex;
+  align-items: stretch;
+  gap: 18px;
+  margin-bottom: 22px;
+}
 .bh4-welcome-card {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--panel);
   padding: 22px 26px;
-  margin-bottom: 22px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .bh4-welcome-head {
   display: flex;
@@ -3747,6 +3754,77 @@ footer.site-footer {
 .bh4-welcome-status svg { width: 16px; height: 16px; flex-shrink: 0; }
 .bh4-welcome-status.bh4-welcome-status-warn { color: #e05a4a; }
 .bh4-welcome-footer {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 0.76rem;
+  color: var(--text-faint);
+}
+
+.system-status-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 20px 24px;
+  flex: 0 0 300px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.system-status-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+.system-status-head svg {
+  width: 17px;
+  height: 17px;
+  color: var(--gold-bright);
+  flex-shrink: 0;
+}
+.system-status-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+.system-status-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.85rem;
+}
+.system-status-item-label {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--text-dim);
+}
+.system-status-item-label svg {
+  width: 16px;
+  height: 16px;
+  color: var(--purple-bright);
+  flex-shrink: 0;
+}
+.system-status-value {
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.system-status-value.system-status-ok { color: #3ecf8e; }
+.system-status-value.system-status-warn { color: var(--gold-bright); }
+.system-status-value.system-status-bad { color: #e05a4a; }
+.system-status-footer {
   margin: 14px 0 0;
   padding-top: 12px;
   border-top: 1px solid var(--border);
@@ -4004,6 +4082,8 @@ footer.site-footer {
   .admin-main { padding: 26px 20px; }
   .admin-home-grid { flex-direction: column; }
   .admin-home-grid-main, .admin-home-grid-side { flex: 1 1 auto; width: 100%; }
+  .admin-home-top-row { flex-direction: column; }
+  .system-status-card { flex-basis: auto; }
 }
 @media (max-width: 480px) {
   .admin-row { flex-wrap: wrap; }
