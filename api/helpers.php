@@ -53,17 +53,30 @@ function pw_require_csrf($input) {
 }
 
 // --- Auth guards ---------------------------------------------------------------
+// A ban is only "active" if it was set AND (it's permanent, i.e. no expiry,
+// OR the expiry hasn't passed yet). Once banned_until passes, the account is
+// treated as unbanned everywhere without needing a cron job to clear it.
+function pw_is_banned($user) {
+    if (empty($user['banned_at'])) {
+        return false;
+    }
+    if (empty($user['banned_until'])) {
+        return true; // permanent
+    }
+    return strtotime($user['banned_until']) > time();
+}
+
 function pw_current_user() {
     if (empty($_SESSION['user_id'])) {
         return null;
     }
-    $stmt = pw_db()->prepare('SELECT id, username, email, display_name, overlord_affinity, role, created_at, banned_at FROM users WHERE id = ?');
+    $stmt = pw_db()->prepare('SELECT id, username, email, display_name, overlord_affinity, role, created_at, banned_at, banned_until FROM users WHERE id = ?');
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch();
     if (!$user) {
         return null;
     }
-    if (!empty($user['banned_at'])) {
+    if (pw_is_banned($user)) {
         // Account was banned after this session was issued -- kill the
         // session immediately rather than letting it ride out.
         $_SESSION = [];

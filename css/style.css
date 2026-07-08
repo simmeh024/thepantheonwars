@@ -3535,6 +3535,12 @@ footer.site-footer {
 .activity-card.activity-member_banned .activity-card-label { color: #e05a4a; }
 .activity-card.activity-member_unbanned .activity-card-icon { background: rgba(62,207,142,0.15); color: #3ecf8e; }
 .activity-card.activity-member_unbanned .activity-card-label { color: #3ecf8e; }
+.activity-card.activity-member_created .activity-card-icon { background: rgba(62,207,142,0.15); color: #3ecf8e; }
+.activity-card.activity-member_created .activity-card-label { color: #3ecf8e; }
+.activity-card.activity-member_deleted .activity-card-icon { background: rgba(224,90,74,0.15); color: #e05a4a; }
+.activity-card.activity-member_deleted .activity-card-label { color: #e05a4a; }
+.activity-card.activity-member_avatar_reset .activity-card-icon { background: rgba(69,209,201,0.15); color: #45d1c9; }
+.activity-card.activity-member_avatar_reset .activity-card-label { color: #45d1c9; }
 
 .activity-widget {
   border: 1px solid var(--border-soft);
@@ -3628,6 +3634,36 @@ footer.site-footer {
   font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint);
 }
 .member-modal-meta strong { font-size: 0.84rem; color: var(--text-dim); font-weight: 500; }
+
+.member-create-btn {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+  background: linear-gradient(135deg, var(--purple-deep), var(--purple));
+  border: 1px solid var(--purple-bright); color: #f5efff; border-radius: 3px;
+  padding: 9px 16px; font-family: 'Jost', sans-serif; font-size: 0.74rem; text-transform: uppercase;
+  letter-spacing: 0.08em; cursor: pointer; transition: all 0.2s ease;
+}
+.member-create-btn:hover {
+  background: linear-gradient(135deg, var(--purple), var(--purple-bright));
+  border-color: var(--gold); color: #fff;
+}
+
+.member-avatar-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.member-modal-avatar-wrap.profile-avatar-wrap { width: 64px; height: 64px; flex-shrink: 0; }
+.member-modal-avatar-wrap .profile-avatar { width: 64px; height: 64px; border-width: 2px; }
+.member-modal-avatar-wrap .profile-avatar-fallback { font-size: 1.4rem; }
+
+.member-ban-options { margin-top: 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.member-ban-radio {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  font-size: 0.84rem; color: var(--text-dim); text-transform: none; letter-spacing: normal;
+}
+.member-ban-radio input[type="radio"] { accent-color: var(--purple-bright); cursor: pointer; }
+.member-ban-options input[type="datetime-local"] {
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 10px; font-family: 'Jost', sans-serif; font-size: 0.84rem; border-radius: 2px;
+}
+.member-ban-options input[type="datetime-local"]:disabled { opacity: 0.4; cursor: not-allowed; }
+.member-ban-options input[type="datetime-local"]:focus { outline: none; border-color: var(--purple-bright); }
 
 .admin-modal {
   position: fixed; inset: 0; z-index: 700;

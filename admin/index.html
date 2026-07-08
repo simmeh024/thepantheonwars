@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=68">
+<link rel="stylesheet" href="../css/style.css?v=69">
 </head>
 <body>
 
@@ -195,6 +195,7 @@
       </div>
 
       <div class="admin-toolbar">
+        <button type="button" class="member-create-btn" id="member-create-btn">+ Create Member</button>
         <div class="admin-filter-tabs" id="member-filter-tabs">
           <button type="button" class="admin-filter-tab active" data-filter="all">All</button>
           <button type="button" class="admin-filter-tab" data-filter="banned">Banned</button>
@@ -281,9 +282,25 @@
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner">
     <button type="button" class="admin-modal-close" id="member-modal-close" aria-label="Close">&times;</button>
-    <h3 class="admin-modal-title">Edit Member</h3>
+    <h3 class="admin-modal-title" id="member-modal-title">Edit Member</h3>
     <p class="admin-modal-sub" id="member-modal-sub"></p>
 
+    <div class="member-avatar-row" id="member-avatar-row">
+      <div class="profile-avatar-wrap member-modal-avatar-wrap" id="member-modal-avatar-wrap">
+        <img id="member-modal-avatar-img" class="profile-avatar" alt="" hidden>
+        <div id="member-modal-avatar-fallback" class="profile-avatar profile-avatar-fallback">?</div>
+      </div>
+      <button type="button" class="btn" id="member-reset-avatar-btn">Reset Avatar</button>
+    </div>
+
+    <div class="admin-field" id="member-username-field">
+      <label for="member-username-input">Username</label>
+      <input type="text" id="member-username-input" maxlength="30" placeholder="Letters, numbers, _ and - only">
+    </div>
+    <div class="admin-field" id="member-password-field">
+      <label for="member-password-input">Password</label>
+      <input type="password" id="member-password-input" maxlength="255" autocomplete="new-password" placeholder="At least 8 characters">
+    </div>
     <div class="admin-field">
       <label for="member-display-name-input">Display name</label>
       <input type="text" id="member-display-name-input" maxlength="50">
@@ -300,15 +317,20 @@
         <option value="admin">Admin</option>
       </select>
     </div>
-    <div class="admin-field member-ban-field">
+    <div class="admin-field member-ban-field" id="member-ban-field">
       <label class="member-ban-toggle">
         <input type="checkbox" id="member-banned-checkbox">
         <span>Ban this account</span>
       </label>
+      <div class="member-ban-options" id="member-ban-options" hidden>
+        <label class="member-ban-radio"><input type="radio" name="member-ban-type" id="member-ban-permanent" value="permanent" checked><span>Permanent</span></label>
+        <label class="member-ban-radio"><input type="radio" name="member-ban-type" id="member-ban-temporary" value="temporary"><span>Temporary, until&hellip;</span></label>
+        <input type="datetime-local" id="member-banned-until-input" disabled>
+      </div>
       <p class="member-ban-hint">Banned accounts can&rsquo;t log in, and any active session ends immediately.</p>
     </div>
 
-    <div class="member-modal-meta">
+    <div class="member-modal-meta" id="member-modal-meta">
       <div><span>Last login</span><strong id="member-modal-last-login">&mdash;</strong></div>
       <div><span>Joined</span><strong id="member-modal-joined">&mdash;</strong></div>
     </div>
@@ -318,6 +340,7 @@
     <div class="admin-modal-actions">
       <button type="button" class="btn btn-solid" id="member-save-btn">Save</button>
       <button type="button" class="btn" id="member-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="member-delete-btn">Delete Account</button>
     </div>
   </div>
 </div>
@@ -487,7 +510,10 @@
     member_updated: 'Member updated',
     member_role_changed: 'Role changed',
     member_banned: 'Member banned',
-    member_unbanned: 'Member unbanned'
+    member_unbanned: 'Member unbanned',
+    member_created: 'Member created',
+    member_deleted: 'Member deleted',
+    member_avatar_reset: 'Avatar reset'
   };
   var ACTIVITY_ICONS = {
     login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
@@ -497,7 +523,10 @@
     member_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
     member_role_changed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3z"/></svg>',
     member_banned: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>',
-    member_unbanned: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>'
+    member_unbanned: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>',
+    member_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>',
+    member_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+    member_avatar_reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>'
   };
 
   var homeActivityListEl = document.getElementById('home-activity-list');
@@ -1064,24 +1093,43 @@
   var memberRoleFilterEl = document.getElementById('member-role-filter');
   var memberFilterTabs = document.getElementById('member-filter-tabs');
   var memberPaginationEl = document.getElementById('member-pagination');
+  var memberCreateBtn = document.getElementById('member-create-btn');
 
   var memberModal = document.getElementById('member-modal');
+  var memberModalTitle = document.getElementById('member-modal-title');
   var memberModalSub = document.getElementById('member-modal-sub');
+  var memberAvatarRow = document.getElementById('member-avatar-row');
+  var memberModalAvatarWrap = document.getElementById('member-modal-avatar-wrap');
+  var memberModalAvatarImg = document.getElementById('member-modal-avatar-img');
+  var memberModalAvatarFallback = document.getElementById('member-modal-avatar-fallback');
+  var memberResetAvatarBtn = document.getElementById('member-reset-avatar-btn');
+  var memberUsernameField = document.getElementById('member-username-field');
+  var memberUsernameInput = document.getElementById('member-username-input');
+  var memberPasswordField = document.getElementById('member-password-field');
+  var memberPasswordInput = document.getElementById('member-password-input');
   var memberDisplayNameInput = document.getElementById('member-display-name-input');
   var memberEmailInput = document.getElementById('member-email-input');
   var memberRoleSelect = document.getElementById('member-role-select');
+  var memberBanField = document.getElementById('member-ban-field');
   var memberBannedCheckbox = document.getElementById('member-banned-checkbox');
+  var memberBanOptionsEl = document.getElementById('member-ban-options');
+  var memberBanPermanentRadio = document.getElementById('member-ban-permanent');
+  var memberBanTemporaryRadio = document.getElementById('member-ban-temporary');
+  var memberBannedUntilInput = document.getElementById('member-banned-until-input');
+  var memberModalMetaEl = document.getElementById('member-modal-meta');
   var memberModalLastLogin = document.getElementById('member-modal-last-login');
   var memberModalJoined = document.getElementById('member-modal-joined');
   var memberModalError = document.getElementById('member-modal-error');
   var memberModalStatus = document.getElementById('member-modal-status');
   var memberSaveBtn = document.getElementById('member-save-btn');
   var memberCancelBtn = document.getElementById('member-cancel-btn');
+  var memberDeleteBtn = document.getElementById('member-delete-btn');
   var memberCloseBtn = document.querySelector('#member-modal .admin-modal-close');
 
   var memberState = { page: 1, perPage: 25, totalPages: 1, status: 'all', role: 'all', query: '' };
   var memberSearchDebounce = null;
   var currentMember = null;
+  var memberModalMode = 'edit';
 
   function buildMemberUrl() {
     var params = new URLSearchParams();
@@ -1097,6 +1145,11 @@
     if (!entry.last_login_at) return 'Never logged in';
     var ip = entry.last_login_ip ? entry.last_login_ip : 'unknown IP';
     return fmtRelativeTime(entry.last_login_at) + ' from ' + ip;
+  }
+
+  function toDatetimeLocalValue(sqlDatetime) {
+    if (!sqlDatetime) return '';
+    return sqlDatetime.replace(' ', 'T').slice(0, 16);
   }
 
   function loadMembers() {
@@ -1140,7 +1193,7 @@
         '</div>' +
         '<div class="member-row-badges">' +
           '<span class="member-role-badge role-' + escapeHtml(entry.role) + '">' + escapeHtml(ROLE_LABELS[entry.role] || entry.role) + '</span>' +
-          (entry.banned ? '<span class="member-banned-badge">Banned</span>' : '') +
+          (entry.banned ? '<span class="member-banned-badge">' + (entry.banned_until ? 'Banned until ' + escapeHtml(fmtDate(entry.banned_until)) : 'Banned') + '</span>' : '') +
         '</div>';
       row.addEventListener('click', function () { openMemberModal(entry); });
       memberListEl.appendChild(row);
@@ -1174,21 +1227,100 @@
     memberPaginationEl.appendChild(wrap);
   }
 
+  function loadMemberAvatarPreview(id, displayName, role) {
+    memberModalAvatarWrap.classList.remove('role-member', 'role-moderator', 'role-admin');
+    memberModalAvatarWrap.classList.add('role-' + (role || 'member'));
+    memberModalAvatarFallback.textContent = (displayName || '?').charAt(0).toUpperCase();
+    memberModalAvatarImg.hidden = true;
+    memberModalAvatarFallback.hidden = false;
+    var probe = new Image();
+    probe.onload = function () {
+      memberModalAvatarImg.src = probe.src;
+      memberModalAvatarImg.hidden = false;
+      memberModalAvatarFallback.hidden = true;
+    };
+    probe.onerror = function () {
+      memberModalAvatarImg.hidden = true;
+      memberModalAvatarFallback.hidden = false;
+    };
+    probe.src = '/uploads/avatars/' + id + '.jpg?v=' + Date.now();
+  }
+
+  function updateBanOptionsVisibility() {
+    memberBanOptionsEl.hidden = !memberBannedCheckbox.checked;
+    memberBannedUntilInput.disabled = !memberBanTemporaryRadio.checked;
+  }
+
+  memberBannedCheckbox.addEventListener('change', updateBanOptionsVisibility);
+  memberBanPermanentRadio.addEventListener('change', updateBanOptionsVisibility);
+  memberBanTemporaryRadio.addEventListener('change', updateBanOptionsVisibility);
+
   function openMemberModal(entry) {
+    memberModalMode = 'edit';
     currentMember = entry;
+    memberModalTitle.textContent = 'Edit Member';
     memberModalSub.textContent = '@' + entry.username;
+
+    memberAvatarRow.hidden = false;
+    loadMemberAvatarPreview(entry.id, entry.display_name, entry.role);
+
+    memberUsernameField.hidden = true;
+    memberPasswordField.hidden = true;
+
     memberDisplayNameInput.value = entry.display_name;
     memberEmailInput.value = entry.email;
     memberRoleSelect.value = entry.role;
+
+    memberBanField.hidden = false;
     memberBannedCheckbox.checked = entry.banned;
+    var hasFutureExpiry = entry.banned && !!entry.banned_until;
+    memberBanPermanentRadio.checked = !hasFutureExpiry;
+    memberBanTemporaryRadio.checked = hasFutureExpiry;
+    memberBannedUntilInput.value = hasFutureExpiry ? toDatetimeLocalValue(entry.banned_until) : '';
+    updateBanOptionsVisibility();
+
+    memberModalMetaEl.hidden = false;
     memberModalLastLogin.textContent = entry.last_login_at ?
       (fmtDateTime(entry.last_login_at) + ' \u2014 ' + (entry.last_login_ip || 'unknown IP')) :
       'Never logged in';
     memberModalJoined.textContent = fmtDate(entry.created_at);
+
+    memberDeleteBtn.hidden = false;
+
     memberModalError.classList.remove('show');
     memberModalStatus.classList.remove('show');
     memberModal.hidden = false;
     setTimeout(function () { memberDisplayNameInput.focus(); }, 30);
+  }
+
+  function openCreateMemberModal() {
+    memberModalMode = 'create';
+    currentMember = null;
+    memberModalTitle.textContent = 'Create Member';
+    memberModalSub.textContent = '';
+
+    memberAvatarRow.hidden = true;
+
+    memberUsernameField.hidden = false;
+    memberUsernameInput.value = '';
+    memberPasswordField.hidden = false;
+    memberPasswordInput.value = '';
+
+    memberDisplayNameInput.value = '';
+    memberEmailInput.value = '';
+    memberRoleSelect.value = 'member';
+
+    memberBanField.hidden = true;
+    memberBannedCheckbox.checked = false;
+    updateBanOptionsVisibility();
+
+    memberModalMetaEl.hidden = true;
+    memberDeleteBtn.hidden = true;
+
+    memberModalError.classList.remove('show');
+    memberModalStatus.classList.remove('show');
+    memberModal.hidden = false;
+    setTimeout(function () { memberUsernameInput.focus(); }, 30);
   }
 
   function closeMemberModal() {
@@ -1196,16 +1328,136 @@
     currentMember = null;
   }
 
+  memberCreateBtn.addEventListener('click', openCreateMemberModal);
   memberCloseBtn.addEventListener('click', closeMemberModal);
   memberCancelBtn.addEventListener('click', closeMemberModal);
   memberModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeMemberModal);
 
-  memberSaveBtn.addEventListener('click', function () {
+  memberResetAvatarBtn.addEventListener('click', function () {
     if (!currentMember) return;
+    if (!window.confirm('Remove ' + currentMember.display_name + '\'s avatar?')) return;
+    memberResetAvatarBtn.disabled = true;
+    fetch('/api/admin/members/reset-avatar.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentMember.id, csrf: window.PW_AUTH.csrf }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        memberResetAvatarBtn.disabled = false;
+        if (!data.ok) {
+          memberModalError.textContent = data.error || 'Could not reset avatar.';
+          memberModalError.classList.add('show');
+          return;
+        }
+        memberModalAvatarImg.hidden = true;
+        memberModalAvatarFallback.hidden = false;
+        memberModalStatus.textContent = data.removed ? 'Avatar reset.' : 'No custom avatar to remove.';
+        memberModalStatus.classList.add('show');
+      })
+      .catch(function () {
+        memberResetAvatarBtn.disabled = false;
+        memberModalError.textContent = 'Could not reset avatar. Please try again.';
+        memberModalError.classList.add('show');
+      });
+  });
+
+  memberDeleteBtn.addEventListener('click', function () {
+    if (!currentMember) return;
+    var confirmMsg = 'Permanently delete ' + currentMember.username + '\'s account? ' +
+      'This also deletes their comments, forum posts, and reactions. This cannot be undone.';
+    if (!window.confirm(confirmMsg)) return;
+    memberDeleteBtn.disabled = true;
+    fetch('/api/admin/members/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentMember.id, csrf: window.PW_AUTH.csrf }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        memberDeleteBtn.disabled = false;
+        if (!data.ok) {
+          memberModalError.textContent = data.error || 'Could not delete this account.';
+          memberModalError.classList.add('show');
+          return;
+        }
+        loadMembers();
+        closeMemberModal();
+      })
+      .catch(function () {
+        memberDeleteBtn.disabled = false;
+        memberModalError.textContent = 'Could not delete this account. Please try again.';
+        memberModalError.classList.add('show');
+      });
+  });
+
+  memberSaveBtn.addEventListener('click', function () {
     var displayName = memberDisplayNameInput.value.trim();
     var email = memberEmailInput.value.trim();
     var role = memberRoleSelect.value;
+
+    if (memberModalMode === 'create') {
+      var username = memberUsernameInput.value.trim();
+      var password = memberPasswordInput.value;
+
+      if (!username) {
+        memberModalError.textContent = 'Username can\'t be empty.';
+        memberModalError.classList.add('show');
+        return;
+      }
+      if (!email) {
+        memberModalError.textContent = 'Email address can\'t be empty.';
+        memberModalError.classList.add('show');
+        return;
+      }
+      if (!password || password.length < 8) {
+        memberModalError.textContent = 'Password needs to be at least 8 characters.';
+        memberModalError.classList.add('show');
+        return;
+      }
+
+      memberModalError.classList.remove('show');
+      memberSaveBtn.disabled = true;
+      fetch('/api/admin/members/create.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: username,
+          email: email,
+          password: password,
+          display_name: displayName,
+          role: role,
+          csrf: window.PW_AUTH.csrf,
+        }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          memberSaveBtn.disabled = false;
+          if (!data.ok) {
+            memberModalError.textContent = data.error || 'Could not create member.';
+            memberModalError.classList.add('show');
+            return;
+          }
+          memberModalStatus.textContent = 'Created.';
+          memberModalStatus.classList.add('show');
+          loadMembers();
+          setTimeout(closeMemberModal, 700);
+        })
+        .catch(function () {
+          memberSaveBtn.disabled = false;
+          memberModalError.textContent = 'Could not create member. Please try again.';
+          memberModalError.classList.add('show');
+        });
+      return;
+    }
+
+    if (!currentMember) return;
     var banned = memberBannedCheckbox.checked;
+    var banType = memberBanTemporaryRadio.checked ? 'temporary' : 'permanent';
+    var bannedUntil = memberBannedUntilInput.value;
 
     if (!displayName) {
       memberModalError.textContent = 'Display name can\'t be empty.';
@@ -1214,6 +1466,11 @@
     }
     if (!email) {
       memberModalError.textContent = 'Email address can\'t be empty.';
+      memberModalError.classList.add('show');
+      return;
+    }
+    if (banned && banType === 'temporary' && !bannedUntil) {
+      memberModalError.textContent = 'Choose a date and time to auto-unban.';
       memberModalError.classList.add('show');
       return;
     }
@@ -1230,6 +1487,8 @@
         email: email,
         role: role,
         banned: banned,
+        ban_type: banType,
+        banned_until: bannedUntil,
         csrf: window.PW_AUTH.csrf,
       }),
     })

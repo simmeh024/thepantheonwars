@@ -42,7 +42,7 @@ if ($role !== 'all') {
     $params[':role'] = $role;
 }
 if ($status === 'banned') {
-    $where[] = 'banned_at IS NOT NULL';
+    $where[] = 'banned_at IS NOT NULL AND (banned_until IS NULL OR banned_until > NOW())';
 }
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
@@ -60,7 +60,7 @@ if ($page > $totalPages) {
 $offset = ($page - 1) * $perPage;
 
 $stmt = $db->prepare(
-    "SELECT id, username, email, display_name, role, created_at, last_login_at, last_login_ip, banned_at
+    "SELECT id, username, email, display_name, role, created_at, last_login_at, last_login_ip, banned_at, banned_until
      FROM users
      $whereSql
      ORDER BY created_at DESC, id DESC
@@ -84,8 +84,9 @@ $out = array_map(function ($r) {
         'created_at' => $r['created_at'],
         'last_login_at' => $r['last_login_at'],
         'last_login_ip' => $r['last_login_ip'],
-        'banned' => $r['banned_at'] !== null,
+        'banned' => pw_is_banned($r),
         'banned_at' => $r['banned_at'],
+        'banned_until' => $r['banned_until'],
     ];
 }, $rows);
 

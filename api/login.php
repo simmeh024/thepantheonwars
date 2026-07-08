@@ -14,7 +14,7 @@ if ($identifier === '' || $password === '') {
 }
 
 $db = pw_db();
-$stmt = $db->prepare('SELECT id, username, display_name, password_hash, failed_login_attempts, locked_until, role, banned_at FROM users WHERE username = ? OR email = ?');
+$stmt = $db->prepare('SELECT id, username, display_name, password_hash, failed_login_attempts, locked_until, role, banned_at, banned_until FROM users WHERE username = ? OR email = ?');
 $stmt->execute([$identifier, $identifier]);
 $user = $stmt->fetch();
 
@@ -38,7 +38,7 @@ if (!password_verify($password, $user['password_hash'])) {
     pw_error('Incorrect username/email or password.', 401);
 }
 
-if (!empty($user['banned_at'])) {
+if (pw_is_banned($user)) {
     // Only reveal the suspension after the password has checked out, so a
     // banned account can't be fingerprinted by a guess against the identifier alone.
     pw_error('This account has been suspended.', 403);
