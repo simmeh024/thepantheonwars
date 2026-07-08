@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=62">
+<link rel="stylesheet" href="../css/style.css?v=63">
 </head>
 <body>
 
@@ -47,23 +47,15 @@
       </div>
 
       <div class="admin-toolbar">
-        <button type="button" class="terminal-refresh-btn" id="activity-refresh-btn" title="Refresh" aria-label="Refresh activity log">
+        <button type="button" class="activity-refresh-btn" id="activity-refresh-btn" title="Refresh" aria-label="Refresh activity log">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
           <span>Refresh</span>
         </button>
         <span class="admin-count" id="activity-count"></span>
       </div>
 
-      <div class="terminal-window" id="activity-terminal">
-        <div class="terminal-titlebar">
-          <span class="terminal-dot terminal-dot-red"></span>
-          <span class="terminal-dot terminal-dot-yellow"></span>
-          <span class="terminal-dot terminal-dot-green"></span>
-          <span class="terminal-title">admin@pantheonwars: ~/activity-log</span>
-        </div>
-        <div class="terminal-body" id="activity-log-list">
-          <div class="terminal-line terminal-empty">Loading activity&hellip;</div>
-        </div>
+      <div class="admin-list activity-card-list" id="activity-log-list">
+        <div class="admin-list-empty">Loading activity&hellip;</div>
       </div>
 
       <div class="admin-pagination" id="activity-pagination"></div>
@@ -279,11 +271,28 @@
     if (isNaN(d.getTime())) return sqlDate;
     var dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     var timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
-    return dateStr + ' ' + timeStr;
+    return dateStr + ' at ' + timeStr;
+  }
+
+  function fmtRelativeTime(sqlDate) {
+    var d = new Date(String(sqlDate).replace(' ', 'T'));
+    if (isNaN(d.getTime())) return '';
+    var seconds = Math.round((Date.now() - d.getTime()) / 1000);
+    if (seconds < 5) return 'just now';
+    if (seconds < 60) return seconds + 's ago';
+    var minutes = Math.round(seconds / 60);
+    if (minutes < 60) return minutes + 'm ago';
+    var hours = Math.round(minutes / 60);
+    if (hours < 24) return hours + 'h ago';
+    var days = Math.round(hours / 24);
+    if (days < 30) return days + 'd ago';
+    var months = Math.round(days / 30);
+    if (months < 12) return months + 'mo ago';
+    return Math.round(months / 12) + 'y ago';
   }
 
   function loadActivityLog() {
-    activityLogEl.innerHTML = '<div class="terminal-line terminal-empty">Loading activity&hellip;</div>';
+    activityLogEl.innerHTML = '<div class="admin-list-empty">Loading activity&hellip;</div>';
     var params = new URLSearchParams();
     params.set('page', activityState.page);
     params.set('per_page', activityState.perPage);
@@ -291,7 +300,7 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) {
-          activityLogEl.innerHTML = '<div class="terminal-line terminal-empty">Could not load activity.</div>';
+          activityLogEl.innerHTML = '<div class="admin-list-empty">Could not load activity.</div>';
           return;
         }
         activityState.totalPages = data.total_pages || 1;
@@ -300,7 +309,7 @@
         renderActivityPagination();
       })
       .catch(function () {
-        activityLogEl.innerHTML = '<div class="terminal-line terminal-empty">Could not load activity.</div>';
+        activityLogEl.innerHTML = '<div class="admin-list-empty">Could not load activity.</div>';
       });
   }
 
@@ -318,29 +327,30 @@
     activityLogEl.innerHTML = '';
 
     if (!entries.length) {
-      activityLogEl.innerHTML = '<div class="terminal-line terminal-empty">No admin activity recorded yet.</div>';
-    } else {
-      entries.forEach(function (entry) {
-        var block = document.createElement('div');
-        block.className = 'terminal-entry terminal-' + escapeHtml(entry.action);
-        block.innerHTML =
-          '<div class="terminal-prompt">' +
-            '<span class="terminal-prompt-symbol">$</span>' +
-            '<span class="terminal-timestamp">[' + escapeHtml(fmtDateTime(entry.created_at)) + ']</span>' +
-            '<span class="terminal-action">' + escapeHtml((ACTIVITY_LABELS[entry.action] || entry.action)) + '</span>' +
-            '<span class="terminal-user">' + escapeHtml(entry.username) + '</span>' +
-            '<span class="terminal-at">@</span>' +
-            '<span class="terminal-ip">' + escapeHtml(entry.ip_address) + '</span>' +
-          '</div>' +
-          '<div class="terminal-desc">' + escapeHtml(entry.description) + '</div>';
-        activityLogEl.appendChild(block);
-      });
+      activityLogEl.innerHTML = '<div class="admin-list-empty">No admin activity recorded yet.</div>';
+      return;
     }
 
-    var cursorLine = document.createElement('div');
-    cursorLine.className = 'terminal-cursor-line';
-    cursorLine.innerHTML = '<span class="terminal-prompt-symbol">$</span><span class="terminal-cursor">&#9608;</span>';
-    activityLogEl.appendChild(cursorLine);
+    entries.forEach(function (entry) {
+      var card = document.createElement('div');
+      card.className = 'activity-card activity-' + escapeHtml(entry.action);
+      card.innerHTML =
+        '<div class="activity-card-icon">' + (ACTIVITY_ICONS[entry.action] || '') + '</div>' +
+        '<div class="activity-card-body">' +
+          '<div class="activity-card-head">' +
+            '<span class="activity-card-label">' + escapeHtml((ACTIVITY_LABELS[entry.action] || entry.action).toUpperCase()) + '</span>' +
+            '<span class="activity-card-time">' + escapeHtml(fmtRelativeTime(entry.created_at)) + '</span>' +
+          '</div>' +
+          '<p class="activity-card-desc">' + escapeHtml(entry.description) + '</p>' +
+          '<div class="activity-card-meta">' +
+            '<span class="activity-card-user">' + escapeHtml(entry.username) + '</span>' +
+            '<span class="activity-card-ip">' + escapeHtml(entry.ip_address) + '</span>' +
+            '<span class="activity-card-sep">&bull;</span>' +
+            '<span>' + escapeHtml(fmtDateTime(entry.created_at)) + '</span>' +
+          '</div>' +
+        '</div>';
+      activityLogEl.appendChild(card);
+    });
   }
 
   function renderActivityPagination() {
