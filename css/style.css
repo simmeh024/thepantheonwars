@@ -3866,18 +3866,28 @@ footer.site-footer {
   color: var(--text-faint);
 }
 
+.system-status-groups {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 26px;
+}
 .system-status-detail-card {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--panel);
   padding: 22px 26px;
-  margin-bottom: 26px;
+  display: flex;
+  flex-direction: column;
 }
 .system-status-list-wide {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 14px 40px;
   margin-bottom: 20px;
+}
+.system-status-list-wide.system-status-list-single {
+  grid-template-columns: 1fr;
 }
 .system-status-list-wide li {
   display: flex;
@@ -3892,6 +3902,10 @@ footer.site-footer {
   display: flex;
   flex-direction: column;
   gap: 8px;
+}
+.system-status-storage-row-wide.system-status-storage-row-first {
+  padding-top: 0;
+  border-top: none;
 }
 .system-status-storage-row-wide .system-status-storage-bar-track { height: 8px; }
 
@@ -4148,6 +4162,7 @@ footer.site-footer {
   .admin-home-top-row { flex-direction: column; }
   .system-status-card { flex-basis: auto; }
   .system-status-list-wide { grid-template-columns: 1fr; }
+  .system-status-groups { grid-template-columns: 1fr; }
 }
 @media (max-width: 480px) {
   .admin-row { flex-wrap: wrap; }

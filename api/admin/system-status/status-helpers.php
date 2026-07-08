@@ -98,6 +98,52 @@ function pw_check_database_load($db) {
     ];
 }
 
+// --- Database size ---------------------------------------------------------------
+// Total on-disk size (data + indexes) of every table in this schema, via
+// information_schema -- the only way to get storage usage without OS-level
+// access on shared hosting. cPanel's MySQL Databases page shows a live
+// "Size" column per database but no quota (confirmed live: this account's
+// databases list has no quota figure anywhere), so -- same as avatar
+// storage -- this is a soft budget we picked, not a real host limit. Tune
+// PW_DB_SIZE_BUDGET_BYTES if it doesn't match how this host actually caps
+// things.
+function pw_check_database_size($db) {
+    $maxBytes = 500 * 1024 * 1024; // 500 MiB soft budget
+    $usedBytes = 0;
+    try {
+        $row = $db->query(
+            'SELECT SUM(data_length + index_length) AS bytes FROM information_schema.TABLES WHERE table_schema = DATABASE()'
+        )->fetch();
+        if ($row && $row['bytes'] !== null) {
+            $usedBytes = (float)$row['bytes'];
+        }
+    } catch (Exception $e) {
+        return [
+            'used_bytes' => 0,
+            'max_bytes' => $maxBytes,
+            'used_mb' => 0,
+            'max_mb' => round($maxBytes / (1024 * 1024)),
+            'pct' => 0,
+            'status' => 'unknown',
+        ];
+    }
+    $pct = $maxBytes > 0 ? min(100, ($usedBytes / $maxBytes) * 100) : 0;
+    $status = 'ok';
+    if ($pct >= 90) {
+        $status = 'bad';
+    } elseif ($pct >= 80) {
+        $status = 'warn';
+    }
+    return [
+        'used_bytes' => $usedBytes,
+        'max_bytes' => $maxBytes,
+        'used_mb' => round($usedBytes / (1024 * 1024), 2),
+        'max_mb' => round($maxBytes / (1024 * 1024)),
+        'pct' => round($pct, 1),
+        'status' => $status,
+    ];
+}
+
 // --- SSL certificate expiry ------------------------------------------------------
 function pw_check_ssl_expiry($host = 'thepantheonwars.com') {
     $result = ['expires_at' => null, 'days_left' => null, 'status' => 'unknown', 'label' => 'Unknown'];

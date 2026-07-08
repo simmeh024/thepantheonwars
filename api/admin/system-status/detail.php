@@ -1,13 +1,15 @@
 <?php
 /**
- * Feeds the expanded System Status page (System > System Status). Goes
- * deeper than the compact Home card: GitHub connectivity plus its API rate
- * limit, webhook delivery health (distinct from repo reachability -- this is
- * "has GitHub actually reached us recently", not "can we reach GitHub"),
- * the language-snapshot sync schedule that backs the Development Snapshot
- * language bar, SSL certificate expiry, database load (same check used on
- * the Home card), and avatar storage (also same check used on the Home
- * card).
+ * Feeds the expanded System Status page (System > System Status), organized
+ * into four cards on the frontend (GitHub, Security, Database, Storage)
+ * even though this endpoint just returns one flat JSON payload. Goes deeper
+ * than the compact Home card: GitHub connectivity plus its API rate limit,
+ * webhook delivery health (distinct from repo reachability -- this is "has
+ * GitHub actually reached us recently", not "can we reach GitHub"), the
+ * language-snapshot sync schedule that backs the Development Snapshot
+ * language bar, SSL certificate expiry, database load + database size (same
+ * checks used on the Home card), and avatar storage (also same check used
+ * on the Home card).
  */
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/status-helpers.php';
@@ -105,8 +107,9 @@ try {
     // leave defaults
 }
 
-// --- Database Load ----------------------------------------------------------------
+// --- Database Load + Size ----------------------------------------------------------
 $dbLoad = pw_check_database_load($db);
+$dbSize = pw_check_database_size($db);
 
 // --- SSL certificate + Avatar storage --------------------------------------------
 $ssl = pw_check_ssl_expiry();
@@ -121,5 +124,6 @@ pw_json([
     'next_sync' => ['label' => $nextSyncLabel],
     'ssl' => ['status' => $ssl['status'], 'label' => $ssl['label']],
     'db_load' => $dbLoad,
+    'database_size' => $dbSize,
     'avatar_storage' => $avatarStorage,
 ]);

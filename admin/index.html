@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=84">
+<link rel="stylesheet" href="../css/style.css?v=85">
 </head>
 <body>
 
@@ -306,69 +306,112 @@
         <p>Live diagnostics for the site's connected systems &mdash; GitHub sync, storage, and certificates.</p>
       </div>
 
-      <div class="system-status-detail-card" id="system-status-detail-card">
-        <ul class="system-status-list system-status-list-wide">
-          <li>
-            <span class="system-status-item-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.7 3.8 5.6 4.1 5.6 4.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.2 10.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V22"/></svg>
-              GitHub Repository
-            </span>
-            <span class="system-status-value" id="sys-detail-github">&hellip;</span>
-          </li>
-          <li>
-            <span class="system-status-item-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-              Webhook Delivery
-            </span>
-            <span class="system-status-value" id="sys-detail-webhook">&hellip;</span>
-          </li>
-          <li>
-            <span class="system-status-item-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
-              API Rate Limit
-            </span>
-            <span class="system-status-value" id="sys-detail-rate-limit">&hellip;</span>
-          </li>
-          <li>
-            <span class="system-status-item-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 2-9.5L1 10"/></svg>
-              Last Sync
-            </span>
-            <span class="system-status-value" id="sys-detail-last-sync">&hellip;</span>
-          </li>
-          <li>
-            <span class="system-status-item-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 1 1-2-9.5L23 10"/></svg>
-              Next Sync
-            </span>
-            <span class="system-status-value" id="sys-detail-next-sync">&hellip;</span>
-          </li>
-          <li>
-            <span class="system-status-item-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-              SSL Certificate
-            </span>
-            <span class="system-status-value" id="sys-detail-ssl">&hellip;</span>
-          </li>
-          <li>
-            <span class="system-status-item-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l3.5-4.5"/><circle cx="12" cy="16" r="1"/></svg>
-              Database Load
-            </span>
-            <span class="system-status-value" id="sys-detail-dbload">&hellip;</span>
-          </li>
-        </ul>
-
-        <div class="system-status-storage-row system-status-storage-row-wide">
-          <div class="system-status-storage-head">
-            <span class="system-status-item-label">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
-              Avatar Storage
-            </span>
-            <span class="system-status-storage-value" id="sys-detail-avatar-value">&hellip;</span>
+      <div class="system-status-groups">
+        <div class="system-status-detail-card">
+          <div class="system-status-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.7 3.8 5.6 4.1 5.6 4.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.2 10.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V22"/></svg>
+            <span>GitHub</span>
           </div>
-          <div class="system-status-storage-bar-track">
-            <div class="system-status-storage-bar-fill" id="sys-detail-avatar-bar"></div>
+          <ul class="system-status-list system-status-list-wide">
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.7 3.8 5.6 4.1 5.6 4.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.2 10.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V22"/></svg>
+                GitHub Repository
+              </span>
+              <span class="system-status-value" id="sys-detail-github">&hellip;</span>
+            </li>
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                Webhook Delivery
+              </span>
+              <span class="system-status-value" id="sys-detail-webhook">&hellip;</span>
+            </li>
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
+                API Rate Limit
+              </span>
+              <span class="system-status-value" id="sys-detail-rate-limit">&hellip;</span>
+            </li>
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 2-9.5L1 10"/></svg>
+                Last Sync
+              </span>
+              <span class="system-status-value" id="sys-detail-last-sync">&hellip;</span>
+            </li>
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 1 1-2-9.5L23 10"/></svg>
+                Next Sync
+              </span>
+              <span class="system-status-value" id="sys-detail-next-sync">&hellip;</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="system-status-detail-card">
+          <div class="system-status-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <span>Security</span>
+          </div>
+          <ul class="system-status-list system-status-list-wide system-status-list-single">
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                SSL Certificate
+              </span>
+              <span class="system-status-value" id="sys-detail-ssl">&hellip;</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="system-status-detail-card">
+          <div class="system-status-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+            <span>Database</span>
+          </div>
+          <ul class="system-status-list system-status-list-wide system-status-list-single">
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 16a8 8 0 0 1 16 0"/><path d="M12 16l3.5-4.5"/><circle cx="12" cy="16" r="1"/></svg>
+                Database Load
+              </span>
+              <span class="system-status-value" id="sys-detail-dbload">&hellip;</span>
+            </li>
+          </ul>
+
+          <div class="system-status-storage-row system-status-storage-row-wide">
+            <div class="system-status-storage-head">
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+                Database Size
+              </span>
+              <span class="system-status-storage-value" id="sys-detail-dbsize-value">&hellip;</span>
+            </div>
+            <div class="system-status-storage-bar-track">
+              <div class="system-status-storage-bar-fill" id="sys-detail-dbsize-bar"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="system-status-detail-card">
+          <div class="system-status-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
+            <span>Storage</span>
+          </div>
+          <div class="system-status-storage-row system-status-storage-row-wide system-status-storage-row-first">
+            <div class="system-status-storage-head">
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
+                Avatar Storage
+              </span>
+              <span class="system-status-storage-value" id="sys-detail-avatar-value">&hellip;</span>
+            </div>
+            <div class="system-status-storage-bar-track">
+              <div class="system-status-storage-bar-fill" id="sys-detail-avatar-bar"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1537,6 +1580,8 @@
   var sysDetailDbLoadEl = document.getElementById('sys-detail-dbload');
   var sysDetailAvatarValueEl = document.getElementById('sys-detail-avatar-value');
   var sysDetailAvatarBarEl = document.getElementById('sys-detail-avatar-bar');
+  var sysDetailDbSizeValueEl = document.getElementById('sys-detail-dbsize-value');
+  var sysDetailDbSizeBarEl = document.getElementById('sys-detail-dbsize-bar');
 
   function setPlainStatusValue(el, item) {
     if (!el || !item) return;
@@ -1558,6 +1603,7 @@
         if (sysDetailLastSyncEl) sysDetailLastSyncEl.textContent = data.last_sync.label;
         if (sysDetailNextSyncEl) sysDetailNextSyncEl.textContent = data.next_sync.label;
         setAvatarStorageBar(sysDetailAvatarValueEl, sysDetailAvatarBarEl, data.avatar_storage);
+        setAvatarStorageBar(sysDetailDbSizeValueEl, sysDetailDbSizeBarEl, data.database_size);
       })
       .catch(function () {
         [sysDetailGithubEl, sysDetailWebhookEl, sysDetailRateLimitEl, sysDetailSslEl, sysDetailDbLoadEl].forEach(function (el) {
