@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=48">
+<link rel="stylesheet" href="css/style.css?v=49">
 </head>
 <body>
 
@@ -182,6 +182,42 @@
     return null;
   }
 
+  // Same BBCode rendering as community.html's formatBody(), ported here so
+  // quoted/bold/etc text in a member's Recent Posts renders instead of
+  // showing up as raw [quote=...] markup.
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function formatBody(raw) {
+    var s = escapeHtml(raw);
+    s = s.replace(/\[quote=([^\]]{1,150})\]([\s\S]*?)\[\/quote\]/gi, function (m, attr, inner) {
+      return '<blockquote class="comment-quote"><div class="comment-quote-attr">' + attr + '</div>' + inner + '</blockquote>';
+    });
+    s = s.replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, '<blockquote class="comment-quote">$1</blockquote>');
+    s = s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>');
+    s = s.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<em>$1</em>');
+    s = s.replace(/\[u\]([\s\S]*?)\[\/u\]/gi, '<u>$1</u>');
+    s = s.replace(/\[c\]([\s\S]*?)\[\/c\]/gi, '<code>$1</code>');
+    s = s.replace(/\[color=(#[0-9a-fA-F]{3,8})\]([\s\S]*?)\[\/color\]/gi, function (m, hex, inner) {
+      return '<span style="color:' + hex + '">' + inner + '</span>';
+    });
+    s = s.replace(/\[url=(https?:\/\/[^\s\[\]"]+)\]([\s\S]*?)\[\/url\]/gi, function (m, url, label) {
+      return '<a href="' + url + '" target="_blank" rel="noopener noreferrer nofollow">' + label + '</a>';
+    });
+    s = s.replace(/\[url\](https?:\/\/[^\s\[\]"]+)\[\/url\]/gi, function (m, url) {
+      return '<a href="' + url + '" target="_blank" rel="noopener noreferrer nofollow">' + url + '</a>';
+    });
+    s = s.replace(/\[img\](https?:\/\/[^\s\[\]"]+)\[\/img\]/gi, function (m, url) {
+      return '<img src="' + url + '" alt="" loading="lazy" class="comment-img">';
+    });
+    return s;
+  }
+
   function fmtDate(iso) {
     var d = new Date(iso.replace(' ', 'T') + 'Z');
     if (isNaN(d.getTime())) return iso;
@@ -290,8 +326,12 @@
           data.recentPosts.forEach(function (p) {
             var item = document.createElement('div');
             item.className = 'profile-history-item';
-            var label = p.kind === 'topic' ? ('Started "' + p.heading + '"') : p.body;
-            item.textContent = label + ' — ' + fmtDate(p.created_at);
+            var dateSpan = ' <span class="profile-history-date">— ' + fmtDate(p.created_at) + '</span>';
+            if (p.kind === 'topic') {
+              item.innerHTML = 'Started "' + escapeHtml(p.heading) + '"' + dateSpan;
+            } else {
+              item.innerHTML = formatBody(p.body) + dateSpan;
+            }
             postsEl.appendChild(item);
           });
         } else {

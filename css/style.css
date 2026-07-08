@@ -1390,6 +1390,7 @@ footer.site-footer {
 .city-layer.street { background: linear-gradient(90deg, rgba(124,79,214,0.10), transparent); }
 .city-layer.undercircuit { background: linear-gradient(90deg, rgba(90,60,40,0.14), transparent); }
 .city-layer.sewers { background: linear-gradient(90deg, rgba(40,60,30,0.16), transparent); }
+.city-layer.deepcircuit { background: linear-gradient(90deg, rgba(8,8,12,0.55), transparent); }
 .city-layer.vault { background: linear-gradient(90deg, rgba(30,10,40,0.4), transparent); }
 .city-layer.vault .layer-name { color: var(--purple-bright); }
 .city-layer.vault .layer-toggle .layer-tag { color: #7a5a9a; }
