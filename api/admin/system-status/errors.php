@@ -19,20 +19,33 @@ $data = pw_load_error_entries();
 if (!$data['available']) {
     // Temporary debug block to pin down the real log path on this host --
     // remove once pw_error_log_path()'s candidate list is confirmed correct.
-    $debugCandidates = [];
     $iniPath = ini_get('error_log');
-    $debugCandidates[] = ['path' => $iniPath, 'source' => 'ini_get'];
+    $relativeLogName = ($iniPath && strpos($iniPath, '/') === false) ? $iniPath : 'error_log';
+    $debugCandidates = [];
+    if ($iniPath && strpos($iniPath, '/') !== false) {
+        $debugCandidates[] = $iniPath;
+    }
     if (!empty($_SERVER['DOCUMENT_ROOT'])) {
         $docRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
-        $debugCandidates[] = ['path' => $docRoot . '/error_log', 'source' => 'docroot'];
+        $debugCandidates[] = $docRoot . '/' . $relativeLogName;
+        $debugCandidates[] = $docRoot . '/api/' . $relativeLogName;
+        $debugCandidates[] = $docRoot . '/api/admin/' . $relativeLogName;
+        $debugCandidates[] = $docRoot . '/api/admin/system-status/' . $relativeLogName;
+        $debugCandidates[] = $docRoot . '/admin/' . $relativeLogName;
+        $home = dirname($docRoot);
         $host = !empty($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'thepantheonwars.com';
-        $debugCandidates[] = ['path' => dirname($docRoot) . '/logs/' . $host, 'source' => 'cpanel-logs'];
+        $bareHost = preg_replace('/^www\./', '', $host);
+        $debugCandidates[] = $home . '/' . $relativeLogName;
+        $debugCandidates[] = $home . '/logs/' . $host;
+        $debugCandidates[] = $home . '/logs/' . $bareHost;
+        $debugCandidates[] = $home . '/php_errorlog';
     }
-    foreach ($debugCandidates as &$c) {
-        $c['exists'] = $c['path'] ? file_exists($c['path']) : false;
-        $c['readable'] = $c['path'] ? is_readable($c['path']) : false;
+    $debugCandidates[] = __DIR__ . '/' . $relativeLogName;
+
+    $debugInfo = [];
+    foreach ($debugCandidates as $c) {
+        $debugInfo[] = ['path' => $c, 'exists' => file_exists($c), 'readable' => is_readable($c)];
     }
-    unset($c);
     pw_json([
         'ok' => true,
         'available' => false,
@@ -40,8 +53,8 @@ if (!$data['available']) {
         'total' => 0,
         'page' => 1,
         'total_pages' => 1,
-        'debug_document_root' => isset($_SERVER['DOCUMENT_ROOT']) ? $_SERVER['DOCUMENT_ROOT'] : null,
-        'debug_candidates' => $debugCandidates,
+        'debug_ini_error_log' => $iniPath,
+        'debug_candidates' => $debugInfo,
     ]);
 }
 

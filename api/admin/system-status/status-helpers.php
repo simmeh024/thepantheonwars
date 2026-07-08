@@ -118,16 +118,38 @@ function pw_check_ssl_expiry($host = 'thepantheonwars.com') {
 function pw_error_log_path() {
     $candidates = [];
     $iniPath = ini_get('error_log');
-    if ($iniPath) {
+    // A bare filename (no directory separator) means PHP writes it relative
+    // to whatever directory the erroring script lives in -- that can be any
+    // of api/, api/admin/*, or admin/, not just the docroot. If it's already
+    // an absolute path, this loop is a no-op and we use it as-is below.
+    $relativeLogName = ($iniPath && strpos($iniPath, '/') === false) ? $iniPath : 'error_log';
+
+    if ($iniPath && strpos($iniPath, '/') !== false) {
         $candidates[] = $iniPath;
     }
+
     if (!empty($_SERVER['DOCUMENT_ROOT'])) {
         $docRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
-        $candidates[] = $docRoot . '/error_log';
+        $candidates[] = $docRoot . '/' . $relativeLogName;
+        $candidates[] = $docRoot . '/api/' . $relativeLogName;
+        $candidates[] = $docRoot . '/api/admin/' . $relativeLogName;
+        $candidates[] = $docRoot . '/api/admin/system-status/' . $relativeLogName;
+        $candidates[] = $docRoot . '/admin/' . $relativeLogName;
+
+        $home = dirname($docRoot);
         $host = !empty($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'thepantheonwars.com';
-        $candidates[] = dirname($docRoot) . '/logs/' . $host;
-        $candidates[] = dirname($docRoot) . '/logs/' . preg_replace('/^www\./', '', $host);
+        $bareHost = preg_replace('/^www\./', '', $host);
+        $candidates[] = $home . '/' . $relativeLogName;
+        $candidates[] = $home . '/logs/' . $host;
+        $candidates[] = $home . '/logs/' . $bareHost;
+        $candidates[] = $home . '/php_errorlog';
     }
+
+    // The directory this very file lives in is also a real candidate --
+    // it's where a bare "error_log" ini setting would land for anything
+    // that errors inside the System Status endpoints themselves.
+    $candidates[] = __DIR__ . '/' . $relativeLogName;
+
     foreach ($candidates as $c) {
         if ($c && is_file($c) && is_readable($c)) {
             return $c;
