@@ -3331,13 +3331,23 @@ footer.site-footer {
 }
 .admin-row:last-child { border-bottom: none; }
 .admin-row:hover { background: rgba(124,79,214,0.08); }
+.admin-row:nth-child(even) { background: rgba(255,255,255,0.02); }
+.admin-row:nth-child(even):hover { background: rgba(124,79,214,0.1); }
+.admin-row:focus-visible { outline: 1px solid var(--purple-bright); outline-offset: -1px; }
 .admin-row-main { flex: 1; min-width: 0; }
 .admin-row-subject {
   font-size: 0.92rem; color: var(--text); margin: 0 0 4px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.admin-row-meta { font-size: 0.72rem; color: var(--text-faint); display: flex; gap: 10px; flex-wrap: wrap; }
+.admin-row-meta { font-size: 0.72rem; color: var(--text-faint); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .admin-row-meta .admin-sha { font-family: monospace; }
+.admin-row-meta .dispatch-entry-tag { padding: 2px 8px; font-size: 0.62rem; }
+.admin-row-github-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-faint); transition: color 0.2s ease;
+}
+.admin-row-github-link svg { width: 13px; height: 13px; }
+.admin-row-github-link:hover { color: var(--gold-bright); }
 .admin-status-badge {
   flex-shrink: 0; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
   padding: 4px 10px; border-radius: 3px; border: 1px solid var(--border);
