@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=64">
+<link rel="stylesheet" href="../css/style.css?v=65">
 </head>
 <body>
 
@@ -29,13 +29,29 @@
     </div>
     <ul class="admin-nav-list admin-nav-list-top">
       <li><button type="button" class="admin-nav-link active" data-section="home">Home</button></li>
-      <li><button type="button" class="admin-nav-link" data-section="audit-log">Audit Log</button></li>
     </ul>
-    <div class="admin-nav-category">Development Dispatches</div>
-    <ul class="admin-nav-list">
-      <li><button type="button" class="admin-nav-link" data-section="dispatch-control">Dispatch Control</button></li>
-      <li><button type="button" class="admin-nav-link" data-section="dispatch-translations">Dispatch Translations</button></li>
-    </ul>
+
+    <div class="admin-nav-category" data-category="dispatches">
+      <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
+        <span>Development Dispatches</span>
+        <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <ul class="admin-nav-list admin-nav-list-collapsible">
+        <li><button type="button" class="admin-nav-link" data-section="dispatch-control">Dispatch Control</button></li>
+        <li><button type="button" class="admin-nav-link" data-section="dispatch-translations">Dispatch Translations</button></li>
+      </ul>
+    </div>
+
+    <div class="admin-nav-category" data-category="system">
+      <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
+        <span>System</span>
+        <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <ul class="admin-nav-list admin-nav-list-collapsible">
+        <li><button type="button" class="admin-nav-link" data-section="audit-log">Audit Log</button></li>
+      </ul>
+    </div>
+
     <div class="admin-back-link"><a href="../dev-dispatches.html">&larr; Back to site</a></div>
   </aside>
 
@@ -255,8 +271,56 @@
   }
 
   navLinks.forEach(function (l) {
-    l.addEventListener('click', function () { showSection(l.getAttribute('data-section')); });
+    l.addEventListener('click', function () {
+      var cat = l.closest('.admin-nav-category');
+      if (cat) setCategoryCollapsed(cat, false);
+      showSection(l.getAttribute('data-section'));
+    });
   });
+
+  // ===== Collapsible sidebar categories =======================================
+  var NAV_COLLAPSE_KEY = 'pw_admin_nav_collapsed';
+  var navCategories = document.querySelectorAll('.admin-nav-category');
+
+  function getCollapsedSet() {
+    try {
+      return JSON.parse(localStorage.getItem(NAV_COLLAPSE_KEY) || '[]');
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveCollapsedSet(ids) {
+    try { localStorage.setItem(NAV_COLLAPSE_KEY, JSON.stringify(ids)); } catch (e) {}
+  }
+
+  function setCategoryCollapsed(cat, collapsed) {
+    var toggle = cat.querySelector('.admin-nav-category-toggle');
+    cat.classList.toggle('is-collapsed', collapsed);
+    if (toggle) toggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+
+    var id = cat.getAttribute('data-category');
+    var ids = getCollapsedSet().filter(function (c) { return c !== id; });
+    if (collapsed) ids.push(id);
+    saveCollapsedSet(ids);
+  }
+
+  (function initNavCollapse() {
+    var collapsedIds = getCollapsedSet();
+    navCategories.forEach(function (cat) {
+      var id = cat.getAttribute('data-category');
+      var toggle = cat.querySelector('.admin-nav-category-toggle');
+      if (collapsedIds.indexOf(id) !== -1) {
+        cat.classList.add('is-collapsed');
+        if (toggle) toggle.setAttribute('aria-expanded', 'false');
+      }
+      if (toggle) {
+        toggle.addEventListener('click', function () {
+          setCategoryCollapsed(cat, !cat.classList.contains('is-collapsed'));
+        });
+      }
+    });
+  })();
 
   var homeViewAllLink = document.getElementById('home-activity-view-all');
   if (homeViewAllLink) {
