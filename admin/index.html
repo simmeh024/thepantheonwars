@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=74">
+<link rel="stylesheet" href="../css/style.css?v=75">
 </head>
 <body>
 
@@ -27,11 +27,11 @@
       <a href="../index.html">The Pantheon Wars</a>
       <span class="admin-brand-sub">Admin Console</span>
     </div>
-    <ul class="admin-nav-list admin-nav-list-top">
+    <ul class="admin-nav-list admin-nav-list-top" data-admin-only="true">
       <li><button type="button" class="admin-nav-link active" data-section="home">Home</button></li>
     </ul>
 
-    <div class="admin-nav-category" data-category="dispatches">
+    <div class="admin-nav-category" data-category="dispatches" data-admin-only="true">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
         <span>Development Dispatches</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -48,11 +48,12 @@
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <ul class="admin-nav-list admin-nav-list-collapsible">
-        <li><button type="button" class="admin-nav-link" data-section="members">Members</button></li>
+        <li data-admin-only="true"><button type="button" class="admin-nav-link" data-section="members">Members</button></li>
+        <li><button type="button" class="admin-nav-link" data-section="topic-reports">Topic Reports</button></li>
       </ul>
     </div>
 
-    <div class="admin-nav-category" data-category="system">
+    <div class="admin-nav-category" data-category="system" data-admin-only="true">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
         <span>System</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -306,6 +307,26 @@
       <div class="admin-pagination" id="member-pagination"></div>
     </section>
 
+    <section class="admin-section" id="section-topic-reports" hidden>
+      <div class="admin-section-head">
+        <h1>Topic Reports</h1>
+        <p>Reports raised by members against forum topics and replies &mdash; review, act, and close them out.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <div class="admin-filter-tabs" id="report-filter-tabs">
+          <button type="button" class="admin-filter-tab active" data-filter="open">Open</button>
+          <button type="button" class="admin-filter-tab" data-filter="resolved">Resolved</button>
+          <button type="button" class="admin-filter-tab" data-filter="all">All</button>
+        </div>
+        <span class="admin-count" id="report-count"></span>
+      </div>
+
+      <div class="admin-list" id="report-list">
+        <div class="admin-list-empty">Loading reports&hellip;</div>
+      </div>
+    </section>
+
   </main>
 
 </div>
@@ -440,7 +461,34 @@
   </div>
 </div>
 
-<script src="../js/members.js?v=3"></script>
+<div class="admin-modal" id="report-action-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner">
+    <button type="button" class="admin-modal-close" id="report-action-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="report-action-modal-title">Action</h3>
+    <p class="admin-modal-sub" id="report-action-modal-sub"></p>
+    <div class="admin-field" id="report-action-board-field" hidden>
+      <label for="report-action-board-select">Move to board</label>
+      <select id="report-action-board-select">
+        <option value="announcements">Announcements</option>
+        <option value="assembly">Assembly</option>
+        <option value="offworld">Offworld</option>
+      </select>
+    </div>
+    <div class="admin-field">
+      <label id="report-action-text-label" for="report-action-text-input">Reason</label>
+      <textarea id="report-action-text-input" maxlength="1000" placeholder="Explain the action you're taking&hellip;"></textarea>
+    </div>
+    <p class="admin-modal-error" id="report-action-modal-error"></p>
+    <p class="admin-modal-status" id="report-action-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="report-action-confirm-btn">Confirm</button>
+      <button type="button" class="btn" id="report-action-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/members.js?v=4"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -486,6 +534,7 @@
       if (name === 'dispatch-control') loadControlList();
       if (name === 'dispatch-translations') loadList();
       if (name === 'members') loadMembers();
+      if (name === 'topic-reports') loadTopicReports();
     }
   }
 
@@ -677,16 +726,256 @@
       });
   }
 
+  // ===== Topic Reports =========================================================
+  var reportListEl = document.getElementById('report-list');
+  var reportCountEl = document.getElementById('report-count');
+  var reportFilterTabs = document.getElementById('report-filter-tabs');
+  var reportActionModal = document.getElementById('report-action-modal');
+  var reportActionModalTitle = document.getElementById('report-action-modal-title');
+  var reportActionModalSub = document.getElementById('report-action-modal-sub');
+  var reportActionBoardField = document.getElementById('report-action-board-field');
+  var reportActionBoardSelect = document.getElementById('report-action-board-select');
+  var reportActionTextLabel = document.getElementById('report-action-text-label');
+  var reportActionTextInput = document.getElementById('report-action-text-input');
+  var reportActionModalError = document.getElementById('report-action-modal-error');
+  var reportActionModalStatus = document.getElementById('report-action-modal-status');
+  var reportActionConfirmBtn = document.getElementById('report-action-confirm-btn');
+  var reportActionCancelBtn = document.getElementById('report-action-cancel-btn');
+  var reportActionCloseBtn = document.getElementById('report-action-modal-close');
+
+  var BOARD_LABELS = { announcements: 'Announcements', assembly: 'Assembly', offworld: 'Offworld' };
+  var reportFilter = 'open';
+  var currentReports = [];
+  var pendingReportAction = null; // { report, action: 'lock'|'move'|'delete'|'resolve' }
+
+  function reportLink(r) {
+    var url = 'community.html?topic=' + encodeURIComponent(r.topic_id);
+    if (r.target_type === 'comment') url += '&comment=' + encodeURIComponent(r.target_id);
+    return url;
+  }
+
+  function loadTopicReports() {
+    reportListEl.innerHTML = '<div class="admin-list-empty">Loading reports&hellip;</div>';
+    fetch('/api/admin/topic-reports/list.php?status=' + encodeURIComponent(reportFilter), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          reportListEl.innerHTML = '<div class="admin-list-empty">Could not load reports.</div>';
+          return;
+        }
+        currentReports = data.reports;
+        reportCountEl.textContent = data.reports.length + (data.reports.length === 1 ? ' report' : ' reports');
+        renderReportList(data.reports);
+      })
+      .catch(function () {
+        reportListEl.innerHTML = '<div class="admin-list-empty">Could not load reports.</div>';
+      });
+  }
+
+  function renderReportList(reports) {
+    if (!reports.length) {
+      reportListEl.innerHTML = '<div class="admin-list-empty">No reports match this filter.</div>';
+      return;
+    }
+    reportListEl.innerHTML = '';
+    reports.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'admin-row report-row';
+
+      var main = document.createElement('div');
+      main.className = 'admin-row-main';
+      main.innerHTML =
+        '<p class="admin-row-subject">' +
+          escapeHtml(r.topic_title) +
+          (r.target_type === 'comment' ? ' <span class="report-type-badge">Reply</span>' : '') +
+          ' <a href="' + reportLink(r) + '" target="_blank" rel="noopener" class="report-view-link">View &rarr;</a>' +
+          (r.target_deleted ? ' <span class="report-deleted-badge">Content deleted</span>' : '') +
+        '</p>' +
+        '<div class="admin-row-meta">' +
+          '<span>by @' + escapeHtml(r.author.username) + '</span>' +
+          '<span class="admin-row-sep">&bull;</span>' +
+          '<span>' + escapeHtml(BOARD_LABELS[r.board] || r.board) + '</span>' +
+          '<span class="admin-row-sep">&bull;</span>' +
+          '<span>' + escapeHtml(fmtDate(r.created_at)) + '</span>' +
+          '<span class="admin-row-sep">&bull;</span>' +
+          '<span class="report-status report-status-' + r.status + '">' + (r.status === 'open' ? 'Open' : 'Resolved') + '</span>' +
+        '</div>' +
+        '<p class="report-reason">Reported by <strong>@' + escapeHtml(r.reporter.username) + '</strong>: &ldquo;' + escapeHtml(r.reason) + '&rdquo;</p>' +
+        (r.status === 'resolved'
+          ? '<p class="report-resolution"><strong>Resolution</strong> (by ' + escapeHtml(r.resolver_username || 'unknown') + ', ' + escapeHtml(fmtDate(r.resolved_at)) + '): ' + escapeHtml(r.resolution) + '</p>'
+          : '');
+      row.appendChild(main);
+
+      var actions = document.createElement('div');
+      actions.className = 'report-row-actions';
+
+      if (!r.target_deleted) {
+        var lockBtn = document.createElement('button');
+        lockBtn.type = 'button';
+        lockBtn.className = 'report-action-btn';
+        lockBtn.textContent = r.is_locked ? 'Unlock' : 'Lock';
+        lockBtn.addEventListener('click', function () { openReportActionModal(r, 'lock'); });
+        actions.appendChild(lockBtn);
+
+        var moveBtn = document.createElement('button');
+        moveBtn.type = 'button';
+        moveBtn.className = 'report-action-btn';
+        moveBtn.textContent = 'Move';
+        moveBtn.addEventListener('click', function () { openReportActionModal(r, 'move'); });
+        actions.appendChild(moveBtn);
+
+        var deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'report-action-btn report-action-btn-danger';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.addEventListener('click', function () { openReportActionModal(r, 'delete'); });
+        actions.appendChild(deleteBtn);
+      }
+
+      if (r.status === 'open') {
+        var closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'report-action-btn report-action-btn-close';
+        closeBtn.textContent = 'Close Report';
+        closeBtn.addEventListener('click', function () { openReportActionModal(r, 'resolve'); });
+        actions.appendChild(closeBtn);
+      }
+
+      row.appendChild(actions);
+      reportListEl.appendChild(row);
+    });
+  }
+
+  if (reportFilterTabs) {
+    reportFilterTabs.addEventListener('click', function (e) {
+      var btn = e.target.closest('.admin-filter-tab');
+      if (!btn) return;
+      reportFilterTabs.querySelectorAll('.admin-filter-tab').forEach(function (t) { t.classList.remove('active'); });
+      btn.classList.add('active');
+      reportFilter = btn.getAttribute('data-filter');
+      loadTopicReports();
+    });
+  }
+
+  function openReportActionModal(report, action) {
+    pendingReportAction = { report: report, action: action };
+    reportActionModalError.classList.remove('show');
+    reportActionModalStatus.classList.remove('show');
+    reportActionTextInput.value = '';
+    reportActionBoardField.hidden = action !== 'move';
+    reportActionConfirmBtn.hidden = false;
+    reportActionConfirmBtn.disabled = false;
+
+    if (action === 'lock') {
+      reportActionModalTitle.textContent = report.is_locked ? 'Unlock Topic' : 'Lock Topic';
+      reportActionTextLabel.textContent = 'Reason';
+      reportActionModalSub.textContent = report.topic_title;
+    } else if (action === 'move') {
+      reportActionModalTitle.textContent = 'Move Topic';
+      reportActionTextLabel.textContent = 'Reason';
+      reportActionModalSub.textContent = report.topic_title;
+      reportActionBoardSelect.value = report.board;
+    } else if (action === 'delete') {
+      reportActionModalTitle.textContent = report.target_type === 'topic' ? 'Delete Topic' : 'Delete Reply';
+      reportActionTextLabel.textContent = 'Reason';
+      reportActionModalSub.textContent = report.topic_title;
+    } else {
+      reportActionModalTitle.textContent = 'Close Report';
+      reportActionTextLabel.textContent = 'Resolution';
+      reportActionModalSub.textContent = report.topic_title;
+    }
+
+    reportActionModal.hidden = false;
+    setTimeout(function () { reportActionTextInput.focus(); }, 30);
+  }
+
+  function closeReportActionModal() {
+    reportActionModal.hidden = true;
+    pendingReportAction = null;
+  }
+
+  if (reportActionCloseBtn) reportActionCloseBtn.addEventListener('click', closeReportActionModal);
+  if (reportActionCancelBtn) reportActionCancelBtn.addEventListener('click', closeReportActionModal);
+  if (reportActionModal) {
+    reportActionModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeReportActionModal);
+  }
+
+  if (reportActionConfirmBtn) {
+    reportActionConfirmBtn.addEventListener('click', function () {
+      reportActionModalError.classList.remove('show');
+      if (!pendingReportAction || !window.PW_AUTH.csrf) return;
+      var text = reportActionTextInput.value.trim();
+      if (!text) {
+        reportActionModalError.textContent = pendingReportAction.action === 'resolve'
+          ? 'Enter a resolution before closing this report.'
+          : 'Enter a reason before continuing.';
+        reportActionModalError.classList.add('show');
+        return;
+      }
+
+      var action = pendingReportAction.action;
+      var report = pendingReportAction.report;
+      var url, payload;
+
+      if (action === 'lock') {
+        url = '/api/admin/topic-reports/lock.php';
+        payload = { report_id: report.id, reason: text, csrf: window.PW_AUTH.csrf };
+      } else if (action === 'move') {
+        url = '/api/admin/topic-reports/move.php';
+        payload = { report_id: report.id, board: reportActionBoardSelect.value, reason: text, csrf: window.PW_AUTH.csrf };
+      } else if (action === 'delete') {
+        url = '/api/admin/topic-reports/delete.php';
+        payload = { report_id: report.id, reason: text, csrf: window.PW_AUTH.csrf };
+      } else {
+        url = '/api/admin/topic-reports/resolve.php';
+        payload = { id: report.id, resolution: text, csrf: window.PW_AUTH.csrf };
+      }
+
+      reportActionConfirmBtn.disabled = true;
+      fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        if (!data.ok) {
+          reportActionConfirmBtn.disabled = false;
+          reportActionModalError.textContent = data.error || 'Could not complete that action.';
+          reportActionModalError.classList.add('show');
+          return;
+        }
+        reportActionModalStatus.textContent = 'Done.';
+        reportActionModalStatus.classList.add('show');
+        reportActionConfirmBtn.hidden = true;
+        setTimeout(function () {
+          closeReportActionModal();
+          loadTopicReports();
+        }, 900);
+      }).catch(function () {
+        reportActionConfirmBtn.disabled = false;
+        reportActionModalError.textContent = 'Could not reach the server. Try again in a moment.';
+        reportActionModalError.classList.add('show');
+      });
+    });
+  }
+
   function checkAccess() {
     if (checkedAuth) return;
     checkedAuth = true;
-    if (!window.PW_AUTH.loggedIn || !window.PW_AUTH.user || window.PW_AUTH.user.role !== 'admin') {
+    var role = window.PW_AUTH.loggedIn && window.PW_AUTH.user ? window.PW_AUTH.user.role : null;
+    if (!role || (role !== 'admin' && role !== 'moderator')) {
       window.location.href = '../index.html';
       return;
     }
+    if (role === 'moderator') {
+      // Moderators only get Topic Reports -- everything else in the console
+      // (Home dashboards, Dispatch Control/Translations, Members, Audit Log)
+      // stays admin-only and is removed from the nav entirely.
+      document.querySelectorAll('[data-admin-only]').forEach(function (el) { el.remove(); });
+    }
     gate.hidden = true;
     shell.classList.add('is-ready');
-    showSection('home');
+    showSection(role === 'moderator' ? 'topic-reports' : 'home');
   }
 
   document.addEventListener('pw-auth-ready', checkAccess);
@@ -707,7 +996,12 @@
     member_unbanned: 'Member unbanned',
     member_created: 'Member created',
     member_deleted: 'Member deleted',
-    member_avatar_reset: 'Avatar reset'
+    member_avatar_reset: 'Avatar reset',
+    topic_locked: 'Topic locked',
+    topic_unlocked: 'Topic unlocked',
+    topic_moved: 'Topic moved',
+    report_content_deleted: 'Reported content deleted',
+    report_resolved: 'Report closed'
   };
   var ACTIVITY_ICONS = {
     login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
@@ -720,7 +1014,12 @@
     member_unbanned: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>',
     member_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>',
     member_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
-    member_avatar_reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>'
+    member_avatar_reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>',
+    topic_locked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+    topic_unlocked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 7-2.6"/></svg>',
+    topic_moved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h11a4 4 0 0 1 4 4v1"/><path d="M16 21l4-4-4-4"/><path d="M20 17H9a4 4 0 0 1-4-4v-1"/></svg>',
+    report_content_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
+    report_resolved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>'
   };
 
   var homeActivityListEl = document.getElementById('home-activity-list');
@@ -1231,6 +1530,7 @@
     if (!modal.hidden) closeModal();
     if (!controlModal.hidden) closeControlModal();
     if (!memberModal.hidden) closeMemberModal();
+    if (reportActionModal && !reportActionModal.hidden) closeReportActionModal();
   });
 
   saveBtn.addEventListener('click', function () {

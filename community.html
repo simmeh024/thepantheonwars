@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=74">
+<link rel="stylesheet" href="css/style.css?v=75">
 </head>
 <body>
 
@@ -227,8 +227,27 @@
   </div>
 </footer>
 
+<div class="auth-modal" id="report-modal" hidden>
+  <div class="auth-modal-backdrop"></div>
+  <div class="auth-modal-inner">
+    <button type="button" class="auth-modal-close" id="report-modal-close" aria-label="Close">&times;</button>
+    <h3 class="auth-modal-title">Report this</h3>
+    <p class="report-modal-sub" id="report-modal-sub"></p>
+    <div class="auth-field">
+      <label for="report-reason-input">Why are you reporting this?</label>
+      <textarea id="report-reason-input" maxlength="1000" placeholder="Tell the moderators what's wrong with this post&hellip;"></textarea>
+    </div>
+    <p class="auth-error" id="report-modal-error"></p>
+    <p class="report-modal-status" id="report-modal-status"></p>
+    <div class="report-modal-actions">
+      <button type="button" class="btn btn-solid" id="report-modal-submit">Submit Report</button>
+      <button type="button" class="btn" id="report-modal-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/main.js?v=1"></script>
-<script src="js/members.js?v=3"></script>
+<script src="js/members.js?v=4"></script>
 <script>
 (function () {
   var BOARDS = [
@@ -1196,7 +1215,8 @@
 
   var MSG_ICONS = {
     quote: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.17 6.1C4.9 8 3.5 10.5 3.5 13.2c0 2.6 1.7 4.4 3.9 4.4 1.9 0 3.3-1.4 3.3-3.2 0-1.7-1.2-3-2.8-3-.3 0-.6 0-.8.1.3-1.6 1.5-3.2 3.1-4.3L7.17 6.1zm9 0c-2.3 1.9-3.7 4.4-3.7 7.1 0 2.6 1.7 4.4 3.9 4.4 1.9 0 3.3-1.4 3.3-3.2 0-1.7-1.2-3-2.8-3-.3 0-.6 0-.8.1.3-1.6 1.5-3.2 3.1-4.3L16.17 6.1z"/></svg>',
-    like: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11v9H4v-9h3z"/><path d="M7 11l3.4-6.8c.9 0 2.1.7 2.1 2.3V9h4.7c1.1 0 1.8.9 1.6 1.9l-1.2 5.8c-.2 1-1.1 1.7-2.1 1.7H7"/></svg>'
+    like: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11v9H4v-9h3z"/><path d="M7 11l3.4-6.8c.9 0 2.1.7 2.1 2.3V9h4.7c1.1 0 1.8.9 1.6 1.9l-1.2 5.8c-.2 1-1.1 1.7-2.1 1.7H7"/></svg>',
+    report: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="7.5" x2="12" y2="13"/><line x1="12" y1="16.3" x2="12" y2="16.4"/></svg>'
   };
 
   // "<Name> wrote on <full weekday> <day> <month> <year> @ <H:MM>:" -- used
@@ -1264,9 +1284,102 @@
     }
     wrap.appendChild(likeBtn);
 
+    var reportBtn = document.createElement('button');
+    reportBtn.type = 'button';
+    reportBtn.className = 'msg-header-btn msg-report-btn';
+    reportBtn.innerHTML = MSG_ICONS.report;
+    reportBtn.setAttribute('aria-label', 'Report this message');
+    reportBtn.setAttribute('title', 'Report');
+    if (window.PW_AUTH.loggedIn) {
+      reportBtn.addEventListener('click', function () { openReportModal(ctx.kind, ctx.id); });
+    } else {
+      reportBtn.classList.add('auth-trigger');
+      reportBtn.setAttribute('data-tab', 'login');
+    }
+    wrap.appendChild(reportBtn);
+
     wrap.appendChild(buildModMenu(ctx));
 
     return wrap;
+  }
+
+  // ---------- Report modal ----------
+  var reportModal = document.getElementById('report-modal');
+  var reportModalSub = document.getElementById('report-modal-sub');
+  var reportReasonInput = document.getElementById('report-reason-input');
+  var reportModalError = document.getElementById('report-modal-error');
+  var reportModalStatus = document.getElementById('report-modal-status');
+  var reportSubmitBtn = document.getElementById('report-modal-submit');
+  var reportCancelBtn = document.getElementById('report-modal-cancel');
+  var reportCloseBtn = document.getElementById('report-modal-close');
+  var reportTarget = null; // { kind, id }
+
+  function openReportModal(kind, id) {
+    reportTarget = { kind: kind, id: id };
+    reportModalSub.textContent = kind === 'topic'
+      ? 'Reporting this topic. Moderators will review it shortly.'
+      : 'Reporting this reply. Moderators will review it shortly.';
+    reportReasonInput.value = '';
+    reportModalError.classList.remove('show');
+    reportModalStatus.classList.remove('show');
+    reportSubmitBtn.hidden = false;
+    reportSubmitBtn.disabled = false;
+    reportModal.hidden = false;
+    setTimeout(function () { reportReasonInput.focus(); }, 30);
+  }
+
+  function closeReportModal() {
+    reportModal.hidden = true;
+    reportTarget = null;
+  }
+
+  if (reportCloseBtn) reportCloseBtn.addEventListener('click', closeReportModal);
+  if (reportCancelBtn) reportCancelBtn.addEventListener('click', closeReportModal);
+  if (reportModal) {
+    reportModal.querySelector('.auth-modal-backdrop').addEventListener('click', closeReportModal);
+  }
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && reportModal && !reportModal.hidden) closeReportModal();
+  });
+
+  if (reportSubmitBtn) {
+    reportSubmitBtn.addEventListener('click', function () {
+      reportModalError.classList.remove('show');
+      var reason = reportReasonInput.value.trim();
+      if (!reason) {
+        reportModalError.textContent = "Tell us why you're reporting this.";
+        reportModalError.classList.add('show');
+        return;
+      }
+      if (!reportTarget || !window.PW_AUTH.csrf) return;
+      reportSubmitBtn.disabled = true;
+      fetch('/api/reports/create.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          target_type: reportTarget.kind,
+          target_id: reportTarget.id,
+          reason: reason,
+          csrf: window.PW_AUTH.csrf,
+        }),
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        if (!data.ok) {
+          reportSubmitBtn.disabled = false;
+          reportModalError.textContent = data.error || 'Could not submit that report.';
+          reportModalError.classList.add('show');
+          return;
+        }
+        reportModalStatus.textContent = 'Thanks -- this has been sent to the moderators.';
+        reportModalStatus.classList.add('show');
+        reportSubmitBtn.hidden = true;
+        setTimeout(closeReportModal, 1600);
+      }).catch(function () {
+        reportSubmitBtn.disabled = false;
+        reportModalError.textContent = 'Could not reach the server. Try again in a moment.';
+        reportModalError.classList.add('show');
+      });
+    });
   }
 
   function sendLike(kind, id, btnEl) {
@@ -1356,6 +1469,7 @@
   function renderComment(c, depthClass) {
     var el = document.createElement('div');
     el.className = 'comment-item' + (depthClass ? ' ' + depthClass : '') + ' has-msg-actions';
+    el.id = 'comment-' + c.id;
 
     el.appendChild(buildCommentProfile(c));
 
@@ -1559,6 +1673,12 @@
     return wrapper;
   }
 
+  // Set from the ?comment=ID URL param on boot (see the deep-link IIFE near
+  // the bottom of this script) and consumed the first time loadFeed()
+  // renders a matching comment, so a report link from the admin console
+  // actually scrolls to and highlights the reported reply.
+  var pendingDeepLinkCommentId = null;
+
   function loadFeed() {
     if (!currentTopicId) return;
     fetch('/api/comments/list.php?topic_id=' + encodeURIComponent(currentTopicId), { credentials: 'same-origin' })
@@ -1579,6 +1699,18 @@
         (byParent.root || []).forEach(function (c) {
           feed.appendChild(buildThread(c, byParent, null));
         });
+        if (pendingDeepLinkCommentId) {
+          var targetId = pendingDeepLinkCommentId;
+          pendingDeepLinkCommentId = null;
+          var targetEl = document.getElementById('comment-' + targetId);
+          if (targetEl) {
+            setTimeout(function () {
+              targetEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              targetEl.classList.add('comment-highlight');
+              setTimeout(function () { targetEl.classList.remove('comment-highlight'); }, 2600);
+            }, 60);
+          }
+        }
       });
   }
 
@@ -1720,8 +1852,23 @@
     });
   });
 
-  showView('index');
-  loadBoardIndex();
+  // ---------- Deep link: ?topic=ID[&comment=ID] ----------
+  // Used by the admin console's Topic Reports page so a report's "View"
+  // link actually opens the reported topic (and, for a reply, scrolls to
+  // and highlights that specific comment) instead of just landing on the
+  // board index.
+  (function initDeepLink() {
+    var params = new URLSearchParams(window.location.search);
+    var topicParam = parseInt(params.get('topic'), 10);
+    if (topicParam > 0) {
+      var commentParam = parseInt(params.get('comment'), 10);
+      if (commentParam > 0) pendingDeepLinkCommentId = commentParam;
+      goToTopic(topicParam);
+      return;
+    }
+    showView('index');
+    loadBoardIndex();
+  })();
   loadLeaderboard();
   loadPopularTopics();
 })();

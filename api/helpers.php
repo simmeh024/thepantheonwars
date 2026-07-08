@@ -102,6 +102,16 @@ function pw_require_admin() {
     return $user;
 }
 
+// Used by the Topic Reports section of the admin console, which moderators
+// can also access (unlike the rest of the console, which stays admin-only).
+function pw_require_mod_or_admin() {
+    $user = pw_require_login();
+    if (!in_array($user['role'], ['admin', 'moderator'], true)) {
+        pw_error('Moderators and admins only.', 403);
+    }
+    return $user;
+}
+
 // --- Admin activity log ---------------------------------------------------
 function pw_client_ip() {
     foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $key) {

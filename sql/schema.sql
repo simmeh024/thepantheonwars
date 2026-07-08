@@ -105,6 +105,29 @@ CREATE TABLE IF NOT EXISTS repo_language_snapshots (
   KEY idx_captured_at (captured_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Reports raised by members against a topic or a reply, reviewed by
+-- moderators/admins on the admin console's Topic Reports page. resolution
+-- is filled in when a mod closes the report; resolved_by/resolved_at record
+-- who closed it and when. Quick actions taken from that page (lock/move the
+-- topic, delete the topic or comment) are separate operations logged to
+-- admin_activity_log -- they don't automatically close the report.
+CREATE TABLE IF NOT EXISTS content_reports (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  target_type ENUM('topic','comment') NOT NULL,
+  target_id INT UNSIGNED NOT NULL,
+  reporter_user_id INT UNSIGNED NOT NULL,
+  reason VARCHAR(1000) NOT NULL,
+  status ENUM('open','resolved') NOT NULL DEFAULT 'open',
+  resolution VARCHAR(1000) DEFAULT NULL,
+  resolved_by INT UNSIGNED DEFAULT NULL,
+  resolved_at DATETIME DEFAULT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_status (status),
+  KEY idx_target (target_type, target_id),
+  CONSTRAINT fk_content_reports_reporter FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_content_reports_resolver FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS message_likes (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   target_type ENUM('topic','comment') NOT NULL,
