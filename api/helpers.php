@@ -70,3 +70,11 @@ function pw_require_login() {
     }
     return $user;
 }
+
+function pw_require_admin() {
+    $user = pw_require_login();
+    if ($user['role'] !== 'admin') {
+        pw_error('Admins only.', 403);
+    }
+    return $user;
+}

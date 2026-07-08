@@ -57,7 +57,8 @@ $offset = ($page - 1) * $perPage;
 $stmt = $db->prepare(
     'SELECT d.id, d.sha, d.subject, d.body, d.tag, d.author, d.committed_at, d.url,
             COALESCE(rc.like_count, 0) AS like_count,
-            COALESCE(rc.dislike_count, 0) AS dislike_count
+            COALESCE(rc.dislike_count, 0) AS dislike_count,
+            (dt.id IS NOT NULL) AS has_translation
      FROM dispatch_entries d
      LEFT JOIN (
        SELECT dispatch_id,
@@ -66,6 +67,7 @@ $stmt = $db->prepare(
        FROM dispatch_reactions
        GROUP BY dispatch_id
      ) rc ON rc.dispatch_id = d.id
+     LEFT JOIN dispatch_translations dt ON dt.dispatch_id = d.id
      ' . $whereSql . '
      ORDER BY d.committed_at DESC, d.id DESC
      LIMIT :limit OFFSET :offset'
@@ -106,6 +108,7 @@ $out = array_map(function ($r) use ($myReactions) {
         'like_count' => (int)$r['like_count'],
         'dislike_count' => (int)$r['dislike_count'],
         'my_reaction' => isset($myReactions[(int)$r['id']]) ? $myReactions[(int)$r['id']] : null,
+        'has_translation' => (bool)$r['has_translation'],
     ];
 }, $rows);
 

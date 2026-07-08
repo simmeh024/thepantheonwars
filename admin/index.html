@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Console — The Pantheon Wars</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+<link rel="icon" type="image/svg+xml" href="../favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" href="../favicon.ico">
+<link rel="stylesheet" href="../css/style.css?v=51">
+</head>
+<body>
+
+<div class="admin-gate" id="admin-gate">Checking access&hellip;</div>
+
+<div class="admin-shell" id="admin-shell">
+
+  <main class="admin-main">
+
+    <section class="admin-section" id="section-dispatch-translations">
+      <div class="admin-section-head">
+        <h1>Dispatch Translations</h1>
+        <p>End-user translations for development dispatches. Entries with a translation show a BH-4 badge on the public Development Dispatches page.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <div class="admin-filter-tabs" id="admin-filter-tabs">
+          <button type="button" class="admin-filter-tab active" data-filter="all">All</button>
+          <button type="button" class="admin-filter-tab" data-filter="translated">Translated</button>
+          <button type="button" class="admin-filter-tab" data-filter="untranslated">Untranslated</button>
+        </div>
+        <input type="text" class="admin-search" id="admin-search" placeholder="Search subject or SHA&hellip;">
+        <span class="admin-count" id="admin-count"></span>
+      </div>
+
+      <div class="admin-list" id="admin-list">
+        <div class="admin-list-empty">Loading dispatches&hellip;</div>
+      </div>
+    </section>
+
+  </main>
+
+  <aside class="admin-sidebar">
+    <div class="admin-brand">
+      <a href="../index.html">The Pantheon Wars</a>
+      <span class="admin-brand-sub">Admin Console</span>
+    </div>
+    <ul class="admin-nav-list">
+      <li><button type="button" class="admin-nav-link active" data-section="dispatch-translations">Dispatch Translations</button></li>
+    </ul>
+    <div class="admin-back-link"><a href="../dev-dispatches.html">&larr; Back to site</a></div>
+  </aside>
+
+</div>
+
+<div class="admin-modal" id="admin-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner">
+    <button type="button" class="admin-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="admin-modal-title">Edit Translation</h3>
+    <p class="admin-modal-sub" id="admin-modal-sub"></p>
+    <div class="admin-field">
+      <label for="admin-translation-text">End-user translation</label>
+      <textarea id="admin-translation-text" maxlength="5000" placeholder="Plain-language explanation of this dispatch for players&hellip;"></textarea>
+    </div>
+    <p class="admin-modal-error" id="admin-modal-error"></p>
+    <p class="admin-modal-status" id="admin-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="admin-save-btn">Save</button>
+      <button type="button" class="btn" id="admin-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="admin-delete-btn" hidden>Delete Translation</button>
+    </div>
+  </div>
+</div>
+
+<script src="../js/members.js?v=3"></script>
+<script>
+(function () {
+  var gate = document.getElementById('admin-gate');
+  var shell = document.getElementById('admin-shell');
+  var listEl = document.getElementById('admin-list');
+  var countEl = document.getElementById('admin-count');
+  var searchEl = document.getElementById('admin-search');
+  var filterTabs = document.getElementById('admin-filter-tabs');
+  var modal = document.getElementById('admin-modal');
+  var modalTitle = document.getElementById('admin-modal-title');
+  var modalSub = document.getElementById('admin-modal-sub');
+  var textarea = document.getElementById('admin-translation-text');
+  var modalError = document.getElementById('admin-modal-error');
+  var modalStatus = document.getElementById('admin-modal-status');
+  var saveBtn = document.getElementById('admin-save-btn');
+  var cancelBtn = document.getElementById('admin-cancel-btn');
+  var closeBtn = document.querySelector('.admin-modal-close');
+  var deleteBtn = document.getElementById('admin-delete-btn');
+
+  var currentFilter = 'all';
+  var currentQuery = '';
+  var currentEntry = null;
+  var searchDebounce = null;
+  var checkedAuth = false;
+
+  function escapeHtml(s) {
+    var div = document.createElement('div');
+    div.textContent = s == null ? '' : String(s);
+    return div.innerHTML;
+  }
+
+  function fmtDate(iso) {
+    var d = new Date((iso || '').replace(' ', 'T'));
+    if (isNaN(d.getTime())) return iso || '';
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function checkAccess() {
+    if (checkedAuth) return;
+    checkedAuth = true;
+    if (!window.PW_AUTH.loggedIn || !window.PW_AUTH.user || window.PW_AUTH.user.role !== 'admin') {
+      window.location.href = '../index.html';
+      return;
+    }
+    gate.hidden = true;
+    shell.classList.add('is-ready');
+    loadList();
+  }
+
+  document.addEventListener('pw-auth-ready', checkAccess);
+  // Fallback in case the event already fired before this listener attached,
+  // or never fires (network failure) — refreshAuthNav's own .catch() still
+  // leaves PW_AUTH in its default logged-out state, so this will redirect.
+  setTimeout(checkAccess, 4000);
+
+  function buildUrl() {
+    var params = new URLSearchParams();
+    params.set('filter', currentFilter);
+    if (currentQuery) params.set('q', currentQuery);
+    return '/api/admin/dispatch-translations/list.php?' + params.toString();
+  }
+
+  function loadList() {
+    listEl.innerHTML = '<div class="admin-list-empty">Loading dispatches&hellip;</div>';
+    fetch(buildUrl(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          listEl.innerHTML = '<div class="admin-list-empty">Could not load dispatches.</div>';
+          return;
+        }
+        renderList(data.entries || []);
+      })
+      .catch(function () {
+        listEl.innerHTML = '<div class="admin-list-empty">Could not load dispatches.</div>';
+      });
+  }
+
+  function renderList(entries) {
+    countEl.textContent = entries.length + (entries.length === 1 ? ' dispatch' : ' dispatches');
+    if (!entries.length) {
+      listEl.innerHTML = '<div class="admin-list-empty">No dispatches match this filter.</div>';
+      return;
+    }
+    listEl.innerHTML = '';
+    entries.forEach(function (entry) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'admin-row';
+      row.innerHTML =
+        '<div class="admin-row-main">' +
+          '<p class="admin-row-subject">' + escapeHtml(entry.subject) + '</p>' +
+          '<div class="admin-row-meta">' +
+            '<span class="admin-sha">' + escapeHtml(entry.short_sha) + '</span>' +
+            '<span>' + escapeHtml(entry.tag) + '</span>' +
+            '<span>' + escapeHtml(fmtDate(entry.committed_at)) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<span class="admin-status-badge' + (entry.has_translation ? ' is-translated' : '') + '">' +
+          (entry.has_translation ? 'Translated' : 'Not translated') +
+        '</span>';
+      row.addEventListener('click', function () { openModal(entry); });
+      listEl.appendChild(row);
+    });
+  }
+
+  function openModal(entry) {
+    currentEntry = entry;
+    modalTitle.textContent = 'Edit Translation';
+    modalSub.innerHTML = escapeHtml(entry.subject) + ' &mdash; <span class="admin-sha">' + escapeHtml(entry.short_sha) + '</span>';
+    textarea.value = entry.translation || '';
+    modalError.classList.remove('show');
+    modalStatus.classList.remove('show');
+    deleteBtn.hidden = !entry.has_translation;
+    modal.hidden = false;
+    setTimeout(function () { textarea.focus(); }, 30);
+  }
+
+  function closeModal() {
+    modal.hidden = true;
+    currentEntry = null;
+  }
+
+  closeBtn.addEventListener('click', closeModal);
+  cancelBtn.addEventListener('click', closeModal);
+  modal.querySelector('.admin-modal-backdrop').addEventListener('click', closeModal);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && !modal.hidden) closeModal();
+  });
+
+  saveBtn.addEventListener('click', function () {
+    if (!currentEntry) return;
+    var text = textarea.value.trim();
+    if (!text) {
+      modalError.textContent = 'Translation text can\'t be empty.';
+      modalError.classList.add('show');
+      return;
+    }
+    modalError.classList.remove('show');
+    saveBtn.disabled = true;
+    fetch('/api/admin/dispatch-translations/save.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dispatch_id: currentEntry.id, translation: text, csrf: window.PW_AUTH.csrf }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        saveBtn.disabled = false;
+        if (!data.ok) {
+          modalError.textContent = data.error || 'Could not save translation.';
+          modalError.classList.add('show');
+          return;
+        }
+        modalStatus.textContent = 'Saved.';
+        modalStatus.classList.add('show');
+        loadList();
+        setTimeout(closeModal, 700);
+      })
+      .catch(function () {
+        saveBtn.disabled = false;
+        modalError.textContent = 'Could not save translation. Please try again.';
+        modalError.classList.add('show');
+      });
+  });
+
+  deleteBtn.addEventListener('click', function () {
+    if (!currentEntry) return;
+    if (!window.confirm('Delete this translation?')) return;
+    fetch('/api/admin/dispatch-translations/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dispatch_id: currentEntry.id, csrf: window.PW_AUTH.csrf }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          modalError.textContent = data.error || 'Could not delete translation.';
+          modalError.classList.add('show');
+          return;
+        }
+        loadList();
+        closeModal();
+      })
+      .catch(function () {
+        modalError.textContent = 'Could not delete translation. Please try again.';
+        modalError.classList.add('show');
+      });
+  });
+
+  filterTabs.addEventListener('click', function (e) {
+    var btn = e.target.closest('.admin-filter-tab');
+    if (!btn) return;
+    filterTabs.querySelectorAll('.admin-filter-tab').forEach(function (t) { t.classList.remove('active'); });
+    btn.classList.add('active');
+    currentFilter = btn.getAttribute('data-filter');
+    loadList();
+  });
+
+  searchEl.addEventListener('input', function () {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(function () {
+      currentQuery = searchEl.value.trim();
+      loadList();
+    }, 300);
+  });
+})();
+</script>
+
+</body>
+</html>

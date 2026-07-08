@@ -111,3 +111,15 @@ CREATE TABLE IF NOT EXISTS message_likes (
   KEY idx_target (target_type, target_id),
   CONSTRAINT fk_message_likes_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS dispatch_translations (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  dispatch_id INT UNSIGNED NOT NULL,
+  sha VARCHAR(40) NOT NULL,
+  translation TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_dispatch_id (dispatch_id),
+  KEY idx_sha (sha),
+  CONSTRAINT fk_dispatch_translations_dispatch FOREIGN KEY (dispatch_id) REFERENCES dispatch_entries(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
