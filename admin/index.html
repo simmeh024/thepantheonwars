@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=71">
+<link rel="stylesheet" href="../css/style.css?v=72">
 </head>
 <body>
 
@@ -107,6 +107,37 @@
             <li class="pending-work-row" id="pending-work-translations-row">
               <span class="pending-work-label">Dispatches awaiting translation</span>
               <span class="pending-work-count" id="pending-work-translations-count">&hellip;</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="activity-widget admin-home-grid-side">
+          <div class="activity-widget-head">
+            <div class="activity-widget-title activity-widget-title-metrics">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20V10"/><path d="M12 20V4"/><path d="M7 20v-6"/></svg>
+              <span>Community Metrics</span>
+            </div>
+          </div>
+          <ul class="pending-work-list" id="community-metrics-list">
+            <li class="pending-work-row">
+              <span class="pending-work-label">Members<span class="pending-work-sublabel">Last active last 24 hrs</span></span>
+              <span class="pending-work-count" id="community-metrics-members-count">&hellip;</span>
+            </li>
+            <li class="pending-work-row">
+              <span class="pending-work-label">Current banned users<span class="pending-work-sublabel">Banned last 24 hrs</span></span>
+              <span class="pending-work-count" id="community-metrics-banned-count">&hellip;</span>
+            </li>
+            <li class="pending-work-row">
+              <span class="pending-work-label">Admins<span class="pending-work-sublabel">Last active last 24 hrs</span></span>
+              <span class="pending-work-count" id="community-metrics-admins-count">&hellip;</span>
+            </li>
+            <li class="pending-work-row">
+              <span class="pending-work-label">Moderators<span class="pending-work-sublabel">Last active last 24 hrs</span></span>
+              <span class="pending-work-count" id="community-metrics-moderators-count">&hellip;</span>
+            </li>
+            <li class="pending-work-row">
+              <span class="pending-work-label">Forum posts<span class="pending-work-sublabel">New posts last 24 hrs</span></span>
+              <span class="pending-work-count" id="community-metrics-posts-count">&hellip;</span>
             </li>
           </ul>
         </div>
@@ -386,7 +417,7 @@
     sections.forEach(function (s) { s.hidden = (s.id !== 'section-' + name); });
     if (!loadedSections[name]) {
       loadedSections[name] = true;
-      if (name === 'home') { loadHomeActivity(); loadPendingWork(); }
+      if (name === 'home') { loadHomeActivity(); loadPendingWork(); loadCommunityMetrics(); }
       if (name === 'audit-log') loadAuditLog();
       if (name === 'dispatch-control') loadControlList();
       if (name === 'dispatch-translations') loadList();
@@ -481,6 +512,37 @@
       });
       loadList();
     });
+  }
+
+  // ===== Home / Community Metrics =============================================
+  var communityMembersCountEl = document.getElementById('community-metrics-members-count');
+  var communityBannedCountEl = document.getElementById('community-metrics-banned-count');
+  var communityAdminsCountEl = document.getElementById('community-metrics-admins-count');
+  var communityModeratorsCountEl = document.getElementById('community-metrics-moderators-count');
+  var communityPostsCountEl = document.getElementById('community-metrics-posts-count');
+
+  function setMetricCount(el, value) {
+    if (!el) return;
+    el.textContent = value;
+    el.classList.toggle('is-zero', value === 0);
+  }
+
+  function loadCommunityMetrics() {
+    fetch('/api/admin/community-metrics/summary.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        setMetricCount(communityMembersCountEl, data.members_active_24h);
+        setMetricCount(communityBannedCountEl, data.banned_24h);
+        setMetricCount(communityAdminsCountEl, data.admins_active_24h);
+        setMetricCount(communityModeratorsCountEl, data.moderators_active_24h);
+        setMetricCount(communityPostsCountEl, data.forum_posts_24h);
+      })
+      .catch(function () {
+        [communityMembersCountEl, communityBannedCountEl, communityAdminsCountEl, communityModeratorsCountEl, communityPostsCountEl].forEach(function (el) {
+          if (el) el.textContent = '—';
+        });
+      });
   }
 
   function checkAccess() {

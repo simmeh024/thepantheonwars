@@ -3456,6 +3456,7 @@ footer.site-footer {
 .admin-home-grid-side { flex: 1 1 260px; min-width: 220px; }
 
 .activity-widget-title-pending svg { color: var(--gold-bright); }
+.activity-widget-title-metrics svg { color: #45d1c9; }
 
 .pending-work-list { list-style: none; margin: 0; padding: 8px; }
 .pending-work-row {
@@ -3465,6 +3466,10 @@ footer.site-footer {
 .pending-work-row:hover { background: rgba(124,79,214,0.08); }
 .pending-work-label {
   font-family: 'Jost', sans-serif; font-size: 0.82rem; color: var(--purple-bright);
+  display: flex; flex-direction: column; gap: 2px;
+}
+.pending-work-sublabel {
+  font-family: 'Jost', sans-serif; font-size: 0.68rem; color: var(--text-faint); text-transform: none;
 }
 .pending-work-count {
   flex-shrink: 0; min-width: 24px; text-align: center;
@@ -3473,6 +3478,11 @@ footer.site-footer {
   background: rgba(124,79,214,0.22); color: var(--purple-bright);
 }
 .pending-work-count.is-zero { background: rgba(255,255,255,0.05); color: var(--text-faint); }
+
+#community-metrics-list.pending-work-list .pending-work-row { cursor: default; }
+#community-metrics-list.pending-work-list .pending-work-row:hover { background: none; }
+#community-metrics-list .pending-work-count { background: rgba(69,209,201,0.18); color: #45d1c9; }
+#community-metrics-list .pending-work-count.is-zero { background: rgba(255,255,255,0.05); color: var(--text-faint); }
 
 .activity-refresh-btn {
   display: inline-flex; align-items: center; gap: 7px;
@@ -3610,8 +3620,8 @@ footer.site-footer {
   text-transform: uppercase; letter-spacing: 0.07em; border: 1px solid currentColor; white-space: nowrap;
 }
 .member-role-badge.role-member { color: var(--text-faint); }
-.member-role-badge.role-moderator { color: #45d1c9; }
-.member-role-badge.role-admin { color: var(--gold-bright); }
+.member-role-badge.role-moderator { color: #4caf6e; }
+.member-role-badge.role-admin { color: #d1483f; }
 .member-banned-badge {
   flex-shrink: 0; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.06em;
   padding: 3px 10px; border-radius: 3px; border: 1px solid #e05a4a; color: #e05a4a; white-space: nowrap;
