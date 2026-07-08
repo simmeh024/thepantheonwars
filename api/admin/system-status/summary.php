@@ -1,7 +1,9 @@
 <?php
 /**
  * Feeds the "System Status" card next to the BH-4 welcome card on the admin
- * Home page. Reports four independent signals:
+ * Home page. Every item below reports a normalized status of ok/warn/bad/
+ * unknown (used by the frontend to color the value green/gold/red) plus a
+ * human label. Six signals:
  *
  *  - GitHub Repository: a live HTTP call to the GitHub REST API for the
  *    latest commit on main. If it responds 200, the repo is reachable; we
@@ -18,14 +20,21 @@
  *    always match since every push fires the webhook immediately -- a
  *    mismatch means the webhook missed a push and a manual Re-Sync
  *    (Dispatch Control > Re-Sync) is needed to catch up.
+ *  - Site Errors: count of "critical" (Fatal/Parse/Uncaught) PHP error log
+ *    entries in the last 24 hours. Links through to the full System Status
+ *    page for the complete log. See status-helpers.php for the log
+ *    locate/tail/parse logic -- the exact log path varies by hosting setup.
+ *  - Avatar Storage: total bytes under uploads/avatars against a 5 GiB soft
+ *    budget (see status-helpers.php for the thresholds).
  */
 require_once __DIR__ . '/../../helpers.php';
+require_once __DIR__ . '/status-helpers.php';
 
 pw_require_admin();
 $db = pw_db();
 
 // --- GitHub Repository -------------------------------------------------------
-$githubStatus = 'error';
+$githubStatus = 'bad';
 $githubLabel = 'Unreachable';
 $latestGithubSha = null;
 
@@ -46,29 +55,29 @@ curl_close($ch);
 if ($response !== false && $httpCode === 200) {
     $data = json_decode($response, true);
     if (is_array($data) && !empty($data['sha'])) {
-        $githubStatus = 'connected';
+        $githubStatus = 'ok';
         $githubLabel = 'Connected';
         $latestGithubSha = $data['sha'];
     }
 }
 
 // --- Database -----------------------------------------------------------------
-$dbStatus = 'healthy';
+$dbStatus = 'ok';
 $dbLabel = 'Healthy';
 try {
     $db->query('SELECT 1');
 } catch (Exception $e) {
-    $dbStatus = 'error';
+    $dbStatus = 'bad';
     $dbLabel = 'Unreachable';
 }
 
 // --- Forum ----------------------------------------------------------------------
-$forumStatus = 'online';
+$forumStatus = 'ok';
 $forumLabel = 'Online';
 try {
     $db->query('SELECT COUNT(*) FROM topics');
 } catch (Exception $e) {
-    $forumStatus = 'error';
+    $forumStatus = 'bad';
     $forumLabel = 'Offline';
 }
 
@@ -78,19 +87,33 @@ $dispatchSyncLabel = 'Unknown';
 try {
     $localRow = $db->query('SELECT sha FROM dispatch_entries ORDER BY id DESC LIMIT 1')->fetch();
     $localSha = $localRow ? $localRow['sha'] : null;
-    if ($githubStatus === 'connected' && $latestGithubSha !== null && $localSha !== null) {
+    if ($githubStatus === 'ok' && $latestGithubSha !== null && $localSha !== null) {
         if ($localSha === $latestGithubSha) {
-            $dispatchSyncStatus = 'synced';
+            $dispatchSyncStatus = 'ok';
             $dispatchSyncLabel = 'Synced';
         } else {
-            $dispatchSyncStatus = 'behind';
+            $dispatchSyncStatus = 'warn';
             $dispatchSyncLabel = 'Out of sync';
         }
     }
 } catch (Exception $e) {
-    $dispatchSyncStatus = 'error';
+    $dispatchSyncStatus = 'bad';
     $dispatchSyncLabel = 'Unreachable';
 }
+
+// --- Site Errors ------------------------------------------------------------------
+$errorData = pw_load_error_entries();
+if (!$errorData['available']) {
+    $siteErrorsStatus = 'unknown';
+    $siteErrorsLabel = 'Unavailable';
+} else {
+    $criticalCount = pw_count_recent_critical($errorData['entries'], 24);
+    $siteErrorsStatus = $criticalCount > 0 ? 'bad' : 'ok';
+    $siteErrorsLabel = $criticalCount . ' critical';
+}
+
+// --- Avatar Storage ---------------------------------------------------------------
+$avatarStorage = pw_check_avatar_storage();
 
 pw_json([
     'ok' => true,
@@ -98,5 +121,7 @@ pw_json([
     'database' => ['status' => $dbStatus, 'label' => $dbLabel],
     'forum' => ['status' => $forumStatus, 'label' => $forumLabel],
     'dispatch_sync' => ['status' => $dispatchSyncStatus, 'label' => $dispatchSyncLabel],
+    'site_errors' => ['status' => $siteErrorsStatus, 'label' => $siteErrorsLabel],
+    'avatar_storage' => $avatarStorage,
     'checked_at' => gmdate('c'),
 ]);

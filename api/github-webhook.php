@@ -36,6 +36,24 @@ if (!hash_equals($expected, $signatureHeader)) {
     gh_respond(['ok' => false, 'error' => 'Invalid signature'], 401);
 }
 
+// Record that GitHub reached us -- this is the "Webhook Delivery" signal on
+// the System Status page, independent of whether the repo itself is
+// reachable from our side. Runs for every authenticated call (ping or push)
+// since either one proves delivery is working; failures here shouldn't ever
+// block the actual webhook processing below, so they're swallowed silently.
+try {
+    $settingsDb = pw_db();
+    $settingsStmt = $settingsDb->prepare(
+        "INSERT INTO app_settings (`key`, value) VALUES ('last_webhook_received_at', :v)
+         ON DUPLICATE KEY UPDATE value = :v2, updated_at = CURRENT_TIMESTAMP"
+    );
+    $nowUtc = gmdate('Y-m-d H:i:s');
+    $settingsStmt->execute([':v' => $nowUtc, ':v2' => $nowUtc]);
+} catch (Exception $e) {
+    // app_settings may not exist yet on older deployments -- Webhook Delivery
+    // just shows "Not tracked yet" on the status page until it's migrated in.
+}
+
 $event = isset($_SERVER['HTTP_X_GITHUB_EVENT']) ? $_SERVER['HTTP_X_GITHUB_EVENT'] : '';
 
 if ($event === 'ping') {

@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=82">
+<link rel="stylesheet" href="../css/style.css?v=83">
 </head>
 <body>
 
@@ -59,6 +59,7 @@
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <ul class="admin-nav-list admin-nav-list-collapsible">
+        <li><button type="button" class="admin-nav-link" data-section="system-status">System Status</button></li>
         <li><button type="button" class="admin-nav-link" data-section="audit-log">Audit Log</button></li>
       </ul>
     </div>
@@ -141,6 +142,25 @@
                 Dispatch Sync
               </span>
               <span class="system-status-value" id="system-status-dispatch-sync">&hellip;</span>
+            </li>
+            <li class="system-status-clickable" id="system-status-errors-row" role="button" tabindex="0">
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                Site Errors
+              </span>
+              <span class="system-status-value" id="system-status-errors">&hellip;</span>
+            </li>
+            <li class="system-status-storage-row">
+              <div class="system-status-storage-head">
+                <span class="system-status-item-label">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
+                  Avatar Storage
+                </span>
+                <span class="system-status-storage-value" id="system-status-avatar-value">&hellip;</span>
+              </div>
+              <div class="system-status-storage-bar-track">
+                <div class="system-status-storage-bar-fill" id="system-status-avatar-bar"></div>
+              </div>
             </li>
           </ul>
           <p class="system-status-footer" id="system-status-footer">&nbsp;</p>
@@ -278,6 +298,91 @@
           <p class="site-stats-footnote" id="dev-snapshot-updated">Loading&hellip;</p>
         </div>
       </div>
+    </section>
+
+    <section class="admin-section" id="section-system-status" hidden>
+      <div class="admin-section-head">
+        <h1>System Status</h1>
+        <p>Live diagnostics for the site's connected systems &mdash; GitHub sync, storage, certificates, and PHP error activity.</p>
+      </div>
+
+      <div class="system-status-detail-card" id="system-status-detail-card">
+        <ul class="system-status-list system-status-list-wide">
+          <li>
+            <span class="system-status-item-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-4.3 1.4-4.3-2.5-6-3m12 5v-3.5c0-1 .1-1.4-.5-2 2.8-.3 5.5-1.4 5.5-6a4.6 4.6 0 0 0-1.3-3.2 4.2 4.2 0 0 0-.1-3.2s-1.1-.3-3.5 1.3a12.3 12.3 0 0 0-6.2 0C6.7 3.8 5.6 4.1 5.6 4.1a4.2 4.2 0 0 0-.1 3.2A4.6 4.6 0 0 0 4.2 10.5c0 4.6 2.7 5.7 5.5 6-.6.6-.6 1.2-.5 2V22"/></svg>
+              GitHub Repository
+            </span>
+            <span class="system-status-value" id="sys-detail-github">&hellip;</span>
+          </li>
+          <li>
+            <span class="system-status-item-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+              Webhook Delivery
+            </span>
+            <span class="system-status-value" id="sys-detail-webhook">&hellip;</span>
+          </li>
+          <li>
+            <span class="system-status-item-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 16 14"/></svg>
+              API Rate Limit
+            </span>
+            <span class="system-status-value" id="sys-detail-rate-limit">&hellip;</span>
+          </li>
+          <li>
+            <span class="system-status-item-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.5 15a9 9 0 1 0 2-9.5L1 10"/></svg>
+              Last Sync
+            </span>
+            <span class="system-status-value" id="sys-detail-last-sync">&hellip;</span>
+          </li>
+          <li>
+            <span class="system-status-item-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.5 15a9 9 0 1 1-2-9.5L23 10"/></svg>
+              Next Sync
+            </span>
+            <span class="system-status-value" id="sys-detail-next-sync">&hellip;</span>
+          </li>
+          <li>
+            <span class="system-status-item-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+              SSL Certificate
+            </span>
+            <span class="system-status-value" id="sys-detail-ssl">&hellip;</span>
+          </li>
+        </ul>
+
+        <div class="system-status-storage-row system-status-storage-row-wide">
+          <div class="system-status-storage-head">
+            <span class="system-status-item-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
+              Avatar Storage
+            </span>
+            <span class="system-status-storage-value" id="sys-detail-avatar-value">&hellip;</span>
+          </div>
+          <div class="system-status-storage-bar-track">
+            <div class="system-status-storage-bar-fill" id="sys-detail-avatar-bar"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-toolbar">
+        <button type="button" class="activity-refresh-btn" id="site-errors-refresh-btn" title="Refresh" aria-label="Refresh error log">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <span>Refresh</span>
+        </button>
+        <select class="admin-search admin-tag-select" id="site-errors-filter">
+          <option value="">All entries</option>
+          <option value="critical">Critical only</option>
+        </select>
+        <span class="admin-count" id="site-errors-count"></span>
+      </div>
+
+      <div class="admin-list activity-card-list" id="site-errors-list">
+        <div class="admin-list-empty">Loading error log&hellip;</div>
+      </div>
+
+      <div class="admin-pagination" id="site-errors-pagination"></div>
     </section>
 
     <section class="admin-section" id="section-audit-log" hidden>
@@ -636,6 +741,7 @@
       loadedSections[name] = true;
       if (name === 'home') { loadHomeActivity(); loadPendingWork(); loadCommunityMetrics(); loadSiteStats(); loadDevSnapshotLanguages(); loadBh4Welcome(); loadSystemStatus(); }
       if (name === 'audit-log') loadAuditLog();
+      if (name === 'system-status') { loadSystemStatusDetail(); loadSiteErrors(); }
       if (name === 'dispatch-control') loadControlList();
       if (name === 'dispatch-translations') loadList();
       if (name === 'members') loadMembers();
@@ -824,20 +930,30 @@
   var sysStatusDatabaseEl = document.getElementById('system-status-database');
   var sysStatusForumEl = document.getElementById('system-status-forum');
   var sysStatusDispatchSyncEl = document.getElementById('system-status-dispatch-sync');
+  var sysStatusErrorsEl = document.getElementById('system-status-errors');
+  var sysStatusErrorsRowEl = document.getElementById('system-status-errors-row');
+  var sysStatusAvatarValueEl = document.getElementById('system-status-avatar-value');
+  var sysStatusAvatarBarEl = document.getElementById('system-status-avatar-bar');
   var sysStatusFooterEl = document.getElementById('system-status-footer');
   var sysStatusLastCheckedAt = null;
   var sysStatusTickTimer = null;
 
+  // Normalized backend statuses are always one of ok/warn/bad/unknown --
+  // this just maps that straight onto the matching CSS color class.
   function setSystemStatusValue(el, item) {
     if (!el || !item) return;
     el.textContent = item.label;
-    el.classList.remove('system-status-ok', 'system-status-bad', 'system-status-warn');
-    if (item.status === 'connected' || item.status === 'healthy' || item.status === 'online' || item.status === 'synced') {
-      el.classList.add('system-status-ok');
-    } else if (item.status === 'behind' || item.status === 'unknown') {
-      el.classList.add('system-status-warn');
-    } else {
-      el.classList.add('system-status-bad');
+    el.classList.remove('system-status-ok', 'system-status-bad', 'system-status-warn', 'system-status-unknown');
+    el.classList.add('system-status-' + (item.status || 'unknown'));
+  }
+
+  function setAvatarStorageBar(valueEl, barEl, storage) {
+    if (!storage) return;
+    if (valueEl) valueEl.textContent = storage.used_gb + ' GB / ' + storage.max_gb + ' GB';
+    if (barEl) {
+      barEl.style.width = Math.max(2, storage.pct) + '%';
+      barEl.classList.remove('system-status-bar-ok', 'system-status-bar-warn', 'system-status-bar-bad');
+      barEl.classList.add('system-status-bar-' + (storage.status || 'ok'));
     }
   }
 
@@ -859,6 +975,8 @@
         setSystemStatusValue(sysStatusDatabaseEl, data.database);
         setSystemStatusValue(sysStatusForumEl, data.forum);
         setSystemStatusValue(sysStatusDispatchSyncEl, data.dispatch_sync);
+        setSystemStatusValue(sysStatusErrorsEl, data.site_errors);
+        setAvatarStorageBar(sysStatusAvatarValueEl, sysStatusAvatarBarEl, data.avatar_storage);
 
         sysStatusLastCheckedAt = new Date();
         tickSystemStatusFooter();
@@ -866,7 +984,7 @@
         sysStatusTickTimer = setInterval(tickSystemStatusFooter, 1000);
       })
       .catch(function () {
-        [sysStatusGithubEl, sysStatusDatabaseEl, sysStatusForumEl, sysStatusDispatchSyncEl].forEach(function (el) {
+        [sysStatusGithubEl, sysStatusDatabaseEl, sysStatusForumEl, sysStatusDispatchSyncEl, sysStatusErrorsEl].forEach(function (el) {
           if (!el) return;
           el.textContent = 'Unknown';
           el.classList.remove('system-status-ok', 'system-status-bad');
@@ -874,6 +992,18 @@
         });
         if (sysStatusFooterEl) sysStatusFooterEl.textContent = 'Could not verify systems.';
       });
+  }
+
+  if (sysStatusErrorsRowEl) {
+    sysStatusErrorsRowEl.addEventListener('click', function () {
+      showSection('system-status');
+    });
+    sysStatusErrorsRowEl.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        showSection('system-status');
+      }
+    });
   }
 
   // ===== Home / Site Statistics + Development Snapshot ========================
@@ -1418,6 +1548,158 @@
     wrap.appendChild(label);
     wrap.appendChild(next);
     auditPaginationEl.appendChild(wrap);
+  }
+
+  // ===== System Status (expanded page) =========================================
+  var sysDetailGithubEl = document.getElementById('sys-detail-github');
+  var sysDetailWebhookEl = document.getElementById('sys-detail-webhook');
+  var sysDetailRateLimitEl = document.getElementById('sys-detail-rate-limit');
+  var sysDetailLastSyncEl = document.getElementById('sys-detail-last-sync');
+  var sysDetailNextSyncEl = document.getElementById('sys-detail-next-sync');
+  var sysDetailSslEl = document.getElementById('sys-detail-ssl');
+  var sysDetailAvatarValueEl = document.getElementById('sys-detail-avatar-value');
+  var sysDetailAvatarBarEl = document.getElementById('sys-detail-avatar-bar');
+
+  function setPlainStatusValue(el, item) {
+    if (!el || !item) return;
+    el.textContent = item.label;
+    el.classList.remove('system-status-ok', 'system-status-bad', 'system-status-warn', 'system-status-unknown');
+    if (item.status) el.classList.add('system-status-' + item.status);
+  }
+
+  function loadSystemStatusDetail() {
+    fetch('/api/admin/system-status/detail.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        setPlainStatusValue(sysDetailGithubEl, data.github);
+        setPlainStatusValue(sysDetailWebhookEl, data.webhook);
+        setPlainStatusValue(sysDetailRateLimitEl, data.rate_limit);
+        setPlainStatusValue(sysDetailSslEl, data.ssl);
+        if (sysDetailLastSyncEl) sysDetailLastSyncEl.textContent = data.last_sync.label;
+        if (sysDetailNextSyncEl) sysDetailNextSyncEl.textContent = data.next_sync.label;
+        setAvatarStorageBar(sysDetailAvatarValueEl, sysDetailAvatarBarEl, data.avatar_storage);
+      })
+      .catch(function () {
+        [sysDetailGithubEl, sysDetailWebhookEl, sysDetailRateLimitEl, sysDetailSslEl].forEach(function (el) {
+          if (el) el.textContent = 'Unknown';
+        });
+      });
+  }
+
+  var ERROR_ICONS = {
+    error_critical: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    error_warning: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16.5" x2="12.01" y2="16.5"/></svg>'
+  };
+  var ERROR_LABELS = { error_critical: 'CRITICAL ERROR', error_warning: 'WARNING' };
+
+  function renderErrorCards(container, entries, emptyMessage) {
+    container.innerHTML = '';
+    if (!entries.length) {
+      container.innerHTML = '<div class="admin-list-empty">' + emptyMessage + '</div>';
+      return;
+    }
+    entries.forEach(function (entry) {
+      var kind = entry.critical ? 'error_critical' : 'error_warning';
+      var card = document.createElement('div');
+      card.className = 'activity-card activity-' + kind;
+      card.innerHTML =
+        '<div class="activity-card-icon">' + ERROR_ICONS[kind] + '</div>' +
+        '<div class="activity-card-body">' +
+          '<div class="activity-card-head">' +
+            '<span class="activity-card-label">' + ERROR_LABELS[kind] + '</span>' +
+            '<span class="activity-card-time">' + escapeHtml(fmtRelativeTime(entry.timestamp)) + '</span>' +
+          '</div>' +
+          '<p class="activity-card-desc">' + escapeHtml(entry.message) + '</p>' +
+          '<div class="activity-card-meta">' +
+            '<span>' + escapeHtml(entry.location || 'Unknown location') + '</span>' +
+            '<span class="activity-card-sep">&bull;</span>' +
+            '<span>' + escapeHtml(fmtDateTime(entry.timestamp)) + '</span>' +
+          '</div>' +
+        '</div>';
+      container.appendChild(card);
+    });
+  }
+
+  var siteErrorsListEl = document.getElementById('site-errors-list');
+  var siteErrorsCountEl = document.getElementById('site-errors-count');
+  var siteErrorsPaginationEl = document.getElementById('site-errors-pagination');
+  var siteErrorsRefreshBtn = document.getElementById('site-errors-refresh-btn');
+  var siteErrorsFilterEl = document.getElementById('site-errors-filter');
+  var siteErrorsState = { page: 1, perPage: 25, severity: '', totalPages: 1 };
+
+  function loadSiteErrors() {
+    siteErrorsListEl.innerHTML = '<div class="admin-list-empty">Loading error log&hellip;</div>';
+    var params = new URLSearchParams();
+    params.set('page', siteErrorsState.page);
+    params.set('per_page', siteErrorsState.perPage);
+    if (siteErrorsState.severity) params.set('severity', siteErrorsState.severity);
+    fetch('/api/admin/system-status/errors.php?' + params.toString(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          siteErrorsListEl.innerHTML = '<div class="admin-list-empty">Could not load the error log.</div>';
+          return;
+        }
+        if (!data.available) {
+          siteErrorsListEl.innerHTML = '<div class="admin-list-empty">Could not locate a readable PHP error log on this server.</div>';
+          siteErrorsCountEl.textContent = '';
+          siteErrorsPaginationEl.innerHTML = '';
+          return;
+        }
+        siteErrorsState.totalPages = data.total_pages || 1;
+        siteErrorsState.page = data.page || 1;
+        siteErrorsCountEl.textContent = (data.total || 0) + ((data.total || 0) === 1 ? ' entry' : ' entries');
+        renderErrorCards(siteErrorsListEl, data.entries || [], 'No errors recorded.');
+        renderSiteErrorsPagination();
+      })
+      .catch(function () {
+        siteErrorsListEl.innerHTML = '<div class="admin-list-empty">Could not load the error log.</div>';
+      });
+  }
+
+  if (siteErrorsRefreshBtn) {
+    siteErrorsRefreshBtn.addEventListener('click', function () {
+      if (siteErrorsRefreshBtn.classList.contains('is-spinning')) return;
+      siteErrorsRefreshBtn.classList.add('is-spinning');
+      loadSiteErrors();
+      setTimeout(function () { siteErrorsRefreshBtn.classList.remove('is-spinning'); }, 600);
+    });
+  }
+
+  if (siteErrorsFilterEl) {
+    siteErrorsFilterEl.addEventListener('change', function () {
+      siteErrorsState.severity = siteErrorsFilterEl.value;
+      siteErrorsState.page = 1;
+      loadSiteErrors();
+    });
+  }
+
+  function renderSiteErrorsPagination() {
+    siteErrorsPaginationEl.innerHTML = '';
+    if (siteErrorsState.totalPages <= 1) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'admin-pager';
+
+    var prev = document.createElement('button');
+    prev.type = 'button';
+    prev.textContent = '‹ Prev';
+    prev.disabled = siteErrorsState.page <= 1;
+    prev.addEventListener('click', function () { siteErrorsState.page--; loadSiteErrors(); });
+
+    var label = document.createElement('span');
+    label.textContent = 'Page ' + siteErrorsState.page + ' of ' + siteErrorsState.totalPages;
+
+    var next = document.createElement('button');
+    next.type = 'button';
+    next.textContent = 'Next ›';
+    next.disabled = siteErrorsState.page >= siteErrorsState.totalPages;
+    next.addEventListener('click', function () { siteErrorsState.page++; loadSiteErrors(); });
+
+    wrap.appendChild(prev);
+    wrap.appendChild(label);
+    wrap.appendChild(next);
+    siteErrorsPaginationEl.appendChild(wrap);
   }
 
   // ===== Dispatch Control =====================================================
