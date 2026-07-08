@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=73">
+<link rel="stylesheet" href="../css/style.css?v=74">
 </head>
 <body>
 
@@ -140,6 +140,64 @@
               <span class="pending-work-count" id="community-metrics-posts-count">&hellip;</span>
             </li>
           </ul>
+        </div>
+      </div>
+
+      <div class="admin-home-grid admin-home-grid-secondary">
+        <div class="activity-widget admin-home-grid-half site-stats-card">
+          <div class="activity-widget-head">
+            <div class="activity-widget-title activity-widget-title-stats">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+              <span>The Pantheon Wars Statistics</span>
+            </div>
+          </div>
+          <div class="site-stats-grid" id="site-stats-grid">
+            <div class="site-stat">
+              <div class="site-stat-value" id="site-stat-members">&hellip;</div>
+              <div class="site-stat-label">Members</div>
+            </div>
+            <div class="site-stat">
+              <div class="site-stat-value" id="site-stat-forum-posts">&hellip;</div>
+              <div class="site-stat-label">Forum Posts</div>
+            </div>
+            <div class="site-stat">
+              <div class="site-stat-value" id="site-stat-dispatches">&hellip;</div>
+              <div class="site-stat-label">Dispatches</div>
+            </div>
+            <div class="site-stat">
+              <div class="site-stat-value" id="site-stat-worlds">&hellip;</div>
+              <div class="site-stat-label">Active Worlds</div>
+            </div>
+            <div class="site-stat">
+              <div class="site-stat-value" id="site-stat-overlords">&hellip;</div>
+              <div class="site-stat-label">Active Overlords</div>
+            </div>
+          </div>
+          <p class="site-stats-footnote">All time</p>
+        </div>
+
+        <div class="activity-widget admin-home-grid-half dev-snapshot-card">
+          <div class="activity-widget-head">
+            <div class="activity-widget-title activity-widget-title-snapshot">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              <span>Development Snapshot</span>
+            </div>
+          </div>
+          <div class="dev-snapshot-grid">
+            <div class="dev-snapshot-col">
+              <div class="site-stat-value" id="dev-snapshot-today-count">&hellip;</div>
+              <div class="site-stat-label">Today&rsquo;s Dispatches</div>
+            </div>
+            <div class="dev-snapshot-col">
+              <div class="dev-snapshot-category" id="dev-snapshot-category">&hellip;</div>
+              <div class="site-stat-label">Most Active Category</div>
+            </div>
+            <div class="dev-snapshot-col dev-snapshot-languages">
+              <div class="dev-snapshot-lang-list" id="dev-snapshot-lang-list">&hellip;</div>
+              <div class="site-stat-label">Current Languages</div>
+            </div>
+          </div>
+          <p class="site-stats-footnote" id="dev-snapshot-updated">Loading&hellip;</p>
         </div>
       </div>
     </section>
@@ -423,7 +481,7 @@
     sections.forEach(function (s) { s.hidden = (s.id !== 'section-' + name); });
     if (!loadedSections[name]) {
       loadedSections[name] = true;
-      if (name === 'home') { loadHomeActivity(); loadPendingWork(); loadCommunityMetrics(); }
+      if (name === 'home') { loadHomeActivity(); loadPendingWork(); loadCommunityMetrics(); loadSiteStats(); loadDevSnapshotLanguages(); }
       if (name === 'audit-log') loadAuditLog();
       if (name === 'dispatch-control') loadControlList();
       if (name === 'dispatch-translations') loadList();
@@ -548,6 +606,74 @@
         [communityMembersCountEl, communityBannedCountEl, communityAdminsCountEl, communityModeratorsCountEl, communityPostsCountEl].forEach(function (el) {
           if (el) el.textContent = '—';
         });
+      });
+  }
+
+  // ===== Home / Site Statistics + Development Snapshot ========================
+  var siteStatMembersEl = document.getElementById('site-stat-members');
+  var siteStatForumPostsEl = document.getElementById('site-stat-forum-posts');
+  var siteStatDispatchesEl = document.getElementById('site-stat-dispatches');
+  var siteStatWorldsEl = document.getElementById('site-stat-worlds');
+  var siteStatOverlordsEl = document.getElementById('site-stat-overlords');
+  var devSnapshotTodayCountEl = document.getElementById('dev-snapshot-today-count');
+  var devSnapshotCategoryEl = document.getElementById('dev-snapshot-category');
+  var devSnapshotLangListEl = document.getElementById('dev-snapshot-lang-list');
+  var devSnapshotUpdatedEl = document.getElementById('dev-snapshot-updated');
+
+  var DEV_SNAPSHOT_LANG_COLORS = {
+    HTML: '#ecc987', CSS: '#a279ec', PHP: '#6f76e8', JavaScript: '#45d1c9',
+    TypeScript: '#3ecf8e', Python: '#e2984f', Shell: '#9aa0ac'
+  };
+
+  function loadSiteStats() {
+    fetch('/api/admin/site-stats/summary.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        siteStatMembersEl.textContent = data.total_members.toLocaleString('en-US');
+        siteStatForumPostsEl.textContent = data.total_forum_posts.toLocaleString('en-US');
+        siteStatDispatchesEl.textContent = data.total_dispatches.toLocaleString('en-US');
+        siteStatWorldsEl.textContent = data.active_worlds;
+        siteStatOverlordsEl.textContent = data.active_overlords;
+        devSnapshotTodayCountEl.textContent = data.today_dispatches;
+        devSnapshotCategoryEl.textContent = data.most_active_category
+          ? (TAG_LABELS[data.most_active_category] || data.most_active_category)
+          : '—';
+      })
+      .catch(function () {
+        [siteStatMembersEl, siteStatForumPostsEl, siteStatDispatchesEl, siteStatWorldsEl, siteStatOverlordsEl, devSnapshotTodayCountEl].forEach(function (el) {
+          if (el) el.textContent = '—';
+        });
+        if (devSnapshotCategoryEl) devSnapshotCategoryEl.textContent = '—';
+      });
+  }
+
+  function loadDevSnapshotLanguages() {
+    fetch('/api/repo-languages.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok || !data.found || !data.languages.length) {
+          devSnapshotLangListEl.textContent = '—';
+          devSnapshotUpdatedEl.textContent = '';
+          return;
+        }
+        var top = data.languages.slice(0, 3);
+        devSnapshotLangListEl.innerHTML = top.map(function (l) {
+          var color = DEV_SNAPSHOT_LANG_COLORS[l.name] || '#e074b0';
+          return '<div class="dev-snapshot-lang-row">' +
+            '<span class="dev-snapshot-lang-dot" style="background:' + color + '"></span>' +
+            '<span>' + escapeHtml(l.name) + '</span>' +
+            '<span class="dev-snapshot-lang-pct">' + l.pct + '%</span>' +
+          '</div>';
+        }).join('');
+        var capturedDate = new Date((data.captured_at || '').replace(' ', 'T'));
+        devSnapshotUpdatedEl.textContent = isNaN(capturedDate.getTime())
+          ? ''
+          : 'Updated ' + capturedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' at ' + capturedDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+      })
+      .catch(function () {
+        devSnapshotLangListEl.textContent = '—';
+        devSnapshotUpdatedEl.textContent = '';
       });
   }
 

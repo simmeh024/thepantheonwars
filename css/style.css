@@ -3484,6 +3484,39 @@ footer.site-footer {
 #community-metrics-list .pending-work-count { background: rgba(69,209,201,0.18); color: #45d1c9; }
 #community-metrics-list .pending-work-count.is-zero { background: rgba(255,255,255,0.05); color: var(--text-faint); }
 
+.admin-home-grid-secondary { margin-top: 20px; }
+.admin-home-grid-half { flex: 1 1 360px; min-width: 280px; }
+
+.activity-widget-title-stats svg { color: #5b9cf5; }
+.activity-widget-title-snapshot svg { color: var(--purple-bright); }
+
+.site-stats-grid { display: flex; flex-wrap: wrap; gap: 26px; padding: 18px 20px 8px; }
+.site-stat { display: flex; flex-direction: column; gap: 4px; min-width: 64px; }
+.site-stat-value { font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 600; line-height: 1; color: #5b9cf5; }
+.site-stat:nth-child(even) .site-stat-value { color: var(--gold-bright); }
+.site-stat-label {
+  font-family: 'Jost', sans-serif; font-size: 0.64rem; text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--text-faint);
+}
+.site-stats-footnote { margin: 0; padding: 2px 20px 16px; font-size: 0.72rem; color: var(--text-faint); }
+
+.dev-snapshot-grid { display: flex; flex-wrap: wrap; gap: 26px; padding: 18px 20px 8px; }
+.dev-snapshot-col { display: flex; flex-direction: column; gap: 6px; min-width: 96px; }
+.dev-snapshot-col .site-stat-value { color: var(--purple-bright); }
+.dev-snapshot-category {
+  font-family: 'Cinzel', serif; font-size: 1.1rem; font-weight: 600; line-height: 1.2; color: var(--gold-bright);
+}
+.dev-snapshot-lang-list { display: flex; flex-direction: column; gap: 4px; }
+.dev-snapshot-lang-row {
+  display: flex; align-items: center; gap: 6px; font-family: 'Jost', sans-serif; font-size: 0.78rem; color: var(--text-dim);
+}
+.dev-snapshot-lang-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dev-snapshot-lang-pct { color: var(--text-faint); font-size: 0.72rem; }
+
+@media (max-width: 860px) {
+  .admin-home-grid-half { flex: 1 1 auto; width: 100%; }
+}
+
 .activity-refresh-btn {
   display: inline-flex; align-items: center; gap: 7px;
   background: var(--panel-2); border: 1px solid var(--border); color: var(--text-dim);
