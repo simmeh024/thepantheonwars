@@ -3026,6 +3026,9 @@ footer.site-footer {
 }
 .dispatch-entry-footer a { color: var(--purple-bright); }
 .dispatch-entry-footer a:hover { color: var(--gold-bright); }
+.dispatch-entry-footer-right {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+}
 .dispatch-log-pagination { margin: 1.2em 0; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .dispatch-pager { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
 .dispatch-pager-btn {
