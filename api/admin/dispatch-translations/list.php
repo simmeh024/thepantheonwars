@@ -30,7 +30,7 @@ if ($filter === 'translated') {
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
 $stmt = $db->prepare(
-    'SELECT d.id, d.sha, d.subject, d.tag, d.committed_at,
+    'SELECT d.id, d.sha, d.subject, d.body, d.tag, d.committed_at,
             dt.translation, dt.updated_at AS translation_updated_at
      FROM dispatch_entries d
      LEFT JOIN dispatch_translations dt ON dt.dispatch_id = d.id
@@ -49,6 +49,7 @@ $out = array_map(function ($r) {
         'sha' => $r['sha'],
         'short_sha' => substr($r['sha'], 0, 7),
         'subject' => $r['subject'],
+        'body' => $r['body'],
         'tag' => $r['tag'],
         'committed_at' => $r['committed_at'],
         'translation' => $r['translation'],

@@ -3245,7 +3245,7 @@ footer.site-footer {
 }
 .admin-sidebar {
   flex: 0 0 250px;
-  border-left: 1px solid var(--border-soft);
+  border-right: 1px solid var(--border-soft);
   background: var(--bg-alt);
   display: flex; flex-direction: column;
   padding: 28px 0;
@@ -3372,6 +3372,12 @@ footer.site-footer {
   width: 100%; min-height: 160px; background: var(--bg); border: 1px solid var(--border); color: var(--text);
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.92rem; line-height: 1.55; resize: vertical;
 }
+.admin-commit-body {
+  width: 100%; max-height: 160px; overflow-y: auto; margin: 0;
+  background: var(--bg); border: 1px solid var(--border-soft); color: var(--text-dim);
+  padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.82rem; line-height: 1.55;
+  white-space: pre-wrap; word-wrap: break-word;
+}
 .admin-field textarea:focus { outline: none; border-color: var(--purple-bright); }
 .admin-modal-actions { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
 .admin-modal-actions .btn { padding: 11px 22px; font-size: 0.74rem; }
@@ -3393,7 +3399,7 @@ footer.site-footer {
 @media (max-width: 860px) {
   .admin-shell.is-ready { flex-direction: column; }
   .admin-sidebar {
-    flex: 0 0 auto; border-left: none; border-bottom: 1px solid var(--border-soft);
+    flex: 0 0 auto; border-right: none; border-bottom: 1px solid var(--border-soft);
     flex-direction: row; align-items: center; padding: 14px 0; overflow-x: auto;
   }
   .admin-brand { border-bottom: none; margin-bottom: 0; padding: 0 18px; flex-shrink: 0; }

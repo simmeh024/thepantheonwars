@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=53">
+<link rel="stylesheet" href="css/style.css?v=54">
 </head>
 <body>
 
@@ -512,7 +512,6 @@
       '<pre class="dispatch-entry-full-message">' + escapeHtml(bodyText) + '</pre>' +
       '<div class="dispatch-entry-footer">' +
       '<span>Committed by ' + escapeHtml(entry.author) + '</span>' +
-      (entry.url ? '<a href="' + escapeHtml(entry.url) + '" target="_blank" rel="noopener">View on GitHub ↗</a>' : '') +
       (entry.has_translation ?
         '<div class="bh4-verify dispatch-translation-badge" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="View end-user translation" data-dispatch-id="' + entry.id + '">' +
           '<div class="bh4-verify-avatar"><img src="images/bh4-dispatch.jpg" alt="BH-4" loading="lazy"></div>' +
@@ -521,6 +520,7 @@
             '<p class="bh4-status-tooltip-line dispatch-translation-text">Loading translation&hellip;</p>' +
           '</div>' +
         '</div>' : '') +
+      (entry.url ? '<a href="' + escapeHtml(entry.url) + '" target="_blank" rel="noopener">View on GitHub ↗</a>' : '') +
       '</div>';
     body.appendChild(bodyInner);
     wrap.appendChild(body);

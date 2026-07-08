@@ -22,6 +22,17 @@
 
 <div class="admin-shell" id="admin-shell">
 
+  <aside class="admin-sidebar">
+    <div class="admin-brand">
+      <a href="../index.html">The Pantheon Wars</a>
+      <span class="admin-brand-sub">Admin Console</span>
+    </div>
+    <ul class="admin-nav-list">
+      <li><button type="button" class="admin-nav-link active" data-section="dispatch-translations">Dispatch Translations</button></li>
+    </ul>
+    <div class="admin-back-link"><a href="../dev-dispatches.html">&larr; Back to site</a></div>
+  </aside>
+
   <main class="admin-main">
 
     <section class="admin-section" id="section-dispatch-translations">
@@ -47,17 +58,6 @@
 
   </main>
 
-  <aside class="admin-sidebar">
-    <div class="admin-brand">
-      <a href="../index.html">The Pantheon Wars</a>
-      <span class="admin-brand-sub">Admin Console</span>
-    </div>
-    <ul class="admin-nav-list">
-      <li><button type="button" class="admin-nav-link active" data-section="dispatch-translations">Dispatch Translations</button></li>
-    </ul>
-    <div class="admin-back-link"><a href="../dev-dispatches.html">&larr; Back to site</a></div>
-  </aside>
-
 </div>
 
 <div class="admin-modal" id="admin-modal" hidden>
@@ -66,6 +66,10 @@
     <button type="button" class="admin-modal-close" aria-label="Close">&times;</button>
     <h3 class="admin-modal-title" id="admin-modal-title">Edit Translation</h3>
     <p class="admin-modal-sub" id="admin-modal-sub"></p>
+    <div class="admin-field">
+      <label>Commit message (technical)</label>
+      <pre class="admin-commit-body" id="admin-commit-body"></pre>
+    </div>
     <div class="admin-field">
       <label for="admin-translation-text">End-user translation</label>
       <textarea id="admin-translation-text" maxlength="5000" placeholder="Plain-language explanation of this dispatch for players&hellip;"></textarea>
@@ -92,6 +96,7 @@
   var modal = document.getElementById('admin-modal');
   var modalTitle = document.getElementById('admin-modal-title');
   var modalSub = document.getElementById('admin-modal-sub');
+  var commitBodyEl = document.getElementById('admin-commit-body');
   var textarea = document.getElementById('admin-translation-text');
   var modalError = document.getElementById('admin-modal-error');
   var modalStatus = document.getElementById('admin-modal-status');
@@ -191,6 +196,7 @@
     currentEntry = entry;
     modalTitle.textContent = 'Edit Translation';
     modalSub.innerHTML = escapeHtml(entry.subject) + ' &mdash; <span class="admin-sha">' + escapeHtml(entry.short_sha) + '</span>';
+    commitBodyEl.textContent = entry.body && entry.body.trim() ? entry.body : 'No further commit details.';
     textarea.value = entry.translation || '';
     modalError.classList.remove('show');
     modalStatus.classList.remove('show');
