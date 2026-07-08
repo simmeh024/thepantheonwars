@@ -3231,6 +3231,7 @@ footer.site-footer {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
   font-family: 'Jost', sans-serif; color: var(--text-faint); font-size: 0.9rem;
 }
+.admin-gate[hidden] { display: none; }
 .admin-shell {
   display: none;
   min-height: 100vh;
