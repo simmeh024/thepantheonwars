@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=85">
+<link rel="stylesheet" href="../css/style.css?v=86">
 </head>
 <body>
 
@@ -107,6 +107,26 @@
             </div>
           </div>
           <p class="bh4-welcome-footer" id="bh4-welcome-footer">&nbsp;</p>
+        </div>
+
+        <div class="quick-actions-card" id="quick-actions-card">
+          <div class="system-status-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            <span>Quick Actions</span>
+          </div>
+          <ul class="quick-actions-list">
+            <li>
+              <button type="button" class="quick-action-btn" id="quick-action-new-member">
+                <span class="quick-action-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
+                </span>
+                <span class="quick-action-label">Add New Member</span>
+                <span class="quick-action-chevron">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+                </span>
+              </button>
+            </li>
+          </ul>
         </div>
 
         <div class="system-status-card" id="system-status-card">
@@ -956,6 +976,20 @@
         if (bh4StatusTextEl) bh4StatusTextEl.textContent = 'Could not reach BH-4.';
         if (bh4FooterEl) bh4FooterEl.textContent = 'Connection to the archive is unstable.';
       });
+  }
+
+  // ===== Home / Quick Actions ===================================================
+  // Only "Add New Member" for now -- more actions (new dispatch, new
+  // announcement, etc.) get added here incrementally as those features
+  // exist. Reuses openCreateMemberModal() from the Members section below
+  // (function declarations in this IIFE are hoisted, and the modal itself
+  // is a position:fixed overlay outside any .admin-section, so it opens
+  // correctly no matter which section is currently visible).
+  var quickActionNewMemberBtn = document.getElementById('quick-action-new-member');
+  if (quickActionNewMemberBtn) {
+    quickActionNewMemberBtn.addEventListener('click', function () {
+      openCreateMemberModal();
+    });
   }
 
   // ===== Home / System Status ==================================================
