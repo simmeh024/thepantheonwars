@@ -3629,6 +3629,7 @@ footer.site-footer {
   display: flex; gap: 24px; margin: 16px 0; padding: 12px 14px;
   background: var(--bg); border: 1px solid var(--border-soft); border-radius: 4px; flex-wrap: wrap;
 }
+.member-modal-meta[hidden] { display: none; }
 .member-modal-meta > div { display: flex; flex-direction: column; gap: 3px; }
 .member-modal-meta span {
   font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint);
@@ -3648,6 +3649,7 @@ footer.site-footer {
 }
 
 .member-avatar-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+.member-avatar-row[hidden] { display: none; }
 .member-modal-avatar-wrap.profile-avatar-wrap { width: 64px; height: 64px; flex-shrink: 0; }
 .member-modal-avatar-wrap .profile-avatar { width: 64px; height: 64px; border-width: 2px; }
 .member-modal-avatar-wrap .profile-avatar-fallback { font-size: 1.4rem; }
