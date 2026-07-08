@@ -3411,6 +3411,13 @@ footer.site-footer {
 }
 .admin-back-link a:hover { color: var(--gold-bright); }
 
+/* The bare `section` selector above is meant for the public site's hero
+   sections (padding: 90px 0) -- .admin-section reuses the <section> tag for
+   markup convenience, so it was silently inheriting that same 90px top/bottom
+   padding here too. Override it back to 0 so the admin console's own
+   .admin-main padding is the only thing controlling its spacing. */
+.admin-section { padding: 0; }
+
 .admin-section-head { margin-bottom: 24px; }
 .admin-section-head h1 {
   font-family: 'Cinzel', serif; font-size: 1.6rem; color: var(--text); margin: 0 0 6px;
