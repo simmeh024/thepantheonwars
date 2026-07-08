@@ -949,7 +949,7 @@
 
   function setAvatarStorageBar(valueEl, barEl, storage) {
     if (!storage) return;
-    if (valueEl) valueEl.textContent = storage.used_gb + ' GB / ' + storage.max_gb + ' GB';
+    if (valueEl) valueEl.textContent = storage.used_mb + ' MB / ' + storage.max_mb + ' MB';
     if (barEl) {
       barEl.style.width = Math.max(2, storage.pct) + '%';
       barEl.classList.remove('system-status-bar-ok', 'system-status-bar-warn', 'system-status-bar-bad');

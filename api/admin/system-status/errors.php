@@ -17,12 +17,15 @@ $perPage = isset($_GET['per_page']) ? max(1, min(100, (int)$_GET['per_page'])) :
 $data = pw_load_error_entries();
 
 if (!$data['available']) {
-    // pw_error_log_path() checks ini_get('error_log') plus a wide list of
-    // common cPanel/account-relative locations (see status-helpers.php). On
-    // this host none of them exist -- most likely this PHP-FPM setup routes
-    // errors to a system-level log outside what an account script can read,
-    // rather than any of the usual account-relative paths. Reporting that
-    // plainly rather than guessing further.
+    // Temporary: list what's actually in ~/logs to find the real filename
+    // (cPanel's Errors page proves a web server error log exists somewhere
+    // under the account -- our exact-name guesses just missed it).
+    $debugLogsDir = [];
+    if (!empty($_SERVER['DOCUMENT_ROOT'])) {
+        $home = dirname(rtrim($_SERVER['DOCUMENT_ROOT'], '/'));
+        $logsGlob = @glob($home . '/logs/*');
+        $debugLogsDir = $logsGlob !== false ? $logsGlob : ['glob failed or dir missing: ' . $home . '/logs'];
+    }
     pw_json([
         'ok' => true,
         'available' => false,
@@ -30,6 +33,7 @@ if (!$data['available']) {
         'total' => 0,
         'page' => 1,
         'total_pages' => 1,
+        'debug_logs_dir_listing' => $debugLogsDir,
     ]);
 }
 

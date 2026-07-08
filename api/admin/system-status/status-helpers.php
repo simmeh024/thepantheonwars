@@ -57,8 +57,8 @@ function pw_check_avatar_storage() {
     return [
         'used_bytes' => $used,
         'max_bytes' => $maxBytes,
-        'used_gb' => round($usedGb, 2),
-        'max_gb' => 5,
+        'used_mb' => round($used / (1024 * 1024), 1),
+        'max_mb' => round($maxBytes / (1024 * 1024)),
         'pct' => round($pct, 1),
         'status' => $status,
     ];
