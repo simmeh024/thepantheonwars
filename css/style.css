@@ -3662,6 +3662,98 @@ footer.site-footer {
 .activity-card.activity-report_resolved .activity-card-icon { background: rgba(62,207,142,0.15); color: #3ecf8e; }
 .activity-card.activity-report_resolved .activity-card-label { color: #3ecf8e; }
 
+.bh4-welcome-card {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--panel);
+  padding: 22px 26px;
+  margin-bottom: 22px;
+}
+.bh4-welcome-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.bh4-welcome-eyebrow {
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--purple-bright);
+}
+.bh4-welcome-badge {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--purple-deep);
+  background: linear-gradient(135deg, var(--gold-bright), var(--purple-bright));
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+.bh4-welcome-body {
+  display: flex;
+  gap: 22px;
+  align-items: flex-start;
+}
+.bh4-welcome-avatar {
+  width: 84px;
+  height: 84px;
+  object-fit: cover;
+  object-position: top;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.bh4-welcome-content { flex: 1; min-width: 0; }
+.bh4-welcome-greeting {
+  margin: 0 0 2px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+.bh4-welcome-sub {
+  margin: 0 0 10px;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+}
+.bh4-welcome-stats {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 26px;
+}
+.bh4-welcome-stats li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+.bh4-welcome-stats svg {
+  width: 16px;
+  height: 16px;
+  color: var(--purple-bright);
+  flex-shrink: 0;
+}
+.bh4-welcome-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 0.85rem;
+  color: #3ecf8e;
+}
+.bh4-welcome-status svg { width: 16px; height: 16px; flex-shrink: 0; }
+.bh4-welcome-status.bh4-welcome-status-warn { color: #e05a4a; }
+.bh4-welcome-footer {
+  margin: 14px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  font-size: 0.76rem;
+  color: var(--text-faint);
+}
+
 .activity-widget {
   border: 1px solid var(--border-soft);
   border-radius: 10px;

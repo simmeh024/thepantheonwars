@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=79">
+<link rel="stylesheet" href="../css/style.css?v=80">
 </head>
 <body>
 
@@ -72,6 +72,39 @@
       <div class="admin-section-head">
         <h1>Home</h1>
         <p>Recent admin activity across the console &mdash; end-user translations, category edits, and admin logins.</p>
+      </div>
+
+      <div class="bh4-welcome-card" id="bh4-welcome-card">
+        <div class="bh4-welcome-head">
+          <span class="bh4-welcome-eyebrow">Behavioral Handler-4</span>
+          <span class="bh4-welcome-badge">BH-4</span>
+        </div>
+        <div class="bh4-welcome-body">
+          <img src="../images/bh4-dispatch.jpg" alt="BH-4" class="bh4-welcome-avatar">
+          <div class="bh4-welcome-content">
+            <p class="bh4-welcome-greeting">Welcome back, <span id="bh4-welcome-name">&hellip;</span>.</p>
+            <p class="bh4-welcome-sub">Since your last session:</p>
+            <ul class="bh4-welcome-stats">
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+                <span id="bh4-stat-dispatches">&hellip;</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg>
+                <span id="bh4-stat-translations">&hellip;</span>
+              </li>
+              <li>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span id="bh4-stat-logins">&hellip;</span>
+              </li>
+            </ul>
+            <p class="bh4-welcome-status" id="bh4-welcome-status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              <span id="bh4-welcome-status-text">Checking systems&hellip;</span>
+            </p>
+          </div>
+        </div>
+        <p class="bh4-welcome-footer" id="bh4-welcome-footer">&nbsp;</p>
       </div>
 
       <div class="admin-home-grid">
@@ -561,7 +594,7 @@
     sections.forEach(function (s) { s.hidden = (s.id !== 'section-' + name); });
     if (!loadedSections[name]) {
       loadedSections[name] = true;
-      if (name === 'home') { loadHomeActivity(); loadPendingWork(); loadCommunityMetrics(); loadSiteStats(); loadDevSnapshotLanguages(); }
+      if (name === 'home') { loadHomeActivity(); loadPendingWork(); loadCommunityMetrics(); loadSiteStats(); loadDevSnapshotLanguages(); loadBh4Welcome(); }
       if (name === 'audit-log') loadAuditLog();
       if (name === 'dispatch-control') loadControlList();
       if (name === 'dispatch-translations') loadList();
@@ -701,6 +734,48 @@
         [communityMembersCountEl, communityBannedCountEl, communityAdminsCountEl, communityModeratorsCountEl, communityPostsCountEl].forEach(function (el) {
           if (el) el.textContent = '—';
         });
+      });
+  }
+
+  // ===== Home / BH-4 Welcome card ==============================================
+  var bh4NameEl = document.getElementById('bh4-welcome-name');
+  var bh4DispatchesEl = document.getElementById('bh4-stat-dispatches');
+  var bh4TranslationsEl = document.getElementById('bh4-stat-translations');
+  var bh4LoginsEl = document.getElementById('bh4-stat-logins');
+  var bh4StatusEl = document.getElementById('bh4-welcome-status');
+  var bh4StatusTextEl = document.getElementById('bh4-welcome-status-text');
+  var bh4FooterEl = document.getElementById('bh4-welcome-footer');
+
+  function pluralize(n, singular, plural) {
+    return n + ' ' + (n === 1 ? singular : (plural || singular + 's'));
+  }
+
+  function loadBh4Welcome() {
+    fetch('/api/admin/home-bh4/summary.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        if (bh4NameEl) bh4NameEl.textContent = data.display_name;
+        if (bh4DispatchesEl) bh4DispatchesEl.textContent = pluralize(data.dispatches_classified, 'dispatch classified', 'dispatches classified');
+        if (bh4TranslationsEl) bh4TranslationsEl.textContent = pluralize(data.translations_completed, 'translation completed', 'translations completed');
+        if (bh4LoginsEl) bh4LoginsEl.textContent = pluralize(data.admin_logins, 'administrator login', 'administrator logins');
+
+        var hasCritical = data.critical_events > 0;
+        if (bh4StatusEl) bh4StatusEl.classList.toggle('bh4-welcome-status-warn', hasCritical);
+        if (bh4StatusTextEl) {
+          bh4StatusTextEl.textContent = hasCritical
+            ? pluralize(data.critical_events, 'critical event', 'critical events') + ' detected'
+            : 'No critical events detected';
+        }
+        if (bh4FooterEl) {
+          bh4FooterEl.textContent = hasCritical
+            ? 'Some accounts show repeated failed sign-in attempts -- worth a look.'
+            : 'All monitored systems remain operational.';
+        }
+      })
+      .catch(function () {
+        if (bh4StatusTextEl) bh4StatusTextEl.textContent = 'Could not reach BH-4.';
+        if (bh4FooterEl) bh4FooterEl.textContent = 'Connection to the archive is unstable.';
       });
   }
 
