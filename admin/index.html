@@ -218,6 +218,34 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
           <span>Refresh</span>
         </button>
+        <select class="admin-search admin-tag-select" id="audit-action-filter">
+          <option value="">All activity</option>
+          <optgroup label="Session">
+            <option value="login">Admin login</option>
+          </optgroup>
+          <optgroup label="Dispatch Translations">
+            <option value="translation_added">Translation added</option>
+            <option value="translation_updated">Translation updated</option>
+            <option value="category_edited">Category changed</option>
+          </optgroup>
+          <optgroup label="Members">
+            <option value="member_created">Member created</option>
+            <option value="member_updated">Member updated</option>
+            <option value="member_role_changed">Role changed</option>
+            <option value="member_banned">Member banned</option>
+            <option value="member_unbanned">Member unbanned</option>
+            <option value="member_deleted">Member deleted</option>
+            <option value="member_avatar_reset">Avatar reset</option>
+          </optgroup>
+          <optgroup label="Topic Reports">
+            <option value="topic_locked">Topic locked</option>
+            <option value="topic_unlocked">Topic unlocked</option>
+            <option value="topic_moved">Topic moved</option>
+            <option value="report_content_deleted">Reported content deleted</option>
+            <option value="report_resolved">Report closed</option>
+            <option value="report_reopened">Report reopened</option>
+          </optgroup>
+        </select>
         <span class="admin-count" id="audit-count"></span>
       </div>
 
@@ -1066,7 +1094,8 @@
   var auditCountEl = document.getElementById('audit-count');
   var auditPaginationEl = document.getElementById('audit-pagination');
   var auditRefreshBtn = document.getElementById('audit-refresh-btn');
-  var auditState = { page: 1, perPage: 25, totalPages: 1 };
+  var auditActionFilterEl = document.getElementById('audit-action-filter');
+  var auditState = { page: 1, perPage: 25, action: '', totalPages: 1 };
 
   function fmtDateTime(sqlDate) {
     if (!sqlDate) return '\u2014';
@@ -1156,6 +1185,7 @@
     var params = new URLSearchParams();
     params.set('page', auditState.page);
     params.set('per_page', auditState.perPage);
+    if (auditState.action) params.set('action', auditState.action);
     fetch('/api/admin/activity-log/list.php?' + params.toString(), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -1180,6 +1210,14 @@
       auditRefreshBtn.classList.add('is-spinning');
       loadAuditLog();
       setTimeout(function () { auditRefreshBtn.classList.remove('is-spinning'); }, 600);
+    });
+  }
+
+  if (auditActionFilterEl) {
+    auditActionFilterEl.addEventListener('change', function () {
+      auditState.action = auditActionFilterEl.value;
+      auditState.page = 1;
+      loadAuditLog();
     });
   }
 

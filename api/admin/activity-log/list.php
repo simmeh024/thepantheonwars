@@ -12,9 +12,20 @@ if ($perPage > 200) {
     $perPage = 200;
 }
 
+$action = isset($_GET['action']) ? trim((string)$_GET['action']) : '';
+
 $db = pw_db();
 
-$total = (int)$db->query('SELECT COUNT(*) AS c FROM admin_activity_log')->fetch()['c'];
+$whereSql = '';
+$whereParams = [];
+if ($action !== '') {
+    $whereSql = 'WHERE action = :action';
+    $whereParams[':action'] = $action;
+}
+
+$countStmt = $db->prepare("SELECT COUNT(*) AS c FROM admin_activity_log $whereSql");
+$countStmt->execute($whereParams);
+$total = (int)$countStmt->fetch()['c'];
 $totalPages = $total > 0 ? (int)ceil($total / $perPage) : 1;
 if ($page > $totalPages) {
     $page = $totalPages;
@@ -22,11 +33,15 @@ if ($page > $totalPages) {
 $offset = ($page - 1) * $perPage;
 
 $stmt = $db->prepare(
-    'SELECT id, username, action, description, ip_address, created_at
+    "SELECT id, username, action, description, ip_address, created_at
      FROM admin_activity_log
+     $whereSql
      ORDER BY created_at DESC, id DESC
-     LIMIT :limit OFFSET :offset'
+     LIMIT :limit OFFSET :offset"
 );
+foreach ($whereParams as $key => $value) {
+    $stmt->bindValue($key, $value);
+}
 $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
