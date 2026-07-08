@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
 }
 
-pw_require_admin();
+$adminUser = pw_require_admin();
 
 $input = pw_input();
 pw_require_csrf($input);
@@ -45,5 +45,20 @@ if (array_key_exists('tag', $input)) {
 
 $stmt = $db->prepare('UPDATE dispatch_entries SET subject = ?, tag = ? WHERE id = ?');
 $stmt->execute([$subject, $tag, $dispatchId]);
+
+if ($tag !== $existing['tag']) {
+    $tagLabels = [
+        'feature' => 'Feature', 'improvement' => 'Improvement', 'fix' => 'Fix',
+        'performance' => 'Performance', 'ui_ux' => 'UI / UX', 'lore' => 'Lore',
+        'infrastructure' => 'Infrastructure', 'refactor' => 'Refactor', 'experimental' => 'Experimental',
+    ];
+    $fromLabel = isset($tagLabels[$existing['tag']]) ? $tagLabels[$existing['tag']] : $existing['tag'];
+    $toLabel = isset($tagLabels[$tag]) ? $tagLabels[$tag] : $tag;
+    pw_log_admin_activity(
+        'category_edited',
+        'Changed category for "' . $subject . '" from ' . $fromLabel . ' to ' . $toLabel . '.',
+        $adminUser
+    );
+}
 
 pw_json(['ok' => true, 'subject' => $subject, 'tag' => $tag]);

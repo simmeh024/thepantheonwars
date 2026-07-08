@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=60">
+<link rel="stylesheet" href="../css/style.css?v=61">
 </head>
 <body>
 
@@ -27,9 +27,12 @@
       <a href="../index.html">The Pantheon Wars</a>
       <span class="admin-brand-sub">Admin Console</span>
     </div>
+    <ul class="admin-nav-list admin-nav-list-top">
+      <li><button type="button" class="admin-nav-link active" data-section="home">Home</button></li>
+    </ul>
     <div class="admin-nav-category">Development Dispatches</div>
     <ul class="admin-nav-list">
-      <li><button type="button" class="admin-nav-link active" data-section="dispatch-control">Dispatch Control</button></li>
+      <li><button type="button" class="admin-nav-link" data-section="dispatch-control">Dispatch Control</button></li>
       <li><button type="button" class="admin-nav-link" data-section="dispatch-translations">Dispatch Translations</button></li>
     </ul>
     <div class="admin-back-link"><a href="../dev-dispatches.html">&larr; Back to site</a></div>
@@ -37,7 +40,24 @@
 
   <main class="admin-main">
 
-    <section class="admin-section" id="section-dispatch-control">
+    <section class="admin-section" id="section-home">
+      <div class="admin-section-head">
+        <h1>Home</h1>
+        <p>Recent admin activity across the console &mdash; end-user translations, category edits, and admin logins.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <span class="admin-count" id="activity-count"></span>
+      </div>
+
+      <div class="admin-list activity-log-list" id="activity-log-list">
+        <div class="admin-list-empty">Loading activity&hellip;</div>
+      </div>
+
+      <div class="admin-pagination" id="activity-pagination"></div>
+    </section>
+
+    <section class="admin-section" id="section-dispatch-control" hidden>
       <div class="admin-section-head">
         <h1>Dispatch Control</h1>
         <p>All synced Development Dispatches. Force a re-sync straight from GitHub if a commit didn't come through, or edit a dispatch's title and category.</p>
@@ -193,6 +213,7 @@
     sections.forEach(function (s) { s.hidden = (s.id !== 'section-' + name); });
     if (!loadedSections[name]) {
       loadedSections[name] = true;
+      if (name === 'home') loadActivityLog();
       if (name === 'dispatch-control') loadControlList();
       if (name === 'dispatch-translations') loadList();
     }
@@ -211,7 +232,7 @@
     }
     gate.hidden = true;
     shell.classList.add('is-ready');
-    showSection('dispatch-control');
+    showSection('home');
   }
 
   document.addEventListener('pw-auth-ready', checkAccess);
@@ -219,6 +240,110 @@
   // or never fires (network failure) — refreshAuthNav's own .catch() still
   // leaves PW_AUTH in its default logged-out state, so this will redirect.
   setTimeout(checkAccess, 4000);
+
+  // ===== Home / Activity Log ==================================================
+  var ACTIVITY_LABELS = {
+    login: 'Admin login',
+    translation_added: 'Translation added',
+    translation_updated: 'Translation updated',
+    category_edited: 'Category changed'
+  };
+  var ACTIVITY_ICONS = {
+    login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+    translation_added: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M5 12h14M12 5v14"/></svg>',
+    translation_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
+    category_edited: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M20.6 12.6 12.7 20.5a2 2 0 0 1-2.8 0l-6.4-6.4a2 2 0 0 1 0-2.8L11.4 3.3a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v6.6a2 2 0 0 1-.4 1.7z"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/></svg>'
+  };
+
+  var activityLogEl = document.getElementById('activity-log-list');
+  var activityCountEl = document.getElementById('activity-count');
+  var activityPaginationEl = document.getElementById('activity-pagination');
+  var activityState = { page: 1, perPage: 25, totalPages: 1 };
+
+  function fmtDateTime(sqlDate) {
+    if (!sqlDate) return '\u2014';
+    var d = new Date(String(sqlDate).replace(' ', 'T'));
+    if (isNaN(d.getTime())) return sqlDate;
+    var dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    var timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
+    return dateStr + ' at ' + timeStr;
+  }
+
+  function loadActivityLog() {
+    activityLogEl.innerHTML = '<div class="admin-list-empty">Loading activity&hellip;</div>';
+    var params = new URLSearchParams();
+    params.set('page', activityState.page);
+    params.set('per_page', activityState.perPage);
+    fetch('/api/admin/activity-log/list.php?' + params.toString(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          activityLogEl.innerHTML = '<div class="admin-list-empty">Could not load activity.</div>';
+          return;
+        }
+        activityState.totalPages = data.total_pages || 1;
+        activityState.page = data.page || 1;
+        renderActivityLog(data.entries || [], data.total || 0);
+        renderActivityPagination();
+      })
+      .catch(function () {
+        activityLogEl.innerHTML = '<div class="admin-list-empty">Could not load activity.</div>';
+      });
+  }
+
+  function renderActivityLog(entries, total) {
+    activityCountEl.textContent = total + (total === 1 ? ' event' : ' events');
+    if (!entries.length) {
+      activityLogEl.innerHTML = '<div class="admin-list-empty">No admin activity recorded yet.</div>';
+      return;
+    }
+    activityLogEl.innerHTML = '';
+    entries.forEach(function (entry) {
+      var row = document.createElement('div');
+      row.className = 'admin-row activity-row activity-' + escapeHtml(entry.action);
+      row.innerHTML =
+        '<div class="admin-row-main">' +
+          '<div class="activity-row-head">' +
+            '<span class="activity-row-icon">' + (ACTIVITY_ICONS[entry.action] || '') + '</span>' +
+            '<span class="activity-row-label">' + escapeHtml(ACTIVITY_LABELS[entry.action] || entry.action) + '</span>' +
+          '</div>' +
+          '<p class="activity-row-desc">' + escapeHtml(entry.description) + '</p>' +
+          '<div class="admin-row-meta activity-row-meta">' +
+            '<span class="activity-row-user">' + escapeHtml(entry.username) + '</span>' +
+            '<span class="activity-row-ip">' + escapeHtml(entry.ip_address) + '</span>' +
+            '<span>' + escapeHtml(fmtDateTime(entry.created_at)) + '</span>' +
+          '</div>' +
+        '</div>';
+      activityLogEl.appendChild(row);
+    });
+  }
+
+  function renderActivityPagination() {
+    activityPaginationEl.innerHTML = '';
+    if (activityState.totalPages <= 1) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'admin-pager';
+
+    var prev = document.createElement('button');
+    prev.type = 'button';
+    prev.textContent = '\u2039 Prev';
+    prev.disabled = activityState.page <= 1;
+    prev.addEventListener('click', function () { activityState.page--; loadActivityLog(); });
+
+    var label = document.createElement('span');
+    label.textContent = 'Page ' + activityState.page + ' of ' + activityState.totalPages;
+
+    var next = document.createElement('button');
+    next.type = 'button';
+    next.textContent = 'Next \u203a';
+    next.disabled = activityState.page >= activityState.totalPages;
+    next.addEventListener('click', function () { activityState.page++; loadActivityLog(); });
+
+    wrap.appendChild(prev);
+    wrap.appendChild(label);
+    wrap.appendChild(next);
+    activityPaginationEl.appendChild(wrap);
+  }
 
   // ===== Dispatch Control =====================================================
   var controlListEl = document.getElementById('control-list');

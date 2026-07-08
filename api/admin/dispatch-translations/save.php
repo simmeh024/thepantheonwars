@@ -5,7 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
 }
 
-pw_require_admin();
+$adminUser = pw_require_admin();
 $input = pw_input();
 pw_require_csrf($input);
 
@@ -24,12 +24,16 @@ if (strlen($translation) > 5000) {
 
 $db = pw_db();
 
-$stmt = $db->prepare('SELECT sha FROM dispatch_entries WHERE id = ?');
+$stmt = $db->prepare('SELECT sha, subject FROM dispatch_entries WHERE id = ?');
 $stmt->execute([$dispatchId]);
 $dispatch = $stmt->fetch();
 if (!$dispatch) {
     pw_error('That dispatch no longer exists.', 404);
 }
+
+$stmt = $db->prepare('SELECT id FROM dispatch_translations WHERE dispatch_id = ?');
+$stmt->execute([$dispatchId]);
+$isUpdate = (bool)$stmt->fetch();
 
 $stmt = $db->prepare(
     'INSERT INTO dispatch_translations (dispatch_id, sha, translation)
@@ -37,5 +41,11 @@ $stmt = $db->prepare(
      ON DUPLICATE KEY UPDATE sha = VALUES(sha), translation = VALUES(translation)'
 );
 $stmt->execute([$dispatchId, $dispatch['sha'], $translation]);
+
+pw_log_admin_activity(
+    $isUpdate ? 'translation_updated' : 'translation_added',
+    ($isUpdate ? 'Updated' : 'Added') . ' the BH-4 translation for "' . $dispatch['subject'] . '" (' . substr($dispatch['sha'], 0, 7) . ').',
+    $adminUser
+);
 
 pw_json(['ok' => true]);

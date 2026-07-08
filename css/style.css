@@ -3440,6 +3440,28 @@ footer.site-footer {
 }
 .admin-row-github-link svg { width: 13px; height: 13px; }
 .admin-row-github-link:hover { color: var(--gold-bright); }
+
+.admin-nav-list-top { margin-bottom: 4px; }
+.admin-nav-list-top + .admin-nav-category { border-top: 1px solid var(--border-soft); padding-top: 14px; }
+
+.activity-row { cursor: default; align-items: flex-start; }
+.activity-row:hover { background: rgba(255,255,255,0.02); }
+.activity-row:nth-child(even):hover { background: rgba(255,255,255,0.03); }
+.activity-row-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.activity-row-icon { width: 16px; height: 16px; flex-shrink: 0; color: var(--text-faint); }
+.activity-row-icon svg { width: 100%; height: 100%; }
+.activity-row-label {
+  font-family: 'Jost', sans-serif; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+.activity-row-desc { font-size: 0.9rem; color: var(--text); margin: 0 0 6px; line-height: 1.5; }
+.activity-row-meta { font-size: 0.74rem; }
+.activity-row-user { color: var(--gold-bright); font-weight: 500; }
+.activity-row-ip { font-family: monospace; }
+.activity-login .activity-row-icon { color: var(--purple-bright); }
+.activity-translation_added .activity-row-icon { color: #3ecf8e; }
+.activity-translation_updated .activity-row-icon { color: var(--gold-bright); }
+.activity-category_edited .activity-row-icon { color: #45d1c9; }
 .admin-status-badge {
   flex-shrink: 0; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em;
   padding: 4px 10px; border-radius: 3px; border: 1px solid var(--border);

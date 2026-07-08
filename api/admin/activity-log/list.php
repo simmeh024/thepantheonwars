@@ -1,0 +1,53 @@
+<?php
+require_once __DIR__ . '/../../helpers.php';
+
+pw_require_admin();
+
+$page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
+$perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 25;
+if ($perPage <= 0) {
+    $perPage = 25;
+}
+if ($perPage > 200) {
+    $perPage = 200;
+}
+
+$db = pw_db();
+
+$total = (int)$db->query('SELECT COUNT(*) AS c FROM admin_activity_log')->fetch()['c'];
+$totalPages = $total > 0 ? (int)ceil($total / $perPage) : 1;
+if ($page > $totalPages) {
+    $page = $totalPages;
+}
+$offset = ($page - 1) * $perPage;
+
+$stmt = $db->prepare(
+    'SELECT id, username, action, description, ip_address, created_at
+     FROM admin_activity_log
+     ORDER BY created_at DESC, id DESC
+     LIMIT :limit OFFSET :offset'
+);
+$stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt->execute();
+$rows = $stmt->fetchAll();
+
+$out = array_map(function ($r) {
+    return [
+        'id' => (int)$r['id'],
+        'username' => $r['username'],
+        'action' => $r['action'],
+        'description' => $r['description'],
+        'ip_address' => $r['ip_address'],
+        'created_at' => $r['created_at'],
+    ];
+}, $rows);
+
+pw_json([
+    'ok' => true,
+    'entries' => $out,
+    'page' => $page,
+    'per_page' => $perPage,
+    'total' => $total,
+    'total_pages' => $totalPages,
+]);

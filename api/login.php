@@ -14,7 +14,7 @@ if ($identifier === '' || $password === '') {
 }
 
 $db = pw_db();
-$stmt = $db->prepare('SELECT id, username, display_name, password_hash, failed_login_attempts, locked_until FROM users WHERE username = ? OR email = ?');
+$stmt = $db->prepare('SELECT id, username, display_name, password_hash, failed_login_attempts, locked_until, role FROM users WHERE username = ? OR email = ?');
 $stmt->execute([$identifier, $identifier]);
 $user = $stmt->fetch();
 
@@ -43,6 +43,10 @@ $stmt->execute([$user['id']]);
 
 session_regenerate_id(true);
 $_SESSION['user_id'] = (int)$user['id'];
+
+if ($user['role'] === 'admin') {
+    pw_log_admin_activity('login', 'Logged into the admin account.', $user);
+}
 
 pw_json(['ok' => true, 'user' => [
     'id' => (int)$user['id'],

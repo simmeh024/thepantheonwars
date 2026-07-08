@@ -78,3 +78,32 @@ function pw_require_admin() {
     }
     return $user;
 }
+
+// --- Admin activity log ---------------------------------------------------
+function pw_client_ip() {
+    foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $key) {
+        if (!empty($_SERVER[$key])) {
+            $value = $_SERVER[$key];
+            if ($key === 'HTTP_X_FORWARDED_FOR') {
+                // May contain a client,proxy1,proxy2 chain -- the first entry is the client.
+                $parts = explode(',', $value);
+                $value = trim($parts[0]);
+            }
+            return substr($value, 0, 64);
+        }
+    }
+    return 'unknown';
+}
+
+function pw_log_admin_activity($action, $description, $user = null) {
+    $stmt = pw_db()->prepare(
+        'INSERT INTO admin_activity_log (user_id, username, action, description, ip_address) VALUES (?, ?, ?, ?, ?)'
+    );
+    $stmt->execute([
+        $user ? (int)$user['id'] : null,
+        $user ? $user['username'] : 'unknown',
+        $action,
+        $description,
+        pw_client_ip(),
+    ]);
+}
