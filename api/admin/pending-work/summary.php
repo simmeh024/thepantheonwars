@@ -13,7 +13,13 @@ $stmt = $db->query(
 );
 $row = $stmt->fetch();
 
+$reportsStmt = $db->query(
+    "SELECT COUNT(*) AS c FROM content_reports WHERE status = 'open'"
+);
+$reportsRow = $reportsStmt->fetch();
+
 pw_json([
     'ok' => true,
     'dispatches_awaiting_translation' => (int)$row['c'],
+    'active_topic_reports' => (int)$reportsRow['c'],
 ]);

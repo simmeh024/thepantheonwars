@@ -3534,6 +3534,9 @@ footer.site-footer {
 }
 .pending-work-count.is-zero { background: rgba(255,255,255,0.05); color: var(--text-faint); }
 
+.pending-work-count-warn { background: rgba(236,201,66,0.22); color: #ecc942; }
+.pending-work-count-warn.is-zero { background: rgba(255,255,255,0.05); color: var(--text-faint); }
+
 #community-metrics-list.pending-work-list .pending-work-row { cursor: default; }
 #community-metrics-list.pending-work-list .pending-work-row:hover { background: none; }
 #community-metrics-list .pending-work-count { background: rgba(69,209,201,0.18); color: #45d1c9; }

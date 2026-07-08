@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=75">
+<link rel="stylesheet" href="../css/style.css?v=76">
 </head>
 <body>
 
@@ -108,6 +108,10 @@
             <li class="pending-work-row" id="pending-work-translations-row">
               <span class="pending-work-label">Dispatches awaiting translation</span>
               <span class="pending-work-count" id="pending-work-translations-count">&hellip;</span>
+            </li>
+            <li class="pending-work-row" id="pending-work-reports-row">
+              <span class="pending-work-label">Active Topic Reports</span>
+              <span class="pending-work-count pending-work-count-warn" id="pending-work-reports-count">&hellip;</span>
             </li>
           </ul>
         </div>
@@ -602,6 +606,8 @@
   // ===== Home / Pending Work ==================================================
   var pendingTranslationsRow = document.getElementById('pending-work-translations-row');
   var pendingTranslationsCountEl = document.getElementById('pending-work-translations-count');
+  var pendingReportsRow = document.getElementById('pending-work-reports-row');
+  var pendingReportsCountEl = document.getElementById('pending-work-reports-count');
 
   function loadPendingWork() {
     fetch('/api/admin/pending-work/summary.php', { credentials: 'same-origin' })
@@ -610,9 +616,14 @@
         if (!data.ok) return;
         pendingTranslationsCountEl.textContent = data.dispatches_awaiting_translation;
         pendingTranslationsCountEl.classList.toggle('is-zero', data.dispatches_awaiting_translation === 0);
+        if (pendingReportsCountEl) {
+          pendingReportsCountEl.textContent = data.active_topic_reports;
+          pendingReportsCountEl.classList.toggle('is-zero', data.active_topic_reports === 0);
+        }
       })
       .catch(function () {
         pendingTranslationsCountEl.textContent = '—';
+        if (pendingReportsCountEl) pendingReportsCountEl.textContent = '—';
       });
   }
 
@@ -624,6 +635,13 @@
         t.classList.toggle('active', t.getAttribute('data-filter') === 'untranslated');
       });
       loadList();
+    });
+  }
+
+  if (pendingReportsRow) {
+    pendingReportsRow.addEventListener('click', function () {
+      showSection('topic-reports');
+      loadTopicReports();
     });
   }
 
