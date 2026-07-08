@@ -517,7 +517,7 @@
         '<div class="bh4-verify dispatch-translation-badge" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="View end-user translation" data-dispatch-id="' + entry.id + '">' +
           '<div class="bh4-verify-avatar"><img src="images/bh4-dispatch.jpg" alt="BH-4" loading="lazy"></div>' +
           '<div class="bh4-verify-tooltip dispatch-translation-tooltip">' +
-            '<div class="bh4-status-tooltip-head">BH-4 Translation:</div>' +
+            '<div class="bh4-status-tooltip-head">BH-4 Analysis:</div>' +
             '<p class="bh4-status-tooltip-line dispatch-translation-text">Loading translation&hellip;</p>' +
           '</div>' +
         '</div>' : '') +
@@ -536,9 +536,18 @@
     main.addEventListener('click', function () {
       var isOpen = row.classList.contains('is-expanded');
       row.classList.toggle('is-expanded', !isOpen);
+      clearTimeout(body._pwOverflowTimer);
       if (!isOpen) {
+        body.style.overflow = 'hidden';
         body.style.maxHeight = bodyInner.scrollHeight + 'px';
+        // Once the expand transition finishes, let overflow escape so the
+        // BH-4 tooltip (which pops up above the badge) isn't clipped by
+        // this box's own bounds when there isn't much room above it.
+        body._pwOverflowTimer = setTimeout(function () {
+          if (row.classList.contains('is-expanded')) body.style.overflow = 'visible';
+        }, 320);
       } else {
+        body.style.overflow = 'hidden';
         body.style.maxHeight = null;
       }
     });
