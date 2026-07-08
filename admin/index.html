@@ -1642,7 +1642,7 @@
           return;
         }
         if (!data.available) {
-          siteErrorsListEl.innerHTML = '<div class="admin-list-empty">Could not locate a readable PHP error log on this server.</div>';
+          siteErrorsListEl.innerHTML = '<div class="admin-list-empty">No PHP-readable error log found on this host (cPanel\'s own Errors page has elevated access this account doesn\'t).</div>';
           siteErrorsCountEl.textContent = '';
           siteErrorsPaginationEl.innerHTML = '';
           return;

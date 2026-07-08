@@ -17,15 +17,15 @@ $perPage = isset($_GET['per_page']) ? max(1, min(100, (int)$_GET['per_page'])) :
 $data = pw_load_error_entries();
 
 if (!$data['available']) {
-    // Temporary: list what's actually in ~/logs to find the real filename
-    // (cPanel's Errors page proves a web server error log exists somewhere
-    // under the account -- our exact-name guesses just missed it).
-    $debugLogsDir = [];
-    if (!empty($_SERVER['DOCUMENT_ROOT'])) {
-        $home = dirname(rtrim($_SERVER['DOCUMENT_ROOT'], '/'));
-        $logsGlob = @glob($home . '/logs/*');
-        $debugLogsDir = $logsGlob !== false ? $logsGlob : ['glob failed or dir missing: ' . $home . '/logs'];
-    }
+    // A live check of ~/logs/* on this host turned up only access logs
+    // (thepantheonwars.com-Jul-2026.gz, -ssl_log-...) -- no error log. The
+    // Errors page in cPanel (Metrics > Errors) can still show Apache's error
+    // log because cPanel's backend reads it with elevated privileges; a
+    // plain PHP script running as this account can't reach that same file.
+    // Short of the account owner setting a custom writable error_log path
+    // (cPanel > MultiPHP INI Editor > error_log = /home/.../php_errors.log),
+    // there's no PHP-readable log to tail here, so this stays honest about
+    // being unavailable rather than guessing at more paths.
     pw_json([
         'ok' => true,
         'available' => false,
@@ -33,7 +33,6 @@ if (!$data['available']) {
         'total' => 0,
         'page' => 1,
         'total_pages' => 1,
-        'debug_logs_dir_listing' => $debugLogsDir,
     ]);
 }
 
