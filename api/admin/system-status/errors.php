@@ -17,35 +17,12 @@ $perPage = isset($_GET['per_page']) ? max(1, min(100, (int)$_GET['per_page'])) :
 $data = pw_load_error_entries();
 
 if (!$data['available']) {
-    // Temporary debug block to pin down the real log path on this host --
-    // remove once pw_error_log_path()'s candidate list is confirmed correct.
-    $iniPath = ini_get('error_log');
-    $relativeLogName = ($iniPath && strpos($iniPath, '/') === false) ? $iniPath : 'error_log';
-    $debugCandidates = [];
-    if ($iniPath && strpos($iniPath, '/') !== false) {
-        $debugCandidates[] = $iniPath;
-    }
-    if (!empty($_SERVER['DOCUMENT_ROOT'])) {
-        $docRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
-        $debugCandidates[] = $docRoot . '/' . $relativeLogName;
-        $debugCandidates[] = $docRoot . '/api/' . $relativeLogName;
-        $debugCandidates[] = $docRoot . '/api/admin/' . $relativeLogName;
-        $debugCandidates[] = $docRoot . '/api/admin/system-status/' . $relativeLogName;
-        $debugCandidates[] = $docRoot . '/admin/' . $relativeLogName;
-        $home = dirname($docRoot);
-        $host = !empty($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'thepantheonwars.com';
-        $bareHost = preg_replace('/^www\./', '', $host);
-        $debugCandidates[] = $home . '/' . $relativeLogName;
-        $debugCandidates[] = $home . '/logs/' . $host;
-        $debugCandidates[] = $home . '/logs/' . $bareHost;
-        $debugCandidates[] = $home . '/php_errorlog';
-    }
-    $debugCandidates[] = __DIR__ . '/' . $relativeLogName;
-
-    $debugInfo = [];
-    foreach ($debugCandidates as $c) {
-        $debugInfo[] = ['path' => $c, 'exists' => file_exists($c), 'readable' => is_readable($c)];
-    }
+    // pw_error_log_path() checks ini_get('error_log') plus a wide list of
+    // common cPanel/account-relative locations (see status-helpers.php). On
+    // this host none of them exist -- most likely this PHP-FPM setup routes
+    // errors to a system-level log outside what an account script can read,
+    // rather than any of the usual account-relative paths. Reporting that
+    // plainly rather than guessing further.
     pw_json([
         'ok' => true,
         'available' => false,
@@ -53,8 +30,6 @@ if (!$data['available']) {
         'total' => 0,
         'page' => 1,
         'total_pages' => 1,
-        'debug_ini_error_log' => $iniPath,
-        'debug_candidates' => $debugInfo,
     ]);
 }
 
