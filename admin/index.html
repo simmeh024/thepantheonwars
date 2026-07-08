@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=72">
+<link rel="stylesheet" href="../css/style.css?v=73">
 </head>
 <body>
 
@@ -292,7 +292,13 @@
     <h3 class="admin-modal-title" id="admin-modal-title">Edit Translation</h3>
     <p class="admin-modal-sub" id="admin-modal-sub"></p>
     <div class="admin-field">
-      <label>Commit message (technical)</label>
+      <div class="admin-field-label-row">
+        <label>Commit message (technical)</label>
+        <button type="button" class="admin-copy-btn" id="admin-copy-commit-btn" title="Copy commit message" aria-label="Copy commit message">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span>Copy</span>
+        </button>
+      </div>
       <pre class="admin-commit-body" id="admin-commit-body"></pre>
     </div>
     <div class="admin-field">
@@ -983,6 +989,7 @@
   var cancelBtn = document.getElementById('admin-cancel-btn');
   var closeBtn = document.querySelector('#admin-modal .admin-modal-close');
   var deleteBtn = document.getElementById('admin-delete-btn');
+  var copyCommitBtn = document.getElementById('admin-copy-commit-btn');
 
   var currentFilter = 'all';
   var currentQuery = '';
@@ -1060,6 +1067,38 @@
 
   closeBtn.addEventListener('click', closeModal);
   cancelBtn.addEventListener('click', closeModal);
+
+  if (copyCommitBtn) {
+    copyCommitBtn.addEventListener('click', function () {
+      var text = commitBodyEl.textContent || '';
+      var showCopied = function () {
+        copyCommitBtn.classList.add('is-copied');
+        copyCommitBtn.querySelector('span').textContent = 'Copied!';
+        setTimeout(function () {
+          copyCommitBtn.classList.remove('is-copied');
+          copyCommitBtn.querySelector('span').textContent = 'Copy';
+        }, 1800);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(showCopied).catch(function () {
+          copyCommitBtn.querySelector('span').textContent = 'Failed';
+          setTimeout(function () { copyCommitBtn.querySelector('span').textContent = 'Copy'; }, 1800);
+        });
+      } else {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); showCopied(); } catch (e) {
+          copyCommitBtn.querySelector('span').textContent = 'Failed';
+          setTimeout(function () { copyCommitBtn.querySelector('span').textContent = 'Copy'; }, 1800);
+        }
+        document.body.removeChild(ta);
+      }
+    });
+  }
   modal.querySelector('.admin-modal-backdrop').addEventListener('click', closeModal);
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;

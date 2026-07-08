@@ -3709,6 +3709,19 @@ footer.site-footer {
   display: block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em;
   color: var(--text-faint); margin-bottom: 0.5em;
 }
+.admin-field-label-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 0.5em;
+}
+.admin-field-label-row label { margin-bottom: 0; }
+.admin-copy-btn {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+  background: var(--panel-2); border: 1px solid var(--border); color: var(--text-dim);
+  padding: 5px 11px; font-family: 'Jost', sans-serif; font-size: 0.68rem; text-transform: uppercase;
+  letter-spacing: 0.06em; cursor: pointer; transition: border-color 0.2s ease, color 0.2s ease; border-radius: 3px;
+}
+.admin-copy-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+.admin-copy-btn:hover { border-color: var(--purple-bright); color: var(--gold-bright); }
+.admin-copy-btn.is-copied { border-color: #3ecf8e; color: #3ecf8e; }
 .admin-field textarea {
   width: 100%; min-height: 160px; background: var(--bg); border: 1px solid var(--border); color: var(--text);
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.92rem; line-height: 1.55; resize: vertical;
