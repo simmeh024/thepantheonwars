@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=51">
+<link rel="stylesheet" href="css/style.css?v=52">
 </head>
 <body>
 
@@ -243,6 +243,53 @@
     if (isNaN(d.getTime())) return iso || '';
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) +
       ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // BH-4 translation badge: shown in an expanded entry's footer only when
+  // entry.has_translation is true. Hover/focus reveal the tooltip via CSS
+  // (same .bh4-verify-tooltip pattern as the pagination-row badge); click
+  // also toggles an .is-open class so the tooltip works on touch devices
+  // that can't hover. The translation text itself is fetched lazily, once,
+  // the first time the badge is interacted with.
+  function wireTranslationBadge(el, dispatchId) {
+    if (!el) return;
+    var textEl = el.querySelector('.dispatch-translation-text');
+    var loaded = false;
+    function ensureLoaded() {
+      if (loaded) return;
+      loaded = true;
+      fetch('/api/dispatches/get-translation.php?id=' + encodeURIComponent(dispatchId), { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          textEl.textContent = data.ok ? data.translation : 'Translation unavailable.';
+        })
+        .catch(function () {
+          textEl.textContent = 'Translation unavailable.';
+        });
+    }
+    el.addEventListener('mouseenter', ensureLoaded);
+    el.addEventListener('focus', ensureLoaded);
+    el.addEventListener('click', function (e) {
+      e.stopPropagation();
+      ensureLoaded();
+      var isOpen = el.classList.toggle('is-open');
+      el.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    });
+    el.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        el.click();
+      } else if (e.key === 'Escape') {
+        el.classList.remove('is-open');
+        el.setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.addEventListener('click', function (e) {
+      if (el.classList.contains('is-open') && !el.contains(e.target)) {
+        el.classList.remove('is-open');
+        el.setAttribute('aria-expanded', 'false');
+      }
+    });
   }
 
   function buildTagFilterPanel() {
@@ -466,9 +513,21 @@
       '<div class="dispatch-entry-footer">' +
       '<span>Committed by ' + escapeHtml(entry.author) + '</span>' +
       (entry.url ? '<a href="' + escapeHtml(entry.url) + '" target="_blank" rel="noopener">View on GitHub ↗</a>' : '') +
+      (entry.has_translation ?
+        '<div class="bh4-verify dispatch-translation-badge" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="View end-user translation" data-dispatch-id="' + entry.id + '">' +
+          '<div class="bh4-verify-avatar"><img src="images/bh4-dispatch.jpg" alt="BH-4" loading="lazy"></div>' +
+          '<div class="bh4-verify-tooltip dispatch-translation-tooltip">' +
+            '<div class="bh4-status-tooltip-head">BH-4 Translation:</div>' +
+            '<p class="bh4-status-tooltip-line dispatch-translation-text">Loading translation&hellip;</p>' +
+          '</div>' +
+        '</div>' : '') +
       '</div>';
     body.appendChild(bodyInner);
     wrap.appendChild(body);
+
+    if (entry.has_translation) {
+      wireTranslationBadge(bodyInner.querySelector('.dispatch-translation-badge'), entry.id);
+    }
 
     row.appendChild(wrap);
 

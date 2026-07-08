@@ -2870,6 +2870,13 @@ footer.site-footer {
 .bh4-verify:focus-visible .bh4-verify-tooltip {
   opacity: 1; visibility: visible; transform: translateY(0);
 }
+/* Click-toggle variant (for touch devices, which can't :hover) — used by
+   the per-dispatch translation badge in dev-dispatches.html. */
+.bh4-verify.is-open .bh4-verify-tooltip {
+  opacity: 1; visibility: visible; transform: translateY(0); pointer-events: auto;
+}
+.dispatch-translation-badge { flex-shrink: 0; }
+.dispatch-translation-badge .bh4-verify-avatar { width: 28px; height: 28px; }
 @media (max-width: 480px) {
   .bh4-verify-label { display: none; }
   .bh4-verify-tooltip { right: -10px; width: 220px; }
