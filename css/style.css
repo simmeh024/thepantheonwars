@@ -1056,6 +1056,15 @@ footer.site-footer {
 .book-cta { margin-top: 14px; }
 .book-meta-row { display: flex; align-items: center; gap: 10px; margin-bottom: 0.5em; }
 .book-meta-row .meta { margin-bottom: 0; }
+.book-buy-links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.book-buy-link {
+  display: inline-flex; align-items: center; padding: 8px 16px;
+  border: 1px solid var(--border); color: var(--text-dim);
+  font-family: 'Jost', sans-serif; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.08em; text-decoration: none; border-radius: 2px;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+.book-buy-link:hover { border-color: var(--gold); color: var(--gold-bright); }
 .book-figure {
   width: 34px; height: 34px; border-radius: 50%; overflow: hidden;
   flex-shrink: 0; border: 1px solid var(--gold-dim);
@@ -3631,6 +3640,12 @@ footer.site-footer {
 
 .activity-card.activity-login .activity-card-icon { background: rgba(224,164,88,0.15); color: #e0a458; }
 .activity-card.activity-login .activity-card-label { color: #e0a458; }
+.activity-card.activity-book_created .activity-card-icon { background: rgba(62,207,142,0.15); color: #3ecf8e; }
+.activity-card.activity-book_created .activity-card-label { color: #3ecf8e; }
+.activity-card.activity-book_updated .activity-card-icon { background: rgba(69,209,201,0.15); color: #45d1c9; }
+.activity-card.activity-book_updated .activity-card-label { color: #45d1c9; }
+.activity-card.activity-book_deleted .activity-card-icon { background: rgba(224,90,74,0.15); color: #e05a4a; }
+.activity-card.activity-book_deleted .activity-card-label { color: #e05a4a; }
 .activity-card.activity-translation_added .activity-card-icon { background: rgba(62,207,142,0.15); color: #3ecf8e; }
 .activity-card.activity-translation_added .activity-card-label { color: #3ecf8e; }
 .activity-card.activity-translation_updated .activity-card-icon { background: rgba(91,141,217,0.15); color: #5b8dd9; }
@@ -4108,6 +4123,15 @@ footer.site-footer {
   animation: result-reveal 0.3s ease;
   max-height: 85vh; overflow-y: auto;
 }
+.admin-modal-inner-wide { max-width: 760px; }
+.admin-field-row { display: flex; gap: 16px; margin-bottom: 20px; }
+.admin-field-row .admin-field { flex: 1; margin-bottom: 0; min-width: 0; }
+.admin-modal-divider { border: none; border-top: 1px solid var(--border-soft); margin: 22px 0; }
+.admin-field-group-label {
+  font-family: 'Cinzel', serif; font-size: 0.8rem; letter-spacing: 0.06em;
+  color: var(--gold-bright); margin: 0 0 14px;
+}
+.admin-textarea-tall { min-height: 320px; }
 .admin-modal-close {
   position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; border-radius: 50%;
   background: var(--panel-2); border: 1px solid var(--gold-dim); color: var(--text);
@@ -4147,11 +4171,11 @@ footer.site-footer {
   white-space: pre-wrap; word-wrap: break-word;
 }
 .admin-field textarea:focus { outline: none; border-color: var(--purple-bright); }
-.admin-field input[type="text"], .admin-field input[type="email"] {
+.admin-field input[type="text"], .admin-field input[type="email"], .admin-field input[type="number"] {
   width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.92rem;
 }
-.admin-field input[type="text"]:focus, .admin-field input[type="email"]:focus { outline: none; border-color: var(--purple-bright); }
+.admin-field input[type="text"]:focus, .admin-field input[type="email"]:focus, .admin-field input[type="number"]:focus { outline: none; border-color: var(--purple-bright); }
 .admin-field select {
   width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.92rem; cursor: pointer;

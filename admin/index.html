@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=86">
+<link rel="stylesheet" href="../css/style.css?v=87">
 </head>
 <body>
 
@@ -30,6 +30,16 @@
     <ul class="admin-nav-list admin-nav-list-top" data-admin-only="true">
       <li><button type="button" class="admin-nav-link active" data-section="home">Home</button></li>
     </ul>
+
+    <div class="admin-nav-category" data-category="lore" data-admin-only="true">
+      <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
+        <span>Lore Management</span>
+        <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <ul class="admin-nav-list admin-nav-list-collapsible">
+        <li><button type="button" class="admin-nav-link" data-section="book-control">Book Control</button></li>
+      </ul>
+    </div>
 
     <div class="admin-nav-category" data-category="dispatches" data-admin-only="true">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
@@ -454,6 +464,11 @@
           <optgroup label="Session">
             <option value="login">Admin login</option>
           </optgroup>
+          <optgroup label="Book Control">
+            <option value="book_created">Book created</option>
+            <option value="book_updated">Book updated</option>
+            <option value="book_deleted">Book deleted</option>
+          </optgroup>
           <optgroup label="Dispatch Translations">
             <option value="translation_added">Translation added</option>
             <option value="translation_updated">Translation updated</option>
@@ -587,6 +602,23 @@
 
       <div class="admin-list" id="report-list">
         <div class="admin-list-empty">Loading reports&hellip;</div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-book-control" hidden>
+      <div class="admin-section-head">
+        <h1>Book Control</h1>
+        <p>Manage the saga&rsquo;s 14 books &mdash; cover art, description, writing phase, first-chapter preview, and storefront buy links.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button type="button" class="btn btn-solid" id="book-create-btn">+ Add Book</button>
+        <input type="text" class="admin-search" id="book-search" placeholder="Search title&hellip;">
+        <span class="admin-count" id="book-count"></span>
+      </div>
+
+      <div class="admin-list" id="book-list">
+        <div class="admin-list-empty">Loading books&hellip;</div>
       </div>
     </section>
 
@@ -751,6 +783,157 @@
   </div>
 </div>
 
+<div class="admin-modal" id="book-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="book-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="book-modal-title">Edit Book</h3>
+    <p class="admin-modal-sub" id="book-modal-sub"></p>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="book-number-input">Book number</label>
+        <input type="number" id="book-number-input" min="1" max="999">
+      </div>
+      <div class="admin-field">
+        <label for="book-saga-phase-select">Saga phase</label>
+        <select id="book-saga-phase-select">
+          <option value="1">Phase I</option>
+          <option value="2">Phase II</option>
+          <option value="3">Phase III</option>
+        </select>
+      </div>
+      <div class="admin-field">
+        <label for="book-writing-stage-select">Writing phase</label>
+        <select id="book-writing-stage-select">
+          <option value="1">1 &mdash; Idea</option>
+          <option value="2">2 &mdash; Outline</option>
+          <option value="3">3 &mdash; First Draft</option>
+          <option value="4">4 &mdash; Second Draft</option>
+          <option value="5">5 &mdash; Developmental Revision</option>
+          <option value="6">6 &mdash; Alpha Review</option>
+          <option value="7">7 &mdash; Third Draft</option>
+          <option value="8">8 &mdash; Beta Review</option>
+          <option value="9">9 &mdash; Fourth Draft</option>
+          <option value="10">10 &mdash; Developmental Editing</option>
+          <option value="11">11 &mdash; Copy Editing</option>
+          <option value="12">12 &mdash; Fifth Draft</option>
+          <option value="13">13 &mdash; Proofreading</option>
+          <option value="14">14 &mdash; Print Ready</option>
+          <option value="15">15 &mdash; Published</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="admin-field">
+      <label for="book-title-input">Title</label>
+      <input type="text" id="book-title-input" maxlength="255">
+    </div>
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="book-status-label-input">Status label</label>
+        <input type="text" id="book-status-label-input" maxlength="100" placeholder="e.g. Phase II &middot; Second Draft">
+      </div>
+      <div class="admin-field">
+        <label for="book-meta-input">Meta line</label>
+        <input type="text" id="book-meta-input" maxlength="500" placeholder="Optional short line under the title">
+      </div>
+    </div>
+    <div class="admin-field">
+      <label for="book-description-input">Description</label>
+      <textarea id="book-description-input" maxlength="4000" placeholder="Public back-cover style description&hellip;"></textarea>
+    </div>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="book-cover-image-input">Cover image URL</label>
+        <input type="text" id="book-cover-image-input" maxlength="500" placeholder="images/covers/book-1.jpg">
+      </div>
+      <div class="admin-field">
+        <label for="book-character-image-input">Character image URL</label>
+        <input type="text" id="book-character-image-input" maxlength="500" placeholder="Optional">
+      </div>
+      <div class="admin-field">
+        <label for="book-character-alt-input">Character image alt text</label>
+        <input type="text" id="book-character-alt-input" maxlength="255" placeholder="Optional">
+      </div>
+    </div>
+
+    <hr class="admin-modal-divider">
+
+    <div class="admin-field">
+      <label class="member-ban-toggle">
+        <input type="checkbox" id="book-preview-enabled-checkbox">
+        <span>Enable first chapter preview</span>
+      </label>
+      <p class="member-ban-hint">Adds a &ldquo;Read the First Chapter&rdquo; link on the public book listing, linking to the preview page below.</p>
+    </div>
+
+    <div id="book-preview-fields" hidden>
+      <div class="admin-field-row">
+        <div class="admin-field">
+          <label for="book-preview-eyebrow-input">Preview eyebrow</label>
+          <input type="text" id="book-preview-eyebrow-input" maxlength="255" placeholder="e.g. Book One &middot; Preview">
+        </div>
+        <div class="admin-field">
+          <label for="book-preview-hero-image-input">Preview hero image URL</label>
+          <input type="text" id="book-preview-hero-image-input" maxlength="500" placeholder="Optional">
+        </div>
+      </div>
+      <div class="admin-field">
+        <label for="book-preview-lede-input">Preview lede</label>
+        <textarea id="book-preview-lede-input" maxlength="1000" placeholder="Short intro line shown under the title&hellip;"></textarea>
+      </div>
+      <div class="admin-field">
+        <label for="book-preview-body-input">Preview chapter text</label>
+        <textarea id="book-preview-body-input" class="admin-textarea-tall" maxlength="20000" placeholder="Full first-chapter text. Separate paragraphs with a blank line."></textarea>
+      </div>
+      <div class="admin-field-row">
+        <div class="admin-field">
+          <label for="book-preview-quote-input">Closing quote</label>
+          <textarea id="book-preview-quote-input" maxlength="1000" placeholder="Optional myth/quote block"></textarea>
+        </div>
+        <div class="admin-field">
+          <label for="book-preview-quote-cite-input">Quote attribution</label>
+          <input type="text" id="book-preview-quote-cite-input" maxlength="255" placeholder="Optional">
+        </div>
+      </div>
+    </div>
+
+    <hr class="admin-modal-divider">
+
+    <p class="admin-field-group-label">Buying links</p>
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="book-buy-kobo-input">Kobo URL</label>
+        <input type="text" id="book-buy-kobo-input" maxlength="500" placeholder="Optional">
+      </div>
+      <div class="admin-field">
+        <label for="book-buy-amazon-input">Amazon URL</label>
+        <input type="text" id="book-buy-amazon-input" maxlength="500" placeholder="Optional">
+      </div>
+    </div>
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="book-buy-apple-input">Apple Books URL</label>
+        <input type="text" id="book-buy-apple-input" maxlength="500" placeholder="Optional">
+      </div>
+      <div class="admin-field">
+        <label for="book-buy-bn-input">Barnes &amp; Noble URL</label>
+        <input type="text" id="book-buy-bn-input" maxlength="500" placeholder="Optional">
+      </div>
+    </div>
+
+    <p class="admin-modal-error" id="book-modal-error"></p>
+    <p class="admin-modal-status" id="book-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="book-save-btn">Save</button>
+      <button type="button" class="btn" id="book-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="book-delete-btn" hidden>Delete Book</button>
+    </div>
+  </div>
+</div>
+
 <script src="../js/members.js?v=4"></script>
 <script>
 (function () {
@@ -799,6 +982,7 @@
       if (name === 'dispatch-translations') loadList();
       if (name === 'members') loadMembers();
       if (name === 'topic-reports') loadTopicReports();
+      if (name === 'book-control') loadBookList();
     }
   }
 
@@ -1406,6 +1590,9 @@
   // ===== Home / Activity Log ==================================================
   var ACTIVITY_LABELS = {
     login: 'Admin login',
+    book_created: 'Book created',
+    book_updated: 'Book updated',
+    book_deleted: 'Book deleted',
     translation_added: 'Translation added',
     translation_updated: 'Translation updated',
     category_edited: 'Category changed',
@@ -1425,6 +1612,9 @@
   };
   var ACTIVITY_ICONS = {
     login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+    book_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>',
+    book_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9.5 12.5l1.8 1.8L15.5 10"/></svg>',
+    book_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9.5" y1="10" x2="14.5" y2="15"/><line x1="14.5" y1="10" x2="9.5" y2="15"/></svg>',
     translation_added: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M5 12h14M12 5v14"/></svg>',
     translation_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
     category_edited: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M20.6 12.6 12.7 20.5a2 2 0 0 1-2.8 0l-6.4-6.4a2 2 0 0 1 0-2.8L11.4 3.3a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v6.6a2 2 0 0 1-.4 1.7z"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/></svg>',
@@ -2005,6 +2195,7 @@
     if (!controlModal.hidden) closeControlModal();
     if (!memberModal.hidden) closeMemberModal();
     if (reportActionModal && !reportActionModal.hidden) closeReportActionModal();
+    if (bookModal && !bookModal.hidden) closeBookModal();
   });
 
   saveBtn.addEventListener('click', function () {
@@ -2537,6 +2728,306 @@
       loadMembers();
     }, 300);
   });
+
+  // ===== Book Control (Lore Management) ========================================
+  var bookListEl = document.getElementById('book-list');
+  var bookCountEl = document.getElementById('book-count');
+  var bookSearchEl = document.getElementById('book-search');
+  var bookCreateBtn = document.getElementById('book-create-btn');
+
+  var bookModal = document.getElementById('book-modal');
+  var bookModalTitle = document.getElementById('book-modal-title');
+  var bookModalSub = document.getElementById('book-modal-sub');
+  var bookModalError = document.getElementById('book-modal-error');
+  var bookModalStatus = document.getElementById('book-modal-status');
+  var bookCloseBtn = document.getElementById('book-modal-close');
+  var bookCancelBtn = document.getElementById('book-cancel-btn');
+  var bookSaveBtn = document.getElementById('book-save-btn');
+  var bookDeleteBtn = document.getElementById('book-delete-btn');
+
+  var bookNumberInput = document.getElementById('book-number-input');
+  var bookSagaPhaseSelect = document.getElementById('book-saga-phase-select');
+  var bookWritingStageSelect = document.getElementById('book-writing-stage-select');
+  var bookTitleInput = document.getElementById('book-title-input');
+  var bookStatusLabelInput = document.getElementById('book-status-label-input');
+  var bookMetaInput = document.getElementById('book-meta-input');
+  var bookDescriptionInput = document.getElementById('book-description-input');
+  var bookCoverImageInput = document.getElementById('book-cover-image-input');
+  var bookCharacterImageInput = document.getElementById('book-character-image-input');
+  var bookCharacterAltInput = document.getElementById('book-character-alt-input');
+  var bookPreviewEnabledCheckbox = document.getElementById('book-preview-enabled-checkbox');
+  var bookPreviewFieldsWrap = document.getElementById('book-preview-fields');
+  var bookPreviewEyebrowInput = document.getElementById('book-preview-eyebrow-input');
+  var bookPreviewHeroImageInput = document.getElementById('book-preview-hero-image-input');
+  var bookPreviewLedeInput = document.getElementById('book-preview-lede-input');
+  var bookPreviewBodyInput = document.getElementById('book-preview-body-input');
+  var bookPreviewQuoteInput = document.getElementById('book-preview-quote-input');
+  var bookPreviewQuoteCiteInput = document.getElementById('book-preview-quote-cite-input');
+  var bookBuyKoboInput = document.getElementById('book-buy-kobo-input');
+  var bookBuyAmazonInput = document.getElementById('book-buy-amazon-input');
+  var bookBuyAppleInput = document.getElementById('book-buy-apple-input');
+  var bookBuyBnInput = document.getElementById('book-buy-bn-input');
+
+  var SAGA_PHASE_LABELS = { 1: 'I', 2: 'II', 3: 'III' };
+
+  var currentBook = null;
+  var bookModalMode = 'edit';
+  var bookQuery = '';
+  var bookSearchDebounce = null;
+  var lastBookEntries = [];
+
+  function buildBookListUrl() {
+    var params = new URLSearchParams();
+    if (bookQuery) params.set('q', bookQuery);
+    return '/api/admin/books/list.php?' + params.toString();
+  }
+
+  function loadBookList() {
+    bookListEl.innerHTML = '<div class="admin-list-empty">Loading books&hellip;</div>';
+    fetch(buildBookListUrl(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          bookListEl.innerHTML = '<div class="admin-list-empty">Could not load books.</div>';
+          return;
+        }
+        lastBookEntries = data.entries || [];
+        bookCountEl.textContent = lastBookEntries.length + (lastBookEntries.length === 1 ? ' book' : ' books');
+        renderBookList(lastBookEntries);
+      })
+      .catch(function () {
+        bookListEl.innerHTML = '<div class="admin-list-empty">Could not load books.</div>';
+      });
+  }
+
+  function renderBookList(entries) {
+    if (!entries.length) {
+      bookListEl.innerHTML = '<div class="admin-list-empty">No books match this search.</div>';
+      return;
+    }
+    bookListEl.innerHTML = '';
+    entries.forEach(function (entry) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'admin-row';
+      row.innerHTML =
+        '<div class="admin-row-main">' +
+          '<p class="admin-row-subject">Book ' + entry.book_number + ' &mdash; ' + escapeHtml(entry.title) + '</p>' +
+          '<div class="admin-row-meta">' +
+            '<span>Phase ' + (SAGA_PHASE_LABELS[entry.saga_phase] || entry.saga_phase) + '</span>' +
+            '<span class="admin-row-sep">&bull;</span>' +
+            '<span>Stage ' + entry.writing_stage + ' / 15</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="member-row-badges">' +
+          (entry.preview_enabled ? '<span class="admin-status-badge is-translated">Preview On</span>' : '') +
+          (entry.has_buy_link ? '<span class="admin-status-badge is-translated">Buy Links</span>' : '') +
+        '</div>';
+      row.addEventListener('click', function () { openBookModal(entry); });
+      bookListEl.appendChild(row);
+    });
+  }
+
+  function updateBookPreviewFieldsVisibility() {
+    bookPreviewFieldsWrap.hidden = !bookPreviewEnabledCheckbox.checked;
+  }
+  bookPreviewEnabledCheckbox.addEventListener('change', updateBookPreviewFieldsVisibility);
+
+  function populateBookForm(book) {
+    bookNumberInput.value = book.book_number || '';
+    bookSagaPhaseSelect.value = String(book.saga_phase || 1);
+    bookWritingStageSelect.value = String(book.writing_stage || 1);
+    bookTitleInput.value = book.title || '';
+    bookStatusLabelInput.value = book.status_label || '';
+    bookMetaInput.value = book.meta_text || '';
+    bookDescriptionInput.value = book.description || '';
+    bookCoverImageInput.value = book.cover_image_url || '';
+    bookCharacterImageInput.value = book.character_image_url || '';
+    bookCharacterAltInput.value = book.character_alt || '';
+    bookPreviewEnabledCheckbox.checked = !!book.preview_enabled;
+    bookPreviewEyebrowInput.value = book.preview_eyebrow || '';
+    bookPreviewHeroImageInput.value = book.preview_hero_image_url || '';
+    bookPreviewLedeInput.value = book.preview_lede || '';
+    bookPreviewBodyInput.value = book.preview_body || '';
+    bookPreviewQuoteInput.value = book.preview_quote || '';
+    bookPreviewQuoteCiteInput.value = book.preview_quote_cite || '';
+    bookBuyKoboInput.value = book.buy_kobo_url || '';
+    bookBuyAmazonInput.value = book.buy_amazon_url || '';
+    bookBuyAppleInput.value = book.buy_apple_url || '';
+    bookBuyBnInput.value = book.buy_bn_url || '';
+    updateBookPreviewFieldsVisibility();
+  }
+
+  function openBookModal(entry) {
+    bookModalMode = 'edit';
+    currentBook = null;
+    bookModalTitle.textContent = 'Edit Book';
+    bookModalSub.innerHTML = 'Book ' + entry.book_number + ' &mdash; ' + escapeHtml(entry.title);
+    bookDeleteBtn.hidden = false;
+    bookModalError.classList.remove('show');
+    bookModalStatus.classList.remove('show');
+    bookSaveBtn.disabled = true;
+    bookModal.hidden = false;
+    fetch('/api/admin/books/get.php?id=' + encodeURIComponent(entry.id), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        bookSaveBtn.disabled = false;
+        if (!data.ok) {
+          bookModalError.textContent = data.error || 'Could not load this book.';
+          bookModalError.classList.add('show');
+          return;
+        }
+        currentBook = data.book;
+        populateBookForm(data.book);
+      })
+      .catch(function () {
+        bookSaveBtn.disabled = false;
+        bookModalError.textContent = 'Could not load this book. Please try again.';
+        bookModalError.classList.add('show');
+      });
+  }
+
+  function openCreateBookModal() {
+    bookModalMode = 'create';
+    currentBook = null;
+    bookModalTitle.textContent = 'Add Book';
+    bookModalSub.textContent = '';
+    bookDeleteBtn.hidden = true;
+    bookModalError.classList.remove('show');
+    bookModalStatus.classList.remove('show');
+    var maxNum = 0;
+    lastBookEntries.forEach(function (e) { if (e.book_number > maxNum) maxNum = e.book_number; });
+    populateBookForm({
+      book_number: maxNum + 1, saga_phase: 1, writing_stage: 1, title: '', status_label: '',
+      meta_text: '', description: '', cover_image_url: '', character_image_url: '', character_alt: '',
+      preview_enabled: 0, preview_eyebrow: '', preview_hero_image_url: '', preview_lede: '',
+      preview_body: '', preview_quote: '', preview_quote_cite: '',
+      buy_kobo_url: '', buy_amazon_url: '', buy_apple_url: '', buy_bn_url: ''
+    });
+    bookModal.hidden = false;
+    setTimeout(function () { bookNumberInput.focus(); }, 30);
+  }
+
+  function closeBookModal() {
+    bookModal.hidden = true;
+    currentBook = null;
+  }
+
+  bookCreateBtn.addEventListener('click', openCreateBookModal);
+  bookCloseBtn.addEventListener('click', closeBookModal);
+  bookCancelBtn.addEventListener('click', closeBookModal);
+  bookModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeBookModal);
+
+  bookSearchEl.addEventListener('input', function () {
+    clearTimeout(bookSearchDebounce);
+    bookSearchDebounce = setTimeout(function () {
+      bookQuery = bookSearchEl.value.trim();
+      loadBookList();
+    }, 300);
+  });
+
+  bookSaveBtn.addEventListener('click', function () {
+    var payload = {
+      book_number: parseInt(bookNumberInput.value, 10) || 0,
+      saga_phase: parseInt(bookSagaPhaseSelect.value, 10),
+      writing_stage: parseInt(bookWritingStageSelect.value, 10),
+      title: bookTitleInput.value.trim(),
+      status_label: bookStatusLabelInput.value.trim(),
+      meta_text: bookMetaInput.value.trim(),
+      description: bookDescriptionInput.value.trim(),
+      cover_image_url: bookCoverImageInput.value.trim(),
+      character_image_url: bookCharacterImageInput.value.trim(),
+      character_alt: bookCharacterAltInput.value.trim(),
+      preview_enabled: bookPreviewEnabledCheckbox.checked,
+      preview_eyebrow: bookPreviewEyebrowInput.value.trim(),
+      preview_hero_image_url: bookPreviewHeroImageInput.value.trim(),
+      preview_lede: bookPreviewLedeInput.value.trim(),
+      preview_body: bookPreviewBodyInput.value.trim(),
+      preview_quote: bookPreviewQuoteInput.value.trim(),
+      preview_quote_cite: bookPreviewQuoteCiteInput.value.trim(),
+      buy_kobo_url: bookBuyKoboInput.value.trim(),
+      buy_amazon_url: bookBuyAmazonInput.value.trim(),
+      buy_apple_url: bookBuyAppleInput.value.trim(),
+      buy_bn_url: bookBuyBnInput.value.trim(),
+      csrf: window.PW_AUTH.csrf
+    };
+
+    if (!payload.title) {
+      bookModalError.textContent = 'Title can\'t be empty.';
+      bookModalError.classList.add('show');
+      return;
+    }
+    if (!payload.status_label) {
+      bookModalError.textContent = 'Status label can\'t be empty.';
+      bookModalError.classList.add('show');
+      return;
+    }
+    if (payload.preview_enabled && !payload.preview_body) {
+      bookModalError.textContent = 'Write a preview chapter before enabling the preview.';
+      bookModalError.classList.add('show');
+      return;
+    }
+
+    bookModalError.classList.remove('show');
+    bookSaveBtn.disabled = true;
+    var url = bookModalMode === 'create' ? '/api/admin/books/create.php' : '/api/admin/books/update.php';
+    if (bookModalMode === 'edit' && currentBook) payload.id = currentBook.id;
+
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        bookSaveBtn.disabled = false;
+        if (!data.ok) {
+          bookModalError.textContent = data.error || 'Could not save this book.';
+          bookModalError.classList.add('show');
+          return;
+        }
+        bookModalStatus.textContent = 'Saved.';
+        bookModalStatus.classList.add('show');
+        loadBookList();
+        setTimeout(closeBookModal, 700);
+      })
+      .catch(function () {
+        bookSaveBtn.disabled = false;
+        bookModalError.textContent = 'Could not save this book. Please try again.';
+        bookModalError.classList.add('show');
+      });
+  });
+
+  bookDeleteBtn.addEventListener('click', function () {
+    if (!currentBook) return;
+    var confirmMsg = 'Permanently delete Book ' + currentBook.book_number + ': "' + currentBook.title + '"? This cannot be undone.';
+    if (!window.confirm(confirmMsg)) return;
+    bookDeleteBtn.disabled = true;
+    fetch('/api/admin/books/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentBook.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        bookDeleteBtn.disabled = false;
+        if (!data.ok) {
+          bookModalError.textContent = data.error || 'Could not delete this book.';
+          bookModalError.classList.add('show');
+          return;
+        }
+        loadBookList();
+        closeBookModal();
+      })
+      .catch(function () {
+        bookDeleteBtn.disabled = false;
+        bookModalError.textContent = 'Could not delete this book. Please try again.';
+        bookModalError.classList.add('show');
+      });
+  });
+
 })();
 </script>
 
