@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=58">
+<link rel="stylesheet" href="css/style.css?v=59">
 </head>
 <body>
 
@@ -157,6 +157,25 @@
         <div class="lang-legend" id="lang-legend">
           <p class="metrics-loading">Loading language stats&hellip;</p>
         </div>
+      </div>
+
+      <div class="lang-history-section" id="lang-history-section">
+        <div class="lang-history-header-row">
+          <h3 class="lang-title">Language History</h3>
+          <div class="lang-history-filter">
+            <label for="lang-group-select" class="metrics-date-filter-label">Group by</label>
+            <select id="lang-group-select" class="metrics-date-select">
+              <option value="day" selected>Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+              <option value="year">Year</option>
+            </select>
+          </div>
+        </div>
+        <div class="lang-history-chart" id="lang-history-chart">
+          <p class="metrics-loading">Loading language history&hellip;</p>
+        </div>
+        <div class="lang-legend lang-history-legend" id="lang-history-legend"></div>
       </div>
 
     </div>
@@ -418,6 +437,9 @@ function pwWireBh4Toggle(el) {
   var legendEl = document.getElementById('lang-legend');
   var subtitleEl = document.getElementById('lang-subtitle');
   var dateSelect = document.getElementById('metrics-date-select');
+  var groupSelect = document.getElementById('lang-group-select');
+  var historyChartEl = document.getElementById('lang-history-chart');
+  var historyLegendEl = document.getElementById('lang-history-legend');
 
   var LANG_COLORS = {
     HTML: '#ecc987',
@@ -557,6 +579,99 @@ function pwWireBh4Toggle(el) {
 
   dateSelect.addEventListener('change', loadLanguages);
   loadLanguages();
+
+  function renderLanguageHistory(data) {
+    if (!data.buckets || !data.buckets.length) {
+      historyChartEl.innerHTML = '<p class="metrics-loading">No language snapshots recorded for that period yet &mdash; snapshots only started Jul 5, 2026.</p>';
+      historyLegendEl.innerHTML = '';
+      return;
+    }
+
+    historyChartEl.innerHTML = '';
+    var seenLangs = [];
+    var seenSet = {};
+
+    data.buckets.forEach(function (bucket) {
+      var col = document.createElement('div');
+      col.className = 'lang-history-col';
+
+      var bar = document.createElement('div');
+      bar.className = 'lang-history-bar';
+
+      (bucket.languages || []).forEach(function (lang) {
+        if (!seenSet[lang.name]) {
+          seenSet[lang.name] = true;
+          seenLangs.push(lang.name);
+        }
+        var seg = document.createElement('div');
+        seg.className = 'lang-history-seg';
+        seg.style.height = lang.pct + '%';
+        seg.style.background = colorFor(lang.name);
+        seg.title = bucket.label + ': ' + lang.name + ' — ' + lang.pct + '%';
+        bar.appendChild(seg);
+      });
+
+      col.appendChild(bar);
+
+      var label = document.createElement('span');
+      label.className = 'lang-history-label';
+      label.textContent = bucket.label;
+      col.appendChild(label);
+
+      historyChartEl.appendChild(col);
+    });
+
+    historyLegendEl.innerHTML = '';
+    seenLangs.forEach(function (name) {
+      var item = document.createElement('div');
+      item.className = 'lang-legend-item';
+      item.tabIndex = 0;
+      item.setAttribute('aria-label', name + '. ' + reasonFor(name));
+
+      var dot = document.createElement('span');
+      dot.className = 'lang-legend-dot';
+      dot.style.background = colorFor(name);
+      item.appendChild(dot);
+
+      var nameEl = document.createElement('span');
+      nameEl.className = 'lang-legend-name';
+      nameEl.textContent = name;
+      item.appendChild(nameEl);
+
+      var tooltip = document.createElement('div');
+      tooltip.className = 'lang-legend-tooltip';
+      tooltip.textContent = reasonFor(name);
+      item.appendChild(tooltip);
+
+      historyLegendEl.appendChild(item);
+    });
+  }
+
+  function loadLanguageHistory() {
+    var range = pwGetRangeBounds(dateSelect.value);
+    var qs = 'start=' + encodeURIComponent(range.start.toISOString()) +
+      '&end=' + encodeURIComponent(range.end.toISOString()) +
+      '&group=' + encodeURIComponent(groupSelect.value);
+
+    historyChartEl.innerHTML = '<p class="metrics-loading">Loading language history&hellip;</p>';
+
+    fetch('/api/repo-languages.php?' + qs, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          historyChartEl.innerHTML = '<p class="metrics-loading">Could not load language history right now.</p>';
+          return;
+        }
+        renderLanguageHistory(data);
+      })
+      .catch(function () {
+        historyChartEl.innerHTML = '<p class="metrics-loading">Could not load language history right now.</p>';
+      });
+  }
+
+  groupSelect.addEventListener('change', loadLanguageHistory);
+  dateSelect.addEventListener('change', loadLanguageHistory);
+  loadLanguageHistory();
 
   // --- BH-4 sync status badge (mirrors the Languages title) ------------------
   var bh4El = document.getElementById('lang-bh4');
