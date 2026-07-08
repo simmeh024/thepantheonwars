@@ -749,7 +749,7 @@
   var pendingReportAction = null; // { report, action: 'lock'|'move'|'delete'|'resolve' }
 
   function reportLink(r) {
-    var url = 'community.html?topic=' + encodeURIComponent(r.topic_id);
+    var url = '../community.html?topic=' + encodeURIComponent(r.topic_id);
     if (r.target_type === 'comment') url += '&comment=' + encodeURIComponent(r.target_id);
     return url;
   }
