@@ -3527,6 +3527,14 @@ footer.site-footer {
 .activity-card.activity-translation_updated .activity-card-label { color: #5b8dd9; }
 .activity-card.activity-category_edited .activity-card-icon { background: rgba(155,127,212,0.15); color: #9b7fd4; }
 .activity-card.activity-category_edited .activity-card-label { color: #9b7fd4; }
+.activity-card.activity-member_updated .activity-card-icon { background: rgba(69,209,201,0.15); color: #45d1c9; }
+.activity-card.activity-member_updated .activity-card-label { color: #45d1c9; }
+.activity-card.activity-member_role_changed .activity-card-icon { background: rgba(91,141,217,0.15); color: #5b8dd9; }
+.activity-card.activity-member_role_changed .activity-card-label { color: #5b8dd9; }
+.activity-card.activity-member_banned .activity-card-icon { background: rgba(224,90,74,0.15); color: #e05a4a; }
+.activity-card.activity-member_banned .activity-card-label { color: #e05a4a; }
+.activity-card.activity-member_unbanned .activity-card-icon { background: rgba(62,207,142,0.15); color: #3ecf8e; }
+.activity-card.activity-member_unbanned .activity-card-label { color: #3ecf8e; }
 
 .activity-widget {
   border: 1px solid var(--border-soft);
@@ -3587,6 +3595,40 @@ footer.site-footer {
 }
 .admin-status-badge.is-translated { border-color: #3ecf8e; color: #3ecf8e; }
 
+.admin-row-sep { opacity: 0.5; }
+.member-username { color: var(--text-faint); font-weight: 400; }
+.member-row-badges { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
+.member-role-badge {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  padding: 3px 10px; border-radius: 3px; font-family: 'Cinzel', serif; font-size: 0.64rem;
+  text-transform: uppercase; letter-spacing: 0.07em; border: 1px solid currentColor; white-space: nowrap;
+}
+.member-role-badge.role-member { color: var(--text-faint); }
+.member-role-badge.role-moderator { color: #45d1c9; }
+.member-role-badge.role-admin { color: var(--gold-bright); }
+.member-banned-badge {
+  flex-shrink: 0; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 3px 10px; border-radius: 3px; border: 1px solid #e05a4a; color: #e05a4a; white-space: nowrap;
+}
+
+.member-ban-field { border-top: 1px solid var(--border-soft); padding-top: 14px; margin-top: 4px; }
+.admin-field label.member-ban-toggle {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  text-transform: none; letter-spacing: normal; font-size: 0.9rem; color: var(--text); margin-bottom: 0;
+}
+.member-ban-toggle input[type="checkbox"] { width: 16px; height: 16px; accent-color: #e05a4a; cursor: pointer; }
+.member-ban-hint { font-size: 0.76rem; color: var(--text-faint); margin: 6px 0 0; }
+
+.member-modal-meta {
+  display: flex; gap: 24px; margin: 16px 0; padding: 12px 14px;
+  background: var(--bg); border: 1px solid var(--border-soft); border-radius: 4px; flex-wrap: wrap;
+}
+.member-modal-meta > div { display: flex; flex-direction: column; gap: 3px; }
+.member-modal-meta span {
+  font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint);
+}
+.member-modal-meta strong { font-size: 0.84rem; color: var(--text-dim); font-weight: 500; }
+
 .admin-modal {
   position: fixed; inset: 0; z-index: 700;
   display: flex; align-items: center; justify-content: center; padding: 24px;
@@ -3629,11 +3671,11 @@ footer.site-footer {
   white-space: pre-wrap; word-wrap: break-word;
 }
 .admin-field textarea:focus { outline: none; border-color: var(--purple-bright); }
-.admin-field input[type="text"] {
+.admin-field input[type="text"], .admin-field input[type="email"] {
   width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.92rem;
 }
-.admin-field input[type="text"]:focus { outline: none; border-color: var(--purple-bright); }
+.admin-field input[type="text"]:focus, .admin-field input[type="email"]:focus { outline: none; border-color: var(--purple-bright); }
 .admin-field select {
   width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.92rem; cursor: pointer;

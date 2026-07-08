@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS users (
   locked_until DATETIME DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   last_login_at DATETIME DEFAULT NULL,
+  last_login_ip VARCHAR(64) DEFAULT NULL,
+  banned_at DATETIME DEFAULT NULL,
   UNIQUE KEY uniq_username (username),
   UNIQUE KEY uniq_email (email)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

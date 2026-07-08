@@ -57,10 +57,20 @@ function pw_current_user() {
     if (empty($_SESSION['user_id'])) {
         return null;
     }
-    $stmt = pw_db()->prepare('SELECT id, username, email, display_name, overlord_affinity, role, created_at FROM users WHERE id = ?');
+    $stmt = pw_db()->prepare('SELECT id, username, email, display_name, overlord_affinity, role, created_at, banned_at FROM users WHERE id = ?');
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch();
-    return $user ?: null;
+    if (!$user) {
+        return null;
+    }
+    if (!empty($user['banned_at'])) {
+        // Account was banned after this session was issued -- kill the
+        // session immediately rather than letting it ride out.
+        $_SESSION = [];
+        session_destroy();
+        return null;
+    }
+    return $user;
 }
 
 function pw_require_login() {

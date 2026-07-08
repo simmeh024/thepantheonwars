@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=67">
+<link rel="stylesheet" href="../css/style.css?v=68">
 </head>
 <body>
 
@@ -39,6 +39,16 @@
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li><button type="button" class="admin-nav-link" data-section="dispatch-control">Dispatch Control</button></li>
         <li><button type="button" class="admin-nav-link" data-section="dispatch-translations">Dispatch Translations</button></li>
+      </ul>
+    </div>
+
+    <div class="admin-nav-category" data-category="community">
+      <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
+        <span>Community</span>
+        <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <ul class="admin-nav-list admin-nav-list-collapsible">
+        <li><button type="button" class="admin-nav-link" data-section="members">Members</button></li>
       </ul>
     </div>
 
@@ -178,6 +188,34 @@
       </div>
     </section>
 
+    <section class="admin-section" id="section-members" hidden>
+      <div class="admin-section-head">
+        <h1>Members</h1>
+        <p>Manage community member accounts &mdash; display names, email addresses, roles, and bans.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <div class="admin-filter-tabs" id="member-filter-tabs">
+          <button type="button" class="admin-filter-tab active" data-filter="all">All</button>
+          <button type="button" class="admin-filter-tab" data-filter="banned">Banned</button>
+        </div>
+        <select class="admin-search admin-tag-select" id="member-role-filter">
+          <option value="all">All roles</option>
+          <option value="member">Member</option>
+          <option value="moderator">Moderator</option>
+          <option value="admin">Admin</option>
+        </select>
+        <input type="text" class="admin-search" id="member-search" placeholder="Search name, username, or email&hellip;">
+        <span class="admin-count" id="member-count"></span>
+      </div>
+
+      <div class="admin-list" id="member-list">
+        <div class="admin-list-empty">Loading members&hellip;</div>
+      </div>
+
+      <div class="admin-pagination" id="member-pagination"></div>
+    </section>
+
   </main>
 
 </div>
@@ -239,6 +277,51 @@
   </div>
 </div>
 
+<div class="admin-modal" id="member-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner">
+    <button type="button" class="admin-modal-close" id="member-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title">Edit Member</h3>
+    <p class="admin-modal-sub" id="member-modal-sub"></p>
+
+    <div class="admin-field">
+      <label for="member-display-name-input">Display name</label>
+      <input type="text" id="member-display-name-input" maxlength="50">
+    </div>
+    <div class="admin-field">
+      <label for="member-email-input">Email address</label>
+      <input type="email" id="member-email-input" maxlength="255">
+    </div>
+    <div class="admin-field">
+      <label for="member-role-select">Role</label>
+      <select id="member-role-select">
+        <option value="member">Member</option>
+        <option value="moderator">Moderator</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="admin-field member-ban-field">
+      <label class="member-ban-toggle">
+        <input type="checkbox" id="member-banned-checkbox">
+        <span>Ban this account</span>
+      </label>
+      <p class="member-ban-hint">Banned accounts can&rsquo;t log in, and any active session ends immediately.</p>
+    </div>
+
+    <div class="member-modal-meta">
+      <div><span>Last login</span><strong id="member-modal-last-login">&mdash;</strong></div>
+      <div><span>Joined</span><strong id="member-modal-joined">&mdash;</strong></div>
+    </div>
+
+    <p class="admin-modal-error" id="member-modal-error"></p>
+    <p class="admin-modal-status" id="member-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="member-save-btn">Save</button>
+      <button type="button" class="btn" id="member-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <script src="../js/members.js?v=3"></script>
 <script>
 (function () {
@@ -284,6 +367,7 @@
       if (name === 'audit-log') loadAuditLog();
       if (name === 'dispatch-control') loadControlList();
       if (name === 'dispatch-translations') loadList();
+      if (name === 'members') loadMembers();
     }
   }
 
@@ -399,13 +483,21 @@
     login: 'Admin login',
     translation_added: 'Translation added',
     translation_updated: 'Translation updated',
-    category_edited: 'Category changed'
+    category_edited: 'Category changed',
+    member_updated: 'Member updated',
+    member_role_changed: 'Role changed',
+    member_banned: 'Member banned',
+    member_unbanned: 'Member unbanned'
   };
   var ACTIVITY_ICONS = {
     login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
     translation_added: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M5 12h14M12 5v14"/></svg>',
     translation_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
-    category_edited: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M20.6 12.6 12.7 20.5a2 2 0 0 1-2.8 0l-6.4-6.4a2 2 0 0 1 0-2.8L11.4 3.3a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v6.6a2 2 0 0 1-.4 1.7z"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/></svg>'
+    category_edited: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M20.6 12.6 12.7 20.5a2 2 0 0 1-2.8 0l-6.4-6.4a2 2 0 0 1 0-2.8L11.4 3.3a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v6.6a2 2 0 0 1-.4 1.7z"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/></svg>',
+    member_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+    member_role_changed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3z"/></svg>',
+    member_banned: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>',
+    member_unbanned: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>'
   };
 
   var homeActivityListEl = document.getElementById('home-activity-list');
@@ -882,6 +974,7 @@
     if (e.key !== 'Escape') return;
     if (!modal.hidden) closeModal();
     if (!controlModal.hidden) closeControlModal();
+    if (!memberModal.hidden) closeMemberModal();
   });
 
   saveBtn.addEventListener('click', function () {
@@ -959,6 +1052,229 @@
     searchDebounce = setTimeout(function () {
       currentQuery = searchEl.value.trim();
       loadList();
+    }, 300);
+  });
+
+  // ===== Members ================================================================
+  var ROLE_LABELS = { member: 'Member', moderator: 'Moderator', admin: 'Admin' };
+
+  var memberListEl = document.getElementById('member-list');
+  var memberCountEl = document.getElementById('member-count');
+  var memberSearchEl = document.getElementById('member-search');
+  var memberRoleFilterEl = document.getElementById('member-role-filter');
+  var memberFilterTabs = document.getElementById('member-filter-tabs');
+  var memberPaginationEl = document.getElementById('member-pagination');
+
+  var memberModal = document.getElementById('member-modal');
+  var memberModalSub = document.getElementById('member-modal-sub');
+  var memberDisplayNameInput = document.getElementById('member-display-name-input');
+  var memberEmailInput = document.getElementById('member-email-input');
+  var memberRoleSelect = document.getElementById('member-role-select');
+  var memberBannedCheckbox = document.getElementById('member-banned-checkbox');
+  var memberModalLastLogin = document.getElementById('member-modal-last-login');
+  var memberModalJoined = document.getElementById('member-modal-joined');
+  var memberModalError = document.getElementById('member-modal-error');
+  var memberModalStatus = document.getElementById('member-modal-status');
+  var memberSaveBtn = document.getElementById('member-save-btn');
+  var memberCancelBtn = document.getElementById('member-cancel-btn');
+  var memberCloseBtn = document.querySelector('#member-modal .admin-modal-close');
+
+  var memberState = { page: 1, perPage: 25, totalPages: 1, status: 'all', role: 'all', query: '' };
+  var memberSearchDebounce = null;
+  var currentMember = null;
+
+  function buildMemberUrl() {
+    var params = new URLSearchParams();
+    params.set('page', memberState.page);
+    params.set('per_page', memberState.perPage);
+    params.set('status', memberState.status);
+    params.set('role', memberState.role);
+    if (memberState.query) params.set('q', memberState.query);
+    return '/api/admin/members/list.php?' + params.toString();
+  }
+
+  function fmtLastLogin(entry) {
+    if (!entry.last_login_at) return 'Never logged in';
+    var ip = entry.last_login_ip ? entry.last_login_ip : 'unknown IP';
+    return fmtRelativeTime(entry.last_login_at) + ' from ' + ip;
+  }
+
+  function loadMembers() {
+    memberListEl.innerHTML = '<div class="admin-list-empty">Loading members&hellip;</div>';
+    fetch(buildMemberUrl(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          memberListEl.innerHTML = '<div class="admin-list-empty">Could not load members.</div>';
+          return;
+        }
+        memberState.totalPages = data.total_pages || 1;
+        memberState.page = data.page || 1;
+        memberCountEl.textContent = data.total + (data.total === 1 ? ' member' : ' members');
+        renderMemberList(data.entries || []);
+        renderMemberPagination();
+      })
+      .catch(function () {
+        memberListEl.innerHTML = '<div class="admin-list-empty">Could not load members.</div>';
+      });
+  }
+
+  function renderMemberList(entries) {
+    if (!entries.length) {
+      memberListEl.innerHTML = '<div class="admin-list-empty">No members match this filter.</div>';
+      return;
+    }
+    memberListEl.innerHTML = '';
+    entries.forEach(function (entry) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'admin-row member-row';
+      row.innerHTML =
+        '<div class="admin-row-main">' +
+          '<p class="admin-row-subject">' + escapeHtml(entry.display_name) + ' <span class="member-username">@' + escapeHtml(entry.username) + '</span></p>' +
+          '<div class="admin-row-meta">' +
+            '<span>' + escapeHtml(entry.email) + '</span>' +
+            '<span class="admin-row-sep">&bull;</span>' +
+            '<span>' + escapeHtml(fmtLastLogin(entry)) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div class="member-row-badges">' +
+          '<span class="member-role-badge role-' + escapeHtml(entry.role) + '">' + escapeHtml(ROLE_LABELS[entry.role] || entry.role) + '</span>' +
+          (entry.banned ? '<span class="member-banned-badge">Banned</span>' : '') +
+        '</div>';
+      row.addEventListener('click', function () { openMemberModal(entry); });
+      memberListEl.appendChild(row);
+    });
+  }
+
+  function renderMemberPagination() {
+    memberPaginationEl.innerHTML = '';
+    if (memberState.totalPages <= 1) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'admin-pager';
+
+    var prev = document.createElement('button');
+    prev.type = 'button';
+    prev.textContent = '\u2039 Prev';
+    prev.disabled = memberState.page <= 1;
+    prev.addEventListener('click', function () { memberState.page--; loadMembers(); });
+
+    var label = document.createElement('span');
+    label.textContent = 'Page ' + memberState.page + ' of ' + memberState.totalPages;
+
+    var next = document.createElement('button');
+    next.type = 'button';
+    next.textContent = 'Next \u203a';
+    next.disabled = memberState.page >= memberState.totalPages;
+    next.addEventListener('click', function () { memberState.page++; loadMembers(); });
+
+    wrap.appendChild(prev);
+    wrap.appendChild(label);
+    wrap.appendChild(next);
+    memberPaginationEl.appendChild(wrap);
+  }
+
+  function openMemberModal(entry) {
+    currentMember = entry;
+    memberModalSub.textContent = '@' + entry.username;
+    memberDisplayNameInput.value = entry.display_name;
+    memberEmailInput.value = entry.email;
+    memberRoleSelect.value = entry.role;
+    memberBannedCheckbox.checked = entry.banned;
+    memberModalLastLogin.textContent = entry.last_login_at ?
+      (fmtDateTime(entry.last_login_at) + ' \u2014 ' + (entry.last_login_ip || 'unknown IP')) :
+      'Never logged in';
+    memberModalJoined.textContent = fmtDate(entry.created_at);
+    memberModalError.classList.remove('show');
+    memberModalStatus.classList.remove('show');
+    memberModal.hidden = false;
+    setTimeout(function () { memberDisplayNameInput.focus(); }, 30);
+  }
+
+  function closeMemberModal() {
+    memberModal.hidden = true;
+    currentMember = null;
+  }
+
+  memberCloseBtn.addEventListener('click', closeMemberModal);
+  memberCancelBtn.addEventListener('click', closeMemberModal);
+  memberModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeMemberModal);
+
+  memberSaveBtn.addEventListener('click', function () {
+    if (!currentMember) return;
+    var displayName = memberDisplayNameInput.value.trim();
+    var email = memberEmailInput.value.trim();
+    var role = memberRoleSelect.value;
+    var banned = memberBannedCheckbox.checked;
+
+    if (!displayName) {
+      memberModalError.textContent = 'Display name can\'t be empty.';
+      memberModalError.classList.add('show');
+      return;
+    }
+    if (!email) {
+      memberModalError.textContent = 'Email address can\'t be empty.';
+      memberModalError.classList.add('show');
+      return;
+    }
+
+    memberModalError.classList.remove('show');
+    memberSaveBtn.disabled = true;
+    fetch('/api/admin/members/update.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: currentMember.id,
+        display_name: displayName,
+        email: email,
+        role: role,
+        banned: banned,
+        csrf: window.PW_AUTH.csrf,
+      }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        memberSaveBtn.disabled = false;
+        if (!data.ok) {
+          memberModalError.textContent = data.error || 'Could not save member.';
+          memberModalError.classList.add('show');
+          return;
+        }
+        memberModalStatus.textContent = 'Saved.';
+        memberModalStatus.classList.add('show');
+        loadMembers();
+        setTimeout(closeMemberModal, 700);
+      })
+      .catch(function () {
+        memberSaveBtn.disabled = false;
+        memberModalError.textContent = 'Could not save member. Please try again.';
+        memberModalError.classList.add('show');
+      });
+  });
+
+  memberFilterTabs.addEventListener('click', function (e) {
+    var btn = e.target.closest('.admin-filter-tab');
+    if (!btn) return;
+    memberFilterTabs.querySelectorAll('.admin-filter-tab').forEach(function (t) { t.classList.remove('active'); });
+    btn.classList.add('active');
+    memberState.status = btn.getAttribute('data-filter');
+    memberState.page = 1;
+    loadMembers();
+  });
+
+  memberRoleFilterEl.addEventListener('change', function () {
+    memberState.role = memberRoleFilterEl.value;
+    memberState.page = 1;
+    loadMembers();
+  });
+
+  memberSearchEl.addEventListener('input', function () {
+    clearTimeout(memberSearchDebounce);
+    memberSearchDebounce = setTimeout(function () {
+      memberState.query = memberSearchEl.value.trim();
+      memberState.page = 1;
+      loadMembers();
     }, 300);
   });
 })();
