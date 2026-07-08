@@ -159,6 +159,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '<span class="nav-parent auth-username">' + escapeHtml(window.PW_AUTH.user.display_name) + '<span class="nav-caret">⌄</span></span>' +
         '<div class="nav-dropdown auth-nav-dropdown">' +
           '<a href="member.html?id=' + encodeURIComponent(window.PW_AUTH.user.id) + '">Profile</a>' +
+          '<a href="profile.html">Settings</a>' +
           ((window.PW_AUTH.user.role === 'admin' || window.PW_AUTH.user.role === 'moderator') ? '<a href="/admin">Admin</a>' : '') +
           '<button type="button" class="auth-logout-btn">Log Out</button>' +
         '</div>';
