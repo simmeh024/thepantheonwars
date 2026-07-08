@@ -3353,7 +3353,7 @@ footer.site-footer {
 .admin-shell.is-ready { display: flex; }
 .admin-main {
   flex: 1 1 auto; min-width: 0;
-  padding: 40px 44px;
+  padding: 28px 44px 40px;
   overflow-y: auto;
 }
 .admin-sidebar {
