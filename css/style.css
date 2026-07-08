@@ -3509,6 +3509,8 @@ footer.site-footer {
 .report-action-btn-danger:hover { border-color: #e05a4a; background: rgba(224,90,74,0.1); color: #e05a4a; }
 .report-action-btn-close { border-color: #2a6b4e; color: #3ecf8e; }
 .report-action-btn-close:hover { border-color: #3ecf8e; background: rgba(62,207,142,0.1); color: #3ecf8e; }
+.report-action-btn-reopen { border-color: var(--purple-bright); color: var(--purple-bright); }
+.report-action-btn-reopen:hover { background: rgba(124,79,214,0.12); color: var(--gold-bright); border-color: var(--gold-bright); }
 
 .admin-nav-list-top { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--border-soft); }
 .admin-nav-category + .admin-nav-category { border-top: 1px solid var(--border-soft); padding-top: 2px; }
