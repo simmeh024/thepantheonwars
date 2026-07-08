@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=57">
+<link rel="stylesheet" href="../css/style.css?v=58">
 </head>
 <body>
 
@@ -291,14 +291,11 @@
             (entry.url ?
               '<a class="admin-row-github-link" href="' + escapeHtml(entry.url) + '" target="_blank" rel="noopener" title="View commit on GitHub" aria-label="View commit on GitHub">' + GITHUB_ICON + '</a>'
               : '') +
-            '<span class="dispatch-entry-tag tag-' + escapeHtml(entry.tag) + '">' + (TAG_ICONS[entry.tag] || '') +
-              '<span>' + escapeHtml(TAG_LABELS[entry.tag] || entry.tag) + '</span></span>' +
             '<span>' + escapeHtml(fmtDate(entry.committed_at)) + '</span>' +
           '</div>' +
         '</div>' +
-        '<span class="admin-status-badge' + (entry.has_translation ? ' is-translated' : '') + '">' +
-          (entry.has_translation ? 'Translated' : 'Not translated') +
-        '</span>';
+        '<span class="dispatch-entry-tag tag-' + escapeHtml(entry.tag) + '">' + (TAG_ICONS[entry.tag] || '') +
+          '<span>' + escapeHtml(TAG_LABELS[entry.tag] || entry.tag) + '</span></span>';
       row.addEventListener('click', function (e) {
         if (e.target.closest('.admin-row-github-link')) return;
         openControlModal(entry);

@@ -3341,7 +3341,6 @@ footer.site-footer {
 }
 .admin-row-meta { font-size: 0.72rem; color: var(--text-faint); display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .admin-row-meta .admin-sha { font-family: monospace; }
-.admin-row-meta .dispatch-entry-tag { padding: 2px 8px; font-size: 0.62rem; }
 .admin-row-github-link {
   display: inline-flex; align-items: center; justify-content: center;
   color: var(--text-faint); transition: color 0.2s ease;
