@@ -1,10 +1,15 @@
 <?php
 /**
  * Shared diagnostics for the System Status card (Home) and the expanded
- * System Status page: avatar storage usage, SSL certificate expiry, and the
- * PHP error log locate/tail/parse pipeline. Kept in one file since both
- * summary.php (compact Home card) and detail.php/errors.php (expanded page)
- * need the same checks.
+ * System Status page: avatar storage usage and SSL certificate expiry.
+ *
+ * (A PHP error log locate/tail/parse pipeline used to live here too, feeding
+ * a "Site Errors" check. Removed after confirming live on this host that
+ * ~/logs/ only contains access logs -- the account has no PHP-readable error
+ * log, and cPanel's own Errors page only works because cPanel's backend
+ * reads Apache's error log with elevated privileges a plain PHP script
+ * running as this account doesn't have. See git history for that
+ * investigation if a future host makes this feasible again.)
  */
 
 // --- Small relative-time formatter ------------------------------------------------
@@ -57,7 +62,7 @@ function pw_check_avatar_storage() {
     return [
         'used_bytes' => $used,
         'max_bytes' => $maxBytes,
-        'used_mb' => round($used / (1024 * 1024), 1),
+        'used_mb' => round($used / (1024 * 1024), 2),
         'max_mb' => round($maxBytes / (1024 * 1024)),
         'pct' => round($pct, 1),
         'status' => $status,
@@ -108,125 +113,4 @@ function pw_check_ssl_expiry($host = 'thepantheonwars.com') {
         'status' => $status,
         'label' => $daysLeft . ($daysLeft === 1 ? ' day left' : ' days left'),
     ];
-}
-
-// --- PHP error log ----------------------------------------------------------------
-// The exact log path varies by hosting setup, so we ask PHP itself (via
-// ini_get) what it's configured to write to, and fall back to a couple of
-// common cPanel locations if that's empty. If none of these are readable we
-// report that plainly rather than pretending everything's fine.
-function pw_error_log_path() {
-    $candidates = [];
-    $iniPath = ini_get('error_log');
-    // A bare filename (no directory separator) means PHP writes it relative
-    // to whatever directory the erroring script lives in -- that can be any
-    // of api/, api/admin/*, or admin/, not just the docroot. If it's already
-    // an absolute path, this loop is a no-op and we use it as-is below.
-    $relativeLogName = ($iniPath && strpos($iniPath, '/') === false) ? $iniPath : 'error_log';
-
-    if ($iniPath && strpos($iniPath, '/') !== false) {
-        $candidates[] = $iniPath;
-    }
-
-    if (!empty($_SERVER['DOCUMENT_ROOT'])) {
-        $docRoot = rtrim($_SERVER['DOCUMENT_ROOT'], '/');
-        $candidates[] = $docRoot . '/' . $relativeLogName;
-        $candidates[] = $docRoot . '/api/' . $relativeLogName;
-        $candidates[] = $docRoot . '/api/admin/' . $relativeLogName;
-        $candidates[] = $docRoot . '/api/admin/system-status/' . $relativeLogName;
-        $candidates[] = $docRoot . '/admin/' . $relativeLogName;
-
-        $home = dirname($docRoot);
-        $host = !empty($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : 'thepantheonwars.com';
-        $bareHost = preg_replace('/^www\./', '', $host);
-        $candidates[] = $home . '/' . $relativeLogName;
-        $candidates[] = $home . '/logs/' . $host;
-        $candidates[] = $home . '/logs/' . $bareHost;
-        $candidates[] = $home . '/php_errorlog';
-    }
-
-    // The directory this very file lives in is also a real candidate --
-    // it's where a bare "error_log" ini setting would land for anything
-    // that errors inside the System Status endpoints themselves.
-    $candidates[] = __DIR__ . '/' . $relativeLogName;
-
-    foreach ($candidates as $c) {
-        if ($c && is_file($c) && is_readable($c)) {
-            return $c;
-        }
-    }
-    return null;
-}
-
-// Reads at most $maxBytes from the tail of the file and splits into lines.
-function pw_tail_lines($path, $maxBytes = 2 * 1024 * 1024) {
-    $size = filesize($path);
-    if ($size === false || $size === 0) {
-        return [];
-    }
-    $fh = fopen($path, 'r');
-    if (!$fh) {
-        return [];
-    }
-    $readBytes = min($size, $maxBytes);
-    fseek($fh, -$readBytes, SEEK_END);
-    $data = fread($fh, $readBytes);
-    fclose($fh);
-    if ($data === false) {
-        return [];
-    }
-    return explode("\n", $data);
-}
-
-// Each PHP error_log entry starts with "[dd-Mon-yyyy hh:mm:ss TZ] PHP <Level>: ...".
-// Continuation lines (stack traces etc.) aren't bracketed -- we drop those and
-// keep just the headline message, which is plenty for a status glance.
-function pw_parse_error_log_lines($lines) {
-    $entries = [];
-    foreach ($lines as $line) {
-        if (!preg_match('/^\[(.*?)\]\s*(.*)$/', $line, $m)) {
-            continue;
-        }
-        $rawTs = $m[1];
-        $msg = trim($m[2]);
-        if ($msg === '') {
-            continue;
-        }
-        $ts = strtotime($rawTs);
-        $critical = (bool)preg_match('/Fatal error|Parse error|Uncaught|Compile Error|Core Error/i', $msg);
-        $location = null;
-        if (preg_match('/ in (.+?) on line (\d+)/', $msg, $fm)) {
-            $location = basename($fm[1]) . ':' . $fm[2];
-        }
-        $entries[] = [
-            'timestamp' => $ts ? gmdate('Y-m-d H:i:s', $ts) : $rawTs,
-            'critical' => $critical,
-            'message' => preg_replace('/^PHP\s+/i', '', $msg),
-            'location' => $location,
-        ];
-    }
-    // File is chronological; newest entries should come first for display.
-    return array_reverse($entries);
-}
-
-function pw_load_error_entries() {
-    $path = pw_error_log_path();
-    if ($path === null) {
-        return ['available' => false, 'entries' => []];
-    }
-    $lines = pw_tail_lines($path);
-    $entries = pw_parse_error_log_lines($lines);
-    return ['available' => true, 'entries' => $entries];
-}
-
-function pw_count_recent_critical($entries, $hours = 24) {
-    $cutoff = time() - ($hours * 3600);
-    $count = 0;
-    foreach ($entries as $e) {
-        $ts = strtotime($e['timestamp']);
-        if ($e['critical'] && $ts !== false && $ts >= $cutoff) {
-            $count++;
-        }
-    }
-    return $count;
 }

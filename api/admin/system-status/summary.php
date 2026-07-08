@@ -20,12 +20,13 @@
  *    always match since every push fires the webhook immediately -- a
  *    mismatch means the webhook missed a push and a manual Re-Sync
  *    (Dispatch Control > Re-Sync) is needed to catch up.
- *  - Site Errors: count of "critical" (Fatal/Parse/Uncaught) PHP error log
- *    entries in the last 24 hours. Links through to the full System Status
- *    page for the complete log. See status-helpers.php for the log
- *    locate/tail/parse logic -- the exact log path varies by hosting setup.
  *  - Avatar Storage: total bytes under uploads/avatars against a 5 GiB soft
  *    budget (see status-helpers.php for the thresholds).
+ *
+ * (A "Site Errors" check was tried here too, but this host's PHP error log
+ * isn't readable from application code -- see status-helpers.php's removed
+ * pw_error_log_path() history in git log for the investigation -- so it was
+ * pulled back out rather than permanently showing "Unavailable".)
  */
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/status-helpers.php';
@@ -101,17 +102,6 @@ try {
     $dispatchSyncLabel = 'Unreachable';
 }
 
-// --- Site Errors ------------------------------------------------------------------
-$errorData = pw_load_error_entries();
-if (!$errorData['available']) {
-    $siteErrorsStatus = 'unknown';
-    $siteErrorsLabel = 'Unavailable';
-} else {
-    $criticalCount = pw_count_recent_critical($errorData['entries'], 24);
-    $siteErrorsStatus = $criticalCount > 0 ? 'bad' : 'ok';
-    $siteErrorsLabel = $criticalCount . ' critical';
-}
-
 // --- Avatar Storage ---------------------------------------------------------------
 $avatarStorage = pw_check_avatar_storage();
 
@@ -121,7 +111,6 @@ pw_json([
     'database' => ['status' => $dbStatus, 'label' => $dbLabel],
     'forum' => ['status' => $forumStatus, 'label' => $forumLabel],
     'dispatch_sync' => ['status' => $dispatchSyncStatus, 'label' => $dispatchSyncLabel],
-    'site_errors' => ['status' => $siteErrorsStatus, 'label' => $siteErrorsLabel],
     'avatar_storage' => $avatarStorage,
     'checked_at' => gmdate('c'),
 ]);
