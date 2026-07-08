@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=59">
+<link rel="stylesheet" href="css/style.css?v=60">
 </head>
 <body>
 
@@ -181,6 +181,36 @@
     </div>
   </section>
 
+  <div class="metric-modal" id="metric-modal" hidden>
+    <div class="metric-modal-backdrop" id="metric-modal-backdrop"></div>
+    <div class="metric-modal-inner" role="dialog" aria-modal="true" aria-labelledby="metric-modal-title">
+      <button class="metric-modal-close" id="metric-modal-close" aria-label="Close">&times;</button>
+      <div class="metric-modal-icon" id="metric-modal-icon"></div>
+      <h3 class="metric-modal-title" id="metric-modal-title">&nbsp;</h3>
+      <p class="metric-modal-count" id="metric-modal-count">&nbsp;</p>
+
+      <div class="metric-modal-section">
+        <h4 class="metric-modal-section-title">Latest</h4>
+        <ul class="metric-modal-latest" id="metric-modal-latest"></ul>
+      </div>
+
+      <div class="metric-modal-section">
+        <h4 class="metric-modal-section-title">Trend</h4>
+        <p class="metric-modal-trend" id="metric-modal-trend">&nbsp;</p>
+      </div>
+
+      <div class="metric-modal-verified">
+        <div class="bh4-verify-avatar">
+          <img src="images/bh4-dispatch.jpg" alt="">
+          <span class="bh4-verify-check">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </span>
+        </div>
+        <span>Verified by BH-4</span>
+      </div>
+    </div>
+  </div>
+
   <section class="newsletter">
       <img src="images/bh4-dispatch.jpg" alt="" class="newsletter-bh4" aria-hidden="true">
     <div class="container">
@@ -312,6 +342,23 @@ function pwWireBh4Toggle(el) {
     experimental: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"><path d="M10 2v6.3L4.5 18a2 2 0 0 0 1.7 3h11.6a2 2 0 0 0 1.7-3L14 8.3V2"/><path d="M8.5 2h7"/><path d="M6.5 15h11"/></svg>'
   };
 
+  var TAG_COLORS = {
+    feature: 'var(--gold-bright)', improvement: 'var(--purple-bright)', fix: '#e14b5a',
+    performance: '#e2984f', ui_ux: '#45d1c9', lore: '#3ecf8e', infrastructure: '#9aa0ac',
+    refactor: '#6f76e8', experimental: '#e074b0'
+  };
+
+  var DATE_FILTER_LABELS = {
+    this_month: 'this month', last_month: 'last month', last_3_months: 'the last 3 months',
+    last_6_months: 'the last 6 months', last_9_months: 'the last 9 months', this_year: 'this year'
+  };
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c];
+    });
+  }
+
   function animateCount(el, target, duration) {
     var start = 0;
     var startTime = null;
@@ -329,6 +376,16 @@ function pwWireBh4Toggle(el) {
   function buildBox(tag, count, total) {
     var box = document.createElement('div');
     box.className = 'metric-box tag-' + tag;
+    box.tabIndex = 0;
+    box.setAttribute('role', 'button');
+    box.setAttribute('aria-label', (TAG_LABELS[tag] || tag) + ': view details');
+    box.addEventListener('click', function () { openMetricModal(tag); });
+    box.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        openMetricModal(tag);
+      }
+    });
 
     var icon = document.createElement('div');
     icon.className = 'metric-box-icon';
@@ -389,6 +446,87 @@ function pwWireBh4Toggle(el) {
     pwWireBh4Toggle(statsBh4El);
   }
 
+  var currentRange = null;
+
+  var metricModal = document.getElementById('metric-modal');
+  var metricModalBackdrop = document.getElementById('metric-modal-backdrop');
+  var metricModalClose = document.getElementById('metric-modal-close');
+  var metricModalIcon = document.getElementById('metric-modal-icon');
+  var metricModalTitle = document.getElementById('metric-modal-title');
+  var metricModalCount = document.getElementById('metric-modal-count');
+  var metricModalLatest = document.getElementById('metric-modal-latest');
+  var metricModalTrend = document.getElementById('metric-modal-trend');
+
+  function openMetricModal(tag) {
+    var range = currentRange || pwGetRangeBounds(dateSelect.value);
+
+    var inRange = allEntries.filter(function (e) {
+      if (e.tag !== tag) return false;
+      var d = new Date(String(e.committed_at).replace(' ', 'T'));
+      return d >= range.start && d <= range.end;
+    });
+    var count = inRange.length;
+
+    metricModalIcon.style.color = TAG_COLORS[tag] || '';
+    metricModalIcon.innerHTML = TAG_ICONS[tag] || '';
+    metricModalTitle.textContent = TAG_LABELS[tag] || tag;
+    metricModalCount.textContent = count + (count === 1 ? ' Dispatch' : ' Dispatches');
+
+    metricModalLatest.innerHTML = '';
+    if (!inRange.length) {
+      metricModalLatest.innerHTML = '<li class="metric-modal-empty">No dispatches in this filter yet.</li>';
+    } else {
+      // allEntries (and therefore inRange) are already ordered newest-first by the API
+      inRange.slice(0, 5).forEach(function (entry) {
+        var li = document.createElement('li');
+        li.className = 'metric-modal-latest-item';
+        var check = '<svg class="metric-modal-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+        var subjectHtml = entry.url ?
+          '<a href="' + escapeHtml(entry.url) + '" target="_blank" rel="noopener">' + escapeHtml(entry.subject) + '</a>' :
+          '<span>' + escapeHtml(entry.subject) + '</span>';
+        li.innerHTML = check + subjectHtml;
+        metricModalLatest.appendChild(li);
+      });
+    }
+
+    // Trend: compare the active window against the immediately preceding window of equal length
+    var durationMs = range.end.getTime() - range.start.getTime();
+    var prevStart = new Date(range.start.getTime() - durationMs);
+    var prevEnd = range.start;
+    var prevCount = allEntries.filter(function (e) {
+      if (e.tag !== tag) return false;
+      var d = new Date(String(e.committed_at).replace(' ', 'T'));
+      return d >= prevStart && d < prevEnd;
+    }).length;
+    var delta = count - prevCount;
+    var periodPhrase = DATE_FILTER_LABELS[dateSelect.value] || 'in this period';
+
+    metricModalTrend.classList.remove('is-up', 'is-down', 'is-flat');
+    if (delta > 0) {
+      metricModalTrend.classList.add('is-up');
+      metricModalTrend.innerHTML = '<span class="trend-arrow">&#9650;</span>+' + delta + ' ' + escapeHtml(periodPhrase);
+    } else if (delta < 0) {
+      metricModalTrend.classList.add('is-down');
+      metricModalTrend.innerHTML = '<span class="trend-arrow">&#9660;</span>' + delta + ' ' + escapeHtml(periodPhrase);
+    } else {
+      metricModalTrend.classList.add('is-flat');
+      metricModalTrend.innerHTML = '<span class="trend-arrow">&ndash;</span>No change ' + escapeHtml(periodPhrase);
+    }
+
+    metricModal.hidden = false;
+    metricModalClose.focus();
+  }
+
+  function closeMetricModal() {
+    metricModal.hidden = true;
+  }
+
+  if (metricModalClose) metricModalClose.addEventListener('click', closeMetricModal);
+  if (metricModalBackdrop) metricModalBackdrop.addEventListener('click', closeMetricModal);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && metricModal && !metricModal.hidden) closeMetricModal();
+  });
+
   function renderMetrics(entries) {
     var counts = {};
     TAG_ORDER.forEach(function (t) { counts[t] = 0; });
@@ -407,6 +545,7 @@ function pwWireBh4Toggle(el) {
 
   function applyDateFilter() {
     var range = pwGetRangeBounds(dateSelect.value);
+    currentRange = range;
     var filtered = allEntries.filter(function (e) {
       var d = new Date(String(e.committed_at).replace(' ', 'T'));
       return d >= range.start && d <= range.end;
