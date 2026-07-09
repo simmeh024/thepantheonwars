@@ -145,6 +145,12 @@
             <input type="text" id="profile-name-locked" disabled>
             <p class="profile-field-note">To change your display name, please contact an admin.</p>
           </div>
+
+          <h3 style="margin-top: 2em;">Email</h3>
+          <div class="profile-field-locked">
+            <input type="text" id="profile-email-locked" disabled>
+            <p class="profile-field-note">To change your email, please contact an admin.</p>
+          </div>
         </div>
 
         <div id="profile-panel-posts" class="profile-panel" hidden>
@@ -430,6 +436,7 @@
   var panelSettings = document.getElementById('profile-panel-settings');
   var panelPosts = document.getElementById('profile-panel-posts');
   var lockedNameInput = document.getElementById('profile-name-locked');
+  var lockedEmailInput = document.getElementById('profile-email-locked');
   var passwordForm = document.getElementById('password-form');
   var passwordError = document.getElementById('password-error');
   var passwordSuccess = document.getElementById('password-success');
@@ -509,6 +516,7 @@
         setRole(data.user.role);
         loadAvatar(data.user.id, data.user.display_name);
         lockedNameInput.value = data.user.display_name;
+        lockedEmailInput.value = data.user.email;
 
         var affBox = document.getElementById('profile-affinity-box');
         var scoresBox = document.getElementById('profile-affinity-scores');
