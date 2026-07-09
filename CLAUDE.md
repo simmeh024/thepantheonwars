@@ -128,7 +128,14 @@ correct key (value lives only in the secrets config, not in git).
   the whole `<svg>...</svg>` as a template string, sets `.innerHTML` once per refresh).
   Match whichever pattern fits if you add another chart.
 - Cache-busting: `css/style.css?v=N` -- bump `N` and `sed -i` it across all 22 HTML
-  files whenever `css/style.css` changes. Current: v=91.
+  files whenever `css/style.css` changes. Current: v=94.
+- Same pattern, separate counter: `js/members.js?v=N` across the same 22 HTML files
+  whenever `js/members.js` changes. Current: v=5. Easy to miss since it's not
+  mentioned anywhere near the CSS one and .htaccess's no-cache headers only cover
+  `.html$` -- a stale cached members.js can silently serve old JS after a deploy
+  even though the HTML/CSS look right. Confirmed this the hard way: deployed a
+  members.js change, HEAD/Last-Deployed SHAs matched, but the live modal still ran
+  the old code until this version bump.
 
 ## Verification checklist before every commit
 
