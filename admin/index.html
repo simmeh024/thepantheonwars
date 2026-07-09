@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=96">
+<link rel="stylesheet" href="../css/style.css?v=97">
 </head>
 <body>
 
@@ -909,7 +909,7 @@
 
 <div class="admin-modal" id="role-modal" hidden>
   <div class="admin-modal-backdrop"></div>
-  <div class="admin-modal-inner">
+  <div class="admin-modal-inner admin-modal-inner-wide">
     <button type="button" class="admin-modal-close" id="role-modal-close" aria-label="Close">&times;</button>
     <h3 class="admin-modal-title" id="role-modal-title">Edit Role</h3>
     <p class="admin-modal-sub" id="role-modal-sub"></p>
@@ -924,7 +924,8 @@
     </div>
     <div class="admin-field" id="role-permissions-field">
       <label>Permissions</label>
-      <div id="role-permissions-groups"></div>
+      <p class="permission-summary" id="role-permissions-summary">0 permissions selected</p>
+      <div id="role-permissions-groups" class="permissions-grid"></div>
       <p class="member-ban-hint" id="role-superuser-hint" hidden>Admin is a superuser role and always has every permission -- only its color can be changed.</p>
     </div>
 
@@ -3409,6 +3410,7 @@
   var roleLabelInput = document.getElementById('role-label-input');
   var roleColorInput = document.getElementById('role-color-input');
   var rolePermissionsField = document.getElementById('role-permissions-field');
+  var rolePermissionsSummary = document.getElementById('role-permissions-summary');
   var rolePermissionsGroups = document.getElementById('role-permissions-groups');
   var roleSuperuserHint = document.getElementById('role-superuser-hint');
   var roleModalError = document.getElementById('role-modal-error');
@@ -3483,22 +3485,86 @@
     });
   }
 
+  // MVP frontend-only risk hinting -- not a security boundary, just a visual
+  // nudge so an admin handing out custom-role permissions notices the
+  // dangerous ones (delete/ban/role-change/reset/etc.) at a glance. Matches
+  // on the permission key+label so it keeps working if new permissions are
+  // added to the catalog later without a code change here.
+  function getPermissionRisk(permission) {
+    var text = (permission.key + ' ' + permission.label).toLowerCase();
+    if (/\bdelete\b/.test(text) || /\bban\b/.test(text)) return 'Destructive';
+    if (/\brole\b/.test(text) || /\bimpersonate\b/.test(text)) return 'High risk';
+    if (/\breset\b/.test(text) || /\bsensitive\b/.test(text) || /\bip\b/.test(text) || /\baudit\b/.test(text)) return 'Sensitive';
+    return null;
+  }
+
+  function renderPermissionCategoryCard(category, permissions, checked) {
+    var selected = permissions.filter(function (p) { return checked[p.key]; }).length;
+    var items = permissions.map(function (p) {
+      var risk = getPermissionRisk(p);
+      var badgeClass = 'permission-risk-badge' + (risk === 'Destructive' ? ' is-destructive' : '');
+      var badge = risk ? '<span class="' + badgeClass + '">' + escapeHtml(risk) + '</span>' : '';
+      return '<label class="permission-option-row"><input type="checkbox" class="role-permission-checkbox" value="' + escapeHtml(p.key) + '"' +
+        (checked[p.key] ? ' checked' : '') + '><span>' + escapeHtml(p.label) + '</span>' + badge + '</label>';
+    }).join('');
+    return '<div class="permission-category-card">' +
+      '<div class="permission-category-head">' +
+        '<span class="permission-category-title">' + escapeHtml(category) + '</span>' +
+        '<span class="permission-category-count">' + selected + ' selected / ' + permissions.length + '</span>' +
+      '</div>' +
+      '<div class="permission-category-actions">' +
+        '<button type="button" class="permission-mini-btn" data-action="select-all">Select all</button>' +
+        '<button type="button" class="permission-mini-btn" data-action="clear">Clear</button>' +
+      '</div>' +
+      items +
+    '</div>';
+  }
+
+  function updatePermissionCounts() {
+    var total = rolePermissionsGroups.querySelectorAll('.role-permission-checkbox:checked').length;
+    rolePermissionsSummary.textContent = total + (total === 1 ? ' permission selected' : ' permissions selected');
+
+    rolePermissionsGroups.querySelectorAll('.permission-category-card').forEach(function (card) {
+      var boxes = card.querySelectorAll('.role-permission-checkbox');
+      var checkedCount = card.querySelectorAll('.role-permission-checkbox:checked').length;
+      var countEl = card.querySelector('.permission-category-count');
+      if (countEl) countEl.textContent = checkedCount + ' selected / ' + boxes.length;
+    });
+  }
+
+  function setCategoryPermissions(card, checkedState) {
+    card.querySelectorAll('.role-permission-checkbox').forEach(function (cb) { cb.checked = checkedState; });
+    updatePermissionCounts();
+  }
+
+  // Delegated once (not re-bound per render, since rolePermissionsGroups'
+  // innerHTML is replaced but the element itself persists across renders).
+  rolePermissionsGroups.addEventListener('click', function (e) {
+    var btn = e.target.closest('.permission-mini-btn');
+    if (!btn) return;
+    var card = btn.closest('.permission-category-card');
+    if (!card) return;
+    setCategoryPermissions(card, btn.getAttribute('data-action') === 'select-all');
+  });
+  rolePermissionsGroups.addEventListener('change', function (e) {
+    if (e.target.classList.contains('role-permission-checkbox')) updatePermissionCounts();
+  });
+
   function renderPermissionCheckboxes(catalog, checkedKeys) {
     var byCategory = {};
+    var order = [];
     catalog.forEach(function (p) {
-      if (!byCategory[p.category]) byCategory[p.category] = [];
+      if (!byCategory[p.category]) { byCategory[p.category] = []; order.push(p.category); }
       byCategory[p.category].push(p);
     });
     var checked = {};
     checkedKeys.forEach(function (k) { checked[k] = true; });
 
-    rolePermissionsGroups.innerHTML = Object.keys(byCategory).map(function (category) {
-      var items = byCategory[category].map(function (p) {
-        return '<label class="member-ban-radio"><input type="checkbox" class="role-permission-checkbox" value="' + escapeHtml(p.key) + '"' +
-          (checked[p.key] ? ' checked' : '') + '><span>' + escapeHtml(p.label) + '</span></label>';
-      }).join('');
-      return '<div class="role-permission-group"><p class="admin-row-subject" style="margin-bottom:6px;">' + escapeHtml(category) + '</p>' + items + '</div>';
+    rolePermissionsGroups.innerHTML = order.map(function (category) {
+      return renderPermissionCategoryCard(category, byCategory[category], checked);
     }).join('');
+
+    updatePermissionCounts();
   }
 
   function openRoleModal(slug) {

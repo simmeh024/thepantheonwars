@@ -4364,6 +4364,45 @@ footer.site-footer {
 }
 .admin-modal-status.show { display: block; }
 
+/* Roles & Permissions modal: permission-category grid (replaces one long
+   vertical checkbox list so it stays scannable as the catalog grows). */
+.permission-summary {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--gold-bright); margin: -4px 0 10px;
+}
+.permissions-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px; max-height: 42vh; overflow-y: auto; padding-right: 4px; margin-bottom: 4px;
+}
+.permission-category-card {
+  background: var(--bg); border: 1px solid var(--border-soft); border-radius: 4px; padding: 12px 14px;
+}
+.permission-category-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.permission-category-title {
+  font-family: 'Cinzel', serif; font-size: 0.76rem; letter-spacing: 0.05em; color: var(--gold-bright);
+}
+.permission-category-count {
+  font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-faint); white-space: nowrap;
+}
+.permission-category-actions { display: flex; gap: 8px; margin-bottom: 8px; }
+.permission-mini-btn {
+  background: none; border: 1px solid var(--border-soft); color: var(--text-dim);
+  font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 3px 9px; border-radius: 3px; cursor: pointer; transition: border-color 0.2s ease, color 0.2s ease;
+}
+.permission-mini-btn:hover { border-color: var(--purple-bright); color: var(--purple-bright); }
+.permission-option-row {
+  display: flex; align-items: center; gap: 7px; font-size: 0.76rem; color: var(--text-dim);
+  padding: 4px 0; cursor: pointer;
+}
+.permission-option-row input { accent-color: var(--purple-bright); cursor: pointer; flex-shrink: 0; }
+.permission-option-row span:first-of-type { flex: 1; }
+.permission-risk-badge {
+  flex-shrink: 0; font-size: 0.56rem; text-transform: uppercase; letter-spacing: 0.04em;
+  padding: 1px 6px; border-radius: 2px; border: 1px solid #e0a34a; color: #e0a34a;
+}
+.permission-risk-badge.is-destructive { border-color: #e05a4a; color: #e05a4a; }
+
 @media (max-width: 860px) {
   .admin-shell.is-ready { flex-direction: column; }
   .admin-sidebar {
