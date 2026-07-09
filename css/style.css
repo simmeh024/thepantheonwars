@@ -4041,7 +4041,6 @@ footer.site-footer {
 .admin-status-badge.is-translated { border-color: #3ecf8e; color: #3ecf8e; }
 
 .admin-row-sep { opacity: 0.5; }
-.member-username { color: var(--text-faint); font-weight: 400; }
 .member-row-badges { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
 .member-role-badge {
   flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
@@ -4092,6 +4091,22 @@ footer.site-footer {
 .member-modal-avatar-wrap.profile-avatar-wrap { width: 64px; height: 64px; flex-shrink: 0; }
 .member-modal-avatar-wrap .profile-avatar { width: 64px; height: 64px; border-width: 2px; }
 .member-modal-avatar-wrap .profile-avatar-fallback { font-size: 1.4rem; }
+
+.member-password-reset-row { margin-bottom: 20px; }
+.member-password-reset-row[hidden] { display: none; }
+.member-generated-password-box {
+  display: flex; align-items: center; gap: 8px; margin-top: 10px; max-width: 320px;
+}
+.member-generated-password-box[hidden] { display: none; }
+.member-generated-password-box input {
+  flex: 1; min-width: 0; font-family: monospace; font-size: 0.95rem; letter-spacing: 0.03em;
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 10px; border-radius: 3px;
+}
+.member-generated-password-hint {
+  margin-top: 8px; font-size: 0.72rem; color: var(--gold-bright); max-width: 320px;
+}
+.member-generated-password-hint[hidden] { display: none; }
 
 .member-ban-options { margin-top: 12px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .member-ban-options[hidden] { display: none; }

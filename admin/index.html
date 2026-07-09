@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=88">
+<link rel="stylesheet" href="../css/style.css?v=89">
 </head>
 <body>
 
@@ -482,6 +482,7 @@
             <option value="member_unbanned">Member unbanned</option>
             <option value="member_deleted">Member deleted</option>
             <option value="member_avatar_reset">Avatar reset</option>
+            <option value="member_password_reset">Password reset</option>
           </optgroup>
           <optgroup label="Topic Reports">
             <option value="topic_locked">Topic locked</option>
@@ -702,6 +703,15 @@
         <div id="member-modal-avatar-fallback" class="profile-avatar profile-avatar-fallback">?</div>
       </div>
       <button type="button" class="btn" id="member-reset-avatar-btn">Reset Avatar</button>
+    </div>
+
+    <div class="member-password-reset-row" id="member-password-reset-row" hidden>
+      <button type="button" class="btn" id="member-generate-password-btn">Generate Password</button>
+      <div class="member-generated-password-box" id="member-generated-password-box" hidden>
+        <input type="text" id="member-generated-password-input" readonly aria-label="Generated password">
+        <button type="button" class="btn" id="member-copy-password-btn">Copy</button>
+      </div>
+      <p class="member-generated-password-hint" id="member-generated-password-hint" hidden>This password is shown once &mdash; copy it now and share it securely. It won&rsquo;t be shown again.</p>
     </div>
 
     <div class="admin-field" id="member-username-field">
@@ -1664,6 +1674,7 @@
     member_created: 'Member created',
     member_deleted: 'Member deleted',
     member_avatar_reset: 'Avatar reset',
+    member_password_reset: 'Password reset',
     topic_locked: 'Topic locked',
     topic_unlocked: 'Topic unlocked',
     topic_moved: 'Topic moved',
@@ -1686,6 +1697,7 @@
     member_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>',
     member_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
     member_avatar_reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>',
+    member_password_reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
     topic_locked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
     topic_unlocked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 7-2.6"/></svg>',
     topic_moved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h11a4 4 0 0 1 4 4v1"/><path d="M16 21l4-4-4-4"/><path d="M20 17H9a4 4 0 0 1-4-4v-1"/></svg>',
@@ -2357,6 +2369,12 @@
   var memberModalAvatarImg = document.getElementById('member-modal-avatar-img');
   var memberModalAvatarFallback = document.getElementById('member-modal-avatar-fallback');
   var memberResetAvatarBtn = document.getElementById('member-reset-avatar-btn');
+  var memberPasswordResetRow = document.getElementById('member-password-reset-row');
+  var memberGeneratePasswordBtn = document.getElementById('member-generate-password-btn');
+  var memberGeneratedPasswordBox = document.getElementById('member-generated-password-box');
+  var memberGeneratedPasswordInput = document.getElementById('member-generated-password-input');
+  var memberCopyPasswordBtn = document.getElementById('member-copy-password-btn');
+  var memberGeneratedPasswordHint = document.getElementById('member-generated-password-hint');
   var memberUsernameField = document.getElementById('member-username-field');
   var memberUsernameInput = document.getElementById('member-username-input');
   var memberPasswordField = document.getElementById('member-password-field');
@@ -2426,6 +2444,32 @@
       });
   }
 
+  function buildMemberRowAvatar(entry) {
+    var avatarWrap = document.createElement('div');
+    avatarWrap.className = 'profile-avatar-wrap member-avatar-wrap role-' + (entry.role || 'member');
+
+    var avatarImg = document.createElement('img');
+    avatarImg.className = 'profile-avatar';
+    avatarImg.alt = '';
+    avatarImg.hidden = true;
+    avatarWrap.appendChild(avatarImg);
+
+    var avatarFallback = document.createElement('div');
+    avatarFallback.className = 'profile-avatar profile-avatar-fallback';
+    avatarFallback.textContent = (entry.display_name || '?').charAt(0).toUpperCase();
+    avatarWrap.appendChild(avatarFallback);
+
+    var probe = new Image();
+    probe.onload = function () {
+      avatarImg.src = probe.src;
+      avatarImg.hidden = false;
+      avatarFallback.hidden = true;
+    };
+    probe.src = '/uploads/avatars/' + entry.id + '.jpg';
+
+    return avatarWrap;
+  }
+
   function renderMemberList(entries) {
     if (!entries.length) {
       memberListEl.innerHTML = '<div class="admin-list-empty">No members match this filter.</div>';
@@ -2436,19 +2480,26 @@
       var row = document.createElement('button');
       row.type = 'button';
       row.className = 'admin-row member-row';
-      row.innerHTML =
-        '<div class="admin-row-main">' +
-          '<p class="admin-row-subject">' + escapeHtml(entry.display_name) + ' <span class="member-username">@' + escapeHtml(entry.username) + '</span></p>' +
-          '<div class="admin-row-meta">' +
-            '<span>' + escapeHtml(entry.email) + '</span>' +
-            '<span class="admin-row-sep">&bull;</span>' +
-            '<span>' + escapeHtml(fmtLastLogin(entry)) + '</span>' +
-          '</div>' +
-        '</div>' +
-        '<div class="member-row-badges">' +
-          '<span class="member-role-badge role-' + escapeHtml(entry.role) + '">' + escapeHtml(ROLE_LABELS[entry.role] || entry.role) + '</span>' +
-          (entry.banned ? '<span class="member-banned-badge">' + (entry.banned_until ? 'Banned until ' + escapeHtml(fmtDate(entry.banned_until)) : 'Banned') + '</span>' : '') +
+      row.appendChild(buildMemberRowAvatar(entry));
+
+      var main = document.createElement('div');
+      main.className = 'admin-row-main';
+      main.innerHTML =
+        '<p class="admin-row-subject">' + escapeHtml(entry.display_name) + '</p>' +
+        '<div class="admin-row-meta">' +
+          '<span>' + escapeHtml(entry.email) + '</span>' +
+          '<span class="admin-row-sep">&bull;</span>' +
+          '<span>' + escapeHtml(fmtLastLogin(entry)) + '</span>' +
         '</div>';
+      row.appendChild(main);
+
+      var badges = document.createElement('div');
+      badges.className = 'member-row-badges';
+      badges.innerHTML =
+        '<span class="member-role-badge role-' + escapeHtml(entry.role) + '">' + escapeHtml(ROLE_LABELS[entry.role] || entry.role) + '</span>' +
+        (entry.banned ? '<span class="member-banned-badge">' + (entry.banned_until ? 'Banned until ' + escapeHtml(fmtDate(entry.banned_until)) : 'Banned') + '</span>' : '');
+      row.appendChild(badges);
+
       row.addEventListener('click', function () { openMemberModal(entry); });
       memberListEl.appendChild(row);
     });
@@ -2518,6 +2569,11 @@
     memberAvatarRow.hidden = false;
     loadMemberAvatarPreview(entry.id, entry.display_name, entry.role);
 
+    memberPasswordResetRow.hidden = false;
+    memberGeneratedPasswordBox.hidden = true;
+    memberGeneratedPasswordHint.hidden = true;
+    memberGeneratedPasswordInput.value = '';
+
     memberUsernameField.hidden = true;
     memberPasswordField.hidden = true;
 
@@ -2554,6 +2610,7 @@
     memberModalSub.textContent = '';
 
     memberAvatarRow.hidden = true;
+    memberPasswordResetRow.hidden = true;
 
     memberUsernameField.hidden = false;
     memberUsernameInput.value = '';
@@ -2615,6 +2672,58 @@
         memberModalError.textContent = 'Could not reset avatar. Please try again.';
         memberModalError.classList.add('show');
       });
+  });
+
+  memberGeneratePasswordBtn.addEventListener('click', function () {
+    if (!currentMember) return;
+    var confirmMsg = 'Generate a new password for ' + currentMember.display_name + '? ' +
+      'Their current password will stop working immediately.';
+    if (!window.confirm(confirmMsg)) return;
+    memberGeneratePasswordBtn.disabled = true;
+    fetch('/api/admin/members/reset-password.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentMember.id, csrf: window.PW_AUTH.csrf }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        memberGeneratePasswordBtn.disabled = false;
+        if (!data.ok) {
+          memberModalError.textContent = data.error || 'Could not generate a new password.';
+          memberModalError.classList.add('show');
+          return;
+        }
+        memberGeneratedPasswordInput.value = data.password;
+        memberGeneratedPasswordBox.hidden = false;
+        memberGeneratedPasswordHint.hidden = false;
+        memberCopyPasswordBtn.textContent = 'Copy';
+        memberModalStatus.textContent = 'New password generated.';
+        memberModalStatus.classList.add('show');
+      })
+      .catch(function () {
+        memberGeneratePasswordBtn.disabled = false;
+        memberModalError.textContent = 'Could not generate a new password. Please try again.';
+        memberModalError.classList.add('show');
+      });
+  });
+
+  memberCopyPasswordBtn.addEventListener('click', function () {
+    memberGeneratedPasswordInput.select();
+    memberGeneratedPasswordInput.setSelectionRange(0, memberGeneratedPasswordInput.value.length);
+    var fallbackNotice = function () {
+      memberCopyPasswordBtn.textContent = 'Copied!';
+      setTimeout(function () { memberCopyPasswordBtn.textContent = 'Copy'; }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(memberGeneratedPasswordInput.value).then(fallbackNotice).catch(function () {
+        document.execCommand('copy');
+        fallbackNotice();
+      });
+    } else {
+      document.execCommand('copy');
+      fallbackNotice();
+    }
   });
 
   memberDeleteBtn.addEventListener('click', function () {

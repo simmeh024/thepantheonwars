@@ -167,3 +167,35 @@ function pw_log_admin_activity($action, $description, $user = null) {
         pw_client_ip(),
     ]);
 }
+
+/**
+ * Generates a random password of the given length using a CSPRNG
+ * (random_int over /dev/urandom or the platform equivalent), pulled from a
+ * charset that excludes visually ambiguous characters (0/O, 1/l/I) so an
+ * admin reading it off screen to relay it to a member doesn't mistype it.
+ * Guarantees at least one character from each class (upper, lower, digit,
+ * symbol) so it can't accidentally roll an all-letters or all-digits result.
+ */
+function pw_generate_password($length = 14) {
+    $classes = [
+        'ABCDEFGHJKLMNPQRSTUVWXYZ',
+        'abcdefghijkmnopqrstuvwxyz',
+        '23456789',
+        '!@#$%^&*?',
+    ];
+    $all = implode('', $classes);
+    $chars = [];
+    foreach ($classes as $class) {
+        $chars[] = $class[random_int(0, strlen($class) - 1)];
+    }
+    while (count($chars) < $length) {
+        $chars[] = $all[random_int(0, strlen($all) - 1)];
+    }
+    for ($i = count($chars) - 1; $i > 0; $i--) {
+        $j = random_int(0, $i);
+        $tmp = $chars[$i];
+        $chars[$i] = $chars[$j];
+        $chars[$j] = $tmp;
+    }
+    return implode('', $chars);
+}
