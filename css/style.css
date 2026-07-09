@@ -3401,11 +3401,12 @@ footer.site-footer {
 .admin-nav-list { list-style: none; margin: 0; padding: 0; flex: 0 0 auto; }
 .admin-nav-list li { margin: 0; }
 .admin-nav-link {
-  display: block; width: 100%; text-align: left; background: none; border: none;
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; background: none; border: none;
   border-left: 3px solid transparent;
   color: var(--text-dim); font-family: 'Jost', sans-serif; font-size: 0.85rem;
   padding: 9px 24px; cursor: pointer; transition: all 0.2s ease;
 }
+.admin-nav-icon { width: 15px; height: 15px; flex-shrink: 0; opacity: 0.8; }
 .admin-nav-link:hover { color: var(--text); background: rgba(124,79,214,0.08); }
 .admin-nav-link.active {
   color: var(--gold-bright); border-left-color: var(--purple-bright);
