@@ -4224,6 +4224,24 @@ footer.site-footer {
   padding: 8px 10px; font-family: 'Jost', sans-serif; font-size: 0.84rem; border-radius: 2px;
 }
 .member-ban-options input[type="datetime-local"]:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Find Existing Member (lookup + assign-role) modal */
+.member-lookup-results {
+  max-height: 240px; overflow-y: auto; border: 1px solid var(--border-soft); border-radius: 3px;
+  margin: 6px 0 18px; background: var(--bg);
+}
+.member-lookup-hint { padding: 16px; margin: 0; font-size: 0.8rem; color: var(--text-faint); text-align: center; }
+.member-lookup-row {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  background: none; border: none; border-bottom: 1px solid var(--border-soft);
+  padding: 10px 12px; cursor: pointer; font-family: 'Jost', sans-serif; color: var(--text);
+  transition: background 0.15s ease;
+}
+.member-lookup-row:last-child { border-bottom: none; }
+.member-lookup-row:hover { background: rgba(124,79,214,0.08); }
+.member-lookup-row.is-selected { background: rgba(124,79,214,0.18); }
+.member-lookup-row-name { font-size: 0.86rem; }
+.member-lookup-row-meta { font-size: 0.72rem; color: var(--text-faint); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .member-ban-options input[type="datetime-local"]:focus { outline: none; border-color: var(--purple-bright); }
 
 .admin-modal {
