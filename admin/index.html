@@ -1208,7 +1208,7 @@
   }
 
   function fmtDate(iso) {
-    var d = new Date((iso || '').replace(' ', 'T'));
+    var d = new Date((iso || '').replace(' ', 'T') + 'Z');
     if (isNaN(d.getTime())) return iso || '';
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   }
@@ -1606,7 +1606,7 @@
             '<span class="dev-snapshot-lang-pct">' + l.pct + '%</span>' +
           '</div>';
         }).join('');
-        var capturedDate = new Date((data.captured_at || '').replace(' ', 'T'));
+        var capturedDate = new Date((data.captured_at || '').replace(' ', 'T') + 'Z');
         devSnapshotUpdatedEl.textContent = isNaN(capturedDate.getTime())
           ? ''
           : 'Updated ' + capturedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' at ' + capturedDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -2017,7 +2017,7 @@
 
   function fmtDateTime(sqlDate) {
     if (!sqlDate) return '\u2014';
-    var d = new Date(String(sqlDate).replace(' ', 'T'));
+    var d = new Date(String(sqlDate).replace(' ', 'T') + 'Z');
     if (isNaN(d.getTime())) return sqlDate;
     var dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     var timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit' });
@@ -2025,7 +2025,7 @@
   }
 
   function fmtRelativeTime(sqlDate) {
-    var d = new Date(String(sqlDate).replace(' ', 'T'));
+    var d = new Date(String(sqlDate).replace(' ', 'T') + 'Z');
     if (isNaN(d.getTime())) return '';
     var seconds = Math.round((Date.now() - d.getTime()) / 1000);
     if (seconds < 5) return 'just now';

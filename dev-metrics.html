@@ -421,7 +421,7 @@ function pwWireBh4Toggle(el) {
 
   function formatLastCommitLabel(committedAt) {
     if (!committedAt) return '—';
-    var d = new Date(String(committedAt).replace(' ', 'T'));
+    var d = new Date(String(committedAt).replace(' ', 'T') + 'Z');
     if (isNaN(d.getTime())) return '—';
     var dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     var timeStr = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
@@ -462,7 +462,7 @@ function pwWireBh4Toggle(el) {
 
     var inRange = allEntries.filter(function (e) {
       if (e.tag !== tag) return false;
-      var d = new Date(String(e.committed_at).replace(' ', 'T'));
+      var d = new Date(String(e.committed_at).replace(' ', 'T') + 'Z');
       return d >= range.start && d <= range.end;
     });
     var count = inRange.length;
@@ -495,7 +495,7 @@ function pwWireBh4Toggle(el) {
     var prevEnd = range.start;
     var prevCount = allEntries.filter(function (e) {
       if (e.tag !== tag) return false;
-      var d = new Date(String(e.committed_at).replace(' ', 'T'));
+      var d = new Date(String(e.committed_at).replace(' ', 'T') + 'Z');
       return d >= prevStart && d < prevEnd;
     }).length;
     var delta = count - prevCount;
@@ -547,7 +547,7 @@ function pwWireBh4Toggle(el) {
     var range = pwGetRangeBounds(dateSelect.value);
     currentRange = range;
     var filtered = allEntries.filter(function (e) {
-      var d = new Date(String(e.committed_at).replace(' ', 'T'));
+      var d = new Date(String(e.committed_at).replace(' ', 'T') + 'Z');
       return d >= range.start && d <= range.end;
     });
     renderMetrics(filtered);
