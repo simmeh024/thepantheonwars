@@ -167,7 +167,8 @@ document.addEventListener('DOMContentLoaded', function () {
       postJson('/api/logout.php', { csrf: window.PW_AUTH.csrf }).then(function () {
         window.PW_AUTH = { loggedIn: false, user: null, csrf: null };
         refreshAuthNav();
-        if (/profile\.html$/.test(location.pathname)) location.href = 'index.html';
+        if (/\/admin\/?$/.test(location.pathname)) location.href = '../index.html';
+        else if (/profile\.html$/.test(location.pathname)) location.href = 'index.html';
       });
     }
   });

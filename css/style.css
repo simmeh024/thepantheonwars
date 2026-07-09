@@ -3366,7 +3366,7 @@ footer.site-footer {
 .admin-gate[hidden] { display: none; }
 .admin-shell {
   display: none;
-  min-height: 100vh;
+  height: 100vh;
   background: var(--bg);
 }
 .admin-shell.is-ready { display: flex; }
@@ -3381,6 +3381,7 @@ footer.site-footer {
   background: var(--bg-alt);
   display: flex; flex-direction: column;
   padding: 28px 0;
+  overflow-y: auto;
 }
 .admin-brand {
   padding: 0 24px 22px;
@@ -3430,6 +3431,28 @@ footer.site-footer {
   text-decoration: none; transition: color 0.2s ease;
 }
 .admin-back-link a:hover { color: var(--gold-bright); }
+.admin-sidebar-user { padding: 16px 24px 0; display: flex; flex-direction: column; gap: 12px; }
+.admin-sidebar-user-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.admin-sidebar-user-avatar { width: 38px; height: 38px; }
+.admin-sidebar-user-avatar .profile-avatar { width: 38px; height: 38px; border-width: 2px; }
+.admin-sidebar-user-avatar .profile-avatar-fallback { font-size: 0.92rem; }
+.admin-sidebar-user-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.admin-sidebar-user-name {
+  font-family: 'Jost', sans-serif; font-size: 0.85rem; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.admin-sidebar-user-role { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); }
+.admin-sidebar-user-role.role-admin { color: #d1483f; }
+.admin-sidebar-user-role.role-moderator { color: #4caf6e; }
+.admin-sidebar-logout-btn {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  background: none; border: 1px solid var(--border-soft); border-radius: 3px;
+  color: var(--text-dim); font-family: 'Jost', sans-serif; font-size: 0.76rem;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 9px 12px; cursor: pointer; transition: all 0.2s ease;
+}
+.admin-sidebar-logout-btn:hover { color: var(--gold-bright); border-color: var(--gold-dim); background: rgba(124,79,214,0.08); }
+.admin-sidebar-logout-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
 
 /* The bare `section` selector above is meant for the public site's hero
    sections (padding: 90px 0) -- .admin-section reuses the <section> tag for
@@ -4377,6 +4400,8 @@ footer.site-footer {
   .admin-nav-link { padding: 10px 16px; border-left: none; border-bottom: 3px solid transparent; white-space: nowrap; }
   .admin-nav-link.active { border-left-color: transparent; border-bottom-color: var(--purple-bright); }
   .admin-back-link { margin-top: 0; padding: 0 18px; flex-shrink: 0; }
+  .admin-sidebar-user { flex-direction: row; align-items: center; padding: 0 18px; flex-shrink: 0; }
+  .admin-sidebar-logout-btn { width: auto; white-space: nowrap; }
   .admin-main { padding: 26px 20px; }
   .admin-home-grid { flex-direction: column; }
   .admin-home-grid-main, .admin-home-grid-side { flex: 1 1 auto; width: 100%; }

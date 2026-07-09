@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=94">
+<link rel="stylesheet" href="../css/style.css?v=95">
 </head>
 <body>
 
@@ -75,6 +75,23 @@
     </div>
 
     <div class="admin-back-link"><a href="../dev-dispatches.html">&larr; Back to site</a></div>
+
+    <div class="admin-sidebar-user" id="admin-sidebar-user">
+      <div class="admin-sidebar-user-info">
+        <div class="profile-avatar-wrap admin-sidebar-user-avatar" id="admin-sidebar-user-avatar">
+          <img class="profile-avatar" id="admin-sidebar-avatar-img" alt="" hidden>
+          <div class="profile-avatar profile-avatar-fallback" id="admin-sidebar-avatar-fallback">?</div>
+        </div>
+        <div class="admin-sidebar-user-text">
+          <span class="admin-sidebar-user-name" id="admin-sidebar-user-name">&hellip;</span>
+          <span class="admin-sidebar-user-role" id="admin-sidebar-user-role">&hellip;</span>
+        </div>
+      </div>
+      <button type="button" class="admin-sidebar-logout-btn auth-logout-btn" id="admin-sidebar-logout-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <span>Logout</span>
+      </button>
+    </div>
   </aside>
 
   <main class="admin-main">
@@ -1107,7 +1124,7 @@
   </div>
 </div>
 
-<script src="../js/members.js?v=5"></script>
+<script src="../js/members.js?v=6"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -1796,6 +1813,33 @@
     });
   }
 
+  // Populates the sidebar's avatar/name/role footer for the logged-in admin
+  // or moderator, reusing the same profile-avatar-wrap + role-* ring pattern
+  // used everywhere else avatars appear (member rows, profile page) -- not
+  // the member-list's separate "online now" green-dot indicator, which is
+  // a different signal (activity, not identity/role).
+  function populateSidebarUser(user) {
+    var nameEl = document.getElementById('admin-sidebar-user-name');
+    var roleEl = document.getElementById('admin-sidebar-user-role');
+    var avatarWrap = document.getElementById('admin-sidebar-user-avatar');
+    var avatarImg = document.getElementById('admin-sidebar-avatar-img');
+    var avatarFallback = document.getElementById('admin-sidebar-avatar-fallback');
+
+    nameEl.textContent = user.display_name;
+    roleEl.textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
+    roleEl.className = 'admin-sidebar-user-role role-' + user.role;
+    avatarWrap.className = 'profile-avatar-wrap admin-sidebar-user-avatar role-' + user.role;
+    avatarFallback.textContent = (user.display_name || '?').charAt(0).toUpperCase();
+
+    var probe = new Image();
+    probe.onload = function () {
+      avatarImg.src = probe.src;
+      avatarImg.hidden = false;
+      avatarFallback.hidden = true;
+    };
+    probe.src = '/uploads/avatars/' + user.id + '.jpg';
+  }
+
   function checkAccess() {
     if (checkedAuth) return;
     checkedAuth = true;
@@ -1810,6 +1854,7 @@
       // stays admin-only and is removed from the nav entirely.
       document.querySelectorAll('[data-admin-only]').forEach(function (el) { el.remove(); });
     }
+    populateSidebarUser(window.PW_AUTH.user);
     gate.hidden = true;
     shell.classList.add('is-ready');
     showSection(role === 'moderator' ? 'topic-reports' : 'home');
