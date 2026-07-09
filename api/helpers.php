@@ -18,6 +18,21 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Idle session timeout: a logged-in session that hasn't made a single API
+// request in 14 days is force-expired here, independent of the cookie's own
+// 30-day lifetime. Narrows the exposure window if a session cookie is ever
+// leaked (XSS, shared/public device) without making everyone re-login every
+// visit. Anonymous (logged-out) sessions aren't affected -- there's nothing
+// sensitive to expire until user_id is set.
+if (!empty($_SESSION['user_id'])) {
+    if (!empty($_SESSION['pw_last_seen']) && (time() - $_SESSION['pw_last_seen']) > 14 * 24 * 60 * 60) {
+        $_SESSION = [];
+        session_destroy();
+    } else {
+        $_SESSION['pw_last_seen'] = time();
+    }
+}
+
 header('Content-Type: application/json; charset=utf-8');
 
 // --- GitHub API auth -----------------------------------------------------------
@@ -153,6 +168,55 @@ function pw_client_ip() {
         }
     }
     return 'unknown';
+}
+
+// --- Login attempt tracking -------------------------------------------------
+// Every login attempt (success or failure) is logged here, independent of
+// the per-account failed_login_attempts/locked_until columns on users. This
+// is what api/login.php's IP-based throttle reads from, and it doubles as
+// an audit trail for non-admin accounts (admin logins already go through
+// pw_log_admin_activity separately).
+function pw_log_login_attempt($ip, $identifier, $success) {
+    $stmt = pw_db()->prepare('INSERT INTO login_attempts (ip_address, identifier, success) VALUES (?, ?, ?)');
+    $stmt->execute([$ip, substr($identifier, 0, 255), $success ? 1 : 0]);
+    // Opportunistic prune (~2% of calls) since there's no dedicated cron for
+    // this table -- keeps ~90 days of history without unbounded growth.
+    if (random_int(1, 50) === 1) {
+        pw_db()->exec('DELETE FROM login_attempts WHERE created_at < (UTC_TIMESTAMP() - INTERVAL 90 DAY)');
+    }
+}
+
+// --- Password strength -------------------------------------------------------
+// Checks a password against the Have I Been Pwned breached-password corpus
+// via the k-anonymity range API: only the first 5 hex chars of the
+// password's SHA-1 hash are ever sent over the network, never the password
+// or the full hash, so HIBP can't reconstruct which password was checked.
+// Fails open (returns false, i.e. "not known to be pwned") on any network
+// error -- a third-party API hiccup shouldn't block registration or a
+// password change.
+function pw_password_is_pwned($password) {
+    $sha1 = strtoupper(sha1($password));
+    $prefix = substr($sha1, 0, 5);
+    $suffix = substr($sha1, 5);
+    $context = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'header' => "User-Agent: ThePantheonWars-Site\r\n",
+            'timeout' => 3,
+            'ignore_errors' => true,
+        ],
+    ]);
+    $body = @file_get_contents('https://api.pwnedpasswords.com/range/' . $prefix, false, $context);
+    if ($body === false) {
+        return false;
+    }
+    foreach (explode("\n", $body) as $line) {
+        $parts = explode(':', trim($line));
+        if (count($parts) === 2 && strcasecmp($parts[0], $suffix) === 0) {
+            return true;
+        }
+    }
+    return false;
 }
 
 function pw_log_admin_activity($action, $description, $user = null) {

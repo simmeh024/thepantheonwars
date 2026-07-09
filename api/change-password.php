@@ -25,6 +25,9 @@ if ($currentPassword === '' || $newPassword === '') {
 if (strlen($newPassword) < 8) {
     pw_error('New password needs to be at least 8 characters.');
 }
+if (pw_password_is_pwned($newPassword)) {
+    pw_error('That password has appeared in known data breaches. Please choose a different one.');
+}
 
 $db = pw_db();
 $stmt = $db->prepare('SELECT password_hash FROM users WHERE id = ?');

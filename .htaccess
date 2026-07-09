@@ -12,3 +12,16 @@
     Header set Expires "Thu, 19 Nov 1981 08:52:00 GMT"
   </FilesMatch>
 </IfModule>
+
+# Baseline security headers, applied site-wide (static pages and PHP API
+# responses alike). No Content-Security-Policy here on purpose: this site
+# relies on inline <script>/<style> throughout (admin/index.html especially)
+# with no build step to add nonces/hashes, so a real CSP would need a
+# frontend refactor first -- tracked as a follow-up, not skipped by oversight.
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>

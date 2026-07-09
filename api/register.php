@@ -6,6 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $input = pw_input();
+pw_require_csrf($input);
 
 $username = isset($input['username']) ? trim($input['username']) : '';
 $email = isset($input['email']) ? trim($input['email']) : '';
@@ -22,6 +23,9 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 }
 if (strlen($password) < 8) {
     pw_error('Passwords need to be at least 8 characters.');
+}
+if (pw_password_is_pwned($password)) {
+    pw_error('That password has appeared in known data breaches. Please choose a different one.');
 }
 
 $db = pw_db();

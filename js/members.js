@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var form = e.target;
     var identifier = form.querySelector('#login-identifier').value.trim();
     var password = form.querySelector('#login-password').value;
-    postJson('/api/login.php', { identifier: identifier, password: password }).then(function (r) {
+    postJson('/api/login.php', { identifier: identifier, password: password, csrf: window.PW_AUTH.csrf }).then(function (r) {
       if (r.data && r.data.ok) {
         closeModal();
         refreshAuthNav();
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var username = form.querySelector('#reg-username').value.trim();
     var email = form.querySelector('#reg-email').value.trim();
     var password = form.querySelector('#reg-password').value;
-    postJson('/api/register.php', { username: username, email: email, password: password }).then(function (r) {
+    postJson('/api/register.php', { username: username, email: email, password: password, csrf: window.PW_AUTH.csrf }).then(function (r) {
       if (r.data && r.data.ok) {
         closeModal();
         refreshAuthNav();
@@ -131,7 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var logoutBtn = e.target.closest && e.target.closest('.auth-logout-btn');
     if (logoutBtn) {
       e.preventDefault();
-      postJson('/api/logout.php', {}).then(function () {
+      postJson('/api/logout.php', { csrf: window.PW_AUTH.csrf }).then(function () {
         window.PW_AUTH = { loggedIn: false, user: null, csrf: null };
         refreshAuthNav();
         if (/profile\.html$/.test(location.pathname)) location.href = 'index.html';
