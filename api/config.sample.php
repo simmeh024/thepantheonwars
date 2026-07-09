@@ -25,3 +25,11 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // uncomment the line below with the real value. Leave it commented out
 // and everything keeps working at the lower unauthenticated limit.
 // define('GITHUB_TOKEN', 'REPLACE_WITH_REAL_TOKEN');
+
+// Required for the System Status "CPU (Shared)" 24h chart's cron sampler
+// (api/cron/sample-load.php). api/ is publicly reachable, so this shared
+// secret gates that endpoint -- only requests carrying the matching ?key=
+// value (set on the cPanel Cron Job's command line) are allowed to insert
+// a load-average sample. Generate any long random string, e.g.:
+//   php -r "echo bin2hex(random_bytes(24));"
+define('CRON_SAMPLE_KEY', 'REPLACE_WITH_REAL_RANDOM_STRING');

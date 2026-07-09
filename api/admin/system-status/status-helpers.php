@@ -189,3 +189,207 @@ function pw_check_ssl_expiry($host = 'thepantheonwars.com') {
         'label' => $daysLeft . ($daysLeft === 1 ? ' day left' : ' days left'),
     ];
 }
+
+// --- CPU load (shared host) ------------------------------------------------------
+// sys_getloadavg() reports the load average for the ENTIRE shared box, not
+// this account in isolation -- there's no per-account CPU metric available
+// on shared hosting. Still a useful "is something hammering the server"
+// signal (including this site's own traffic), which is what backs the
+// CPU (Shared) card's live numbers and its 24h history chart (samples are
+// collected once a minute by a cron job into cpu_load_history -- see
+// api/cron/sample-load.php -- since a single request can only ever see a
+// single instant, not a trend, and a DDoS-style spike needs the trend to
+// actually be visible).
+function pw_check_cpu_load() {
+    $load = function_exists('sys_getloadavg') ? sys_getloadavg() : false;
+    if (!$load) {
+        return [
+            'status' => 'unknown',
+            'label' => 'Unavailable',
+            'load1' => null,
+            'load5' => null,
+            'load15' => null,
+            'cores' => null,
+        ];
+    }
+    $cores = 1;
+    if (is_readable('/proc/cpuinfo')) {
+        $cpuinfo = @file_get_contents('/proc/cpuinfo');
+        if ($cpuinfo !== false) {
+            $cores = max(1, preg_match_all('/^processor\s*:/m', $cpuinfo));
+        }
+    }
+    $ratio = $load[0] / $cores;
+    $status = 'ok';
+    if ($ratio >= 1.0) {
+        $status = 'bad';
+    } elseif ($ratio >= 0.7) {
+        $status = 'warn';
+    }
+    return [
+        'status' => $status,
+        'label' => round($load[0], 2) . ' / ' . round($load[1], 2) . ' / ' . round($load[2], 2),
+        'load1' => round($load[0], 2),
+        'load5' => round($load[1], 2),
+        'load15' => round($load[2], 2),
+        'cores' => $cores,
+    ];
+}
+
+// --- Database: connections, throughput, cache efficiency, table sizes -----------
+// Deeper MySQL introspection than pw_check_database_load()'s single-query
+// timing proxy above -- these come straight from SHOW GLOBAL STATUS/
+// SHOW GLOBAL VARIABLES, which (confirmed empirically on this host via a
+// temporary diagnostic endpoint, see git history) this account's DB user
+// can read without any elevated privilege. SHOW ENGINE INNODB STATUS and a
+// cross-connection SHOW PROCESSLIST are NOT available here (missing
+// PROCESS privilege / scoped to only this app's own connection) so neither
+// is attempted.
+function pw_status_global($db, $name) {
+    try {
+        $row = $db->query('SHOW GLOBAL STATUS LIKE ' . $db->quote($name))->fetch();
+        return $row ? $row['Value'] : null;
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
+function pw_status_variable($db, $name) {
+    try {
+        $row = $db->query('SHOW GLOBAL VARIABLES LIKE ' . $db->quote($name))->fetch();
+        return $row ? $row['Value'] : null;
+    } catch (Exception $e) {
+        return null;
+    }
+}
+
+function pw_check_database_extra($db) {
+    $result = [
+        'connections' => ['status' => 'unknown', 'label' => 'Unavailable'],
+        'qps' => ['status' => 'unknown', 'label' => 'Unavailable'],
+        'slow_queries' => ['status' => 'unknown', 'label' => 'Unavailable'],
+        'uptime' => ['label' => 'Unavailable'],
+        'buffer_pool_hit_ratio' => ['status' => 'unknown', 'label' => 'Unavailable'],
+        'threads_running' => ['status' => 'unknown', 'label' => 'Unavailable'],
+        'tables' => [],
+    ];
+
+    // Connections vs max_connections
+    $connected = pw_status_global($db, 'Threads_connected');
+    $maxConn = pw_status_variable($db, 'max_connections');
+    if ($connected !== null && $maxConn !== null && (int)$maxConn > 0) {
+        $pct = ((int)$connected / (int)$maxConn) * 100;
+        $status = 'ok';
+        if ($pct >= 90) {
+            $status = 'bad';
+        } elseif ($pct >= 70) {
+            $status = 'warn';
+        }
+        $result['connections'] = [
+            'status' => $status,
+            'label' => $connected . ' / ' . $maxConn . ' (' . round($pct, 1) . '%)',
+        ];
+    }
+
+    // Queries/sec, averaged since server start (a single request can't see a
+    // real-time rate without a second sample to diff against, so this is
+    // explicitly labeled "(avg)" rather than implying a live figure).
+    $questions = pw_status_global($db, 'Questions');
+    $uptime = pw_status_global($db, 'Uptime');
+    if ($questions !== null && $uptime !== null && (int)$uptime > 0) {
+        $qps = (int)$questions / (int)$uptime;
+        $result['qps'] = ['status' => 'ok', 'label' => round($qps, 2) . ' / sec (avg)'];
+    }
+
+    // Slow queries: cumulative count since server start (per the
+    // long_query_time threshold configured on this host).
+    $slowQueries = pw_status_global($db, 'Slow_queries');
+    if ($slowQueries !== null) {
+        $slow = (int)$slowQueries;
+        $status = 'ok';
+        if ($slow >= 200) {
+            $status = 'bad';
+        } elseif ($slow >= 50) {
+            $status = 'warn';
+        }
+        $result['slow_queries'] = ['status' => $status, 'label' => $slow . ' total'];
+    }
+
+    // Server uptime (reuses the Uptime status var already fetched above for QPS).
+    if ($uptime !== null) {
+        $result['uptime'] = ['label' => pw_fmt_duration((int)$uptime)];
+    }
+
+    // InnoDB buffer pool hit ratio -- how often reads are served from memory
+    // instead of falling through to disk.
+    $readRequests = pw_status_global($db, 'Innodb_buffer_pool_read_requests');
+    $reads = pw_status_global($db, 'Innodb_buffer_pool_reads');
+    if ($readRequests !== null && $reads !== null && (int)$readRequests > 0) {
+        $ratio = (1 - ((int)$reads / (int)$readRequests)) * 100;
+        $status = 'ok';
+        if ($ratio < 95) {
+            $status = 'bad';
+        } elseif ($ratio < 99) {
+            $status = 'warn';
+        }
+        $result['buffer_pool_hit_ratio'] = ['status' => $status, 'label' => round($ratio, 2) . '%'];
+    }
+
+    // Threads currently running (actively executing a query right now, not
+    // just connected-and-idle) -- a sudden spike here is a much more
+    // immediate load signal than Threads_connected.
+    $threadsRunning = pw_status_global($db, 'Threads_running');
+    if ($threadsRunning !== null) {
+        $running = (int)$threadsRunning;
+        $status = 'ok';
+        if ($running >= 20) {
+            $status = 'bad';
+        } elseif ($running >= 10) {
+            $status = 'warn';
+        }
+        $result['threads_running'] = ['status' => $status, 'label' => (string)$running];
+    }
+
+    // Per-table size breakdown (largest first), flagging any table whose
+    // collation isn't utf8mb4_unicode_ci -- this is exactly how the books
+    // table's stray latin1_swedish_ci collation was originally found, so
+    // surfacing it here means a future mismatch like that won't go
+    // unnoticed again.
+    try {
+        $rows = $db->query(
+            'SELECT table_name, table_collation, table_rows,
+                    (data_length + index_length) AS size_bytes
+             FROM information_schema.TABLES
+             WHERE table_schema = DATABASE()
+             ORDER BY size_bytes DESC
+             LIMIT 10'
+        )->fetchAll();
+        foreach ($rows as $row) {
+            $result['tables'][] = [
+                'name' => $row['table_name'],
+                'size_mb' => round(((float)$row['size_bytes']) / (1024 * 1024), 2),
+                'rows' => (int)$row['table_rows'],
+                'collation' => $row['table_collation'],
+                'collation_mismatch' => ($row['table_collation'] !== 'utf8mb4_unicode_ci'),
+            ];
+        }
+    } catch (Exception $e) {
+        // leave tables empty
+    }
+
+    return $result;
+}
+
+// --- Small duration formatter (seconds -> "12d 4h" / "3h 20m" / "45m" style) -----
+function pw_fmt_duration($seconds) {
+    $days = intdiv($seconds, 86400);
+    $hours = intdiv($seconds % 86400, 3600);
+    $minutes = intdiv($seconds % 3600, 60);
+    if ($days > 0) {
+        return $days . 'd ' . $hours . 'h';
+    }
+    if ($hours > 0) {
+        return $hours . 'h ' . $minutes . 'm';
+    }
+    return $minutes . 'm';
+}

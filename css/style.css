@@ -3981,6 +3981,87 @@ footer.site-footer {
 }
 .system-status-storage-row-wide .system-status-storage-bar-track { height: 8px; }
 
+.system-status-detail-card-wide { grid-column: 1 / -1; }
+
+.db-table-sizes {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.db-table-sizes-head {
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.db-table-sizes-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.db-table-sizes-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.db-table-sizes-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Courier New', monospace;
+}
+.db-table-sizes-collation-flag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 7px;
+  border-radius: 20px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  background: rgba(224, 90, 74, 0.16);
+  color: #e05a4a;
+  white-space: nowrap;
+}
+.db-table-sizes-meta {
+  white-space: nowrap;
+  color: var(--text-faint);
+  font-size: 0.76rem;
+}
+
+.cpu-chart-note {
+  margin: 0 0 16px;
+  font-size: 0.78rem;
+  color: var(--text-faint);
+  line-height: 1.5;
+}
+.cpu-chart-wrap {
+  width: 100%;
+}
+.cpu-chart-wrap svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+.cpu-chart-empty {
+  margin: 36px 0;
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--text-faint);
+}
+.cpu-chart-gridline { stroke: var(--border-soft); stroke-width: 1; }
+.cpu-chart-axis-label { font-size: 10px; fill: var(--text-faint); font-family: 'Jost', sans-serif; }
+.cpu-chart-line { fill: none; stroke: var(--gold-bright); stroke-width: 2; }
+.cpu-chart-area { opacity: 0.22; }
+.cpu-chart-now-dot { fill: var(--gold-bright); }
+
 .activity-widget {
   border: 1px solid var(--border-soft);
   border-radius: 10px;

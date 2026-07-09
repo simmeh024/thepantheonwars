@@ -111,6 +111,12 @@ try {
 $dbLoad = pw_check_database_load($db);
 $dbSize = pw_check_database_size($db);
 
+// --- Database: connections, throughput, cache efficiency, table sizes -----------
+$dbExtra = pw_check_database_extra($db);
+
+// --- CPU (shared host) -----------------------------------------------------------
+$cpuLoad = pw_check_cpu_load();
+
 // --- SSL certificate + Avatar storage --------------------------------------------
 $ssl = pw_check_ssl_expiry();
 $avatarStorage = pw_check_avatar_storage();
@@ -125,5 +131,13 @@ pw_json([
     'ssl' => ['status' => $ssl['status'], 'label' => $ssl['label']],
     'db_load' => $dbLoad,
     'database_size' => $dbSize,
+    'db_connections' => $dbExtra['connections'],
+    'db_qps' => $dbExtra['qps'],
+    'db_slow_queries' => $dbExtra['slow_queries'],
+    'db_uptime' => $dbExtra['uptime'],
+    'db_buffer_pool_hit_ratio' => $dbExtra['buffer_pool_hit_ratio'],
+    'db_threads_running' => $dbExtra['threads_running'],
+    'db_tables' => $dbExtra['tables'],
+    'cpu_load' => $cpuLoad,
     'avatar_storage' => $avatarStorage,
 ]);
