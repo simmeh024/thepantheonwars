@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=97">
+<link rel="stylesheet" href="../css/style.css?v=98">
 </head>
 <body>
 
@@ -3492,9 +3492,15 @@
   // added to the catalog later without a code change here.
   function getPermissionRisk(permission) {
     var text = (permission.key + ' ' + permission.label).toLowerCase();
-    if (/\bdelete\b/.test(text) || /\bban\b/.test(text)) return 'Destructive';
-    if (/\brole\b/.test(text) || /\bimpersonate\b/.test(text)) return 'High risk';
-    if (/\breset\b/.test(text) || /\bsensitive\b/.test(text) || /\bip\b/.test(text) || /\baudit\b/.test(text)) return 'Sensitive';
+    if (/\bdelete\b/.test(text) || /\bban\b/.test(text)) {
+      return { label: 'Destructive', description: 'Permanently removes content or an account, or cuts off someone’s access. This can’t be undone.' };
+    }
+    if (/\brole\b/.test(text) || /\bimpersonate\b/.test(text)) {
+      return { label: 'High risk', description: 'Can change who holds power on the site, including granting another account more access than they had.' };
+    }
+    if (/\breset\b/.test(text) || /\bsensitive\b/.test(text) || /\bip\b/.test(text) || /\baudit\b/.test(text)) {
+      return { label: 'Sensitive', description: 'Exposes private account details or system internals that regular members never see.' };
+    }
     return null;
   }
 
@@ -3502,8 +3508,12 @@
     var selected = permissions.filter(function (p) { return checked[p.key]; }).length;
     var items = permissions.map(function (p) {
       var risk = getPermissionRisk(p);
-      var badgeClass = 'permission-risk-badge' + (risk === 'Destructive' ? ' is-destructive' : '');
-      var badge = risk ? '<span class="' + badgeClass + '">' + escapeHtml(risk) + '</span>' : '';
+      var badge = '';
+      if (risk) {
+        var badgeClass = 'permission-risk-badge' + (risk.label === 'Destructive' ? ' is-destructive' : '');
+        badge = '<span class="' + badgeClass + '" tabindex="0">' + escapeHtml(risk.label) +
+          '<span class="permission-risk-tooltip">' + escapeHtml(risk.description) + '</span></span>';
+      }
       return '<label class="permission-option-row"><input type="checkbox" class="role-permission-checkbox" value="' + escapeHtml(p.key) + '"' +
         (checked[p.key] ? ' checked' : '') + '><span>' + escapeHtml(p.label) + '</span>' + badge + '</label>';
     }).join('');

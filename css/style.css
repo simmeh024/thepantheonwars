@@ -4392,16 +4392,33 @@ footer.site-footer {
 }
 .permission-mini-btn:hover { border-color: var(--purple-bright); color: var(--purple-bright); }
 .permission-option-row {
-  display: flex; align-items: center; gap: 7px; font-size: 0.76rem; color: var(--text-dim);
-  padding: 4px 0; cursor: pointer;
+  display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: 7px;
+  font-size: 0.76rem; color: var(--text-dim); padding: 4px 0; cursor: pointer;
 }
-.permission-option-row input { accent-color: var(--purple-bright); cursor: pointer; flex-shrink: 0; }
-.permission-option-row span:first-of-type { flex: 1; }
+.permission-option-row input { accent-color: var(--purple-bright); cursor: pointer; margin-top: 2px; }
+/* Badge sits in its own grid column so it stays pinned to the card's right
+   edge even when the label text wraps to two lines -- with plain flex the
+   badge would trail the last line of wrapped text instead. */
 .permission-risk-badge {
-  flex-shrink: 0; font-size: 0.56rem; text-transform: uppercase; letter-spacing: 0.04em;
+  position: relative; justify-self: end; margin-top: 1px;
+  font-size: 0.56rem; text-transform: uppercase; letter-spacing: 0.04em;
   padding: 1px 6px; border-radius: 2px; border: 1px solid #e0a34a; color: #e0a34a;
+  cursor: help;
 }
 .permission-risk-badge.is-destructive { border-color: #e05a4a; color: #e05a4a; }
+.permission-risk-tooltip {
+  position: absolute; bottom: calc(100% + 8px); right: 0; width: 200px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 4px;
+  padding: 10px 12px; font-family: 'Jost', sans-serif; font-size: 0.72rem; line-height: 1.5;
+  text-transform: none; letter-spacing: normal; font-weight: 400; color: var(--text-dim);
+  opacity: 0; visibility: hidden; transform: translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.5); z-index: 20; pointer-events: none;
+}
+.permission-risk-badge:hover .permission-risk-tooltip,
+.permission-risk-badge:focus-visible .permission-risk-tooltip {
+  opacity: 1; visibility: visible; transform: translateY(0);
+}
 
 @media (max-width: 860px) {
   .admin-shell.is-ready { flex-direction: column; }
