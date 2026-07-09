@@ -1,0 +1,7 @@
+# Defense in depth: this directory only ever holds re-encoded JPGs written by
+# the admin Book Control image upload endpoint. Block any script execution
+# here in case a mislabeled or malicious file ever ends up in this directory.
+Options -Indexes
+<FilesMatch "\.(php|php\d|phtml|phar)$">
+  Require all denied
+</FilesMatch>

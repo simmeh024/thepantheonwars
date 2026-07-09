@@ -4111,6 +4111,7 @@ footer.site-footer {
   position: fixed; inset: 0; z-index: 700;
   display: flex; align-items: center; justify-content: center; padding: 24px;
 }
+.admin-modal-over { z-index: 760; }
 .admin-modal[hidden] { display: none; }
 .admin-modal-backdrop { position: absolute; inset: 0; background: rgba(5,3,10,0.88); }
 .admin-modal-inner {
@@ -4132,6 +4133,34 @@ footer.site-footer {
   color: var(--gold-bright); margin: 0 0 14px;
 }
 .admin-textarea-tall { min-height: 320px; }
+
+.admin-image-field label { margin-bottom: 0.6em; }
+.admin-image-field-row { display: flex; gap: 14px; align-items: flex-start; }
+.admin-image-thumb {
+  flex-shrink: 0; width: 76px; height: 100px; border-radius: 3px; overflow: hidden;
+  background: var(--bg); border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+}
+.admin-image-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.admin-image-thumb-empty {
+  font-family: 'Jost', sans-serif; font-size: 0.6rem; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-faint); text-align: center; padding: 0 6px;
+}
+.admin-image-field-controls { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.admin-image-field-btns { display: flex; gap: 8px; }
+.admin-image-field-btns .btn { padding: 8px 14px; font-size: 0.68rem; }
+.admin-image-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 12px;
+  max-height: 260px; overflow-y: auto; margin-bottom: 18px;
+}
+.admin-image-grid-item {
+  cursor: pointer; border: 1px solid var(--border); background: var(--bg);
+  border-radius: 3px; overflow: hidden; padding: 0; height: 130px;
+  display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.2s ease;
+}
+.admin-image-grid-item:hover { border-color: var(--purple-bright); }
+.admin-image-grid-item img { width: 100%; height: 100%; object-fit: cover; }
 .admin-modal-close {
   position: absolute; top: 16px; right: 16px; width: 34px; height: 34px; border-radius: 50%;
   background: var(--panel-2); border: 1px solid var(--gold-dim); color: var(--text);

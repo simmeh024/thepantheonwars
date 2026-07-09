@@ -1,3 +1,6 @@
 # Never commit real credentials
 api/config.php
 uploads/avatars/*.jpg
+uploads/book-images/covers/*.jpg
+uploads/book-images/characters/*.jpg
+uploads/book-images/heroes/*.jpg

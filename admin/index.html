@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=87">
+<link rel="stylesheet" href="../css/style.css?v=88">
 </head>
 <body>
 
@@ -844,19 +844,44 @@
       <textarea id="book-description-input" maxlength="4000" placeholder="Public back-cover style description&hellip;"></textarea>
     </div>
 
-    <div class="admin-field-row">
-      <div class="admin-field">
-        <label for="book-cover-image-input">Cover image URL</label>
-        <input type="text" id="book-cover-image-input" maxlength="500" placeholder="images/covers/book-1.jpg">
+    <div class="admin-field admin-image-field">
+      <label for="book-cover-image-input">Cover image</label>
+      <div class="admin-image-field-row">
+        <div class="admin-image-thumb" id="book-cover-image-thumb">
+          <img id="book-cover-image-preview" alt="" hidden>
+          <span class="admin-image-thumb-empty">No image</span>
+        </div>
+        <div class="admin-image-field-controls">
+          <input type="text" id="book-cover-image-input" maxlength="500" placeholder="images/covers/book-1.jpg">
+          <div class="admin-image-field-btns">
+            <button type="button" class="btn admin-image-upload-btn" data-image-type="cover">Upload</button>
+            <button type="button" class="btn admin-image-browse-btn" data-image-type="cover">Choose from Library</button>
+          </div>
+        </div>
       </div>
-      <div class="admin-field">
-        <label for="book-character-image-input">Character image URL</label>
-        <input type="text" id="book-character-image-input" maxlength="500" placeholder="Optional">
+      <input type="file" id="book-cover-image-file" accept="image/png,image/jpeg,image/webp" hidden>
+    </div>
+
+    <div class="admin-field admin-image-field">
+      <label for="book-character-image-input">Character image</label>
+      <div class="admin-image-field-row">
+        <div class="admin-image-thumb" id="book-character-image-thumb">
+          <img id="book-character-image-preview" alt="" hidden>
+          <span class="admin-image-thumb-empty">No image</span>
+        </div>
+        <div class="admin-image-field-controls">
+          <input type="text" id="book-character-image-input" maxlength="500" placeholder="Optional">
+          <div class="admin-image-field-btns">
+            <button type="button" class="btn admin-image-upload-btn" data-image-type="character">Upload</button>
+            <button type="button" class="btn admin-image-browse-btn" data-image-type="character">Choose from Library</button>
+          </div>
+        </div>
       </div>
-      <div class="admin-field">
-        <label for="book-character-alt-input">Character image alt text</label>
-        <input type="text" id="book-character-alt-input" maxlength="255" placeholder="Optional">
-      </div>
+      <input type="file" id="book-character-image-file" accept="image/png,image/jpeg,image/webp" hidden>
+    </div>
+    <div class="admin-field">
+      <label for="book-character-alt-input">Character image alt text</label>
+      <input type="text" id="book-character-alt-input" maxlength="255" placeholder="Optional">
     </div>
 
     <hr class="admin-modal-divider">
@@ -875,10 +900,23 @@
           <label for="book-preview-eyebrow-input">Preview eyebrow</label>
           <input type="text" id="book-preview-eyebrow-input" maxlength="255" placeholder="e.g. Book One &middot; Preview">
         </div>
-        <div class="admin-field">
-          <label for="book-preview-hero-image-input">Preview hero image URL</label>
-          <input type="text" id="book-preview-hero-image-input" maxlength="500" placeholder="Optional">
+      </div>
+      <div class="admin-field admin-image-field">
+        <label for="book-preview-hero-image-input">Preview hero image</label>
+        <div class="admin-image-field-row">
+          <div class="admin-image-thumb" id="book-preview-hero-image-thumb">
+            <img id="book-preview-hero-image-preview" alt="" hidden>
+            <span class="admin-image-thumb-empty">No image</span>
+          </div>
+          <div class="admin-image-field-controls">
+            <input type="text" id="book-preview-hero-image-input" maxlength="500" placeholder="Optional">
+            <div class="admin-image-field-btns">
+              <button type="button" class="btn admin-image-upload-btn" data-image-type="hero">Upload</button>
+              <button type="button" class="btn admin-image-browse-btn" data-image-type="hero">Choose from Library</button>
+            </div>
+          </div>
         </div>
+        <input type="file" id="book-preview-hero-image-file" accept="image/png,image/jpeg,image/webp" hidden>
       </div>
       <div class="admin-field">
         <label for="book-preview-lede-input">Preview lede</label>
@@ -930,6 +968,29 @@
       <button type="button" class="btn btn-solid" id="book-save-btn">Save</button>
       <button type="button" class="btn" id="book-cancel-btn">Cancel</button>
       <button type="button" class="admin-delete-btn" id="book-delete-btn" hidden>Delete Book</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal admin-modal-over" id="image-library-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="image-library-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="image-library-modal-title">Choose an Image</h3>
+    <p class="admin-modal-sub" id="image-library-modal-sub"></p>
+
+    <div id="image-library-uploaded-group" hidden>
+      <p class="admin-field-group-label">Uploaded to this site</p>
+      <div class="admin-image-grid" id="image-library-uploaded-grid"></div>
+    </div>
+    <div id="image-library-site-group" hidden>
+      <p class="admin-field-group-label">Existing site images</p>
+      <div class="admin-image-grid" id="image-library-site-grid"></div>
+    </div>
+    <div class="admin-list-empty" id="image-library-empty" hidden>No images found yet. Upload one to get started.</div>
+
+    <div class="admin-modal-actions">
+      <button type="button" class="btn" id="image-library-cancel-btn">Cancel</button>
     </div>
   </div>
 </div>
@@ -2191,6 +2252,7 @@
   modal.querySelector('.admin-modal-backdrop').addEventListener('click', closeModal);
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
+    if (imageLibraryModalEl && !imageLibraryModalEl.hidden) { closeImageLibraryModal(); return; }
     if (!modal.hidden) closeModal();
     if (!controlModal.hidden) closeControlModal();
     if (!memberModal.hidden) closeMemberModal();
@@ -2833,6 +2895,194 @@
   }
   bookPreviewEnabledCheckbox.addEventListener('change', updateBookPreviewFieldsVisibility);
 
+  // ===== Book image fields: upload + choose-from-library ======================
+  var IMAGE_FIELDS = {
+    cover: {
+      urlInput: bookCoverImageInput,
+      thumbImg: document.getElementById('book-cover-image-preview'),
+      thumbEmpty: document.querySelector('#book-cover-image-thumb .admin-image-thumb-empty'),
+      fileInput: document.getElementById('book-cover-image-file')
+    },
+    character: {
+      urlInput: bookCharacterImageInput,
+      thumbImg: document.getElementById('book-character-image-preview'),
+      thumbEmpty: document.querySelector('#book-character-image-thumb .admin-image-thumb-empty'),
+      fileInput: document.getElementById('book-character-image-file')
+    },
+    hero: {
+      urlInput: bookPreviewHeroImageInput,
+      thumbImg: document.getElementById('book-preview-hero-image-preview'),
+      thumbEmpty: document.querySelector('#book-preview-hero-image-thumb .admin-image-thumb-empty'),
+      fileInput: document.getElementById('book-preview-hero-image-file')
+    }
+  };
+
+  function refreshImageThumb(type) {
+    var f = IMAGE_FIELDS[type];
+    if (!f) return;
+    var url = f.urlInput.value.trim();
+    if (url) {
+      f.thumbEmpty.textContent = 'No image';
+      f.thumbImg.src = url;
+      f.thumbImg.hidden = false;
+      f.thumbEmpty.hidden = true;
+    } else {
+      f.thumbImg.hidden = true;
+      f.thumbImg.removeAttribute('src');
+      f.thumbEmpty.textContent = 'No image';
+      f.thumbEmpty.hidden = false;
+    }
+  }
+
+  function refreshAllImageThumbs() {
+    Object.keys(IMAGE_FIELDS).forEach(refreshImageThumb);
+  }
+
+  Object.keys(IMAGE_FIELDS).forEach(function (type) {
+    var f = IMAGE_FIELDS[type];
+    f.urlInput.addEventListener('input', function () { refreshImageThumb(type); });
+    f.thumbImg.addEventListener('error', function () {
+      if (!f.urlInput.value.trim()) return;
+      f.thumbImg.hidden = true;
+      f.thumbEmpty.textContent = "Can't load image";
+      f.thumbEmpty.hidden = false;
+    });
+  });
+
+  document.querySelectorAll('.admin-image-upload-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var f = IMAGE_FIELDS[btn.getAttribute('data-image-type')];
+      if (f) f.fileInput.click();
+    });
+  });
+
+  Object.keys(IMAGE_FIELDS).forEach(function (type) {
+    IMAGE_FIELDS[type].fileInput.addEventListener('change', function () {
+      var f = IMAGE_FIELDS[type];
+      var file = f.fileInput.files && f.fileInput.files[0];
+      if (!file) return;
+      if (file.size > 8 * 1024 * 1024) {
+        bookModalError.textContent = 'That image is too large. Please choose a file under 8MB.';
+        bookModalError.classList.add('show');
+        f.fileInput.value = '';
+        return;
+      }
+      var formData = new FormData();
+      formData.append('image', file);
+      formData.append('type', type);
+      formData.append('csrf', window.PW_AUTH.csrf);
+      bookModalError.classList.remove('show');
+      bookModalStatus.textContent = 'Uploading\u2026';
+      bookModalStatus.classList.add('show');
+      fetch('/api/admin/books/upload-image.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        body: formData
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) {
+            bookModalStatus.classList.remove('show');
+            bookModalError.textContent = data.error || 'Upload failed. Please try again.';
+            bookModalError.classList.add('show');
+            return;
+          }
+          f.urlInput.value = data.url;
+          refreshImageThumb(type);
+          bookModalStatus.textContent = 'Image uploaded.';
+          bookModalStatus.classList.add('show');
+        })
+        .catch(function () {
+          bookModalStatus.classList.remove('show');
+          bookModalError.textContent = 'Upload failed. Please try again.';
+          bookModalError.classList.add('show');
+        })
+        .finally(function () {
+          f.fileInput.value = '';
+        });
+    });
+  });
+
+  var imageLibraryModalEl = document.getElementById('image-library-modal');
+  var imageLibraryModalSub = document.getElementById('image-library-modal-sub');
+  var imageLibraryCloseBtn = document.getElementById('image-library-modal-close');
+  var imageLibraryCancelBtn = document.getElementById('image-library-cancel-btn');
+  var imageLibraryUploadedGroup = document.getElementById('image-library-uploaded-group');
+  var imageLibraryUploadedGrid = document.getElementById('image-library-uploaded-grid');
+  var imageLibrarySiteGroup = document.getElementById('image-library-site-group');
+  var imageLibrarySiteGrid = document.getElementById('image-library-site-grid');
+  var imageLibraryEmpty = document.getElementById('image-library-empty');
+  var imageLibraryActiveType = null;
+  var IMAGE_TYPE_LABELS = { cover: 'cover image', character: 'character image', hero: 'preview hero image' };
+
+  function closeImageLibraryModal() {
+    imageLibraryModalEl.hidden = true;
+    imageLibraryActiveType = null;
+  }
+
+  function renderImageGrid(gridEl, entries) {
+    entries.forEach(function (entry) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'admin-image-grid-item';
+      item.title = entry.name;
+      item.innerHTML = '<img src="' + entry.url + '" alt="' + escapeHtml(entry.name) + '" loading="lazy">';
+      item.addEventListener('click', function () {
+        if (!imageLibraryActiveType) return;
+        var f = IMAGE_FIELDS[imageLibraryActiveType];
+        if (f) {
+          f.urlInput.value = entry.url;
+          refreshImageThumb(imageLibraryActiveType);
+        }
+        closeImageLibraryModal();
+      });
+      gridEl.appendChild(item);
+    });
+  }
+
+  function openImageLibraryModal(type) {
+    if (!IMAGE_FIELDS[type]) return;
+    imageLibraryActiveType = type;
+    imageLibraryModalSub.textContent = 'Pick a ' + (IMAGE_TYPE_LABELS[type] || 'image') + ' below, or upload a new one from the field itself.';
+    imageLibraryUploadedGrid.innerHTML = '';
+    imageLibrarySiteGrid.innerHTML = '';
+    imageLibraryUploadedGroup.hidden = true;
+    imageLibrarySiteGroup.hidden = true;
+    imageLibraryEmpty.hidden = true;
+    imageLibraryEmpty.textContent = 'No images found yet. Upload one to get started.';
+    imageLibraryModalEl.hidden = false;
+    fetch('/api/admin/books/list-images.php?type=' + encodeURIComponent(type), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          imageLibraryEmpty.hidden = false;
+          imageLibraryEmpty.textContent = data.error || 'Could not load images.';
+          return;
+        }
+        var uploaded = data.uploaded || [];
+        var site = data.site || [];
+        renderImageGrid(imageLibraryUploadedGrid, uploaded);
+        renderImageGrid(imageLibrarySiteGrid, site);
+        imageLibraryUploadedGroup.hidden = !uploaded.length;
+        imageLibrarySiteGroup.hidden = !site.length;
+        imageLibraryEmpty.hidden = !!(uploaded.length || site.length);
+      })
+      .catch(function () {
+        imageLibraryEmpty.hidden = false;
+        imageLibraryEmpty.textContent = 'Could not load images. Please try again.';
+      });
+  }
+
+  document.querySelectorAll('.admin-image-browse-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      openImageLibraryModal(btn.getAttribute('data-image-type'));
+    });
+  });
+
+  imageLibraryCloseBtn.addEventListener('click', closeImageLibraryModal);
+  imageLibraryCancelBtn.addEventListener('click', closeImageLibraryModal);
+  imageLibraryModalEl.querySelector('.admin-modal-backdrop').addEventListener('click', closeImageLibraryModal);
+
   function populateBookForm(book) {
     bookNumberInput.value = book.book_number || '';
     bookSagaPhaseSelect.value = String(book.saga_phase || 1);
@@ -2856,6 +3106,7 @@
     bookBuyAppleInput.value = book.buy_apple_url || '';
     bookBuyBnInput.value = book.buy_bn_url || '';
     updateBookPreviewFieldsVisibility();
+    refreshAllImageThumbs();
   }
 
   function openBookModal(entry) {
