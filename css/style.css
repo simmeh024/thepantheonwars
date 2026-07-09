@@ -4391,9 +4391,15 @@ footer.site-footer {
   padding: 3px 9px; border-radius: 3px; cursor: pointer; transition: border-color 0.2s ease, color 0.2s ease;
 }
 .permission-mini-btn:hover { border-color: var(--purple-bright); color: var(--purple-bright); }
-.permission-option-row {
+/* Scoped under .permission-category-card (not just .permission-option-row)
+   so this beats .admin-field label's `display: block` -- this row is
+   itself a <label>, and ".admin-field label" (class+type = higher
+   specificity than a single class) would otherwise silently win and
+   collapse the grid back to a block, no matter the source order. */
+.permission-category-card .permission-option-row {
   display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: 7px;
-  font-size: 0.76rem; color: var(--text-dim); padding: 4px 0; cursor: pointer;
+  font-size: 0.76rem; text-transform: none; letter-spacing: normal; color: var(--text-dim);
+  padding: 4px 0; cursor: pointer; margin-bottom: 0;
 }
 .permission-option-row input { accent-color: var(--purple-bright); cursor: pointer; margin-top: 2px; }
 /* Badge sits in its own grid column so it stays pinned to the card's right
