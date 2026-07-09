@@ -9,11 +9,12 @@ if (!preg_match('/^[a-z0-9\-]{1,50}$/', $board)) {
 $db = pw_db();
 $stmt = $db->prepare(
     'SELECT t.id, t.title, t.created_at, t.is_pinned, t.is_locked, t.user_id,
-            u.display_name, u.role,
+            u.display_name, u.role, ro.color AS role_color,
             COALESCE(rc.reply_count, 0) AS reply_count,
             COALESCE(rc.last_reply_at, t.created_at) AS last_activity
      FROM topics t
      JOIN users u ON u.id = t.user_id
+     LEFT JOIN roles ro ON ro.slug = u.role
      LEFT JOIN (
        SELECT topic_id, COUNT(*) AS reply_count, MAX(created_at) AS last_reply_at
        FROM comments
@@ -38,6 +39,7 @@ $out = array_map(function ($r) {
         'user_id' => (int)$r['user_id'],
         'display_name' => $r['display_name'],
         'role' => $r['role'],
+        'role_color' => $r['role_color'] ?: '#c7ccd6',
         'reply_count' => (int)$r['reply_count'],
     ];
 }, $rows);

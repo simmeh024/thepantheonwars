@@ -7,7 +7,7 @@
  */
 require_once __DIR__ . '/../../helpers.php';
 
-pw_require_admin();
+pw_require_permission('books.view');
 $db = pw_db();
 
 $q = isset($_GET['q']) ? trim($_GET['q']) : '';

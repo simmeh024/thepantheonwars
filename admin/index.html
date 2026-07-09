@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=95">
+<link rel="stylesheet" href="../css/style.css?v=96">
 </head>
 <body>
 
@@ -27,28 +27,28 @@
       <a href="../index.html">The Pantheon Wars</a>
       <span class="admin-brand-sub">Admin Console</span>
     </div>
-    <ul class="admin-nav-list admin-nav-list-top" data-admin-only="true">
+    <ul class="admin-nav-list admin-nav-list-top" data-requires-permission="dashboards.view">
       <li><button type="button" class="admin-nav-link active" data-section="home"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>Home</button></li>
     </ul>
 
-    <div class="admin-nav-category" data-category="lore" data-admin-only="true">
+    <div class="admin-nav-category" data-category="lore" data-requires-permission="books.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
         <span>Lore Management</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <ul class="admin-nav-list admin-nav-list-collapsible">
-        <li><button type="button" class="admin-nav-link" data-section="book-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>Book Control</button></li>
+        <li data-requires-permission="books.view"><button type="button" class="admin-nav-link" data-section="book-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>Book Control</button></li>
       </ul>
     </div>
 
-    <div class="admin-nav-category" data-category="dispatches" data-admin-only="true">
+    <div class="admin-nav-category" data-category="dispatches" data-requires-permission="dispatches.view,dispatch_translations.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
         <span>Development Dispatches</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <ul class="admin-nav-list admin-nav-list-collapsible">
-        <li><button type="button" class="admin-nav-link" data-section="dispatch-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>Dispatch Control</button></li>
-        <li><button type="button" class="admin-nav-link" data-section="dispatch-translations"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg>Dispatch Translations</button></li>
+        <li data-requires-permission="dispatches.view"><button type="button" class="admin-nav-link" data-section="dispatch-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>Dispatch Control</button></li>
+        <li data-requires-permission="dispatch_translations.view"><button type="button" class="admin-nav-link" data-section="dispatch-translations"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg>Dispatch Translations</button></li>
       </ul>
     </div>
 
@@ -58,19 +58,20 @@
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <ul class="admin-nav-list admin-nav-list-collapsible">
-        <li data-admin-only="true"><button type="button" class="admin-nav-link" data-section="members"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>Members</button></li>
-        <li><button type="button" class="admin-nav-link" data-section="topic-reports"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>Topic Reports</button></li>
+        <li data-requires-permission="members.view"><button type="button" class="admin-nav-link" data-section="members"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>Members</button></li>
+        <li data-requires-permission="topic_reports.view"><button type="button" class="admin-nav-link" data-section="topic-reports"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>Topic Reports</button></li>
       </ul>
     </div>
 
-    <div class="admin-nav-category" data-category="system" data-admin-only="true">
+    <div class="admin-nav-category" data-category="system" data-requires-permission="dashboards.view,roles.manage">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
         <span>System</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <ul class="admin-nav-list admin-nav-list-collapsible">
-        <li><button type="button" class="admin-nav-link" data-section="system-status"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>System Status</button></li>
-        <li><button type="button" class="admin-nav-link" data-section="audit-log"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Audit Log</button></li>
+        <li data-requires-permission="dashboards.view"><button type="button" class="admin-nav-link" data-section="system-status"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>System Status</button></li>
+        <li data-requires-permission="dashboards.view"><button type="button" class="admin-nav-link" data-section="audit-log"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Audit Log</button></li>
+        <li data-requires-permission="roles.manage"><button type="button" class="admin-nav-link" data-section="roles-permissions"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>Roles &amp; Permissions</button></li>
       </ul>
     </div>
 
@@ -611,6 +612,11 @@
             <option value="report_resolved">Report closed</option>
             <option value="report_reopened">Report reopened</option>
           </optgroup>
+          <optgroup label="Roles &amp; Permissions">
+            <option value="role_created">Role created</option>
+            <option value="role_updated">Role updated</option>
+            <option value="role_deleted">Role deleted</option>
+          </optgroup>
         </select>
         <span class="admin-count" id="audit-count"></span>
       </div>
@@ -620,6 +626,22 @@
       </div>
 
       <div class="admin-pagination" id="audit-pagination"></div>
+    </section>
+
+    <section class="admin-section" id="section-roles-permissions" hidden>
+      <div class="admin-section-head">
+        <h1>Roles &amp; Permissions</h1>
+        <p>Create custom roles and control exactly what each one can see and do across the console.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button type="button" class="member-create-btn" id="role-create-btn">+ New Role</button>
+        <span class="admin-count" id="role-count"></span>
+      </div>
+
+      <div class="admin-list" id="role-list">
+        <div class="admin-list-empty">Loading roles&hellip;</div>
+      </div>
     </section>
 
     <section class="admin-section" id="section-dispatch-control" hidden>
@@ -885,6 +907,37 @@
   </div>
 </div>
 
+<div class="admin-modal" id="role-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner">
+    <button type="button" class="admin-modal-close" id="role-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="role-modal-title">Edit Role</h3>
+    <p class="admin-modal-sub" id="role-modal-sub"></p>
+
+    <div class="admin-field" id="role-label-field">
+      <label for="role-label-input">Role name</label>
+      <input type="text" id="role-label-input" maxlength="60">
+    </div>
+    <div class="admin-field">
+      <label for="role-color-input">Avatar ring color</label>
+      <input type="color" id="role-color-input" value="#c7ccd6">
+    </div>
+    <div class="admin-field" id="role-permissions-field">
+      <label>Permissions</label>
+      <div id="role-permissions-groups"></div>
+      <p class="member-ban-hint" id="role-superuser-hint" hidden>Admin is a superuser role and always has every permission -- only its color can be changed.</p>
+    </div>
+
+    <p class="admin-modal-error" id="role-modal-error"></p>
+    <p class="admin-modal-status" id="role-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="role-save-btn">Save</button>
+      <button type="button" class="btn" id="role-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="role-delete-btn">Delete Role</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-modal" id="report-action-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner">
@@ -1124,7 +1177,7 @@
   </div>
 </div>
 
-<script src="../js/members.js?v=6"></script>
+<script src="../js/members.js?v=7"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -1212,6 +1265,7 @@
       if (name === 'members') loadMembers();
       if (name === 'topic-reports') loadTopicReports();
       if (name === 'book-control') loadBookList();
+      if (name === 'roles-permissions') loadRoles();
     }
   }
 
@@ -1827,8 +1881,10 @@
 
     nameEl.textContent = user.display_name;
     roleEl.textContent = user.role.charAt(0).toUpperCase() + user.role.slice(1);
-    roleEl.className = 'admin-sidebar-user-role role-' + user.role;
-    avatarWrap.className = 'profile-avatar-wrap admin-sidebar-user-avatar role-' + user.role;
+    roleEl.className = 'admin-sidebar-user-role';
+    roleEl.style.setProperty('--role-color', user.role_color || '#c7ccd6');
+    avatarWrap.className = 'profile-avatar-wrap admin-sidebar-user-avatar';
+    avatarWrap.style.setProperty('--role-color', user.role_color || '#c7ccd6');
     avatarFallback.textContent = (user.display_name || '?').charAt(0).toUpperCase();
 
     var probe = new Image();
@@ -1840,24 +1896,43 @@
     probe.src = '/uploads/avatars/' + user.id + '.jpg';
   }
 
+  // Hides any nav element the current user's role lacks every listed
+  // permission for (comma-separated = visible if ANY one is granted) --
+  // replaces the old all-or-nothing "moderator gets Topic Reports only,
+  // admin gets everything" split with per-section granularity so a custom
+  // role only sees what it actually has access to.
+  function applyNavPermissions() {
+    document.querySelectorAll('[data-requires-permission]').forEach(function (el) {
+      var keys = el.getAttribute('data-requires-permission').split(',');
+      var allowed = keys.some(function (k) { return pwHasPermission(k.trim()); });
+      el.hidden = !allowed;
+    });
+  }
+
+  function firstVisibleSection() {
+    var links = document.querySelectorAll('.admin-nav-link');
+    for (var i = 0; i < links.length; i++) {
+      var link = links[i];
+      var li = link.closest('li');
+      var category = link.closest('.admin-nav-category');
+      if ((li && li.hidden) || (category && category.hidden)) continue;
+      return link.getAttribute('data-section');
+    }
+    return 'home';
+  }
+
   function checkAccess() {
     if (checkedAuth) return;
     checkedAuth = true;
-    var role = window.PW_AUTH.loggedIn && window.PW_AUTH.user ? window.PW_AUTH.user.role : null;
-    if (!role || (role !== 'admin' && role !== 'moderator')) {
+    if (!window.PW_AUTH.loggedIn || !pwHasPermission('admin_console.access')) {
       window.location.href = '../index.html';
       return;
     }
-    if (role === 'moderator') {
-      // Moderators only get Topic Reports -- everything else in the console
-      // (Home dashboards, Dispatch Control/Translations, Members, Audit Log)
-      // stays admin-only and is removed from the nav entirely.
-      document.querySelectorAll('[data-admin-only]').forEach(function (el) { el.remove(); });
-    }
+    applyNavPermissions();
     populateSidebarUser(window.PW_AUTH.user);
     gate.hidden = true;
     shell.classList.add('is-ready');
-    showSection(role === 'moderator' ? 'topic-reports' : 'home');
+    showSection(firstVisibleSection());
   }
 
   document.addEventListener('pw-auth-ready', checkAccess);
@@ -1893,7 +1968,10 @@
     topic_moved: 'Topic moved',
     report_content_deleted: 'Reported content deleted',
     report_resolved: 'Report closed',
-    report_reopened: 'Report reopened'
+    report_reopened: 'Report reopened',
+    role_created: 'Role created',
+    role_updated: 'Role updated',
+    role_deleted: 'Role deleted'
   };
   var ACTIVITY_ICONS = {
     login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
@@ -1921,7 +1999,10 @@
     topic_moved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h11a4 4 0 0 1 4 4v1"/><path d="M16 21l4-4-4-4"/><path d="M20 17H9a4 4 0 0 1-4-4v-1"/></svg>',
     report_content_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
     report_resolved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>',
-    report_reopened: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16"/><path d="M3 21v-5h5"/></svg>'
+    report_reopened: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16"/><path d="M3 21v-5h5"/></svg>',
+    role_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>',
+    role_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>',
+    role_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><line x1="9.5" y1="9.5" x2="14.5" y2="14.5"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/></svg>'
   };
 
   var homeActivityListEl = document.getElementById('home-activity-list');
@@ -2722,7 +2803,35 @@
   });
 
   // ===== Members ================================================================
-  var ROLE_LABELS = { member: 'Member', moderator: 'Moderator', admin: 'Admin' };
+  // Populated by fetchRolesList() from /api/admin/roles/list.php -- includes
+  // custom roles, unlike the old hardcoded 3-entry ROLE_LABELS map this
+  // replaces. Shared with the Roles & Permissions section below.
+  var ROLES_BY_SLUG = {};
+  var rolesListPromise = null;
+
+  function fetchRolesList() {
+    if (rolesListPromise) return rolesListPromise;
+    rolesListPromise = fetch('/api/admin/roles/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var roles = (data.ok && data.roles) || [];
+        ROLES_BY_SLUG = {};
+        roles.forEach(function (r) { ROLES_BY_SLUG[r.slug] = r; });
+        populateRoleSelects(roles);
+        return roles;
+      })
+      .catch(function () { return []; });
+    return rolesListPromise;
+  }
+
+  function populateRoleSelects(roles) {
+    var filterHtml = '<option value="all">All roles</option>' +
+      roles.map(function (r) { return '<option value="' + escapeHtml(r.slug) + '">' + escapeHtml(r.label) + '</option>'; }).join('');
+    memberRoleFilterEl.innerHTML = filterHtml;
+    memberRoleSelect.innerHTML = roles.map(function (r) {
+      return '<option value="' + escapeHtml(r.slug) + '">' + escapeHtml(r.label) + '</option>';
+    }).join('');
+  }
 
   var memberListEl = document.getElementById('member-list');
   var memberCountEl = document.getElementById('member-count');
@@ -2796,7 +2905,9 @@
   }
 
   function loadMembers() {
+    memberCreateBtn.hidden = !pwHasPermission('members.edit');
     memberListEl.innerHTML = '<div class="admin-list-empty">Loading members&hellip;</div>';
+    fetchRolesList();
     fetch(buildMemberUrl(), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -2815,9 +2926,18 @@
       });
   }
 
+  function roleColorFor(slug) {
+    return (ROLES_BY_SLUG[slug] && ROLES_BY_SLUG[slug].color) || '#c7ccd6';
+  }
+
+  function roleLabelFor(slug) {
+    return (ROLES_BY_SLUG[slug] && ROLES_BY_SLUG[slug].label) || slug;
+  }
+
   function buildMemberRowAvatar(entry) {
     var avatarWrap = document.createElement('div');
-    avatarWrap.className = 'profile-avatar-wrap member-avatar-wrap role-' + (entry.role || 'member');
+    avatarWrap.className = 'profile-avatar-wrap member-avatar-wrap';
+    avatarWrap.style.setProperty('--role-color', roleColorFor(entry.role));
 
     var avatarImg = document.createElement('img');
     avatarImg.className = 'profile-avatar';
@@ -2867,7 +2987,7 @@
       var badges = document.createElement('div');
       badges.className = 'member-row-badges';
       badges.innerHTML =
-        '<span class="member-role-badge role-' + escapeHtml(entry.role) + '">' + escapeHtml(ROLE_LABELS[entry.role] || entry.role) + '</span>' +
+        '<span class="member-role-badge" style="--role-color:' + escapeHtml(roleColorFor(entry.role)) + '">' + escapeHtml(roleLabelFor(entry.role)) + '</span>' +
         (entry.banned ? '<span class="member-banned-badge">' + (entry.banned_until ? 'Banned until ' + escapeHtml(fmtDate(entry.banned_until)) : 'Banned') + '</span>' : '');
       row.appendChild(badges);
 
@@ -2904,8 +3024,7 @@
   }
 
   function loadMemberAvatarPreview(id, displayName, role) {
-    memberModalAvatarWrap.classList.remove('role-member', 'role-moderator', 'role-admin');
-    memberModalAvatarWrap.classList.add('role-' + (role || 'member'));
+    memberModalAvatarWrap.style.setProperty('--role-color', roleColorFor(role));
     memberModalAvatarFallback.textContent = (displayName || '?').charAt(0).toUpperCase();
     memberModalAvatarImg.hidden = true;
     memberModalAvatarFallback.hidden = false;
@@ -2952,7 +3071,16 @@
     memberEmailInput.value = entry.email;
     memberRoleSelect.value = entry.role;
 
-    memberBanField.hidden = false;
+    // Field-level gating so a role that only has, say, members.ban doesn't
+    // see controls it isn't allowed to submit -- the server enforces the
+    // same split (see api/admin/members/update.php), this is just the UI
+    // reflecting it up front instead of erroring after Save.
+    memberDisplayNameInput.disabled = !pwHasPermission('members.edit');
+    memberEmailInput.disabled = !pwHasPermission('members.edit');
+    memberRoleSelect.disabled = !pwHasPermission('members.change_role');
+    memberDeleteBtn.hidden = !pwHasPermission('members.delete');
+    memberBanField.hidden = !pwHasPermission('members.ban');
+
     memberBannedCheckbox.checked = entry.banned;
     var hasFutureExpiry = entry.banned && !!entry.banned_until;
     memberBanPermanentRadio.checked = !hasFutureExpiry;
@@ -2965,8 +3093,6 @@
       (fmtDateTime(entry.last_login_at) + ' \u2014 ' + (entry.last_login_ip || 'unknown IP')) :
       'Never logged in';
     memberModalJoined.textContent = fmtDate(entry.created_at);
-
-    memberDeleteBtn.hidden = false;
 
     memberModalError.classList.remove('show');
     memberModalStatus.classList.remove('show');
@@ -3269,6 +3395,245 @@
       memberState.page = 1;
       loadMembers();
     }, 300);
+  });
+
+  // ===== Roles & Permissions (System) ==========================================
+  var roleListEl = document.getElementById('role-list');
+  var roleCountEl = document.getElementById('role-count');
+  var roleCreateBtn = document.getElementById('role-create-btn');
+
+  var roleModal = document.getElementById('role-modal');
+  var roleModalTitle = document.getElementById('role-modal-title');
+  var roleModalSub = document.getElementById('role-modal-sub');
+  var roleLabelField = document.getElementById('role-label-field');
+  var roleLabelInput = document.getElementById('role-label-input');
+  var roleColorInput = document.getElementById('role-color-input');
+  var rolePermissionsField = document.getElementById('role-permissions-field');
+  var rolePermissionsGroups = document.getElementById('role-permissions-groups');
+  var roleSuperuserHint = document.getElementById('role-superuser-hint');
+  var roleModalError = document.getElementById('role-modal-error');
+  var roleModalStatus = document.getElementById('role-modal-status');
+  var roleSaveBtn = document.getElementById('role-save-btn');
+  var roleCancelBtn = document.getElementById('role-cancel-btn');
+  var roleDeleteBtn = document.getElementById('role-delete-btn');
+  var roleModalCloseBtn = document.getElementById('role-modal-close');
+
+  var permissionsCatalogPromise = null;
+  var currentRole = null;
+  var roleModalMode = 'edit';
+
+  function fetchPermissionsCatalog() {
+    if (permissionsCatalogPromise) return permissionsCatalogPromise;
+    permissionsCatalogPromise = fetch('/api/admin/permissions/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) { return (data.ok && data.permissions) || []; })
+      .catch(function () { return []; });
+    return permissionsCatalogPromise;
+  }
+
+  function loadRoles() {
+    roleListEl.innerHTML = '<div class="admin-list-empty">Loading roles&hellip;</div>';
+    fetch('/api/admin/roles/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          roleListEl.innerHTML = '<div class="admin-list-empty">Could not load roles.</div>';
+          return;
+        }
+        var roles = data.roles || [];
+        ROLES_BY_SLUG = {};
+        roles.forEach(function (r) { ROLES_BY_SLUG[r.slug] = r; });
+        roleCountEl.textContent = roles.length + (roles.length === 1 ? ' role' : ' roles');
+        renderRoleList(roles);
+      })
+      .catch(function () {
+        roleListEl.innerHTML = '<div class="admin-list-empty">Could not load roles.</div>';
+      });
+  }
+
+  function renderRoleList(roles) {
+    if (!roles.length) {
+      roleListEl.innerHTML = '<div class="admin-list-empty">No roles found.</div>';
+      return;
+    }
+    roleListEl.innerHTML = '';
+    roles.forEach(function (role) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'admin-row';
+
+      var swatch = document.createElement('span');
+      swatch.className = 'admin-row-cover';
+      swatch.style.cssText = 'display:inline-block;width:28px;height:28px;border-radius:50%;flex-shrink:0;background:' + role.color + ';border:1px solid var(--border-soft);';
+      row.appendChild(swatch);
+
+      var main = document.createElement('div');
+      main.className = 'admin-row-main';
+      main.innerHTML =
+        '<p class="admin-row-subject">' + escapeHtml(role.label) + '</p>' +
+        '<div class="admin-row-meta">' +
+          '<span>' + role.user_count + (role.user_count === 1 ? ' member' : ' members') + '</span>' +
+          (role.is_superuser ? '<span class="admin-row-sep">&bull;</span><span>Superuser</span>' : '') +
+          (role.is_builtin ? '<span class="admin-row-sep">&bull;</span><span>Built-in</span>' : '') +
+        '</div>';
+      row.appendChild(main);
+
+      row.addEventListener('click', function () { openRoleModal(role.slug); });
+      roleListEl.appendChild(row);
+    });
+  }
+
+  function renderPermissionCheckboxes(catalog, checkedKeys) {
+    var byCategory = {};
+    catalog.forEach(function (p) {
+      if (!byCategory[p.category]) byCategory[p.category] = [];
+      byCategory[p.category].push(p);
+    });
+    var checked = {};
+    checkedKeys.forEach(function (k) { checked[k] = true; });
+
+    rolePermissionsGroups.innerHTML = Object.keys(byCategory).map(function (category) {
+      var items = byCategory[category].map(function (p) {
+        return '<label class="member-ban-radio"><input type="checkbox" class="role-permission-checkbox" value="' + escapeHtml(p.key) + '"' +
+          (checked[p.key] ? ' checked' : '') + '><span>' + escapeHtml(p.label) + '</span></label>';
+      }).join('');
+      return '<div class="role-permission-group"><p class="admin-row-subject" style="margin-bottom:6px;">' + escapeHtml(category) + '</p>' + items + '</div>';
+    }).join('');
+  }
+
+  function openRoleModal(slug) {
+    roleModalMode = 'edit';
+    roleModalError.classList.remove('show');
+    roleModalStatus.classList.remove('show');
+
+    Promise.all([
+      fetch('/api/admin/roles/get.php?slug=' + encodeURIComponent(slug), { credentials: 'same-origin' }).then(function (r) { return r.json(); }),
+      fetchPermissionsCatalog(),
+    ]).then(function (results) {
+      var data = results[0];
+      var catalog = results[1];
+      if (!data.ok) {
+        roleModalError.textContent = 'Could not load that role.';
+        roleModalError.classList.add('show');
+        return;
+      }
+      currentRole = data.role;
+      roleModalTitle.textContent = 'Edit Role';
+      roleModalSub.textContent = currentRole.slug;
+      roleLabelField.hidden = currentRole.is_builtin;
+      roleLabelInput.value = currentRole.label;
+      roleColorInput.value = currentRole.color;
+      roleDeleteBtn.hidden = currentRole.is_builtin;
+
+      if (currentRole.is_superuser) {
+        rolePermissionsField.hidden = true;
+        roleSuperuserHint.hidden = false;
+      } else {
+        rolePermissionsField.hidden = false;
+        roleSuperuserHint.hidden = true;
+        renderPermissionCheckboxes(catalog, currentRole.permissions);
+      }
+
+      roleModal.hidden = false;
+      setTimeout(function () { roleLabelInput.focus(); }, 30);
+    });
+  }
+
+  function openCreateRoleModal() {
+    roleModalMode = 'create';
+    currentRole = null;
+    roleModalTitle.textContent = 'New Role';
+    roleModalSub.textContent = '';
+    roleLabelField.hidden = false;
+    roleLabelInput.value = '';
+    roleColorInput.value = '#c7ccd6';
+    roleDeleteBtn.hidden = true;
+    rolePermissionsField.hidden = false;
+    roleSuperuserHint.hidden = true;
+
+    roleModalError.classList.remove('show');
+    roleModalStatus.classList.remove('show');
+
+    fetchPermissionsCatalog().then(function (catalog) {
+      renderPermissionCheckboxes(catalog, []);
+      roleModal.hidden = false;
+      setTimeout(function () { roleLabelInput.focus(); }, 30);
+    });
+  }
+
+  function closeRoleModal() { roleModal.hidden = true; }
+
+  function collectCheckedPermissions() {
+    return Array.prototype.map.call(
+      rolePermissionsGroups.querySelectorAll('.role-permission-checkbox:checked'),
+      function (cb) { return cb.value; }
+    );
+  }
+
+  roleCreateBtn.addEventListener('click', openCreateRoleModal);
+  roleCancelBtn.addEventListener('click', closeRoleModal);
+  roleModalCloseBtn.addEventListener('click', closeRoleModal);
+  roleModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeRoleModal);
+
+  roleSaveBtn.addEventListener('click', function () {
+    var label = roleLabelInput.value.trim();
+    var color = roleColorInput.value;
+    if (roleModalMode === 'create' && !label) {
+      roleModalError.textContent = 'Give the role a name.';
+      roleModalError.classList.add('show');
+      return;
+    }
+    roleModalError.classList.remove('show');
+    roleSaveBtn.disabled = true;
+
+    var body = { csrf: window.PW_AUTH.csrf, color: color, permissions: collectCheckedPermissions() };
+    var url;
+    if (roleModalMode === 'create') {
+      body.label = label;
+      url = '/api/admin/roles/create.php';
+    } else {
+      body.slug = currentRole.slug;
+      if (!currentRole.is_builtin) body.label = label;
+      url = '/api/admin/roles/update.php';
+    }
+
+    fetch(url, {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) {
+        roleModalError.textContent = data.error || 'Could not save role.';
+        roleModalError.classList.add('show');
+        return;
+      }
+      closeRoleModal();
+      loadRoles();
+    }).catch(function () {
+      roleModalError.textContent = 'Could not reach the server. Please try again.';
+      roleModalError.classList.add('show');
+    }).finally(function () { roleSaveBtn.disabled = false; });
+  });
+
+  roleDeleteBtn.addEventListener('click', function () {
+    if (!currentRole || !window.confirm('Delete the role "' + currentRole.label + '"? This cannot be undone.')) return;
+    roleDeleteBtn.disabled = true;
+    fetch('/api/admin/roles/delete.php', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csrf: window.PW_AUTH.csrf, slug: currentRole.slug }),
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) {
+        roleModalError.textContent = data.error || 'Could not delete role.';
+        roleModalError.classList.add('show');
+        return;
+      }
+      closeRoleModal();
+      loadRoles();
+    }).catch(function () {
+      roleModalError.textContent = 'Could not reach the server. Please try again.';
+      roleModalError.classList.add('show');
+    }).finally(function () { roleDeleteBtn.disabled = false; });
   });
 
   // ===== Book Control (Lore Management) ========================================

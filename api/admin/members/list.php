@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
 
-pw_require_admin();
+pw_require_permission('members.view');
 
 $db = pw_db();
 
@@ -20,8 +20,12 @@ if (strlen($q) > 200) {
 }
 
 $role = isset($_GET['role']) ? trim($_GET['role']) : 'all';
-if (!in_array($role, ['all', 'member', 'moderator', 'admin'], true)) {
-    $role = 'all';
+if ($role !== 'all') {
+    $roleCheck = $db->prepare('SELECT 1 FROM roles WHERE slug = ?');
+    $roleCheck->execute([$role]);
+    if (!$roleCheck->fetch()) {
+        $role = 'all';
+    }
 }
 
 $status = isset($_GET['status']) ? trim($_GET['status']) : 'all';

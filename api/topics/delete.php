@@ -22,7 +22,7 @@ $topic = $stmt->fetch();
 if (!$topic) {
     pw_error('That topic is already gone.', 404);
 }
-if (!in_array($user['role'], ['admin', 'moderator'], true) && (int)$topic['user_id'] !== (int)$user['id']) {
+if (!pw_has_permission($user, 'community.delete_any') && (int)$topic['user_id'] !== (int)$user['id']) {
     pw_error('You can only delete your own topics.', 403);
 }
 

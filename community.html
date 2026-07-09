@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=95">
+<link rel="stylesheet" href="css/style.css?v=96">
 </head>
 <body>
 
@@ -247,7 +247,7 @@
 </div>
 
 <script src="js/main.js?v=1"></script>
-<script src="js/members.js?v=6"></script>
+<script src="js/members.js?v=7"></script>
 <script>
 (function () {
   var BOARDS = [
@@ -688,7 +688,8 @@
       var byLine = document.createElement('div');
       byLine.className = 'board-index-latest-by';
       var byName = document.createElement('span');
-      byName.className = 'board-index-latest-author role-' + (stat.latest.role || 'member');
+      byName.className = 'board-index-latest-author';
+      byName.style.setProperty('--role-color', stat.latest.role_color || '#c7ccd6');
       byName.textContent = stat.latest.display_name;
       byLine.appendChild(document.createTextNode('by '));
       byLine.appendChild(byName);
@@ -713,9 +714,8 @@
 
   function syncTopicListGate() {
     var loggedIn = window.PW_AUTH.loggedIn;
-    var userRole = loggedIn && window.PW_AUTH.user ? window.PW_AUTH.user.role : null;
-    var isAdmin = userRole === 'admin' || userRole === 'moderator';
-    var announcementsLocked = currentBoard === 'announcements' && !isAdmin;
+    var canPostAnnouncements = pwHasPermission('community.post_announcements');
+    var announcementsLocked = currentBoard === 'announcements' && !canPostAnnouncements;
 
     topicListGate.hidden = loggedIn;
     topicListLocked.hidden = !loggedIn || !announcementsLocked;
@@ -785,7 +785,8 @@
     row.appendChild(topicCell);
 
     var starterCell = document.createElement('div');
-    starterCell.className = 'topic-row-starter role-' + (t.role || 'member');
+    starterCell.className = 'topic-row-starter';
+    starterCell.style.setProperty('--role-color', t.role_color || '#c7ccd6');
     starterCell.textContent = t.display_name;
     row.appendChild(starterCell);
 
@@ -892,7 +893,8 @@
     profile.className = 'comment-profile';
 
     var avatarWrap = document.createElement('div');
-    avatarWrap.className = 'profile-avatar-wrap comment-avatar-wrap role-' + (t.role || 'member');
+    avatarWrap.className = 'profile-avatar-wrap comment-avatar-wrap';
+    avatarWrap.style.setProperty('--role-color', t.role_color || '#c7ccd6');
 
     var avatarImg = document.createElement('img');
     avatarImg.className = 'profile-avatar';
@@ -925,7 +927,8 @@
     info.appendChild(author);
 
     var role = document.createElement('span');
-    role.className = 'comment-role comment-role-' + (t.role || 'member');
+    role.className = 'comment-role';
+    role.style.setProperty('--role-color', t.role_color || '#c7ccd6');
     role.textContent = capitalize(t.role || 'member');
     info.appendChild(role);
 
@@ -1122,7 +1125,8 @@
     profile.className = 'comment-profile';
 
     var avatarWrap = document.createElement('div');
-    avatarWrap.className = 'profile-avatar-wrap comment-avatar-wrap role-' + (c.role || 'member');
+    avatarWrap.className = 'profile-avatar-wrap comment-avatar-wrap';
+    avatarWrap.style.setProperty('--role-color', c.role_color || '#c7ccd6');
 
     var avatarImg = document.createElement('img');
     avatarImg.className = 'profile-avatar';
@@ -1155,7 +1159,8 @@
     info.appendChild(author);
 
     var role = document.createElement('span');
-    role.className = 'comment-role comment-role-' + (c.role || 'member');
+    role.className = 'comment-role';
+    role.style.setProperty('--role-color', c.role_color || '#c7ccd6');
     role.textContent = capitalize(c.role || 'member');
     info.appendChild(role);
 
@@ -1782,7 +1787,8 @@
           info.className = 'leaderboard-info';
 
           var name = document.createElement('span');
-          name.className = 'leaderboard-name role-' + (u.role || 'member');
+          name.className = 'leaderboard-name';
+          name.style.setProperty('--role-color', u.role_color || '#c7ccd6');
           name.textContent = u.display_name;
           info.appendChild(name);
 

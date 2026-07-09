@@ -4,6 +4,11 @@ require_once __DIR__ . '/helpers.php';
 $user = pw_require_login();
 $db = pw_db();
 
+$roleStmt = $db->prepare('SELECT color FROM roles WHERE slug = ?');
+$roleStmt->execute([$user['role']]);
+$roleRow = $roleStmt->fetch();
+$roleColor = $roleRow ? $roleRow['color'] : '#c7ccd6';
+
 $stmt = $db->prepare('SELECT overlord_result, scores_json, created_at FROM quiz_results WHERE user_id = ? ORDER BY created_at DESC LIMIT 20');
 $stmt->execute([$user['id']]);
 $quizHistory = array_map(function ($row) {
@@ -29,6 +34,7 @@ pw_json([
         'email' => $user['email'],
         'overlord_affinity' => $user['overlord_affinity'],
         'role' => $user['role'],
+        'role_color' => $roleColor,
         'created_at' => $user['created_at'],
     ],
     'quizHistory' => $quizHistory,

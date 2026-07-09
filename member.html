@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=95">
+<link rel="stylesheet" href="css/style.css?v=96">
 </head>
 <body>
 
@@ -69,7 +69,7 @@
 
       <div id="member-content" hidden>
         <div class="profile-head">
-          <div class="profile-avatar-wrap role-member" id="member-avatar-wrap">
+          <div class="profile-avatar-wrap" id="member-avatar-wrap">
             <img id="member-avatar-img" class="profile-avatar" alt="" hidden>
             <div id="member-avatar-fallback" class="profile-avatar profile-avatar-fallback">?</div>
           </div>
@@ -151,7 +151,7 @@
 </footer>
 
 <script src="js/main.js?v=1"></script>
-<script src="js/members.js?v=6"></script>
+<script src="js/members.js?v=7"></script>
 <script>
 (function () {
   var gate = document.getElementById('member-gate');
@@ -261,12 +261,12 @@
         document.title = m.display_name + ' — The Pantheon Wars';
         document.getElementById('member-name').textContent = m.display_name;
 
-        avatarWrap.classList.remove('role-member', 'role-moderator', 'role-admin');
-        avatarWrap.classList.add(m.role === 'admin' ? 'role-admin' : m.role === 'moderator' ? 'role-moderator' : 'role-member');
+        avatarWrap.style.setProperty('--role-color', m.role_color || '#c7ccd6');
 
         var roleBadge = document.getElementById('member-role-badge');
         roleBadge.textContent = capitalize(m.role || 'member');
-        roleBadge.className = 'member-role-badge role-' + (m.role || 'member');
+        roleBadge.className = 'member-role-badge';
+        roleBadge.style.setProperty('--role-color', m.role_color || '#c7ccd6');
 
         avatarFallback.textContent = (m.display_name || '?').charAt(0).toUpperCase();
         var probe = new Image();

@@ -11,7 +11,7 @@
  */
 require_once __DIR__ . '/../../helpers.php';
 
-pw_require_admin();
+pw_require_permission('books.view');
 
 $type = isset($_GET['type']) ? $_GET['type'] : '';
 $folders = [

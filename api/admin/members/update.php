@@ -5,7 +5,16 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
 }
 
-$adminUser = pw_require_admin();
+// This one endpoint edits profile fields, role, and ban status together (a
+// single Save button in the admin console's member-edit modal) -- but those
+// are 3 separate permissions, so we only require login here and check each
+// permission below, scoped to which fields actually changed.
+$adminUser = pw_require_login();
+if (!pw_has_permission($adminUser, 'members.edit')
+    && !pw_has_permission($adminUser, 'members.change_role')
+    && !pw_has_permission($adminUser, 'members.ban')) {
+    pw_error('You do not have permission to do that.', 403);
+}
 
 $input = pw_input();
 pw_require_csrf($input);
@@ -36,11 +45,28 @@ if ($displayName === '' || mb_strlen($displayName) > 50) {
 if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen($email) > 255) {
     pw_error('Enter a valid email address.');
 }
-if (!in_array($role, ['member', 'moderator', 'admin'], true)) {
+$roleCheck = $db->prepare('SELECT label FROM roles WHERE slug = ?');
+$roleCheck->execute([$role]);
+$roleRow = $roleCheck->fetch();
+if (!$roleRow) {
     pw_error('Not a valid role.');
 }
 if (!in_array($banType, ['permanent', 'temporary'], true)) {
     $banType = 'permanent';
+}
+
+$profileChanged = ($displayName !== $existing['display_name']) || ($email !== $existing['email']);
+$roleChanged = ($role !== $existing['role']);
+$banChanged = $banned !== pw_is_banned($existing);
+
+if ($profileChanged && !pw_has_permission($adminUser, 'members.edit')) {
+    pw_error('You do not have permission to edit member profiles.', 403);
+}
+if ($roleChanged && !pw_has_permission($adminUser, 'members.change_role')) {
+    pw_error('You do not have permission to change member roles.', 403);
+}
+if ($banChanged && !pw_has_permission($adminUser, 'members.ban')) {
+    pw_error('You do not have permission to ban/unban members.', 403);
 }
 
 $newBannedUntil = null;
@@ -81,7 +107,10 @@ $stmt = $db->prepare('UPDATE users SET display_name = ?, email = ?, role = ?, ba
 $stmt->execute([$displayName, $email, $role, $bannedAt, $bannedUntil, $id]);
 
 $targetLabel = $existing['username'];
-$roleLabels = ['member' => 'Member', 'moderator' => 'Moderator', 'admin' => 'Admin'];
+$roleLabels = [];
+foreach ($db->query('SELECT slug, label FROM roles') as $r) {
+    $roleLabels[$r['slug']] = $r['label'];
+}
 
 function pw_ban_description($untilSql) {
     if ($untilSql === null) {

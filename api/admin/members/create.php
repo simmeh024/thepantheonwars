@@ -5,7 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
 }
 
-$adminUser = pw_require_admin();
+$adminUser = pw_require_permission('members.edit');
 
 $input = pw_input();
 pw_require_csrf($input);
@@ -34,11 +34,14 @@ if ($displayName === '') {
 if (mb_strlen($displayName) > 50) {
     pw_error('Display name must be 50 characters or fewer.');
 }
-if (!in_array($role, ['member', 'moderator', 'admin'], true)) {
+$db = pw_db();
+
+$roleStmt = $db->prepare('SELECT label FROM roles WHERE slug = ?');
+$roleStmt->execute([$role]);
+$roleRow = $roleStmt->fetch();
+if (!$roleRow) {
     pw_error('Not a valid role.');
 }
-
-$db = pw_db();
 
 $stmt = $db->prepare('SELECT id FROM users WHERE username = ? OR email = ?');
 $stmt->execute([$username, $email]);
@@ -52,10 +55,9 @@ $stmt = $db->prepare('INSERT INTO users (username, email, password_hash, display
 $stmt->execute([$username, $email, $hash, $displayName, $role]);
 $userId = (int)$db->lastInsertId();
 
-$roleLabels = ['member' => 'Member', 'moderator' => 'Moderator', 'admin' => 'Admin'];
 pw_log_admin_activity(
     'member_created',
-    'Created a new ' . $roleLabels[$role] . ' account: ' . $username . '.',
+    'Created a new ' . $roleRow['label'] . ' account: ' . $username . '.',
     $adminUser
 );
 

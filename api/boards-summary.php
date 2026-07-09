@@ -33,7 +33,7 @@ foreach ($boards as $board) {
 
     $latestOut = null;
     if ($latest) {
-        $userStmt = $db->prepare('SELECT display_name, role FROM users WHERE id = ?');
+        $userStmt = $db->prepare('SELECT u.display_name, u.role, r.color AS role_color FROM users u LEFT JOIN roles r ON r.slug = u.role WHERE u.id = ?');
         $userStmt->execute([(int)$latest['user_id']]);
         $u = $userStmt->fetch();
         $latestOut = [
@@ -41,6 +41,7 @@ foreach ($boards as $board) {
             'title' => $latest['title'],
             'display_name' => $u ? $u['display_name'] : 'Unknown',
             'role' => $u ? $u['role'] : 'member',
+            'role_color' => $u && $u['role_color'] ? $u['role_color'] : '#c7ccd6',
             'created_at' => $latest['created_at'],
         ];
     }

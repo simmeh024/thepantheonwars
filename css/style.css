@@ -1886,9 +1886,8 @@ footer.site-footer {
   font-family: 'Cinzel', serif; font-size: 2rem; color: var(--text-faint);
 }
 .profile-avatar-fallback[hidden] { display: none; }
-.profile-avatar-wrap.role-member .profile-avatar { border-color: #c7ccd6; box-shadow: 0 0 14px rgba(199,204,214,0.35); }
-.profile-avatar-wrap.role-moderator .profile-avatar { border-color: #4caf6e; box-shadow: 0 0 14px rgba(76,175,110,0.4); }
-.profile-avatar-wrap.role-admin .profile-avatar { border-color: #d1483f; box-shadow: 0 0 14px rgba(209,72,63,0.4); }
+.profile-avatar-wrap { --role-color: #c7ccd6; }
+.profile-avatar-wrap .profile-avatar { border-color: var(--role-color); box-shadow: 0 0 14px color-mix(in srgb, var(--role-color) 40%, transparent); }
 .profile-avatar-upload {
   position: absolute; bottom: -2px; right: -2px; width: 32px; height: 32px; border-radius: 50%;
   background: var(--panel); border: 2px solid var(--border); color: var(--text-dim);
@@ -2327,11 +2326,8 @@ footer.site-footer {
 }
 .comment-profile .comment-author:hover { color: var(--purple-bright); }
 .comment-role {
-  font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint);
+  font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--role-color, var(--text-faint));
 }
-.comment-role-admin { color: #d1483f; }
-.comment-role-moderator { color: #4caf6e; }
-.comment-role-member { color: var(--text-faint); }
 .comment-postcount { font-size: 0.7rem; color: var(--text-faint); }
 
 .comment-divider { flex-shrink: 0; width: 1px; background: var(--border); align-self: stretch; }
@@ -2429,8 +2425,7 @@ footer.site-footer {
 }
 .board-index-latest-title:hover { color: var(--gold-bright); }
 .board-index-latest-by { color: var(--text-faint); margin-top: 2px; }
-.board-index-latest-author.role-admin { color: #d1483f; }
-.board-index-latest-author.role-moderator { color: #4caf6e; }
+.board-index-latest-author { color: var(--role-color, var(--text-faint)); }
 .board-index-latest-time { color: var(--text-faint); font-size: 0.72rem; margin-top: 1px; }
 .board-index-latest-empty { color: var(--text-faint); }
 
@@ -2485,8 +2480,7 @@ footer.site-footer {
   font-size: 0.82rem; color: var(--text-faint); text-align: center;
 }
 .topic-row-replies { font-variant-numeric: tabular-nums; }
-.topic-row-starter.role-admin { color: #d1483f; }
-.topic-row-starter.role-moderator { color: #4caf6e; }
+.topic-row-starter { color: var(--role-color, var(--text-faint)); }
 
 @media (max-width: 720px) {
   .topic-list-head { display: none; }
@@ -2523,9 +2517,7 @@ footer.site-footer {
 }
 .leaderboard-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .leaderboard-info { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
-.leaderboard-name { font-size: 0.85rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.leaderboard-name.role-admin { color: #d1483f; }
-.leaderboard-name.role-moderator { color: #4caf6e; }
+.leaderboard-name { font-size: 0.85rem; color: var(--role-color, var(--text)); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .leaderboard-count { font-size: 0.68rem; color: var(--text-faint); }
 
 /* Threaded replies: collapsible thread with a connecting line, Reddit-style.
@@ -2752,9 +2744,7 @@ footer.site-footer {
   padding: 3px 10px; border-radius: 3px; font-family: 'Cinzel', serif; font-size: 0.68rem;
   text-transform: uppercase; letter-spacing: 0.06em; border: 1px solid currentColor; width: fit-content;
 }
-.member-role-badge.role-admin { color: #d1483f; }
-.member-role-badge.role-moderator { color: #4caf6e; }
-.member-role-badge.role-member { color: var(--text-faint); }
+.member-role-badge { color: var(--role-color, var(--text-faint)); border-color: var(--role-color, currentColor); }
 .member-status { display: flex; align-items: center; gap: 8px; font-size: 0.82rem; color: var(--text-faint); }
 .member-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--text-faint); }
 .member-status.is-online .member-status-dot { background: #4caf6e; box-shadow: 0 0 6px rgba(76,175,110,0.7); }
@@ -3441,9 +3431,7 @@ footer.site-footer {
   font-family: 'Jost', sans-serif; font-size: 0.85rem; color: var(--text);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.admin-sidebar-user-role { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); }
-.admin-sidebar-user-role.role-admin { color: #d1483f; }
-.admin-sidebar-user-role.role-moderator { color: #4caf6e; }
+.admin-sidebar-user-role { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--role-color, var(--text-faint)); }
 .admin-sidebar-logout-btn {
   display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
   background: none; border: 1px solid var(--border-soft); border-radius: 3px;
@@ -4166,9 +4154,6 @@ footer.site-footer {
   padding: 3px 10px; border-radius: 3px; font-family: 'Cinzel', serif; font-size: 0.64rem;
   text-transform: uppercase; letter-spacing: 0.07em; border: 1px solid currentColor; white-space: nowrap;
 }
-.member-role-badge.role-member { color: var(--text-faint); }
-.member-role-badge.role-moderator { color: #4caf6e; }
-.member-role-badge.role-admin { color: #d1483f; }
 .member-banned-badge {
   flex-shrink: 0; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.06em;
   padding: 3px 10px; border-radius: 3px; border: 1px solid #e05a4a; color: #e05a4a; white-space: nowrap;

@@ -2,7 +2,16 @@
 // Injects the auth modal, keeps nav in sync with session state, and exposes
 // window.PW_AUTH for other scripts (quiz.html, community.html) to read.
 
-window.PW_AUTH = { loggedIn: false, user: null, csrf: null };
+window.PW_AUTH = { loggedIn: false, user: null, csrf: null, permissions: [] };
+
+// '*' means every permission (the logged-in user's role is a superuser, e.g.
+// admin) -- see api/helpers.php's pw_has_permission() for the server-side
+// twin of this check. Client-side checks are UI convenience only; every
+// endpoint re-checks the permission itself.
+window.pwHasPermission = function pwHasPermission(key) {
+  var perms = window.PW_AUTH.permissions || [];
+  return perms.indexOf('*') !== -1 || perms.indexOf(key) !== -1;
+};
 
 document.addEventListener('DOMContentLoaded', function () {
 
@@ -165,7 +174,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (logoutBtn) {
       e.preventDefault();
       postJson('/api/logout.php', { csrf: window.PW_AUTH.csrf }).then(function () {
-        window.PW_AUTH = { loggedIn: false, user: null, csrf: null };
+        window.PW_AUTH = { loggedIn: false, user: null, csrf: null, permissions: [] };
         refreshAuthNav();
         if (/\/admin\/?$/.test(location.pathname)) location.href = '../index.html';
         else if (/profile\.html$/.test(location.pathname)) location.href = 'index.html';
@@ -194,7 +203,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div class="nav-dropdown auth-nav-dropdown">' +
           '<a href="member.html?id=' + encodeURIComponent(window.PW_AUTH.user.id) + '">Profile</a>' +
           '<a href="profile.html">Settings</a>' +
-          ((window.PW_AUTH.user.role === 'admin' || window.PW_AUTH.user.role === 'moderator') ? '<a href="/admin">Admin</a>' : '') +
+          (pwHasPermission('admin_console.access') ? '<a href="/admin">Admin</a>' : '') +
           '<button type="button" class="auth-logout-btn">Log Out</button>' +
         '</div>';
     } else {
@@ -211,6 +220,7 @@ document.addEventListener('DOMContentLoaded', function () {
           loggedIn: !!data.loggedIn,
           user: data.user || null,
           csrf: data.csrf || null,
+          permissions: data.permissions || [],
         };
         renderNav();
         document.dispatchEvent(new CustomEvent('pw-auth-ready'));

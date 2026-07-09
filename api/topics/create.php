@@ -14,7 +14,7 @@ if (!preg_match('/^[a-z0-9\-]{1,50}$/', $board)) {
     pw_error('Unknown board.');
 }
 
-if ($board === 'announcements' && !in_array($user['role'], ['admin', 'moderator'], true)) {
+if ($board === 'announcements' && !pw_has_permission($user, 'community.post_announcements')) {
     pw_error('Only the author and moderators can start new topics in Announcements.', 403);
 }
 

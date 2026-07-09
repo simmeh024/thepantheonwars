@@ -5,7 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
 }
 
-$adminUser = pw_require_admin();
+$adminUser = pw_require_permission('members.reset_avatar');
 
 $input = pw_input();
 pw_require_csrf($input);

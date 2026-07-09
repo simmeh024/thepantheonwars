@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../dispatch-helpers.php';
 
-pw_require_admin();
+pw_require_permission('dispatches.view');
 
 $db = pw_db();
 

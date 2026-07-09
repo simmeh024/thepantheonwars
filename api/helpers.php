@@ -154,6 +154,39 @@ function pw_require_mod_or_admin() {
     return $user;
 }
 
+// --- Fine-grained permissions ------------------------------------------------
+// Returns the list of permission keys the given user's role grants, or ['*']
+// for a superuser role (currently just 'admin') which short-circuits every
+// pw_has_permission() check to true -- this is what guarantees a checkbox
+// mistake in the Roles & Permissions admin UI can never lock every admin out.
+function pw_user_permissions($user) {
+    if (empty($user) || empty($user['role'])) {
+        return [];
+    }
+    $stmt = pw_db()->prepare('SELECT is_superuser FROM roles WHERE slug = ?');
+    $stmt->execute([$user['role']]);
+    $role = $stmt->fetch();
+    if ($role && (int)$role['is_superuser'] === 1) {
+        return ['*'];
+    }
+    $stmt = pw_db()->prepare('SELECT permission_key FROM role_permissions WHERE role_slug = ?');
+    $stmt->execute([$user['role']]);
+    return array_column($stmt->fetchAll(), 'permission_key');
+}
+
+function pw_has_permission($user, $key) {
+    $perms = pw_user_permissions($user);
+    return in_array('*', $perms, true) || in_array($key, $perms, true);
+}
+
+function pw_require_permission($key) {
+    $user = pw_require_login();
+    if (!pw_has_permission($user, $key)) {
+        pw_error('You do not have permission to do that.', 403);
+    }
+    return $user;
+}
+
 // --- Admin activity log ---------------------------------------------------
 function pw_client_ip() {
     foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $key) {

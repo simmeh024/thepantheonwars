@@ -22,7 +22,7 @@ $comment = $stmt->fetch();
 if (!$comment) {
     pw_error('That message is already gone.', 404);
 }
-if (!in_array($user['role'], ['admin', 'moderator'], true) && (int)$comment['user_id'] !== (int)$user['id']) {
+if (!pw_has_permission($user, 'community.delete_any') && (int)$comment['user_id'] !== (int)$user['id']) {
     pw_error('You can only delete your own messages.', 403);
 }
 

@@ -2,6 +2,36 @@
 -- Run this once in phpMyAdmin (or the cPanel MySQL Database wizard's "Execute SQL")
 -- against the database you create for this site.
 
+-- Custom roles + fine-grained permissions (see migration_permissions.sql for
+-- the one-time seed data). 'admin' is_superuser=1 always passes every
+-- pw_has_permission() check regardless of role_permissions rows, so no
+-- combination of checkbox edits can lock every admin out. member/moderator
+-- are is_builtin=1 (can't be renamed/deleted, but their permission set and
+-- color ARE editable) -- everything else is a fully custom role.
+CREATE TABLE IF NOT EXISTS roles (
+  slug VARCHAR(40) PRIMARY KEY,
+  label VARCHAR(60) NOT NULL,
+  color CHAR(7) NOT NULL DEFAULT '#c7ccd6',
+  is_superuser TINYINT(1) NOT NULL DEFAULT 0,
+  is_builtin TINYINT(1) NOT NULL DEFAULT 0,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS permissions (
+  `key` VARCHAR(60) PRIMARY KEY,
+  label VARCHAR(120) NOT NULL,
+  category VARCHAR(40) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS role_permissions (
+  role_slug VARCHAR(40) NOT NULL,
+  permission_key VARCHAR(60) NOT NULL,
+  PRIMARY KEY (role_slug, permission_key),
+  CONSTRAINT fk_role_permissions_role FOREIGN KEY (role_slug) REFERENCES roles(slug) ON DELETE CASCADE,
+  CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_key) REFERENCES permissions(`key`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS users (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(30) NOT NULL,
@@ -9,7 +39,7 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   display_name VARCHAR(50) NOT NULL,
   overlord_affinity VARCHAR(50) DEFAULT NULL,
-  role ENUM('member','moderator','admin') NOT NULL DEFAULT 'member',
+  role VARCHAR(40) NOT NULL DEFAULT 'member',
   failed_login_attempts INT UNSIGNED NOT NULL DEFAULT 0,
   locked_until DATETIME DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -19,7 +49,8 @@ CREATE TABLE IF NOT EXISTS users (
   banned_at DATETIME DEFAULT NULL,
   banned_until DATETIME DEFAULT NULL,
   UNIQUE KEY uniq_username (username),
-  UNIQUE KEY uniq_email (email)
+  UNIQUE KEY uniq_email (email),
+  CONSTRAINT fk_users_role FOREIGN KEY (role) REFERENCES roles(slug)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS quiz_results (

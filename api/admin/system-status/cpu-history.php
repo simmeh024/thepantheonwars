@@ -10,7 +10,7 @@
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/status-helpers.php';
 
-pw_require_admin();
+pw_require_permission('dashboards.view');
 $db = pw_db();
 
 $points = [];

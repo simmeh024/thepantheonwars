@@ -16,9 +16,11 @@ if ($id <= 0) {
 $db = pw_db();
 
 $stmt = $db->prepare(
-    'SELECT id, display_name, role, overlord_affinity, created_at, last_login_at, last_active_at,
-       (last_active_at IS NOT NULL AND last_active_at >= (NOW() - INTERVAL 5 MINUTE)) AS is_online
-     FROM users WHERE id = ?'
+    'SELECT u.id, u.display_name, u.role, u.overlord_affinity, u.created_at, u.last_login_at, u.last_active_at, r.color AS role_color,
+       (u.last_active_at IS NOT NULL AND u.last_active_at >= (NOW() - INTERVAL 5 MINUTE)) AS is_online
+     FROM users u
+     LEFT JOIN roles r ON r.slug = u.role
+     WHERE u.id = ?'
 );
 $stmt->execute([$id]);
 $user = $stmt->fetch();
@@ -58,6 +60,7 @@ pw_json([
         'id' => (int)$user['id'],
         'display_name' => $user['display_name'],
         'role' => $user['role'],
+        'role_color' => $user['role_color'] ?: '#c7ccd6',
         'overlord_affinity' => $user['overlord_affinity'],
         'created_at' => $user['created_at'],
         'last_login_at' => $user['last_login_at'],

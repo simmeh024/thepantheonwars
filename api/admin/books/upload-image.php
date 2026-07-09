@@ -26,7 +26,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
 }
 
-pw_require_admin();
+pw_require_permission('books.edit');
 
 // Manual CSRF check: multipart/form-data means the token arrives as a
 // regular $_POST field, not inside a JSON body.

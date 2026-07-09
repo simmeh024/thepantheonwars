@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $user = pw_require_login();
-if (!in_array($user['role'], ['admin', 'moderator'], true)) {
+if (!pw_has_permission($user, 'community.lock')) {
     pw_error('Only moderators can lock topics.', 403);
 }
 

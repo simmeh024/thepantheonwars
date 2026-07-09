@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=95">
+<link rel="stylesheet" href="css/style.css?v=96">
 </head>
 <body>
 
@@ -134,7 +134,7 @@
 </footer>
 
 <script src="js/main.js?v=1"></script>
-<script src="js/members.js?v=6"></script>
+<script src="js/members.js?v=7"></script>
 <script>
 (function () {
   var listBody = document.getElementById('member-index-body');
@@ -268,7 +268,8 @@
     profile.href = 'member.html?id=' + encodeURIComponent(m.id);
 
     var avatarWrap = document.createElement('div');
-    avatarWrap.className = 'profile-avatar-wrap member-avatar-wrap role-' + (m.role || 'member');
+    avatarWrap.className = 'profile-avatar-wrap member-avatar-wrap';
+    avatarWrap.style.setProperty('--role-color', m.role_color || '#c7ccd6');
 
     var avatarImg = document.createElement('img');
     avatarImg.className = 'profile-avatar';
@@ -300,7 +301,8 @@
 
     // Role badge
     var roleBadge = document.createElement('span');
-    roleBadge.className = 'member-role-badge role-' + (m.role || 'member');
+    roleBadge.className = 'member-role-badge';
+    roleBadge.style.setProperty('--role-color', m.role_color || '#c7ccd6');
     roleBadge.textContent = capitalize(m.role || 'member');
     row.appendChild(roleBadge);
 

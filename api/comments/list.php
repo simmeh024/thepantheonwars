@@ -12,9 +12,10 @@ if ($topicId <= 0) {
 $db = pw_db();
 $stmt = $db->prepare(
     'SELECT c.id, c.parent_id, c.depth, c.body, c.created_at, c.edited_at, c.user_id,
-            u.username, u.display_name, u.overlord_affinity, u.role
+            u.username, u.display_name, u.overlord_affinity, u.role, r.color AS role_color
      FROM comments c
      JOIN users u ON u.id = c.user_id
+     LEFT JOIN roles r ON r.slug = u.role
      WHERE c.topic_id = ? AND c.is_deleted = 0
      ORDER BY c.created_at ASC
      LIMIT 500'
@@ -59,7 +60,8 @@ if ($commentIds) {
 
 $currentUser = pw_current_user();
 $currentId = $currentUser ? (int)$currentUser['id'] : null;
-$isAdmin = $currentUser ? in_array($currentUser['role'], ['admin', 'moderator'], true) : false;
+$canModerate = $currentUser ? pw_has_permission($currentUser, 'community.edit_any') : false;
+$canDeleteAny = $currentUser ? pw_has_permission($currentUser, 'community.delete_any') : false;
 
 if ($currentId !== null && $commentIds) {
     $placeholders = implode(',', array_fill(0, count($commentIds), '?'));
@@ -96,7 +98,7 @@ if ($commentIds) {
     }
 }
 
-$out = array_map(function ($r) use ($currentId, $isAdmin, $postCounts, $reactionCounts, $myReactions, $likeCounts, $myLikes) {
+$out = array_map(function ($r) use ($currentId, $canModerate, $canDeleteAny, $postCounts, $reactionCounts, $myReactions, $likeCounts, $myLikes) {
     $userId = (int)$r['user_id'];
     $id = (int)$r['id'];
     return [
@@ -111,9 +113,10 @@ $out = array_map(function ($r) use ($currentId, $isAdmin, $postCounts, $reaction
         'display_name' => $r['display_name'],
         'overlord_affinity' => $r['overlord_affinity'],
         'role' => $r['role'],
+        'role_color' => $r['role_color'] ?: '#c7ccd6',
         'post_count' => isset($postCounts[$userId]) ? $postCounts[$userId] : 0,
-        'canDelete' => $isAdmin || ($currentId !== null && $currentId === $userId),
-        'canModerate' => $isAdmin,
+        'canDelete' => $canDeleteAny || ($currentId !== null && $currentId === $userId),
+        'canModerate' => $canModerate,
         'reactions' => isset($reactionCounts[$id]) ? $reactionCounts[$id] : ['shard' => 0, 'ward' => 0, 'ember' => 0],
         'myReaction' => isset($myReactions[$id]) ? $myReactions[$id] : null,
         'like_count' => isset($likeCounts[$id]) ? $likeCounts[$id] : 0,

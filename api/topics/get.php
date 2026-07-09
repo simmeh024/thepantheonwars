@@ -12,9 +12,10 @@ if ($id <= 0) {
 $db = pw_db();
 $stmt = $db->prepare(
     'SELECT t.id, t.board, t.title, t.body, t.created_at, t.is_pinned, t.is_locked,
-            t.edited_at, t.user_id, u.display_name, u.role
+            t.edited_at, t.user_id, u.display_name, u.role, r.color AS role_color
      FROM topics t
      JOIN users u ON u.id = t.user_id
+     LEFT JOIN roles r ON r.slug = u.role
      WHERE t.id = ? AND t.is_deleted = 0'
 );
 $stmt->execute([$id]);
@@ -38,7 +39,8 @@ $likeCount = (int)$likeCountStmt->fetch()['cnt'];
 
 $currentUser = pw_current_user();
 $currentId = $currentUser ? (int)$currentUser['id'] : null;
-$isAdmin = $currentUser ? in_array($currentUser['role'], ['admin', 'moderator'], true) : false;
+$canModerate = $currentUser ? pw_has_permission($currentUser, 'community.edit_any') : false;
+$canDeleteAny = $currentUser ? pw_has_permission($currentUser, 'community.delete_any') : false;
 
 $likedByMe = false;
 if ($currentId !== null) {
@@ -61,9 +63,10 @@ pw_json([
         'user_id' => (int)$topic['user_id'],
         'display_name' => $topic['display_name'],
         'role' => $topic['role'],
+        'role_color' => $topic['role_color'] ?: '#c7ccd6',
         'post_count' => (int)$postCountRow['cnt'],
-        'canDelete' => $isAdmin || ($currentId !== null && $currentId === (int)$topic['user_id']),
-        'canModerate' => $isAdmin,
+        'canDelete' => $canDeleteAny || ($currentId !== null && $currentId === (int)$topic['user_id']),
+        'canModerate' => $canModerate,
         'like_count' => $likeCount,
         'likedByMe' => $likedByMe,
     ],

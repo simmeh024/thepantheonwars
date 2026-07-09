@@ -5,7 +5,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
 }
 
-$user = pw_require_mod_or_admin();
+$user = pw_require_permission('topic_reports.manage');
 $input = pw_input();
 pw_require_csrf($input);
 

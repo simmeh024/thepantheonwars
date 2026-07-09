@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=95">
+<link rel="stylesheet" href="css/style.css?v=96">
 </head>
 <body>
 
@@ -70,7 +70,7 @@
 
       <div id="profile-content" hidden>
         <div class="profile-head">
-          <div class="profile-avatar-wrap role-member" id="profile-avatar-wrap">
+          <div class="profile-avatar-wrap" id="profile-avatar-wrap">
             <img id="profile-avatar-img" class="profile-avatar" alt="" hidden>
             <div id="profile-avatar-fallback" class="profile-avatar profile-avatar-fallback">?</div>
             <label for="profile-avatar-input" class="profile-avatar-upload" title="Change avatar">
@@ -215,7 +215,7 @@
 </div>
 
 <script src="js/main.js?v=1"></script>
-<script src="js/members.js?v=6"></script>
+<script src="js/members.js?v=7"></script>
 <script>
 (function () {
   var gate = document.getElementById('profile-gate');
@@ -364,9 +364,8 @@
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
-  function setRole(role) {
-    avatarWrap.classList.remove('role-member', 'role-moderator', 'role-admin');
-    avatarWrap.classList.add(role === 'admin' ? 'role-admin' : role === 'moderator' ? 'role-moderator' : 'role-member');
+  function setRole(role, roleColor) {
+    avatarWrap.style.setProperty('--role-color', roleColor || '#c7ccd6');
   }
 
   function loadAvatar(userId, displayName) {
@@ -513,7 +512,7 @@
         if (!data.ok) return;
 
         document.getElementById('profile-name').textContent = data.user.display_name;
-        setRole(data.user.role);
+        setRole(data.user.role, data.user.role_color);
         loadAvatar(data.user.id, data.user.display_name);
         lockedNameInput.value = data.user.display_name;
         lockedEmailInput.value = data.user.email;

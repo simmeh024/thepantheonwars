@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
 
-pw_require_admin();
+pw_require_permission('dispatch_translations.view');
 
 $db = pw_db();
 

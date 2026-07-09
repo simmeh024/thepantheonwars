@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
 
-pw_require_admin();
+pw_require_permission('dashboards.view');
 
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 25;

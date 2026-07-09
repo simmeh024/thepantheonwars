@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
 }
 
-$adminUser = pw_require_admin();
+$adminUser = pw_require_permission('dispatches.edit');
 
 $input = pw_input();
 pw_require_csrf($input);

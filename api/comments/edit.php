@@ -10,7 +10,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $user = pw_require_login();
-if (!in_array($user['role'], ['admin', 'moderator'], true)) {
+if (!pw_has_permission($user, 'community.edit_any')) {
     pw_error('Only moderators can edit messages.', 403);
 }
 

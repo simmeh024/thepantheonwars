@@ -2,7 +2,7 @@
 /** Full detail for a single book, used to populate the Book Control edit modal. */
 require_once __DIR__ . '/../../helpers.php';
 
-pw_require_admin();
+pw_require_permission('books.view');
 $db = pw_db();
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;

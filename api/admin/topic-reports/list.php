@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
 
-pw_require_mod_or_admin();
+pw_require_permission('topic_reports.view');
 
 $db = pw_db();
 

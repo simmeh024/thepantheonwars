@@ -9,7 +9,7 @@
  *    latest commit on main. If it responds 200, the repo is reachable; we
  *    also keep the sha it returns to cross-check Dispatch Sync below.
  *  - Database: a trivial SELECT against the connection this very request is
- *    already using. In practice, if the DB were actually down, pw_require_admin()
+ *    already using. In practice, if the DB were actually down, pw_require_permission()
  *    would have thrown before we got here -- this is a defensive check, not
  *    the primary signal, since a hard DB outage surfaces as this whole
  *    request failing rather than a graceful "Unreachable" row.
@@ -34,7 +34,7 @@
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/status-helpers.php';
 
-pw_require_admin();
+pw_require_permission('dashboards.view');
 $db = pw_db();
 
 // --- GitHub Repository -------------------------------------------------------
