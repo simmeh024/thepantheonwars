@@ -2917,13 +2917,24 @@
     }
   };
 
+  function resolveSiteImageUrl(url) {
+    // Book image URLs are stored relative to the site root (e.g.
+    // "images/covers/book-1.jpg") because that's how the public books.html
+    // and chapter-one.html pages consume them from the root. The admin
+    // console itself lives under /admin/, so a plain relative path here
+    // would resolve against the wrong base and 404. Absolute paths and full
+    // URLs are left untouched.
+    if (/^(https?:)?\/\//i.test(url) || url.charAt(0) === '/') return url;
+    return '/' + url;
+  }
+
   function refreshImageThumb(type) {
     var f = IMAGE_FIELDS[type];
     if (!f) return;
     var url = f.urlInput.value.trim();
     if (url) {
       f.thumbEmpty.textContent = 'No image';
-      f.thumbImg.src = url;
+      f.thumbImg.src = resolveSiteImageUrl(url);
       f.thumbImg.hidden = false;
       f.thumbEmpty.hidden = true;
     } else {
