@@ -4425,6 +4425,48 @@ footer.site-footer {
 .permission-risk-badge:focus-visible .permission-risk-tooltip {
   opacity: 1; visibility: visible; transform: translateY(0);
 }
+.permission-risk-badge.is-superuser { border-color: var(--purple-bright); color: var(--purple-bright); }
+
+/* Roles & Permissions list page: summary strip + per-role row detail. */
+.role-summary-strip {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px; margin-bottom: 18px;
+}
+.role-summary-item {
+  background: var(--panel); border: 1px solid var(--border-soft); border-radius: 4px;
+  padding: 14px 16px; text-align: center;
+}
+.role-summary-num {
+  display: block; font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 600; color: var(--gold-bright);
+}
+.role-summary-label {
+  display: block; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-faint); margin-top: 4px;
+}
+
+.role-row { align-items: flex-start; flex-wrap: wrap; }
+.role-row-swatch {
+  display: inline-block; width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  margin-top: 2px; border: 1px solid var(--border-soft);
+}
+.role-tag {
+  display: inline-block; font-size: 0.56rem; text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 1px 7px; border-radius: 2px; margin-left: 8px; border: 1px solid var(--border-soft);
+  color: var(--text-faint); vertical-align: middle;
+}
+.role-tag.is-builtin { border-color: #7c8fd6; color: #7c8fd6; }
+.role-tag.is-superuser { border-color: #e05a4a; color: #e05a4a; }
+.role-preview-pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.role-pill {
+  font-size: 0.62rem; padding: 2px 9px; border-radius: 12px;
+  background: rgba(124,79,214,0.14); border: 1px solid var(--border-soft); color: var(--text-dim);
+}
+.role-pill-more { background: none; border-style: dashed; color: var(--text-faint); }
+.role-pill-empty { font-size: 0.68rem; color: var(--text-faint); font-style: italic; margin: 8px 0 0; }
+.role-row-risk { flex-shrink: 0; align-self: flex-start; margin-top: 2px; }
+.role-row-actions { flex-shrink: 0; display: flex; gap: 6px; align-self: flex-start; margin-top: 2px; flex-wrap: wrap; }
+.role-row-actions .permission-mini-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.role-row-actions .permission-mini-btn:disabled:hover { border-color: var(--border-soft); color: var(--text-dim); }
 
 @media (max-width: 860px) {
   .admin-shell.is-ready { flex-direction: column; }

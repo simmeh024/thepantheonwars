@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=99">
+<link rel="stylesheet" href="../css/style.css?v=100">
 </head>
 <body>
 
@@ -632,6 +632,25 @@
       <div class="admin-section-head">
         <h1>Roles &amp; Permissions</h1>
         <p>Create custom roles and control exactly what each one can see and do across the console.</p>
+      </div>
+
+      <div class="role-summary-strip" id="role-summary-strip">
+        <div class="role-summary-item">
+          <span class="role-summary-num" id="role-summary-total">&mdash;</span>
+          <span class="role-summary-label">Total roles</span>
+        </div>
+        <div class="role-summary-item">
+          <span class="role-summary-num" id="role-summary-builtin">&mdash;</span>
+          <span class="role-summary-label">Built-in roles</span>
+        </div>
+        <div class="role-summary-item">
+          <span class="role-summary-num" id="role-summary-custom">&mdash;</span>
+          <span class="role-summary-label">Custom roles</span>
+        </div>
+        <div class="role-summary-item">
+          <span class="role-summary-num" id="role-summary-elevated">&mdash;</span>
+          <span class="role-summary-label">Elevated users</span>
+        </div>
       </div>
 
       <div class="admin-toolbar">
@@ -3402,6 +3421,10 @@
   var roleListEl = document.getElementById('role-list');
   var roleCountEl = document.getElementById('role-count');
   var roleCreateBtn = document.getElementById('role-create-btn');
+  var roleSummaryTotalEl = document.getElementById('role-summary-total');
+  var roleSummaryBuiltinEl = document.getElementById('role-summary-builtin');
+  var roleSummaryCustomEl = document.getElementById('role-summary-custom');
+  var roleSummaryElevatedEl = document.getElementById('role-summary-elevated');
 
   var roleModal = document.getElementById('role-modal');
   var roleModalTitle = document.getElementById('role-modal-title');
@@ -3435,52 +3458,189 @@
 
   function loadRoles() {
     roleListEl.innerHTML = '<div class="admin-list-empty">Loading roles&hellip;</div>';
-    fetch('/api/admin/roles/list.php', { credentials: 'same-origin' })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (!data.ok) {
-          roleListEl.innerHTML = '<div class="admin-list-empty">Could not load roles.</div>';
-          return;
-        }
-        var roles = data.roles || [];
-        ROLES_BY_SLUG = {};
-        roles.forEach(function (r) { ROLES_BY_SLUG[r.slug] = r; });
-        roleCountEl.textContent = roles.length + (roles.length === 1 ? ' role' : ' roles');
-        renderRoleList(roles);
-      })
-      .catch(function () {
+    Promise.all([
+      fetch('/api/admin/roles/list.php', { credentials: 'same-origin' }).then(function (r) { return r.json(); }),
+      fetchPermissionsCatalog(),
+    ]).then(function (results) {
+      var data = results[0];
+      var catalog = results[1];
+      if (!data.ok) {
         roleListEl.innerHTML = '<div class="admin-list-empty">Could not load roles.</div>';
-      });
+        return;
+      }
+      var roles = data.roles || [];
+      ROLES_BY_SLUG = {};
+      roles.forEach(function (r) { ROLES_BY_SLUG[r.slug] = r; });
+      roleCountEl.textContent = roles.length + (roles.length === 1 ? ' role' : ' roles');
+      renderRoleSummary(roles);
+      renderRoleList(roles, catalog);
+    }).catch(function () {
+      roleListEl.innerHTML = '<div class="admin-list-empty">Could not load roles.</div>';
+    });
   }
 
-  function renderRoleList(roles) {
+  function renderRoleSummary(roles) {
+    var builtinCount = roles.filter(function (r) { return r.is_builtin; }).length;
+    // "Elevated" = holds at least one real permission, or is a superuser --
+    // i.e. anyone whose account can do more than a bare member. A custom
+    // role with zero permissions assigned yet doesn't count.
+    var elevatedUsers = roles.reduce(function (sum, r) {
+      var isElevatedRole = r.is_superuser || (r.permissions && r.permissions.length > 0);
+      return sum + (isElevatedRole ? r.user_count : 0);
+    }, 0);
+    roleSummaryTotalEl.textContent = roles.length;
+    roleSummaryBuiltinEl.textContent = builtinCount;
+    roleSummaryCustomEl.textContent = roles.length - builtinCount;
+    roleSummaryElevatedEl.textContent = elevatedUsers;
+  }
+
+  // Highest-severity risk found among a role's own permissions (Destructive
+  // outranks High risk outranks Sensitive), reusing the same per-permission
+  // classifier as the edit modal so the two stay consistent.
+  function roleRiskLevel(role, permByKey) {
+    if (role.is_superuser) {
+      return { label: 'Superuser', description: 'Always has every permission. Can’t be restricted through this UI.' };
+    }
+    var order = ['Destructive', 'High risk', 'Sensitive'];
+    var found = null;
+    (role.permissions || []).forEach(function (key) {
+      var perm = permByKey[key];
+      if (!perm) return;
+      var risk = getPermissionRisk(perm);
+      if (risk && (!found || order.indexOf(risk.label) < order.indexOf(found.label))) found = risk;
+    });
+    return found;
+  }
+
+  function renderRolePreviewPills(role, permByKey) {
+    if (role.is_superuser) {
+      return '<div class="role-preview-pills"><span class="role-pill">All permissions</span></div>';
+    }
+    var keys = role.permissions || [];
+    if (!keys.length) {
+      return '<p class="role-pill-empty">No permissions assigned</p>';
+    }
+    var categories = [];
+    keys.forEach(function (key) {
+      var perm = permByKey[key];
+      if (perm && categories.indexOf(perm.category) === -1) categories.push(perm.category);
+    });
+    var shown = categories.slice(0, 3);
+    var pills = shown.map(function (c) { return '<span class="role-pill">' + escapeHtml(c) + '</span>'; }).join('');
+    if (categories.length > shown.length) {
+      pills += '<span class="role-pill role-pill-more">+' + (categories.length - shown.length) + ' more</span>';
+    }
+    return '<div class="role-preview-pills">' + pills + '</div>';
+  }
+
+  function duplicateRole(role) {
+    var newLabel = window.prompt('Name for the duplicate role:', 'Copy of ' + role.label);
+    if (!newLabel) return;
+    fetch('/api/admin/roles/create.php', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csrf: window.PW_AUTH.csrf, label: newLabel, color: role.color, permissions: role.permissions || [] }),
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) {
+        window.alert(data.error || 'Could not duplicate role.');
+        return;
+      }
+      loadRoles();
+    }).catch(function () {
+      window.alert('Could not reach the server. Please try again.');
+    });
+  }
+
+  // Jumps to the Members section pre-filtered to this role, reusing the
+  // existing role filter dropdown/loadMembers() rather than building a
+  // separate "assign users" flow -- role assignment itself still only
+  // happens through the existing per-member Save flow in that section.
+  function assignUsersForRole(role) {
+    showSection('members');
+    fetchRolesList().then(function () {
+      memberRoleFilterEl.value = role.slug;
+      memberState.role = role.slug;
+      memberState.page = 1;
+      loadMembers();
+    });
+  }
+
+  function renderRoleList(roles, catalog) {
     if (!roles.length) {
       roleListEl.innerHTML = '<div class="admin-list-empty">No roles found.</div>';
       return;
     }
+    var permByKey = {};
+    catalog.forEach(function (p) { permByKey[p.key] = p; });
+
     roleListEl.innerHTML = '';
     roles.forEach(function (role) {
-      var row = document.createElement('button');
-      row.type = 'button';
-      row.className = 'admin-row';
+      var categories = [];
+      (role.permissions || []).forEach(function (key) {
+        var perm = permByKey[key];
+        if (perm && categories.indexOf(perm.category) === -1) categories.push(perm.category);
+      });
+      var permCount = role.is_superuser ? catalog.length : (role.permissions || []).length;
+      var categoryCount = role.is_superuser ? Object.keys(catalog.reduce(function (acc, p) { acc[p.category] = 1; return acc; }, {})).length : categories.length;
+      var risk = roleRiskLevel(role, permByKey);
+
+      var row = document.createElement('div');
+      row.className = 'admin-row role-row';
+      row.tabIndex = 0;
 
       var swatch = document.createElement('span');
-      swatch.className = 'admin-row-cover';
-      swatch.style.cssText = 'display:inline-block;width:28px;height:28px;border-radius:50%;flex-shrink:0;background:' + role.color + ';border:1px solid var(--border-soft);';
+      swatch.className = 'role-row-swatch';
+      swatch.style.background = role.color;
       row.appendChild(swatch);
 
       var main = document.createElement('div');
       main.className = 'admin-row-main';
       main.innerHTML =
-        '<p class="admin-row-subject">' + escapeHtml(role.label) + '</p>' +
+        '<p class="admin-row-subject">' + escapeHtml(role.label) +
+          (role.is_builtin ? '<span class="role-tag is-builtin">Built-in</span>' : '') +
+          (role.is_superuser ? '<span class="role-tag is-superuser">Superuser</span>' : '') +
+        '</p>' +
         '<div class="admin-row-meta">' +
           '<span>' + role.user_count + (role.user_count === 1 ? ' member' : ' members') + '</span>' +
-          (role.is_superuser ? '<span class="admin-row-sep">&bull;</span><span>Superuser</span>' : '') +
-          (role.is_builtin ? '<span class="admin-row-sep">&bull;</span><span>Built-in</span>' : '') +
-        '</div>';
+          '<span class="admin-row-sep">&bull;</span>' +
+          '<span>' + permCount + (permCount === 1 ? ' permission' : ' permissions') + '</span>' +
+          '<span class="admin-row-sep">&bull;</span>' +
+          '<span>' + categoryCount + (categoryCount === 1 ? ' category' : ' categories') + '</span>' +
+        '</div>' +
+        renderRolePreviewPills(role, permByKey);
       row.appendChild(main);
 
+      var riskCol = document.createElement('div');
+      riskCol.className = 'role-row-risk';
+      if (risk) {
+        var badgeClass = 'permission-risk-badge' + (risk.label === 'Destructive' ? ' is-destructive' : (risk.label === 'Superuser' ? ' is-superuser' : ''));
+        riskCol.innerHTML = '<span class="' + badgeClass + '" tabindex="0">' + escapeHtml(risk.label) +
+          '<span class="permission-risk-tooltip">' + escapeHtml(risk.description) + '</span></span>';
+      }
+      row.appendChild(riskCol);
+
+      var actions = document.createElement('div');
+      actions.className = 'role-row-actions';
+      actions.innerHTML =
+        '<button type="button" class="permission-mini-btn" data-role-action="edit">Edit</button>' +
+        '<button type="button" class="permission-mini-btn" data-role-action="duplicate"' + (role.is_superuser ? ' disabled title="Superuser access can\'t be duplicated"' : '') + '>Duplicate</button>' +
+        '<button type="button" class="permission-mini-btn" data-role-action="assign">Assign users</button>';
+      row.appendChild(actions);
+
+      actions.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-role-action]');
+        if (!btn || btn.disabled) return;
+        e.stopPropagation();
+        var action = btn.getAttribute('data-role-action');
+        if (action === 'edit') openRoleModal(role.slug);
+        else if (action === 'duplicate') duplicateRole(role);
+        else if (action === 'assign') assignUsersForRole(role);
+      });
+
       row.addEventListener('click', function () { openRoleModal(role.slug); });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRoleModal(role.slug); }
+      });
       roleListEl.appendChild(row);
     });
   }

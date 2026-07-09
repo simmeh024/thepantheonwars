@@ -17,7 +17,17 @@ $rows = $db->query(
      ORDER BY r.sort_order, r.label'
 )->fetchAll();
 
-$out = array_map(function ($r) {
+// Grouped separately (not a JOIN) so a role with zero permissions still
+// comes back as a single row above -- this just adds each role's
+// permission keys for the admin list's "N permissions / N categories"
+// summary and preview pills. Read-only, same as everything else this
+// endpoint already exposed.
+$permsByRole = [];
+foreach ($db->query('SELECT role_slug, permission_key FROM role_permissions') as $row) {
+    $permsByRole[$row['role_slug']][] = $row['permission_key'];
+}
+
+$out = array_map(function ($r) use ($permsByRole) {
     return [
         'slug' => $r['slug'],
         'label' => $r['label'],
@@ -25,6 +35,7 @@ $out = array_map(function ($r) {
         'is_superuser' => (bool)$r['is_superuser'],
         'is_builtin' => (bool)$r['is_builtin'],
         'user_count' => (int)$r['user_count'],
+        'permissions' => isset($permsByRole[$r['slug']]) ? $permsByRole[$r['slug']] : [],
     ];
 }, $rows);
 
