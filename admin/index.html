@@ -136,6 +136,17 @@
                 </span>
               </button>
             </li>
+            <li>
+              <button type="button" class="quick-action-btn" id="quick-action-new-book">
+                <span class="quick-action-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>
+                </span>
+                <span class="quick-action-label">Add New Book</span>
+                <span class="quick-action-chevron">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+                </span>
+              </button>
+            </li>
           </ul>
         </div>
 
@@ -1041,9 +1052,47 @@
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   }
 
+  // Home auto-refresh: the Home page's cards (Recent Activity, Pending
+  // Work, Community Metrics, Statistics, Dev Snapshot, BH-4 Welcome, System
+  // Status) are re-fetched on a timer while Home is the active section, so
+  // an admin who leaves the console open on Home sees reasonably current
+  // numbers without needing to click the manual refresh icon. The timer is
+  // started/stopped every time showSection() runs (not just on first load)
+  // so navigating away always tears it down and coming back always
+  // restarts it. Ticks are skipped while the browser tab isn't visible, to
+  // avoid firing a batch of requests nobody's looking at.
+  var HOME_AUTO_REFRESH_MS = 60000;
+  var homeAutoRefreshTimer = null;
+
+  function refreshHomeCards() {
+    loadHomeActivity();
+    loadPendingWork();
+    loadCommunityMetrics();
+    loadSiteStats();
+    loadDevSnapshotLanguages();
+    loadBh4Welcome();
+    loadSystemStatus();
+  }
+
+  function startHomeAutoRefresh() {
+    stopHomeAutoRefresh();
+    homeAutoRefreshTimer = setInterval(function () {
+      if (document.hidden) return;
+      refreshHomeCards();
+    }, HOME_AUTO_REFRESH_MS);
+  }
+
+  function stopHomeAutoRefresh() {
+    if (homeAutoRefreshTimer) {
+      clearInterval(homeAutoRefreshTimer);
+      homeAutoRefreshTimer = null;
+    }
+  }
+
   function showSection(name) {
     navLinks.forEach(function (l) { l.classList.toggle('active', l.getAttribute('data-section') === name); });
     sections.forEach(function (s) { s.hidden = (s.id !== 'section-' + name); });
+    if (name === 'home') { startHomeAutoRefresh(); } else { stopHomeAutoRefresh(); }
     if (!loadedSections[name]) {
       loadedSections[name] = true;
       if (name === 'home') { loadHomeActivity(); loadPendingWork(); loadCommunityMetrics(); loadSiteStats(); loadDevSnapshotLanguages(); loadBh4Welcome(); loadSystemStatus(); }
@@ -1244,6 +1293,28 @@
   if (quickActionNewMemberBtn) {
     quickActionNewMemberBtn.addEventListener('click', function () {
       openCreateMemberModal();
+    });
+  }
+
+  // "Add New Book" reuses openCreateBookModal() from the Book Control
+  // section the same way, but that modal needs lastBookEntries populated
+  // first (to work out the next book number), which only happens once the
+  // Book Control section has been visited. If it hasn't, load the book list
+  // in the background (its markup lives in a hidden section, so there's no
+  // visible flash) before opening the modal.
+  var quickActionNewBookBtn = document.getElementById('quick-action-new-book');
+  if (quickActionNewBookBtn) {
+    quickActionNewBookBtn.addEventListener('click', function () {
+      if (loadedSections['book-control']) {
+        openCreateBookModal();
+        return;
+      }
+      quickActionNewBookBtn.disabled = true;
+      loadBookList().then(function () {
+        loadedSections['book-control'] = true;
+        quickActionNewBookBtn.disabled = false;
+        openCreateBookModal();
+      });
     });
   }
 
@@ -2955,7 +3026,7 @@
 
   function loadBookList() {
     bookListEl.innerHTML = '<div class="admin-list-empty">Loading books&hellip;</div>';
-    fetch(buildBookListUrl(), { credentials: 'same-origin' })
+    return fetch(buildBookListUrl(), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) {
