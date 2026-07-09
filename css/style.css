@@ -1840,7 +1840,17 @@ footer.site-footer {
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.95rem;
 }
 .auth-field input:focus { outline: none; border-color: var(--purple-bright); }
+.auth-password-field { position: relative; }
+.auth-password-field input { padding-right: 44px; }
+.auth-password-toggle {
+  position: absolute; top: 0; right: 0; width: 44px; height: 100%;
+  background: none; border: none; color: var(--text-faint); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: color 0.2s ease;
+}
+.auth-password-toggle:hover { color: var(--gold-bright); }
+.auth-password-toggle svg { width: 18px; height: 18px; }
 .auth-submit { margin-top: 6px; }
+.auth-submit:disabled { opacity: 0.5; cursor: default; }
 .auth-error {
   color: #e05a4a; font-size: 0.85rem; margin: 0; display: none;
 }

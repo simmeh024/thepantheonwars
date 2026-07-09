@@ -6,6 +6,17 @@ window.PW_AUTH = { loggedIn: false, user: null, csrf: null };
 
 document.addEventListener('DOMContentLoaded', function () {
 
+  var EYE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
+  var EYE_OFF_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19"/><path d="M1 1l22 22"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+
+  // Password input + show/hide toggle button, shared by login/register.
+  function passwordFieldHtml(id, name, autocomplete, minlength) {
+    return '<div class="auth-password-field">' +
+      '<input id="' + id + '" name="' + name + '" type="password" autocomplete="' + autocomplete + '" required' + (minlength ? ' minlength="' + minlength + '"' : '') + '>' +
+      '<button type="button" class="auth-password-toggle" data-target="' + id + '" aria-label="Show password">' + EYE_ICON + '</button>' +
+    '</div>';
+  }
+
   function buildModal() {
     var wrap = document.createElement('div');
     wrap.className = 'auth-modal';
@@ -23,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<h3 class="auth-modal-title">Welcome back</h3>' +
           '<p class="auth-error"></p>' +
           '<div class="auth-field"><label for="login-identifier">Username or email</label><input id="login-identifier" name="identifier" type="text" autocomplete="username" required></div>' +
-          '<div class="auth-field"><label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required></div>' +
+          '<div class="auth-field"><label for="login-password">Password</label>' + passwordFieldHtml('login-password', 'password', 'current-password') + '</div>' +
           '<button type="submit" class="btn btn-solid auth-submit">Log In</button>' +
         '</form>' +
         '<form class="auth-form" data-form="register" hidden>' +
@@ -31,7 +42,8 @@ document.addEventListener('DOMContentLoaded', function () {
           '<p class="auth-error"></p>' +
           '<div class="auth-field"><label for="reg-username">Username</label><input id="reg-username" name="username" type="text" autocomplete="username" required minlength="3" maxlength="30"></div>' +
           '<div class="auth-field"><label for="reg-email">Email</label><input id="reg-email" name="email" type="email" autocomplete="email" required></div>' +
-          '<div class="auth-field"><label for="reg-password">Password</label><input id="reg-password" name="password" type="password" autocomplete="new-password" required minlength="8"></div>' +
+          '<div class="auth-field"><label for="reg-password">Password</label>' + passwordFieldHtml('reg-password', 'password', 'new-password', 8) + '</div>' +
+          '<div class="auth-field"><label for="reg-password-confirm">Confirm Password</label>' + passwordFieldHtml('reg-password-confirm', 'password-confirm', 'new-password', 8) + '</div>' +
           '<button type="submit" class="btn btn-solid auth-submit">Create Account</button>' +
         '</form>' +
       '</div>';
@@ -73,6 +85,16 @@ document.addEventListener('DOMContentLoaded', function () {
     if (e.key === 'Escape' && !modal.hidden) closeModal();
   });
 
+  modal.querySelectorAll('.auth-password-toggle').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var input = document.getElementById(btn.getAttribute('data-target'));
+      var showing = input.type === 'text';
+      input.type = showing ? 'password' : 'text';
+      btn.innerHTML = showing ? EYE_ICON : EYE_OFF_ICON;
+      btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+    });
+  });
+
   function showFormError(form, message) {
     var err = form.querySelector('.auth-error');
     err.textContent = message;
@@ -95,6 +117,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var form = e.target;
     var identifier = form.querySelector('#login-identifier').value.trim();
     var password = form.querySelector('#login-password').value;
+    var submitBtn = form.querySelector('.auth-submit');
+    submitBtn.disabled = true;
     postJson('/api/login.php', { identifier: identifier, password: password, csrf: window.PW_AUTH.csrf }).then(function (r) {
       if (r.data && r.data.ok) {
         closeModal();
@@ -102,7 +126,8 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         showFormError(form, (r.data && r.data.error) || 'Something went wrong.');
       }
-    }).catch(function () { showFormError(form, 'Could not reach the server. Try again in a moment.'); });
+    }).catch(function () { showFormError(form, 'Could not reach the server. Try again in a moment.'); })
+      .finally(function () { submitBtn.disabled = false; });
   });
 
   modal.querySelector('[data-form="register"]').addEventListener('submit', function (e) {
@@ -111,6 +136,13 @@ document.addEventListener('DOMContentLoaded', function () {
     var username = form.querySelector('#reg-username').value.trim();
     var email = form.querySelector('#reg-email').value.trim();
     var password = form.querySelector('#reg-password').value;
+    var confirmPassword = form.querySelector('#reg-password-confirm').value;
+    if (password !== confirmPassword) {
+      showFormError(form, 'Passwords don\'t match.');
+      return;
+    }
+    var submitBtn = form.querySelector('.auth-submit');
+    submitBtn.disabled = true;
     postJson('/api/register.php', { username: username, email: email, password: password, csrf: window.PW_AUTH.csrf }).then(function (r) {
       if (r.data && r.data.ok) {
         closeModal();
@@ -118,7 +150,8 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         showFormError(form, (r.data && r.data.error) || 'Something went wrong.');
       }
-    }).catch(function () { showFormError(form, 'Could not reach the server. Try again in a moment.'); });
+    }).catch(function () { showFormError(form, 'Could not reach the server. Try again in a moment.'); })
+      .finally(function () { submitBtn.disabled = false; });
   });
 
   // Delegated so it still works after the nav item's innerHTML is replaced.
