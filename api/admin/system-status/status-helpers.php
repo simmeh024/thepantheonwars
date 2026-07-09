@@ -164,8 +164,8 @@ function pw_check_total_storage() {
         return [
             'used_bytes' => 0,
             'max_bytes' => $maxBytes,
-            'used_gb' => 0,
-            'max_gb' => round($maxBytes / (1024 * 1024 * 1024)),
+            'used_mb' => 0,
+            'max_mb' => round($maxBytes / (1024 * 1024)),
             'pct' => 0,
             'status' => 'unknown',
         ];
@@ -182,8 +182,12 @@ function pw_check_total_storage() {
     return [
         'used_bytes' => $usedBytes,
         'max_bytes' => $maxBytes,
-        'used_gb' => round($usedBytes / (1024 * 1024 * 1024), 2),
-        'max_gb' => round($maxBytes / (1024 * 1024 * 1024)),
+        // Matches the used_mb/max_mb shape pw_check_avatar_storage() and
+        // pw_check_database_size() already return -- the frontend's
+        // setAvatarStorageBar() renderer is shared across all three and
+        // expects *_mb specifically, not *_gb.
+        'used_mb' => round($usedBytes / (1024 * 1024), 2),
+        'max_mb' => round($maxBytes / (1024 * 1024)),
         'pct' => round($pct, 1),
         'status' => $status,
     ];
