@@ -3468,6 +3468,10 @@ footer.site-footer {
 .admin-row:nth-child(even) { background: rgba(255,255,255,0.02); }
 .admin-row:nth-child(even):hover { background: rgba(124,79,214,0.1); }
 .admin-row:focus-visible { outline: 1px solid var(--purple-bright); outline-offset: -1px; }
+.admin-row-cover {
+  width: 34px; height: 48px; object-fit: cover; border-radius: 3px; flex-shrink: 0;
+  border: 1px solid var(--border-soft);
+}
 .admin-row-main { flex: 1; min-width: 0; }
 .admin-row-subject {
   font-size: 0.92rem; color: var(--text); margin: 0 0 4px;
