@@ -145,22 +145,31 @@ function pw_check_database_size($db) {
 }
 
 // --- Total account storage --------------------------------------------------------
-// Whole-account disk usage (not just the avatars folder or the database) --
-// there's no cPanel API a plain PHP script can call to read the account's
-// actual disk quota, but disk_free_space() against the home directory
-// reflects the quota-enforced free space on this host (this account uses
-// filesystem-level quotas), so a fixed budget minus reported free space
-// gives an accurate "used" figure. PW_TOTAL_STORAGE_* below are a soft
-// budget matching the real hosting plan size (24 GiB) -- update them if
-// the plan ever changes.
+// Whole-account disk usage (not just the avatars folder or the database).
+// disk_free_space()/disk_total_space() were tried first but turned out to
+// reflect the underlying shared partition (effectively unlimited), not this
+// account's actual quota -- confirmed live: they always computed ~0 MB used
+// against a 24 GiB budget, while cPanel's own Disk Usage page showed the
+// real figure (a few hundred MB). `du -sb` against the home directory is
+// what actually agrees with cPanel's own numbers, so that's what's used
+// here (shell_exec is available on this host -- confirmed during the CPU/DB
+// introspection sweep). PW budget constants below match the real hosting
+// plan size (24 GiB); update them if the plan ever changes.
 function pw_check_total_storage() {
     $homeDir = '/home/rdy3i6my40b0';
     $maxBytes = 24 * 1024 * 1024 * 1024; // 24 GiB plan budget
     $warnBytes = 20 * 1024 * 1024 * 1024; // warn once used crosses 20 GiB
     $badBytes = 22 * 1024 * 1024 * 1024; // bad once used crosses 22 GiB (~92%)
 
-    $freeBytes = @disk_free_space($homeDir);
-    if ($freeBytes === false) {
+    $usedBytes = null;
+    if (function_exists('shell_exec')) {
+        $output = @shell_exec('du -sb ' . escapeshellarg($homeDir) . ' 2>/dev/null');
+        if ($output !== null && preg_match('/^(\d+)/', trim($output), $m)) {
+            $usedBytes = (float)$m[1];
+        }
+    }
+
+    if ($usedBytes === null) {
         return [
             'used_bytes' => 0,
             'max_bytes' => $maxBytes,
@@ -171,7 +180,6 @@ function pw_check_total_storage() {
         ];
     }
 
-    $usedBytes = max(0, $maxBytes - $freeBytes);
     $pct = $maxBytes > 0 ? min(100, ($usedBytes / $maxBytes) * 100) : 0;
     $status = 'ok';
     if ($usedBytes >= $badBytes) {
