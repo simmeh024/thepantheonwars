@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (!availableSection || !unavailableSection) return;
 
-  function showUnavailable(bookNumber) {
+  function showUnavailable(bookNumber, bookTitle) {
     availableSection.hidden = true;
     ctaSection.hidden = true;
     unavailableSection.hidden = false;
@@ -31,6 +31,15 @@ document.addEventListener('DOMContentLoaded', function () {
       unavailableTitleEl.textContent = bookNumber ?
         'Chapter One of Book ' + bookNumber + " isn't ready yet" :
         "This chapter preview isn't ready yet";
+    }
+    // Update the hero so it reflects the requested book (when known) instead
+    // of leaving the static Book One placeholder title/portrait showing.
+    if (bookTitle && titleEl) {
+      document.title = bookTitle + ' — First Chapter Preview — The Pantheon Wars';
+      titleEl.textContent = bookTitle;
+      if (eyebrowEl) eyebrowEl.textContent = bookTitle + ' · Preview';
+      if (ledeEl) ledeEl.textContent = '';
+      if (portraitFrame) portraitFrame.hidden = true;
     }
   }
 
@@ -93,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function () {
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (!data.ok || !data.book || !data.book.preview_enabled || !data.book.preview_body) {
-        showUnavailable(bookNumber);
+        showUnavailable(bookNumber, data.ok && data.book ? data.book.title : null);
         return;
       }
       renderPreview(data.book);
