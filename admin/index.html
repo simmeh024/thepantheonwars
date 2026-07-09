@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=101">
+<link rel="stylesheet" href="../css/style.css?v=102">
 </head>
 <body>
 
@@ -3751,12 +3751,24 @@
       swatch.style.background = role.color;
       row.appendChild(swatch);
 
+      // Superuser is already called out by the "Superuser" role-tag right
+      // next to the name -- showing the risk badge too would just repeat
+      // the same word twice on one row, so it's only rendered for the
+      // actually-informative risk levels (Destructive/High risk/Sensitive).
+      var riskBadge = '';
+      if (risk && risk.label !== 'Superuser') {
+        var badgeClass = 'permission-risk-badge' + (risk.label === 'Destructive' ? ' is-destructive' : '');
+        riskBadge = '<span class="' + badgeClass + '" tabindex="0">' + escapeHtml(risk.label) +
+          '<span class="permission-risk-tooltip">' + escapeHtml(risk.description) + '</span></span>';
+      }
+
       var main = document.createElement('div');
       main.className = 'admin-row-main';
       main.innerHTML =
         '<p class="admin-row-subject">' + escapeHtml(role.label) +
           (role.is_builtin ? '<span class="role-tag is-builtin">Built-in</span>' : '') +
           (role.is_superuser ? '<span class="role-tag is-superuser">Superuser</span>' : '') +
+          riskBadge +
         '</p>' +
         '<div class="admin-row-meta">' +
           '<span>' + role.user_count + (role.user_count === 1 ? ' member' : ' members') + '</span>' +
@@ -3767,15 +3779,6 @@
         '</div>' +
         renderRolePreviewPills(role, permByKey);
       row.appendChild(main);
-
-      var riskCol = document.createElement('div');
-      riskCol.className = 'role-row-risk';
-      if (risk) {
-        var badgeClass = 'permission-risk-badge' + (risk.label === 'Destructive' ? ' is-destructive' : (risk.label === 'Superuser' ? ' is-superuser' : ''));
-        riskCol.innerHTML = '<span class="' + badgeClass + '" tabindex="0">' + escapeHtml(risk.label) +
-          '<span class="permission-risk-tooltip">' + escapeHtml(risk.description) + '</span></span>';
-      }
-      row.appendChild(riskCol);
 
       var actions = document.createElement('div');
       actions.className = 'role-row-actions';

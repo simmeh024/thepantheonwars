@@ -4462,15 +4462,29 @@ footer.site-footer {
   color: var(--text-faint); margin-top: 4px;
 }
 
+/* .admin-row-main's shared `min-width: 0` (meant for single-line
+   ellipsis titles elsewhere) let this row's name+tags collapse to a
+   single letter once the action buttons wanted their full width on the
+   same flex line -- give it a floor so that can't happen, and let the
+   actions bar wrap onto its own full-width line instead (see
+   .role-row-actions below) rather than fighting for horizontal space. */
 .role-row { align-items: flex-start; flex-wrap: wrap; }
+.role-row .admin-row-main { min-width: 220px; }
 .role-row-swatch {
   display: inline-block; width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
   margin-top: 2px; border: 1px solid var(--border-soft);
 }
+/* Name + Built-in/Superuser tags + risk badge, allowed to wrap as a group
+   instead of the shared .admin-row-subject's single-line ellipsis (that
+   rule is right for a book/dispatch title, wrong here). */
+.role-row .admin-row-subject {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px; row-gap: 6px;
+  white-space: normal; overflow: visible; text-overflow: clip;
+}
 .role-tag {
   display: inline-block; font-size: 0.56rem; text-transform: uppercase; letter-spacing: 0.05em;
-  padding: 1px 7px; border-radius: 2px; margin-left: 8px; border: 1px solid var(--border-soft);
-  color: var(--text-faint); vertical-align: middle;
+  padding: 1px 7px; border-radius: 2px; border: 1px solid var(--border-soft);
+  color: var(--text-faint);
 }
 .role-tag.is-builtin { border-color: #7c8fd6; color: #7c8fd6; }
 .role-tag.is-superuser { border-color: #e05a4a; color: #e05a4a; }
@@ -4481,10 +4495,25 @@ footer.site-footer {
 }
 .role-pill-more { background: none; border-style: dashed; color: var(--text-faint); }
 .role-pill-empty { font-size: 0.68rem; color: var(--text-faint); font-style: italic; margin: 8px 0 0; }
-.role-row-risk { flex-shrink: 0; align-self: flex-start; margin-top: 2px; }
-.role-row-actions { flex-shrink: 0; display: flex; gap: 6px; align-self: flex-start; margin-top: 2px; flex-wrap: wrap; }
+/* flex-basis: 100% forces this onto its own full-width line below
+   swatch+main regardless of viewport -- consistent at every width instead
+   of only wrapping once things got tight enough (which is what let the
+   actions sit flush against a squeezed-to-nothing name on mobile). */
+.role-row-actions {
+  flex-basis: 100%; display: flex; gap: 6px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--border-soft);
+}
 .role-row-actions .permission-mini-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .role-row-actions .permission-mini-btn:disabled:hover { border-color: var(--border-soft); color: var(--text-dim); }
+
+@media (max-width: 600px) {
+  /* "4 members • 11 permissions • 4 categories" wrapping mid-line left a
+     lone bullet stranded on its own row on narrow screens -- stack the
+     three stats instead and drop the separators, which don't mean
+     anything once each stat has its own line. */
+  .role-row .admin-row-meta { flex-direction: column; align-items: flex-start; gap: 2px; }
+  .role-row .admin-row-meta .admin-row-sep { display: none; }
+}
 
 @media (max-width: 860px) {
   .admin-shell.is-ready { flex-direction: column; }
