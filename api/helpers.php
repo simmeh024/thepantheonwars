@@ -219,17 +219,19 @@ function pw_password_is_pwned($password) {
     return false;
 }
 
-function pw_log_admin_activity($action, $description, $user = null) {
+// $userId must be a real users.id or null (the column has an ON DELETE SET
+// NULL foreign key -- inserting 0 or any other non-existent id would fail).
+// Used directly by login.php for events that may not have a real account
+// behind them yet (unknown identifier, IP-level throttle).
+function pw_log_activity($action, $description, $userId, $username) {
     $stmt = pw_db()->prepare(
         'INSERT INTO admin_activity_log (user_id, username, action, description, ip_address) VALUES (?, ?, ?, ?, ?)'
     );
-    $stmt->execute([
-        $user ? (int)$user['id'] : null,
-        $user ? $user['username'] : 'unknown',
-        $action,
-        $description,
-        pw_client_ip(),
-    ]);
+    $stmt->execute([$userId, $username, $action, $description, pw_client_ip()]);
+}
+
+function pw_log_admin_activity($action, $description, $user = null) {
+    pw_log_activity($action, $description, $user ? (int)$user['id'] : null, $user ? $user['username'] : 'unknown');
 }
 
 /**

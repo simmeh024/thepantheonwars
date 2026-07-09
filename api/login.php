@@ -24,6 +24,7 @@ $ip = pw_client_ip();
 $stmt = $db->prepare("SELECT COUNT(*) AS c FROM login_attempts WHERE ip_address = ? AND success = 0 AND created_at > (UTC_TIMESTAMP() - INTERVAL 15 MINUTE)");
 $stmt->execute([$ip]);
 if ((int)$stmt->fetch()['c'] >= 20) {
+    pw_log_activity('login_ip_blocked', 'Blocked "' . $identifier . '" after too many failed attempts from this network.', null, $identifier);
     pw_error('Too many login attempts from this network. Try again in a few minutes.', 429);
 }
 
@@ -34,11 +35,13 @@ $user = $stmt->fetch();
 if (!$user) {
     // Same generic message as a bad password — don't reveal which part was wrong.
     pw_log_login_attempt($ip, $identifier, false);
+    pw_log_activity('login_failed', 'Failed login for "' . $identifier . '" (no such account).', null, $identifier);
     pw_error('Incorrect username/email or password.', 401);
 }
 
 if (!empty($user['locked_until']) && strtotime($user['locked_until']) > time()) {
     pw_log_login_attempt($ip, $identifier, false);
+    pw_log_activity('login_locked', 'Login attempt on a locked account.', (int)$user['id'], $user['username']);
     pw_error('Too many failed attempts. Try again in a few minutes.', 429);
 }
 
@@ -51,6 +54,12 @@ if (!password_verify($password, $user['password_hash'])) {
     $stmt = $db->prepare('UPDATE users SET failed_login_attempts = ?, locked_until = ? WHERE id = ?');
     $stmt->execute([$attempts, $lockedUntil, $user['id']]);
     pw_log_login_attempt($ip, $identifier, false);
+    pw_log_activity(
+        'login_failed',
+        'Incorrect password' . ($lockedUntil ? ' — account now locked for 5 minutes.' : '.'),
+        (int)$user['id'],
+        $user['username']
+    );
     pw_error('Incorrect username/email or password.', 401);
 }
 
@@ -58,6 +67,7 @@ if (pw_is_banned($user)) {
     // Only reveal the suspension after the password has checked out, so a
     // banned account can't be fingerprinted by a guess against the identifier alone.
     pw_log_login_attempt($ip, $identifier, false);
+    pw_log_activity('login_banned', 'Login blocked: account is suspended.', (int)$user['id'], $user['username']);
     pw_error('This account has been suspended.', 403);
 }
 
@@ -76,9 +86,7 @@ pw_log_login_attempt($ip, $identifier, true);
 session_regenerate_id(true);
 $_SESSION['user_id'] = (int)$user['id'];
 
-if ($user['role'] === 'admin') {
-    pw_log_admin_activity('login', 'Logged into the admin account.', $user);
-}
+pw_log_activity('login_ok', ucfirst($user['role']) . ' logged in.', (int)$user['id'], $user['username']);
 
 pw_json(['ok' => true, 'user' => [
     'id' => (int)$user['id'],

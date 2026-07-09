@@ -558,8 +558,13 @@
         </button>
         <select class="admin-search admin-tag-select" id="audit-action-filter">
           <option value="">All activity</option>
-          <optgroup label="Session">
+          <optgroup label="Login Activity">
             <option value="login">Admin login</option>
+            <option value="login_ok">Login succeeded</option>
+            <option value="login_failed">Login failed</option>
+            <option value="login_locked">Account locked</option>
+            <option value="login_banned">Banned account blocked</option>
+            <option value="login_ip_blocked">IP throttled</option>
           </optgroup>
           <optgroup label="Book Control">
             <option value="book_created">Book created</option>
@@ -1819,6 +1824,11 @@
   // ===== Home / Activity Log ==================================================
   var ACTIVITY_LABELS = {
     login: 'Admin login',
+    login_ok: 'Login',
+    login_failed: 'Login failed',
+    login_locked: 'Account locked',
+    login_banned: 'Banned account blocked',
+    login_ip_blocked: 'IP throttled',
     book_created: 'Book created',
     book_updated: 'Book updated',
     book_deleted: 'Book deleted',
@@ -1842,6 +1852,11 @@
   };
   var ACTIVITY_ICONS = {
     login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+    login_ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+    login_failed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/><line x1="15.5" y1="8.5" x2="8.5" y2="15.5"/></svg>',
+    login_locked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+    login_banned: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>',
+    login_ip_blocked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><line x1="5.5" y1="18.5" x2="18.5" y2="5.5"/></svg>',
     book_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>',
     book_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9.5 12.5l1.8 1.8L15.5 10"/></svg>',
     book_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9.5" y1="10" x2="14.5" y2="15"/><line x1="14.5" y1="10" x2="9.5" y2="15"/></svg>',
