@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=90">
+<link rel="stylesheet" href="../css/style.css?v=91">
 </head>
 <body>
 
@@ -484,6 +484,37 @@
           </div>
         </div>
 
+        <div class="system-status-detail-card">
+          <div class="system-status-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
+            <span>Storage</span>
+          </div>
+          <div class="system-status-storage-row system-status-storage-row-wide system-status-storage-row-first">
+            <div class="system-status-storage-head">
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
+                Total Storage
+              </span>
+              <span class="system-status-storage-value" id="sys-detail-total-storage-value">&hellip;</span>
+            </div>
+            <div class="system-status-storage-bar-track">
+              <div class="system-status-storage-bar-fill" id="sys-detail-total-storage-bar"></div>
+            </div>
+          </div>
+          <div class="system-status-storage-row system-status-storage-row-wide">
+            <div class="system-status-storage-head">
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
+                Avatar Storage
+              </span>
+              <span class="system-status-storage-value" id="sys-detail-avatar-value">&hellip;</span>
+            </div>
+            <div class="system-status-storage-bar-track">
+              <div class="system-status-storage-bar-fill" id="sys-detail-avatar-bar"></div>
+            </div>
+          </div>
+        </div>
+
         <div class="system-status-detail-card system-status-detail-card-wide">
           <div class="system-status-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>
@@ -508,25 +539,6 @@
           <p class="cpu-chart-note">Whole-server load average over the last 24 hours &mdash; this is shared hosting, so it reflects the entire box (not just this site), which makes it a handy rough signal for traffic spikes or a possible DDoS.</p>
           <div class="cpu-chart-wrap" id="cpu-chart-wrap">
             <p class="cpu-chart-empty" id="cpu-chart-empty">Collecting data&hellip; the chart fills in as samples come in (one per minute).</p>
-          </div>
-        </div>
-
-        <div class="system-status-detail-card">
-          <div class="system-status-head">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
-            <span>Storage</span>
-          </div>
-          <div class="system-status-storage-row system-status-storage-row-wide system-status-storage-row-first">
-            <div class="system-status-storage-head">
-              <span class="system-status-item-label">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
-                Avatar Storage
-              </span>
-              <span class="system-status-storage-value" id="sys-detail-avatar-value">&hellip;</span>
-            </div>
-            <div class="system-status-storage-bar-track">
-              <div class="system-status-storage-bar-fill" id="sys-detail-avatar-bar"></div>
-            </div>
           </div>
         </div>
       </div>
@@ -2023,6 +2035,8 @@
   var sysDetailDbLoadEl = document.getElementById('sys-detail-dbload');
   var sysDetailAvatarValueEl = document.getElementById('sys-detail-avatar-value');
   var sysDetailAvatarBarEl = document.getElementById('sys-detail-avatar-bar');
+  var sysDetailTotalStorageValueEl = document.getElementById('sys-detail-total-storage-value');
+  var sysDetailTotalStorageBarEl = document.getElementById('sys-detail-total-storage-bar');
   var sysDetailDbSizeValueEl = document.getElementById('sys-detail-dbsize-value');
   var sysDetailDbSizeBarEl = document.getElementById('sys-detail-dbsize-bar');
   var sysDetailDbConnEl = document.getElementById('sys-detail-dbconn');
@@ -2195,6 +2209,7 @@
         if (sysDetailLastSyncEl) sysDetailLastSyncEl.textContent = data.last_sync.label;
         if (sysDetailNextSyncEl) sysDetailNextSyncEl.textContent = data.next_sync.label;
         setAvatarStorageBar(sysDetailAvatarValueEl, sysDetailAvatarBarEl, data.avatar_storage);
+        setAvatarStorageBar(sysDetailTotalStorageValueEl, sysDetailTotalStorageBarEl, data.total_storage);
         setAvatarStorageBar(sysDetailDbSizeValueEl, sysDetailDbSizeBarEl, data.database_size);
         renderDbTableSizes(data.db_tables);
       })

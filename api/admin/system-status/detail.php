@@ -117,9 +117,10 @@ $dbExtra = pw_check_database_extra($db);
 // --- CPU (shared host) -----------------------------------------------------------
 $cpuLoad = pw_check_cpu_load();
 
-// --- SSL certificate + Avatar storage --------------------------------------------
+// --- SSL certificate + Avatar storage + Total storage ----------------------------
 $ssl = pw_check_ssl_expiry();
 $avatarStorage = pw_check_avatar_storage();
+$totalStorage = pw_check_total_storage();
 
 pw_json([
     'ok' => true,
@@ -140,4 +141,5 @@ pw_json([
     'db_tables' => $dbExtra['tables'],
     'cpu_load' => $cpuLoad,
     'avatar_storage' => $avatarStorage,
+    'total_storage' => $totalStorage,
 ]);

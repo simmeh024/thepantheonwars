@@ -144,6 +144,51 @@ function pw_check_database_size($db) {
     ];
 }
 
+// --- Total account storage --------------------------------------------------------
+// Whole-account disk usage (not just the avatars folder or the database) --
+// there's no cPanel API a plain PHP script can call to read the account's
+// actual disk quota, but disk_free_space() against the home directory
+// reflects the quota-enforced free space on this host (this account uses
+// filesystem-level quotas), so a fixed budget minus reported free space
+// gives an accurate "used" figure. PW_TOTAL_STORAGE_* below are a soft
+// budget matching the real hosting plan size (24 GiB) -- update them if
+// the plan ever changes.
+function pw_check_total_storage() {
+    $homeDir = '/home/rdy3i6my40b0';
+    $maxBytes = 24 * 1024 * 1024 * 1024; // 24 GiB plan budget
+    $warnBytes = 20 * 1024 * 1024 * 1024; // warn once used crosses 20 GiB
+    $badBytes = 22 * 1024 * 1024 * 1024; // bad once used crosses 22 GiB (~92%)
+
+    $freeBytes = @disk_free_space($homeDir);
+    if ($freeBytes === false) {
+        return [
+            'used_bytes' => 0,
+            'max_bytes' => $maxBytes,
+            'used_gb' => 0,
+            'max_gb' => round($maxBytes / (1024 * 1024 * 1024)),
+            'pct' => 0,
+            'status' => 'unknown',
+        ];
+    }
+
+    $usedBytes = max(0, $maxBytes - $freeBytes);
+    $pct = $maxBytes > 0 ? min(100, ($usedBytes / $maxBytes) * 100) : 0;
+    $status = 'ok';
+    if ($usedBytes >= $badBytes) {
+        $status = 'bad';
+    } elseif ($usedBytes >= $warnBytes) {
+        $status = 'warn';
+    }
+    return [
+        'used_bytes' => $usedBytes,
+        'max_bytes' => $maxBytes,
+        'used_gb' => round($usedBytes / (1024 * 1024 * 1024), 2),
+        'max_gb' => round($maxBytes / (1024 * 1024 * 1024)),
+        'pct' => round($pct, 1),
+        'status' => $status,
+    ];
+}
+
 // --- SSL certificate expiry ------------------------------------------------------
 function pw_check_ssl_expiry($host = 'thepantheonwars.com') {
     $result = ['expires_at' => null, 'days_left' => null, 'status' => 'unknown', 'label' => 'Unknown'];
