@@ -48,20 +48,22 @@ if ($existing) {
     $liked = true;
 
     // Notify the post's author (never on unlike, and never for a self-like
-    // -- pw_notify() no-ops when actor === recipient).
+    // -- pw_notify_like() no-ops when actor === recipient). Collapsed into
+    // one evolving notification per target rather than one row per liker --
+    // see pw_notify_like()'s doc comment in helpers.php.
     if ($targetType === 'topic') {
-        $ownerStmt = $db->prepare('SELECT user_id, title FROM topics WHERE id = ?');
+        $ownerStmt = $db->prepare('SELECT user_id FROM topics WHERE id = ?');
         $ownerStmt->execute([$targetId]);
         $owner = $ownerStmt->fetch();
         if ($owner) {
-            pw_notify((int)$owner['user_id'], 'like', $user['id'], $targetId, null, null, $owner['title']);
+            pw_notify_like((int)$owner['user_id'], $user['id'], $targetId, null);
         }
     } else {
-        $ownerStmt = $db->prepare('SELECT user_id, topic_id, body FROM comments WHERE id = ?');
+        $ownerStmt = $db->prepare('SELECT user_id, topic_id FROM comments WHERE id = ?');
         $ownerStmt->execute([$targetId]);
         $owner = $ownerStmt->fetch();
         if ($owner) {
-            pw_notify((int)$owner['user_id'], 'like', $user['id'], (int)$owner['topic_id'], $targetId, null, $owner['body']);
+            pw_notify_like((int)$owner['user_id'], $user['id'], (int)$owner['topic_id'], $targetId);
         }
     }
 }

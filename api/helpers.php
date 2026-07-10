@@ -307,6 +307,37 @@ function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commen
     ]);
 }
 
+// Likes are collapsed into a single evolving notification per (recipient,
+// target) rather than one row per like -- so "Andrea liked your post" and
+// a later like from someone else on that same post update the same row
+// (bumping it back to unread/most-recent) instead of spamming a fresh row
+// per liker. api/notifications/list.php separately counts how many total
+// likers a target has (via message_likes) to render "X and N others liked
+// your post". Uses the null-safe <=> operator since topic_id/comment_id
+// are mutually exclusive (one is always NULL depending on target type).
+function pw_notify_like($userId, $actorUserId, $topicId, $commentId) {
+    if ((int)$userId === (int)$actorUserId) {
+        return;
+    }
+    $db = pw_db();
+    $stmt = $db->prepare(
+        'SELECT id FROM notifications WHERE user_id = ? AND type = "like" AND topic_id <=> ? AND comment_id <=> ?'
+    );
+    $stmt->execute([$userId, $topicId, $commentId]);
+    $existing = $stmt->fetch();
+    if ($existing) {
+        $stmt = $db->prepare(
+            'UPDATE notifications SET actor_user_id = ?, is_read = 0, created_at = CURRENT_TIMESTAMP WHERE id = ?'
+        );
+        $stmt->execute([$actorUserId, $existing['id']]);
+    } else {
+        $stmt = $db->prepare(
+            'INSERT INTO notifications (user_id, type, actor_user_id, topic_id, comment_id) VALUES (?, "like", ?, ?, ?)'
+        );
+        $stmt->execute([$userId, $actorUserId, $topicId, $commentId]);
+    }
+}
+
 // Extracts unique @username mentions from a post/comment body, resolved
 // against real users.username values (case-insensitive). Quoted text is
 // stripped first so requoting an old message doesn't re-notify whoever it

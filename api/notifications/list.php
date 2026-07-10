@@ -30,7 +30,10 @@ $offset = ($page - 1) * $perPage;
 $stmt = $db->prepare(
     "SELECT n.id, n.type, n.topic_id, n.comment_id, n.report_id, n.excerpt, n.is_read, n.created_at,
             a.id AS actor_id, a.display_name AS actor_display_name, r.color AS actor_role_color,
-            t.title AS topic_title
+            t.title AS topic_title,
+            (SELECT COUNT(*) FROM message_likes ml
+             WHERE ml.target_type = IF(n.comment_id IS NOT NULL, 'comment', 'topic')
+               AND ml.target_id = IFNULL(n.comment_id, n.topic_id)) AS like_count
      FROM notifications n
      LEFT JOIN users a ON a.id = n.actor_user_id
      LEFT JOIN roles r ON r.slug = a.role
@@ -59,6 +62,7 @@ $out = array_map(function ($r) {
         'report_id' => $r['report_id'] !== null ? (int)$r['report_id'] : null,
         'topic_title' => $r['topic_title'],
         'excerpt' => $r['excerpt'],
+        'like_count' => (int)$r['like_count'],
         'is_read' => (bool)$r['is_read'],
         'created_at' => $r['created_at'],
     ];

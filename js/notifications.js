@@ -54,7 +54,10 @@ document.addEventListener('DOMContentLoaded', function () {
     var excerpt = n.excerpt ? escapeHtml(n.excerpt.slice(0, 80)) : '';
     switch (n.type) {
       case 'like':
-        return '<strong>' + (actor || 'Someone') + '</strong> liked your post' + (excerpt ? ': "' + excerpt + '"' : '');
+        var likeCount = n.like_count || 1;
+        var likeWho = '<strong>' + (actor || 'Someone') + '</strong>' +
+          (likeCount > 1 ? ' and ' + (likeCount - 1) + ' other' + (likeCount - 1 === 1 ? '' : 's') : '');
+        return likeWho + ' liked your post' + (n.topic_title ? ' in: <strong>' + escapeHtml(n.topic_title) + '</strong>' : '');
       case 'mention':
         return '<strong>' + (actor || 'Someone') + '</strong> mentioned you' + (n.topic_title ? ' in <strong>' + escapeHtml(n.topic_title) + '</strong>' : '');
       case 'quote':
