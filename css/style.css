@@ -371,9 +371,18 @@ a.nav-parent { cursor: pointer; }
   background: var(--panel); border: 1px solid var(--border-soft); border-radius: 10px;
   box-shadow: 0 0 26px rgba(162,121,236,0.22), inset 0 0 0 1px rgba(162,121,236,0.08);
 }
-.notif-status-avatar-wrap { width: 108px; height: 108px; }
+/* Higher specificity than the generic .profile-avatar-wrap/.profile-avatar
+   rules (declared later in this file) is needed here -- a same-specificity,
+   single-class ".notif-status-avatar-wrap" rule was losing the cascade tie
+   to the later ".profile-avatar-wrap" rule, leaving the wrapper at 96px
+   while the image (already higher-specificity via the descendant selector
+   below) rendered at 108px -- the size mismatch between an absolutely
+   positioned image and its wrapper box was the "not round enough" bug. */
+.notif-status-card .notif-status-avatar-wrap {
+  width: 108px; height: 108px; border-radius: 50%; overflow: hidden;
+}
 .notif-status-avatar-wrap .profile-avatar {
-  width: 108px; height: 108px; object-position: top;
+  width: 108px; height: 108px; border-radius: 50%; object-position: top;
   animation: bh4-avatar-pulse 3.5s ease-in-out infinite;
 }
 @keyframes bh4-avatar-pulse {
@@ -405,7 +414,10 @@ a.nav-parent { cursor: pointer; }
 }
 .notif-status-info-btn:hover .notif-status-tooltip,
 .notif-status-info-btn:focus .notif-status-tooltip { opacity: 1; visibility: visible; }
-.notif-status-desc { margin: 10px 0 16px; font-size: 0.88rem; color: var(--text-dim); }
+.notif-status-desc {
+  margin: 10px 0 16px; padding-bottom: 16px; font-size: 0.88rem; color: var(--text-dim);
+  border-bottom: 1px solid var(--border-soft);
+}
 .notif-status-desc strong { color: var(--purple-bright); }
 .notif-status-stats { display: flex; flex-wrap: wrap; gap: 26px; }
 .notif-stat { display: flex; align-items: center; gap: 8px; }
