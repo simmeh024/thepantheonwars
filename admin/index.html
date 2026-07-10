@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=102">
+<link rel="stylesheet" href="../css/style.css?v=103">
 </head>
 <body>
 
@@ -931,8 +931,8 @@
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner">
     <button type="button" class="admin-modal-close" id="member-lookup-close" aria-label="Close">&times;</button>
-    <h3 class="admin-modal-title">Find Existing Member</h3>
-    <p class="admin-modal-sub">Search for someone who&rsquo;s already registered and assign them a role directly &mdash; no need to create a duplicate account.</p>
+    <h3 class="admin-modal-title" id="member-lookup-title">Find Existing Member</h3>
+    <p class="admin-modal-sub" id="member-lookup-sub">Search for people who are already registered and assign them a role directly &mdash; no need to create a duplicate account.</p>
 
     <div class="admin-field">
       <label for="member-lookup-search">Search by name, username, or email</label>
@@ -941,10 +941,16 @@
 
     <div class="member-lookup-results" id="member-lookup-results"></div>
 
+    <div class="member-lookup-selected" id="member-lookup-selected" hidden>
+      <p class="member-lookup-selected-label">Selected (<span id="member-lookup-selected-count">0</span>)</p>
+      <div class="member-lookup-chips" id="member-lookup-chips"></div>
+    </div>
+
     <div class="admin-field" id="member-lookup-role-field" hidden>
       <label for="member-lookup-role-select">Assign role</label>
       <select id="member-lookup-role-select"></select>
     </div>
+    <p class="member-lookup-locked-role" id="member-lookup-locked-role" hidden></p>
 
     <p class="admin-modal-error" id="member-lookup-error"></p>
     <p class="admin-modal-status" id="member-lookup-status"></p>
@@ -3192,44 +3198,90 @@
   memberCancelBtn.addEventListener('click', closeMemberModal);
   memberModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeMemberModal);
 
-  // ===== Find Existing Member (lookup + assign-role shortcut) =================
+  // ===== Find Existing Member (lookup + multi-select assign-role shortcut) ====
   // Search + assign, not create -- reuses the same admin/members/list.php
   // search (already supports ?q=) and posts only { id, role } to the
-  // existing admin/members/update.php, so this is just a faster path to a
-  // role change that was already possible via the per-member edit modal.
+  // existing admin/members/update.php once per selected member, so this is
+  // just a faster (and now bulk-capable) path to a role change that was
+  // already possible one at a time via the per-member edit modal.
   var memberLookupModal = document.getElementById('member-lookup-modal');
+  var memberLookupTitle = document.getElementById('member-lookup-title');
+  var memberLookupSub = document.getElementById('member-lookup-sub');
   var memberLookupClose = document.getElementById('member-lookup-close');
   var memberLookupCancelBtn = document.getElementById('member-lookup-cancel-btn');
   var memberLookupSearchEl = document.getElementById('member-lookup-search');
   var memberLookupResultsEl = document.getElementById('member-lookup-results');
+  var memberLookupSelectedWrap = document.getElementById('member-lookup-selected');
+  var memberLookupSelectedCount = document.getElementById('member-lookup-selected-count');
+  var memberLookupChipsEl = document.getElementById('member-lookup-chips');
   var memberLookupRoleField = document.getElementById('member-lookup-role-field');
   var memberLookupRoleSelect = document.getElementById('member-lookup-role-select');
+  var memberLookupLockedRoleEl = document.getElementById('member-lookup-locked-role');
   var memberLookupError = document.getElementById('member-lookup-error');
   var memberLookupStatus = document.getElementById('member-lookup-status');
   var memberLookupAssignBtn = document.getElementById('member-lookup-assign-btn');
 
-  var memberLookupSelected = null;
+  var memberLookupSelected = {}; // id -> entry, across searches until Assign/close
+  var memberLookupLockedRole = null; // role object when opened from a role row's "Assign users"
   var memberLookupDebounce = null;
 
-  function openMemberLookupModal() {
-    memberLookupSelected = null;
+  function memberLookupSelectedCountNum() { return Object.keys(memberLookupSelected).length; }
+
+  function renderMemberLookupSelected() {
+    var ids = Object.keys(memberLookupSelected);
+    memberLookupSelectedWrap.hidden = ids.length === 0;
+    memberLookupSelectedCount.textContent = ids.length;
+    memberLookupChipsEl.innerHTML = ids.map(function (id) {
+      var entry = memberLookupSelected[id];
+      return '<span class="member-lookup-chip">' + escapeHtml(entry.display_name) +
+        '<button type="button" class="member-lookup-chip-remove" data-id="' + id + '" aria-label="Remove">&times;</button></span>';
+    }).join('');
+    memberLookupAssignBtn.disabled = ids.length === 0;
+    // Reflect selection state on any currently-rendered result rows too.
+    memberLookupResultsEl.querySelectorAll('.member-lookup-row').forEach(function (row) {
+      row.classList.toggle('is-selected', !!memberLookupSelected[row.getAttribute('data-id')]);
+    });
+  }
+
+  memberLookupChipsEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.member-lookup-chip-remove');
+    if (!btn) return;
+    delete memberLookupSelected[btn.getAttribute('data-id')];
+    renderMemberLookupSelected();
+  });
+
+  // lockedRole: pass a role object to open pre-targeted at that role (from
+  // a role row's "Assign users" button) -- the role picker is replaced with
+  // a fixed label so there's no chance of assigning the wrong role.
+  function openMemberLookupModal(lockedRole) {
+    memberLookupLockedRole = lockedRole || null;
+    memberLookupSelected = {};
     memberLookupSearchEl.value = '';
     memberLookupResultsEl.innerHTML = '<p class="member-lookup-hint">Type at least 2 characters to search.</p>';
-    memberLookupRoleField.hidden = true;
-    memberLookupAssignBtn.disabled = true;
     memberLookupError.classList.remove('show');
     memberLookupStatus.classList.remove('show');
+    renderMemberLookupSelected();
 
-    fetchRolesList().then(function (roles) {
-      memberLookupRoleSelect.innerHTML = roles.map(function (r) {
-        return '<option value="' + escapeHtml(r.slug) + '">' + escapeHtml(r.label) + '</option>';
-      }).join('');
-      // If the list is currently filtered to one role (e.g. arrived here via
-      // a role's "Assign users" action), default the picker to that role.
-      if (memberState.role && memberState.role !== 'all') {
-        memberLookupRoleSelect.value = memberState.role;
-      }
-    });
+    if (memberLookupLockedRole) {
+      memberLookupTitle.textContent = 'Assign Users to ' + memberLookupLockedRole.label;
+      memberLookupSub.textContent = 'Search for people who are already registered and add them to this role.';
+      memberLookupRoleField.hidden = true;
+      memberLookupLockedRoleEl.hidden = false;
+      memberLookupLockedRoleEl.innerHTML = 'Assigning role: <strong>' + escapeHtml(memberLookupLockedRole.label) + '</strong>';
+    } else {
+      memberLookupTitle.textContent = 'Find Existing Member';
+      memberLookupSub.textContent = 'Search for people who are already registered and assign them a role directly — no need to create a duplicate account.';
+      memberLookupLockedRoleEl.hidden = true;
+      fetchRolesList().then(function (roles) {
+        memberLookupRoleSelect.innerHTML = roles.map(function (r) {
+          return '<option value="' + escapeHtml(r.slug) + '">' + escapeHtml(r.label) + '</option>';
+        }).join('');
+        if (memberState.role && memberState.role !== 'all') {
+          memberLookupRoleSelect.value = memberState.role;
+        }
+      });
+      memberLookupRoleField.hidden = false;
+    }
 
     memberLookupModal.hidden = false;
     setTimeout(function () { memberLookupSearchEl.focus(); }, 30);
@@ -3237,7 +3289,8 @@
 
   function closeMemberLookupModal() {
     memberLookupModal.hidden = true;
-    memberLookupSelected = null;
+    memberLookupSelected = {};
+    memberLookupLockedRole = null;
   }
 
   function renderMemberLookupResults(entries) {
@@ -3249,26 +3302,29 @@
     entries.forEach(function (entry) {
       var row = document.createElement('button');
       row.type = 'button';
-      row.className = 'member-lookup-row';
+      row.className = 'member-lookup-row' + (memberLookupSelected[entry.id] ? ' is-selected' : '');
+      row.setAttribute('data-id', entry.id);
       row.innerHTML =
+        '<input type="checkbox" class="member-lookup-row-check"' + (memberLookupSelected[entry.id] ? ' checked' : '') + ' tabindex="-1">' +
         '<span class="member-lookup-row-name">' + escapeHtml(entry.display_name) + '</span>' +
         '<span class="member-lookup-row-meta">' + escapeHtml(entry.email) + '</span>' +
         '<span class="member-role-badge" style="--role-color:' + escapeHtml(roleColorFor(entry.role)) + '">' + escapeHtml(roleLabelFor(entry.role)) + '</span>';
       row.addEventListener('click', function () {
-        memberLookupResultsEl.querySelectorAll('.member-lookup-row').forEach(function (r) { r.classList.remove('is-selected'); });
-        row.classList.add('is-selected');
-        memberLookupSelected = entry;
-        memberLookupRoleField.hidden = false;
-        if (!memberState.role || memberState.role === 'all') memberLookupRoleSelect.value = entry.role;
-        memberLookupAssignBtn.disabled = false;
-        memberLookupStatus.classList.remove('show');
+        if (memberLookupSelected[entry.id]) {
+          delete memberLookupSelected[entry.id];
+        } else {
+          memberLookupSelected[entry.id] = entry;
+        }
         memberLookupError.classList.remove('show');
+        memberLookupStatus.classList.remove('show');
+        renderMemberLookupResults(entries);
+        renderMemberLookupSelected();
       });
       memberLookupResultsEl.appendChild(row);
     });
   }
 
-  memberLookupBtn.addEventListener('click', openMemberLookupModal);
+  memberLookupBtn.addEventListener('click', function () { openMemberLookupModal(null); });
   memberLookupClose.addEventListener('click', closeMemberLookupModal);
   memberLookupCancelBtn.addEventListener('click', closeMemberLookupModal);
   memberLookupModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeMemberLookupModal);
@@ -3276,9 +3332,6 @@
   memberLookupSearchEl.addEventListener('input', function () {
     clearTimeout(memberLookupDebounce);
     var query = memberLookupSearchEl.value.trim();
-    memberLookupSelected = null;
-    memberLookupRoleField.hidden = true;
-    memberLookupAssignBtn.disabled = true;
     if (query.length < 2) {
       memberLookupResultsEl.innerHTML = '<p class="member-lookup-hint">Type at least 2 characters to search.</p>';
       return;
@@ -3293,29 +3346,42 @@
   });
 
   memberLookupAssignBtn.addEventListener('click', function () {
-    if (!memberLookupSelected) return;
-    var newRole = memberLookupRoleSelect.value;
+    var selectedEntries = Object.keys(memberLookupSelected).map(function (id) { return memberLookupSelected[id]; });
+    if (!selectedEntries.length) return;
+    var newRole = memberLookupLockedRole ? memberLookupLockedRole.slug : memberLookupRoleSelect.value;
+    var newRoleLabel = memberLookupLockedRole ? memberLookupLockedRole.label : roleLabelFor(newRole);
     memberLookupError.classList.remove('show');
     memberLookupAssignBtn.disabled = true;
-    fetch('/api/admin/members/update.php', {
-      method: 'POST', credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ csrf: window.PW_AUTH.csrf, id: memberLookupSelected.id, role: newRole }),
-    }).then(function (r) { return r.json(); }).then(function (data) {
-      if (!data.ok) {
-        memberLookupError.textContent = data.error || 'Could not assign that role.';
+
+    Promise.all(selectedEntries.map(function (entry) {
+      return fetch('/api/admin/members/update.php', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csrf: window.PW_AUTH.csrf, id: entry.id, role: newRole }),
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        return { entry: entry, ok: !!data.ok, error: data.error };
+      }).catch(function () {
+        return { entry: entry, ok: false, error: 'Could not reach the server.' };
+      });
+    })).then(function (results) {
+      var succeeded = results.filter(function (r) { return r.ok; });
+      var failed = results.filter(function (r) { return !r.ok; });
+      if (failed.length) {
+        memberLookupError.textContent = failed.length + ' of ' + results.length + ' could not be assigned (' +
+          failed.map(function (r) { return r.entry.display_name + ': ' + (r.error || 'error'); }).join('; ') + ').';
         memberLookupError.classList.add('show');
-        memberLookupAssignBtn.disabled = false;
-        return;
       }
-      memberLookupStatus.textContent = roleLabelFor(newRole) + ' assigned to ' + memberLookupSelected.display_name + '.';
-      memberLookupStatus.classList.add('show');
-      loadMembers();
-      setTimeout(closeMemberLookupModal, 900);
-    }).catch(function () {
-      memberLookupError.textContent = 'Could not reach the server. Please try again.';
-      memberLookupError.classList.add('show');
-      memberLookupAssignBtn.disabled = false;
+      if (succeeded.length) {
+        memberLookupStatus.textContent = newRoleLabel + ' assigned to ' + succeeded.length +
+          (succeeded.length === 1 ? ' member.' : ' members.');
+        memberLookupStatus.classList.add('show');
+        succeeded.forEach(function (r) { delete memberLookupSelected[r.entry.id]; });
+        renderMemberLookupSelected();
+        loadMembers();
+        if (typeof loadRoles === 'function' && !roleListEl.closest('.admin-section').hidden) loadRoles();
+      }
+      memberLookupAssignBtn.disabled = memberLookupSelectedCountNum() === 0;
+      if (!failed.length) setTimeout(closeMemberLookupModal, 900);
     });
   });
 
@@ -3709,18 +3775,11 @@
     });
   }
 
-  // Jumps to the Members section pre-filtered to this role, reusing the
-  // existing role filter dropdown/loadMembers() rather than building a
-  // separate "assign users" flow -- role assignment itself still only
-  // happens through the existing per-member Save flow in that section.
+  // Opens the same Find Existing Member lookup used from the Members
+  // toolbar, but locked to this role -- search, multi-select, Assign,
+  // done, without leaving the Roles & Permissions page.
   function assignUsersForRole(role) {
-    showSection('members');
-    fetchRolesList().then(function () {
-      memberRoleFilterEl.value = role.slug;
-      memberState.role = role.slug;
-      memberState.page = 1;
-      loadMembers();
-    });
+    openMemberLookupModal(role);
   }
 
   function renderRoleList(roles, catalog) {

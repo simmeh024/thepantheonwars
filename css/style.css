@@ -4240,8 +4240,26 @@ footer.site-footer {
 .member-lookup-row:last-child { border-bottom: none; }
 .member-lookup-row:hover { background: rgba(124,79,214,0.08); }
 .member-lookup-row.is-selected { background: rgba(124,79,214,0.18); }
-.member-lookup-row-name { font-size: 0.86rem; }
+.member-lookup-row-check { accent-color: var(--purple-bright); cursor: pointer; flex-shrink: 0; pointer-events: none; }
+.member-lookup-row-name { font-size: 0.86rem; flex-shrink: 0; }
 .member-lookup-row-meta { font-size: 0.72rem; color: var(--text-faint); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.member-lookup-selected { margin-bottom: 18px; }
+.member-lookup-selected-label {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); margin: 0 0 6px;
+}
+.member-lookup-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.member-lookup-chip {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 0.76rem; color: var(--text);
+  background: rgba(124,79,214,0.16); border: 1px solid var(--border-soft); border-radius: 12px; padding: 3px 6px 3px 10px;
+}
+.member-lookup-chip-remove {
+  background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 0.9rem; line-height: 1;
+  padding: 0 2px; border-radius: 50%; transition: color 0.15s ease;
+}
+.member-lookup-chip-remove:hover { color: #e05a4a; }
+.member-lookup-locked-role { font-size: 0.84rem; color: var(--text); margin: 0 0 18px; }
+.member-lookup-locked-role strong { color: var(--gold-bright); }
 .member-ban-options input[type="datetime-local"]:focus { outline: none; border-color: var(--purple-bright); }
 
 .admin-modal {
