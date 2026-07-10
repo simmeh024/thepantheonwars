@@ -32,6 +32,18 @@ CREATE TABLE IF NOT EXISTS role_permissions (
   CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_key) REFERENCES permissions(`key`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- A member's "other roles" -- additional roles beyond their single main
+-- role (users.role) that add extra permission grants without changing
+-- which role's color/rank badge is shown publicly. See
+-- migration_user_roles.sql for the standalone one-off.
+CREATE TABLE IF NOT EXISTS user_roles (
+  user_id INT UNSIGNED NOT NULL,
+  role_slug VARCHAR(40) NOT NULL,
+  PRIMARY KEY (user_id, role_slug),
+  CONSTRAINT fk_user_roles_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user_roles_role FOREIGN KEY (role_slug) REFERENCES roles(slug) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS users (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(30) NOT NULL,

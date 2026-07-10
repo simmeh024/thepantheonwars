@@ -892,12 +892,18 @@
       <input type="email" id="member-email-input" maxlength="255">
     </div>
     <div class="admin-field">
-      <label for="member-role-select">Role</label>
+      <label for="member-role-select" id="member-role-label">Role</label>
+      <p class="admin-field-hint" id="member-role-hint" hidden>Determines the color and rank badge visitors see on this member&rsquo;s profile.</p>
       <select id="member-role-select">
         <option value="member">Member</option>
         <option value="moderator">Moderator</option>
         <option value="admin">Admin</option>
       </select>
+    </div>
+    <div class="admin-field" id="member-other-roles-field" hidden>
+      <label>Other roles</label>
+      <p class="admin-field-hint">Grants additional permissions on top of the main role above, without changing which role&rsquo;s color/rank is shown publicly.</p>
+      <div class="member-other-roles-list" id="member-other-roles-list"></div>
     </div>
     <div class="admin-field member-ban-field" id="member-ban-field">
       <label class="member-ban-toggle">
@@ -2918,7 +2924,53 @@
     memberRoleSelect.innerHTML = roles.map(function (r) {
       return '<option value="' + escapeHtml(r.slug) + '">' + escapeHtml(r.label) + '</option>';
     }).join('');
+    if (memberModal && !memberModal.hidden && memberModalMode === 'edit') {
+      renderMemberOtherRolesList();
+    }
   }
+
+  // "Other roles" -- additional roles a member can hold beyond their single
+  // main role (memberRoleSelect), each adding its own permission grants
+  // without changing which role's color/rank badge shows publicly. Simple
+  // checkbox list (not the search+chips pattern used for Assign/Remove
+  // Users) since the option set here is just "every role" and stays short.
+  function renderMemberOtherRolesList() {
+    var mainRole = memberRoleSelect.value;
+    var disabled = !pwHasPermission('members.change_role');
+    var roles = Object.keys(ROLES_BY_SLUG).map(function (slug) { return ROLES_BY_SLUG[slug]; })
+      .filter(function (r) { return r.slug !== mainRole; });
+
+    // Dropping the main role out from under a checked "other role" would
+    // silently discard that selection -- keep it selected, just hidden from
+    // the list, so switching Main Role back doesn't lose data.
+    if (memberOtherRolesSelected[mainRole]) {
+      delete memberOtherRolesSelected[mainRole];
+    }
+
+    if (!roles.length) {
+      memberOtherRolesListEl.innerHTML = '<p class="member-lookup-hint">No other roles exist yet.</p>';
+      return;
+    }
+
+    memberOtherRolesListEl.innerHTML = roles.map(function (r) {
+      var checked = !!memberOtherRolesSelected[r.slug];
+      return '<label class="permission-option-row">' +
+        '<input type="checkbox" data-other-role="' + escapeHtml(r.slug) + '"' + (checked ? ' checked' : '') + (disabled ? ' disabled' : '') + '>' +
+        '<span>' + escapeHtml(r.label) + '</span>' +
+      '</label>';
+    }).join('');
+  }
+
+  document.addEventListener('change', function (e) {
+    var input = e.target.closest('[data-other-role]');
+    if (!input) return;
+    var slug = input.getAttribute('data-other-role');
+    if (input.checked) {
+      memberOtherRolesSelected[slug] = true;
+    } else {
+      delete memberOtherRolesSelected[slug];
+    }
+  });
 
   var memberListEl = document.getElementById('member-list');
   var memberCountEl = document.getElementById('member-count');
@@ -2950,6 +3002,11 @@
   var memberDisplayNameInput = document.getElementById('member-display-name-input');
   var memberEmailInput = document.getElementById('member-email-input');
   var memberRoleSelect = document.getElementById('member-role-select');
+  var memberRoleLabelEl = document.getElementById('member-role-label');
+  var memberRoleHintEl = document.getElementById('member-role-hint');
+  var memberOtherRolesField = document.getElementById('member-other-roles-field');
+  var memberOtherRolesListEl = document.getElementById('member-other-roles-list');
+  var memberOtherRolesSelected = {};
   var memberBanField = document.getElementById('member-ban-field');
   var memberBannedCheckbox = document.getElementById('member-banned-checkbox');
   var memberBanOptionsEl = document.getElementById('member-ban-options');
@@ -3139,6 +3196,13 @@
   memberBanPermanentRadio.addEventListener('change', updateBanOptionsVisibility);
   memberBanTemporaryRadio.addEventListener('change', updateBanOptionsVisibility);
 
+  // Main Role can't also appear as an "other role" (redundant -- it already
+  // grants its own permissions), so switching Main Role re-renders the
+  // Other Roles list to drop whichever slug just became the new main one.
+  memberRoleSelect.addEventListener('change', function () {
+    if (memberModalMode === 'edit') renderMemberOtherRolesList();
+  });
+
   function openMemberModal(entry) {
     memberModalMode = 'edit';
     currentMember = entry;
@@ -3159,6 +3223,13 @@
     memberDisplayNameInput.value = entry.display_name;
     memberEmailInput.value = entry.email;
     memberRoleSelect.value = entry.role;
+
+    memberRoleLabelEl.textContent = 'Main Role';
+    memberRoleHintEl.hidden = false;
+    memberOtherRolesField.hidden = false;
+    memberOtherRolesSelected = {};
+    (entry.other_roles || []).forEach(function (slug) { memberOtherRolesSelected[slug] = true; });
+    fetchRolesList().then(renderMemberOtherRolesList);
 
     // Field-level gating so a role that only has, say, members.ban doesn't
     // see controls it isn't allowed to submit -- the server enforces the
@@ -3206,6 +3277,11 @@
     memberDisplayNameInput.value = '';
     memberEmailInput.value = '';
     memberRoleSelect.value = 'member';
+
+    memberRoleLabelEl.textContent = 'Role';
+    memberRoleHintEl.hidden = true;
+    memberOtherRolesField.hidden = true;
+    memberOtherRolesSelected = {};
 
     memberBanField.hidden = true;
     memberBannedCheckbox.checked = false;
@@ -3784,6 +3860,7 @@
         display_name: displayName,
         email: email,
         role: role,
+        other_roles: Object.keys(memberOtherRolesSelected),
         banned: banned,
         ban_type: banType,
         banned_until: bannedUntil,

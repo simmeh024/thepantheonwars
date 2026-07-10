@@ -78,13 +78,24 @@ $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $rows = $stmt->fetchAll();
 
-$out = array_map(function ($r) {
+// Grouped separately (not a JOIN) so a member with zero "other roles" still
+// comes back as a single row -- same pattern as roles/list.php's
+// permissions-by-role lookup. Read-only, no permission beyond members.view
+// needed since it's just which roles a member holds, same sensitivity as
+// the single `role` column already returned here.
+$otherRolesByUser = [];
+foreach ($db->query('SELECT user_id, role_slug FROM user_roles') as $row) {
+    $otherRolesByUser[$row['user_id']][] = $row['role_slug'];
+}
+
+$out = array_map(function ($r) use ($otherRolesByUser) {
     return [
         'id' => (int)$r['id'],
         'username' => $r['username'],
         'email' => $r['email'],
         'display_name' => $r['display_name'],
         'role' => $r['role'],
+        'other_roles' => isset($otherRolesByUser[$r['id']]) ? $otherRolesByUser[$r['id']] : [],
         'created_at' => $r['created_at'],
         'last_login_at' => $r['last_login_at'],
         'last_login_ip' => $r['last_login_ip'],

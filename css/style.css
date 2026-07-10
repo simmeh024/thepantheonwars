@@ -4159,6 +4159,14 @@ footer.site-footer {
   padding: 3px 10px; border-radius: 3px; border: 1px solid #e05a4a; color: #e05a4a; white-space: nowrap;
 }
 
+.admin-field-hint { font-size: 0.76rem; color: var(--text-faint); margin: -0.3em 0 0.6em; }
+
+.member-other-roles-list {
+  display: flex; flex-direction: column; gap: 2px;
+  background: var(--bg); border: 1px solid var(--border-soft); border-radius: 4px;
+  padding: 6px 12px; max-height: 180px; overflow-y: auto;
+}
+
 .member-ban-field { border-top: 1px solid var(--border-soft); padding-top: 14px; margin-top: 4px; }
 .admin-field label.member-ban-toggle {
   display: flex; align-items: center; gap: 10px; cursor: pointer;
@@ -4433,7 +4441,8 @@ footer.site-footer {
    itself a <label>, and ".admin-field label" (class+type = higher
    specificity than a single class) would otherwise silently win and
    collapse the grid back to a block, no matter the source order. */
-.permission-category-card .permission-option-row {
+.permission-category-card .permission-option-row,
+.member-other-roles-list .permission-option-row {
   display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: 7px;
   font-size: 0.76rem; text-transform: none; letter-spacing: normal; color: var(--text-dim);
   padding: 4px 0; cursor: pointer; margin-bottom: 0;

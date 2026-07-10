@@ -159,18 +159,33 @@ function pw_require_mod_or_admin() {
 // for a superuser role (currently just 'admin') which short-circuits every
 // pw_has_permission() check to true -- this is what guarantees a checkbox
 // mistake in the Roles & Permissions admin UI can never lock every admin out.
+// A user's effective permissions are the union of their main role
+// (users.role -- also drives the public display color/rank) and any
+// "other roles" held via the user_roles table. Any one of those roles
+// being is_superuser grants full access, same as before this was multi-role.
 function pw_user_permissions($user) {
     if (empty($user) || empty($user['role'])) {
         return [];
     }
-    $stmt = pw_db()->prepare('SELECT is_superuser FROM roles WHERE slug = ?');
-    $stmt->execute([$user['role']]);
-    $role = $stmt->fetch();
-    if ($role && (int)$role['is_superuser'] === 1) {
+    $db = pw_db();
+    $slugs = [$user['role']];
+    if (!empty($user['id'])) {
+        $stmt = $db->prepare('SELECT role_slug FROM user_roles WHERE user_id = ?');
+        $stmt->execute([$user['id']]);
+        foreach ($stmt->fetchAll() as $r) {
+            $slugs[] = $r['role_slug'];
+        }
+    }
+    $slugs = array_values(array_unique($slugs));
+    $placeholders = implode(',', array_fill(0, count($slugs), '?'));
+
+    $stmt = $db->prepare("SELECT 1 FROM roles WHERE slug IN ($placeholders) AND is_superuser = 1 LIMIT 1");
+    $stmt->execute($slugs);
+    if ($stmt->fetch()) {
         return ['*'];
     }
-    $stmt = pw_db()->prepare('SELECT permission_key FROM role_permissions WHERE role_slug = ?');
-    $stmt->execute([$user['role']]);
+    $stmt = $db->prepare("SELECT DISTINCT permission_key FROM role_permissions WHERE role_slug IN ($placeholders)");
+    $stmt->execute($slugs);
     return array_column($stmt->fetchAll(), 'permission_key');
 }
 
