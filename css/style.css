@@ -3391,12 +3391,12 @@ footer.site-footer {
 .admin-nav-category-toggle {
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   width: 100%; background: none; border: none; cursor: pointer;
-  padding: 6px 24px; margin: 0;
-  font-family: 'Jost', sans-serif; font-size: 0.66rem; text-transform: uppercase;
+  padding: 8px 24px; margin: 0;
+  font-family: 'Jost', sans-serif; font-size: 0.71rem; text-transform: uppercase;
   letter-spacing: 0.12em; color: var(--text-faint); opacity: 0.75; transition: opacity 0.2s ease, color 0.2s ease;
 }
 .admin-nav-category-toggle:hover { opacity: 1; color: var(--text-dim); }
-.admin-nav-category-chevron { width: 11px; height: 11px; flex-shrink: 0; transition: transform 0.2s ease; }
+.admin-nav-category-chevron { width: 12px; height: 12px; flex-shrink: 0; transition: transform 0.2s ease; }
 .admin-nav-category.is-collapsed .admin-nav-category-chevron { transform: rotate(-90deg); }
 .admin-nav-category.is-collapsed .admin-nav-list-collapsible { display: none; }
 .admin-nav-list { list-style: none; margin: 0; padding: 0; flex: 0 0 auto; }
@@ -3547,7 +3547,6 @@ footer.site-footer {
 .report-action-btn-reopen { border-color: var(--purple-bright); color: var(--purple-bright); }
 .report-action-btn-reopen:hover { background: rgba(124,79,214,0.12); color: var(--gold-bright); border-color: var(--gold-bright); }
 
-.admin-nav-list-top { margin-bottom: 6px; padding-bottom: 6px; border-bottom: 1px solid var(--border-soft); }
 .admin-nav-category + .admin-nav-category { border-top: 1px solid var(--border-soft); padding-top: 2px; }
 
 .admin-home-grid { display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
@@ -4564,7 +4563,6 @@ footer.site-footer {
     flex-direction: row; align-items: center; padding: 14px 0; overflow-x: auto;
   }
   .admin-brand { border-bottom: none; margin-bottom: 0; padding: 0 18px; flex-shrink: 0; }
-  .admin-nav-list-top { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
   .admin-nav-category {
     padding: 0; margin-top: 0; flex-shrink: 0; display: flex; align-items: center;
   }
