@@ -18,8 +18,40 @@ if ($perPage > 100) {
     $perPage = 100;
 }
 
-$countStmt = $db->prepare('SELECT COUNT(*) AS c FROM notifications WHERE user_id = ?');
-$countStmt->execute([$user['id']]);
+// Optional filters driven by the notifications.html filter chips: a
+// comma-separated subset of types (unknown values are silently dropped
+// rather than erroring, since this only narrows an already-own-rows-only
+// query) and an unread-only flag.
+$allowedTypes = ['like', 'mention', 'quote', 'report_resolved'];
+$types = [];
+if (!empty($_GET['types'])) {
+    foreach (explode(',', $_GET['types']) as $t) {
+        $t = trim($t);
+        if (in_array($t, $allowedTypes, true)) {
+            $types[] = $t;
+        }
+    }
+}
+$unreadOnly = isset($_GET['unread_only']) && $_GET['unread_only'] === '1';
+
+$whereExtra = '';
+$typePlaceholders = [];
+foreach ($types as $i => $t) {
+    $typePlaceholders[] = ':type' . $i;
+}
+if ($typePlaceholders) {
+    $whereExtra .= ' AND n.type IN (' . implode(',', $typePlaceholders) . ')';
+}
+if ($unreadOnly) {
+    $whereExtra .= ' AND n.is_read = 0';
+}
+
+$countStmt = $db->prepare('SELECT COUNT(*) AS c FROM notifications n WHERE n.user_id = :user_id' . $whereExtra);
+$countStmt->bindValue(':user_id', $user['id'], PDO::PARAM_INT);
+foreach ($types as $i => $t) {
+    $countStmt->bindValue(':type' . $i, $t);
+}
+$countStmt->execute();
 $total = (int)$countStmt->fetch()['c'];
 $totalPages = $total > 0 ? (int)ceil($total / $perPage) : 1;
 if ($page > $totalPages) {
@@ -38,11 +70,14 @@ $stmt = $db->prepare(
      LEFT JOIN users a ON a.id = n.actor_user_id
      LEFT JOIN roles r ON r.slug = a.role
      LEFT JOIN topics t ON t.id = n.topic_id
-     WHERE n.user_id = :user_id
+     WHERE n.user_id = :user_id" . $whereExtra . "
      ORDER BY n.created_at DESC, n.id DESC
      LIMIT :limit OFFSET :offset"
 );
 $stmt->bindValue(':user_id', $user['id'], PDO::PARAM_INT);
+foreach ($types as $i => $t) {
+    $stmt->bindValue(':type' . $i, $t);
+}
 $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();

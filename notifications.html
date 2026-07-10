@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=113">
+<link rel="stylesheet" href="css/style.css?v=114">
 </head>
 <body>
 
@@ -88,6 +88,65 @@
       </div>
 
       <div id="notif-page-content" hidden>
+
+        <div class="notif-status-card">
+          <div class="notif-status-avatar-wrap profile-avatar-wrap" id="notif-status-avatar-wrap">
+            <img class="profile-avatar" id="notif-status-avatar-img" alt="" hidden>
+            <div class="profile-avatar-fallback profile-avatar" id="notif-status-avatar-fallback">?</div>
+          </div>
+          <div class="notif-status-info">
+            <div class="notif-status-title-row">
+              <h2 class="notif-status-title" id="notif-status-title">Transmission Status</h2>
+              <span class="notif-status-info-btn" tabindex="0" aria-label="About these notifications">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                <span class="notif-status-tooltip">These notifications have been verified and sent directly to you<span id="notif-status-tooltip-name"></span>.</span>
+              </span>
+            </div>
+            <p class="notif-status-sub" id="notif-status-sub"></p>
+            <p class="notif-status-desc" id="notif-status-desc">Loading status&hellip;</p>
+            <div class="notif-status-stats">
+              <div class="notif-stat">
+                <span class="notif-stat-dot"></span>
+                <span class="notif-stat-value" id="notif-stat-unread">0</span>
+                <span class="notif-stat-label">Unread</span>
+              </div>
+              <div class="notif-stat">
+                <span class="notif-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 0 0 2 2h13.5a2 2 0 0 0 2-1.6l1.2-6A2 2 0 0 0 18.7 12H14V6a2 2 0 0 0-2-2l-2 5.5V22"/></svg></span>
+                <span class="notif-stat-value" id="notif-stat-like">0</span>
+                <span class="notif-stat-label">Likes</span>
+              </div>
+              <div class="notif-stat">
+                <span class="notif-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-4 7.5"/></svg></span>
+                <span class="notif-stat-value" id="notif-stat-mention">0</span>
+                <span class="notif-stat-label">Mentions</span>
+              </div>
+              <div class="notif-stat">
+                <span class="notif-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg></span>
+                <span class="notif-stat-value" id="notif-stat-quote">0</span>
+                <span class="notif-stat-label">Quotes</span>
+              </div>
+              <div class="notif-stat">
+                <span class="notif-stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg></span>
+                <span class="notif-stat-value" id="notif-stat-report">0</span>
+                <span class="notif-stat-label">Reports</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="notif-filter-row" id="notif-filter-row">
+          <button type="button" class="notif-filter-btn is-active" data-filter="all">All <span class="notif-filter-count" id="notif-filter-count-all">0</span></button>
+          <button type="button" class="notif-filter-btn" data-filter="like">Likes <span class="notif-filter-count" id="notif-filter-count-like">0</span></button>
+          <button type="button" class="notif-filter-btn" data-filter="mention">Mentions <span class="notif-filter-count" id="notif-filter-count-mention">0</span></button>
+          <button type="button" class="notif-filter-btn" data-filter="quote">Quotes <span class="notif-filter-count" id="notif-filter-count-quote">0</span></button>
+          <button type="button" class="notif-filter-btn" data-filter="report_resolved">Reports <span class="notif-filter-count" id="notif-filter-count-report_resolved">0</span></button>
+          <label class="notif-unread-toggle">
+            <input type="checkbox" id="notif-unread-toggle-input">
+            <span class="notif-unread-toggle-track"><span class="notif-unread-toggle-thumb"></span></span>
+            Unread only
+          </label>
+        </div>
+
         <div class="admin-toolbar notif-page-toolbar">
           <button type="button" class="activity-refresh-btn" id="notif-page-refresh-btn" title="Refresh" aria-label="Refresh notifications">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
@@ -156,7 +215,19 @@
   var refreshBtn = document.getElementById('notif-page-refresh-btn');
   var markAllBtn = document.getElementById('notif-page-mark-all-btn');
 
-  var state = { page: 1, perPage: 20, totalPages: 1 };
+  var avatarWrap = document.getElementById('notif-status-avatar-wrap');
+  var avatarImg = document.getElementById('notif-status-avatar-img');
+  var avatarFallback = document.getElementById('notif-status-avatar-fallback');
+  var statusTitle = document.getElementById('notif-status-title');
+  var statusSub = document.getElementById('notif-status-sub');
+  var statusDesc = document.getElementById('notif-status-desc');
+  var statusTooltipName = document.getElementById('notif-status-tooltip-name');
+  var filterRow = document.getElementById('notif-filter-row');
+  var unreadToggle = document.getElementById('notif-unread-toggle-input');
+
+  var STAT_LABELS = { like: 'Likes', mention: 'Mentions', quote: 'Quotes', report_resolved: 'Reports' };
+
+  var state = { page: 1, perPage: 20, totalPages: 1, types: [], unreadOnly: false };
 
   var TYPE_ICONS = {
     like: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 0 0 2 2h13.5a2 2 0 0 0 2-1.6l1.2-6A2 2 0 0 0 18.7 12H14V6a2 2 0 0 0-2-2l-2 5.5V22"/></svg>',
@@ -272,11 +343,90 @@
     paginationEl.appendChild(wrap);
   }
 
+  function loadStats() {
+    fetch('/api/notifications/stats.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        document.getElementById('notif-stat-unread').textContent = data.unread;
+        document.getElementById('notif-stat-like').textContent = data.counts.like;
+        document.getElementById('notif-stat-mention').textContent = data.counts.mention;
+        document.getElementById('notif-stat-quote').textContent = data.counts.quote;
+        document.getElementById('notif-stat-report').textContent = data.counts.report_resolved;
+        document.getElementById('notif-filter-count-all').textContent = data.total;
+        document.getElementById('notif-filter-count-like').textContent = data.counts.like;
+        document.getElementById('notif-filter-count-mention').textContent = data.counts.mention;
+        document.getElementById('notif-filter-count-quote').textContent = data.counts.quote;
+        document.getElementById('notif-filter-count-report_resolved').textContent = data.counts.report_resolved;
+
+        var topType = null, topCount = 0;
+        Object.keys(STAT_LABELS).forEach(function (t) {
+          if (data.counts[t] > topCount) { topCount = data.counts[t]; topType = t; }
+        });
+        var activity = topType ? STAT_LABELS[topType] : 'None yet';
+        statusDesc.innerHTML = '<strong>' + data.unread + '</strong> unread transmission' + (data.unread === 1 ? '' : 's') +
+          ' detected. Primary activity: <strong>' + activity + '</strong>';
+      })
+      .catch(function () {});
+  }
+
+  function setFilterActive(el, active) {
+    el.classList.toggle('is-active', active);
+    var existingCheck = el.querySelector('.notif-filter-check');
+    if (active && el.getAttribute('data-filter') !== 'all' && !existingCheck) {
+      var check = document.createElement('span');
+      check.className = 'notif-filter-check';
+      check.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+      el.appendChild(check);
+    } else if (!active && existingCheck) {
+      existingCheck.remove();
+    }
+  }
+
+  function renderFilterState() {
+    var buttons = filterRow.querySelectorAll('.notif-filter-btn');
+    buttons.forEach(function (btn) {
+      var f = btn.getAttribute('data-filter');
+      if (f === 'all') {
+        setFilterActive(btn, state.types.length === 0);
+      } else {
+        setFilterActive(btn, state.types.indexOf(f) !== -1);
+      }
+    });
+  }
+
+  if (filterRow) {
+    filterRow.addEventListener('click', function (e) {
+      var btn = e.target.closest('.notif-filter-btn');
+      if (!btn) return;
+      var f = btn.getAttribute('data-filter');
+      if (f === 'all') {
+        state.types = [];
+      } else {
+        var idx = state.types.indexOf(f);
+        if (idx === -1) { state.types.push(f); } else { state.types.splice(idx, 1); }
+      }
+      renderFilterState();
+      state.page = 1;
+      loadList();
+    });
+  }
+
+  if (unreadToggle) {
+    unreadToggle.addEventListener('change', function () {
+      state.unreadOnly = unreadToggle.checked;
+      state.page = 1;
+      loadList();
+    });
+  }
+
   function loadList() {
     listEl.innerHTML = '<p class="notif-empty">Loading&hellip;</p>';
     var params = new URLSearchParams();
     params.set('page', state.page);
     params.set('per_page', state.perPage);
+    if (state.types.length) params.set('types', state.types.join(','));
+    if (state.unreadOnly) params.set('unread_only', '1');
     fetch('/api/notifications/list.php?' + params.toString(), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -305,7 +455,7 @@
       keepalive: true,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ csrf: window.PW_AUTH.csrf, id: id }),
-    }).catch(function () {});
+    }).then(loadStats).catch(function () {});
   });
 
   if (refreshBtn) {
@@ -313,6 +463,7 @@
       if (refreshBtn.classList.contains('is-spinning')) return;
       refreshBtn.classList.add('is-spinning');
       loadList();
+      loadStats();
       setTimeout(function () { refreshBtn.classList.remove('is-spinning'); }, 600);
     });
   }
@@ -324,8 +475,29 @@
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ csrf: window.PW_AUTH.csrf, all: true }),
-      }).then(loadList).catch(function () {});
+      }).then(function () {
+        loadList();
+        loadStats();
+      }).catch(function () {});
     });
+  }
+
+  function loadAvatar() {
+    var u = window.PW_AUTH.user;
+    if (!u) return;
+    avatarWrap.style.setProperty('--role-color', u.role_color || '#c7ccd6');
+    avatarFallback.textContent = (u.display_name || u.username || '?').charAt(0).toUpperCase();
+    var roleLabel = u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : 'Member';
+    statusTitle.textContent = (u.display_name || u.username || '') + ' — Transmission Status';
+    statusSub.textContent = roleLabel;
+    statusTooltipName.textContent = ', ' + (u.display_name || u.username || '');
+    var probe = new Image();
+    probe.onload = function () {
+      avatarImg.src = probe.src;
+      avatarImg.hidden = false;
+      avatarFallback.hidden = true;
+    };
+    probe.src = '/uploads/avatars/' + u.id + '.jpg';
   }
 
   function load() {
@@ -336,6 +508,9 @@
     }
     gate.hidden = true;
     content.hidden = false;
+    loadAvatar();
+    loadStats();
+    renderFilterState();
     loadList();
   }
 
