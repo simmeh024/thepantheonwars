@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=119">
+<link rel="stylesheet" href="../css/style.css?v=120">
 </head>
 <body>
 
@@ -142,6 +142,81 @@
             </div>
           </div>
           <p class="bh4-welcome-footer" id="bh4-welcome-footer">&nbsp;</p>
+
+          <div class="bh4-task-advisor" id="bh4-task-advisor" data-state="loading">
+            <div class="bh4-task-advisor__header">
+              <span class="bh4-task-advisor__heading">BH-4 Task Advisor</span>
+              <span class="bh4-task-advisor__info-wrap">
+                <button type="button" class="bh4-task-advisor__info-btn" id="bh4-advisor-info-btn"
+                  aria-expanded="false" aria-controls="bh4-advisor-info-tooltip" aria-label="Why this recommendation?">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                </button>
+                <span class="bh4-task-advisor__tooltip" id="bh4-advisor-info-tooltip" role="tooltip">
+                  BH-4 selects the highest active priority:
+                  <ol>
+                    <li>Critical system issues</li>
+                    <li>Unresolved topic reports</li>
+                    <li>Pending dispatch translations</li>
+                  </ol>
+                </span>
+              </span>
+            </div>
+
+            <div class="bh4-task-advisor__body" id="bh4-advisor-body">
+              <p class="bh4-task-advisor__loading" id="bh4-advisor-loading">BH-4 is assessing current conditions&hellip;</p>
+
+              <div class="bh4-task-advisor__error" id="bh4-advisor-error" hidden>
+                <p>Task assessment unavailable.</p>
+                <button type="button" class="btn" id="bh4-advisor-retry-btn">Retry</button>
+              </div>
+
+              <div class="bh4-task-advisor__content" id="bh4-advisor-content" hidden>
+                <div class="bh4-task-advisor__primary" id="bh4-advisor-primary">
+                  <span class="bh4-task-advisor__priority-icon" id="bh4-advisor-primary-icon"></span>
+                  <div class="bh4-task-advisor__primary-body">
+                    <span class="bh4-task-advisor__priority-label" id="bh4-advisor-priority-label">Priority</span>
+                    <h3 class="bh4-task-advisor__title" id="bh4-advisor-primary-title"></h3>
+                    <p class="bh4-task-advisor__reason" id="bh4-advisor-primary-reason"></p>
+                    <button type="button" class="bh4-task-advisor__action-btn" id="bh4-advisor-primary-action" hidden></button>
+                  </div>
+                  <div class="bh4-task-advisor__secondary" id="bh4-advisor-secondary" hidden>
+                    <span class="bh4-task-advisor__priority-icon bh4-task-advisor__priority-icon--secondary" id="bh4-advisor-secondary-icon"></span>
+                    <div>
+                      <span class="bh4-task-advisor__priority-label bh4-task-advisor__priority-label--secondary">Next priority</span>
+                      <p class="bh4-task-advisor__secondary-title" id="bh4-advisor-secondary-title"></p>
+                      <button type="button" class="bh4-task-advisor__action-btn bh4-task-advisor__action-btn--secondary" id="bh4-advisor-secondary-action"></button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="bh4-task-advisor__overview" id="bh4-advisor-overview">
+                  <div class="bh4-task-advisor__overview-item">
+                    <span class="bh4-task-advisor__overview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg></span>
+                    <span class="bh4-task-advisor__overview-value" id="bh4-advisor-overview-reports">&hellip;</span>
+                    <span class="bh4-task-advisor__overview-label">Topic reports<br><span id="bh4-advisor-overview-reports-sub">Unresolved</span></span>
+                  </div>
+                  <div class="bh4-task-advisor__overview-item">
+                    <span class="bh4-task-advisor__overview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg></span>
+                    <span class="bh4-task-advisor__overview-value" id="bh4-advisor-overview-translations">&hellip;</span>
+                    <span class="bh4-task-advisor__overview-label">Dispatch translations<br><span id="bh4-advisor-overview-translations-sub">Pending</span></span>
+                  </div>
+                  <div class="bh4-task-advisor__overview-item">
+                    <span class="bh4-task-advisor__overview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg></span>
+                    <span class="bh4-task-advisor__overview-value" id="bh4-advisor-overview-alerts">&hellip;</span>
+                    <span class="bh4-task-advisor__overview-label">System alerts<br><span id="bh4-advisor-overview-alerts-sub">Active</span></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="bh4-task-advisor__footer">
+              <span class="bh4-task-advisor__updated" id="bh4-advisor-updated">&nbsp;</span>
+              <button type="button" class="activity-refresh-btn" id="bh4-advisor-refresh-btn" title="Refresh" aria-label="Refresh task advisor">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <span>Refresh Data</span>
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="quick-actions-card" id="quick-actions-card">
@@ -241,81 +316,6 @@
             </li>
           </ul>
           <p class="system-status-footer" id="system-status-footer">&nbsp;</p>
-        </div>
-      </div>
-
-      <div class="bh4-task-advisor" id="bh4-task-advisor" data-state="loading">
-        <div class="bh4-task-advisor__header">
-          <span class="bh4-task-advisor__heading">BH-4 Task Advisor</span>
-          <span class="bh4-task-advisor__info-wrap">
-            <button type="button" class="bh4-task-advisor__info-btn" id="bh4-advisor-info-btn"
-              aria-expanded="false" aria-controls="bh4-advisor-info-tooltip" aria-label="Why this recommendation?">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-            </button>
-            <span class="bh4-task-advisor__tooltip" id="bh4-advisor-info-tooltip" role="tooltip">
-              BH-4 selects the highest active priority:
-              <ol>
-                <li>Critical system issues</li>
-                <li>Unresolved topic reports</li>
-                <li>Pending dispatch translations</li>
-              </ol>
-            </span>
-          </span>
-        </div>
-
-        <div class="bh4-task-advisor__body" id="bh4-advisor-body">
-          <p class="bh4-task-advisor__loading" id="bh4-advisor-loading">BH-4 is assessing current conditions&hellip;</p>
-
-          <div class="bh4-task-advisor__error" id="bh4-advisor-error" hidden>
-            <p>Task assessment unavailable.</p>
-            <button type="button" class="btn" id="bh4-advisor-retry-btn">Retry</button>
-          </div>
-
-          <div class="bh4-task-advisor__content" id="bh4-advisor-content" hidden>
-            <div class="bh4-task-advisor__primary" id="bh4-advisor-primary">
-              <span class="bh4-task-advisor__priority-icon" id="bh4-advisor-primary-icon"></span>
-              <div class="bh4-task-advisor__primary-body">
-                <span class="bh4-task-advisor__priority-label" id="bh4-advisor-priority-label">Priority</span>
-                <h3 class="bh4-task-advisor__title" id="bh4-advisor-primary-title"></h3>
-                <p class="bh4-task-advisor__reason" id="bh4-advisor-primary-reason"></p>
-                <button type="button" class="bh4-task-advisor__action-btn" id="bh4-advisor-primary-action" hidden></button>
-              </div>
-              <div class="bh4-task-advisor__secondary" id="bh4-advisor-secondary" hidden>
-                <span class="bh4-task-advisor__priority-icon bh4-task-advisor__priority-icon--secondary" id="bh4-advisor-secondary-icon"></span>
-                <div>
-                  <span class="bh4-task-advisor__priority-label bh4-task-advisor__priority-label--secondary">Next priority</span>
-                  <p class="bh4-task-advisor__secondary-title" id="bh4-advisor-secondary-title"></p>
-                  <button type="button" class="bh4-task-advisor__action-btn bh4-task-advisor__action-btn--secondary" id="bh4-advisor-secondary-action"></button>
-                </div>
-              </div>
-            </div>
-
-            <div class="bh4-task-advisor__overview" id="bh4-advisor-overview">
-              <div class="bh4-task-advisor__overview-item">
-                <span class="bh4-task-advisor__overview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg></span>
-                <span class="bh4-task-advisor__overview-value" id="bh4-advisor-overview-reports">&hellip;</span>
-                <span class="bh4-task-advisor__overview-label">Topic reports<br><span id="bh4-advisor-overview-reports-sub">Unresolved</span></span>
-              </div>
-              <div class="bh4-task-advisor__overview-item">
-                <span class="bh4-task-advisor__overview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg></span>
-                <span class="bh4-task-advisor__overview-value" id="bh4-advisor-overview-translations">&hellip;</span>
-                <span class="bh4-task-advisor__overview-label">Dispatch translations<br><span id="bh4-advisor-overview-translations-sub">Pending</span></span>
-              </div>
-              <div class="bh4-task-advisor__overview-item">
-                <span class="bh4-task-advisor__overview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg></span>
-                <span class="bh4-task-advisor__overview-value" id="bh4-advisor-overview-alerts">&hellip;</span>
-                <span class="bh4-task-advisor__overview-label">System alerts<br><span id="bh4-advisor-overview-alerts-sub">Active</span></span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="bh4-task-advisor__footer">
-          <span class="bh4-task-advisor__updated" id="bh4-advisor-updated">&nbsp;</span>
-          <button type="button" class="activity-refresh-btn" id="bh4-advisor-refresh-btn" title="Refresh" aria-label="Refresh task advisor">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-            <span>Refresh Data</span>
-          </button>
         </div>
       </div>
 

@@ -3922,6 +3922,8 @@ footer.site-footer {
   padding: 22px 26px;
   flex: 1 1 auto;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
 }
 .bh4-welcome-head {
   display: flex;
@@ -4013,11 +4015,12 @@ footer.site-footer {
    red convention already used by .system-status-value.system-status-ok/warn/bad
    and .bh4-welcome-status(-warn) elsewhere on this page. */
 .bh4-task-advisor {
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--panel);
-  padding: 20px 24px;
-  margin-bottom: 24px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 .bh4-task-advisor__header {
   display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
@@ -4108,7 +4111,7 @@ footer.site-footer {
 
 .bh4-task-advisor__footer {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-soft);
+  margin-top: auto; padding-top: 14px;
 }
 .bh4-task-advisor__updated { font-size: 0.74rem; color: var(--text-faint); }
 
