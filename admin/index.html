@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=107">
+<link rel="stylesheet" href="../css/style.css?v=108">
 </head>
 <body>
 
@@ -34,6 +34,7 @@
       </button>
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li><button type="button" class="admin-nav-link active" data-section="home"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>Home</button></li>
+        <li data-requires-permission="analytics.view"><button type="button" class="admin-nav-link" data-section="visitor-stats"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 3"/><polyline points="14 3 21 3 21 10"/></svg>Visitor Statistics</button></li>
       </ul>
     </div>
 
@@ -374,6 +375,100 @@
           <p class="site-stats-footnote" id="dev-snapshot-updated">Loading&hellip;</p>
         </div>
       </div>
+    </section>
+
+    <section class="admin-section" id="section-visitor-stats" hidden>
+      <div class="admin-section-head">
+        <h1>Visitor Statistics</h1>
+        <p>Page-view traffic across the public site &mdash; totals, trends over time, top pages/referrers, and a raw recent-visits feed.</p>
+      </div>
+
+      <div class="activity-widget traffic-snapshot-card">
+        <div class="activity-widget-head">
+          <div class="activity-widget-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+            <span>Traffic Snapshot</span>
+          </div>
+        </div>
+        <div class="traffic-snapshot-grid" id="traffic-snapshot-grid">
+          <div class="traffic-snapshot-col">
+            <h3>Today</h3>
+            <div class="site-stat"><div class="site-stat-value" id="vstats-today-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
+            <div class="site-stat"><div class="site-stat-value" id="vstats-today-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
+            <div class="site-stat"><div class="site-stat-value" id="vstats-today-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
+          </div>
+          <div class="traffic-snapshot-col">
+            <h3>Last 7 Days</h3>
+            <div class="site-stat"><div class="site-stat-value" id="vstats-7d-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
+            <div class="site-stat"><div class="site-stat-value" id="vstats-7d-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
+            <div class="site-stat"><div class="site-stat-value" id="vstats-7d-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
+          </div>
+          <div class="traffic-snapshot-col">
+            <h3>Last 30 Days</h3>
+            <div class="site-stat"><div class="site-stat-value" id="vstats-30d-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
+            <div class="site-stat"><div class="site-stat-value" id="vstats-30d-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
+            <div class="site-stat"><div class="site-stat-value" id="vstats-30d-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="activity-widget visits-chart-card">
+        <div class="activity-widget-head">
+          <div class="activity-widget-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 3"/><polyline points="14 3 21 3 21 10"/></svg>
+            <span>Visits Over Time</span>
+          </div>
+          <div class="visits-chart-range-toggle" id="visits-chart-range-toggle">
+            <button type="button" class="visits-range-btn" data-range="7">7d</button>
+            <button type="button" class="visits-range-btn is-active" data-range="30">30d</button>
+            <button type="button" class="visits-range-btn" data-range="90">90d</button>
+          </div>
+        </div>
+        <div class="visits-chart-wrap" id="visits-chart-wrap">
+          <p class="visits-chart-empty">Collecting data&hellip; the chart fills in as visits come in.</p>
+        </div>
+      </div>
+
+      <div class="admin-home-grid admin-home-grid-secondary">
+        <div class="activity-widget admin-home-grid-half">
+          <div class="activity-widget-head">
+            <div class="activity-widget-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+              <span>Top Pages</span>
+            </div>
+          </div>
+          <ul class="ranked-list" id="top-pages-list">
+            <li class="admin-list-empty">Loading&hellip;</li>
+          </ul>
+        </div>
+
+        <div class="activity-widget admin-home-grid-half">
+          <div class="activity-widget-head">
+            <div class="activity-widget-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>
+              <span>Top Referrers</span>
+            </div>
+          </div>
+          <ul class="ranked-list" id="top-referrers-list">
+            <li class="admin-list-empty">Loading&hellip;</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="admin-section-head admin-section-subhead">
+        <h2>Recent Visits</h2>
+      </div>
+      <div class="admin-toolbar">
+        <button type="button" class="activity-refresh-btn" id="vstats-recent-refresh-btn" title="Refresh" aria-label="Refresh recent visits">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          <span>Refresh</span>
+        </button>
+        <span class="admin-count" id="vstats-recent-count"></span>
+      </div>
+      <div class="admin-list" id="vstats-recent-list">
+        <div class="admin-list-empty">Loading recent visits&hellip;</div>
+      </div>
+      <div class="admin-pagination" id="vstats-recent-pagination"></div>
     </section>
 
     <section class="admin-section" id="section-system-status" hidden>
@@ -1409,6 +1504,7 @@
       if (name === 'topic-reports') loadTopicReports();
       if (name === 'book-control') loadBookList();
       if (name === 'roles-permissions') loadRoles();
+      if (name === 'visitor-stats') loadVisitorStats();
     }
   }
 
@@ -2307,6 +2403,275 @@
     wrap.appendChild(label);
     wrap.appendChild(next);
     auditPaginationEl.appendChild(wrap);
+  }
+
+  // ===== Visitor Statistics =====================================================
+  var vstatsTodayViewsEl = document.getElementById('vstats-today-views');
+  var vstatsTodayUniqueEl = document.getElementById('vstats-today-unique');
+  var vstatsTodaySplitEl = document.getElementById('vstats-today-split');
+  var vstats7dViewsEl = document.getElementById('vstats-7d-views');
+  var vstats7dUniqueEl = document.getElementById('vstats-7d-unique');
+  var vstats7dSplitEl = document.getElementById('vstats-7d-split');
+  var vstats30dViewsEl = document.getElementById('vstats-30d-views');
+  var vstats30dUniqueEl = document.getElementById('vstats-30d-unique');
+  var vstats30dSplitEl = document.getElementById('vstats-30d-split');
+  var visitsChartWrapEl = document.getElementById('visits-chart-wrap');
+  var visitsChartRangeToggleEl = document.getElementById('visits-chart-range-toggle');
+  var topPagesListEl = document.getElementById('top-pages-list');
+  var topReferrersListEl = document.getElementById('top-referrers-list');
+  var vstatsRecentListEl = document.getElementById('vstats-recent-list');
+  var vstatsRecentPaginationEl = document.getElementById('vstats-recent-pagination');
+  var vstatsRecentCountEl = document.getElementById('vstats-recent-count');
+  var vstatsRecentRefreshBtn = document.getElementById('vstats-recent-refresh-btn');
+
+  var vstatsChartRange = 30;
+  var vstatsRecentState = { page: 1, perPage: 25, totalPages: 1 };
+
+  function loadVisitorStatsSummary() {
+    fetch('/api/admin/visitor-stats/summary.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        var windows = [
+          [data.today, vstatsTodayViewsEl, vstatsTodayUniqueEl, vstatsTodaySplitEl],
+          [data.last_7_days, vstats7dViewsEl, vstats7dUniqueEl, vstats7dSplitEl],
+          [data.last_30_days, vstats30dViewsEl, vstats30dUniqueEl, vstats30dSplitEl],
+        ];
+        windows.forEach(function (w) {
+          var stats = w[0];
+          w[1].textContent = stats.total_views.toLocaleString();
+          w[2].textContent = stats.unique_visitors.toLocaleString();
+          w[3].textContent = stats.member_views.toLocaleString() + ' / ' + stats.guest_views.toLocaleString();
+        });
+      })
+      .catch(function () {});
+  }
+
+  function renderVisitsChart(points) {
+    if (!visitsChartWrapEl) return;
+    if (!points || points.length < 2) {
+      visitsChartWrapEl.innerHTML = '<p class="visits-chart-empty">Collecting data&hellip; the chart fills in as visits come in.</p>';
+      return;
+    }
+
+    var width = 700, height = 200;
+    var padLeft = 44, padRight = 10, padTop = 12, padBottom = 26;
+    var plotW = width - padLeft - padRight;
+    var plotH = height - padTop - padBottom;
+
+    var maxViews = Math.max.apply(null, points.map(function (p) { return p.total_views; }));
+    var yMax = Math.max(maxViews * 1.2, 5);
+
+    function xForI(i) { return padLeft + (i / (points.length - 1)) * plotW; }
+    function yForV(v) { return padTop + (1 - (v / yMax)) * plotH; }
+
+    var viewCoords = points.map(function (p, i) { return [xForI(i), yForV(p.total_views)]; });
+    var uniqueCoords = points.map(function (p, i) { return [xForI(i), yForV(p.unique_visitors)]; });
+
+    function toLine(coords) {
+      return 'M ' + coords.map(function (c) { return c[0].toFixed(1) + ',' + c[1].toFixed(1); }).join(' L ');
+    }
+
+    var viewLine = toLine(viewCoords);
+    var baseline = padTop + plotH;
+    var last = viewCoords[viewCoords.length - 1];
+    var first = viewCoords[0];
+    var areaPath = viewLine + ' L ' + last[0].toFixed(1) + ',' + baseline.toFixed(1) +
+      ' L ' + first[0].toFixed(1) + ',' + baseline.toFixed(1) + ' Z';
+
+    var gridLines = [0, 0.5, 1].map(function (frac) {
+      var y = padTop + frac * plotH;
+      var label = Math.round(yMax - yMax * frac).toLocaleString();
+      return '<line class="visits-chart-gridline" x1="' + padLeft + '" y1="' + y.toFixed(1) + '" x2="' + (width - padRight) + '" y2="' + y.toFixed(1) + '"/>' +
+        '<text class="visits-chart-axis-label" x="' + (padLeft - 6) + '" y="' + (y + 3).toFixed(1) + '" text-anchor="end">' + label + '</text>';
+    }).join('');
+
+    var labelCount = Math.min(5, points.length);
+    var xLabels = [];
+    for (var i = 0; i < labelCount; i++) {
+      var idx = Math.round((i / (labelCount - 1)) * (points.length - 1));
+      var x = xForI(idx);
+      var anchor = i === 0 ? 'start' : (i === labelCount - 1 ? 'end' : 'middle');
+      var d = new Date(points[idx].date + 'T00:00:00Z');
+      var label = (d.getUTCMonth() + 1) + '/' + d.getUTCDate();
+      xLabels.push('<text class="visits-chart-axis-label" x="' + x.toFixed(1) + '" y="' + (height - 6) + '" text-anchor="' + anchor + '">' + label + '</text>');
+    }
+
+    visitsChartWrapEl.innerHTML =
+      '<svg viewBox="0 0 ' + width + ' ' + height + '">' +
+        '<defs><linearGradient id="visitsChartGradient" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0%" stop-color="#5b9cf5" stop-opacity="0.5"/>' +
+          '<stop offset="100%" stop-color="#5b9cf5" stop-opacity="0"/>' +
+        '</linearGradient></defs>' +
+        gridLines +
+        xLabels.join('') +
+        '<path class="visits-chart-area" fill="url(#visitsChartGradient)" d="' + areaPath + '"/>' +
+        '<path class="visits-chart-line" d="' + viewLine + '"/>' +
+        '<path class="visits-chart-line-unique" d="' + toLine(uniqueCoords) + '"/>' +
+        '<circle class="visits-chart-now-dot" cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="3"/>' +
+      '</svg>' +
+      '<div class="visits-chart-legend">' +
+        '<span class="visits-chart-legend-item"><span class="visits-chart-legend-swatch" style="background:#5b9cf5"></span>Page Views</span>' +
+        '<span class="visits-chart-legend-item"><span class="visits-chart-legend-swatch" style="background:var(--gold-bright)"></span>Unique Visitors</span>' +
+      '</div>';
+  }
+
+  function loadVisitsChart() {
+    fetch('/api/admin/visitor-stats/timeseries.php?range=' + vstatsChartRange, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        renderVisitsChart(data.points);
+      })
+      .catch(function () {});
+  }
+
+  if (visitsChartRangeToggleEl) {
+    visitsChartRangeToggleEl.addEventListener('click', function (e) {
+      var btn = e.target.closest('.visits-range-btn');
+      if (!btn) return;
+      vstatsChartRange = parseInt(btn.getAttribute('data-range'), 10);
+      visitsChartRangeToggleEl.querySelectorAll('.visits-range-btn').forEach(function (b) {
+        b.classList.toggle('is-active', b === btn);
+      });
+      loadVisitsChart();
+    });
+  }
+
+  function renderRankedList(container, items, labelKey, emptyMessage) {
+    container.innerHTML = '';
+    if (!items.length) {
+      container.innerHTML = '<li class="admin-list-empty">' + emptyMessage + '</li>';
+      return;
+    }
+    var maxCount = Math.max.apply(null, items.map(function (it) { return it.views; }));
+    items.forEach(function (it, i) {
+      var li = document.createElement('li');
+      li.className = 'ranked-list-item';
+      var pct = maxCount > 0 ? Math.round((it.views / maxCount) * 100) : 0;
+      li.innerHTML =
+        '<span class="ranked-list-rank">' + (i + 1) + '</span>' +
+        '<span class="ranked-list-label" title="' + escapeHtml(it[labelKey]) + '">' + escapeHtml(it[labelKey]) + '</span>' +
+        '<span class="ranked-list-bar-wrap"><span class="ranked-list-bar" style="width:' + pct + '%"></span></span>' +
+        '<span class="ranked-list-count">' + it.views.toLocaleString() + '</span>';
+      container.appendChild(li);
+    });
+  }
+
+  function loadTopPages() {
+    fetch('/api/admin/visitor-stats/top-pages.php?range=' + vstatsChartRange, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        renderRankedList(topPagesListEl, data.pages || [], 'path', 'No page views recorded yet.');
+      })
+      .catch(function () {});
+  }
+
+  function loadTopReferrers() {
+    fetch('/api/admin/visitor-stats/top-referrers.php?range=' + vstatsChartRange, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        renderRankedList(topReferrersListEl, data.referrers || [], 'host', 'No referrer data recorded yet.');
+      })
+      .catch(function () {});
+  }
+
+  function renderRecentVisits(entries) {
+    vstatsRecentListEl.innerHTML = '';
+    if (!entries.length) {
+      vstatsRecentListEl.innerHTML = '<div class="admin-list-empty">No visits recorded yet.</div>';
+      return;
+    }
+    entries.forEach(function (entry) {
+      var row = document.createElement('div');
+      row.className = 'admin-row';
+      var tag = entry.is_member
+        ? '<span class="vstats-visit-tag vstats-visit-tag-member">' + escapeHtml(entry.member_name || 'Member') + '</span>'
+        : '<span class="vstats-visit-tag vstats-visit-tag-guest">Guest</span>';
+      row.innerHTML =
+        '<div class="admin-row-main">' +
+          '<p class="admin-row-subject">' + escapeHtml(entry.path) + '</p>' +
+          '<div class="admin-row-meta">' +
+            tag +
+            '<span class="admin-row-sep">&bull;</span>' +
+            '<span>' + escapeHtml(entry.referrer_host || 'Direct / Internal') + '</span>' +
+            '<span class="admin-row-sep">&bull;</span>' +
+            '<span>' + escapeHtml(entry.ip_address || (pwHasPermission('dashboards.view_ip_addresses') ? '' : 'IP hidden')) + '</span>' +
+            '<span class="admin-row-sep">&bull;</span>' +
+            '<span>' + escapeHtml(fmtDateTime(entry.created_at)) + '</span>' +
+          '</div>' +
+        '</div>';
+      vstatsRecentListEl.appendChild(row);
+    });
+  }
+
+  function renderVstatsRecentPagination() {
+    vstatsRecentPaginationEl.innerHTML = '';
+    if (vstatsRecentState.totalPages <= 1) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'admin-pager';
+
+    var prev = document.createElement('button');
+    prev.type = 'button';
+    prev.textContent = '‹ Prev';
+    prev.disabled = vstatsRecentState.page <= 1;
+    prev.addEventListener('click', function () { vstatsRecentState.page--; loadRecentVisits(); });
+
+    var label = document.createElement('span');
+    label.textContent = 'Page ' + vstatsRecentState.page + ' of ' + vstatsRecentState.totalPages;
+
+    var next = document.createElement('button');
+    next.type = 'button';
+    next.textContent = 'Next ›';
+    next.disabled = vstatsRecentState.page >= vstatsRecentState.totalPages;
+    next.addEventListener('click', function () { vstatsRecentState.page++; loadRecentVisits(); });
+
+    wrap.appendChild(prev);
+    wrap.appendChild(label);
+    wrap.appendChild(next);
+    vstatsRecentPaginationEl.appendChild(wrap);
+  }
+
+  function loadRecentVisits() {
+    vstatsRecentListEl.innerHTML = '<div class="admin-list-empty">Loading recent visits&hellip;</div>';
+    var params = new URLSearchParams();
+    params.set('page', vstatsRecentState.page);
+    params.set('per_page', vstatsRecentState.perPage);
+    fetch('/api/admin/visitor-stats/recent.php?' + params.toString(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          vstatsRecentListEl.innerHTML = '<div class="admin-list-empty">Could not load recent visits.</div>';
+          return;
+        }
+        vstatsRecentState.totalPages = data.total_pages || 1;
+        vstatsRecentState.page = data.page || 1;
+        vstatsRecentCountEl.textContent = (data.total || 0).toLocaleString() + ((data.total || 0) === 1 ? ' visit' : ' visits');
+        renderRecentVisits(data.entries || []);
+        renderVstatsRecentPagination();
+      })
+      .catch(function () {
+        vstatsRecentListEl.innerHTML = '<div class="admin-list-empty">Could not load recent visits.</div>';
+      });
+  }
+
+  if (vstatsRecentRefreshBtn) {
+    vstatsRecentRefreshBtn.addEventListener('click', function () {
+      if (vstatsRecentRefreshBtn.classList.contains('is-spinning')) return;
+      vstatsRecentRefreshBtn.classList.add('is-spinning');
+      loadRecentVisits();
+      setTimeout(function () { vstatsRecentRefreshBtn.classList.remove('is-spinning'); }, 600);
+    });
+  }
+
+  function loadVisitorStats() {
+    loadVisitorStatsSummary();
+    loadVisitsChart();
+    loadTopPages();
+    loadTopReferrers();
+    loadRecentVisits();
   }
 
   // ===== System Status (expanded page) =========================================
