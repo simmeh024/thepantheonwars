@@ -321,6 +321,7 @@ a.nav-parent { cursor: pointer; }
   display: flex; align-items: center; justify-content: center; line-height: 1;
   font-family: 'Jost', sans-serif;
 }
+.notif-badge[hidden] { display: none; }
 .notif-dropdown {
   position: absolute; top: 100%; right: 0; margin-top: 10px;
   width: 340px; max-width: 90vw;

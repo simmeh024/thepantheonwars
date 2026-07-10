@@ -35,11 +35,11 @@ $stmt = $db->prepare(
      LEFT JOIN users a ON a.id = n.actor_user_id
      LEFT JOIN roles r ON r.slug = a.role
      LEFT JOIN topics t ON t.id = n.topic_id
-     WHERE n.user_id = ?
+     WHERE n.user_id = :user_id
      ORDER BY n.created_at DESC, n.id DESC
      LIMIT :limit OFFSET :offset"
 );
-$stmt->bindValue(1, $user['id'], PDO::PARAM_INT);
+$stmt->bindValue(':user_id', $user['id'], PDO::PARAM_INT);
 $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
 $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
