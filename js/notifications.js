@@ -76,6 +76,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     listEl.innerHTML = entries.map(function (n) {
       return '<a class="notif-row' + (n.is_read ? '' : ' notif-row-unread') + '" href="' + escapeHtml(notificationLink(n)) + '" data-id="' + n.id + '">' +
+        '<span class="notif-row-dot"></span>' +
         '<span class="notif-row-icon">' + (TYPE_ICONS[n.type] || '') + '</span>' +
         '<span class="notif-row-body">' +
           '<span class="notif-row-text">' + notificationText(n) + '</span>' +

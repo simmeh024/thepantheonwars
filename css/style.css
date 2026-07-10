@@ -350,6 +350,11 @@ a.nav-parent { cursor: pointer; }
 .notif-row:last-child { border-bottom: none; }
 .notif-row:hover { background: rgba(124,79,214,0.08); }
 .notif-row-unread { background: rgba(124,79,214,0.06); }
+.notif-row-dot {
+  flex-shrink: 0; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--purple-bright); margin-top: 6px; visibility: hidden;
+}
+.notif-row-unread .notif-row-dot { visibility: visible; }
 .notif-row-icon { flex-shrink: 0; color: var(--purple-bright); display: flex; align-items: center; padding-top: 2px; }
 .notif-row-icon svg { width: 16px; height: 16px; }
 .notif-row-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
