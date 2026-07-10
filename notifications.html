@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=114">
+<link rel="stylesheet" href="css/style.css?v=115">
 </head>
 <body>
 
@@ -95,13 +95,13 @@
           </div>
           <div class="notif-status-info">
             <div class="notif-status-title-row">
-              <h2 class="notif-status-title" id="notif-status-title">Transmission Status</h2>
+              <h2 class="notif-status-title" id="notif-status-title">BH-4 — Transmission Status</h2>
               <span class="notif-status-info-btn" tabindex="0" aria-label="About these notifications">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
                 <span class="notif-status-tooltip">These notifications have been verified and sent directly to you<span id="notif-status-tooltip-name"></span>.</span>
               </span>
             </div>
-            <p class="notif-status-sub" id="notif-status-sub"></p>
+            <p class="notif-status-sub" id="notif-status-sub">Behavioral Handler-4</p>
             <p class="notif-status-desc" id="notif-status-desc">Loading status&hellip;</p>
             <div class="notif-status-stats">
               <div class="notif-stat">
@@ -215,8 +215,6 @@
   var markAllBtn = document.getElementById('notif-page-mark-all-btn');
 
   var avatarWrap = document.getElementById('notif-status-avatar-wrap');
-  var statusTitle = document.getElementById('notif-status-title');
-  var statusSub = document.getElementById('notif-status-sub');
   var statusDesc = document.getElementById('notif-status-desc');
   var statusTooltipName = document.getElementById('notif-status-tooltip-name');
   var filterRow = document.getElementById('notif-filter-row');
@@ -482,15 +480,13 @@
   function loadAvatar() {
     var u = window.PW_AUTH.user;
     if (!u) return;
-    // The status card's avatar is BH-4 itself (the site's dev-dispatch
-    // persona, images/bh4-dispatch.jpg -- same image used in the admin
-    // console's Home welcome card) delivering a personalized report, not
-    // the viewing member's own profile picture -- so the ring is a fixed
-    // brand purple rather than the member's role color.
+    // The status card is BH-4 itself (the site's dev-dispatch persona,
+    // images/bh4-dispatch.jpg -- same image used in the admin console's
+    // Home welcome card) delivering a personalized report -- title/sub
+    // are BH-4's own static identity (set in the HTML), not the viewing
+    // member's; only the ring color and the tooltip's name suffix are
+    // dynamic here.
     avatarWrap.style.setProperty('--role-color', '#a279ec');
-    var roleLabel = u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : 'Member';
-    statusTitle.textContent = (u.display_name || u.username || '') + ' — Transmission Status';
-    statusSub.textContent = roleLabel;
     statusTooltipName.textContent = ', ' + (u.display_name || u.username || '');
   }
 
