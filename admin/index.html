@@ -1304,7 +1304,12 @@
   // started/stopped every time showSection() runs (not just on first load)
   // so navigating away always tears it down and coming back always
   // restarts it. Ticks are skipped while the browser tab isn't visible, to
-  // avoid firing a batch of requests nobody's looking at.
+  // avoid firing a batch of requests nobody's looking at. refreshHomeCards()
+  // also fires immediately every time Home becomes the active section (not
+  // just the first visit this session) -- otherwise numbers like Today's
+  // Dispatches can sit stale for up to HOME_AUTO_REFRESH_MS after navigating
+  // away and back, since the underlying data (dispatch_entries) changes via
+  // GitHub webhook pushes that land independently of anything the admin does.
   var HOME_AUTO_REFRESH_MS = 60000;
   var homeAutoRefreshTimer = null;
 
@@ -1336,11 +1341,10 @@
   function showSection(name) {
     navLinks.forEach(function (l) { l.classList.toggle('active', l.getAttribute('data-section') === name); });
     sections.forEach(function (s) { s.hidden = (s.id !== 'section-' + name); });
-    if (name === 'home') { startHomeAutoRefresh(); } else { stopHomeAutoRefresh(); }
+    if (name === 'home') { startHomeAutoRefresh(); refreshHomeCards(); } else { stopHomeAutoRefresh(); }
     if (name === 'system-status') { startSystemStatusAutoRefresh(); } else { stopSystemStatusAutoRefresh(); }
     if (!loadedSections[name]) {
       loadedSections[name] = true;
-      if (name === 'home') { loadHomeActivity(); loadPendingWork(); loadCommunityMetrics(); loadSiteStats(); loadDevSnapshotLanguages(); loadBh4Welcome(); loadSystemStatus(); }
       if (name === 'audit-log') loadAuditLog();
       if (name === 'system-status') { loadSystemStatusDetail(); loadCpuHistory(); }
       if (name === 'dispatch-control') loadControlList();
