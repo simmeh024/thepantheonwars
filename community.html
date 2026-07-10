@@ -307,6 +307,23 @@
       .replace(/"/g, '&quot;');
   }
 
+  // Wraps a click handler so login state is checked live at click time
+  // rather than baked in when the button was built -- a message can be
+  // rendered the instant its own fetch resolves, which can race ahead of
+  // the async session-check.php call that populates window.PW_AUTH, so a
+  // build-time-only check could permanently stick a button in "not logged
+  // in" mode even after the visitor really was logged in.
+  function requireLoginOrRun(fn) {
+    return function () {
+      if (!window.PW_AUTH.loggedIn) {
+        var trigger = document.querySelector('.auth-trigger');
+        if (trigger) trigger.click();
+        return;
+      }
+      fn.apply(this, arguments);
+    };
+  }
+
   function formatBody(raw) {
     var s = escapeHtml(raw);
     // [quote=Author wrote on <date>:]text[/quote] -- the attribution line (set
@@ -1272,12 +1289,7 @@
       btn.innerHTML = r.icon + '<span class="reaction-count">' + count + '</span>';
       btn.setAttribute('aria-label', r.label);
       btn.setAttribute('title', r.label);
-      if (window.PW_AUTH.loggedIn) {
-        btn.addEventListener('click', function () { sendReaction(c.id, r.type, btn); });
-      } else {
-        btn.classList.add('auth-trigger');
-        btn.setAttribute('data-tab', 'login');
-      }
+      btn.addEventListener('click', requireLoginOrRun(function () { sendReaction(c.id, r.type, btn); }));
       bar.appendChild(btn);
     });
     return bar;
@@ -1343,28 +1355,23 @@
     quoteBtn.innerHTML = MSG_ICONS.quote;
     quoteBtn.setAttribute('aria-label', 'Quote this message');
     quoteBtn.setAttribute('title', 'Quote');
-    if (window.PW_AUTH.loggedIn) {
-      quoteBtn.addEventListener('click', function () {
-        var target = ctx.quoteTarget();
-        if (!target || !target.textarea) return;
-        if (target.wrap) target.wrap.hidden = false;
-        var ta = target.textarea;
-        var attribution = fmtQuoteAttribution(ctx.authorName, ctx.createdAt);
-        var quoteText = '[quote=' + attribution + ']' + ctx.body + '[/quote]\n';
-        ta.value = ta.value ? (ta.value.replace(/\s+$/, '') + '\n\n' + quoteText) : quoteText;
-        // Stash which comment this quote came from so the reply-post
-        // request can link it (powers the "quote" notification) -- only
-        // meaningful when quoting a reply, not the topic's original post,
-        // since comments.quoted_comment_id only references other comments.
-        if (ctx.kind === 'comment') ta.dataset.quotedCommentId = ctx.id;
-        ta.focus();
-        ta.setSelectionRange(ta.value.length, ta.value.length);
-        ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      });
-    } else {
-      quoteBtn.classList.add('auth-trigger');
-      quoteBtn.setAttribute('data-tab', 'login');
-    }
+    quoteBtn.addEventListener('click', requireLoginOrRun(function () {
+      var target = ctx.quoteTarget();
+      if (!target || !target.textarea) return;
+      if (target.wrap) target.wrap.hidden = false;
+      var ta = target.textarea;
+      var attribution = fmtQuoteAttribution(ctx.authorName, ctx.createdAt);
+      var quoteText = '[quote=' + attribution + ']' + ctx.body + '[/quote]\n';
+      ta.value = ta.value ? (ta.value.replace(/\s+$/, '') + '\n\n' + quoteText) : quoteText;
+      // Stash which comment this quote came from so the reply-post
+      // request can link it (powers the "quote" notification) -- only
+      // meaningful when quoting a reply, not the topic's original post,
+      // since comments.quoted_comment_id only references other comments.
+      if (ctx.kind === 'comment') ta.dataset.quotedCommentId = ctx.id;
+      ta.focus();
+      ta.setSelectionRange(ta.value.length, ta.value.length);
+      ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }));
     wrap.appendChild(quoteBtn);
 
     var likeBtn = document.createElement('button');
@@ -1373,12 +1380,7 @@
     likeBtn.innerHTML = MSG_ICONS.like + '<span class="msg-like-count">' + ctx.likeCount + '</span>';
     likeBtn.setAttribute('aria-label', 'Like this message');
     likeBtn.setAttribute('title', 'Like');
-    if (window.PW_AUTH.loggedIn) {
-      likeBtn.addEventListener('click', function () { sendLike(ctx.kind, ctx.id, likeBtn); });
-    } else {
-      likeBtn.classList.add('auth-trigger');
-      likeBtn.setAttribute('data-tab', 'login');
-    }
+    likeBtn.addEventListener('click', requireLoginOrRun(function () { sendLike(ctx.kind, ctx.id, likeBtn); }));
     wrap.appendChild(likeBtn);
 
     var reportBtn = document.createElement('button');
@@ -1387,12 +1389,7 @@
     reportBtn.innerHTML = MSG_ICONS.report;
     reportBtn.setAttribute('aria-label', 'Report this message');
     reportBtn.setAttribute('title', 'Report');
-    if (window.PW_AUTH.loggedIn) {
-      reportBtn.addEventListener('click', function () { openReportModal(ctx.kind, ctx.id); });
-    } else {
-      reportBtn.classList.add('auth-trigger');
-      reportBtn.setAttribute('data-tab', 'login');
-    }
+    reportBtn.addEventListener('click', requireLoginOrRun(function () { openReportModal(ctx.kind, ctx.id); }));
     wrap.appendChild(reportBtn);
 
     wrap.appendChild(buildModMenu(ctx));
@@ -1691,15 +1688,10 @@
       var replyBtn = document.createElement('button');
       replyBtn.type = 'button';
       replyBtn.textContent = 'Reply';
-      if (window.PW_AUTH.loggedIn) {
-        replyBtn.addEventListener('click', function () {
-          replyFormData.wrap.hidden = !replyFormData.wrap.hidden;
-          if (!replyFormData.wrap.hidden) replyFormData.textarea.focus();
-        });
-      } else {
-        replyBtn.classList.add('auth-trigger');
-        replyBtn.setAttribute('data-tab', 'login');
-      }
+      replyBtn.addEventListener('click', requireLoginOrRun(function () {
+        replyFormData.wrap.hidden = !replyFormData.wrap.hidden;
+        if (!replyFormData.wrap.hidden) replyFormData.textarea.focus();
+      }));
       actions.appendChild(replyBtn);
     }
 
