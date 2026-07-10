@@ -15,7 +15,7 @@ if ($topicId <= 0) {
 }
 
 $db = pw_db();
-$stmt = $db->prepare('SELECT id, is_locked FROM topics WHERE id = ? AND is_deleted = 0');
+$stmt = $db->prepare('SELECT id, user_id, is_locked FROM topics WHERE id = ? AND is_deleted = 0');
 $stmt->execute([$topicId]);
 $topicRow = $stmt->fetch();
 if (!$topicRow) {
@@ -54,17 +54,29 @@ if (!empty($input['parent_id'])) {
 }
 
 // Quote linking: the client-side Quote button (community.html) already
-// pastes a [quote=...] block into the reply body -- this optional field
-// just ties that back to the actual comment row it quoted, so a
-// notification can be sent to the quoted author. Validated against the
-// same topic so a stray/forged id from another topic can't be attached.
+// pastes a [quote=...] block into the reply body -- these optional fields
+// just tie that back to whatever it quoted, so a notification can be sent
+// to the quoted author. quoted_kind is 'comment' or 'topic': a quote of
+// the topic's *original* post has no comments row to link (that post
+// lives in the topics table, not comments), so comments.quoted_comment_id
+// stays null for that case, but the topic's author is still notified
+// directly via topics.user_id. Both cases are validated against the
+// current topic so a stray/forged id from elsewhere can't be attached or
+// notified.
 $quotedCommentId = null;
-if (!empty($input['quoted_comment_id'])) {
+$quoteNotifyUserId = null;
+$quotedKind = isset($input['quoted_kind']) ? $input['quoted_kind'] : null;
+if ($quotedKind === 'comment' && !empty($input['quoted_target_id'])) {
     $stmt = $db->prepare('SELECT id, user_id FROM comments WHERE id = ? AND topic_id = ? AND is_deleted = 0');
-    $stmt->execute([(int)$input['quoted_comment_id'], $topicId]);
+    $stmt->execute([(int)$input['quoted_target_id'], $topicId]);
     $quotedComment = $stmt->fetch();
     if ($quotedComment) {
         $quotedCommentId = (int)$quotedComment['id'];
+        $quoteNotifyUserId = (int)$quotedComment['user_id'];
+    }
+} elseif ($quotedKind === 'topic' && !empty($input['quoted_target_id'])) {
+    if ((int)$input['quoted_target_id'] === $topicId) {
+        $quoteNotifyUserId = (int)$topicRow['user_id'];
     }
 }
 
@@ -72,8 +84,8 @@ $stmt = $db->prepare('INSERT INTO comments (user_id, topic_id, parent_id, quoted
 $stmt->execute([$user['id'], $topicId, $parentId, $quotedCommentId, $depth, $body]);
 $commentId = (int)$db->lastInsertId();
 
-if ($quotedCommentId !== null) {
-    pw_notify((int)$quotedComment['user_id'], 'quote', $user['id'], $topicId, $commentId, null, $body);
+if ($quoteNotifyUserId !== null) {
+    pw_notify($quoteNotifyUserId, 'quote', $user['id'], $topicId, $commentId, null, $body);
 }
 
 foreach (pw_extract_mentions($body, $user['id']) as $mentionedUserId) {

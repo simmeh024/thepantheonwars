@@ -1363,11 +1363,14 @@
       var attribution = fmtQuoteAttribution(ctx.authorName, ctx.createdAt);
       var quoteText = '[quote=' + attribution + ']' + ctx.body + '[/quote]\n';
       ta.value = ta.value ? (ta.value.replace(/\s+$/, '') + '\n\n' + quoteText) : quoteText;
-      // Stash which comment this quote came from so the reply-post
-      // request can link it (powers the "quote" notification) -- only
-      // meaningful when quoting a reply, not the topic's original post,
-      // since comments.quoted_comment_id only references other comments.
-      if (ctx.kind === 'comment') ta.dataset.quotedCommentId = ctx.id;
+      // Stash what this quote came from so the reply-post request can
+      // link it (powers the "quote" notification). Works for both a
+      // reply comment and the topic's original post -- the server
+      // resolves the recipient differently for each kind since
+      // comments.quoted_comment_id only references other comments, not
+      // topics.
+      ta.dataset.quotedKind = ctx.kind;
+      ta.dataset.quotedTargetId = ctx.id;
       ta.focus();
       ta.setSelectionRange(ta.value.length, ta.value.length);
       ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1530,11 +1533,12 @@
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic_id: currentTopicId, body: text, parent_id: c.id, quoted_comment_id: ta.dataset.quotedCommentId || null, csrf: window.PW_AUTH.csrf }),
+        body: JSON.stringify({ topic_id: currentTopicId, body: text, parent_id: c.id, quoted_kind: ta.dataset.quotedKind || null, quoted_target_id: ta.dataset.quotedTargetId || null, csrf: window.PW_AUTH.csrf }),
       }).then(function (r) { return r.json(); }).then(function (data) {
         if (data.ok) {
           ta.value = '';
-          delete ta.dataset.quotedCommentId;
+          delete ta.dataset.quotedKind;
+          delete ta.dataset.quotedTargetId;
           err.textContent = '';
           wrap.hidden = true;
           loadFeed();
@@ -1824,11 +1828,12 @@
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic_id: currentTopicId, body: text, quoted_comment_id: body.dataset.quotedCommentId || null, csrf: window.PW_AUTH.csrf }),
+      body: JSON.stringify({ topic_id: currentTopicId, body: text, quoted_kind: body.dataset.quotedKind || null, quoted_target_id: body.dataset.quotedTargetId || null, csrf: window.PW_AUTH.csrf }),
     }).then(function (r) { return r.json(); }).then(function (data) {
       if (data.ok) {
         body.value = '';
-        delete body.dataset.quotedCommentId;
+        delete body.dataset.quotedKind;
+        delete body.dataset.quotedTargetId;
         loadFeed();
       } else {
         errorEl.textContent = data.error || 'Could not post that.';
