@@ -3817,7 +3817,7 @@ footer.site-footer {
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
 }
 .quick-action-btn {
   display: flex;
@@ -3825,27 +3825,41 @@ footer.site-footer {
   gap: 10px;
   width: 100%;
   background: none;
-  border: none;
-  border-radius: 6px;
-  padding: 9px 8px;
-  margin: 0 -8px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 8px 10px;
   cursor: pointer;
   font: inherit;
   color: var(--text-dim);
   text-align: left;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 .quick-action-btn:hover, .quick-action-btn:focus-visible {
-  background: rgba(162, 121, 236, 0.1);
+  background: rgba(162, 121, 236, 0.08);
+  border-color: var(--purple-bright);
   color: var(--text);
   outline: none;
 }
 .quick-action-icon {
   display: flex;
+  align-items: center;
+  justify-content: center;
   flex-shrink: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 7px;
   color: var(--purple-bright);
+  background: rgba(162, 121, 236, 0.15);
 }
 .quick-action-icon svg { width: 16px; height: 16px; }
+.quick-action-icon--blue {
+  color: var(--quick-action-blue, #4f8ff7);
+  background: rgba(79, 143, 247, 0.15);
+}
+.quick-action-icon--orange {
+  color: var(--quick-action-orange, #f2994a);
+  background: rgba(242, 153, 74, 0.15);
+}
 .quick-action-label {
   flex: 1;
   font-size: 0.85rem;
