@@ -91,8 +91,7 @@
 
         <div class="notif-status-card">
           <div class="notif-status-avatar-wrap profile-avatar-wrap" id="notif-status-avatar-wrap">
-            <img class="profile-avatar" id="notif-status-avatar-img" alt="" hidden>
-            <div class="profile-avatar-fallback profile-avatar" id="notif-status-avatar-fallback">?</div>
+            <img class="profile-avatar" src="images/bh4-dispatch.jpg" alt="BH-4">
           </div>
           <div class="notif-status-info">
             <div class="notif-status-title-row">
@@ -216,8 +215,6 @@
   var markAllBtn = document.getElementById('notif-page-mark-all-btn');
 
   var avatarWrap = document.getElementById('notif-status-avatar-wrap');
-  var avatarImg = document.getElementById('notif-status-avatar-img');
-  var avatarFallback = document.getElementById('notif-status-avatar-fallback');
   var statusTitle = document.getElementById('notif-status-title');
   var statusSub = document.getElementById('notif-status-sub');
   var statusDesc = document.getElementById('notif-status-desc');
@@ -485,19 +482,16 @@
   function loadAvatar() {
     var u = window.PW_AUTH.user;
     if (!u) return;
-    avatarWrap.style.setProperty('--role-color', u.role_color || '#c7ccd6');
-    avatarFallback.textContent = (u.display_name || u.username || '?').charAt(0).toUpperCase();
+    // The status card's avatar is BH-4 itself (the site's dev-dispatch
+    // persona, images/bh4-dispatch.jpg -- same image used in the admin
+    // console's Home welcome card) delivering a personalized report, not
+    // the viewing member's own profile picture -- so the ring is a fixed
+    // brand purple rather than the member's role color.
+    avatarWrap.style.setProperty('--role-color', '#a279ec');
     var roleLabel = u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : 'Member';
     statusTitle.textContent = (u.display_name || u.username || '') + ' — Transmission Status';
     statusSub.textContent = roleLabel;
     statusTooltipName.textContent = ', ' + (u.display_name || u.username || '');
-    var probe = new Image();
-    probe.onload = function () {
-      avatarImg.src = probe.src;
-      avatarImg.hidden = false;
-      avatarFallback.hidden = true;
-    };
-    probe.src = '/uploads/avatars/' + u.id + '.jpg';
   }
 
   function load() {
