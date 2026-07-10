@@ -3919,12 +3919,51 @@ footer.site-footer {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--panel);
-  padding: 22px 26px;
+  padding: 0;
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
+.bh4-hero-wrap {
+  display: flex;
+  align-items: stretch;
+}
+.bh4-hero-media {
+  position: relative;
+  flex: 0 0 220px;
+  min-height: 210px;
+  overflow: hidden;
+}
+.bh4-welcome-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: top center;
+  display: block;
+}
+.bh4-hero-media::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(0,0,0,0) 55%, var(--panel) 100%);
+  pointer-events: none;
+}
+.bh4-hero-main {
+  flex: 1;
+  min-width: 0;
+  padding: 22px 26px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.bh4-hero-top-row {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+.bh4-hero-text { flex: 1; min-width: 0; }
 .bh4-welcome-head {
   display: flex;
   align-items: center;
@@ -3946,34 +3985,20 @@ footer.site-footer {
   border-radius: 4px;
   padding: 2px 7px;
 }
-.bh4-welcome-body {
-  display: flex;
-  gap: 22px;
-  align-items: flex-start;
-}
-.bh4-welcome-avatar {
-  width: 108px;
-  height: 108px;
-  object-fit: cover;
-  object-position: top;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  flex-shrink: 0;
-}
-.bh4-welcome-content { flex: 1; min-width: 0; }
 .bh4-welcome-greeting {
-  margin: 0 0 2px;
-  font-size: 1.05rem;
+  margin: 0 0 4px;
+  font-size: 1.3rem;
+  font-family: 'Cinzel', serif;
   font-weight: 600;
 }
 .bh4-welcome-sub {
-  margin: 0 0 10px;
-  font-size: 0.8rem;
-  color: var(--text-faint);
+  margin: 0 0 12px;
+  font-size: 0.85rem;
+  color: var(--text-dim);
 }
 .bh4-welcome-stats {
   list-style: none;
-  margin: 0 0 12px;
+  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -3992,42 +4017,78 @@ footer.site-footer {
   color: var(--purple-bright);
   flex-shrink: 0;
 }
-.bh4-welcome-status {
+
+/* Compact "Systems Nominal" pulse card -- reuses the same data that used to
+   render as the plain checkmark line (bh4-welcome-status/-text), just given
+   a dedicated boxed treatment with a decorative animated pulse line. The
+   pulse is illustrative (no real time-series backs this card, unlike System
+   Status's CPU chart which has real history to plot). */
+.bh4-nominal-card {
+  flex: 0 0 200px;
+  background: var(--panel-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  padding: 14px 16px 10px;
+}
+.bh4-nominal-head {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 0;
-  font-size: 0.85rem;
+  margin: 0 0 10px;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   color: #3ecf8e;
 }
-.bh4-welcome-status svg { width: 16px; height: 16px; flex-shrink: 0; }
-.bh4-welcome-status.bh4-welcome-status-warn { color: #e05a4a; }
-.bh4-welcome-footer {
-  margin: 14px 0 0;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-  font-size: 0.76rem;
-  color: var(--text-faint);
+.bh4-nominal-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3ecf8e;
+  box-shadow: 0 0 8px rgba(62,207,142,0.8);
+  flex-shrink: 0;
+  animation: bh4NominalPulse 2.2s ease-in-out infinite;
+}
+.bh4-nominal-pulse svg { width: 100%; height: 30px; display: block; }
+.bh4-nominal-pulse polyline {
+  fill: none; stroke: #3ecf8e; stroke-width: 2;
+  stroke-linecap: round; stroke-linejoin: round;
+  filter: drop-shadow(0 0 3px rgba(62,207,142,0.55));
+}
+.bh4-nominal-card.bh4-welcome-status-warn .bh4-nominal-head { color: #e05a4a; }
+.bh4-nominal-card.bh4-welcome-status-warn .bh4-nominal-dot { background: #e05a4a; box-shadow: 0 0 8px rgba(224,90,74,0.8); }
+.bh4-nominal-card.bh4-welcome-status-warn .bh4-nominal-pulse polyline { stroke: #e05a4a; filter: drop-shadow(0 0 3px rgba(224,90,74,0.55)); }
+@keyframes bh4NominalPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
-/* BH-4 Task Advisor -- deterministic "what to work on next" card, full-width
-   below the Home top row. Priority-state colors reuse the same green/gold/
-   red convention already used by .system-status-value.system-status-ok/warn/bad
-   and .bh4-welcome-status(-warn) elsewhere on this page. */
+/* BH-4 Directive banner (formerly a plain "Task Advisor" box) -- deterministic
+   "what to work on next" recommendation, styled as a glowing alert banner.
+   Priority-state colors reuse the same green/gold/red convention already
+   used by .system-status-value.system-status-ok/warn/bad elsewhere on this
+   page; [data-state] overrides below recolor the border/glow/heading to
+   match whichever priority is currently active. */
 .bh4-task-advisor {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid var(--border);
+  padding: 18px 22px;
+  border: 1px solid rgba(224,90,74,0.45);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(224,90,74,0.09), rgba(20,12,12,0.35));
+  box-shadow: 0 0 26px rgba(224,90,74,0.14);
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 .bh4-task-advisor__header {
-  display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 14px;
 }
-.bh4-task-advisor__heading {
-  font-family: 'Jost', sans-serif; font-size: 0.78rem; font-weight: 600;
-  text-transform: uppercase; letter-spacing: 0.08em; color: var(--purple-bright);
+.bh4-task-advisor__priority-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(224,90,74,0.14); border: 1px solid rgba(224,90,74,0.5); color: #e05a4a;
+  font-family: 'Jost', sans-serif; font-size: 0.66rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.06em; padding: 5px 10px; border-radius: 20px;
 }
 .bh4-task-advisor__info-wrap { position: relative; display: inline-flex; }
 .bh4-task-advisor__info-btn {
@@ -4054,7 +4115,7 @@ footer.site-footer {
 .bh4-task-advisor__error { display: flex; align-items: center; gap: 14px; }
 .bh4-task-advisor__error[hidden], .bh4-task-advisor__content[hidden], .bh4-task-advisor__loading[hidden] { display: none; }
 
-.bh4-task-advisor__primary { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.bh4-task-advisor__primary { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; flex: 1; }
 .bh4-task-advisor__primary-body { flex: 1 1 260px; min-width: 0; }
 .bh4-task-advisor__priority-icon {
   flex-shrink: 0; width: 44px; height: 44px; border-radius: 50%;
@@ -4062,11 +4123,12 @@ footer.site-footer {
   background: rgba(224,90,74,0.12); color: #e05a4a;
 }
 .bh4-task-advisor__priority-icon svg { width: 20px; height: 20px; }
-.bh4-task-advisor__priority-label {
+.bh4-task-advisor__eyebrow {
   display: block; font-family: 'Jost', sans-serif; font-size: 0.72rem; font-weight: 600;
   text-transform: uppercase; letter-spacing: 0.07em; color: #e05a4a; margin-bottom: 4px;
 }
-.bh4-task-advisor__title { margin: 0 0 6px; font-size: 1.05rem; color: var(--text); }
+.bh4-task-advisor__eyebrow--secondary { color: var(--purple-bright); }
+.bh4-task-advisor__title { margin: 0 0 6px; font-size: 1.15rem; font-family: 'Cinzel', serif; color: var(--text); }
 .bh4-task-advisor__reason { margin: 0 0 12px; font-size: 0.85rem; color: var(--text-dim); }
 .bh4-task-advisor__action-btn {
   display: inline-flex; align-items: center; gap: 6px;
@@ -4075,6 +4137,7 @@ footer.site-footer {
   text-transform: uppercase; letter-spacing: 0.05em; border-radius: 4px; cursor: pointer;
   transition: background-color 0.15s ease;
 }
+.bh4-task-advisor__action-btn::after { content: '\203a'; font-size: 1rem; line-height: 1; }
 .bh4-task-advisor__action-btn:hover { background: rgba(224,90,74,0.2); }
 .bh4-task-advisor__action-btn[hidden] { display: none; }
 
@@ -4084,60 +4147,109 @@ footer.site-footer {
 }
 .bh4-task-advisor__priority-icon--secondary { background: rgba(162,121,236,0.14); color: var(--purple-bright); width: 36px; height: 36px; }
 .bh4-task-advisor__priority-icon--secondary svg { width: 16px; height: 16px; }
-.bh4-task-advisor__priority-label--secondary { color: var(--purple-bright); }
 .bh4-task-advisor__secondary-title { margin: 0 0 10px; font-size: 0.88rem; color: var(--text); }
 .bh4-task-advisor__action-btn--secondary {
   background: rgba(162,121,236,0.1); border-color: var(--purple-bright); color: var(--purple-bright);
 }
 .bh4-task-advisor__action-btn--secondary:hover { background: rgba(162,121,236,0.2); }
 
-.bh4-task-advisor__overview {
-  display: flex; flex-wrap: wrap; gap: 14px; margin-top: 20px; padding-top: 18px;
-  border-top: 1px solid var(--border-soft);
+/* Priority-state accents: critical/high stay red (matches the banner's
+   default border/glow above); normal/clear override the border, glow,
+   badge and icon colors together so the whole banner reads as the current
+   priority level, not just the icon. */
+.bh4-task-advisor[data-state="normal"] {
+  border-color: rgba(162,121,236,0.45);
+  background: linear-gradient(135deg, rgba(162,121,236,0.08), rgba(14,10,20,0.35));
+  box-shadow: 0 0 26px rgba(162,121,236,0.12);
 }
-.bh4-task-advisor__overview-item {
-  display: flex; align-items: center; gap: 10px; flex: 1 1 180px;
-  background: var(--panel-2); border-radius: 8px; padding: 12px 14px;
-}
-.bh4-task-advisor__overview-icon {
-  flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(162,121,236,0.12); color: var(--purple-bright);
-}
-.bh4-task-advisor__overview-icon svg { width: 16px; height: 16px; }
-.bh4-task-advisor__overview-value { font-family: 'Cinzel', serif; font-size: 1.2rem; font-weight: 600; color: var(--text); }
-.bh4-task-advisor__overview-label { font-size: 0.72rem; color: var(--text-faint); line-height: 1.3; }
-.bh4-task-advisor__overview-sub-warn { color: #e05a4a; }
-
-.bh4-task-advisor__footer {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  margin-top: auto; padding-top: 14px;
-}
-.bh4-task-advisor__updated { font-size: 0.74rem; color: var(--text-faint); }
-
-/* Priority-state accents: critical stays red (matches .primary defaults
-   above); high/normal/clear override the icon+label colors only. */
-.bh4-task-advisor[data-state="high"] .bh4-task-advisor__priority-icon { background: rgba(224,90,74,0.12); color: #e05a4a; }
-.bh4-task-advisor[data-state="high"] .bh4-task-advisor__priority-label { color: #e05a4a; }
 .bh4-task-advisor[data-state="normal"] .bh4-task-advisor__priority-icon { background: rgba(162,121,236,0.14); color: var(--purple-bright); }
-.bh4-task-advisor[data-state="normal"] .bh4-task-advisor__priority-label { color: var(--purple-bright); }
+.bh4-task-advisor[data-state="normal"] .bh4-task-advisor__eyebrow { color: var(--purple-bright); }
 .bh4-task-advisor[data-state="normal"] .bh4-task-advisor__action-btn {
   background: rgba(162,121,236,0.1); border-color: var(--purple-bright); color: var(--purple-bright);
 }
 .bh4-task-advisor[data-state="normal"] .bh4-task-advisor__action-btn:hover { background: rgba(162,121,236,0.2); }
+.bh4-task-advisor[data-state="clear"] {
+  border-color: rgba(62,207,142,0.4);
+  background: linear-gradient(135deg, rgba(62,207,142,0.08), rgba(10,18,14,0.35));
+  box-shadow: 0 0 26px rgba(62,207,142,0.1);
+}
 .bh4-task-advisor[data-state="clear"] .bh4-task-advisor__priority-icon { background: rgba(62,207,142,0.14); color: #3ecf8e; }
-.bh4-task-advisor[data-state="clear"] .bh4-task-advisor__priority-label { color: #3ecf8e; }
+.bh4-task-advisor[data-state="clear"] .bh4-task-advisor__eyebrow { color: #3ecf8e; }
 .bh4-task-advisor[data-state="clear"] .bh4-task-advisor__reason { margin-bottom: 0; }
 
+@media (max-width: 900px) {
+  .bh4-hero-wrap { flex-direction: column; }
+  .bh4-hero-media { flex-basis: 180px; min-height: 180px; }
+  .bh4-hero-media::after { background: linear-gradient(180deg, rgba(0,0,0,0) 55%, var(--panel) 100%); }
+  .bh4-hero-top-row { flex-direction: column; }
+  .bh4-nominal-card { flex-basis: auto; width: 100%; }
+}
 @media (max-width: 720px) {
   .bh4-task-advisor__primary { flex-direction: column; }
   .bh4-task-advisor__secondary { border-left: none; padding-left: 0; border-top: 1px solid var(--border-soft); padding-top: 14px; }
-  .bh4-task-advisor__overview-item { flex: 1 1 100%; }
-  .bh4-task-advisor__footer { flex-direction: column; align-items: flex-start; }
+  .bh4-queues-list { flex-direction: column; }
+  .bh4-footer-bar { flex-direction: column; align-items: flex-start; gap: 8px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .bh4-task-advisor__tooltip { transition: none; }
+  .bh4-nominal-dot { animation: none; }
 }
+
+/* Operational Queues -- three at-a-glance tiles below the Directive banner,
+   reusing the exact same overview counts the banner's "why this?" tooltip
+   is built from (bh4-advisor-overview-* ids), just always visible instead
+   of gated behind the banner's own loading/error state. */
+.bh4-queues {
+  padding: 4px 26px 0;
+}
+.bh4-queues-label {
+  display: block; font-family: 'Jost', sans-serif; font-size: 0.7rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); margin-bottom: 10px;
+}
+.bh4-queues-list { display: flex; gap: 12px; }
+.bh4-queue-tile {
+  flex: 1 1 0; display: flex; align-items: center; gap: 12px;
+  background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 8px;
+  padding: 12px 14px; cursor: pointer; font: inherit; text-align: left;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.bh4-queue-tile:hover, .bh4-queue-tile:focus-visible { border-color: var(--purple-bright); background: rgba(162,121,236,0.06); outline: none; }
+.bh4-queue-icon {
+  flex-shrink: 0; width: 36px; height: 36px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.bh4-queue-icon svg { width: 16px; height: 16px; }
+.bh4-queue-icon--danger { background: rgba(224,90,74,0.14); color: #e05a4a; }
+.bh4-queue-icon--purple { background: rgba(162,121,236,0.14); color: var(--purple-bright); }
+.bh4-queue-icon--blue { background: rgba(79,143,247,0.14); color: var(--quick-action-blue, #4f8ff7); }
+.bh4-queue-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.bh4-queue-value { font-family: 'Cinzel', serif; font-size: 1.3rem; font-weight: 600; color: var(--text); line-height: 1.3; }
+.bh4-queue-label { font-size: 0.78rem; color: var(--text-dim); }
+.bh4-queue-sub { font-size: 0.72rem; color: var(--text-faint); }
+.bh4-queue-sub.bh4-task-advisor__overview-sub-warn { color: #e05a4a; }
+.bh4-queue-chevron { flex-shrink: 0; width: 16px; height: 16px; color: var(--text-faint); }
+
+/* Footer bar -- pinned to the bottom of the card, replacing the old
+   in-banner refresh row so it now spans the whole BH-4 card width. */
+.bh4-footer-bar {
+  margin-top: auto;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 14px 26px; border-top: 1px solid var(--border);
+  font-size: 0.78rem; color: var(--text-faint);
+}
+.bh4-footer-monitor { display: flex; align-items: center; gap: 8px; }
+.bh4-footer-monitor svg { width: 15px; height: 15px; flex-shrink: 0; color: var(--purple-bright); }
+.bh4-footer-updated { color: var(--purple-bright); }
+.bh4-footer-reassess {
+  display: inline-flex; align-items: center; gap: 6px; flex-shrink: 0;
+  background: none; border: 1px solid var(--border-soft); color: var(--text-dim);
+  padding: 7px 14px; font-family: 'Jost', sans-serif; font-size: 0.74rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.05em; border-radius: 4px; cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.bh4-footer-reassess svg { width: 14px; height: 14px; flex-shrink: 0; }
+.bh4-footer-reassess:hover { border-color: var(--purple-bright); color: var(--purple-bright); }
+.bh4-footer-reassess.is-spinning svg { animation: activity-spin 0.6s linear; }
 
 .quick-actions-card {
   border: 1px solid var(--border);
