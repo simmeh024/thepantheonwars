@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=118">
+<link rel="stylesheet" href="../css/style.css?v=119">
 </head>
 <body>
 
@@ -241,6 +241,81 @@
             </li>
           </ul>
           <p class="system-status-footer" id="system-status-footer">&nbsp;</p>
+        </div>
+      </div>
+
+      <div class="bh4-task-advisor" id="bh4-task-advisor" data-state="loading">
+        <div class="bh4-task-advisor__header">
+          <span class="bh4-task-advisor__heading">BH-4 Task Advisor</span>
+          <span class="bh4-task-advisor__info-wrap">
+            <button type="button" class="bh4-task-advisor__info-btn" id="bh4-advisor-info-btn"
+              aria-expanded="false" aria-controls="bh4-advisor-info-tooltip" aria-label="Why this recommendation?">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            </button>
+            <span class="bh4-task-advisor__tooltip" id="bh4-advisor-info-tooltip" role="tooltip">
+              BH-4 selects the highest active priority:
+              <ol>
+                <li>Critical system issues</li>
+                <li>Unresolved topic reports</li>
+                <li>Pending dispatch translations</li>
+              </ol>
+            </span>
+          </span>
+        </div>
+
+        <div class="bh4-task-advisor__body" id="bh4-advisor-body">
+          <p class="bh4-task-advisor__loading" id="bh4-advisor-loading">BH-4 is assessing current conditions&hellip;</p>
+
+          <div class="bh4-task-advisor__error" id="bh4-advisor-error" hidden>
+            <p>Task assessment unavailable.</p>
+            <button type="button" class="btn" id="bh4-advisor-retry-btn">Retry</button>
+          </div>
+
+          <div class="bh4-task-advisor__content" id="bh4-advisor-content" hidden>
+            <div class="bh4-task-advisor__primary" id="bh4-advisor-primary">
+              <span class="bh4-task-advisor__priority-icon" id="bh4-advisor-primary-icon"></span>
+              <div class="bh4-task-advisor__primary-body">
+                <span class="bh4-task-advisor__priority-label" id="bh4-advisor-priority-label">Priority</span>
+                <h3 class="bh4-task-advisor__title" id="bh4-advisor-primary-title"></h3>
+                <p class="bh4-task-advisor__reason" id="bh4-advisor-primary-reason"></p>
+                <button type="button" class="bh4-task-advisor__action-btn" id="bh4-advisor-primary-action" hidden></button>
+              </div>
+              <div class="bh4-task-advisor__secondary" id="bh4-advisor-secondary" hidden>
+                <span class="bh4-task-advisor__priority-icon bh4-task-advisor__priority-icon--secondary" id="bh4-advisor-secondary-icon"></span>
+                <div>
+                  <span class="bh4-task-advisor__priority-label bh4-task-advisor__priority-label--secondary">Next priority</span>
+                  <p class="bh4-task-advisor__secondary-title" id="bh4-advisor-secondary-title"></p>
+                  <button type="button" class="bh4-task-advisor__action-btn bh4-task-advisor__action-btn--secondary" id="bh4-advisor-secondary-action"></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="bh4-task-advisor__overview" id="bh4-advisor-overview">
+              <div class="bh4-task-advisor__overview-item">
+                <span class="bh4-task-advisor__overview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg></span>
+                <span class="bh4-task-advisor__overview-value" id="bh4-advisor-overview-reports">&hellip;</span>
+                <span class="bh4-task-advisor__overview-label">Topic reports<br><span id="bh4-advisor-overview-reports-sub">Unresolved</span></span>
+              </div>
+              <div class="bh4-task-advisor__overview-item">
+                <span class="bh4-task-advisor__overview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg></span>
+                <span class="bh4-task-advisor__overview-value" id="bh4-advisor-overview-translations">&hellip;</span>
+                <span class="bh4-task-advisor__overview-label">Dispatch translations<br><span id="bh4-advisor-overview-translations-sub">Pending</span></span>
+              </div>
+              <div class="bh4-task-advisor__overview-item">
+                <span class="bh4-task-advisor__overview-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg></span>
+                <span class="bh4-task-advisor__overview-value" id="bh4-advisor-overview-alerts">&hellip;</span>
+                <span class="bh4-task-advisor__overview-label">System alerts<br><span id="bh4-advisor-overview-alerts-sub">Active</span></span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="bh4-task-advisor__footer">
+          <span class="bh4-task-advisor__updated" id="bh4-advisor-updated">&nbsp;</span>
+          <button type="button" class="activity-refresh-btn" id="bh4-advisor-refresh-btn" title="Refresh" aria-label="Refresh task advisor">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>Refresh Data</span>
+          </button>
         </div>
       </div>
 
@@ -1495,6 +1570,7 @@
     loadDevSnapshotLanguages();
     loadBh4Welcome();
     loadSystemStatus();
+    loadTaskAdvisor();
   }
 
   function startHomeAutoRefresh() {
@@ -1705,6 +1781,196 @@
         if (bh4StatusTextEl) bh4StatusTextEl.textContent = 'Could not reach BH-4.';
         if (bh4FooterEl) bh4FooterEl.textContent = 'Connection to the archive is unstable.';
       });
+  }
+
+  // ===== Home / BH-4 Task Advisor ===============================================
+  // Deterministic (rule-based, not AI-generated) "what to work on next"
+  // recommendation -- see api/admin/task-advisor.php for the priority logic
+  // (critical system issue > unresolved topic reports > pending dispatch
+  // translations > clear). This block only renders whatever that endpoint
+  // already decided; no priority logic lives here client-side.
+  var advisorEl = document.getElementById('bh4-task-advisor');
+  var advisorLoadingEl = document.getElementById('bh4-advisor-loading');
+  var advisorErrorEl = document.getElementById('bh4-advisor-error');
+  var advisorContentEl = document.getElementById('bh4-advisor-content');
+  var advisorPriorityLabelEl = document.getElementById('bh4-advisor-priority-label');
+  var advisorPrimaryIconEl = document.getElementById('bh4-advisor-primary-icon');
+  var advisorPrimaryTitleEl = document.getElementById('bh4-advisor-primary-title');
+  var advisorPrimaryReasonEl = document.getElementById('bh4-advisor-primary-reason');
+  var advisorPrimaryActionBtn = document.getElementById('bh4-advisor-primary-action');
+  var advisorSecondaryEl = document.getElementById('bh4-advisor-secondary');
+  var advisorSecondaryIconEl = document.getElementById('bh4-advisor-secondary-icon');
+  var advisorSecondaryTitleEl = document.getElementById('bh4-advisor-secondary-title');
+  var advisorSecondaryActionBtn = document.getElementById('bh4-advisor-secondary-action');
+  var advisorOverviewReportsEl = document.getElementById('bh4-advisor-overview-reports');
+  var advisorOverviewReportsSubEl = document.getElementById('bh4-advisor-overview-reports-sub');
+  var advisorOverviewTranslationsEl = document.getElementById('bh4-advisor-overview-translations');
+  var advisorOverviewAlertsEl = document.getElementById('bh4-advisor-overview-alerts');
+  var advisorOverviewAlertsSubEl = document.getElementById('bh4-advisor-overview-alerts-sub');
+  var advisorUpdatedEl = document.getElementById('bh4-advisor-updated');
+  var advisorRefreshBtn = document.getElementById('bh4-advisor-refresh-btn');
+  var advisorRetryBtn = document.getElementById('bh4-advisor-retry-btn');
+  var advisorInfoBtn = document.getElementById('bh4-advisor-info-btn');
+  var advisorInfoTooltip = document.getElementById('bh4-advisor-info-tooltip');
+  var advisorRequestInFlight = false;
+
+  var ADVISOR_ICONS = {
+    critical: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+    topic_reports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>',
+    dispatch_translations: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg>',
+    clear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  };
+
+  function advisorIconFor(type) {
+    if (type === 'topic_reports') return ADVISOR_ICONS.topic_reports;
+    if (type === 'dispatch_translations') return ADVISOR_ICONS.dispatch_translations;
+    if (type === 'clear') return ADVISOR_ICONS.clear;
+    return ADVISOR_ICONS.critical;
+  }
+
+  function formatAge(minutes) {
+    if (minutes === null || minutes === undefined) return '';
+    if (minutes < 60) return minutes + (minutes === 1 ? ' minute ago' : ' minutes ago');
+    var hours = Math.floor(minutes / 60);
+    if (hours < 24) return hours + (hours === 1 ? ' hour ago' : ' hours ago');
+    var days = Math.floor(hours / 24);
+    return days + (days === 1 ? ' day ago' : ' days ago');
+  }
+
+  function advisorNavigate(section) {
+    if (!section) return;
+    showSection(section);
+  }
+
+  function renderPrimaryTask(task) {
+    advisorEl.setAttribute('data-state', task.priority);
+    advisorPrimaryIconEl.innerHTML = advisorIconFor(task.type);
+    advisorPrimaryTitleEl.textContent = task.title;
+
+    var reason = task.reason || '';
+    if (task.type === 'topic_reports' && task.oldest_age_minutes !== null && task.oldest_age_minutes !== undefined) {
+      reason += ' Oldest report: ' + formatAge(task.oldest_age_minutes);
+    }
+    advisorPrimaryReasonEl.textContent = reason;
+
+    if (task.priority === 'critical') {
+      advisorPriorityLabelEl.textContent = 'BH-4 Operational Override';
+    } else if (task.priority === 'high') {
+      advisorPriorityLabelEl.textContent = 'Priority';
+    } else if (task.priority === 'normal') {
+      advisorPriorityLabelEl.textContent = 'Recommended Task';
+    } else {
+      advisorPriorityLabelEl.textContent = '';
+    }
+
+    if (task.action_label && task.action_url) {
+      advisorPrimaryActionBtn.hidden = false;
+      advisorPrimaryActionBtn.textContent = task.action_label;
+      advisorPrimaryActionBtn.onclick = function () { advisorNavigate(task.action_url); };
+    } else {
+      advisorPrimaryActionBtn.hidden = true;
+      advisorPrimaryActionBtn.onclick = null;
+    }
+  }
+
+  function renderSecondaryTask(task) {
+    if (!task) {
+      advisorSecondaryEl.hidden = true;
+      return;
+    }
+    advisorSecondaryEl.hidden = false;
+    advisorSecondaryIconEl.innerHTML = advisorIconFor(task.type);
+    advisorSecondaryTitleEl.textContent = task.title;
+    advisorSecondaryActionBtn.textContent = task.action_label || 'Open';
+    advisorSecondaryActionBtn.onclick = function () { advisorNavigate(task.action_url); };
+  }
+
+  function renderAdvisorOverview(overview) {
+    if (!overview) return;
+    var reports = overview.topic_reports || 0;
+    var translations = overview.dispatch_translations || 0;
+    var alerts = overview.system_alerts || 0;
+    advisorOverviewReportsEl.textContent = reports;
+    advisorOverviewTranslationsEl.textContent = translations;
+    advisorOverviewAlertsEl.textContent = alerts;
+    if (advisorOverviewReportsSubEl) advisorOverviewReportsSubEl.className = reports > 0 ? 'bh4-task-advisor__overview-sub-warn' : '';
+    if (advisorOverviewAlertsSubEl) advisorOverviewAlertsSubEl.className = alerts > 0 ? 'bh4-task-advisor__overview-sub-warn' : '';
+  }
+
+  function renderTaskAdvisor(data) {
+    advisorLoadingEl.hidden = true;
+    advisorErrorEl.hidden = true;
+    advisorContentEl.hidden = false;
+    renderPrimaryTask(data.primary);
+    renderSecondaryTask(data.secondary);
+    renderAdvisorOverview(data.overview);
+    var generated = data.generated_at ? new Date(data.generated_at) : new Date();
+    advisorUpdatedEl.textContent = 'Last updated: ' + generated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function renderTaskAdvisorError() {
+    advisorEl.setAttribute('data-state', 'error');
+    advisorLoadingEl.hidden = true;
+    advisorContentEl.hidden = true;
+    advisorErrorEl.hidden = false;
+  }
+
+  function loadTaskAdvisor() {
+    if (advisorRequestInFlight) return;
+    advisorRequestInFlight = true;
+    if (advisorContentEl.hidden) {
+      advisorLoadingEl.hidden = false;
+    }
+    advisorErrorEl.hidden = true;
+    fetch('/api/admin/task-advisor.php', { credentials: 'same-origin' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('advisor request failed');
+        return r.json();
+      })
+      .then(function (data) {
+        if (!data.ok) throw new Error('advisor response not ok');
+        renderTaskAdvisor(data);
+      })
+      .catch(function () {
+        renderTaskAdvisorError();
+      })
+      .finally(function () {
+        advisorRequestInFlight = false;
+      });
+  }
+
+  if (advisorRefreshBtn) {
+    advisorRefreshBtn.addEventListener('click', function () {
+      if (advisorRefreshBtn.classList.contains('is-spinning')) return;
+      advisorRefreshBtn.classList.add('is-spinning');
+      loadTaskAdvisor();
+      setTimeout(function () { advisorRefreshBtn.classList.remove('is-spinning'); }, 600);
+    });
+  }
+
+  if (advisorRetryBtn) {
+    advisorRetryBtn.addEventListener('click', function () { loadTaskAdvisor(); });
+  }
+
+  if (advisorInfoBtn && advisorInfoTooltip) {
+    var closeAdvisorTooltip = function () {
+      advisorInfoBtn.setAttribute('aria-expanded', 'false');
+      advisorInfoTooltip.classList.remove('is-open');
+    };
+    advisorInfoBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var willOpen = advisorInfoBtn.getAttribute('aria-expanded') !== 'true';
+      advisorInfoBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      advisorInfoTooltip.classList.toggle('is-open', willOpen);
+    });
+    document.addEventListener('click', function (e) {
+      if (!advisorInfoTooltip.classList.contains('is-open')) return;
+      if (e.target === advisorInfoBtn || advisorInfoBtn.contains(e.target)) return;
+      closeAdvisorTooltip();
+    });
+    advisorInfoBtn.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeAdvisorTooltip();
+    });
   }
 
   // ===== Home / Quick Actions ===================================================

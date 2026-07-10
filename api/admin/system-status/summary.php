@@ -30,6 +30,11 @@
  * isn't readable from application code -- see status-helpers.php's removed
  * pw_error_log_path() history in git log for the investigation -- so it was
  * pulled back out rather than permanently showing "Unavailable".)
+ *
+ * The actual six checks live in pw_build_system_signals() (status-helpers.php)
+ * so api/admin/task-advisor.php can reuse them verbatim for its critical-alert
+ * detection instead of re-implementing the same GitHub/DB/forum/sync/storage
+ * checks a second time.
  */
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/status-helpers.php';
@@ -37,84 +42,6 @@ require_once __DIR__ . '/status-helpers.php';
 pw_require_permission('dashboards.view_system_status');
 $db = pw_db();
 
-// --- GitHub Repository -------------------------------------------------------
-$githubStatus = 'bad';
-$githubLabel = 'Unreachable';
-$latestGithubSha = null;
+$signals = pw_build_system_signals($db);
 
-$ch = curl_init('https://api.github.com/repos/simmeh024/thepantheonwars/commits/main');
-curl_setopt_array($ch, [
-    CURLOPT_RETURNTRANSFER => true,
-    CURLOPT_HTTPHEADER => pw_github_curl_headers(),
-    CURLOPT_TIMEOUT => 6,
-    CURLOPT_CONNECTTIMEOUT => 4,
-]);
-$response = curl_exec($ch);
-$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-curl_close($ch);
-
-if ($response !== false && $httpCode === 200) {
-    $data = json_decode($response, true);
-    if (is_array($data) && !empty($data['sha'])) {
-        $githubStatus = 'ok';
-        $githubLabel = 'Connected';
-        $latestGithubSha = $data['sha'];
-    }
-}
-
-// --- Database -----------------------------------------------------------------
-$dbStatus = 'ok';
-$dbLabel = 'Healthy';
-try {
-    $db->query('SELECT 1');
-} catch (Exception $e) {
-    $dbStatus = 'bad';
-    $dbLabel = 'Unreachable';
-}
-
-// --- Database Load --------------------------------------------------------------
-$dbLoad = pw_check_database_load($db);
-
-// --- Forum ----------------------------------------------------------------------
-$forumStatus = 'ok';
-$forumLabel = 'Online';
-try {
-    $db->query('SELECT COUNT(*) FROM topics');
-} catch (Exception $e) {
-    $forumStatus = 'bad';
-    $forumLabel = 'Offline';
-}
-
-// --- Dispatch Sync --------------------------------------------------------------
-$dispatchSyncStatus = 'unknown';
-$dispatchSyncLabel = 'Unknown';
-try {
-    $localRow = $db->query('SELECT sha FROM dispatch_entries ORDER BY id DESC LIMIT 1')->fetch();
-    $localSha = $localRow ? $localRow['sha'] : null;
-    if ($githubStatus === 'ok' && $latestGithubSha !== null && $localSha !== null) {
-        if ($localSha === $latestGithubSha) {
-            $dispatchSyncStatus = 'ok';
-            $dispatchSyncLabel = 'Synced';
-        } else {
-            $dispatchSyncStatus = 'warn';
-            $dispatchSyncLabel = 'Out of sync';
-        }
-    }
-} catch (Exception $e) {
-    $dispatchSyncStatus = 'bad';
-    $dispatchSyncLabel = 'Unreachable';
-}
-
-// --- Avatar Storage ---------------------------------------------------------------
-$avatarStorage = pw_check_avatar_storage();
-
-pw_json([
-    'ok' => true,
-    'github' => ['status' => $githubStatus, 'label' => $githubLabel],
-    'database' => ['status' => $dbStatus, 'label' => $dbLabel],
-    'db_load' => $dbLoad,
-    'forum' => ['status' => $forumStatus, 'label' => $forumLabel],
-    'dispatch_sync' => ['status' => $dispatchSyncStatus, 'label' => $dispatchSyncLabel],
-    'avatar_storage' => $avatarStorage,
-    'checked_at' => gmdate('c'),
-]);
+pw_json(array_merge(['ok' => true], $signals, ['checked_at' => gmdate('c')]));

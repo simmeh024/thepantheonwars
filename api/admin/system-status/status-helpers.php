@@ -12,6 +12,94 @@
  * investigation if a future host makes this feasible again.)
  */
 
+// --- The six "System Status" card signals -----------------------------------------
+// Extracted out of system-status/summary.php so api/admin/task-advisor.php can
+// reuse the exact same checks for its critical-alert detection instead of
+// re-implementing (and potentially drifting from) this logic. See
+// system-status/summary.php's own doc comment for what each signal means;
+// this function's body is verbatim what used to live inline there.
+function pw_build_system_signals($db) {
+    // --- GitHub Repository ---------------------------------------------------
+    $githubStatus = 'bad';
+    $githubLabel = 'Unreachable';
+    $latestGithubSha = null;
+
+    $ch = curl_init('https://api.github.com/repos/simmeh024/thepantheonwars/commits/main');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HTTPHEADER => pw_github_curl_headers(),
+        CURLOPT_TIMEOUT => 6,
+        CURLOPT_CONNECTTIMEOUT => 4,
+    ]);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($response !== false && $httpCode === 200) {
+        $data = json_decode($response, true);
+        if (is_array($data) && !empty($data['sha'])) {
+            $githubStatus = 'ok';
+            $githubLabel = 'Connected';
+            $latestGithubSha = $data['sha'];
+        }
+    }
+
+    // --- Database -------------------------------------------------------------
+    $dbStatus = 'ok';
+    $dbLabel = 'Healthy';
+    try {
+        $db->query('SELECT 1');
+    } catch (Exception $e) {
+        $dbStatus = 'bad';
+        $dbLabel = 'Unreachable';
+    }
+
+    // --- Database Load ----------------------------------------------------------
+    $dbLoad = pw_check_database_load($db);
+
+    // --- Forum ------------------------------------------------------------------
+    $forumStatus = 'ok';
+    $forumLabel = 'Online';
+    try {
+        $db->query('SELECT COUNT(*) FROM topics');
+    } catch (Exception $e) {
+        $forumStatus = 'bad';
+        $forumLabel = 'Offline';
+    }
+
+    // --- Dispatch Sync ------------------------------------------------------------
+    $dispatchSyncStatus = 'unknown';
+    $dispatchSyncLabel = 'Unknown';
+    try {
+        $localRow = $db->query('SELECT sha FROM dispatch_entries ORDER BY id DESC LIMIT 1')->fetch();
+        $localSha = $localRow ? $localRow['sha'] : null;
+        if ($githubStatus === 'ok' && $latestGithubSha !== null && $localSha !== null) {
+            if ($localSha === $latestGithubSha) {
+                $dispatchSyncStatus = 'ok';
+                $dispatchSyncLabel = 'Synced';
+            } else {
+                $dispatchSyncStatus = 'warn';
+                $dispatchSyncLabel = 'Out of sync';
+            }
+        }
+    } catch (Exception $e) {
+        $dispatchSyncStatus = 'bad';
+        $dispatchSyncLabel = 'Unreachable';
+    }
+
+    // --- Avatar Storage -------------------------------------------------------------
+    $avatarStorage = pw_check_avatar_storage();
+
+    return [
+        'github' => ['status' => $githubStatus, 'label' => $githubLabel],
+        'database' => ['status' => $dbStatus, 'label' => $dbLabel],
+        'db_load' => $dbLoad,
+        'forum' => ['status' => $forumStatus, 'label' => $forumLabel],
+        'dispatch_sync' => ['status' => $dispatchSyncStatus, 'label' => $dispatchSyncLabel],
+        'avatar_storage' => $avatarStorage,
+    ];
+}
+
 // --- Small relative-time formatter ------------------------------------------------
 // Used by detail.php for "last sync X ago" / "next sync in X" style labels.
 // $future=true measures from now() forward to $timestamp instead of back from it.
