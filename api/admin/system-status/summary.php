@@ -34,7 +34,7 @@
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/status-helpers.php';
 
-pw_require_permission('dashboards.view');
+pw_require_permission('dashboards.view_system_status');
 $db = pw_db();
 
 // --- GitHub Repository -------------------------------------------------------

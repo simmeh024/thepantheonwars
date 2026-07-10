@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
 
-$adminUser = pw_require_permission('dashboards.view');
+$adminUser = pw_require_permission('dashboards.view_audit_log');
 $canViewIp = pw_has_permission($adminUser, 'dashboards.view_ip_addresses');
 
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;

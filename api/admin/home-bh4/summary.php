@@ -18,7 +18,7 @@
  */
 require_once __DIR__ . '/../../helpers.php';
 
-$user = pw_require_permission('dashboards.view');
+$user = pw_require_permission('dashboards.view_home');
 $db = pw_db();
 
 $stmt = $db->prepare(

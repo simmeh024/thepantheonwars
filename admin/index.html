@@ -27,13 +27,13 @@
       <a href="../index.html">The Pantheon Wars</a>
       <span class="admin-brand-sub">Admin Console</span>
     </div>
-    <div class="admin-nav-category" data-category="home" data-requires-permission="dashboards.view">
+    <div class="admin-nav-category" data-category="home" data-requires-permission="dashboards.view_home,analytics.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
         <span>Home</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <ul class="admin-nav-list admin-nav-list-collapsible">
-        <li><button type="button" class="admin-nav-link active" data-section="home"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>Home</button></li>
+        <li data-requires-permission="dashboards.view_home"><button type="button" class="admin-nav-link active" data-section="home"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>Home</button></li>
         <li data-requires-permission="analytics.view"><button type="button" class="admin-nav-link" data-section="visitor-stats"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 3"/><polyline points="14 3 21 3 21 10"/></svg>Visitor Statistics</button></li>
       </ul>
     </div>
@@ -71,14 +71,14 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category" data-category="system" data-requires-permission="dashboards.view">
+    <div class="admin-nav-category" data-category="system" data-requires-permission="dashboards.view_system_status,dashboards.view_audit_log">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
         <span>System</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <ul class="admin-nav-list admin-nav-list-collapsible">
-        <li data-requires-permission="dashboards.view"><button type="button" class="admin-nav-link" data-section="system-status"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>System Status</button></li>
-        <li data-requires-permission="dashboards.view"><button type="button" class="admin-nav-link" data-section="audit-log"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Audit Log</button></li>
+        <li data-requires-permission="dashboards.view_system_status"><button type="button" class="admin-nav-link" data-section="system-status"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>System Status</button></li>
+        <li data-requires-permission="dashboards.view_audit_log"><button type="button" class="admin-nav-link" data-section="audit-log"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Audit Log</button></li>
       </ul>
     </div>
 

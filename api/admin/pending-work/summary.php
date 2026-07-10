@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
 
-pw_require_permission('dashboards.view');
+pw_require_permission('dashboards.view_home');
 
 $db = pw_db();
 
