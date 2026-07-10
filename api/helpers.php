@@ -283,13 +283,37 @@ function pw_log_admin_activity($action, $description, $user = null) {
 }
 
 // --- Notifications -----------------------------------------------------
+// Per-user opt-out flags, one row per user in notification_preferences
+// (columns notif_like/notif_mention/notif_quote/notif_report_resolved).
+// A missing row (the common case -- most users never touch Notification
+// Settings) means "everything enabled", so this only ever needs to read,
+// never backfill, on account creation.
+function pw_notifications_enabled($userId, $type) {
+    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved'];
+    if (!isset($columns[$type])) {
+        return true;
+    }
+    $column = $columns[$type];
+    $stmt = pw_db()->prepare("SELECT $column FROM notification_preferences WHERE user_id = ?");
+    $stmt->execute([$userId]);
+    $row = $stmt->fetch();
+    if (!$row) {
+        return true;
+    }
+    return (bool)$row[$column];
+}
+
 // Centralizes writes to the notifications table -- see api/messages/like.php
 // (like), api/topics/create.php + api/comments/post.php (mention, quote),
 // and api/admin/topic-reports/resolve.php (report_resolved) for call sites.
 // Silently no-ops if the recipient is also the actor, so liking/mentioning/
-// quoting your own content never notifies yourself.
+// quoting your own content never notifies yourself, and also no-ops if the
+// recipient has turned this notification type off in Notification Settings.
 function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commentId = null, $reportId = null, $excerpt = null) {
     if ($actorUserId !== null && (int)$actorUserId === (int)$userId) {
+        return;
+    }
+    if (!pw_notifications_enabled($userId, $type)) {
         return;
     }
     $stmt = pw_db()->prepare(
@@ -317,6 +341,9 @@ function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commen
 // are mutually exclusive (one is always NULL depending on target type).
 function pw_notify_like($userId, $actorUserId, $topicId, $commentId) {
     if ((int)$userId === (int)$actorUserId) {
+        return;
+    }
+    if (!pw_notifications_enabled($userId, 'like')) {
         return;
     }
     $db = pw_db();

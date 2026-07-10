@@ -289,3 +289,17 @@ CREATE TABLE IF NOT EXISTS notifications (
   CONSTRAINT fk_notifications_comment FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
   CONSTRAINT fk_notifications_report FOREIGN KEY (report_id) REFERENCES content_reports(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Per-user notification type opt-out flags, edited on profile.html's
+-- Notification Settings tab. One row per user who has ever saved a
+-- preference; a missing row means every type is enabled (see
+-- pw_notifications_enabled() in api/helpers.php), so existing users don't
+-- need a backfill.
+CREATE TABLE IF NOT EXISTS notification_preferences (
+  user_id INT UNSIGNED PRIMARY KEY,
+  notif_like TINYINT(1) NOT NULL DEFAULT 1,
+  notif_mention TINYINT(1) NOT NULL DEFAULT 1,
+  notif_quote TINYINT(1) NOT NULL DEFAULT 1,
+  notif_report_resolved TINYINT(1) NOT NULL DEFAULT 1,
+  CONSTRAINT fk_notification_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=117">
+<link rel="stylesheet" href="css/style.css?v=118">
 </head>
 <body>
 
@@ -117,6 +117,7 @@
 
         <div class="profile-menu" id="profile-menu">
           <button type="button" class="profile-menu-tab active" data-panel="settings">Profile Settings</button>
+          <button type="button" class="profile-menu-tab" data-panel="notifications">Notification Settings</button>
           <button type="button" class="profile-menu-tab" data-panel="posts">My Posts</button>
         </div>
 
@@ -151,6 +152,49 @@
             <input type="text" id="profile-email-locked" disabled>
             <p class="profile-field-note">To change your email, please contact an admin.</p>
           </div>
+        </div>
+
+        <div id="profile-panel-notifications" class="profile-panel" hidden>
+          <h3>Notification Settings</h3>
+          <p class="profile-field-note">Choose which notifications you'd like to receive on the Nexus Veil.</p>
+
+          <label class="notif-pref-row notif-pref-all-row">
+            <input type="checkbox" id="notif-pref-all">
+            <span>Select All / None</span>
+          </label>
+          <div class="profile-divider"><span class="profile-divider-shard"></span></div>
+
+          <label class="notif-pref-row">
+            <input type="checkbox" class="notif-pref-item" id="notif-pref-like" data-pref="like">
+            <span>
+              <strong>Likes</strong>
+              <small>Someone likes one of your posts or replies.</small>
+            </span>
+          </label>
+          <label class="notif-pref-row">
+            <input type="checkbox" class="notif-pref-item" id="notif-pref-mention" data-pref="mention">
+            <span>
+              <strong>Mentions</strong>
+              <small>Someone @mentions you in a post or reply.</small>
+            </span>
+          </label>
+          <label class="notif-pref-row">
+            <input type="checkbox" class="notif-pref-item" id="notif-pref-quote" data-pref="quote">
+            <span>
+              <strong>Quotes</strong>
+              <small>Someone quotes one of your posts or replies.</small>
+            </span>
+          </label>
+          <label class="notif-pref-row">
+            <input type="checkbox" class="notif-pref-item" id="notif-pref-report_resolved" data-pref="report_resolved">
+            <span>
+              <strong>Report Resolutions</strong>
+              <small>A moderator resolves a report you submitted.</small>
+            </span>
+          </label>
+
+          <p id="notif-prefs-status" class="profile-success" hidden></p>
+          <button type="button" class="btn btn-solid" id="notif-prefs-save-btn" style="margin-top: 1em;">Save Notification Settings</button>
         </div>
 
         <div id="profile-panel-posts" class="profile-panel" hidden>
@@ -434,12 +478,14 @@
 
   var profileMenu = document.getElementById('profile-menu');
   var panelSettings = document.getElementById('profile-panel-settings');
+  var panelNotifications = document.getElementById('profile-panel-notifications');
   var panelPosts = document.getElementById('profile-panel-posts');
   var lockedNameInput = document.getElementById('profile-name-locked');
   var lockedEmailInput = document.getElementById('profile-email-locked');
   var passwordForm = document.getElementById('password-form');
   var passwordError = document.getElementById('password-error');
   var passwordSuccess = document.getElementById('password-success');
+  var notifPrefsLoaded = false;
 
   profileMenu.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-panel]');
@@ -449,7 +495,63 @@
       tab.classList.toggle('active', tab === btn);
     });
     panelSettings.hidden = panel !== 'settings';
+    panelNotifications.hidden = panel !== 'notifications';
     panelPosts.hidden = panel !== 'posts';
+    if (panel === 'notifications' && !notifPrefsLoaded) {
+      notifPrefsLoaded = true;
+      loadNotificationPrefs();
+    }
+  });
+
+  var notifPrefItems = Array.prototype.slice.call(document.querySelectorAll('.notif-pref-item'));
+  var notifPrefAll = document.getElementById('notif-pref-all');
+  var notifPrefsStatus = document.getElementById('notif-prefs-status');
+  var notifPrefsSaveBtn = document.getElementById('notif-prefs-save-btn');
+
+  function syncNotifPrefAll() {
+    notifPrefAll.checked = notifPrefItems.every(function (cb) { return cb.checked; });
+  }
+
+  notifPrefItems.forEach(function (cb) {
+    cb.addEventListener('change', syncNotifPrefAll);
+  });
+
+  notifPrefAll.addEventListener('change', function () {
+    notifPrefItems.forEach(function (cb) { cb.checked = notifPrefAll.checked; });
+  });
+
+  function loadNotificationPrefs() {
+    fetch('/api/notification-prefs/get.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        notifPrefItems.forEach(function (cb) {
+          cb.checked = !!data.prefs[cb.getAttribute('data-pref')];
+        });
+        syncNotifPrefAll();
+      })
+      .catch(function () {});
+  }
+
+  notifPrefsSaveBtn.addEventListener('click', function () {
+    notifPrefsStatus.hidden = true;
+    var body = { csrf: window.PW_AUTH.csrf };
+    notifPrefItems.forEach(function (cb) {
+      body[cb.getAttribute('data-pref')] = cb.checked;
+    });
+    fetch('/api/notification-prefs/save.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        notifPrefsStatus.textContent = 'Notification settings saved.';
+        notifPrefsStatus.hidden = false;
+      })
+      .catch(function () {});
   });
 
   passwordForm.addEventListener('submit', function (e) {
