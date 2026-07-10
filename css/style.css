@@ -372,7 +372,14 @@ a.nav-parent { cursor: pointer; }
   box-shadow: 0 0 26px rgba(162,121,236,0.22), inset 0 0 0 1px rgba(162,121,236,0.08);
 }
 .notif-status-avatar-wrap { width: 108px; height: 108px; }
-.notif-status-avatar-wrap .profile-avatar { width: 108px; height: 108px; }
+.notif-status-avatar-wrap .profile-avatar {
+  width: 108px; height: 108px; object-position: top;
+  animation: bh4-avatar-pulse 3.5s ease-in-out infinite;
+}
+@keyframes bh4-avatar-pulse {
+  0%, 100% { box-shadow: 0 0 10px color-mix(in srgb, var(--role-color) 45%, transparent); }
+  50% { box-shadow: 0 0 28px color-mix(in srgb, var(--role-color) 75%, transparent); }
+}
 .notif-status-info { flex: 1; min-width: 0; }
 .notif-status-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .notif-status-title {
