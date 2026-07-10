@@ -154,6 +154,17 @@
                 </span>
               </button>
             </li>
+            <li data-requires-permission="members.change_role">
+              <button type="button" class="quick-action-btn" id="quick-action-add-roles">
+                <span class="quick-action-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11h-6M19 8v6"/></svg>
+                </span>
+                <span class="quick-action-label">Add Roles to Member</span>
+                <span class="quick-action-chevron">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+                </span>
+              </button>
+            </li>
             <li>
               <button type="button" class="quick-action-btn" id="quick-action-new-book">
                 <span class="quick-action-icon">
@@ -991,6 +1002,39 @@
     <div class="admin-modal-actions">
       <button type="button" class="admin-delete-btn" id="member-remove-btn" disabled>Remove from Role</button>
       <button type="button" class="btn" id="member-remove-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal" id="add-roles-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner">
+    <button type="button" class="admin-modal-close" id="add-roles-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title">Add Roles to Member</h3>
+    <p class="admin-modal-sub">Tick the roles to grant, then search for who should receive them. Their main role and any other roles they already hold aren&rsquo;t affected.</p>
+
+    <div class="admin-field">
+      <label>Roles to add</label>
+      <div class="member-other-roles-list" id="add-roles-role-list"></div>
+    </div>
+
+    <div class="admin-field">
+      <label for="add-roles-search">Search by name, username, or email</label>
+      <input type="text" id="add-roles-search" placeholder="Start typing&hellip;" autocomplete="off">
+    </div>
+
+    <div class="member-lookup-results" id="add-roles-results"></div>
+
+    <div class="member-lookup-selected" id="add-roles-selected" hidden>
+      <p class="member-lookup-selected-label">Selected (<span id="add-roles-selected-count">0</span>)</p>
+      <div class="member-lookup-chips" id="add-roles-chips"></div>
+    </div>
+
+    <p class="admin-modal-error" id="add-roles-error"></p>
+    <p class="admin-modal-status" id="add-roles-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="add-roles-submit-btn" disabled>Add Roles</button>
+      <button type="button" class="btn" id="add-roles-cancel-btn">Cancel</button>
     </div>
   </div>
 </div>
@@ -3495,6 +3539,204 @@
       }
       memberLookupAssignBtn.disabled = memberLookupSelectedCountNum() === 0;
       if (!failed.length) setTimeout(closeMemberLookupModal, 900);
+    });
+  });
+
+  // ===== Add Roles to Member (Quick Action: tick roles, search, tick, add) ====
+  // Grants "other roles" (see the multi-role work above) to one or more
+  // existing members without touching their main role or any other roles
+  // they already hold -- each submission sends the union of a member's
+  // current other_roles + the newly-ticked ones to the same
+  // admin/members/update.php endpoint the Edit Member modal and
+  // Assign/Remove Users already use, so no backend changes were needed.
+  var addRolesModal = document.getElementById('add-roles-modal');
+  var addRolesClose = document.getElementById('add-roles-close');
+  var addRolesCancelBtn = document.getElementById('add-roles-cancel-btn');
+  var addRolesRoleListEl = document.getElementById('add-roles-role-list');
+  var addRolesSearchEl = document.getElementById('add-roles-search');
+  var addRolesResultsEl = document.getElementById('add-roles-results');
+  var addRolesSelectedWrap = document.getElementById('add-roles-selected');
+  var addRolesSelectedCountEl = document.getElementById('add-roles-selected-count');
+  var addRolesChipsEl = document.getElementById('add-roles-chips');
+  var addRolesError = document.getElementById('add-roles-error');
+  var addRolesStatus = document.getElementById('add-roles-status');
+  var addRolesSubmitBtn = document.getElementById('add-roles-submit-btn');
+  var quickActionAddRolesBtn = document.getElementById('quick-action-add-roles');
+
+  var addRolesSelectedRoles = {}; // slug -> true
+  var addRolesSelectedMembers = {}; // id -> entry
+  var addRolesDebounce = null;
+
+  function addRolesSelectedRoleSlugs() { return Object.keys(addRolesSelectedRoles); }
+  function addRolesSelectedMemberCount() { return Object.keys(addRolesSelectedMembers).length; }
+
+  function updateAddRolesSubmitState() {
+    addRolesSubmitBtn.disabled = addRolesSelectedRoleSlugs().length === 0 || addRolesSelectedMemberCount() === 0;
+  }
+
+  function renderAddRolesRoleList() {
+    var roles = Object.keys(ROLES_BY_SLUG).map(function (slug) { return ROLES_BY_SLUG[slug]; });
+    if (!roles.length) {
+      addRolesRoleListEl.innerHTML = '<p class="member-lookup-hint">No roles exist yet.</p>';
+      return;
+    }
+    addRolesRoleListEl.innerHTML = roles.map(function (r) {
+      var checked = !!addRolesSelectedRoles[r.slug];
+      return '<label class="permission-option-row">' +
+        '<input type="checkbox" data-add-role="' + escapeHtml(r.slug) + '"' + (checked ? ' checked' : '') + '>' +
+        '<span>' + escapeHtml(r.label) + '</span>' +
+      '</label>';
+    }).join('');
+  }
+
+  addRolesRoleListEl.addEventListener('change', function (e) {
+    var input = e.target.closest('[data-add-role]');
+    if (!input) return;
+    var slug = input.getAttribute('data-add-role');
+    if (input.checked) {
+      addRolesSelectedRoles[slug] = true;
+    } else {
+      delete addRolesSelectedRoles[slug];
+    }
+    updateAddRolesSubmitState();
+  });
+
+  function renderAddRolesSelected() {
+    var ids = Object.keys(addRolesSelectedMembers);
+    addRolesSelectedWrap.hidden = ids.length === 0;
+    addRolesSelectedCountEl.textContent = ids.length;
+    addRolesChipsEl.innerHTML = ids.map(function (id) {
+      var entry = addRolesSelectedMembers[id];
+      return '<span class="member-lookup-chip">' + escapeHtml(entry.display_name) +
+        '<button type="button" class="member-lookup-chip-remove" data-id="' + id + '" aria-label="Remove">&times;</button></span>';
+    }).join('');
+    updateAddRolesSubmitState();
+    addRolesResultsEl.querySelectorAll('.member-lookup-row').forEach(function (row) {
+      row.classList.toggle('is-selected', !!addRolesSelectedMembers[row.getAttribute('data-id')]);
+    });
+  }
+
+  addRolesChipsEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.member-lookup-chip-remove');
+    if (!btn) return;
+    delete addRolesSelectedMembers[btn.getAttribute('data-id')];
+    renderAddRolesSelected();
+  });
+
+  function renderAddRolesResults(entries) {
+    if (!entries.length) {
+      addRolesResultsEl.innerHTML = '<p class="member-lookup-hint">No members match that search.</p>';
+      return;
+    }
+    addRolesResultsEl.innerHTML = '';
+    entries.forEach(function (entry) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'member-lookup-row' + (addRolesSelectedMembers[entry.id] ? ' is-selected' : '');
+      row.setAttribute('data-id', entry.id);
+      row.innerHTML =
+        '<input type="checkbox" class="member-lookup-row-check"' + (addRolesSelectedMembers[entry.id] ? ' checked' : '') + ' tabindex="-1">' +
+        '<span class="member-lookup-row-name">' + escapeHtml(entry.display_name) + '</span>' +
+        '<span class="member-lookup-row-meta">' + escapeHtml(entry.email) + '</span>' +
+        '<span class="member-role-badge" style="--role-color:' + escapeHtml(roleColorFor(entry.role)) + '">' + escapeHtml(roleLabelFor(entry.role)) + '</span>';
+      row.addEventListener('click', function () {
+        if (addRolesSelectedMembers[entry.id]) {
+          delete addRolesSelectedMembers[entry.id];
+        } else {
+          addRolesSelectedMembers[entry.id] = entry;
+        }
+        addRolesError.classList.remove('show');
+        addRolesStatus.classList.remove('show');
+        renderAddRolesResults(entries);
+        renderAddRolesSelected();
+      });
+      addRolesResultsEl.appendChild(row);
+    });
+  }
+
+  function openAddRolesModal() {
+    addRolesSelectedRoles = {};
+    addRolesSelectedMembers = {};
+    addRolesSearchEl.value = '';
+    addRolesResultsEl.innerHTML = '<p class="member-lookup-hint">Type at least 2 characters to search.</p>';
+    addRolesError.classList.remove('show');
+    addRolesStatus.classList.remove('show');
+    renderAddRolesSelected();
+    fetchRolesList().then(renderAddRolesRoleList);
+    addRolesModal.hidden = false;
+    setTimeout(function () { addRolesSearchEl.focus(); }, 30);
+  }
+
+  function closeAddRolesModal() {
+    addRolesModal.hidden = true;
+    addRolesSelectedRoles = {};
+    addRolesSelectedMembers = {};
+  }
+
+  if (quickActionAddRolesBtn) {
+    quickActionAddRolesBtn.addEventListener('click', openAddRolesModal);
+  }
+  addRolesClose.addEventListener('click', closeAddRolesModal);
+  addRolesCancelBtn.addEventListener('click', closeAddRolesModal);
+  addRolesModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeAddRolesModal);
+
+  addRolesSearchEl.addEventListener('input', function () {
+    clearTimeout(addRolesDebounce);
+    var query = addRolesSearchEl.value.trim();
+    if (query.length < 2) {
+      addRolesResultsEl.innerHTML = '<p class="member-lookup-hint">Type at least 2 characters to search.</p>';
+      return;
+    }
+    addRolesDebounce = setTimeout(function () {
+      addRolesResultsEl.innerHTML = '<p class="member-lookup-hint">Searching&hellip;</p>';
+      fetch('/api/admin/members/list.php?per_page=8&q=' + encodeURIComponent(query), { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) { renderAddRolesResults((data.ok && data.entries) || []); })
+        .catch(function () { addRolesResultsEl.innerHTML = '<p class="member-lookup-hint">Could not search right now.</p>'; });
+    }, 300);
+  });
+
+  addRolesSubmitBtn.addEventListener('click', function () {
+    var roleSlugs = addRolesSelectedRoleSlugs();
+    var selectedEntries = Object.keys(addRolesSelectedMembers).map(function (id) { return addRolesSelectedMembers[id]; });
+    if (!roleSlugs.length || !selectedEntries.length) return;
+    addRolesError.classList.remove('show');
+    addRolesSubmitBtn.disabled = true;
+
+    Promise.all(selectedEntries.map(function (entry) {
+      var newOtherRoles = (entry.other_roles || []).slice();
+      roleSlugs.forEach(function (slug) {
+        if (newOtherRoles.indexOf(slug) === -1) newOtherRoles.push(slug);
+      });
+      return fetch('/api/admin/members/update.php', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csrf: window.PW_AUTH.csrf, id: entry.id, other_roles: newOtherRoles }),
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        return { entry: entry, ok: !!data.ok, error: data.error };
+      }).catch(function () {
+        return { entry: entry, ok: false, error: 'Could not reach the server.' };
+      });
+    })).then(function (results) {
+      var succeeded = results.filter(function (r) { return r.ok; });
+      var failed = results.filter(function (r) { return !r.ok; });
+      if (failed.length) {
+        addRolesError.textContent = failed.length + ' of ' + results.length + ' could not be updated (' +
+          failed.map(function (r) { return r.entry.display_name + ': ' + (r.error || 'error'); }).join('; ') + ').';
+        addRolesError.classList.add('show');
+      }
+      if (succeeded.length) {
+        var roleLabels = roleSlugs.map(function (slug) { return roleLabelFor(slug); }).join(', ');
+        addRolesStatus.textContent = roleLabels + ' added to ' + succeeded.length +
+          (succeeded.length === 1 ? ' member.' : ' members.');
+        addRolesStatus.classList.add('show');
+        succeeded.forEach(function (r) { delete addRolesSelectedMembers[r.entry.id]; });
+        renderAddRolesSelected();
+        loadMembers();
+        if (typeof loadRoles === 'function' && roleListEl.closest('.admin-section') && !roleListEl.closest('.admin-section').hidden) loadRoles();
+      }
+      updateAddRolesSubmitState();
+      if (!failed.length) setTimeout(closeAddRolesModal, 900);
     });
   });
 
