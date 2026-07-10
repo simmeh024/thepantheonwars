@@ -3,7 +3,9 @@
  * "Recent Visits" card: paginated raw feed of individual page_views rows.
  * IP address is nulled out unless the admin also holds
  * dashboards.view_ip_addresses -- same pattern as
- * api/admin/members/list.php and api/admin/activity-log/list.php.
+ * api/admin/members/list.php and api/admin/activity-log/list.php -- and
+ * even then only a masked form (pw_mask_ip(), e.g. 203.0.xxx.xxx) is sent,
+ * never the raw address.
  */
 require_once __DIR__ . '/../../helpers.php';
 
@@ -47,7 +49,7 @@ $out = array_map(function ($r) use ($canViewIp) {
         'referrer_host' => $r['referrer_host'],
         'is_member' => $r['user_id'] !== null,
         'member_name' => $r['user_id'] !== null ? ($r['display_name'] ?: $r['username']) : null,
-        'ip_address' => $canViewIp ? $r['ip_address'] : null,
+        'ip_address' => $canViewIp ? pw_mask_ip($r['ip_address']) : null,
         'created_at' => $r['created_at'],
     ];
 }, $rows);

@@ -218,6 +218,32 @@ function pw_client_ip() {
     return 'unknown';
 }
 
+// Masks the last two octets of an IPv4 address (203.0.113.42 ->
+// 203.0.xxx.xxx) or the last six groups of an IPv6 address, for display to
+// admins who hold dashboards.view_ip_addresses -- keeps enough of the
+// address to spot which network/region traffic is coming from without
+// exposing the full address. Only used for *display*; stored/raw IPs
+// (login_attempts, page_views) are untouched.
+function pw_mask_ip($ip) {
+    if ($ip === null || $ip === '') {
+        return $ip;
+    }
+    if (strpos($ip, '.') !== false) {
+        $parts = explode('.', $ip);
+        if (count($parts) === 4) {
+            return $parts[0] . '.' . $parts[1] . '.xxx.xxx';
+        }
+        return $ip;
+    }
+    if (strpos($ip, ':') !== false) {
+        $parts = explode(':', $ip);
+        if (count($parts) >= 2) {
+            return $parts[0] . ':' . $parts[1] . ':xxxx:xxxx:xxxx:xxxx:xxxx:xxxx';
+        }
+    }
+    return $ip;
+}
+
 // --- Login attempt tracking -------------------------------------------------
 // Every login attempt (success or failure) is logged here, independent of
 // the per-account failed_login_attempts/locked_until columns on users. This
