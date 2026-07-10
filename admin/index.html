@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=108">
+<link rel="stylesheet" href="../css/style.css?v=109">
 </head>
 <body>
 
@@ -383,32 +383,55 @@
         <p>Page-view traffic across the public site &mdash; totals, trends over time, top pages/referrers, and a raw recent-visits feed.</p>
       </div>
 
-      <div class="activity-widget traffic-snapshot-card">
-        <div class="activity-widget-head">
-          <div class="activity-widget-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-            <span>Traffic Snapshot</span>
+      <div class="admin-home-grid vstats-top-grid">
+        <div class="activity-widget traffic-snapshot-card admin-home-grid-half">
+          <div class="activity-widget-head">
+            <div class="activity-widget-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+              <span>Traffic Snapshot</span>
+            </div>
+          </div>
+          <div class="traffic-snapshot-grid" id="traffic-snapshot-grid">
+            <div class="traffic-snapshot-col">
+              <h3>Today</h3>
+              <div class="site-stat"><div class="site-stat-value" id="vstats-today-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
+              <div class="site-stat"><div class="site-stat-value" id="vstats-today-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
+              <div class="site-stat"><div class="site-stat-value" id="vstats-today-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
+            </div>
+            <div class="traffic-snapshot-col">
+              <h3>Last 7 Days</h3>
+              <div class="site-stat"><div class="site-stat-value" id="vstats-7d-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
+              <div class="site-stat"><div class="site-stat-value" id="vstats-7d-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
+              <div class="site-stat"><div class="site-stat-value" id="vstats-7d-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
+            </div>
+            <div class="traffic-snapshot-col">
+              <h3>Last 30 Days</h3>
+              <div class="site-stat"><div class="site-stat-value" id="vstats-30d-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
+              <div class="site-stat"><div class="site-stat-value" id="vstats-30d-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
+              <div class="site-stat"><div class="site-stat-value" id="vstats-30d-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
+            </div>
           </div>
         </div>
-        <div class="traffic-snapshot-grid" id="traffic-snapshot-grid">
-          <div class="traffic-snapshot-col">
-            <h3>Today</h3>
-            <div class="site-stat"><div class="site-stat-value" id="vstats-today-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
-            <div class="site-stat"><div class="site-stat-value" id="vstats-today-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
-            <div class="site-stat"><div class="site-stat-value" id="vstats-today-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
+
+        <div class="activity-widget heatmap-card admin-home-grid-half">
+          <div class="activity-widget-head">
+            <div class="activity-widget-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+              <span>Traffic by Day &amp; Hour</span>
+            </div>
+            <select class="admin-search heatmap-range-select" id="heatmap-range-select">
+              <option value="7">Last 7 Days</option>
+              <option value="30" selected>Last 30 Days</option>
+              <option value="60">Last 60 Days</option>
+              <option value="90">Last 90 Days</option>
+              <option value="year">Total This Year</option>
+            </select>
           </div>
-          <div class="traffic-snapshot-col">
-            <h3>Last 7 Days</h3>
-            <div class="site-stat"><div class="site-stat-value" id="vstats-7d-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
-            <div class="site-stat"><div class="site-stat-value" id="vstats-7d-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
-            <div class="site-stat"><div class="site-stat-value" id="vstats-7d-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
+          <p class="heatmap-note">Unique visitors by day of week and hour of day (site time zone: UTC).</p>
+          <div class="heatmap-wrap" id="heatmap-wrap">
+            <p class="heatmap-empty">Collecting data&hellip; the heatmap fills in as visits come in.</p>
           </div>
-          <div class="traffic-snapshot-col">
-            <h3>Last 30 Days</h3>
-            <div class="site-stat"><div class="site-stat-value" id="vstats-30d-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
-            <div class="site-stat"><div class="site-stat-value" id="vstats-30d-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
-            <div class="site-stat"><div class="site-stat-value" id="vstats-30d-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
-          </div>
+          <div class="heatmap-legend" id="heatmap-legend"></div>
         </div>
       </div>
 
@@ -2417,6 +2440,9 @@
   var vstats30dSplitEl = document.getElementById('vstats-30d-split');
   var visitsChartWrapEl = document.getElementById('visits-chart-wrap');
   var visitsChartRangeToggleEl = document.getElementById('visits-chart-range-toggle');
+  var heatmapWrapEl = document.getElementById('heatmap-wrap');
+  var heatmapLegendEl = document.getElementById('heatmap-legend');
+  var heatmapRangeSelectEl = document.getElementById('heatmap-range-select');
   var topPagesListEl = document.getElementById('top-pages-list');
   var topReferrersListEl = document.getElementById('top-referrers-list');
   var vstatsRecentListEl = document.getElementById('vstats-recent-list');
@@ -2536,6 +2562,74 @@
       });
       loadVisitsChart();
     });
+  }
+
+  var HEATMAP_DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  function pad2(n) { return n < 10 ? '0' + n : String(n); }
+
+  function renderHeatmap(cells, max) {
+    if (!heatmapWrapEl) return;
+    var grid = {};
+    cells.forEach(function (c) {
+      if (!grid[c.weekday]) grid[c.weekday] = {};
+      grid[c.weekday][c.hour] = c.unique_visitors;
+    });
+
+    var html = '<div class="heatmap-table">';
+    html += '<div class="heatmap-corner"></div>';
+    for (var h = 0; h < 24; h++) {
+      html += '<div class="heatmap-hour-label">' + (h % 4 === 0 ? pad2(h) : '') + '</div>';
+    }
+    for (var d = 0; d < 7; d++) {
+      html += '<div class="heatmap-day-label">' + HEATMAP_DAY_LABELS[d] + '</div>';
+      for (var h2 = 0; h2 < 24; h2++) {
+        var count = (grid[d] && grid[d][h2]) ? grid[d][h2] : 0;
+        var intensity = max > 0 ? (0.06 + (count / max) * 0.9) : 0.06;
+        html += '<div class="heatmap-cell" style="--heatmap-intensity:' + intensity.toFixed(2) + '" title="' +
+          escapeHtml(HEATMAP_DAY_LABELS[d] + ' ' + pad2(h2) + ':00 — ' + count + ' unique visitor' + (count === 1 ? '' : 's')) +
+          '"></div>';
+      }
+    }
+    html += '</div>';
+    heatmapWrapEl.innerHTML = html;
+  }
+
+  function renderHeatmapLegend(max) {
+    if (!heatmapLegendEl) return;
+    if (max <= 0) {
+      heatmapLegendEl.innerHTML = '';
+      return;
+    }
+    var steps = [0, 0.25, 0.5, 0.75, 1];
+    var html = '<span>Less</span><span class="heatmap-legend-scale">';
+    steps.forEach(function (s) {
+      var intensity = 0.06 + s * 0.9;
+      html += '<span class="heatmap-legend-swatch" style="background:rgba(124,79,214,' + intensity.toFixed(2) + ')"></span>';
+    });
+    html += '</span><span>More</span>';
+    heatmapLegendEl.innerHTML = html;
+  }
+
+  function loadHeatmap() {
+    var range = heatmapRangeSelectEl ? heatmapRangeSelectEl.value : '30';
+    fetch('/api/admin/visitor-stats/heatmap.php?range=' + encodeURIComponent(range), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        if (!data.cells.length) {
+          heatmapWrapEl.innerHTML = '<p class="heatmap-empty">Collecting data&hellip; the heatmap fills in as visits come in.</p>';
+          heatmapLegendEl.innerHTML = '';
+          return;
+        }
+        renderHeatmap(data.cells, data.max);
+        renderHeatmapLegend(data.max);
+      })
+      .catch(function () {});
+  }
+
+  if (heatmapRangeSelectEl) {
+    heatmapRangeSelectEl.addEventListener('change', loadHeatmap);
   }
 
   function renderRankedList(container, items, labelKey, emptyMessage) {
@@ -2669,6 +2763,7 @@
   function loadVisitorStats() {
     loadVisitorStatsSummary();
     loadVisitsChart();
+    loadHeatmap();
     loadTopPages();
     loadTopReferrers();
     loadRecentVisits();
