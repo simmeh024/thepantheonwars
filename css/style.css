@@ -4260,6 +4260,7 @@ footer.site-footer {
 .member-lookup-chip-remove:hover { color: #e05a4a; }
 .member-lookup-locked-role { font-size: 0.84rem; color: var(--text); margin: 0 0 18px; }
 .member-lookup-locked-role strong { color: var(--gold-bright); }
+.member-remove-toolbar { display: flex; gap: 8px; margin-bottom: 10px; }
 .member-ban-options input[type="datetime-local"]:focus { outline: none; border-color: var(--purple-bright); }
 
 .admin-modal {

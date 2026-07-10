@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=103">
+<link rel="stylesheet" href="../css/style.css?v=104">
 </head>
 <body>
 
@@ -957,6 +957,34 @@
     <div class="admin-modal-actions">
       <button type="button" class="btn btn-solid" id="member-lookup-assign-btn" disabled>Assign Role</button>
       <button type="button" class="btn" id="member-lookup-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal" id="member-remove-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner">
+    <button type="button" class="admin-modal-close" id="member-remove-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="member-remove-title">Remove Users from Role</h3>
+    <p class="admin-modal-sub" id="member-remove-sub">Everyone who currently holds this role. Select who should be moved back to Member.</p>
+
+    <div class="member-remove-toolbar">
+      <button type="button" class="permission-mini-btn" id="member-remove-select-all">Select all</button>
+      <button type="button" class="permission-mini-btn" id="member-remove-clear">Clear</button>
+    </div>
+
+    <div class="member-lookup-results" id="member-remove-list"></div>
+
+    <div class="member-lookup-selected" id="member-remove-selected" hidden>
+      <p class="member-lookup-selected-label">Selected (<span id="member-remove-selected-count">0</span>)</p>
+      <div class="member-lookup-chips" id="member-remove-chips"></div>
+    </div>
+
+    <p class="admin-modal-error" id="member-remove-error"></p>
+    <p class="admin-modal-status" id="member-remove-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="admin-delete-btn" id="member-remove-btn" disabled>Remove from Role</button>
+      <button type="button" class="btn" id="member-remove-cancel-btn">Cancel</button>
     </div>
   </div>
 </div>
@@ -3385,6 +3413,168 @@
     });
   });
 
+  // ===== Remove Users (view current role holders + move back to Member) =====
+  var memberRemoveModal = document.getElementById('member-remove-modal');
+  var memberRemoveTitle = document.getElementById('member-remove-title');
+  var memberRemoveSub = document.getElementById('member-remove-sub');
+  var memberRemoveClose = document.getElementById('member-remove-close');
+  var memberRemoveCancelBtn = document.getElementById('member-remove-cancel-btn');
+  var memberRemoveListEl = document.getElementById('member-remove-list');
+  var memberRemoveSelectAllBtn = document.getElementById('member-remove-select-all');
+  var memberRemoveClearBtn = document.getElementById('member-remove-clear');
+  var memberRemoveSelectedWrap = document.getElementById('member-remove-selected');
+  var memberRemoveSelectedCount = document.getElementById('member-remove-selected-count');
+  var memberRemoveChipsEl = document.getElementById('member-remove-chips');
+  var memberRemoveError = document.getElementById('member-remove-error');
+  var memberRemoveStatus = document.getElementById('member-remove-status');
+  var memberRemoveBtn = document.getElementById('member-remove-btn');
+
+  var memberRemoveRole = null;
+  var memberRemoveEntries = [];
+  var memberRemoveSelected = {};
+
+  function memberRemoveSelectedCountNum() { return Object.keys(memberRemoveSelected).length; }
+
+  function renderMemberRemoveSelected() {
+    var ids = Object.keys(memberRemoveSelected);
+    memberRemoveSelectedWrap.hidden = ids.length === 0;
+    memberRemoveSelectedCount.textContent = ids.length;
+    memberRemoveChipsEl.innerHTML = ids.map(function (id) {
+      var entry = memberRemoveSelected[id];
+      return '<span class="member-lookup-chip">' + escapeHtml(entry.display_name) +
+        '<button type="button" class="member-lookup-chip-remove" data-id="' + id + '" aria-label="Remove">&times;</button></span>';
+    }).join('');
+    memberRemoveBtn.disabled = ids.length === 0;
+  }
+
+  memberRemoveChipsEl.addEventListener('click', function (e) {
+    var btn = e.target.closest('.member-lookup-chip-remove');
+    if (!btn) return;
+    delete memberRemoveSelected[btn.getAttribute('data-id')];
+    renderMemberRemoveList();
+    renderMemberRemoveSelected();
+  });
+
+  function renderMemberRemoveList() {
+    if (!memberRemoveEntries.length) {
+      memberRemoveListEl.innerHTML = '<p class="member-lookup-hint">No one currently holds this role.</p>';
+      return;
+    }
+    memberRemoveListEl.innerHTML = '';
+    memberRemoveEntries.forEach(function (entry) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'member-lookup-row' + (memberRemoveSelected[entry.id] ? ' is-selected' : '');
+      row.setAttribute('data-id', entry.id);
+      row.innerHTML =
+        '<input type="checkbox" class="member-lookup-row-check"' + (memberRemoveSelected[entry.id] ? ' checked' : '') + ' tabindex="-1">' +
+        '<span class="member-lookup-row-name">' + escapeHtml(entry.display_name) + '</span>' +
+        '<span class="member-lookup-row-meta">' + escapeHtml(entry.email) + '</span>';
+      row.addEventListener('click', function () {
+        if (memberRemoveSelected[entry.id]) {
+          delete memberRemoveSelected[entry.id];
+        } else {
+          memberRemoveSelected[entry.id] = entry;
+        }
+        memberRemoveError.classList.remove('show');
+        memberRemoveStatus.classList.remove('show');
+        renderMemberRemoveList();
+        renderMemberRemoveSelected();
+      });
+      memberRemoveListEl.appendChild(row);
+    });
+  }
+
+  // Lists everyone who currently holds `role` (via the existing
+  // admin/members/list.php ?role= filter, already used by the Members
+  // section's own dropdown) so the admin can pick who to move back to
+  // Member -- a plain list, not a search, since the point is "show me
+  // who's already in this role" rather than finding someone new.
+  function openMemberRemoveModal(role) {
+    memberRemoveRole = role;
+    memberRemoveSelected = {};
+    memberRemoveEntries = [];
+    memberRemoveTitle.textContent = 'Remove Users from ' + role.label;
+    memberRemoveSub.textContent = 'Everyone who currently holds ' + role.label + '. Select who should be moved back to Member.';
+    memberRemoveError.classList.remove('show');
+    memberRemoveStatus.classList.remove('show');
+    memberRemoveListEl.innerHTML = '<p class="member-lookup-hint">Loading&hellip;</p>';
+    renderMemberRemoveSelected();
+    memberRemoveModal.hidden = false;
+
+    fetch('/api/admin/members/list.php?role=' + encodeURIComponent(role.slug) + '&per_page=200', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        memberRemoveEntries = (data.ok && data.entries) || [];
+        renderMemberRemoveList();
+      })
+      .catch(function () {
+        memberRemoveListEl.innerHTML = '<p class="member-lookup-hint">Could not load members.</p>';
+      });
+  }
+
+  function closeMemberRemoveModal() {
+    memberRemoveModal.hidden = true;
+    memberRemoveRole = null;
+    memberRemoveSelected = {};
+  }
+
+  memberRemoveClose.addEventListener('click', closeMemberRemoveModal);
+  memberRemoveCancelBtn.addEventListener('click', closeMemberRemoveModal);
+  memberRemoveModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeMemberRemoveModal);
+
+  memberRemoveSelectAllBtn.addEventListener('click', function () {
+    memberRemoveEntries.forEach(function (entry) { memberRemoveSelected[entry.id] = entry; });
+    renderMemberRemoveList();
+    renderMemberRemoveSelected();
+  });
+  memberRemoveClearBtn.addEventListener('click', function () {
+    memberRemoveSelected = {};
+    renderMemberRemoveList();
+    renderMemberRemoveSelected();
+  });
+
+  memberRemoveBtn.addEventListener('click', function () {
+    var selectedEntries = Object.keys(memberRemoveSelected).map(function (id) { return memberRemoveSelected[id]; });
+    if (!selectedEntries.length) return;
+    memberRemoveError.classList.remove('show');
+    memberRemoveBtn.disabled = true;
+
+    Promise.all(selectedEntries.map(function (entry) {
+      return fetch('/api/admin/members/update.php', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csrf: window.PW_AUTH.csrf, id: entry.id, role: 'member' }),
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        return { entry: entry, ok: !!data.ok, error: data.error };
+      }).catch(function () {
+        return { entry: entry, ok: false, error: 'Could not reach the server.' };
+      });
+    })).then(function (results) {
+      var succeeded = results.filter(function (r) { return r.ok; });
+      var failed = results.filter(function (r) { return !r.ok; });
+      if (failed.length) {
+        memberRemoveError.textContent = failed.length + ' of ' + results.length + ' could not be removed (' +
+          failed.map(function (r) { return r.entry.display_name + ': ' + (r.error || 'error'); }).join('; ') + ').';
+        memberRemoveError.classList.add('show');
+      }
+      if (succeeded.length) {
+        memberRemoveStatus.textContent = succeeded.length + (succeeded.length === 1 ? ' member' : ' members') + ' moved back to Member.';
+        memberRemoveStatus.classList.add('show');
+        succeeded.forEach(function (r) {
+          delete memberRemoveSelected[r.entry.id];
+          memberRemoveEntries = memberRemoveEntries.filter(function (e) { return e.id !== r.entry.id; });
+        });
+        renderMemberRemoveList();
+        renderMemberRemoveSelected();
+        loadMembers();
+        if (typeof loadRoles === 'function' && roleListEl.closest('.admin-section') && !roleListEl.closest('.admin-section').hidden) loadRoles();
+      }
+      memberRemoveBtn.disabled = memberRemoveSelectedCountNum() === 0;
+      if (!failed.length) setTimeout(closeMemberRemoveModal, 900);
+    });
+  });
+
   memberResetAvatarBtn.addEventListener('click', function () {
     if (!currentMember) return;
     if (!window.confirm('Remove ' + currentMember.display_name + '\'s avatar?')) return;
@@ -3839,12 +4029,20 @@
         renderRolePreviewPills(role, permByKey);
       row.appendChild(main);
 
+      // "Remove users" doesn't apply to the base Member role (there's no
+      // more basic role to fall back to), and there's nothing to do if no
+      // one currently holds the role.
+      var removeDisabled = role.slug === 'member' || role.user_count === 0;
+      var removeTitle = role.slug === 'member' ? 'Members already hold the base role' :
+        (role.user_count === 0 ? 'No members currently hold this role' : '');
+
       var actions = document.createElement('div');
       actions.className = 'role-row-actions';
       actions.innerHTML =
         '<button type="button" class="permission-mini-btn" data-role-action="edit">Edit</button>' +
         '<button type="button" class="permission-mini-btn" data-role-action="duplicate"' + (role.is_superuser ? ' disabled title="Superuser access can\'t be duplicated"' : '') + '>Duplicate</button>' +
-        '<button type="button" class="permission-mini-btn" data-role-action="assign">Assign users</button>';
+        '<button type="button" class="permission-mini-btn" data-role-action="assign">Assign users</button>' +
+        '<button type="button" class="permission-mini-btn" data-role-action="remove"' + (removeDisabled ? ' disabled title="' + escapeHtml(removeTitle) + '"' : '') + '>Remove users</button>';
       row.appendChild(actions);
 
       actions.addEventListener('click', function (e) {
@@ -3855,6 +4053,7 @@
         if (action === 'edit') openRoleModal(role.slug);
         else if (action === 'duplicate') duplicateRole(role);
         else if (action === 'assign') assignUsersForRole(role);
+        else if (action === 'remove') openMemberRemoveModal(role);
       });
 
       row.addEventListener('click', function () { openRoleModal(role.slug); });
