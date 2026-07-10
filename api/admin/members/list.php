@@ -1,7 +1,8 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
 
-pw_require_permission('members.view');
+$adminUser = pw_require_permission('members.view');
+$canViewIp = pw_has_permission($adminUser, 'dashboards.view_ip_addresses');
 
 $db = pw_db();
 
@@ -88,7 +89,7 @@ foreach ($db->query('SELECT user_id, role_slug FROM user_roles') as $row) {
     $otherRolesByUser[$row['user_id']][] = $row['role_slug'];
 }
 
-$out = array_map(function ($r) use ($otherRolesByUser) {
+$out = array_map(function ($r) use ($otherRolesByUser, $canViewIp) {
     return [
         'id' => (int)$r['id'],
         'username' => $r['username'],
@@ -98,7 +99,7 @@ $out = array_map(function ($r) use ($otherRolesByUser) {
         'other_roles' => isset($otherRolesByUser[$r['id']]) ? $otherRolesByUser[$r['id']] : [],
         'created_at' => $r['created_at'],
         'last_login_at' => $r['last_login_at'],
-        'last_login_ip' => $r['last_login_ip'],
+        'last_login_ip' => $canViewIp ? $r['last_login_ip'] : null,
         'banned' => pw_is_banned($r),
         'banned_at' => $r['banned_at'],
         'banned_until' => $r['banned_until'],

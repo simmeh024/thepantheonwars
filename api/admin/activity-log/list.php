@@ -1,7 +1,8 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
 
-pw_require_permission('dashboards.view');
+$adminUser = pw_require_permission('dashboards.view');
+$canViewIp = pw_has_permission($adminUser, 'dashboards.view_ip_addresses');
 
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 25;
@@ -47,13 +48,13 @@ $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
 $stmt->execute();
 $rows = $stmt->fetchAll();
 
-$out = array_map(function ($r) {
+$out = array_map(function ($r) use ($canViewIp) {
     return [
         'id' => (int)$r['id'],
         'username' => $r['username'],
         'action' => $r['action'],
         'description' => $r['description'],
-        'ip_address' => $r['ip_address'],
+        'ip_address' => $canViewIp ? $r['ip_address'] : null,
         'created_at' => $r['created_at'],
     ];
 }, $rows);

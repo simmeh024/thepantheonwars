@@ -2155,7 +2155,7 @@
           '<p class="activity-card-desc">' + escapeHtml(entry.description) + '</p>' +
           '<div class="activity-card-meta">' +
             '<span class="activity-card-user">' + escapeHtml(entry.username) + '</span>' +
-            '<span class="activity-card-ip">' + escapeHtml(entry.ip_address) + '</span>' +
+            '<span class="activity-card-ip">' + escapeHtml(entry.ip_address || (pwHasPermission('dashboards.view_ip_addresses') ? '' : 'IP hidden')) + '</span>' +
             '<span class="activity-card-sep">&bull;</span>' +
             '<span>' + escapeHtml(fmtDateTime(entry.created_at)) + '</span>' +
           '</div>' +
@@ -3040,7 +3040,11 @@
 
   function fmtLastLogin(entry) {
     if (!entry.last_login_at) return 'Never logged in';
-    var ip = entry.last_login_ip ? entry.last_login_ip : 'unknown IP';
+    // The server already omits last_login_ip entirely for an admin who
+    // lacks dashboards.view_ip_addresses -- this just picks the right
+    // wording for that vs. a genuinely unrecorded IP on an old row.
+    var ip = entry.last_login_ip ? entry.last_login_ip :
+      (pwHasPermission('dashboards.view_ip_addresses') ? 'unknown IP' : 'IP hidden');
     return fmtRelativeTime(entry.last_login_at) + ' from ' + ip;
   }
 
@@ -3250,7 +3254,8 @@
 
     memberModalMetaEl.hidden = false;
     memberModalLastLogin.textContent = entry.last_login_at ?
-      (fmtDateTime(entry.last_login_at) + ' \u2014 ' + (entry.last_login_ip || 'unknown IP')) :
+      (fmtDateTime(entry.last_login_at) + ' \u2014 ' + (entry.last_login_ip ||
+        (pwHasPermission('dashboards.view_ip_addresses') ? 'unknown IP' : 'IP hidden'))) :
       'Never logged in';
     memberModalJoined.textContent = fmtDate(entry.created_at);
 
