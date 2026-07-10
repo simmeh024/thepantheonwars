@@ -23,7 +23,7 @@ if (mb_strlen($resolution) > 1000) {
 }
 
 $db = pw_db();
-$stmt = $db->prepare("SELECT id, status, target_type, target_id FROM content_reports WHERE id = ?");
+$stmt = $db->prepare("SELECT id, status, target_type, target_id, reporter_user_id FROM content_reports WHERE id = ?");
 $stmt->execute([$id]);
 $report = $stmt->fetch();
 
@@ -44,5 +44,23 @@ pw_log_admin_activity(
     'Closed a report on ' . $report['target_type'] . ' #' . $report['target_id'] . ': ' . $resolution,
     $user
 );
+
+// Notify the original reporter, anonymously (no actor_user_id) -- the
+// reporter shouldn't need to know which specific moderator handled it,
+// just that it was resolved and what came of it.
+$topicId = null;
+$commentId = null;
+if ($report['target_type'] === 'topic') {
+    $topicId = (int)$report['target_id'];
+} else {
+    $commentId = (int)$report['target_id'];
+    $topicStmt = $db->prepare('SELECT topic_id FROM comments WHERE id = ?');
+    $topicStmt->execute([$commentId]);
+    $commentRow = $topicStmt->fetch();
+    if ($commentRow) {
+        $topicId = (int)$commentRow['topic_id'];
+    }
+}
+pw_notify((int)$report['reporter_user_id'], 'report_resolved', null, $topicId, $commentId, $id, $resolution);
 
 pw_json(['ok' => true]);

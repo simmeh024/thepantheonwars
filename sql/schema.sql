@@ -103,6 +103,7 @@ CREATE TABLE IF NOT EXISTS comments (
   user_id INT UNSIGNED NOT NULL,
   topic_id INT UNSIGNED NOT NULL,
   parent_id INT UNSIGNED DEFAULT NULL,
+  quoted_comment_id INT UNSIGNED DEFAULT NULL, -- relational link for the Quote button (see community.html); powers the "quote" notification type
   depth TINYINT UNSIGNED NOT NULL DEFAULT 0,
   body TEXT NOT NULL,
   is_deleted TINYINT(1) NOT NULL DEFAULT 0,
@@ -110,7 +111,8 @@ CREATE TABLE IF NOT EXISTS comments (
   edited_at DATETIME DEFAULT NULL,
   KEY idx_topic_id (topic_id),
   KEY idx_parent_id (parent_id),
-  CONSTRAINT fk_comments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  CONSTRAINT fk_comments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_comments_quoted FOREIGN KEY (quoted_comment_id) REFERENCES comments(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS dispatch_entries (
@@ -261,4 +263,29 @@ CREATE TABLE IF NOT EXISTS page_view_daily_stats (
   unique_visitors INT UNSIGNED NOT NULL DEFAULT 0,
   member_views INT UNSIGNED NOT NULL DEFAULT 0,
   guest_views INT UNSIGNED NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Public-site notification system: one row per notification, covering all
+-- four trigger types (like, mention, quote, report_resolved). See
+-- api/messages/like.php, api/topics/create.php, api/comments/post.php, and
+-- api/admin/topic-reports/resolve.php for the write sites, and
+-- api/notifications/*.php for reads.
+CREATE TABLE IF NOT EXISTS notifications (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  type ENUM('like','mention','quote','report_resolved') NOT NULL,
+  actor_user_id INT UNSIGNED NULL,
+  topic_id INT UNSIGNED NULL,
+  comment_id INT UNSIGNED NULL,
+  report_id INT UNSIGNED NULL,
+  excerpt VARCHAR(200) NULL,
+  is_read TINYINT(1) NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_user_created (user_id, created_at),
+  KEY idx_user_unread (user_id, is_read),
+  CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_notifications_actor FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_notifications_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
+  CONSTRAINT fk_notifications_comment FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
+  CONSTRAINT fk_notifications_report FOREIGN KEY (report_id) REFERENCES content_reports(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

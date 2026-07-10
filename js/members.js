@@ -195,8 +195,14 @@ document.addEventListener('DOMContentLoaded', function () {
   // correctly in the mobile expanded-menu layout too.
   function renderNav() {
     var slot = document.getElementById('auth-nav-item');
+    var notifSlot = document.getElementById('notif-nav-item');
+    var loggedIn = !!(window.PW_AUTH.loggedIn && window.PW_AUTH.user);
+    if (notifSlot) notifSlot.hidden = !loggedIn;
+    if (!loggedIn) {
+      document.dispatchEvent(new CustomEvent('pw-notifications-hide'));
+    }
     if (!slot) return;
-    if (window.PW_AUTH.loggedIn && window.PW_AUTH.user) {
+    if (loggedIn) {
       slot.className = 'nav-item has-dropdown auth-nav-item';
       slot.innerHTML =
         '<span class="nav-parent auth-username">' + escapeHtml(window.PW_AUTH.user.display_name) + '<span class="nav-caret">⌄</span></span>' +

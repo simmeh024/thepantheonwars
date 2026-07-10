@@ -304,6 +304,85 @@ a.nav-parent { cursor: pointer; }
 }
 .nav-dropdown a:hover, .nav-dropdown a.active { color: var(--gold); background: rgba(124,79,214,0.12); }
 
+/* Notification bell (nav) + dropdown -- click-toggled via JS (js/notifications.js),
+   not the hover-based .nav-dropdown pattern above, since it needs to stay
+   open while the visitor reads it. */
+.notif-nav-item { position: relative; display: flex; align-items: center; }
+.notif-bell-btn {
+  position: relative; background: none; border: none; cursor: pointer;
+  color: var(--text-dim); padding: 6px; display: flex; align-items: center;
+  transition: color 0.2s ease;
+}
+.notif-bell-btn svg { width: 19px; height: 19px; }
+.notif-bell-btn:hover { color: var(--gold); }
+.notif-badge {
+  position: absolute; top: 0; right: 0; min-width: 15px; height: 15px; padding: 0 3px;
+  border-radius: 20px; background: #d1483f; color: #fff; font-size: 0.62rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; line-height: 1;
+  font-family: 'Jost', sans-serif;
+}
+.notif-dropdown {
+  position: absolute; top: 100%; right: 0; margin-top: 10px;
+  width: 340px; max-width: 90vw;
+  background: var(--bg-alt); border: 1px solid var(--border-soft);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.45);
+  z-index: 20;
+}
+.notif-dropdown-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 16px; border-bottom: 1px solid var(--border-soft);
+  font-family: 'Jost', sans-serif; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text);
+}
+.notif-mark-all-btn {
+  background: none; border: none; color: var(--purple-bright); font-size: 0.72rem;
+  cursor: pointer; text-transform: none; letter-spacing: 0; font-family: 'Jost', sans-serif;
+}
+.notif-mark-all-btn:hover { color: var(--gold-bright); }
+.notif-dropdown-list { max-height: 360px; overflow-y: auto; }
+.notif-empty { padding: 24px 16px; text-align: center; color: var(--text-faint); font-size: 0.82rem; margin: 0; }
+.notif-row {
+  display: flex; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--border-soft);
+  color: var(--text-dim); text-decoration: none; transition: background-color 0.15s ease;
+}
+.notif-row:last-child { border-bottom: none; }
+.notif-row:hover { background: rgba(124,79,214,0.08); }
+.notif-row-unread { background: rgba(124,79,214,0.06); }
+.notif-row-icon { flex-shrink: 0; color: var(--purple-bright); display: flex; align-items: center; padding-top: 2px; }
+.notif-row-icon svg { width: 16px; height: 16px; }
+.notif-row-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.notif-row-text { font-size: 0.82rem; line-height: 1.4; color: var(--text-dim); }
+.notif-row-text strong { color: var(--text); }
+.notif-row-time { font-size: 0.68rem; color: var(--text-faint); }
+.notif-dropdown-foot { padding: 10px 16px; text-align: center; border-top: 1px solid var(--border-soft); }
+.notif-dropdown-foot a { font-size: 0.76rem; color: var(--purple-bright); }
+.notif-dropdown-foot a:hover { color: var(--gold-bright); }
+
+/* Full notifications.html page */
+.notif-page-toolbar { justify-content: space-between; }
+.notif-page-list { border: 1px solid var(--border-soft); background: var(--panel); }
+.notif-page-date-head {
+  padding: 10px 16px; font-family: 'Jost', sans-serif; font-size: 0.72rem; text-transform: uppercase;
+  letter-spacing: 0.1em; color: var(--text-faint); background: var(--bg-alt); border-bottom: 1px solid var(--border-soft);
+}
+.notif-page-row { padding: 14px 16px; }
+.notif-page-row .notif-row-text { font-size: 0.88rem; }
+
+/* @mention autocomplete dropdown (community.html reply/post textareas) */
+.mention-autocomplete {
+  position: absolute; z-index: 15;
+  background: var(--bg-alt); border: 1px solid var(--border-soft);
+  box-shadow: 0 10px 24px rgba(0,0,0,0.4);
+  max-height: 220px; overflow-y: auto; min-width: 220px;
+}
+.mention-autocomplete-item {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  width: 100%; background: none; border: none; cursor: pointer; text-align: left;
+  padding: 8px 14px; color: var(--text-dim); font-family: 'Jost', sans-serif; font-size: 0.82rem;
+}
+.mention-autocomplete-item:hover { background: rgba(124,79,214,0.12); color: var(--text); }
+.mention-autocomplete-item span { color: var(--text-faint); font-size: 0.74rem; }
+
 nav.main-nav a {
   font-family: 'Jost', sans-serif;
   text-transform: uppercase;

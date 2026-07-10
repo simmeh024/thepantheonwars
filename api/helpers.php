@@ -282,6 +282,57 @@ function pw_log_admin_activity($action, $description, $user = null) {
     pw_log_activity($action, $description, $user ? (int)$user['id'] : null, $user ? $user['username'] : 'unknown');
 }
 
+// --- Notifications -----------------------------------------------------
+// Centralizes writes to the notifications table -- see api/messages/like.php
+// (like), api/topics/create.php + api/comments/post.php (mention, quote),
+// and api/admin/topic-reports/resolve.php (report_resolved) for call sites.
+// Silently no-ops if the recipient is also the actor, so liking/mentioning/
+// quoting your own content never notifies yourself.
+function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commentId = null, $reportId = null, $excerpt = null) {
+    if ($actorUserId !== null && (int)$actorUserId === (int)$userId) {
+        return;
+    }
+    $stmt = pw_db()->prepare(
+        'INSERT INTO notifications (user_id, type, actor_user_id, topic_id, comment_id, report_id, excerpt)
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
+    $stmt->execute([
+        $userId,
+        $type,
+        $actorUserId,
+        $topicId,
+        $commentId,
+        $reportId,
+        $excerpt !== null ? substr($excerpt, 0, 200) : null,
+    ]);
+}
+
+// Extracts unique @username mentions from a post/comment body, resolved
+// against real users.username values (case-insensitive). Quoted text is
+// stripped first so requoting an old message doesn't re-notify whoever it
+// originally mentioned. $excludeUserId (the author) is always dropped from
+// the result, since mentioning yourself shouldn't notify you either.
+function pw_extract_mentions($body, $excludeUserId) {
+    $stripped = preg_replace('/\[quote(?:=[^\]]*)?\](?:(?!\[\/quote\]).)*\[\/quote\]/is', '', $body);
+    if (!preg_match_all('/@([a-zA-Z0-9_]{3,30})/', $stripped, $matches)) {
+        return [];
+    }
+    $usernames = array_values(array_unique(array_map('strtolower', $matches[1])));
+    if (empty($usernames)) {
+        return [];
+    }
+    $placeholders = implode(',', array_fill(0, count($usernames), '?'));
+    $stmt = pw_db()->prepare("SELECT id, username FROM users WHERE LOWER(username) IN ($placeholders)");
+    $stmt->execute($usernames);
+    $result = [];
+    foreach ($stmt->fetchAll() as $row) {
+        if ((int)$row['id'] !== (int)$excludeUserId) {
+            $result[(int)$row['id']] = true;
+        }
+    }
+    return array_keys($result);
+}
+
 /**
  * Generates a random password of the given length using a CSPRNG
  * (random_int over /dev/urandom or the platform equivalent), pulled from a

@@ -40,5 +40,10 @@ if ($bodyLen > 2000) {
 $db = pw_db();
 $stmt = $db->prepare('INSERT INTO topics (board, user_id, title, body) VALUES (?, ?, ?, ?)');
 $stmt->execute([$board, $user['id'], $title, $body]);
+$topicId = (int)$db->lastInsertId();
 
-pw_json(['ok' => true, 'id' => (int)$db->lastInsertId()]);
+foreach (pw_extract_mentions($body, $user['id']) as $mentionedUserId) {
+    pw_notify($mentionedUserId, 'mention', $user['id'], $topicId, null, null, $title);
+}
+
+pw_json(['ok' => true, 'id' => $topicId]);

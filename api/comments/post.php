@@ -53,7 +53,31 @@ if (!empty($input['parent_id'])) {
     }
 }
 
-$stmt = $db->prepare('INSERT INTO comments (user_id, topic_id, parent_id, depth, body) VALUES (?, ?, ?, ?, ?)');
-$stmt->execute([$user['id'], $topicId, $parentId, $depth, $body]);
+// Quote linking: the client-side Quote button (community.html) already
+// pastes a [quote=...] block into the reply body -- this optional field
+// just ties that back to the actual comment row it quoted, so a
+// notification can be sent to the quoted author. Validated against the
+// same topic so a stray/forged id from another topic can't be attached.
+$quotedCommentId = null;
+if (!empty($input['quoted_comment_id'])) {
+    $stmt = $db->prepare('SELECT id, user_id FROM comments WHERE id = ? AND topic_id = ? AND is_deleted = 0');
+    $stmt->execute([(int)$input['quoted_comment_id'], $topicId]);
+    $quotedComment = $stmt->fetch();
+    if ($quotedComment) {
+        $quotedCommentId = (int)$quotedComment['id'];
+    }
+}
 
-pw_json(['ok' => true, 'id' => (int)$db->lastInsertId()]);
+$stmt = $db->prepare('INSERT INTO comments (user_id, topic_id, parent_id, quoted_comment_id, depth, body) VALUES (?, ?, ?, ?, ?, ?)');
+$stmt->execute([$user['id'], $topicId, $parentId, $quotedCommentId, $depth, $body]);
+$commentId = (int)$db->lastInsertId();
+
+if ($quotedCommentId !== null) {
+    pw_notify((int)$quotedComment['user_id'], 'quote', $user['id'], $topicId, $commentId, null, $body);
+}
+
+foreach (pw_extract_mentions($body, $user['id']) as $mentionedUserId) {
+    pw_notify($mentionedUserId, 'mention', $user['id'], $topicId, $commentId, null, $body);
+}
+
+pw_json(['ok' => true, 'id' => $commentId]);

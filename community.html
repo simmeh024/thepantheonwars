@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=109">
+<link rel="stylesheet" href="css/style.css?v=110">
 </head>
 <body>
 
@@ -57,7 +57,7 @@
           <a href="quiz.html">Quiz</a>
         </div>
       </div>
-      <span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span>
+      <span class="notif-nav-item" id="notif-nav-item" hidden><button type="button" class="notif-bell-btn" id="notif-bell-btn" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notif-badge" id="notif-badge" hidden>0</span></button><div class="notif-dropdown" id="notif-dropdown" hidden><div class="notif-dropdown-head"><span>Notifications</span><button type="button" class="notif-mark-all-btn" id="notif-mark-all-btn">Mark all read</button></div><div class="notif-dropdown-list" id="notif-dropdown-list"><div class="notif-empty">Loading&hellip;</div></div><div class="notif-dropdown-foot"><a href="notifications.html">View all notifications</a></div></div></span><span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span>
     </nav>
     <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
   </div>
@@ -248,6 +248,7 @@
 
 <script src="js/main.js?v=2"></script>
 <script src="js/members.js?v=7"></script>
+<script src="js/notifications.js?v=1"></script>
 <script>
 (function () {
   var BOARDS = [
@@ -337,6 +338,20 @@
 
   // ---------- Formatting toolbar for reply / topic textareas ----------
 
+  // Fetched once and cached -- api/members/list.php already returns every
+  // member (up to 500) in one public, unauthenticated call, so there's no
+  // need for a dedicated per-keystroke search endpoint here.
+  var membersCachePromise = null;
+  function fetchMembersOnce() {
+    if (!membersCachePromise) {
+      membersCachePromise = fetch('/api/members/list.php', { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) { return (data.ok && data.members) ? data.members : []; })
+        .catch(function () { return []; });
+    }
+    return membersCachePromise;
+  }
+
   function attachEditorToolbar(textarea) {
     var bar = document.createElement('div');
     bar.className = 'editor-toolbar';
@@ -424,6 +439,78 @@
     bar.appendChild(colorWrap);
 
     textarea.parentNode.insertBefore(bar, textarea);
+
+    // ---------- @mention autocomplete ----------
+    // Positioned absolute against whichever wrapper this textarea happens
+    // to live in (main form, reply-form-wrap, inline-edit-form) -- force
+    // that wrapper to be a positioning context rather than adding
+    // position:relative piecemeal to every one of those wrapper classes.
+    if (getComputedStyle(textarea.parentNode).position === 'static') {
+      textarea.parentNode.style.position = 'relative';
+    }
+    var mentionDropdown = document.createElement('div');
+    mentionDropdown.className = 'mention-autocomplete';
+    mentionDropdown.hidden = true;
+    textarea.parentNode.insertBefore(mentionDropdown, textarea.nextSibling);
+
+    var mentionMatchStart = -1;
+
+    function closeMentionDropdown() {
+      mentionDropdown.hidden = true;
+      mentionMatchStart = -1;
+    }
+
+    function selectMention(m) {
+      var val = textarea.value;
+      var cursor = textarea.selectionStart;
+      var before = val.slice(0, mentionMatchStart);
+      var after = val.slice(cursor);
+      var insertText = '@' + m.username + ' ';
+      textarea.value = before + insertText + after;
+      var pos = before.length + insertText.length;
+      textarea.focus();
+      textarea.setSelectionRange(pos, pos);
+      closeMentionDropdown();
+    }
+
+    textarea.addEventListener('input', function () {
+      var cursor = textarea.selectionStart;
+      var before = textarea.value.slice(0, cursor);
+      var match = before.match(/@([a-zA-Z0-9_]{1,30})$/);
+      if (!match) { closeMentionDropdown(); return; }
+      mentionMatchStart = cursor - match[0].length;
+      var query = match[1].toLowerCase();
+      fetchMembersOnce().then(function (members) {
+        if (textarea.selectionStart !== cursor) return; // cursor moved while awaiting the fetch
+        var results = members.filter(function (m) {
+          return m.username && (m.username.toLowerCase().indexOf(query) === 0 ||
+            (m.display_name || '').toLowerCase().indexOf(query) === 0);
+        }).slice(0, 6);
+        if (!results.length) { closeMentionDropdown(); return; }
+        mentionDropdown.innerHTML = '';
+        results.forEach(function (m) {
+          var item = document.createElement('button');
+          item.type = 'button';
+          item.className = 'mention-autocomplete-item';
+          item.innerHTML = '<strong>' + escapeHtml(m.display_name) + '</strong><span>@' + escapeHtml(m.username) + '</span>';
+          item.addEventListener('mousedown', function (e) { e.preventDefault(); selectMention(m); });
+          mentionDropdown.appendChild(item);
+        });
+        mentionDropdown.style.top = (textarea.offsetTop + textarea.offsetHeight) + 'px';
+        mentionDropdown.style.left = textarea.offsetLeft + 'px';
+        mentionDropdown.hidden = false;
+      });
+    });
+
+    textarea.addEventListener('keydown', function (e) {
+      if (mentionDropdown.hidden) return;
+      if (e.key === 'Escape') closeMentionDropdown();
+    });
+
+    textarea.addEventListener('blur', function () {
+      setTimeout(closeMentionDropdown, 150);
+    });
+
     return bar;
   }
 
@@ -1265,6 +1352,11 @@
         var attribution = fmtQuoteAttribution(ctx.authorName, ctx.createdAt);
         var quoteText = '[quote=' + attribution + ']' + ctx.body + '[/quote]\n';
         ta.value = ta.value ? (ta.value.replace(/\s+$/, '') + '\n\n' + quoteText) : quoteText;
+        // Stash which comment this quote came from so the reply-post
+        // request can link it (powers the "quote" notification) -- only
+        // meaningful when quoting a reply, not the topic's original post,
+        // since comments.quoted_comment_id only references other comments.
+        if (ctx.kind === 'comment') ta.dataset.quotedCommentId = ctx.id;
         ta.focus();
         ta.setSelectionRange(ta.value.length, ta.value.length);
         ta.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -1441,10 +1533,11 @@
         method: 'POST',
         credentials: 'same-origin',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic_id: currentTopicId, body: text, parent_id: c.id, csrf: window.PW_AUTH.csrf }),
+        body: JSON.stringify({ topic_id: currentTopicId, body: text, parent_id: c.id, quoted_comment_id: ta.dataset.quotedCommentId || null, csrf: window.PW_AUTH.csrf }),
       }).then(function (r) { return r.json(); }).then(function (data) {
         if (data.ok) {
           ta.value = '';
+          delete ta.dataset.quotedCommentId;
           err.textContent = '';
           wrap.hidden = true;
           loadFeed();
@@ -1739,10 +1832,11 @@
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic_id: currentTopicId, body: text, csrf: window.PW_AUTH.csrf }),
+      body: JSON.stringify({ topic_id: currentTopicId, body: text, quoted_comment_id: body.dataset.quotedCommentId || null, csrf: window.PW_AUTH.csrf }),
     }).then(function (r) { return r.json(); }).then(function (data) {
       if (data.ok) {
         body.value = '';
+        delete body.dataset.quotedCommentId;
         loadFeed();
       } else {
         errorEl.textContent = data.error || 'Could not post that.';

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Notifications — The Pantheon Wars</title>
+<meta name="description" content="Likes, mentions, quotes, and report updates from the Nexus Veil community.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Notifications — The Pantheon Wars">
+<meta property="og:description" content="Likes, mentions, quotes, and report updates from the Nexus Veil community.">
+<meta property="og:url" content="https://thepantheonwars.com/notifications.html">
+<meta property="og:image" content="https://thepantheonwars.com/images/hero-main.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Notifications — The Pantheon Wars">
+<meta name="twitter:description" content="Likes, mentions, quotes, and report updates from the Nexus Veil community.">
+<meta name="twitter:image" content="https://thepantheonwars.com/images/hero-main.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" href="favicon.ico">
+<link rel="stylesheet" href="css/style.css?v=110">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="nav-inner">
+    <a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a>
+    <nav class="main-nav">
+      <a href="index.html">Home</a>
+      <div class="nav-item has-dropdown">
+        <span class="nav-parent">The Universe<span class="nav-caret">⌄</span></span>
+        <div class="nav-dropdown">
+          <a href="books.html">The Books</a>
+          <a href="worlds.html">The Worlds</a>
+          <a href="overlords.html">The Overlords</a>
+          <a href="soundtracks.html">The Soundtracks</a>
+        </div>
+      </div>
+      <div class="nav-item has-dropdown">
+        <span class="nav-parent">News<span class="nav-caret">⌄</span></span>
+        <div class="nav-dropdown">
+          <a href="news.html">Latest News</a>
+          <a href="dev-dispatches.html">Development Dispatches</a>
+        </div>
+      </div>
+      <a href="about.html">About</a>
+      <div class="nav-item has-dropdown">
+        <span class="nav-parent">Community<span class="nav-caret">⌄</span></span>
+        <div class="nav-dropdown">
+          <a href="community.html">Nexus Veil (Forum)</a>
+          <a href="memberlist.html">Member List</a>
+          <a href="quiz.html">Quiz</a>
+        </div>
+      </div>
+      <span class="notif-nav-item" id="notif-nav-item" hidden><button type="button" class="notif-bell-btn" id="notif-bell-btn" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg><span class="notif-badge" id="notif-badge" hidden>0</span></button><div class="notif-dropdown" id="notif-dropdown" hidden><div class="notif-dropdown-head"><span>Notifications</span><button type="button" class="notif-mark-all-btn" id="notif-mark-all-btn">Mark all read</button></div><div class="notif-dropdown-list" id="notif-dropdown-list"><div class="notif-empty">Loading&hellip;</div></div><div class="notif-dropdown-foot"><a href="notifications.html">View all notifications</a></div></div></span><span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span>
+    </nav>
+    <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
+  </div>
+</header>
+
+<main>
+
+  <div class="page-banner ornate">
+    <div class="hero-bg" style="background-image: url('images/world-nexusveil.jpg'); opacity: 0.3;"></div>
+    <div class="hero-veil"></div>
+    <span class="orn-bl"></span><span class="orn-br"></span>
+    <div class="container">
+      <span class="eyebrow">The Nexus Veil</span>
+      <h1>Notifications</h1>
+      <p class="lede">Likes, mentions, quotes, and report updates from the community.</p>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container" style="max-width: 720px;">
+
+      <div id="notif-page-gate" class="profile-gate" hidden>
+        <span class="eyebrow">Members Only</span>
+        <h2>Log in to see your notifications</h2>
+        <p>Likes, mentions, quotes, and report updates all live here once you're signed in.</p>
+        <button type="button" class="btn btn-solid auth-trigger" data-tab="login">Log In</button>
+        <button type="button" class="btn auth-trigger" data-tab="register">Create an Account</button>
+      </div>
+
+      <div id="notif-page-content" hidden>
+        <div class="admin-toolbar notif-page-toolbar">
+          <button type="button" class="activity-refresh-btn" id="notif-page-refresh-btn" title="Refresh" aria-label="Refresh notifications">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            <span>Refresh</span>
+          </button>
+          <button type="button" class="btn notif-page-mark-all-btn" id="notif-page-mark-all-btn">Mark all read</button>
+        </div>
+        <div id="notif-page-list" class="notif-page-list">
+          <p class="notif-empty">Loading&hellip;</p>
+        </div>
+        <div class="admin-pagination" id="notif-page-pagination"></div>
+      </div>
+
+    </div>
+  </section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div>
+        <h4>The Pantheon Wars</h4>
+        <p>A fourteen-book saga by Pascal Slettenaar — twelve worlds, twelve tyrants, and the prophecy that could end them all.</p>
+      </div>
+      <div>
+        <h4 class="footer-toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="footer-explore-list">
+          Explore
+          <span class="footer-toggle-icon" aria-hidden="true">&#8964;</span>
+        </h4>
+        <ul id="footer-explore-list" class="footer-collapsible-list collapsed">
+          <li><a href="index.html">Home</a></li>
+          <li><a href="books.html">The Books</a></li>
+          <li><a href="worlds.html">Worlds</a></li>
+          <li><a href="overlords.html">The Overlords</a></li>
+          <li><a href="soundtracks.html">The Soundtracks</a></li>
+          <li><a href="about.html">About the Author</a></li>
+          <li><a href="news.html">News</a></li>
+          <li><a href="quiz.html">Which Overlord Are You?</a></li>
+          <li><a href="community.html">Community</a></li>
+          <li><a href="memberlist.html">Member List</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Stay Connected</h4>
+        <ul>
+          <li><a href="soundtracks.html">The Soundtracks</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2026 Pascal Slettenaar. All rights reserved. &nbsp;•&nbsp; “Twelve thrones will fall. One will rise.”
+    </div>
+  </div>
+</footer>
+
+<script src="js/main.js?v=2"></script>
+<script src="js/members.js?v=7"></script>
+<script src="js/notifications.js?v=1"></script>
+<script>
+(function () {
+  var gate = document.getElementById('notif-page-gate');
+  var content = document.getElementById('notif-page-content');
+  var listEl = document.getElementById('notif-page-list');
+  var paginationEl = document.getElementById('notif-page-pagination');
+  var refreshBtn = document.getElementById('notif-page-refresh-btn');
+  var markAllBtn = document.getElementById('notif-page-mark-all-btn');
+
+  var state = { page: 1, perPage: 20, totalPages: 1 };
+
+  var TYPE_ICONS = {
+    like: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 0 0 2 2h13.5a2 2 0 0 0 2-1.6l1.2-6A2 2 0 0 0 18.7 12H14V6a2 2 0 0 0-2-2l-2 5.5V22"/></svg>',
+    mention: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-4 7.5"/></svg>',
+    quote: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>',
+    report_resolved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>',
+  };
+
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function notificationLink(n) {
+    if (!n.topic_id) return '#';
+    return 'community.html?topic=' + encodeURIComponent(n.topic_id) +
+      (n.comment_id ? '&comment=' + encodeURIComponent(n.comment_id) : '');
+  }
+
+  function notificationText(n) {
+    var actor = n.actor ? escapeHtml(n.actor.display_name) : null;
+    var excerpt = n.excerpt ? escapeHtml(n.excerpt.slice(0, 140)) : '';
+    switch (n.type) {
+      case 'like':
+        return '<strong>' + (actor || 'Someone') + '</strong> liked your post' + (excerpt ? ': "' + excerpt + '"' : '');
+      case 'mention':
+        return '<strong>' + (actor || 'Someone') + '</strong> mentioned you' + (n.topic_title ? ' in <strong>' + escapeHtml(n.topic_title) + '</strong>' : '');
+      case 'quote':
+        return '<strong>' + (actor || 'Someone') + '</strong> quoted you' + (excerpt ? ': "' + excerpt + '"' : '');
+      case 'report_resolved':
+        return 'A moderator resolved your report' + (excerpt ? ': "' + excerpt + '"' : '');
+      default:
+        return 'You have a new notification.';
+    }
+  }
+
+  function dateHeaderFor(iso) {
+    var d = new Date(iso.replace(' ', 'T') + 'Z');
+    var now = new Date();
+    var isSameDay = function (a, b) {
+      return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    };
+    if (isSameDay(d, now)) return 'Today';
+    var yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    if (isSameDay(d, yesterday)) return 'Yesterday';
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
+
+  function timeOfDay(iso) {
+    return new Date(iso.replace(' ', 'T') + 'Z').toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function renderList(entries) {
+    listEl.innerHTML = '';
+    if (!entries.length) {
+      listEl.innerHTML = '<p class="notif-empty">No notifications yet.</p>';
+      return;
+    }
+    var lastHeader = null;
+    entries.forEach(function (n) {
+      var header = dateHeaderFor(n.created_at);
+      if (header !== lastHeader) {
+        var h = document.createElement('div');
+        h.className = 'notif-page-date-head';
+        h.textContent = header;
+        listEl.appendChild(h);
+        lastHeader = header;
+      }
+      var row = document.createElement('a');
+      row.className = 'notif-row notif-page-row' + (n.is_read ? '' : ' notif-row-unread');
+      row.href = notificationLink(n);
+      row.setAttribute('data-id', n.id);
+      row.innerHTML =
+        '<span class="notif-row-icon">' + (TYPE_ICONS[n.type] || '') + '</span>' +
+        '<span class="notif-row-body">' +
+          '<span class="notif-row-text">' + notificationText(n) + '</span>' +
+          '<span class="notif-row-time">' + timeOfDay(n.created_at) + '</span>' +
+        '</span>';
+      listEl.appendChild(row);
+    });
+  }
+
+  function renderPagination() {
+    paginationEl.innerHTML = '';
+    if (state.totalPages <= 1) return;
+    var wrap = document.createElement('div');
+    wrap.className = 'admin-pager';
+
+    var prev = document.createElement('button');
+    prev.type = 'button';
+    prev.textContent = '‹ Prev';
+    prev.disabled = state.page <= 1;
+    prev.addEventListener('click', function () { state.page--; loadList(); });
+
+    var label = document.createElement('span');
+    label.textContent = 'Page ' + state.page + ' of ' + state.totalPages;
+
+    var next = document.createElement('button');
+    next.type = 'button';
+    next.textContent = 'Next ›';
+    next.disabled = state.page >= state.totalPages;
+    next.addEventListener('click', function () { state.page++; loadList(); });
+
+    wrap.appendChild(prev);
+    wrap.appendChild(label);
+    wrap.appendChild(next);
+    paginationEl.appendChild(wrap);
+  }
+
+  function loadList() {
+    listEl.innerHTML = '<p class="notif-empty">Loading&hellip;</p>';
+    var params = new URLSearchParams();
+    params.set('page', state.page);
+    params.set('per_page', state.perPage);
+    fetch('/api/notifications/list.php?' + params.toString(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          listEl.innerHTML = '<p class="notif-empty">Could not load notifications.</p>';
+          return;
+        }
+        state.totalPages = data.total_pages || 1;
+        state.page = data.page || 1;
+        renderList(data.entries || []);
+        renderPagination();
+      })
+      .catch(function () {
+        listEl.innerHTML = '<p class="notif-empty">Could not load notifications.</p>';
+      });
+  }
+
+  listEl.addEventListener('click', function (e) {
+    var row = e.target.closest('.notif-row');
+    if (!row) return;
+    var id = row.getAttribute('data-id');
+    row.classList.remove('notif-row-unread');
+    fetch('/api/notifications/mark-read.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csrf: window.PW_AUTH.csrf, id: id }),
+    }).catch(function () {});
+  });
+
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', function () {
+      if (refreshBtn.classList.contains('is-spinning')) return;
+      refreshBtn.classList.add('is-spinning');
+      loadList();
+      setTimeout(function () { refreshBtn.classList.remove('is-spinning'); }, 600);
+    });
+  }
+
+  if (markAllBtn) {
+    markAllBtn.addEventListener('click', function () {
+      fetch('/api/notifications/mark-read.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csrf: window.PW_AUTH.csrf, all: true }),
+      }).then(loadList).catch(function () {});
+    });
+  }
+
+  function load() {
+    if (!window.PW_AUTH.loggedIn) {
+      gate.hidden = false;
+      content.hidden = true;
+      return;
+    }
+    gate.hidden = true;
+    content.hidden = false;
+    loadList();
+  }
+
+  document.addEventListener('pw-auth-ready', load);
+})();
+</script>
+</body>
+</html>

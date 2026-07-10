@@ -46,6 +46,24 @@ if ($existing) {
     $stmt = $db->prepare('INSERT INTO message_likes (target_type, target_id, user_id) VALUES (?, ?, ?)');
     $stmt->execute([$targetType, $targetId, $user['id']]);
     $liked = true;
+
+    // Notify the post's author (never on unlike, and never for a self-like
+    // -- pw_notify() no-ops when actor === recipient).
+    if ($targetType === 'topic') {
+        $ownerStmt = $db->prepare('SELECT user_id, title FROM topics WHERE id = ?');
+        $ownerStmt->execute([$targetId]);
+        $owner = $ownerStmt->fetch();
+        if ($owner) {
+            pw_notify((int)$owner['user_id'], 'like', $user['id'], $targetId, null, null, $owner['title']);
+        }
+    } else {
+        $ownerStmt = $db->prepare('SELECT user_id, topic_id, body FROM comments WHERE id = ?');
+        $ownerStmt->execute([$targetId]);
+        $owner = $ownerStmt->fetch();
+        if ($owner) {
+            pw_notify((int)$owner['user_id'], 'like', $user['id'], (int)$owner['topic_id'], $targetId, null, $owner['body']);
+        }
+    }
 }
 
 $countStmt = $db->prepare('SELECT COUNT(*) AS cnt FROM message_likes WHERE target_type = ? AND target_id = ?');
