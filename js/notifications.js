@@ -61,7 +61,7 @@ document.addEventListener('DOMContentLoaded', function () {
       case 'mention':
         return '<strong>' + (actor || 'Someone') + '</strong> mentioned you' + (n.topic_title ? ' in <strong>' + escapeHtml(n.topic_title) + '</strong>' : '');
       case 'quote':
-        return '<strong>' + (actor || 'Someone') + '</strong> quoted you' + (excerpt ? ': "' + excerpt + '"' : '');
+        return '<strong>' + (actor || 'Someone') + '</strong> quoted you' + (n.topic_title ? ' in <strong>' + escapeHtml(n.topic_title) + '</strong>' : '');
       case 'report_resolved':
         return 'A moderator resolved your report' + (excerpt ? ': "' + excerpt + '"' : '');
       default:

@@ -146,7 +146,7 @@
 
 <script src="js/main.js?v=2"></script>
 <script src="js/members.js?v=7"></script>
-<script src="js/notifications.js?v=2"></script>
+<script src="js/notifications.js?v=3"></script>
 <script>
 (function () {
   var gate = document.getElementById('notif-page-gate');
@@ -189,7 +189,7 @@
       case 'mention':
         return '<strong>' + (actor || 'Someone') + '</strong> mentioned you' + (n.topic_title ? ' in <strong>' + escapeHtml(n.topic_title) + '</strong>' : '');
       case 'quote':
-        return '<strong>' + (actor || 'Someone') + '</strong> quoted you' + (excerpt ? ': "' + excerpt + '"' : '');
+        return '<strong>' + (actor || 'Someone') + '</strong> quoted you' + (n.topic_title ? ' in <strong>' + escapeHtml(n.topic_title) + '</strong>' : '');
       case 'report_resolved':
         return 'A moderator resolved your report' + (excerpt ? ': "' + excerpt + '"' : '');
       default:
