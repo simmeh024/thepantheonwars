@@ -525,6 +525,52 @@ function pw_check_database_extra($db) {
     return $result;
 }
 
+// --- Last backup (manually logged) ------------------------------------------------
+// cPanel's automated account backups are disabled on this hosting account
+// (confirmed live via the Backup page: "Your server administrator or
+// server owner must enable this feature") so there's no real automated
+// timestamp anywhere to check. This reads the most recent row a human
+// logged via "Log Backup Now" (api/admin/system-status/log-backup.php)
+// instead -- imperfect (self-reported, not verified), but real data
+// rather than a fabricated status.
+function pw_check_last_backup($db) {
+    try {
+        $row = $db->query('SELECT created_at FROM backup_log ORDER BY created_at DESC LIMIT 1')->fetch();
+    } catch (Exception $e) {
+        return ['status' => 'unknown', 'label' => 'Unavailable', 'logged_at' => null];
+    }
+    if (!$row) {
+        return ['status' => 'bad', 'label' => 'Never logged', 'logged_at' => null];
+    }
+
+    $loggedAt = strtotime($row['created_at'] . ' UTC');
+    $diff = time() - $loggedAt;
+    $days = intdiv($diff, 86400);
+    $hours = intdiv($diff % 86400, 3600);
+
+    if ($days > 0) {
+        $label = $days . ($days === 1 ? ' day' : ' days');
+        if ($hours > 0) {
+            $label .= ' and ' . $hours . ($hours === 1 ? ' hour' : ' hours');
+        }
+        $label .= ' ago';
+    } elseif ($hours > 0) {
+        $label = $hours . ($hours === 1 ? ' hour' : ' hours') . ' ago';
+    } else {
+        $minutes = max(1, intdiv($diff, 60));
+        $label = $minutes . ($minutes === 1 ? ' minute' : ' minutes') . ' ago';
+    }
+
+    $status = 'ok';
+    if ($days >= 14) {
+        $status = 'bad';
+    } elseif ($days >= 7) {
+        $status = 'warn';
+    }
+
+    return ['status' => $status, 'label' => $label, 'logged_at' => $row['created_at']];
+}
+
 // --- Small duration formatter (seconds -> "12d 4h" / "3h 20m" / "45m" style) -----
 function pw_fmt_duration($seconds) {
     $days = intdiv($seconds, 86400);

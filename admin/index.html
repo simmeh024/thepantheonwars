@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=128">
+<link rel="stylesheet" href="../css/style.css?v=129">
 </head>
 <body>
 
@@ -363,6 +363,13 @@
               </span>
               <span class="system-status-value" id="system-status-dbload">&hellip;</span>
             </li>
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                Last Backup
+              </span>
+              <span class="system-status-value" id="system-status-backup">&hellip;</span>
+            </li>
             <li class="system-status-storage-row">
               <div class="system-status-storage-head">
                 <span class="system-status-item-label">
@@ -376,7 +383,10 @@
               </div>
             </li>
           </ul>
-          <p class="system-status-footer" id="system-status-footer">&nbsp;</p>
+          <div class="system-status-footer-row">
+            <p class="system-status-footer" id="system-status-footer">&nbsp;</p>
+            <button type="button" class="system-status-log-backup-btn" id="system-status-log-backup-btn" title="Log that you just performed a manual backup">+ Log Backup</button>
+          </div>
         </div>
 
         <div class="activity-widget security-snapshot-card" id="security-snapshot-card">
@@ -2282,6 +2292,8 @@
   var sysStatusDbLoadEl = document.getElementById('system-status-dbload');
   var sysStatusAvatarValueEl = document.getElementById('system-status-avatar-value');
   var sysStatusAvatarBarEl = document.getElementById('system-status-avatar-bar');
+  var sysStatusBackupEl = document.getElementById('system-status-backup');
+  var sysStatusLogBackupBtn = document.getElementById('system-status-log-backup-btn');
   var sysStatusFooterEl = document.getElementById('system-status-footer');
   var sysStatusLastCheckedAt = null;
   var sysStatusTickTimer = null;
@@ -2324,6 +2336,7 @@
         setSystemStatusValue(sysStatusForumEl, data.forum);
         setSystemStatusValue(sysStatusDispatchSyncEl, data.dispatch_sync);
         setSystemStatusValue(sysStatusDbLoadEl, data.db_load);
+        setSystemStatusValue(sysStatusBackupEl, data.backup);
         setAvatarStorageBar(sysStatusAvatarValueEl, sysStatusAvatarBarEl, data.avatar_storage);
 
         sysStatusLastCheckedAt = new Date();
@@ -2340,6 +2353,25 @@
         });
         if (sysStatusFooterEl) sysStatusFooterEl.textContent = 'Could not verify systems.';
       });
+  }
+
+  if (sysStatusLogBackupBtn) {
+    sysStatusLogBackupBtn.addEventListener('click', function () {
+      if (!window.confirm('Log that you just performed a manual backup?')) return;
+      sysStatusLogBackupBtn.disabled = true;
+      fetch('/api/admin/system-status/log-backup.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csrf: window.PW_AUTH.csrf })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          sysStatusLogBackupBtn.disabled = false;
+          if (data.ok) loadSystemStatus();
+        })
+        .catch(function () { sysStatusLogBackupBtn.disabled = false; });
+    });
   }
 
   // ===== Home / Site Statistics + Development Snapshot ========================

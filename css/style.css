@@ -4483,13 +4483,25 @@ footer.site-footer {
 .system-status-storage-bar-fill.system-status-bar-ok { background: #3ecf8e; }
 .system-status-storage-bar-fill.system-status-bar-warn { background: var(--gold-bright); }
 .system-status-storage-bar-fill.system-status-bar-bad { background: #e05a4a; }
+.system-status-footer-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  margin-top: auto;
+}
 .system-status-footer {
   margin: 14px 0 0;
   padding-top: 12px;
   border-top: 1px solid var(--border);
   font-size: 0.76rem;
   color: var(--text-faint);
+  flex: 1;
 }
+.system-status-log-backup-btn {
+  flex-shrink: 0; margin-top: 14px;
+  background: none; border: 1px solid var(--border-soft); color: var(--text-faint);
+  padding: 5px 10px; font: inherit; font-size: 0.72rem; border-radius: 4px; cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.system-status-log-backup-btn:hover { border-color: var(--purple-bright); color: var(--purple-bright); }
 
 .system-status-groups {
   display: grid;

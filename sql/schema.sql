@@ -335,3 +335,17 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
   notif_report_resolved TINYINT(1) NOT NULL DEFAULT 1,
   CONSTRAINT fk_notification_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Manual backup log for System Status's "Last Backup" row -- cPanel's own
+-- automated account backups are disabled on this hosting account (server-
+-- admin-level setting, not toggleable from this account), so there's no
+-- real automated timestamp to check. Stamped whenever an admin clicks
+-- "Log Backup Now" after actually performing one (e.g. a phpMyAdmin
+-- export).
+CREATE TABLE IF NOT EXISTS backup_log (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  note VARCHAR(255) NULL,
+  logged_by INT UNSIGNED NULL,
+  CONSTRAINT fk_backup_log_user FOREIGN KEY (logged_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

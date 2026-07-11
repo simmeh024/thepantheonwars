@@ -44,4 +44,10 @@ $db = pw_db();
 
 $signals = pw_build_system_signals($db);
 
-pw_json(array_merge(['ok' => true], $signals, ['checked_at' => gmdate('c')]));
+// Not folded into pw_build_system_signals() -- that function's signals are
+// also reused by api/admin/task-advisor.php for critical-alert detection,
+// and a stale manually-logged backup isn't meant to trigger BH-4's
+// critical-override directive, just show up here.
+$backup = pw_check_last_backup($db);
+
+pw_json(array_merge(['ok' => true], $signals, ['backup' => $backup, 'checked_at' => gmdate('c')]));
