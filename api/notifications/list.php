@@ -22,7 +22,7 @@ if ($perPage > 100) {
 // comma-separated subset of types (unknown values are silently dropped
 // rather than erroring, since this only narrows an already-own-rows-only
 // query) and an unread-only flag.
-$allowedTypes = ['like', 'mention', 'quote', 'report_resolved'];
+$allowedTypes = ['like', 'mention', 'quote', 'report_resolved', 'world_available'];
 $types = [];
 if (!empty($_GET['types'])) {
     foreach (explode(',', $_GET['types']) as $t) {
@@ -60,9 +60,10 @@ if ($page > $totalPages) {
 $offset = ($page - 1) * $perPage;
 
 $stmt = $db->prepare(
-    "SELECT n.id, n.type, n.topic_id, n.comment_id, n.report_id, n.excerpt, n.is_read, n.created_at,
+    "SELECT n.id, n.type, n.topic_id, n.comment_id, n.report_id, n.world_id, n.excerpt, n.is_read, n.created_at,
             a.id AS actor_id, a.display_name AS actor_display_name, r.color AS actor_role_color,
             t.title AS topic_title,
+            w.slug AS world_slug, w.name AS world_name,
             (SELECT COUNT(*) FROM message_likes ml
              WHERE ml.target_type = IF(n.comment_id IS NOT NULL, 'comment', 'topic')
                AND ml.target_id = IFNULL(n.comment_id, n.topic_id)) AS like_count
@@ -70,6 +71,7 @@ $stmt = $db->prepare(
      LEFT JOIN users a ON a.id = n.actor_user_id
      LEFT JOIN roles r ON r.slug = a.role
      LEFT JOIN topics t ON t.id = n.topic_id
+     LEFT JOIN worlds w ON w.id = n.world_id
      WHERE n.user_id = :user_id" . $whereExtra . "
      ORDER BY n.created_at DESC, n.id DESC
      LIMIT :limit OFFSET :offset"
@@ -95,6 +97,9 @@ $out = array_map(function ($r) {
         'topic_id' => $r['topic_id'] !== null ? (int)$r['topic_id'] : null,
         'comment_id' => $r['comment_id'] !== null ? (int)$r['comment_id'] : null,
         'report_id' => $r['report_id'] !== null ? (int)$r['report_id'] : null,
+        'world_id' => $r['world_id'] !== null ? (int)$r['world_id'] : null,
+        'world_slug' => $r['world_slug'],
+        'world_name' => $r['world_name'],
         'topic_title' => $r['topic_title'],
         'excerpt' => $r['excerpt'],
         'like_count' => (int)$r['like_count'],

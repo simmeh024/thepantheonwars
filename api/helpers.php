@@ -362,7 +362,7 @@ function pw_log_admin_activity($action, $description, $user = null) {
 // Settings) means "everything enabled", so this only ever needs to read,
 // never backfill, on account creation.
 function pw_notifications_enabled($userId, $type) {
-    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved'];
+    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved', 'world_available' => 'notif_world_available'];
     if (!isset($columns[$type])) {
         return true;
     }
@@ -382,7 +382,7 @@ function pw_notifications_enabled($userId, $type) {
 // Silently no-ops if the recipient is also the actor, so liking/mentioning/
 // quoting your own content never notifies yourself, and also no-ops if the
 // recipient has turned this notification type off in Notification Settings.
-function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commentId = null, $reportId = null, $excerpt = null) {
+function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commentId = null, $reportId = null, $excerpt = null, $worldId = null) {
     if ($actorUserId !== null && (int)$actorUserId === (int)$userId) {
         return;
     }
@@ -390,8 +390,8 @@ function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commen
         return;
     }
     $stmt = pw_db()->prepare(
-        'INSERT INTO notifications (user_id, type, actor_user_id, topic_id, comment_id, report_id, excerpt)
-         VALUES (?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO notifications (user_id, type, actor_user_id, topic_id, comment_id, report_id, world_id, excerpt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
         $userId,
@@ -400,8 +400,24 @@ function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commen
         $topicId,
         $commentId,
         $reportId,
+        $worldId,
         $excerpt !== null ? substr($excerpt, 0, 200) : null,
     ]);
+}
+
+// Broadcasts a "world_available" notification to every non-banned member
+// (skipping anyone who has turned this type off in Notification Settings,
+// via pw_notify()'s own per-user pw_notifications_enabled() check) --
+// called from api/admin/worlds/update.php only on the transition into
+// status = 'available', never on every save.
+function pw_notify_world_available($worldId) {
+    $db = pw_db();
+    $stmt = $db->query(
+        "SELECT id FROM users WHERE banned_at IS NULL OR (banned_until IS NOT NULL AND banned_until <= NOW())"
+    );
+    foreach ($stmt->fetchAll() as $row) {
+        pw_notify((int)$row['id'], 'world_available', null, null, null, null, null, $worldId);
+    }
 }
 
 // Likes are collapsed into a single evolving notification per (recipient,

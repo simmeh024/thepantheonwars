@@ -61,4 +61,11 @@ $summary = $changes ? (' (' . implode(', ', $changes) . ')') : '';
 
 pw_log_admin_activity('world_updated', 'Updated world "' . $data['name'] . '"' . $summary . '.', $adminUser);
 
+// Broadcast a "new world to explore" notification only on the transition
+// into available -- never on every save of an already-available world
+// (e.g. a typo fix to its description shouldn't re-notify everyone).
+if ($data['status'] === 'available' && $existing['status'] !== 'available') {
+    pw_notify_world_available($id);
+}
+
 pw_json(['ok' => true]);

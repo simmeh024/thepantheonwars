@@ -305,11 +305,12 @@ CREATE TABLE IF NOT EXISTS page_view_daily_stats (
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,
-  type ENUM('like','mention','quote','report_resolved') NOT NULL,
+  type ENUM('like','mention','quote','report_resolved','world_available') NOT NULL,
   actor_user_id INT UNSIGNED NULL,
   topic_id INT UNSIGNED NULL,
   comment_id INT UNSIGNED NULL,
   report_id INT UNSIGNED NULL,
+  world_id INT UNSIGNED NULL,
   excerpt VARCHAR(200) NULL,
   is_read TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -319,7 +320,8 @@ CREATE TABLE IF NOT EXISTS notifications (
   CONSTRAINT fk_notifications_actor FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT fk_notifications_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
   CONSTRAINT fk_notifications_comment FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
-  CONSTRAINT fk_notifications_report FOREIGN KEY (report_id) REFERENCES content_reports(id) ON DELETE CASCADE
+  CONSTRAINT fk_notifications_report FOREIGN KEY (report_id) REFERENCES content_reports(id) ON DELETE CASCADE,
+  CONSTRAINT fk_notifications_world FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Per-user notification type opt-out flags, edited on profile.html's
@@ -333,6 +335,7 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
   notif_mention TINYINT(1) NOT NULL DEFAULT 1,
   notif_quote TINYINT(1) NOT NULL DEFAULT 1,
   notif_report_resolved TINYINT(1) NOT NULL DEFAULT 1,
+  notif_world_available TINYINT(1) NOT NULL DEFAULT 1,
   CONSTRAINT fk_notification_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

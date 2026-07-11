@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', function () {
     mention: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-4 7.5"/></svg>',
     quote: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>',
     report_resolved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>',
+    world_available: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>',
   };
 
   function escapeHtml(s) {
@@ -44,6 +45,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function notificationLink(n) {
+    if (n.type === 'world_available' && n.world_slug) return 'worlds.html#' + encodeURIComponent(n.world_slug);
     if (!n.topic_id) return 'notifications.html';
     return 'community.html?topic=' + encodeURIComponent(n.topic_id) +
       (n.comment_id ? '&comment=' + encodeURIComponent(n.comment_id) : '');
@@ -64,6 +66,9 @@ document.addEventListener('DOMContentLoaded', function () {
         return '<strong>' + (actor || 'Someone') + '</strong> quoted you' + (n.topic_title ? ' in <strong>' + escapeHtml(n.topic_title) + '</strong>' : '');
       case 'report_resolved':
         return 'A moderator resolved your report' + (excerpt ? ': "' + excerpt + '"' : '');
+      case 'world_available':
+        var worldName = n.world_name ? escapeHtml(n.world_name) : 'A new world';
+        return 'The following world is now ready to explore: <strong>' + worldName + '</strong>. Explore ' + worldName + ' &rarr;';
       default:
         return 'You have a new notification.';
     }

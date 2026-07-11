@@ -48,4 +48,12 @@ $worldId = (int)$db->lastInsertId();
 
 pw_log_admin_activity('world_created', 'Added world "' . $data['name'] . '".', $adminUser);
 
+// Covers the edge case of a world created directly with status = available
+// (the admin UI itself always defaults new worlds to locked, but the API
+// doesn't assume that) -- same broadcast as the transition handled in
+// update.php.
+if ($data['status'] === 'available') {
+    pw_notify_world_available($worldId);
+}
+
 pw_json(['ok' => true, 'id' => $worldId]);
