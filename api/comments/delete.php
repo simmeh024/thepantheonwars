@@ -29,4 +29,10 @@ if (!pw_has_permission($user, 'community.delete_any') && (int)$comment['user_id'
 $stmt = $db->prepare('UPDATE comments SET is_deleted = 1 WHERE id = ?');
 $stmt->execute([$id]);
 
+// Only log when acting as a moderator on someone else's reply -- an author
+// deleting their own post is ordinary self-service, not an admin action.
+if ((int)$comment['user_id'] !== (int)$user['id']) {
+    pw_log_admin_activity('comment_deleted', 'Deleted another member\'s reply #' . $id . ' as moderator.', $user);
+}
+
 pw_json(['ok' => true]);

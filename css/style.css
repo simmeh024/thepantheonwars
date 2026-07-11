@@ -3909,6 +3909,32 @@ footer.site-footer {
 .activity-card.activity-report_content_deleted .activity-card-label { color: #e05a4a; }
 .activity-card.activity-report_resolved .activity-card-icon { background: rgba(62,207,142,0.15); color: #3ecf8e; }
 .activity-card.activity-report_resolved .activity-card-label { color: #3ecf8e; }
+.activity-card.activity-topic_pinned .activity-card-icon, .activity-card.activity-topic_edited .activity-card-icon, .activity-card.activity-comment_edited .activity-card-icon {
+  background: rgba(162,121,236,0.15); color: var(--purple-bright);
+}
+.activity-card.activity-topic_pinned .activity-card-label, .activity-card.activity-topic_edited .activity-card-label, .activity-card.activity-comment_edited .activity-card-label { color: var(--purple-bright); }
+.activity-card.activity-topic_unpinned .activity-card-icon { background: rgba(199,204,214,0.12); color: var(--text-faint); }
+.activity-card.activity-topic_unpinned .activity-card-label { color: var(--text-faint); }
+.activity-card.activity-topic_deleted .activity-card-icon, .activity-card.activity-comment_deleted .activity-card-icon {
+  background: rgba(224,90,74,0.15); color: #e05a4a;
+}
+.activity-card.activity-topic_deleted .activity-card-label, .activity-card.activity-comment_deleted .activity-card-label { color: #e05a4a; }
+.activity-card.activity-content_liked .activity-card-icon, .activity-card.activity-content_quoted .activity-card-icon, .activity-card.activity-user_mentioned .activity-card-icon {
+  background: rgba(69,209,201,0.15); color: #45d1c9;
+}
+.activity-card.activity-content_liked .activity-card-label, .activity-card.activity-content_quoted .activity-card-label, .activity-card.activity-user_mentioned .activity-card-label { color: #45d1c9; }
+.activity-card.activity-forum_board_created .activity-card-icon, .activity-card.activity-forum_board_updated .activity-card-icon, .activity-card.activity-forum_board_reordered .activity-card-icon {
+  background: rgba(162,121,236,0.15); color: var(--purple-bright);
+}
+.activity-card.activity-forum_board_created .activity-card-label, .activity-card.activity-forum_board_updated .activity-card-label, .activity-card.activity-forum_board_reordered .activity-card-label { color: var(--purple-bright); }
+.activity-card.activity-forum_board_deleted .activity-card-icon { background: rgba(224,90,74,0.15); color: #e05a4a; }
+.activity-card.activity-forum_board_deleted .activity-card-label { color: #e05a4a; }
+.activity-card.activity-backup_logged .activity-card-icon { background: rgba(62,207,142,0.15); color: #3ecf8e; }
+.activity-card.activity-backup_logged .activity-card-label { color: #3ecf8e; }
+.activity-card.activity-dispatches_resynced .activity-card-icon, .activity-card.activity-dispatch_title_edited .activity-card-icon {
+  background: rgba(224,178,74,0.15); color: var(--gold-bright);
+}
+.activity-card.activity-dispatches_resynced .activity-card-label, .activity-card.activity-dispatch_title_edited .activity-card-label { color: var(--gold-bright); }
 .admin-home-top-row {
   display: flex;
   align-items: stretch;

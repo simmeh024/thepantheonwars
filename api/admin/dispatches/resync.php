@@ -13,7 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
 }
 
-pw_require_permission('dispatches.edit');
+$adminUser = pw_require_permission('dispatches.edit');
 
 $input = pw_input();
 pw_require_csrf($input);
@@ -103,5 +103,7 @@ while ($page <= $maxPages) {
     }
     $page++;
 }
+
+pw_log_admin_activity('dispatches_resynced', 'Force re-synced dispatches from GitHub: ' . $fetched . ' commits fetched, ' . $inserted . ' new.', $adminUser);
 
 pw_json(['ok' => true, 'fetched' => $fetched, 'inserted' => $inserted]);

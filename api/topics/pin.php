@@ -31,4 +31,6 @@ $newState = $topic['is_pinned'] ? 0 : 1;
 $stmt = $db->prepare('UPDATE topics SET is_pinned = ?, pinned_at = ? WHERE id = ?');
 $stmt->execute([$newState, $newState ? date('Y-m-d H:i:s') : null, $id]);
 
+pw_log_admin_activity($newState ? 'topic_pinned' : 'topic_unpinned', ($newState ? 'Pinned' : 'Unpinned') . ' topic #' . $id . '.', $user);
+
 pw_json(['ok' => true, 'isPinned' => (bool)$newState]);

@@ -66,6 +66,15 @@ if ($existing) {
             pw_notify_like((int)$owner['user_id'], $user['id'], (int)$owner['topic_id'], $targetId);
         }
     }
+
+    // Logged only on the like, never the unlike -- same asymmetry as the
+    // notification above. Note this can get high-volume on an active forum;
+    // filter by the content_liked action type on the Audit Log page.
+    pw_log_admin_activity(
+        'content_liked',
+        'Liked ' . $targetType . ' #' . $targetId . '.',
+        $user
+    );
 }
 
 $countStmt = $db->prepare('SELECT COUNT(*) AS cnt FROM message_likes WHERE target_type = ? AND target_id = ?');

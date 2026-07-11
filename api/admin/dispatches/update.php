@@ -59,6 +59,14 @@ if ($tag !== $existing['tag']) {
         'Changed category for "' . $subject . '" from ' . $fromLabel . ' to ' . $toLabel . '.',
         $adminUser
     );
+} elseif ($subject !== $existing['subject']) {
+    // Title-only edit (no category change) used to leave no audit trail at
+    // all, since the log call above only fired on a tag change.
+    pw_log_admin_activity(
+        'dispatch_title_edited',
+        'Changed dispatch title from "' . $existing['subject'] . '" to "' . $subject . '".',
+        $adminUser
+    );
 }
 
 pw_json(['ok' => true, 'subject' => $subject, 'tag' => $tag]);

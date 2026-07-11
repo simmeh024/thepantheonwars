@@ -44,4 +44,6 @@ if ($topic['board'] === $board) {
 $stmt = $db->prepare('UPDATE topics SET board = ? WHERE id = ?');
 $stmt->execute([$board, $id]);
 
+pw_log_admin_activity('topic_moved', 'Moved topic #' . $id . ' from ' . $topic['board'] . ' to ' . $board . '.', $user);
+
 pw_json(['ok' => true, 'board' => $board]);

@@ -31,4 +31,6 @@ $newState = $topic['is_locked'] ? 0 : 1;
 $stmt = $db->prepare('UPDATE topics SET is_locked = ?, locked_at = ? WHERE id = ?');
 $stmt->execute([$newState, $newState ? date('Y-m-d H:i:s') : null, $id]);
 
+pw_log_admin_activity($newState ? 'topic_locked' : 'topic_unlocked', ($newState ? 'Locked' : 'Unlocked') . ' topic #' . $id . '.', $user);
+
 pw_json(['ok' => true, 'isLocked' => (bool)$newState]);

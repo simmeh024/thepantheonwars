@@ -86,10 +86,15 @@ $commentId = (int)$db->lastInsertId();
 
 if ($quoteNotifyUserId !== null) {
     pw_notify($quoteNotifyUserId, 'quote', $user['id'], $topicId, $commentId, null, $body);
+    pw_log_admin_activity('content_quoted', 'Quoted a post in topic #' . $topicId . ' (reply #' . $commentId . ').', $user);
 }
 
-foreach (pw_extract_mentions($body, $user['id']) as $mentionedUserId) {
+$mentionedUserIds = pw_extract_mentions($body, $user['id']);
+foreach ($mentionedUserIds as $mentionedUserId) {
     pw_notify($mentionedUserId, 'mention', $user['id'], $topicId, $commentId, null, $body);
+}
+if (!empty($mentionedUserIds)) {
+    pw_log_admin_activity('user_mentioned', count($mentionedUserIds) . ' mention(s) in reply #' . $commentId . ' (topic #' . $topicId . ').', $user);
 }
 
 pw_json(['ok' => true, 'id' => $commentId]);

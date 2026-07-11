@@ -40,4 +40,6 @@ if (!$stmt->fetch()) {
 $stmt = $db->prepare('UPDATE comments SET body = ?, edited_at = ? WHERE id = ?');
 $stmt->execute([$body, date('Y-m-d H:i:s'), $id]);
 
+pw_log_admin_activity('comment_edited', 'Edited reply #' . $id . ' as moderator.', $user);
+
 pw_json(['ok' => true]);

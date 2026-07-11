@@ -47,8 +47,12 @@ $stmt = $db->prepare('INSERT INTO topics (board, user_id, title, body) VALUES (?
 $stmt->execute([$board, $user['id'], $title, $body]);
 $topicId = (int)$db->lastInsertId();
 
-foreach (pw_extract_mentions($body, $user['id']) as $mentionedUserId) {
+$mentionedUserIds = pw_extract_mentions($body, $user['id']);
+foreach ($mentionedUserIds as $mentionedUserId) {
     pw_notify($mentionedUserId, 'mention', $user['id'], $topicId, null, null, $title);
+}
+if (!empty($mentionedUserIds)) {
+    pw_log_admin_activity('user_mentioned', count($mentionedUserIds) . ' mention(s) in topic #' . $topicId . ' ("' . $title . '").', $user);
 }
 
 pw_json(['ok' => true, 'id' => $topicId]);

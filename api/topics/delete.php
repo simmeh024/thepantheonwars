@@ -34,4 +34,10 @@ $stmt->execute([$id]);
 $stmt = $db->prepare('UPDATE comments SET is_deleted = 1 WHERE topic_id = ?');
 $stmt->execute([$id]);
 
+// Only log when acting as a moderator on someone else's topic -- an author
+// deleting their own post is ordinary self-service, not an admin action.
+if ((int)$topic['user_id'] !== (int)$user['id']) {
+    pw_log_admin_activity('topic_deleted', 'Deleted another member\'s topic #' . $id . ' as moderator.', $user);
+}
+
 pw_json(['ok' => true]);
