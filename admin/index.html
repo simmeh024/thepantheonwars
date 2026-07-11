@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=127">
+<link rel="stylesheet" href="../css/style.css?v=128">
 </head>
 <body>
 
@@ -265,6 +265,7 @@
           </div>
         </div>
 
+        <div class="bh4-side-col bh4-side-col--actions">
         <div class="quick-actions-card" id="quick-actions-card">
           <div class="system-status-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
@@ -307,6 +308,20 @@
           </ul>
         </div>
 
+        <div class="activity-widget content-drafts-card" id="content-drafts-card">
+          <div class="activity-widget-head">
+            <div class="activity-widget-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>
+              <span>Content Drafts</span>
+            </div>
+          </div>
+          <ul class="pending-work-list" id="content-drafts-list">
+            <li class="pending-work-row"><span class="pending-work-label">Loading&hellip;</span></li>
+          </ul>
+        </div>
+        </div>
+
+        <div class="bh4-side-col bh4-side-col--status">
         <div class="system-status-card" id="system-status-card">
           <div class="system-status-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
@@ -362,6 +377,30 @@
             </li>
           </ul>
           <p class="system-status-footer" id="system-status-footer">&nbsp;</p>
+        </div>
+
+        <div class="activity-widget security-snapshot-card" id="security-snapshot-card">
+          <div class="activity-widget-head">
+            <div class="activity-widget-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>
+              <span>Security Snapshot</span>
+            </div>
+          </div>
+          <ul class="pending-work-list" id="security-snapshot-list">
+            <li class="pending-work-row">
+              <span class="pending-work-label">Failed logins<span class="pending-work-sublabel">Last 24 hrs</span></span>
+              <span class="pending-work-count" id="security-failed-logins">&hellip;</span>
+            </li>
+            <li class="pending-work-row">
+              <span class="pending-work-label">Locked accounts</span>
+              <span class="pending-work-count" id="security-locked-accounts">&hellip;</span>
+            </li>
+            <li class="pending-work-row">
+              <span class="pending-work-label">Currently banned</span>
+              <span class="pending-work-count" id="security-banned-accounts">&hellip;</span>
+            </li>
+          </ul>
+        </div>
         </div>
       </div>
 
@@ -1688,11 +1727,13 @@
   function refreshHomeCards() {
     loadHomeActivity();
     loadPendingWork();
+    loadContentDrafts();
     loadCommunityMetrics();
     loadSiteStats();
     loadDevSnapshotLanguages();
     loadBh4Welcome();
     loadSystemStatus();
+    loadSecuritySnapshot();
     loadTaskAdvisor();
   }
 
@@ -1832,6 +1873,65 @@
       showSection('topic-reports');
       loadTopicReports();
     });
+  }
+
+  // ===== Home / Content Drafts =================================================
+  // Fills the space under Quick Actions (see .bh4-side-col in css/style.css)
+  // with "what's still in progress" -- Quick Actions is "start something
+  // new", this is "finish something already started".
+  var contentDraftsListEl = document.getElementById('content-drafts-list');
+
+  function loadContentDrafts() {
+    fetch('/api/admin/home-content-drafts/summary.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        if (!data.draft_count) {
+          contentDraftsListEl.innerHTML = '<li class="pending-work-row"><span class="pending-work-label">All books are published<span class="pending-work-sublabel">Nothing in progress</span></span></li>';
+          return;
+        }
+        contentDraftsListEl.innerHTML = data.drafts.map(function (b) {
+          return '<li class="pending-work-row" data-book-id="' + b.book_number + '">' +
+            '<span class="pending-work-label">Book ' + b.book_number + ' &mdash; ' + escapeHtml(b.title) + '</span>' +
+            '<span class="pending-work-count">Stage ' + b.writing_stage + '/15</span>' +
+          '</li>';
+        }).join('') + '<li class="pending-work-row"><span class="pending-work-label">' +
+          data.draft_count + (data.draft_count === 1 ? ' book' : ' books') + ' in progress<span class="pending-work-sublabel">Click to open Book Control</span></span></li>';
+      })
+      .catch(function () {
+        contentDraftsListEl.innerHTML = '<li class="pending-work-row"><span class="pending-work-label">Could not load drafts</span></li>';
+      });
+  }
+
+  if (contentDraftsListEl) {
+    contentDraftsListEl.addEventListener('click', function () {
+      showSection('book-control');
+      loadBookList();
+    });
+  }
+
+  // ===== Home / Security Snapshot ==============================================
+  // Fills the space under System Status with a security-monitoring angle
+  // distinct from its infra checks and from Community Metrics' 24h-only
+  // banned count -- this shows accounts banned/locked *right now*.
+  var securityFailedLoginsEl = document.getElementById('security-failed-logins');
+  var securityLockedAccountsEl = document.getElementById('security-locked-accounts');
+  var securityBannedAccountsEl = document.getElementById('security-banned-accounts');
+
+  function loadSecuritySnapshot() {
+    fetch('/api/admin/home-security/summary.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        setMetricCount(securityFailedLoginsEl, data.failed_logins_24h);
+        setMetricCount(securityLockedAccountsEl, data.locked_accounts);
+        setMetricCount(securityBannedAccountsEl, data.banned_accounts);
+      })
+      .catch(function () {
+        if (securityFailedLoginsEl) securityFailedLoginsEl.textContent = '—';
+        if (securityLockedAccountsEl) securityLockedAccountsEl.textContent = '—';
+        if (securityBannedAccountsEl) securityBannedAccountsEl.textContent = '—';
+      });
   }
 
   // ===== Home / Community Metrics =============================================

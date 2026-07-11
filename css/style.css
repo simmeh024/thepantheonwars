@@ -4305,12 +4305,21 @@ footer.site-footer {
 .bh4-footer-reassess:hover { border-color: var(--purple-bright); color: var(--purple-bright); }
 .bh4-footer-reassess.is-spinning svg { animation: activity-spin 0.6s linear; }
 
+/* Quick Actions and System Status each sit in their own column now,
+   stacked above a second small card (Content Drafts / Security Snapshot)
+   so the leftover height from matching the taller BH-4 card (see
+   .admin-home-top-row's align-items: stretch) gets used instead of sitting
+   empty below a short card. */
+.bh4-side-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.bh4-side-col--actions { flex: 0 0 265px; }
+.bh4-side-col--status { flex: 0 0 300px; }
+
 .quick-actions-card {
   border: 1px solid var(--border);
   border-radius: 10px;
   background: var(--panel);
   padding: 20px 24px;
-  flex: 0 0 265px;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -4381,7 +4390,7 @@ footer.site-footer {
   border-radius: 10px;
   background: var(--panel);
   padding: 20px 24px;
-  flex: 0 0 300px;
+  flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
