@@ -5249,6 +5249,28 @@ footer.site-footer {
 .role-row-actions .permission-mini-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .role-row-actions .permission-mini-btn:disabled:hover { border-color: var(--border-soft); color: var(--text-dim); }
 
+/* World Control list rows -- same "wrap + width floor" fix as
+   .forum-board-row/.role-row so the large title doesn't collapse to fight
+   the actions bar for space on the same nowrap line. */
+.world-row { align-items: flex-start; flex-wrap: wrap; }
+.world-row .admin-row-main { min-width: 200px; }
+.world-row-title { font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--text); margin: 0; }
+.world-row-status { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 2px; }
+.world-overlord-pill {
+  display: inline-flex; align-items: center; font-family: 'Jost', sans-serif;
+  font-size: 0.72rem; padding: 6px 14px; border-radius: 20px;
+  border: 1px solid var(--border-soft); background: rgba(124,79,214,0.14); color: var(--text-dim);
+  white-space: nowrap;
+}
+.world-status-pill {
+  display: inline-flex; align-items: center; font-family: 'Jost', sans-serif;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-soft); color: var(--text-faint);
+  white-space: nowrap;
+}
+.world-status-pill.is-available { border-color: #3ecf8e; color: #3ecf8e; background: rgba(62,207,142,0.12); }
+.world-status-pill.is-locked { border-color: #e0a34a; color: #e0a34a; background: rgba(224,163,74,0.12); }
+
 @media (max-width: 600px) {
   /* "4 members • 11 permissions • 4 categories" wrapping mid-line left a
      lone bullet stranded on its own row on narrow screens -- stack the

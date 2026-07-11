@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=135">
+<link rel="stylesheet" href="../css/style.css?v=136">
 </head>
 <body>
 
@@ -7043,31 +7043,35 @@
     worldListEl.innerHTML = '';
     entries.forEach(function (entry, i) {
       var row = document.createElement('div');
-      row.className = 'admin-row';
+      row.className = 'admin-row world-row';
       row.tabIndex = 0;
       row.innerHTML =
         (entry.thumb_image_url ? '<img class="admin-row-cover" src="' + resolveSiteImageUrl(entry.thumb_image_url) + '" alt="">' : '') +
         '<div class="admin-row-main">' +
-          '<p class="admin-row-subject">' + escapeHtml(entry.name) + '</p>' +
-          '<div class="admin-row-meta">' +
-            '<span>' + (entry.status === 'available' ? 'Available' : 'Locked') + '</span>' +
-            (entry.overlord_name ? '<span class="admin-row-sep">&bull;</span><span>' + escapeHtml(entry.overlord_name) + '</span>' : '') +
-          '</div>' +
+          '<p class="world-row-title">' + escapeHtml(entry.name) + '</p>' +
+        '</div>' +
+        '<div class="world-row-status">' +
+          (entry.overlord_name ? '<span class="world-overlord-pill">' + escapeHtml(entry.overlord_name) + '</span>' : '') +
+          '<span class="world-status-pill ' + (entry.status === 'available' ? 'is-available' : 'is-locked') + '">' +
+            (entry.status === 'available' ? 'Available' : 'Locked') +
+          '</span>' +
         '</div>';
 
       var actions = document.createElement('div');
       actions.className = 'role-row-actions';
       actions.innerHTML =
         '<button type="button" class="permission-mini-btn" data-world-action="up"' + (i === 0 ? ' disabled' : '') + '>Move Up</button>' +
-        '<button type="button" class="permission-mini-btn" data-world-action="down"' + (i === entries.length - 1 ? ' disabled' : '') + '>Move Down</button>';
+        '<button type="button" class="permission-mini-btn" data-world-action="down"' + (i === entries.length - 1 ? ' disabled' : '') + '>Move Down</button>' +
+        '<button type="button" class="permission-mini-btn" data-world-action="edit">Edit</button>';
       row.appendChild(actions);
 
       actions.addEventListener('click', function (e) {
         var btn = e.target.closest('[data-world-action]');
         if (!btn || btn.disabled) return;
         e.stopPropagation();
-        var dir = btn.getAttribute('data-world-action');
-        reorderWorld(entry, dir === 'up' ? i - 1 : i + 1);
+        var act = btn.getAttribute('data-world-action');
+        if (act === 'edit') { openWorldModal(entry); return; }
+        reorderWorld(entry, act === 'up' ? i - 1 : i + 1);
       });
       row.addEventListener('click', function () { openWorldModal(entry); });
       row.addEventListener('keydown', function (e) {
