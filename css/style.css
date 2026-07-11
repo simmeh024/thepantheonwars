@@ -3996,14 +3996,32 @@ footer.site-footer {
   font-size: 0.85rem;
   color: var(--text-dim);
 }
+/* Collapsed-by-default summary chip for the 3 stat lines below -- saves
+   vertical space in the card; expands in place on click. */
+.bh4-stats-toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 20px;
+  padding: 7px 14px; font: inherit; font-size: 0.82rem; color: var(--text-dim);
+  cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease;
+}
+.bh4-stats-toggle:hover, .bh4-stats-toggle:focus-visible { border-color: var(--purple-bright); color: var(--text); outline: none; }
+.bh4-stats-toggle-icon { width: 15px; height: 15px; flex-shrink: 0; color: var(--purple-bright); }
+.bh4-stats-chevron { width: 14px; height: 14px; flex-shrink: 0; transition: transform 0.2s ease; }
+.bh4-stats-toggle[aria-expanded="true"] .bh4-stats-chevron { transform: rotate(180deg); }
+
 .bh4-welcome-stats {
   list-style: none;
-  margin: 0;
+  margin: 10px 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
   gap: 7px;
 }
+/* [hidden] and a single class selector tie on specificity -- without this,
+   source order would let display:flex above win regardless of the
+   attribute (this exact bug was already hit twice elsewhere this session:
+   the BH-4 avatar wrapper and the forum-board-roles-list checkbox panel). */
+.bh4-welcome-stats[hidden] { display: none; }
 .bh4-welcome-stats li {
   display: flex;
   align-items: center;

@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=124">
+<link rel="stylesheet" href="../css/style.css?v=125">
 </head>
 <body>
 
@@ -128,7 +128,13 @@
                   </div>
                   <p class="bh4-welcome-greeting">Welcome back, <span id="bh4-welcome-name">&hellip;</span>.</p>
                   <p class="bh4-welcome-sub" id="bh4-welcome-footer">&nbsp;</p>
-                  <ul class="bh4-welcome-stats">
+
+                  <button type="button" class="bh4-stats-toggle" id="bh4-stats-toggle" aria-expanded="false" aria-controls="bh4-welcome-stats">
+                    <svg class="bh4-stats-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg>
+                    <span>Since your last session: <span id="bh4-stats-total">&hellip;</span> recorded changes</span>
+                    <svg class="bh4-stats-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                  </button>
+                  <ul class="bh4-welcome-stats" id="bh4-welcome-stats" hidden>
                     <li>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
                       <span id="bh4-stat-dispatches">&hellip;</span>
@@ -1868,9 +1874,24 @@
   var bh4StatusEl = document.getElementById('bh4-welcome-status');
   var bh4StatusTextEl = document.getElementById('bh4-welcome-status-text');
   var bh4FooterEl = document.getElementById('bh4-welcome-footer');
+  var bh4StatsToggle = document.getElementById('bh4-stats-toggle');
+  var bh4StatsList = document.getElementById('bh4-welcome-stats');
+  var bh4StatsTotalEl = document.getElementById('bh4-stats-total');
 
   function pluralize(n, singular, plural) {
     return n + ' ' + (n === 1 ? singular : (plural || singular + 's'));
+  }
+
+  // Collapsed by default -- saves vertical space in the card; the three
+  // individual lines (dispatches classified / translations completed /
+  // admin logins) are still there, just tucked behind this summary chip
+  // until the admin actually wants the breakdown.
+  if (bh4StatsToggle && bh4StatsList) {
+    bh4StatsToggle.addEventListener('click', function () {
+      var expanded = bh4StatsToggle.getAttribute('aria-expanded') === 'true';
+      bh4StatsToggle.setAttribute('aria-expanded', String(!expanded));
+      bh4StatsList.hidden = expanded;
+    });
   }
 
   function loadBh4Welcome() {
@@ -1882,6 +1903,10 @@
         if (bh4DispatchesEl) bh4DispatchesEl.textContent = pluralize(data.dispatches_classified, 'dispatch classified', 'dispatches classified');
         if (bh4TranslationsEl) bh4TranslationsEl.textContent = pluralize(data.translations_completed, 'translation completed', 'translations completed');
         if (bh4LoginsEl) bh4LoginsEl.textContent = pluralize(data.admin_logins, 'administrator login', 'administrator logins');
+        if (bh4StatsTotalEl) {
+          var total = (data.dispatches_classified || 0) + (data.translations_completed || 0) + (data.admin_logins || 0);
+          bh4StatsTotalEl.textContent = total;
+        }
 
         var hasCritical = data.critical_events > 0;
         if (bh4StatusEl) bh4StatusEl.classList.toggle('bh4-welcome-status-warn', hasCritical);
