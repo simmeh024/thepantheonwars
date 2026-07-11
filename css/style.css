@@ -4133,7 +4133,7 @@ footer.site-footer {
 .bh4-task-advisor__info-btn svg { width: 12px; height: 12px; }
 .bh4-task-advisor__info-btn:hover, .bh4-task-advisor__info-btn:focus { color: var(--gold-bright); border-color: var(--purple-bright); }
 .bh4-task-advisor__tooltip {
-  position: absolute; top: calc(100% + 8px); right: 0; width: 260px; z-index: 10;
+  position: absolute; top: calc(100% + 8px); right: 40px; width: 260px; z-index: 20;
   background: var(--bg-alt); border: 1px solid var(--border-soft); border-radius: 6px;
   padding: 12px 14px; font-size: 0.78rem; line-height: 1.5; color: var(--text-dim);
   text-transform: none; letter-spacing: normal; box-shadow: 0 10px 24px rgba(0,0,0,0.4);
