@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=139">
+<link rel="stylesheet" href="css/style.css?v=140">
 </head>
 <body>
 
@@ -368,6 +368,11 @@
       return '<blockquote class="comment-quote"><div class="comment-quote-attr">' + attr + '</div>' + inner + '</blockquote>';
     });
     s = s.replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, '<blockquote class="comment-quote">$1</blockquote>');
+    // [spoiler]text[/spoiler] -- collapsed behind a click-to-reveal button so
+    // spoiler-averse readers can scroll past without seeing it by accident.
+    s = s.replace(/\[spoiler\]([\s\S]*?)\[\/spoiler\]/gi, function (m, inner) {
+      return '<div class="comment-spoiler"><button type="button" class="comment-spoiler-toggle" onclick="var box=this.parentNode;box.classList.toggle(\'is-revealed\');this.textContent=box.classList.contains(\'is-revealed\')?\'Hide spoiler\':\'Show spoiler\';">Show spoiler</button><div class="comment-spoiler-content">' + inner + '</div></div>';
+    });
     s = s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>');
     s = s.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<em>$1</em>');
     s = s.replace(/\[u\]([\s\S]*?)\[\/u\]/gi, '<u>$1</u>');
@@ -475,6 +480,8 @@
       if (!url) return;
       insertAtCursor('[img]' + url + '[/img]');
     });
+
+    makeBtn('Spoiler', 'Hide spoiler text behind a click-to-reveal button', function () { wrapSelection('[spoiler]', '[/spoiler]', 'spoiler text'); });
 
     var colorWrap = document.createElement('label');
     colorWrap.className = 'editor-color-btn';

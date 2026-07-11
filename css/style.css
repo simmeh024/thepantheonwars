@@ -2911,6 +2911,21 @@ footer.site-footer {
   font-weight: 700; font-size: 1.08em; color: var(--text); margin-bottom: 0.4em;
 }
 
+/* [spoiler] BBCode rendering -- same panel/border-left language as
+   .comment-quote, but collapsed behind a click-to-reveal button so
+   spoiler-averse readers don't see it by accident while scrolling. */
+.comment-spoiler {
+  margin: 0.8em 0; border-left: 3px solid var(--purple-bright); background: var(--panel-2);
+}
+.comment-spoiler-toggle {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  font-family: 'Cinzel', serif; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--purple-bright); background: none; border: none; padding: 10px 16px;
+}
+.comment-spoiler-toggle:hover { color: var(--gold-bright); }
+.comment-spoiler-content { display: none; padding: 0 16px 10px; color: var(--text-dim); font-size: 0.9rem; }
+.comment-spoiler.is-revealed .comment-spoiler-content { display: block; }
+
 /* Reactions */
 .reaction-bar { display: flex; gap: 8px; margin-top: 0.7em; flex-wrap: wrap; }
 .reaction-btn {
