@@ -459,6 +459,10 @@
               <span class="pending-work-count" id="community-metrics-members-count">&hellip;</span>
             </li>
             <li class="pending-work-row">
+              <span class="pending-work-label">New Members<span class="pending-work-sublabel">Last 24 hrs</span></span>
+              <span class="pending-work-count" id="community-metrics-new-members-count">&hellip;</span>
+            </li>
+            <li class="pending-work-row">
               <span class="pending-work-label">Current banned users<span class="pending-work-sublabel">Banned last 24 hrs</span></span>
               <span class="pending-work-count" id="community-metrics-banned-count">&hellip;</span>
             </li>
@@ -1936,6 +1940,7 @@
 
   // ===== Home / Community Metrics =============================================
   var communityMembersCountEl = document.getElementById('community-metrics-members-count');
+  var communityNewMembersCountEl = document.getElementById('community-metrics-new-members-count');
   var communityBannedCountEl = document.getElementById('community-metrics-banned-count');
   var communityAdminsCountEl = document.getElementById('community-metrics-admins-count');
   var communityModeratorsCountEl = document.getElementById('community-metrics-moderators-count');
@@ -1953,13 +1958,14 @@
       .then(function (data) {
         if (!data.ok) return;
         setMetricCount(communityMembersCountEl, data.members_active_24h);
+        setMetricCount(communityNewMembersCountEl, data.new_members_24h);
         setMetricCount(communityBannedCountEl, data.banned_24h);
         setMetricCount(communityAdminsCountEl, data.admins_active_24h);
         setMetricCount(communityModeratorsCountEl, data.moderators_active_24h);
         setMetricCount(communityPostsCountEl, data.forum_posts_24h);
       })
       .catch(function () {
-        [communityMembersCountEl, communityBannedCountEl, communityAdminsCountEl, communityModeratorsCountEl, communityPostsCountEl].forEach(function (el) {
+        [communityMembersCountEl, communityNewMembersCountEl, communityBannedCountEl, communityAdminsCountEl, communityModeratorsCountEl, communityPostsCountEl].forEach(function (el) {
           if (el) el.textContent = '—';
         });
       });

@@ -21,6 +21,12 @@ foreach ($activeStmt->fetchAll() as $row) {
     }
 }
 
+// New member signups in the last 24h.
+$newMembersStmt = $db->query(
+    "SELECT COUNT(*) AS c FROM users WHERE created_at >= (NOW() - INTERVAL 24 HOUR)"
+);
+$newMembers24h = (int)$newMembersStmt->fetch()['c'];
+
 // Banned in the last 24h -- banned_at is refreshed whenever an account is
 // (re-)banned, and cleared entirely on unban, so this only counts accounts
 // that are currently banned AND were banned/re-banned within the window.
@@ -43,6 +49,7 @@ $forumPosts24h = (int)$postsStmt->fetch()['c'];
 pw_json([
     'ok' => true,
     'members_active_24h' => $activeByRole['member'],
+    'new_members_24h' => $newMembers24h,
     'banned_24h' => $banned24h,
     'admins_active_24h' => $activeByRole['admin'],
     'moderators_active_24h' => $activeByRole['moderator'],
