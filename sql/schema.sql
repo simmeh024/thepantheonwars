@@ -182,6 +182,15 @@ CREATE TABLE IF NOT EXISTS repo_language_snapshots (
   KEY idx_captured_at (captured_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- One row per calendar day, backing the admin Home page's "Total Lines of
+-- Code" tile and its "+N today" delta (api/admin/loc-stats.php).
+CREATE TABLE IF NOT EXISTS loc_snapshots (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  captured_at DATE NOT NULL UNIQUE,
+  total_lines INT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Reports raised by members against a topic or a reply, reviewed by
 -- moderators/admins on the admin console's Topic Reports page. resolution
 -- is filled in when a mod closes the report; resolved_by/resolved_at record

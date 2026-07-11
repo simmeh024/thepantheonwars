@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=138">
+<link rel="stylesheet" href="../css/style.css?v=139">
 </head>
 <body>
 
@@ -535,6 +535,11 @@
             </div>
           </div>
           <div class="dev-snapshot-grid">
+            <div class="dev-snapshot-col">
+              <div class="site-stat-value" id="dev-snapshot-loc-count">&hellip;</div>
+              <div class="site-stat-label">Total Lines of Code</div>
+              <p class="dev-snapshot-loc-trend" id="dev-snapshot-loc-trend">&nbsp;</p>
+            </div>
             <div class="dev-snapshot-col">
               <div class="site-stat-value" id="dev-snapshot-today-count">&hellip;</div>
               <div class="site-stat-label">Today&rsquo;s Dispatches</div>
@@ -2247,6 +2252,7 @@
     loadCommunityMetrics();
     loadSiteStats();
     loadDevSnapshotLanguages();
+    loadDevSnapshotLoc();
     loadBh4Welcome();
     loadSystemStatus();
     loadSecuritySnapshot();
@@ -2884,6 +2890,8 @@
   var siteStatDispatchesEl = document.getElementById('site-stat-dispatches');
   var siteStatWorldsEl = document.getElementById('site-stat-worlds');
   var siteStatOverlordsEl = document.getElementById('site-stat-overlords');
+  var devSnapshotLocCountEl = document.getElementById('dev-snapshot-loc-count');
+  var devSnapshotLocTrendEl = document.getElementById('dev-snapshot-loc-trend');
   var devSnapshotTodayCountEl = document.getElementById('dev-snapshot-today-count');
   var devSnapshotCategoryEl = document.getElementById('dev-snapshot-category');
   var devSnapshotLangListEl = document.getElementById('dev-snapshot-lang-list');
@@ -2914,6 +2922,37 @@
           if (el) el.textContent = '—';
         });
         if (devSnapshotCategoryEl) devSnapshotCategoryEl.textContent = '—';
+      });
+  }
+
+  function loadDevSnapshotLoc() {
+    fetch('/api/admin/loc-stats.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          devSnapshotLocCountEl.textContent = '—';
+          devSnapshotLocTrendEl.innerHTML = '&nbsp;';
+          return;
+        }
+        devSnapshotLocCountEl.textContent = data.total_lines.toLocaleString('en-US');
+        devSnapshotLocTrendEl.classList.remove('is-up', 'is-down', 'is-flat');
+        var delta = data.delta_today;
+        if (delta === null || delta === undefined) {
+          devSnapshotLocTrendEl.innerHTML = '&nbsp;';
+        } else if (delta > 0) {
+          devSnapshotLocTrendEl.classList.add('is-up');
+          devSnapshotLocTrendEl.innerHTML = '<span class="trend-arrow">&#9650;</span>+' + delta.toLocaleString('en-US') + ' today';
+        } else if (delta < 0) {
+          devSnapshotLocTrendEl.classList.add('is-down');
+          devSnapshotLocTrendEl.innerHTML = '<span class="trend-arrow">&#9660;</span>' + delta.toLocaleString('en-US') + ' today';
+        } else {
+          devSnapshotLocTrendEl.classList.add('is-flat');
+          devSnapshotLocTrendEl.innerHTML = '<span class="trend-arrow">&ndash;</span>No change today';
+        }
+      })
+      .catch(function () {
+        devSnapshotLocCountEl.textContent = '—';
+        devSnapshotLocTrendEl.innerHTML = '&nbsp;';
       });
   }
 

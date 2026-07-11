@@ -3847,6 +3847,11 @@ footer.site-footer {
 }
 .dev-snapshot-lang-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .dev-snapshot-lang-pct { color: var(--text-faint); font-size: 0.72rem; }
+.dev-snapshot-loc-trend { font-family: 'Jost', sans-serif; font-size: 0.78rem; margin: 0; font-weight: 500; }
+.dev-snapshot-loc-trend .trend-arrow { margin-right: 3px; }
+.dev-snapshot-loc-trend.is-up { color: #3ecf8e; }
+.dev-snapshot-loc-trend.is-down { color: #e05a4a; }
+.dev-snapshot-loc-trend.is-flat { color: var(--text-faint); }
 
 @media (max-width: 860px) {
   .admin-home-grid-half { flex: 1 1 auto; width: 100%; }
