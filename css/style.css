@@ -4710,6 +4710,14 @@ footer.site-footer {
   background: var(--bg); border: 1px solid var(--border-soft); border-radius: 4px;
   padding: 6px 12px; max-height: 180px; overflow-y: auto;
 }
+/* [hidden] and .member-other-roles-list are both single-selector
+   specificity -- without this, source order lets the class's own
+   display:flex win over [hidden] whenever an element carries both
+   (e.g. #forum-board-roles-list, which toggles hidden directly rather
+   than via a non-conflicting wrapper like #member-other-roles-field
+   does). Confirmed live: the roles checklist stayed visible under
+   "Everyone (public)" despite `.hidden === true` in the DOM. */
+.member-other-roles-list[hidden] { display: none; }
 
 .member-ban-field { border-top: 1px solid var(--border-soft); padding-top: 14px; margin-top: 4px; }
 .admin-field label.member-ban-toggle {
