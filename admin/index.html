@@ -1162,6 +1162,16 @@
         <option value="experimental">Experimental</option>
       </select>
     </div>
+    <div class="admin-field">
+      <div class="admin-field-label-row">
+        <label>Full Raw Commit</label>
+        <button type="button" class="admin-copy-btn" id="control-copy-commit-btn" title="Copy commit message" aria-label="Copy commit message">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+          <span>Copy</span>
+        </button>
+      </div>
+      <pre class="admin-commit-body" id="control-commit-body"></pre>
+    </div>
     <p class="admin-modal-error" id="control-modal-error"></p>
     <p class="admin-modal-status" id="control-modal-status"></p>
     <div class="admin-modal-actions">
@@ -3612,6 +3622,8 @@
   var controlModalSub = document.getElementById('control-modal-sub');
   var controlSubjectInput = document.getElementById('control-subject-input');
   var controlTagSelect = document.getElementById('control-tag-select');
+  var controlCommitBodyEl = document.getElementById('control-commit-body');
+  var controlCopyCommitBtn = document.getElementById('control-copy-commit-btn');
   var controlModalError = document.getElementById('control-modal-error');
   var controlModalStatus = document.getElementById('control-modal-status');
   var controlSaveBtn = document.getElementById('control-save-btn');
@@ -3722,6 +3734,7 @@
       escapeHtml(fmtDate(entry.committed_at)) + ' &mdash; committed by ' + escapeHtml(entry.author);
     controlSubjectInput.value = entry.subject;
     controlTagSelect.value = entry.tag;
+    controlCommitBodyEl.textContent = entry.body && entry.body.trim() ? entry.body : 'No further commit details.';
     controlModalError.classList.remove('show');
     controlModalStatus.classList.remove('show');
     controlModal.hidden = false;
@@ -3919,21 +3932,24 @@
   closeBtn.addEventListener('click', closeModal);
   cancelBtn.addEventListener('click', closeModal);
 
-  if (copyCommitBtn) {
-    copyCommitBtn.addEventListener('click', function () {
-      var text = commitBodyEl.textContent || '';
+  // Shared by both Dispatch Translations' and Dispatch Control's "Copy"
+  // button next to their read-only raw-commit-body <pre> block.
+  function wireCopyCommitButton(btn, sourceEl) {
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      var text = sourceEl.textContent || '';
       var showCopied = function () {
-        copyCommitBtn.classList.add('is-copied');
-        copyCommitBtn.querySelector('span').textContent = 'Copied!';
+        btn.classList.add('is-copied');
+        btn.querySelector('span').textContent = 'Copied!';
         setTimeout(function () {
-          copyCommitBtn.classList.remove('is-copied');
-          copyCommitBtn.querySelector('span').textContent = 'Copy';
+          btn.classList.remove('is-copied');
+          btn.querySelector('span').textContent = 'Copy';
         }, 1800);
       };
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(showCopied).catch(function () {
-          copyCommitBtn.querySelector('span').textContent = 'Failed';
-          setTimeout(function () { copyCommitBtn.querySelector('span').textContent = 'Copy'; }, 1800);
+          btn.querySelector('span').textContent = 'Failed';
+          setTimeout(function () { btn.querySelector('span').textContent = 'Copy'; }, 1800);
         });
       } else {
         var ta = document.createElement('textarea');
@@ -3943,13 +3959,15 @@
         document.body.appendChild(ta);
         ta.select();
         try { document.execCommand('copy'); showCopied(); } catch (e) {
-          copyCommitBtn.querySelector('span').textContent = 'Failed';
-          setTimeout(function () { copyCommitBtn.querySelector('span').textContent = 'Copy'; }, 1800);
+          btn.querySelector('span').textContent = 'Failed';
+          setTimeout(function () { btn.querySelector('span').textContent = 'Copy'; }, 1800);
         }
         document.body.removeChild(ta);
       }
     });
   }
+  wireCopyCommitButton(copyCommitBtn, commitBodyEl);
+  wireCopyCommitButton(controlCopyCommitBtn, controlCommitBodyEl);
   modal.querySelector('.admin-modal-backdrop').addEventListener('click', closeModal);
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;

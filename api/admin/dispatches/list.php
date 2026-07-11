@@ -52,7 +52,7 @@ if ($page > $totalPages) {
 $offset = ($page - 1) * $perPage;
 
 $stmt = $db->prepare(
-    'SELECT d.id, d.sha, d.subject, d.tag, d.author, d.committed_at, d.url,
+    'SELECT d.id, d.sha, d.subject, d.body, d.tag, d.author, d.committed_at, d.url,
             (dt.id IS NOT NULL) AS has_translation
      FROM dispatch_entries d
      LEFT JOIN dispatch_translations dt ON dt.dispatch_id = d.id
@@ -74,6 +74,7 @@ $out = array_map(function ($r) {
         'sha' => $r['sha'],
         'short_sha' => substr($r['sha'], 0, 7),
         'subject' => $r['subject'],
+        'body' => $r['body'],
         'tag' => $r['tag'],
         'author' => $r['author'],
         'committed_at' => $r['committed_at'],
