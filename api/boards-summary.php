@@ -1,12 +1,23 @@
 <?php
 require_once __DIR__ . '/helpers.php';
 
-// Public read — powers the forum index (topics/posts/latest-post per board).
-$boards = ['announcements', 'assembly', 'offworld'];
+// Public read — powers the forum index (topics/posts/latest-post per
+// board). Boards are data-driven (forum_boards table) instead of
+// hardcoded; a board hidden from the current visitor (pw_can_see_board())
+// is simply omitted, so community.html's BOARDS list is now this
+// response, not a separate client-side copy.
+$currentUser = pw_current_user();
 $db = pw_db();
+$boardRows = $db->query('SELECT * FROM forum_boards ORDER BY sort_order')->fetchAll();
+$boardList = [];
 $out = [];
 
-foreach ($boards as $board) {
+foreach ($boardRows as $boardRow) {
+    if (!pw_can_see_board($currentUser, $boardRow)) {
+        continue;
+    }
+    $board = $boardRow['slug'];
+
     $topicCountStmt = $db->prepare('SELECT COUNT(*) AS cnt FROM topics WHERE board = ? AND is_deleted = 0');
     $topicCountStmt->execute([$board]);
     $topicCount = (int)$topicCountStmt->fetch()['cnt'];
@@ -46,6 +57,12 @@ foreach ($boards as $board) {
         ];
     }
 
+    $boardList[] = [
+        'slug' => $boardRow['slug'],
+        'name' => $boardRow['name'],
+        'description' => $boardRow['description'],
+        'icon_key' => $boardRow['icon_key'],
+    ];
     $out[$board] = [
         'topic_count' => $topicCount,
         'post_count' => $postCount,
@@ -53,4 +70,4 @@ foreach ($boards as $board) {
     ];
 }
 
-pw_json(['ok' => true, 'boards' => $out]);
+pw_json(['ok' => true, 'board_list' => $boardList, 'boards' => $out]);

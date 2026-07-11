@@ -25,6 +25,13 @@ if (!$topic) {
     pw_error('That topic no longer exists.', 404);
 }
 
+$boardRow = pw_forum_board_by_slug($topic['board']);
+if (!$boardRow || !pw_can_see_board(pw_current_user(), $boardRow)) {
+    // Same error as a nonexistent topic -- a direct link into a hidden
+    // board's topic must not leak that the topic (or board) exists.
+    pw_error('That topic no longer exists.', 404);
+}
+
 $postCountStmt = $db->prepare(
     'SELECT
        (SELECT COUNT(*) FROM comments WHERE user_id = ? AND is_deleted = 0) +

@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=121">
+<link rel="stylesheet" href="../css/style.css?v=122">
 </head>
 <body>
 
@@ -57,6 +57,7 @@
         <li data-requires-permission="members.view"><button type="button" class="admin-nav-link" data-section="members"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>Members</button></li>
         <li data-requires-permission="roles.manage"><button type="button" class="admin-nav-link" data-section="roles-permissions"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>Roles &amp; Permissions</button></li>
         <li data-requires-permission="topic_reports.view"><button type="button" class="admin-nav-link" data-section="topic-reports"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>Topic Reports</button></li>
+        <li data-requires-permission="forum_boards.view"><button type="button" class="admin-nav-link" data-section="forum-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Forum Control</button></li>
       </ul>
     </div>
 
@@ -1017,6 +1018,22 @@
       </div>
     </section>
 
+    <section class="admin-section" id="section-forum-control" hidden>
+      <div class="admin-section-head">
+        <h1>Forum Control</h1>
+        <p>Manage the Nexus Veil forum&rsquo;s boards &mdash; name, description, icon, order, and who can see them.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button type="button" class="btn btn-solid" id="forum-board-create-btn">+ Add Board</button>
+        <span class="admin-count" id="forum-board-count"></span>
+      </div>
+
+      <div class="admin-list" id="forum-board-list">
+        <div class="admin-list-empty">Loading boards&hellip;</div>
+      </div>
+    </section>
+
     <section class="admin-section" id="section-book-control" hidden>
       <div class="admin-section-head">
         <h1>Book Control</h1>
@@ -1526,6 +1543,67 @@
   </div>
 </div>
 
+<div class="admin-modal" id="forum-board-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner">
+    <button type="button" class="admin-modal-close" id="forum-board-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="forum-board-modal-title">Edit Board</h3>
+    <p class="admin-modal-sub" id="forum-board-modal-sub"></p>
+
+    <div class="admin-field">
+      <label for="forum-board-name-input">Name</label>
+      <input type="text" id="forum-board-name-input" maxlength="100">
+    </div>
+    <div class="admin-field" id="forum-board-slug-field">
+      <label for="forum-board-slug-input">Slug</label>
+      <p class="admin-field-hint">Lowercase letters, numbers, and hyphens only. Can&rsquo;t be changed after the board is created.</p>
+      <input type="text" id="forum-board-slug-input" maxlength="50" placeholder="e.g. offworld">
+    </div>
+    <div class="admin-field">
+      <label for="forum-board-description-input">Description</label>
+      <input type="text" id="forum-board-description-input" maxlength="255">
+    </div>
+    <div class="admin-field">
+      <label for="forum-board-icon-select">Icon</label>
+      <div class="forum-board-icon-row">
+        <span class="forum-board-icon-preview" id="forum-board-icon-preview"></span>
+        <select id="forum-board-icon-select">
+          <option value="megaphone">Megaphone</option>
+          <option value="scroll">Scroll</option>
+          <option value="globe">Globe</option>
+          <option value="chat">Chat</option>
+          <option value="flag">Flag</option>
+          <option value="book">Book</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="admin-field" id="forum-board-visibility-field">
+      <label>Who can see this board?</label>
+      <div class="forum-board-visibility-toggle">
+        <label class="forum-board-visibility-option">
+          <input type="radio" name="forum-board-visibility" value="public" id="forum-board-visibility-public" checked>
+          <span>Everyone (public)</span>
+        </label>
+        <label class="forum-board-visibility-option">
+          <input type="radio" name="forum-board-visibility" value="restricted" id="forum-board-visibility-restricted">
+          <span>Only selected roles</span>
+        </label>
+      </div>
+      <p class="admin-field-hint">Admins can always see every board, regardless of this setting.</p>
+      <div class="member-other-roles-list" id="forum-board-roles-list" hidden></div>
+    </div>
+
+    <p class="admin-modal-error" id="forum-board-modal-error"></p>
+    <p class="admin-modal-status" id="forum-board-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="forum-board-save-btn">Save</button>
+      <button type="button" class="btn" id="forum-board-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="forum-board-delete-btn" hidden>Delete Board</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-modal admin-modal-over" id="image-library-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner admin-modal-inner-wide">
@@ -1641,6 +1719,7 @@
       if (name === 'dispatch-translations') loadList();
       if (name === 'members') loadMembers();
       if (name === 'topic-reports') loadTopicReports();
+      if (name === 'forum-control') loadForumBoards();
       if (name === 'book-control') loadBookList();
       if (name === 'roles-permissions') loadRoles();
       if (name === 'visitor-stats') loadVisitorStats();
@@ -3722,6 +3801,314 @@
       currentQuery = searchEl.value.trim();
       loadList();
     }, 300);
+  });
+
+  // ===== Forum Control (Community) ==============================================
+  // Boards used to be hardcoded in community.html/api/boards-summary.php/
+  // api/topics/move.php -- forum_boards is now the source of truth, managed
+  // here. Icon keys are a closed set (see PW_FORUM_BOARD_ICON_KEYS in
+  // api/admin/forum-boards/forum-boards-helpers.php) resolved to inline SVG
+  // by the ICONS map below -- must match community.html's own copy exactly.
+  var FORUM_BOARD_ICONS = {
+    megaphone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10v4a1 1 0 0 0 1 1h2l4 4V5L6 9H4a1 1 0 0 0-1 1z"/><path d="M14 8a4 4 0 0 1 0 8"/><path d="M17 5a8 8 0 0 1 0 14"/></svg>',
+    scroll: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 5.5c2-1.2 5-1.2 7 0v13c-2-1.2-5-1.2-7 0z"/><path d="M22 5.5c-2-1.2-5-1.2-7 0v13c2-1.2 5-1.2 7 0z"/></svg>',
+    globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><ellipse cx="12" cy="12" rx="9.5" ry="3.2"/></svg>',
+    chat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+    flag: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>',
+    book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>'
+  };
+
+  var forumBoardListEl = document.getElementById('forum-board-list');
+  var forumBoardCountEl = document.getElementById('forum-board-count');
+  var forumBoardCreateBtn = document.getElementById('forum-board-create-btn');
+  var forumBoardModal = document.getElementById('forum-board-modal');
+  var forumBoardModalTitle = document.getElementById('forum-board-modal-title');
+  var forumBoardModalSub = document.getElementById('forum-board-modal-sub');
+  var forumBoardModalError = document.getElementById('forum-board-modal-error');
+  var forumBoardModalStatus = document.getElementById('forum-board-modal-status');
+  var forumBoardCloseBtn = document.getElementById('forum-board-modal-close');
+  var forumBoardCancelBtn = document.getElementById('forum-board-cancel-btn');
+  var forumBoardSaveBtn = document.getElementById('forum-board-save-btn');
+  var forumBoardDeleteBtn = document.getElementById('forum-board-delete-btn');
+  var forumBoardNameInput = document.getElementById('forum-board-name-input');
+  var forumBoardSlugField = document.getElementById('forum-board-slug-field');
+  var forumBoardSlugInput = document.getElementById('forum-board-slug-input');
+  var forumBoardDescriptionInput = document.getElementById('forum-board-description-input');
+  var forumBoardIconSelect = document.getElementById('forum-board-icon-select');
+  var forumBoardIconPreview = document.getElementById('forum-board-icon-preview');
+  var forumBoardVisibilityPublic = document.getElementById('forum-board-visibility-public');
+  var forumBoardVisibilityRestricted = document.getElementById('forum-board-visibility-restricted');
+  var forumBoardRolesList = document.getElementById('forum-board-roles-list');
+
+  var lastForumBoardEntries = [];
+  var forumBoardModalMode = 'create';
+  var currentForumBoard = null;
+  var forumBoardRolesSelected = {};
+
+  function loadForumBoards() {
+    forumBoardListEl.innerHTML = '<div class="admin-list-empty">Loading boards&hellip;</div>';
+    fetch('/api/admin/forum-boards/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        lastForumBoardEntries = (data.ok && data.entries) || [];
+        forumBoardCountEl.textContent = lastForumBoardEntries.length + (lastForumBoardEntries.length === 1 ? ' board' : ' boards');
+        renderForumBoardList(lastForumBoardEntries);
+      })
+      .catch(function () {
+        forumBoardListEl.innerHTML = '<div class="admin-list-empty">Could not load forum boards.</div>';
+      });
+  }
+
+  function renderForumBoardList(entries) {
+    if (!entries.length) {
+      forumBoardListEl.innerHTML = '<div class="admin-list-empty">No boards yet.</div>';
+      return;
+    }
+    forumBoardListEl.innerHTML = '';
+    entries.forEach(function (entry, i) {
+      var row = document.createElement('div');
+      row.className = 'admin-row forum-board-row';
+      row.tabIndex = 0;
+
+      var icon = document.createElement('span');
+      icon.className = 'forum-board-row-icon';
+      icon.innerHTML = FORUM_BOARD_ICONS[entry.icon_key] || FORUM_BOARD_ICONS.scroll;
+      row.appendChild(icon);
+
+      var main = document.createElement('div');
+      main.className = 'admin-row-main';
+      main.innerHTML =
+        '<p class="admin-row-subject">' + escapeHtml(entry.name) +
+          (entry.is_protected ? '<span class="role-tag is-builtin">Protected</span>' : '') +
+          (!entry.is_public ? '<span class="role-tag is-superuser">Restricted</span>' : '') +
+        '</p>' +
+        '<div class="admin-row-meta">' +
+          '<span>' + escapeHtml(entry.slug) + '</span>' +
+          '<span class="admin-row-sep">&bull;</span>' +
+          '<span>' + entry.topic_count + (entry.topic_count === 1 ? ' topic' : ' topics') + '</span>' +
+        '</div>';
+      row.appendChild(main);
+
+      var actions = document.createElement('div');
+      actions.className = 'role-row-actions';
+      actions.innerHTML =
+        '<button type="button" class="permission-mini-btn" data-board-action="up"' + (i === 0 ? ' disabled' : '') + '>Move Up</button>' +
+        '<button type="button" class="permission-mini-btn" data-board-action="down"' + (i === entries.length - 1 ? ' disabled' : '') + '>Move Down</button>';
+      row.appendChild(actions);
+
+      actions.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-board-action]');
+        if (!btn || btn.disabled) return;
+        e.stopPropagation();
+        var dir = btn.getAttribute('data-board-action');
+        reorderForumBoard(entry, dir === 'up' ? i - 1 : i + 1);
+      });
+
+      row.addEventListener('click', function () { openForumBoardModal(entry); });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openForumBoardModal(entry); }
+      });
+      forumBoardListEl.appendChild(row);
+    });
+  }
+
+  function reorderForumBoard(entry, targetIndex) {
+    if (targetIndex < 0 || targetIndex >= lastForumBoardEntries.length) return;
+    var ids = lastForumBoardEntries.map(function (b) { return b.id; });
+    var fromIndex = ids.indexOf(entry.id);
+    ids.splice(fromIndex, 1);
+    ids.splice(targetIndex, 0, entry.id);
+    fetch('/api/admin/forum-boards/reorder.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: ids, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function () { loadForumBoards(); });
+  }
+
+  function updateForumBoardIconPreview() {
+    forumBoardIconPreview.innerHTML = FORUM_BOARD_ICONS[forumBoardIconSelect.value] || '';
+  }
+  forumBoardIconSelect.addEventListener('change', updateForumBoardIconPreview);
+
+  function renderForumBoardRolesList() {
+    var roles = Object.keys(ROLES_BY_SLUG).map(function (slug) { return ROLES_BY_SLUG[slug]; });
+    if (!roles.length) {
+      forumBoardRolesList.innerHTML = '<p class="member-lookup-hint">No roles exist yet.</p>';
+      return;
+    }
+    forumBoardRolesList.innerHTML = roles.map(function (r) {
+      var checked = !!forumBoardRolesSelected[r.slug];
+      return '<label class="permission-option-row">' +
+        '<input type="checkbox" data-board-role="' + escapeHtml(r.slug) + '"' + (checked ? ' checked' : '') + '>' +
+        '<span>' + escapeHtml(r.label) + '</span>' +
+      '</label>';
+    }).join('');
+  }
+
+  forumBoardRolesList.addEventListener('change', function (e) {
+    var input = e.target.closest('[data-board-role]');
+    if (!input) return;
+    var slug = input.getAttribute('data-board-role');
+    if (input.checked) forumBoardRolesSelected[slug] = true;
+    else delete forumBoardRolesSelected[slug];
+  });
+
+  function updateForumBoardVisibilityUi() {
+    forumBoardRolesList.hidden = !forumBoardVisibilityRestricted.checked;
+  }
+  forumBoardVisibilityPublic.addEventListener('change', updateForumBoardVisibilityUi);
+  forumBoardVisibilityRestricted.addEventListener('change', updateForumBoardVisibilityUi);
+
+  function populateForumBoardForm(board) {
+    forumBoardNameInput.value = board.name || '';
+    forumBoardSlugInput.value = board.slug || '';
+    forumBoardDescriptionInput.value = board.description || '';
+    forumBoardIconSelect.value = board.icon_key || 'scroll';
+    updateForumBoardIconPreview();
+    forumBoardRolesSelected = {};
+    (board.role_slugs || []).forEach(function (slug) { forumBoardRolesSelected[slug] = true; });
+    if (board.is_public === false) {
+      forumBoardVisibilityRestricted.checked = true;
+    } else {
+      forumBoardVisibilityPublic.checked = true;
+    }
+    fetchRolesList().then(renderForumBoardRolesList);
+    updateForumBoardVisibilityUi();
+  }
+
+  function openForumBoardModal(entry) {
+    forumBoardModalMode = 'edit';
+    currentForumBoard = entry;
+    forumBoardModalTitle.textContent = 'Edit Board';
+    forumBoardModalSub.textContent = entry.slug;
+    forumBoardSlugField.hidden = false;
+    forumBoardSlugInput.disabled = true;
+    forumBoardDeleteBtn.hidden = entry.is_protected;
+    // Protected boards (Announcements) always stay public -- the
+    // community.post_announcements permission check and the public
+    // is-announcement-board styling both key off the literal slug, so
+    // hiding this board or restricting who sees it would silently break
+    // those without touching this UI.
+    document.getElementById('forum-board-visibility-field').hidden = entry.is_protected;
+    forumBoardModalError.classList.remove('show');
+    forumBoardModalStatus.classList.remove('show');
+    populateForumBoardForm(entry);
+    forumBoardModal.hidden = false;
+  }
+
+  function openCreateForumBoardModal() {
+    forumBoardModalMode = 'create';
+    currentForumBoard = null;
+    forumBoardModalTitle.textContent = 'Add Board';
+    forumBoardModalSub.textContent = '';
+    forumBoardSlugField.hidden = false;
+    forumBoardSlugInput.disabled = false;
+    forumBoardDeleteBtn.hidden = true;
+    document.getElementById('forum-board-visibility-field').hidden = false;
+    forumBoardModalError.classList.remove('show');
+    forumBoardModalStatus.classList.remove('show');
+    populateForumBoardForm({ name: '', slug: '', description: '', icon_key: 'scroll', is_public: true, role_slugs: [] });
+    forumBoardModal.hidden = false;
+    setTimeout(function () { forumBoardNameInput.focus(); }, 30);
+  }
+
+  function closeForumBoardModal() {
+    forumBoardModal.hidden = true;
+    currentForumBoard = null;
+  }
+
+  forumBoardCreateBtn.addEventListener('click', openCreateForumBoardModal);
+  forumBoardCloseBtn.addEventListener('click', closeForumBoardModal);
+  forumBoardCancelBtn.addEventListener('click', closeForumBoardModal);
+  forumBoardModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeForumBoardModal);
+
+  forumBoardSaveBtn.addEventListener('click', function () {
+    var payload = {
+      name: forumBoardNameInput.value.trim(),
+      description: forumBoardDescriptionInput.value.trim(),
+      icon_key: forumBoardIconSelect.value,
+      is_public: forumBoardVisibilityPublic.checked,
+      role_slugs: Object.keys(forumBoardRolesSelected),
+      csrf: window.PW_AUTH.csrf
+    };
+
+    if (!payload.name) {
+      forumBoardModalError.textContent = 'Give the board a name.';
+      forumBoardModalError.classList.add('show');
+      return;
+    }
+
+    var url = '/api/admin/forum-boards/update.php';
+    if (forumBoardModalMode === 'create') {
+      url = '/api/admin/forum-boards/create.php';
+      payload.slug = forumBoardSlugInput.value.trim();
+      if (!/^[a-z0-9-]{1,50}$/.test(payload.slug)) {
+        forumBoardModalError.textContent = 'Slug must be lowercase letters, numbers, and hyphens only.';
+        forumBoardModalError.classList.add('show');
+        return;
+      }
+    } else if (currentForumBoard) {
+      payload.id = currentForumBoard.id;
+    }
+
+    forumBoardModalError.classList.remove('show');
+    forumBoardSaveBtn.disabled = true;
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        forumBoardSaveBtn.disabled = false;
+        if (!data.ok) {
+          forumBoardModalError.textContent = data.error || 'Could not save this board.';
+          forumBoardModalError.classList.add('show');
+          return;
+        }
+        forumBoardModalStatus.textContent = 'Saved.';
+        forumBoardModalStatus.classList.add('show');
+        loadForumBoards();
+        setTimeout(closeForumBoardModal, 700);
+      })
+      .catch(function () {
+        forumBoardSaveBtn.disabled = false;
+        forumBoardModalError.textContent = 'Could not save this board. Please try again.';
+        forumBoardModalError.classList.add('show');
+      });
+  });
+
+  forumBoardDeleteBtn.addEventListener('click', function () {
+    if (!currentForumBoard) return;
+    var confirmMsg = 'Delete the board "' + currentForumBoard.name + '"? This only works while it has no topics.';
+    if (!window.confirm(confirmMsg)) return;
+    forumBoardDeleteBtn.disabled = true;
+    fetch('/api/admin/forum-boards/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentForumBoard.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        forumBoardDeleteBtn.disabled = false;
+        if (!data.ok) {
+          forumBoardModalError.textContent = data.error || 'Could not delete this board.';
+          forumBoardModalError.classList.add('show');
+          return;
+        }
+        loadForumBoards();
+        closeForumBoardModal();
+      })
+      .catch(function () {
+        forumBoardDeleteBtn.disabled = false;
+        forumBoardModalError.textContent = 'Could not delete this board. Please try again.';
+        forumBoardModalError.classList.add('show');
+      });
   });
 
   // ===== Members ================================================================

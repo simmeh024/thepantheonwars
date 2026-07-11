@@ -20,9 +20,11 @@ if ($id <= 0) {
     pw_error('Missing topic id.');
 }
 
-// Keep this in sync with the BOARDS list in community.html.
-$validBoards = ['announcements', 'assembly', 'offworld'];
-if (!in_array($board, $validBoards, true)) {
+// The mover must be able to see the destination board too, not just hold
+// community.move -- otherwise a moderator could move a topic into a board
+// hidden from their own role.
+$destBoard = pw_forum_board_by_slug($board);
+if (!$destBoard || !pw_can_see_board($user, $destBoard)) {
     pw_error('Unknown board.');
 }
 

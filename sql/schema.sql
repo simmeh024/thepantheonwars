@@ -75,8 +75,40 @@ CREATE TABLE IF NOT EXISTS quiz_results (
   CONSTRAINT fk_quiz_results_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Nexus Veil forum: one row per topic (thread starter). board is one of
--- 'announcements' | 'assembly' | 'offworld' (see BOARDS in community.html).
+-- Forum boards (admin-managed via the "Forum Control" section). Board
+-- metadata used to be hardcoded in community.html/api/boards-summary.php/
+-- api/topics/move.php -- this table is now the single source of truth.
+-- icon_key is a closed enum resolved to SVG by a fixed lookup on both the
+-- public and admin side, never raw stored SVG (avoids a stored-XSS surface
+-- on the public forum page).
+CREATE TABLE IF NOT EXISTS forum_boards (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL,
+  description VARCHAR(255) NOT NULL DEFAULT '',
+  icon_key VARCHAR(40) NOT NULL DEFAULT 'scroll',
+  is_protected TINYINT(1) NOT NULL DEFAULT 0,
+  is_public TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Which roles can see a board when is_public = 0 (see pw_can_see_board() in
+-- api/helpers.php). Keyed by role_slug so a hidden board can be scoped to
+-- any existing role, built-in or custom.
+CREATE TABLE IF NOT EXISTS forum_board_roles (
+  board_id INT UNSIGNED NOT NULL,
+  role_slug VARCHAR(40) NOT NULL,
+  PRIMARY KEY (board_id, role_slug),
+  CONSTRAINT fk_forum_board_roles_board FOREIGN KEY (board_id) REFERENCES forum_boards(id) ON DELETE CASCADE,
+  CONSTRAINT fk_forum_board_roles_role FOREIGN KEY (role_slug) REFERENCES roles(slug) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Nexus Veil forum: one row per topic (thread starter). board is a slug
+-- referencing forum_boards.slug (not a real FK -- kept as free text so a
+-- board can be deleted/renamed independently without touching every topic
+-- row; api/topics/create.php and api/topics/move.php validate against
+-- forum_boards at request time instead).
 -- is_locked/locked_at gate new replies (see api/comments/post.php); Move
 -- (api/topics/move.php) just rewrites `board`; Edit (api/topics/edit.php)
 -- stamps edited_at so the front-end can show an "(edited)" marker.

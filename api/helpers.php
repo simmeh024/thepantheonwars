@@ -163,20 +163,31 @@ function pw_require_mod_or_admin() {
 // (users.role -- also drives the public display color/rank) and any
 // "other roles" held via the user_roles table. Any one of those roles
 // being is_superuser grants full access, same as before this was multi-role.
-function pw_user_permissions($user) {
+// A user's full role slug set: their main role (users.role) plus any
+// additional roles held via user_roles. Shared by pw_user_permissions()
+// below and pw_can_see_board() (forum board visibility) so both read from
+// one source of truth instead of each keeping their own copy.
+function pw_user_role_slugs($user) {
     if (empty($user) || empty($user['role'])) {
         return [];
     }
-    $db = pw_db();
     $slugs = [$user['role']];
     if (!empty($user['id'])) {
-        $stmt = $db->prepare('SELECT role_slug FROM user_roles WHERE user_id = ?');
+        $stmt = pw_db()->prepare('SELECT role_slug FROM user_roles WHERE user_id = ?');
         $stmt->execute([$user['id']]);
         foreach ($stmt->fetchAll() as $r) {
             $slugs[] = $r['role_slug'];
         }
     }
-    $slugs = array_values(array_unique($slugs));
+    return array_values(array_unique($slugs));
+}
+
+function pw_user_permissions($user) {
+    $slugs = pw_user_role_slugs($user);
+    if (empty($slugs)) {
+        return [];
+    }
+    $db = pw_db();
     $placeholders = implode(',', array_fill(0, count($slugs), '?'));
 
     $stmt = $db->prepare("SELECT 1 FROM roles WHERE slug IN ($placeholders) AND is_superuser = 1 LIMIT 1");
@@ -187,6 +198,42 @@ function pw_user_permissions($user) {
     $stmt = $db->prepare("SELECT DISTINCT permission_key FROM role_permissions WHERE role_slug IN ($placeholders)");
     $stmt->execute($slugs);
     return array_column($stmt->fetchAll(), 'permission_key');
+}
+
+// Forum board visibility: a board is visible if it's public, the visitor
+// holds a superuser role (admin's existing "sees everything" behavior), or
+// the visitor's role set intersects forum_board_roles for that board.
+// $user may be null (guest) -- always safe, matches pw_has_permission()'s
+// guest handling.
+function pw_can_see_board($user, $board) {
+    if (!empty($board['is_public'])) {
+        return true;
+    }
+    $slugs = pw_user_role_slugs($user);
+    if (empty($slugs)) {
+        return false;
+    }
+    $db = pw_db();
+    $placeholders = implode(',', array_fill(0, count($slugs), '?'));
+
+    $stmt = $db->prepare("SELECT 1 FROM roles WHERE slug IN ($placeholders) AND is_superuser = 1 LIMIT 1");
+    $stmt->execute($slugs);
+    if ($stmt->fetch()) {
+        return true;
+    }
+    $stmt = $db->prepare("SELECT 1 FROM forum_board_roles WHERE board_id = ? AND role_slug IN ($placeholders) LIMIT 1");
+    $stmt->execute(array_merge([$board['id']], $slugs));
+    return (bool)$stmt->fetch();
+}
+
+// Shared lookup for the topics endpoints (create/list/get/move) that all
+// need to resolve a board slug to a real forum_boards row before allowing
+// an action against it.
+function pw_forum_board_by_slug($slug) {
+    $stmt = pw_db()->prepare('SELECT * FROM forum_boards WHERE slug = ?');
+    $stmt->execute([$slug]);
+    $board = $stmt->fetch();
+    return $board ?: null;
 }
 
 function pw_has_permission($user, $key) {

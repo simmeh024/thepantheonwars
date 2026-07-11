@@ -16,9 +16,8 @@ $reason = isset($input['reason']) ? trim((string)$input['reason']) : '';
 if ($reportId <= 0) {
     pw_error('Missing report id.');
 }
-// Keep this in sync with the BOARDS list in community.html.
-$validBoards = ['announcements', 'assembly', 'offworld'];
-if (!in_array($board, $validBoards, true)) {
+$destBoard = pw_forum_board_by_slug($board);
+if (!$destBoard || !pw_can_see_board($user, $destBoard)) {
     pw_error('Unknown board.');
 }
 if ($reason === '') {

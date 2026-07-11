@@ -4992,6 +4992,23 @@ footer.site-footer {
   padding: 4px 0; cursor: pointer; margin-bottom: 0;
 }
 .permission-option-row input { accent-color: var(--purple-bright); cursor: pointer; margin-top: 2px; }
+
+.forum-board-row-icon {
+  flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(162,121,236,0.12); color: var(--purple-bright); margin-right: 12px;
+}
+.forum-board-row-icon svg { width: 16px; height: 16px; }
+.forum-board-icon-row { display: flex; align-items: center; gap: 10px; }
+.forum-board-icon-preview {
+  flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(162,121,236,0.12); color: var(--purple-bright);
+}
+.forum-board-icon-preview svg { width: 16px; height: 16px; }
+.forum-board-visibility-toggle { display: flex; flex-direction: column; gap: 6px; margin: 6px 0; }
+.forum-board-visibility-option { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; color: var(--text-dim); cursor: pointer; }
+.forum-board-visibility-option input { accent-color: var(--purple-bright); cursor: pointer; }
 /* Badge sits in its own grid column so it stays pinned to the card's right
    edge even when the label text wraps to two lines -- with plain flex the
    badge would trail the last line of wrapped text instead. */

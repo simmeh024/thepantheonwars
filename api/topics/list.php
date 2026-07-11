@@ -6,6 +6,14 @@ if (!preg_match('/^[a-z0-9\-]{1,50}$/', $board)) {
     pw_error('Unknown board.');
 }
 
+// A board that doesn't exist and a board the visitor isn't allowed to see
+// return the exact same error -- distinguishing them would leak a hidden
+// board's existence to anyone who guesses its slug.
+$boardRow = pw_forum_board_by_slug($board);
+if (!$boardRow || !pw_can_see_board(pw_current_user(), $boardRow)) {
+    pw_error('Unknown board.');
+}
+
 $db = pw_db();
 $stmt = $db->prepare(
     'SELECT t.id, t.title, t.created_at, t.is_pinned, t.is_locked, t.user_id,
