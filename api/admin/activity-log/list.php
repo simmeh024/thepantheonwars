@@ -14,15 +14,24 @@ if ($perPage > 200) {
 }
 
 $action = isset($_GET['action']) ? trim((string)$_GET['action']) : '';
+$username = isset($_GET['username']) ? trim((string)$_GET['username']) : '';
+if (mb_strlen($username) > 100) {
+    $username = mb_substr($username, 0, 100);
+}
 
 $db = pw_db();
 
-$whereSql = '';
+$conditions = [];
 $whereParams = [];
 if ($action !== '') {
-    $whereSql = 'WHERE action = :action';
+    $conditions[] = 'action = :action';
     $whereParams[':action'] = $action;
 }
+if ($username !== '') {
+    $conditions[] = 'username LIKE :username';
+    $whereParams[':username'] = '%' . $username . '%';
+}
+$whereSql = $conditions ? ('WHERE ' . implode(' AND ', $conditions)) : '';
 
 $countStmt = $db->prepare("SELECT COUNT(*) AS c FROM admin_activity_log $whereSql");
 $countStmt->execute($whereParams);

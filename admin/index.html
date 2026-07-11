@@ -883,6 +883,7 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
           <span>Refresh</span>
         </button>
+        <input type="text" class="admin-search" id="audit-username-filter" placeholder="Search by username&hellip;">
         <select class="admin-search admin-tag-select" id="audit-action-filter">
           <option value="">All activity</option>
           <optgroup label="Login Activity">
@@ -2838,7 +2839,9 @@
   var auditPaginationEl = document.getElementById('audit-pagination');
   var auditRefreshBtn = document.getElementById('audit-refresh-btn');
   var auditActionFilterEl = document.getElementById('audit-action-filter');
-  var auditState = { page: 1, perPage: 25, action: '', totalPages: 1 };
+  var auditUsernameFilterEl = document.getElementById('audit-username-filter');
+  var auditUsernameDebounce = null;
+  var auditState = { page: 1, perPage: 25, action: '', username: '', totalPages: 1 };
 
   function fmtDateTime(sqlDate) {
     if (!sqlDate) return '\u2014';
@@ -2929,6 +2932,7 @@
     params.set('page', auditState.page);
     params.set('per_page', auditState.perPage);
     if (auditState.action) params.set('action', auditState.action);
+    if (auditState.username) params.set('username', auditState.username);
     fetch('/api/admin/activity-log/list.php?' + params.toString(), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -2961,6 +2965,17 @@
       auditState.action = auditActionFilterEl.value;
       auditState.page = 1;
       loadAuditLog();
+    });
+  }
+
+  if (auditUsernameFilterEl) {
+    auditUsernameFilterEl.addEventListener('input', function () {
+      clearTimeout(auditUsernameDebounce);
+      auditUsernameDebounce = setTimeout(function () {
+        auditState.username = auditUsernameFilterEl.value.trim();
+        auditState.page = 1;
+        loadAuditLog();
+      }, 300);
     });
   }
 
