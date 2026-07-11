@@ -3976,28 +3976,32 @@ footer.site-footer {
   background: linear-gradient(90deg, rgba(0,0,0,0) 55%, var(--panel) 100%);
   pointer-events: none;
 }
-/* Positioned as a percentage of the media box (not the image's natural
-   pixels) so it tracks reasonably well across the container's variable
-   height (it stretches to match the taller sibling column via
-   .admin-home-top-row's align-items: stretch) -- not pixel-perfect at
-   every viewport, but close, for a decorative touch. */
+/* Position derived by sampling the actual source image's pixels (canvas
+   getImageData, hunting for the eye lens's bright cluster) rather than
+   eyeballing a screenshot -- the eye sits at ~53% across / ~10.5% down
+   the *natural* 600x901 image. On desktop widths (>=900px) the media box
+   is tall+narrow enough that object-fit: cover ends up height-constrained
+   with virtually no vertical crop, so top: 10.5% of the container already
+   matches that fraction of the natural image almost exactly; the 900px
+   breakpoint below repositions it for the short, width-constrained mobile
+   crop instead, where a much larger vertical slice gets cut off. */
 .bh4-eye-glow {
   position: absolute;
-  left: 47%;
-  top: 19%;
+  left: 53%;
+  top: 10.5%;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
-  background: radial-gradient(circle, rgba(236,201,135,0.95) 0%, rgba(236,201,135,0.5) 45%, transparent 75%);
-  box-shadow: 0 0 6px 2px rgba(236,201,135,0.5);
+  background: radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.5) 45%, transparent 75%);
+  box-shadow: 0 0 6px 2px rgba(255,255,255,0.5);
   animation: bh4EyeGlow 4s ease-in-out infinite;
   pointer-events: none;
   z-index: 2;
 }
 @keyframes bh4EyeGlow {
-  0%, 100% { opacity: 0.35; box-shadow: 0 0 4px 1px rgba(236,201,135,0.3); }
-  50% { opacity: 1; box-shadow: 0 0 16px 6px rgba(236,201,135,0.85); }
+  0%, 100% { opacity: 0.35; box-shadow: 0 0 4px 1px rgba(255,255,255,0.3); }
+  50% { opacity: 1; box-shadow: 0 0 16px 6px rgba(255,255,255,0.85); }
 }
 .bh4-hero-main {
   flex: 1;
@@ -4286,6 +4290,12 @@ footer.site-footer {
   .bh4-hero-media::after { background: linear-gradient(180deg, rgba(0,0,0,0) 55%, var(--panel) 100%); }
   .bh4-hero-top-row { flex-direction: column; }
   .bh4-nominal-card { flex-basis: auto; width: 100%; }
+  /* This layout's short, wide media box crops the source image very
+     differently (width-constrained cover instead of height-constrained),
+     cutting off far more of the bottom -- top: 10.5% no longer lines up
+     with the eye here, since a much smaller vertical slice of the image
+     is visible; this repositions it to match that slice's own math. */
+  .bh4-eye-glow { top: 61%; }
 }
 @media (max-width: 720px) {
   .bh4-task-advisor__primary { flex-direction: column; }
