@@ -368,6 +368,7 @@ CREATE TABLE IF NOT EXISTS worlds (
   overlord_name VARCHAR(100) NOT NULL DEFAULT '',
   overlord_title VARCHAR(100) NOT NULL DEFAULT '',
   overlord_page_slug VARCHAR(100) NOT NULL DEFAULT '',
+  overlord_id INT UNSIGNED NULL,
   status ENUM('available','locked') NOT NULL DEFAULT 'locked',
   lore_status_label VARCHAR(100) NOT NULL DEFAULT 'Lore Coming Soon',
   intro_paragraph_1 TEXT NULL,
@@ -422,3 +423,35 @@ CREATE TABLE IF NOT EXISTS world_landmarks (
   CONSTRAINT fk_world_landmarks_world FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE,
   CONSTRAINT fk_world_landmarks_layer FOREIGN KEY (layer_id) REFERENCES world_layers(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Overlord Control. worlds.overlord_id (above) is a real FK to this table,
+-- replacing the old free-text overlord_name/overlord_title/overlord_page_slug
+-- columns on worlds -- those three are kept for now (dropped in a short
+-- follow-up migration once the cutover is verified live) but are no longer
+-- written to by the admin UI.
+CREATE TABLE IF NOT EXISTS overlords (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(100) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL,
+  epithet VARCHAR(100) NOT NULL DEFAULT '',
+  world_id INT UNSIGNED NULL,
+  pronoun_possessive VARCHAR(10) NOT NULL DEFAULT 'their',
+  status ENUM('available','locked') NOT NULL DEFAULT 'locked',
+  portrait_image_url VARCHAR(255) NOT NULL DEFAULT '',
+  card_teaser VARCHAR(300) NOT NULL DEFAULT '',
+  bio_paragraph_1 TEXT NULL,
+  bio_paragraph_2 TEXT NULL,
+  bio_paragraph_3 TEXT NULL,
+  quote_text VARCHAR(400) NOT NULL DEFAULT '',
+  quote_cite VARCHAR(150) NOT NULL DEFAULT '',
+  accent_color VARCHAR(20) NOT NULL DEFAULT '',
+  accent_glow VARCHAR(20) NOT NULL DEFAULT '',
+  meta_title VARCHAR(150) NOT NULL DEFAULT '',
+  meta_description VARCHAR(300) NOT NULL DEFAULT '',
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_overlords_world FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE worlds
+  ADD CONSTRAINT fk_worlds_overlord FOREIGN KEY (overlord_id) REFERENCES overlords(id) ON DELETE SET NULL;

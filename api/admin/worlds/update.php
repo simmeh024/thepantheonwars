@@ -33,7 +33,7 @@ $data = pw_validate_world_input($input);
 $stmt = $db->prepare(
     'UPDATE worlds SET
         name = ?, tagline = ?, card_blurb = ?, thumb_image_url = ?, portrait_image_url = ?,
-        overlord_name = ?, overlord_title = ?, overlord_page_slug = ?, status = ?, lore_status_label = ?,
+        status = ?, lore_status_label = ?,
         intro_paragraph_1 = ?, intro_paragraph_2 = ?, layout_orientation = ?,
         altitude_top_label = ?, altitude_bottom_label = ?,
         map_thumb_image_url = ?, map_full_image_url = ?, map_caption = ?
@@ -42,7 +42,6 @@ $stmt = $db->prepare(
 $stmt->execute([
     $data['name'], $data['tagline'], $data['card_blurb'],
     $data['thumb_image_url'], $data['portrait_image_url'],
-    $data['overlord_name'], $data['overlord_title'], $data['overlord_page_slug'],
     $data['status'], $data['lore_status_label'],
     $data['intro_paragraph_1'], $data['intro_paragraph_2'], $data['layout_orientation'],
     $data['altitude_top_label'], $data['altitude_bottom_label'],

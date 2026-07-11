@@ -12,12 +12,13 @@ pw_require_permission('worlds.view');
 $db = pw_db();
 
 $worlds = $db->query(
-    'SELECT id, slug, name, tagline, card_blurb, thumb_image_url, portrait_image_url,
-            overlord_name, overlord_title, overlord_page_slug, status, lore_status_label,
-            intro_paragraph_1, intro_paragraph_2, layout_orientation,
-            altitude_top_label, altitude_bottom_label,
-            map_thumb_image_url, map_full_image_url, map_caption, sort_order
-     FROM worlds ORDER BY sort_order ASC'
+    'SELECT w.id, w.slug, w.name, w.tagline, w.card_blurb, w.thumb_image_url, w.portrait_image_url,
+            w.status, w.lore_status_label,
+            w.intro_paragraph_1, w.intro_paragraph_2, w.layout_orientation,
+            w.altitude_top_label, w.altitude_bottom_label,
+            w.map_thumb_image_url, w.map_full_image_url, w.map_caption, w.sort_order,
+            o.name AS overlord_name, o.epithet AS overlord_epithet, o.slug AS overlord_slug
+     FROM worlds w LEFT JOIN overlords o ON o.id = w.overlord_id ORDER BY w.sort_order ASC'
 )->fetchAll();
 
 $layers = $db->query(

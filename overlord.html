@@ -3,17 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Worlds — The Pantheon Wars</title>
-<meta name="description" content="The twelve worlds of The Pantheon Wars, starting with Neoh, High Hammer, Asmecu, and Cerius — explore each one layer by layer.">
-<meta property="og:type" content="website">
-<meta property="og:title" content="The Worlds — The Pantheon Wars">
-<meta property="og:description" content="The twelve worlds of The Pantheon Wars, starting with Neoh, High Hammer, Asmecu, and Cerius — explore each one layer by layer.">
-<meta property="og:url" content="https://thepantheonwars.com/worlds.html">
-<meta property="og:image" content="https://thepantheonwars.com/images/hero-main.jpg">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="The Worlds — The Pantheon Wars">
-<meta name="twitter:description" content="The twelve worlds of The Pantheon Wars, starting with Neoh, High Hammer, Asmecu, and Cerius — explore each one layer by layer.">
-<meta name="twitter:image" content="https://thepantheonwars.com/images/hero-main.jpg">
+<title id="overlord-doc-title">The Overlords — The Pantheon Wars</title>
+<meta name="description" id="overlord-doc-description" content="A spoiler-free profile of one of the Pantheon's ruling Overlords.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
@@ -36,8 +27,8 @@
         <span class="nav-parent active">The Universe<span class="nav-caret">⌄</span></span>
         <div class="nav-dropdown">
           <a href="books.html">The Books</a>
-          <a href="worlds.html" class="active">The Worlds</a>
-          <a href="overlords.html">The Overlords</a>
+          <a href="worlds.html">The Worlds</a>
+          <a href="overlords.html" class="active">The Overlords</a>
           <a href="soundtracks.html">The Soundtracks</a>
         </div>
       </div>
@@ -65,38 +56,60 @@
 
 <main>
 
-  <div class="page-banner ornate">
-    <div class="hero-bg" style="background-image: url('images/world-neoh.jpg');"></div>
-    <div class="hero-veil"></div>
-    <span class="orn-bl"></span><span class="orn-br"></span>
+  <div id="overlord-gate" class="profile-gate" hidden>
     <div class="container">
-      <span class="eyebrow">The Pantheon</span>
-      <h1>Twelve Worlds, One Prophecy</h1>
-      <p class="lede">Every world bends to its Overlord's nature and nothing else. Start with Neoh, High Hammer, Asmecu, or Cerius below.</p>
+      <span class="eyebrow">The Overlords</span>
+      <h2 id="overlord-gate-heading">Overlord not found</h2>
+      <p id="overlord-gate-text">This Overlord's profile doesn't exist, or the link is missing a name.</p>
+      <a href="overlords.html" class="btn btn-solid">Back to the Overlords</a>
     </div>
   </div>
 
-  <section>
-    <div class="container">
-      <div class="grid grid-3" id="world-grid"></div>
-    </div>
-  </section>
+  <div id="overlord-content" hidden>
 
-  <div id="world-detail-sections"></div>
-
-  <section class="newsletter">
-      <img src="images/bh4-dispatch.jpg" alt="" class="newsletter-bh4" aria-hidden="true">
-    <div class="container">
-      <span class="eyebrow">Join the Pantheon</span>
-      <h2>Get word when a new world opens</h2>
-      <p>No spam, no Overcode surveillance — just updates on new books, lore drops, and the soundtrack as it's released.</p>
-      <form class="newsletter-form" action="#" method="post">
-        <input type="email" placeholder="your@email.com" required aria-label="Email address">
-        <button type="submit" class="btn btn-solid">Subscribe</button>
-      </form>
-      <p class="confirm"></p>
+    <div class="page-banner ornate">
+      <div class="hero-bg" id="overlord-hero-bg" style="opacity: 0.3;"></div>
+      <div class="hero-veil"></div>
+      <span class="orn-bl"></span><span class="orn-br"></span>
+      <div class="container">
+        <div class="overlord-portrait-frame"><img id="overlord-portrait-img" src="" alt=""></div>
+        <span class="eyebrow">The Overlords</span>
+        <h1 id="overlord-name">—</h1>
+        <span class="overlord-epithet" id="overlord-epithet"></span>
+        <span class="overlord-domain-tag" id="overlord-domain-tag"></span>
+      </div>
     </div>
-  </section>
+
+    <section>
+      <div class="container about-body">
+        <p id="overlord-bio-1"></p>
+        <p id="overlord-bio-2"></p>
+        <p id="overlord-bio-3"></p>
+        <blockquote class="myth" id="overlord-quote-block" hidden>
+          <span id="overlord-quote-text"></span>
+          <cite id="overlord-quote-cite"></cite>
+        </blockquote>
+        <div class="overlord-backlink" id="overlord-backlink" hidden>
+          <a href="#" id="overlord-backlink-link" class="btn"></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="newsletter">
+        <img src="images/bh4-dispatch.jpg" alt="" class="newsletter-bh4" aria-hidden="true">
+      <div class="container">
+        <span class="eyebrow">Join the Pantheon</span>
+        <h2>Get word when a new world opens</h2>
+        <p>No spam, no Overcode surveillance — just updates on new books, lore drops, and the soundtrack as it's released.</p>
+        <form class="newsletter-form" action="#" method="post">
+          <input type="email" placeholder="your@email.com" required aria-label="Email address">
+          <button type="submit" class="btn btn-solid">Subscribe</button>
+        </form>
+        <p class="confirm"></p>
+      </div>
+    </section>
+
+  </div>
 
 </main>
 
@@ -141,6 +154,86 @@
 <script src="js/main.js?v=2"></script>
 <script src="js/members.js?v=7"></script>
 <script src="js/notifications.js?v=5"></script>
-<script src="js/worlds.js?v=2"></script>
+<script>
+(function () {
+  var gate = document.getElementById('overlord-gate');
+  var content = document.getElementById('overlord-content');
+
+  function getParam(name) {
+    var match = new RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
+    return match ? decodeURIComponent(match[1].replace(/\+/g, ' ')) : null;
+  }
+
+  function showNotFound(text) {
+    if (text) document.getElementById('overlord-gate-text').textContent = text;
+    gate.hidden = false;
+    content.hidden = true;
+  }
+
+  function pronounNoun(pronoun) {
+    if (pronoun === 'her') return 'Her';
+    if (pronoun === 'their') return 'Their';
+    return 'His';
+  }
+
+  function load() {
+    var slug = getParam('slug');
+    if (!slug) {
+      showNotFound('This link is missing an Overlord name.');
+      return;
+    }
+
+    fetch('/api/overlords.php?slug=' + encodeURIComponent(slug), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok || !data.overlord || data.overlord.status !== 'available') {
+          showNotFound();
+          return;
+        }
+        gate.hidden = true;
+        content.hidden = false;
+
+        var ov = data.overlord;
+        document.title = (ov.meta_title || (ov.name + ' — The Pantheon Wars'));
+        document.getElementById('overlord-doc-title').textContent = ov.meta_title || (ov.name + ' — The Pantheon Wars');
+        document.getElementById('overlord-doc-description').setAttribute('content', ov.meta_description || '');
+
+        document.getElementById('overlord-hero-bg').style.backgroundImage = ov.world ? "url('" + ov.world.thumb_image_url + "')" : '';
+        document.getElementById('overlord-portrait-img').src = ov.portrait_image_url || '';
+        document.getElementById('overlord-portrait-img').alt = ov.name;
+        document.getElementById('overlord-name').textContent = ov.name;
+        document.getElementById('overlord-epithet').textContent = ov.epithet || '';
+        document.getElementById('overlord-domain-tag').textContent = ov.world ? ('Overlord of ' + ov.world.name) : '';
+
+        document.getElementById('overlord-bio-1').textContent = ov.bio_paragraph_1 || '';
+        document.getElementById('overlord-bio-2').textContent = ov.bio_paragraph_2 || '';
+        document.getElementById('overlord-bio-3').textContent = ov.bio_paragraph_3 || '';
+
+        var quoteBlock = document.getElementById('overlord-quote-block');
+        if (ov.quote_text) {
+          document.getElementById('overlord-quote-text').textContent = ov.quote_text;
+          document.getElementById('overlord-quote-cite').textContent = ov.quote_cite || '';
+          quoteBlock.hidden = false;
+        } else {
+          quoteBlock.hidden = true;
+        }
+
+        var backlink = document.getElementById('overlord-backlink');
+        if (ov.world) {
+          var link = document.getElementById('overlord-backlink-link');
+          link.href = 'worlds.html#' + ov.world.slug;
+          link.textContent = 'Explore ' + ov.world.name + ', ' + pronounNoun(ov.pronoun_possessive) + ' World ↓';
+          backlink.hidden = false;
+        } else {
+          backlink.hidden = true;
+        }
+      })
+      .catch(function () { showNotFound('Could not load this profile right now.'); });
+  }
+
+  document.addEventListener('pw-auth-ready', load);
+  load();
+})();
+</script>
 </body>
 </html>

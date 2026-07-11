@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=137">
+<link rel="stylesheet" href="css/style.css?v=138">
 </head>
 <body>
 
@@ -162,17 +162,17 @@
   var avatarWrap = document.getElementById('member-avatar-wrap');
 
   var overlordMeta = [
-    { name: "Syn Dravus", epithet: "The Mindweaver", domain: "Overlord of Neoh", img: "images/char-syn.jpg", href: "overlord-syn-dravus.html",
+    { name: "Syn Dravus", epithet: "The Mindweaver", domain: "Overlord of Neoh", img: "images/char-syn.jpg", href: "overlord.html?slug=syn-dravus",
       blurb: "You rule through knowledge no one else has. People fear what you might already know about them — and they're right to." },
-    { name: "Malric Thorne", epithet: "The Black Regent", domain: "Overlord of Cerius", img: "images/char-malric.jpg", href: "overlord-malric-thorne.html",
+    { name: "Malric Thorne", epithet: "The Black Regent", domain: "Overlord of Cerius", img: "images/char-malric.jpg", href: "overlord.html?slug=malric-thorne",
       blurb: "You rule through control, seized and never loosened. Order is the only mercy you believe in." },
-    { name: "Korrus Vale", epithet: "The Reactor King", domain: "Overlord of Reanium", img: "images/char-korrus.jpg", href: "overlord-korrus-vale.html",
+    { name: "Korrus Vale", epithet: "The Reactor King", domain: "Overlord of Reanium", img: "images/char-korrus.jpg", href: "overlord.html?slug=korrus-vale",
       blurb: "You rule through efficiency, even when the numbers are grim. The system survives — that's the point." },
-    { name: "Lysara Venthe", epithet: "The Tidekeeper", domain: "Overlord of Asmecu", img: "images/char-lysara.jpg", href: "overlord-lysara-venthe.html",
+    { name: "Lysara Venthe", epithet: "The Tidekeeper", domain: "Overlord of Asmecu", img: "images/char-lysara.jpg", href: "overlord.html?slug=lysara-venthe",
       blurb: "You rule through care that looks like softness and isn't. Everyone feels safe near you. Not everyone should." },
-    { name: "Zura Kaleth", epithet: "The Rootbinder", domain: "Overlord of Babki Prime", img: "images/char-zura.jpg", href: "overlord-zura-kaleth.html",
+    { name: "Zura Kaleth", epithet: "The Rootbinder", domain: "Overlord of Babki Prime", img: "images/char-zura.jpg", href: "overlord.html?slug=zura-kaleth",
       blurb: "You rule through patience, letting things take the shape they need to. Nothing near you stays the same for long." },
-    { name: "Maerion Thal", epithet: "The Sky Duke", domain: "Overlord of High Hammer", img: "images/char-maerion.jpg", href: "overlord-maerion-thal.html",
+    { name: "Maerion Thal", epithet: "The Sky Duke", domain: "Overlord of High Hammer", img: "images/char-maerion.jpg", href: "overlord.html?slug=maerion-thal",
       blurb: "You rule through honor and reputation, staged as carefully as any duel. Your word is the one currency you never let devalue." }
   ];
 
@@ -310,7 +310,7 @@
             var affLink = document.getElementById('member-affinity-link');
             affLink.href = ov.href;
             affLink.textContent = 'Learn more about ' + ov.name + ' →';
-            affBox.classList.add(ov.href.replace('.html', ''));
+            affBox.classList.add('overlord-' + ov.href.split('slug=')[1]);
           } else {
             document.getElementById('member-affinity-name').textContent = m.overlord_affinity;
           }

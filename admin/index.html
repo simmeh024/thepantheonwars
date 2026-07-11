@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=137">
+<link rel="stylesheet" href="../css/style.css?v=138">
 </head>
 <body>
 
@@ -38,7 +38,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category" data-category="lore" data-requires-permission="books.view,worlds.view">
+    <div class="admin-nav-category" data-category="lore" data-requires-permission="books.view,worlds.view,overlords.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
         <span>Lore Management</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -46,6 +46,7 @@
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li data-requires-permission="books.view"><button type="button" class="admin-nav-link" data-section="book-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>Book Control</button></li>
         <li data-requires-permission="worlds.view"><button type="button" class="admin-nav-link" data-section="world-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>World Control</button></li>
+        <li data-requires-permission="overlords.view"><button type="button" class="admin-nav-link" data-section="overlord-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><circle cx="12" cy="10" r="2.5"/></svg>Overlord Control</button></li>
       </ul>
     </div>
 
@@ -907,6 +908,12 @@
             <option value="world_reordered">Worlds reordered</option>
             <option value="world_layer_updated">World lore updated (layers/landmarks)</option>
           </optgroup>
+          <optgroup label="Overlord Control">
+            <option value="overlord_created">Overlord created</option>
+            <option value="overlord_updated">Overlord updated</option>
+            <option value="overlord_deleted">Overlord deleted</option>
+            <option value="overlord_reordered">Overlords reordered</option>
+          </optgroup>
           <optgroup label="Dispatches">
             <option value="translation_added">Translation added</option>
             <option value="translation_updated">Translation updated</option>
@@ -1155,6 +1162,22 @@
 
       <div class="admin-list" id="world-list">
         <div class="admin-list-empty">Loading worlds&hellip;</div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-overlord-control" hidden>
+      <div class="admin-section-head">
+        <h1>Overlord Control</h1>
+        <p>Manage the Overlords &mdash; portrait, bio, quote, and which world (if any) each one rules.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button type="button" class="btn btn-solid" id="overlord-create-btn">+ Add Overlord</button>
+        <span class="admin-count" id="overlord-count"></span>
+      </div>
+
+      <div class="admin-list" id="overlord-list">
+        <div class="admin-list-empty">Loading overlords&hellip;</div>
       </div>
     </section>
 
@@ -1723,19 +1746,10 @@
       <input type="file" id="world-portrait-image-file" accept="image/png,image/jpeg,image/webp" hidden>
     </div>
 
-    <div class="admin-field-row">
-      <div class="admin-field">
-        <label for="world-overlord-name-input">Overlord name</label>
-        <input type="text" id="world-overlord-name-input" maxlength="100" placeholder="Optional -- leave blank if unassigned">
-      </div>
-      <div class="admin-field">
-        <label for="world-overlord-title-input">Overlord title</label>
-        <input type="text" id="world-overlord-title-input" maxlength="100" placeholder="Optional, e.g. The Sky Duke">
-      </div>
-      <div class="admin-field">
-        <label for="world-overlord-page-slug-input">Overlord page slug</label>
-        <input type="text" id="world-overlord-page-slug-input" maxlength="100" placeholder="Optional, e.g. overlord-syn-dravus">
-      </div>
+    <div class="admin-field">
+      <label>Overlord</label>
+      <p class="admin-field-hint">Assigned from Overlord Control&rsquo;s own world picker, not here &mdash; a world can only be claimed by one Overlord at a time.</p>
+      <p class="admin-readonly-value" id="world-overlord-display">&mdash; Unassigned &mdash;</p>
     </div>
 
     <div class="admin-field-row">
@@ -1848,6 +1862,133 @@
       <button type="button" class="btn btn-solid" id="world-save-btn">Save</button>
       <button type="button" class="btn" id="world-cancel-btn">Cancel</button>
       <button type="button" class="admin-delete-btn" id="world-delete-btn" hidden>Delete World</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal" id="overlord-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="overlord-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="overlord-modal-title">Edit Overlord</h3>
+    <p class="admin-modal-sub" id="overlord-modal-sub"></p>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="overlord-name-input">Name</label>
+        <input type="text" id="overlord-name-input" maxlength="100">
+      </div>
+      <div class="admin-field" id="overlord-slug-field">
+        <label for="overlord-slug-input">Slug</label>
+        <p class="admin-field-hint">Lowercase letters, numbers, and hyphens only. Can&rsquo;t be changed after the overlord is created.</p>
+        <input type="text" id="overlord-slug-input" maxlength="100" placeholder="e.g. syn-dravus">
+      </div>
+    </div>
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="overlord-epithet-input">Epithet</label>
+        <input type="text" id="overlord-epithet-input" maxlength="100" placeholder="e.g. The Sky Duke">
+      </div>
+      <div class="admin-field">
+        <label for="overlord-world-select">World</label>
+        <select id="overlord-world-select">
+          <option value="">&mdash; Unassigned &mdash;</option>
+        </select>
+      </div>
+    </div>
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="overlord-pronoun-select">Pronoun</label>
+        <select id="overlord-pronoun-select">
+          <option value="his">His</option>
+          <option value="her">Her</option>
+          <option value="their">Their</option>
+        </select>
+      </div>
+      <div class="admin-field">
+        <label for="overlord-status-select">Status</label>
+        <select id="overlord-status-select">
+          <option value="locked">Locked (no public profile yet)</option>
+          <option value="available">Available</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="admin-field admin-image-field">
+      <label for="overlord-portrait-image-input">Portrait image</label>
+      <div class="admin-image-field-row">
+        <div class="admin-image-thumb" id="overlord-portrait-image-thumb">
+          <img id="overlord-portrait-image-preview" alt="" hidden>
+          <span class="admin-image-thumb-empty">No image</span>
+        </div>
+        <div class="admin-image-field-controls">
+          <input type="text" id="overlord-portrait-image-input" maxlength="255" placeholder="images/char-syn.jpg">
+          <div class="admin-image-field-btns">
+            <button type="button" class="btn admin-image-upload-btn" data-image-type="overlord_portrait">Upload</button>
+            <button type="button" class="btn admin-image-browse-btn" data-image-type="overlord_portrait">Choose from Library</button>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="overlord-portrait-image-file" accept="image/png,image/jpeg,image/webp" hidden>
+    </div>
+
+    <div class="admin-field">
+      <label for="overlord-card-teaser-input">Card teaser (one sentence, shown on the roster card)</label>
+      <input type="text" id="overlord-card-teaser-input" maxlength="300">
+    </div>
+
+    <div class="admin-field">
+      <label for="overlord-bio-1-input">Bio paragraph 1</label>
+      <textarea id="overlord-bio-1-input" maxlength="2000"></textarea>
+    </div>
+    <div class="admin-field">
+      <label for="overlord-bio-2-input">Bio paragraph 2</label>
+      <textarea id="overlord-bio-2-input" maxlength="2000"></textarea>
+    </div>
+    <div class="admin-field">
+      <label for="overlord-bio-3-input">Bio paragraph 3</label>
+      <textarea id="overlord-bio-3-input" maxlength="2000"></textarea>
+    </div>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="overlord-quote-text-input">Quote</label>
+        <textarea id="overlord-quote-text-input" maxlength="400"></textarea>
+      </div>
+      <div class="admin-field">
+        <label for="overlord-quote-cite-input">Quote attribution</label>
+        <input type="text" id="overlord-quote-cite-input" maxlength="150" placeholder="e.g. &mdash; attributed to Syn Dravus">
+      </div>
+    </div>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="overlord-accent-color-input">Accent color</label>
+        <input type="color" id="overlord-accent-color-input" value="#c7ccd6">
+      </div>
+      <div class="admin-field">
+        <label for="overlord-accent-glow-input">Accent glow (dim shade)</label>
+        <input type="color" id="overlord-accent-glow-input" value="#3a3d45">
+      </div>
+    </div>
+
+    <hr class="admin-modal-divider">
+
+    <div class="admin-field">
+      <label for="overlord-meta-title-input">Meta title (browser tab / share preview)</label>
+      <input type="text" id="overlord-meta-title-input" maxlength="150" placeholder="Optional -- defaults to the overlord's name">
+    </div>
+    <div class="admin-field">
+      <label for="overlord-meta-description-input">Meta description</label>
+      <input type="text" id="overlord-meta-description-input" maxlength="300" placeholder="Optional">
+    </div>
+
+    <p class="admin-modal-error" id="overlord-modal-error"></p>
+    <p class="admin-modal-status" id="overlord-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="overlord-save-btn">Save</button>
+      <button type="button" class="btn" id="overlord-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="overlord-delete-btn" hidden>Delete Overlord</button>
     </div>
   </div>
 </div>
@@ -2143,6 +2284,7 @@
       if (name === 'forum-control') loadForumBoards();
       if (name === 'book-control') loadBookList();
       if (name === 'world-control') loadWorldList();
+      if (name === 'overlord-control') loadOverlordList();
       if (name === 'roles-permissions') loadRoles();
       if (name === 'visitor-stats') loadVisitorStats();
     }
@@ -3177,6 +3319,10 @@
     world_deleted: 'World deleted',
     world_reordered: 'Worlds reordered',
     world_layer_updated: 'World lore updated',
+    overlord_created: 'Overlord created',
+    overlord_updated: 'Overlord updated',
+    overlord_deleted: 'Overlord deleted',
+    overlord_reordered: 'Overlords reordered',
     backup_logged: 'Backup logged',
     dispatches_resynced: 'Dispatches re-synced',
     dispatch_title_edited: 'Dispatch title edited'
@@ -3229,6 +3375,10 @@
     world_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="9.5" y1="10" x2="14.5" y2="15"/><line x1="14.5" y1="10" x2="9.5" y2="15"/></svg>',
     world_reordered: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/></svg>',
     world_layer_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/><path d="M9.5 12.5l1.8 1.8L15.5 10"/></svg>',
+    overlord_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><circle cx="12" cy="10" r="2.5"/></svg>',
+    overlord_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12.5l1.8 1.8L15.5 10"/></svg>',
+    overlord_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><line x1="9.5" y1="9.5" x2="14.5" y2="14.5"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/></svg>',
+    overlord_reordered: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>',
     backup_logged: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',
     dispatches_resynced: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
     dispatch_title_edited: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>'
@@ -6949,9 +7099,7 @@
   var worldCardBlurbInput = document.getElementById('world-card-blurb-input');
   var worldThumbImageInput = document.getElementById('world-thumb-image-input');
   var worldPortraitImageInput = document.getElementById('world-portrait-image-input');
-  var worldOverlordNameInput = document.getElementById('world-overlord-name-input');
-  var worldOverlordTitleInput = document.getElementById('world-overlord-title-input');
-  var worldOverlordPageSlugInput = document.getElementById('world-overlord-page-slug-input');
+  var worldOverlordDisplay = document.getElementById('world-overlord-display');
   var worldStatusSelect = document.getElementById('world-status-select');
   var worldLoreStatusField = document.getElementById('world-lore-status-field');
   var worldLoreStatusInput = document.getElementById('world-lore-status-input');
@@ -7222,9 +7370,8 @@
     worldCardBlurbInput.value = world.card_blurb || '';
     worldThumbImageInput.value = world.thumb_image_url || '';
     worldPortraitImageInput.value = world.portrait_image_url || '';
-    worldOverlordNameInput.value = world.overlord_name || '';
-    worldOverlordTitleInput.value = world.overlord_title || '';
-    worldOverlordPageSlugInput.value = world.overlord_page_slug || '';
+    worldOverlordDisplay.textContent = world.overlord_name ?
+      (world.overlord_name + (world.overlord_epithet ? ' — ' + world.overlord_epithet : '')) : '— Unassigned —';
     worldStatusSelect.value = world.status || 'locked';
     worldLoreStatusInput.value = world.lore_status_label || 'Lore Coming Soon';
     worldIntro1Input.value = world.intro_paragraph_1 || '';
@@ -7288,9 +7435,6 @@
       card_blurb: worldCardBlurbInput.value.trim(),
       thumb_image_url: worldThumbImageInput.value.trim(),
       portrait_image_url: worldPortraitImageInput.value.trim(),
-      overlord_name: worldOverlordNameInput.value.trim(),
-      overlord_title: worldOverlordTitleInput.value.trim(),
-      overlord_page_slug: worldOverlordPageSlugInput.value.trim(),
       status: worldStatusSelect.value,
       lore_status_label: worldLoreStatusInput.value.trim(),
       intro_paragraph_1: worldIntro1Input.value.trim(),
@@ -7731,6 +7875,307 @@
         worldLandmarkDeleteBtn.disabled = false;
         worldLandmarkModalError.textContent = 'Could not delete this landmark. Please try again.';
         worldLandmarkModalError.classList.add('show');
+      });
+  });
+
+  // ===== Overlord Control (Lore Management) ====================================
+  // overlords is the source of truth for overlords.html's roster grid and
+  // overlord.html's single-record detail template (js/overlords.js),
+  // replacing what used to be six hand-authored static pages. Flat entity,
+  // same list/modal pattern as Book Control -- the one relationship is a
+  // world picker here (assignment lives on the Overlord record's world_id,
+  // not on the World record, so only one place owns the pointer).
+  var overlordListEl = document.getElementById('overlord-list');
+  var overlordCountEl = document.getElementById('overlord-count');
+  var overlordCreateBtn = document.getElementById('overlord-create-btn');
+
+  var overlordModal = document.getElementById('overlord-modal');
+  var overlordModalTitle = document.getElementById('overlord-modal-title');
+  var overlordModalSub = document.getElementById('overlord-modal-sub');
+  var overlordModalError = document.getElementById('overlord-modal-error');
+  var overlordModalStatus = document.getElementById('overlord-modal-status');
+  var overlordCloseBtn = document.getElementById('overlord-modal-close');
+  var overlordCancelBtn = document.getElementById('overlord-cancel-btn');
+  var overlordSaveBtn = document.getElementById('overlord-save-btn');
+  var overlordDeleteBtn = document.getElementById('overlord-delete-btn');
+
+  var overlordNameInput = document.getElementById('overlord-name-input');
+  var overlordSlugField = document.getElementById('overlord-slug-field');
+  var overlordSlugInput = document.getElementById('overlord-slug-input');
+  var overlordEpithetInput = document.getElementById('overlord-epithet-input');
+  var overlordWorldSelect = document.getElementById('overlord-world-select');
+  var overlordPronounSelect = document.getElementById('overlord-pronoun-select');
+  var overlordStatusSelect = document.getElementById('overlord-status-select');
+  var overlordPortraitImageInput = document.getElementById('overlord-portrait-image-input');
+  var overlordCardTeaserInput = document.getElementById('overlord-card-teaser-input');
+  var overlordBio1Input = document.getElementById('overlord-bio-1-input');
+  var overlordBio2Input = document.getElementById('overlord-bio-2-input');
+  var overlordBio3Input = document.getElementById('overlord-bio-3-input');
+  var overlordQuoteTextInput = document.getElementById('overlord-quote-text-input');
+  var overlordQuoteCiteInput = document.getElementById('overlord-quote-cite-input');
+  var overlordAccentColorInput = document.getElementById('overlord-accent-color-input');
+  var overlordAccentGlowInput = document.getElementById('overlord-accent-glow-input');
+  var overlordMetaTitleInput = document.getElementById('overlord-meta-title-input');
+  var overlordMetaDescriptionInput = document.getElementById('overlord-meta-description-input');
+
+  var lastOverlordEntries = [];
+  var overlordModalMode = 'create';
+  var currentOverlord = null;
+
+  IMAGE_FIELDS.overlord_portrait = {
+    urlInput: overlordPortraitImageInput,
+    thumbImg: document.getElementById('overlord-portrait-image-preview'),
+    thumbEmpty: document.querySelector('#overlord-portrait-image-thumb .admin-image-thumb-empty'),
+    fileInput: document.getElementById('overlord-portrait-image-file'),
+    uploadEndpoint: '/api/admin/overlords/upload-image.php',
+    listEndpoint: '/api/admin/overlords/list-images.php',
+    apiType: 'portrait', label: 'portrait image',
+    errorEl: overlordModalError, statusEl: overlordModalStatus
+  };
+  wireImageField('overlord_portrait');
+
+  function populateOverlordWorldOptions() {
+    return fetch('/api/admin/worlds/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var worlds = (data.ok && data.worlds) || [];
+        overlordWorldSelect.innerHTML = '<option value="">&mdash; Unassigned &mdash;</option>' +
+          worlds.map(function (w) { return '<option value="' + w.id + '">' + escapeHtml(w.name) + '</option>'; }).join('');
+      })
+      .catch(function () {});
+  }
+
+  function loadOverlordList() {
+    overlordListEl.innerHTML = '<div class="admin-list-empty">Loading overlords&hellip;</div>';
+    populateOverlordWorldOptions();
+    return fetch('/api/admin/overlords/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        lastOverlordEntries = (data.ok && data.overlords) || [];
+        overlordCountEl.textContent = lastOverlordEntries.length + (lastOverlordEntries.length === 1 ? ' overlord' : ' overlords');
+        renderOverlordList(lastOverlordEntries);
+      })
+      .catch(function () {
+        overlordListEl.innerHTML = '<div class="admin-list-empty">Could not load overlords.</div>';
+      });
+  }
+
+  function renderOverlordList(entries) {
+    if (!entries.length) {
+      overlordListEl.innerHTML = '<div class="admin-list-empty">No overlords yet.</div>';
+      return;
+    }
+    overlordListEl.innerHTML = '';
+    entries.forEach(function (entry, i) {
+      var row = document.createElement('div');
+      row.className = 'admin-row world-row';
+      row.tabIndex = 0;
+      row.innerHTML =
+        (entry.portrait_image_url ? '<img class="admin-row-cover" src="' + resolveSiteImageUrl(entry.portrait_image_url) + '" alt="">' : '') +
+        '<div class="admin-row-main">' +
+          '<p class="world-row-title">' + escapeHtml(entry.name) + (entry.epithet ? ' <span class="admin-row-sep">&bull;</span> ' + escapeHtml(entry.epithet) : '') + '</p>' +
+        '</div>' +
+        '<div class="world-row-status">' +
+          '<span class="world-overlord-pill">' + (entry.world_name ? escapeHtml(entry.world_name) : 'Unassigned') + '</span>' +
+          '<span class="world-status-pill ' + (entry.status === 'available' ? 'is-available' : 'is-locked') + '">' +
+            (entry.status === 'available' ? 'Available' : 'Locked') +
+          '</span>' +
+        '</div>';
+
+      var actions = document.createElement('div');
+      actions.className = 'role-row-actions';
+      actions.innerHTML =
+        '<button type="button" class="permission-mini-btn" data-overlord-action="up"' + (i === 0 ? ' disabled' : '') + '>Move Up</button>' +
+        '<button type="button" class="permission-mini-btn" data-overlord-action="down"' + (i === entries.length - 1 ? ' disabled' : '') + '>Move Down</button>' +
+        '<button type="button" class="permission-mini-btn" data-overlord-action="edit">Edit</button>';
+      row.appendChild(actions);
+
+      actions.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-overlord-action]');
+        if (!btn || btn.disabled) return;
+        e.stopPropagation();
+        var act = btn.getAttribute('data-overlord-action');
+        if (act === 'edit') { openOverlordModal(entry); return; }
+        reorderOverlord(entry, act === 'up' ? i - 1 : i + 1);
+      });
+      row.addEventListener('click', function () { openOverlordModal(entry); });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openOverlordModal(entry); }
+      });
+      overlordListEl.appendChild(row);
+    });
+  }
+
+  function reorderOverlord(entry, targetIndex) {
+    if (targetIndex < 0 || targetIndex >= lastOverlordEntries.length) return;
+    var ids = lastOverlordEntries.map(function (o) { return o.id; });
+    var fromIndex = ids.indexOf(entry.id);
+    ids.splice(fromIndex, 1);
+    ids.splice(targetIndex, 0, entry.id);
+    fetch('/api/admin/overlords/reorder.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: ids, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function () { loadOverlordList(); });
+  }
+
+  function populateOverlordForm(o) {
+    overlordNameInput.value = o.name || '';
+    overlordSlugInput.value = o.slug || '';
+    overlordEpithetInput.value = o.epithet || '';
+    overlordWorldSelect.value = o.world_id || '';
+    overlordPronounSelect.value = o.pronoun_possessive || 'their';
+    overlordStatusSelect.value = o.status || 'locked';
+    overlordPortraitImageInput.value = o.portrait_image_url || '';
+    overlordCardTeaserInput.value = o.card_teaser || '';
+    overlordBio1Input.value = o.bio_paragraph_1 || '';
+    overlordBio2Input.value = o.bio_paragraph_2 || '';
+    overlordBio3Input.value = o.bio_paragraph_3 || '';
+    overlordQuoteTextInput.value = o.quote_text || '';
+    overlordQuoteCiteInput.value = o.quote_cite || '';
+    overlordAccentColorInput.value = o.accent_color || '#c7ccd6';
+    overlordAccentGlowInput.value = o.accent_glow || '#3a3d45';
+    overlordMetaTitleInput.value = o.meta_title || '';
+    overlordMetaDescriptionInput.value = o.meta_description || '';
+    refreshImageThumb('overlord_portrait');
+  }
+
+  function openOverlordModal(entry) {
+    overlordModalMode = 'edit';
+    currentOverlord = entry;
+    overlordModalTitle.textContent = 'Edit Overlord';
+    overlordModalSub.textContent = entry.slug;
+    overlordSlugInput.disabled = true;
+    overlordDeleteBtn.hidden = false;
+    overlordModalError.classList.remove('show');
+    overlordModalStatus.classList.remove('show');
+    populateOverlordWorldOptions().then(function () { populateOverlordForm(entry); });
+    overlordModal.hidden = false;
+  }
+
+  function openCreateOverlordModal() {
+    overlordModalMode = 'create';
+    currentOverlord = null;
+    overlordModalTitle.textContent = 'Add Overlord';
+    overlordModalSub.textContent = '';
+    overlordSlugInput.disabled = false;
+    overlordDeleteBtn.hidden = true;
+    overlordModalError.classList.remove('show');
+    overlordModalStatus.classList.remove('show');
+    populateOverlordWorldOptions().then(function () {
+      populateOverlordForm({ status: 'locked', pronoun_possessive: 'their' });
+    });
+    overlordModal.hidden = false;
+    setTimeout(function () { overlordNameInput.focus(); }, 30);
+  }
+
+  function closeOverlordModal() {
+    overlordModal.hidden = true;
+    currentOverlord = null;
+  }
+
+  overlordCreateBtn.addEventListener('click', openCreateOverlordModal);
+  overlordCloseBtn.addEventListener('click', closeOverlordModal);
+  overlordCancelBtn.addEventListener('click', closeOverlordModal);
+  overlordModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeOverlordModal);
+
+  overlordSaveBtn.addEventListener('click', function () {
+    var payload = {
+      name: overlordNameInput.value.trim(),
+      epithet: overlordEpithetInput.value.trim(),
+      world_id: overlordWorldSelect.value ? parseInt(overlordWorldSelect.value, 10) : null,
+      pronoun_possessive: overlordPronounSelect.value,
+      status: overlordStatusSelect.value,
+      portrait_image_url: overlordPortraitImageInput.value.trim(),
+      card_teaser: overlordCardTeaserInput.value.trim(),
+      bio_paragraph_1: overlordBio1Input.value.trim(),
+      bio_paragraph_2: overlordBio2Input.value.trim(),
+      bio_paragraph_3: overlordBio3Input.value.trim(),
+      quote_text: overlordQuoteTextInput.value.trim(),
+      quote_cite: overlordQuoteCiteInput.value.trim(),
+      accent_color: overlordAccentColorInput.value,
+      accent_glow: overlordAccentGlowInput.value,
+      meta_title: overlordMetaTitleInput.value.trim(),
+      meta_description: overlordMetaDescriptionInput.value.trim(),
+      csrf: window.PW_AUTH.csrf
+    };
+
+    if (!payload.name) {
+      overlordModalError.textContent = 'Give the overlord a name.';
+      overlordModalError.classList.add('show');
+      return;
+    }
+
+    var url = '/api/admin/overlords/update.php';
+    if (overlordModalMode === 'create') {
+      url = '/api/admin/overlords/create.php';
+      payload.slug = overlordSlugInput.value.trim();
+      if (!/^[a-z0-9-]{1,100}$/.test(payload.slug)) {
+        overlordModalError.textContent = 'Slug must be lowercase letters, numbers, and hyphens only.';
+        overlordModalError.classList.add('show');
+        return;
+      }
+    } else if (currentOverlord) {
+      payload.id = currentOverlord.id;
+    }
+
+    overlordModalError.classList.remove('show');
+    overlordSaveBtn.disabled = true;
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        overlordSaveBtn.disabled = false;
+        if (!data.ok) {
+          overlordModalError.textContent = data.error || 'Could not save this overlord.';
+          overlordModalError.classList.add('show');
+          return;
+        }
+        overlordModalStatus.textContent = 'Saved.';
+        overlordModalStatus.classList.add('show');
+        loadOverlordList();
+        setTimeout(closeOverlordModal, 700);
+      })
+      .catch(function () {
+        overlordSaveBtn.disabled = false;
+        overlordModalError.textContent = 'Could not save this overlord. Please try again.';
+        overlordModalError.classList.add('show');
+      });
+  });
+
+  overlordDeleteBtn.addEventListener('click', function () {
+    if (!currentOverlord) return;
+    var confirmMsg = 'Permanently delete the overlord "' + currentOverlord.name + '"? This cannot be undone.';
+    if (!window.confirm(confirmMsg)) return;
+    overlordDeleteBtn.disabled = true;
+    fetch('/api/admin/overlords/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentOverlord.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        overlordDeleteBtn.disabled = false;
+        if (!data.ok) {
+          overlordModalError.textContent = data.error || 'Could not delete this overlord.';
+          overlordModalError.classList.add('show');
+          return;
+        }
+        loadOverlordList();
+        closeOverlordModal();
+      })
+      .catch(function () {
+        overlordDeleteBtn.disabled = false;
+        overlordModalError.textContent = 'Could not delete this overlord. Please try again.';
+        overlordModalError.classList.add('show');
       });
   });
 

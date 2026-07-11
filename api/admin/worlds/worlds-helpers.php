@@ -33,18 +33,6 @@ function pw_validate_world_input($input) {
         $out[$field] = $value;
     }
 
-    $out['overlord_name'] = isset($input['overlord_name']) ? trim((string)$input['overlord_name']) : '';
-    $out['overlord_title'] = isset($input['overlord_title']) ? trim((string)$input['overlord_title']) : '';
-    $out['overlord_page_slug'] = isset($input['overlord_page_slug']) ? trim((string)$input['overlord_page_slug'], "/ \t\n\r\0\x0B") : '';
-    // Accept a full "overlord-name.html" value or just the bare slug -- strip
-    // a trailing .html so the front end can always just do slug + '.html'.
-    $out['overlord_page_slug'] = preg_replace('/\.html$/', '', $out['overlord_page_slug']);
-    foreach (['overlord_name', 'overlord_title', 'overlord_page_slug'] as $field) {
-        if (mb_strlen($out[$field]) > 100) {
-            pw_error(ucfirst(str_replace('_', ' ', $field)) . ' must be 100 characters or fewer.');
-        }
-    }
-
     $out['status'] = isset($input['status']) ? (string)$input['status'] : 'locked';
     if (!in_array($out['status'], ['available', 'locked'], true)) {
         pw_error('Status must be "available" or "locked".');

@@ -13,16 +13,15 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function overlordTagText(world) {
-    if (!world.overlord_name) return world.name;
-    var parts = world.name + ' — Overlord: ' + world.overlord_name;
-    return parts;
+    if (!world.overlord) return world.name;
+    return world.name + ' — Overlord: ' + world.overlord.name;
   }
 
   function overlordDetailTagHtml(world) {
-    if (!world.overlord_name) return '';
-    var label = 'Overlord: ' + world.overlord_name + (world.overlord_title ? ' — ' + world.overlord_title : '');
-    if (world.overlord_page_slug) {
-      return '<span class="overlord-tag"><a href="' + world.overlord_page_slug + '.html">' + label + '</a></span>';
+    if (!world.overlord) return '';
+    var label = 'Overlord: ' + world.overlord.name + (world.overlord.epithet ? ' — ' + world.overlord.epithet : '');
+    if (world.overlord.slug) {
+      return '<span class="overlord-tag"><a href="overlord.html?slug=' + world.overlord.slug + '">' + label + '</a></span>';
     }
     return '<span class="overlord-tag">' + label + '</span>';
   }
@@ -149,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '<section id="' + world.slug + '">' +
         '<div class="container">' +
           '<div class="world-detail-head">' +
-            (world.portrait_image_url ? '<span class="world-detail-portrait"><img src="' + world.portrait_image_url + '" alt="' + (world.overlord_name || world.name) + '"></span>' : '') +
+            (world.portrait_image_url ? '<span class="world-detail-portrait"><img src="' + world.portrait_image_url + '" alt="' + (world.overlord ? world.overlord.name : world.name) + '"></span>' : '') +
             '<h2>' + world.name + '</h2>' +
             overlordDetailTagHtml(world) +
           '</div>' +

@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=137">
+<link rel="stylesheet" href="css/style.css?v=138">
 </head>
 <body>
 
@@ -78,64 +78,10 @@
 
   <section>
     <div class="container">
-      <div class="grid grid-3">
-
-        <div class="card overlord-card" id="neoh-card">
-          <div class="thumb-circle"><img src="images/char-syn.jpg" alt="Syn Dravus"></div>
-          <span class="world-tag">Overlord of Neoh</span>
-          <h3>Syn Dravus</h3>
-          <span class="overlord-epithet-tag">The Mindweaver</span>
-          <p>He commands the Overcode that binds Neoh's Memory Vaults — rewriting loyalty and erasing rebellion, one memory at a time.</p>
-          <a href="overlord-syn-dravus.html" class="learn-more">Read his profile →</a>
-        </div>
-
-        <div class="card overlord-card" id="high-hammer-card">
-          <div class="thumb-circle"><img src="images/char-maerion.jpg" alt="Maerion Thal"></div>
-          <span class="world-tag">Overlord of High Hammer</span>
-          <h3>Maerion Thal</h3>
-          <span class="overlord-epithet-tag">The Sky Duke</span>
-          <p>He commands both sea and sky from a citadel of marble domes and brass vaults, and no storm has ever once touched his flagship.</p>
-          <a href="overlord-maerion-thal.html" class="learn-more">Read his profile →</a>
-        </div>
-
-        <div class="card overlord-card" id="cerius">
-          <div class="thumb-circle"><img src="images/char-malric.jpg" alt="Malric Thorne"></div>
-          <span class="world-tag">Overlord of Cerius</span>
-          <h3>Malric Thorne</h3>
-          <span class="overlord-epithet-tag">The Black Regent</span>
-          <p>Thirty-five years ago he ended a democracy with a coup nobody's avenged. He rules now by what he calls the arithmetic of suffering.</p>
-          <a href="overlord-malric-thorne.html" class="learn-more">Read his profile →</a>
-        </div>
-
-        <div class="card overlord-card" id="reanium">
-          <div class="thumb-circle"><img src="images/char-korrus.jpg" alt="Korrus Vale"></div>
-          <span class="world-tag">Overlord of Reanium</span>
-          <h3>Korrus Vale</h3>
-          <span class="overlord-epithet-tag">The Reactor King</span>
-          <p>His body is laced with unstable isotopes, and his kingdom is poisoned by the very ore that keeps it alive.</p>
-          <a href="overlord-korrus-vale.html" class="learn-more">Read his profile →</a>
-        </div>
-
-        <div class="card overlord-card" id="asmecu">
-          <div class="thumb-circle"><img src="images/char-lysara.jpg" alt="Lysara Venthe"></div>
-          <span class="world-tag">Overlord of Asmecu</span>
-          <h3>Lysara Venthe</h3>
-          <span class="overlord-epithet-tag">The Tidekeeper</span>
-          <p>A maternal sovereign who calls her citizens "my tides" — and forbids fishing in her waters for reasons she won't fully explain.</p>
-          <a href="overlord-lysara-venthe.html" class="learn-more">Read her profile →</a>
-        </div>
-
-        <div class="card overlord-card" id="babki-prime">
-          <div class="thumb-circle"><img src="images/char-zura.jpg" alt="Zura Kaleth"></div>
-          <span class="world-tag">Overlord of Babki Prime</span>
-          <h3>Zura Kaleth</h3>
-          <span class="overlord-epithet-tag">The Rootbinder</span>
-          <p>Her sanctuary gardens are famous for their beauty. Guests who get too close to the flowers rarely leave the way they arrived.</p>
-          <a href="overlord-zura-kaleth.html" class="learn-more">Read her profile →</a>
-        </div>
-
+      <div class="grid grid-3" id="overlord-grid">
+        <div class="admin-list-empty">Loading&hellip;</div>
       </div>
-      <p class="overlords-note">Six more Overlords await beyond the Nexus Veil — their profiles unlock as new books release.</p>
+      <p class="overlords-note" id="overlords-note" hidden></p>
     </div>
   </section>
 
@@ -205,5 +151,6 @@
 <script src="js/main.js?v=2"></script>
 <script src="js/members.js?v=7"></script>
 <script src="js/notifications.js?v=5"></script>
+<script src="js/overlords.js?v=1"></script>
 </body>
 </html>

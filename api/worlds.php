@@ -9,11 +9,13 @@ require_once __DIR__ . '/helpers.php';
 
 $db = pw_db();
 
-$worldFields = 'id, slug, name, tagline, card_blurb, thumb_image_url, portrait_image_url,
-                 overlord_name, overlord_title, overlord_page_slug, status, lore_status_label,
-                 intro_paragraph_1, intro_paragraph_2, layout_orientation,
-                 altitude_top_label, altitude_bottom_label,
-                 map_thumb_image_url, map_full_image_url, map_caption, sort_order';
+$worldFields = 'w.id, w.slug, w.name, w.tagline, w.card_blurb, w.thumb_image_url, w.portrait_image_url,
+                 w.status, w.lore_status_label,
+                 w.intro_paragraph_1, w.intro_paragraph_2, w.layout_orientation,
+                 w.altitude_top_label, w.altitude_bottom_label,
+                 w.map_thumb_image_url, w.map_full_image_url, w.map_caption, w.sort_order,
+                 o.name AS overlord_name, o.epithet AS overlord_epithet, o.slug AS overlord_slug';
+$worldFrom = 'worlds w LEFT JOIN overlords o ON o.id = w.overlord_id';
 
 function pw_load_world_detail($db, $worldId) {
     $stmt = $db->prepare(
@@ -83,13 +85,19 @@ function pw_format_world($r) {
     $out = $r;
     $out['id'] = (int)$r['id'];
     $out['sort_order'] = (int)$r['sort_order'];
+    $out['overlord'] = $r['overlord_name'] ? [
+        'name' => $r['overlord_name'],
+        'epithet' => $r['overlord_epithet'],
+        'slug' => $r['overlord_slug'],
+    ] : null;
+    unset($out['overlord_name'], $out['overlord_epithet'], $out['overlord_slug']);
     return $out;
 }
 
 $slug = isset($_GET['slug']) ? trim($_GET['slug']) : '';
 
 if ($slug !== '') {
-    $stmt = $db->prepare("SELECT $worldFields FROM worlds WHERE slug = ?");
+    $stmt = $db->prepare("SELECT $worldFields FROM $worldFrom WHERE w.slug = ?");
     $stmt->execute([$slug]);
     $row = $stmt->fetch();
     if (!$row) {
@@ -102,7 +110,7 @@ if ($slug !== '') {
     pw_json(['ok' => true, 'world' => $world]);
 }
 
-$stmt = $db->query("SELECT $worldFields FROM worlds ORDER BY sort_order ASC");
+$stmt = $db->query("SELECT $worldFields FROM $worldFrom ORDER BY w.sort_order ASC");
 $rows = $stmt->fetchAll();
 
 $out = array_map(function ($r) use ($db) {
