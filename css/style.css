@@ -4993,6 +4993,13 @@ footer.site-footer {
 }
 .permission-option-row input { accent-color: var(--purple-bright); cursor: pointer; margin-top: 2px; }
 
+/* .role-row-actions (reused here for Move Up/Down) is `flex-basis: 100%`
+   so it wraps onto its own line -- but that only works if this row also
+   wraps (like .role-row does) and .admin-row-main has a width floor,
+   otherwise the shared min-width:0 on .admin-row-main lets the title
+   collapse to 0 width fighting for space on the same nowrap line. */
+.forum-board-row { align-items: flex-start; flex-wrap: wrap; }
+.forum-board-row .admin-row-main { min-width: 200px; }
 .forum-board-row-icon {
   flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
