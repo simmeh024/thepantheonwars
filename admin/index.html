@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=125">
+<link rel="stylesheet" href="../css/style.css?v=126">
 </head>
 <body>
 
@@ -154,6 +154,20 @@
                   <p class="bh4-nominal-head">
                     <span class="bh4-nominal-dot"></span>
                     <span id="bh4-welcome-status-text">Checking systems&hellip;</span>
+                    <span class="bh4-task-advisor__info-wrap">
+                      <button type="button" class="bh4-task-advisor__info-btn" id="bh4-advisor-info-btn"
+                        aria-expanded="false" aria-controls="bh4-advisor-info-tooltip" aria-label="Why this recommendation?">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                      </button>
+                      <span class="bh4-task-advisor__tooltip" id="bh4-advisor-info-tooltip" role="tooltip">
+                        BH-4 selects the highest active priority:
+                        <ol>
+                          <li>Critical system issues</li>
+                          <li>Unresolved topic reports</li>
+                          <li>Pending dispatch translations</li>
+                        </ol>
+                      </span>
+                    </span>
                   </p>
                   <div class="bh4-nominal-pulse" aria-hidden="true">
                     <svg viewBox="0 0 220 40" preserveAspectRatio="none">
@@ -163,25 +177,10 @@
                 </div>
               </div>
 
+              <div class="bh4-directive-badge-row">
+                <span class="bh4-task-advisor__priority-badge" id="bh4-advisor-priority-label">Priority</span>
+              </div>
               <div class="bh4-task-advisor" id="bh4-task-advisor" data-state="loading">
-                <div class="bh4-task-advisor__header">
-                  <span class="bh4-task-advisor__info-wrap">
-                    <button type="button" class="bh4-task-advisor__info-btn" id="bh4-advisor-info-btn"
-                      aria-expanded="false" aria-controls="bh4-advisor-info-tooltip" aria-label="Why this recommendation?">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
-                    </button>
-                    <span class="bh4-task-advisor__tooltip" id="bh4-advisor-info-tooltip" role="tooltip">
-                      BH-4 selects the highest active priority:
-                      <ol>
-                        <li>Critical system issues</li>
-                        <li>Unresolved topic reports</li>
-                        <li>Pending dispatch translations</li>
-                      </ol>
-                    </span>
-                  </span>
-                  <span class="bh4-task-advisor__priority-badge" id="bh4-advisor-priority-label">Priority</span>
-                </div>
-
                 <div class="bh4-task-advisor__body" id="bh4-advisor-body">
                   <p class="bh4-task-advisor__loading" id="bh4-advisor-loading">BH-4 is assessing current conditions&hellip;</p>
 
@@ -1997,6 +1996,9 @@
     }
     advisorPrimaryReasonEl.textContent = reason;
 
+    advisorPriorityLabelEl.className = 'bh4-task-advisor__priority-badge' +
+      (task.priority === 'high' || task.priority === 'normal' || task.priority === 'clear'
+        ? ' bh4-task-advisor__priority-badge--' + task.priority : '');
     if (task.priority === 'critical') {
       advisorPriorityLabelEl.textContent = 'Critical Override';
       advisorPriorityLabelEl.hidden = false;

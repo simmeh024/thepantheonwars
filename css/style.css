@@ -4060,6 +4060,11 @@ footer.site-footer {
   letter-spacing: 0.06em;
   color: #3ecf8e;
 }
+/* The Directive banner's "why this?" info button lives here now (next to
+   the Systems Nominal box) instead of inside the banner itself -- pinning
+   it there kept the tooltip clipping past the card's right edge, since the
+   button used to sit hard against the banner's own right-aligned header. */
+.bh4-nominal-head .bh4-task-advisor__info-wrap { margin-left: auto; }
 .bh4-nominal-dot {
   width: 8px;
   height: 8px;
@@ -4099,14 +4104,25 @@ footer.site-footer {
   flex-direction: column;
   flex: 1;
 }
-.bh4-task-advisor__header {
-  display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-bottom: 14px;
-}
+/* Priority badge sits in its own row above the Directive card now (see
+   .bh4-directive-badge-row), not inside the card's own header. */
+.bh4-directive-badge-row { display: flex; justify-content: flex-end; margin-bottom: 8px; }
 .bh4-task-advisor__priority-badge {
   display: inline-flex; align-items: center; gap: 6px;
   background: rgba(224,90,74,0.14); border: 1px solid rgba(224,90,74,0.5); color: #e05a4a;
   font-family: 'Jost', sans-serif; font-size: 0.66rem; font-weight: 700;
   text-transform: uppercase; letter-spacing: 0.06em; padding: 5px 10px; border-radius: 20px;
+}
+/* Modifier classes set directly by renderPrimaryTask() (it already knows
+   task.priority) rather than reached via sibling-combinator CSS -- the
+   badge sits in its own row above the card now, not a descendant of
+   [data-state], so there's no ancestor attribute to key off of. Default
+   above is red (critical); high = orange (medium-importance, e.g.
+   unresolved topic reports); normal/clear = green (routine/operational,
+   e.g. pending dispatch translations, or nothing to do). */
+.bh4-task-advisor__priority-badge--high { background: rgba(242,153,74,0.14); border-color: rgba(242,153,74,0.5); color: #f2994a; }
+.bh4-task-advisor__priority-badge--normal, .bh4-task-advisor__priority-badge--clear {
+  background: rgba(62,207,142,0.14); border-color: rgba(62,207,142,0.5); color: #3ecf8e;
 }
 .bh4-task-advisor__info-wrap { position: relative; display: inline-flex; }
 .bh4-task-advisor__info-btn {
@@ -4117,7 +4133,7 @@ footer.site-footer {
 .bh4-task-advisor__info-btn svg { width: 12px; height: 12px; }
 .bh4-task-advisor__info-btn:hover, .bh4-task-advisor__info-btn:focus { color: var(--gold-bright); border-color: var(--purple-bright); }
 .bh4-task-advisor__tooltip {
-  position: absolute; top: calc(100% + 8px); left: 0; width: 260px; z-index: 10;
+  position: absolute; top: calc(100% + 8px); right: 0; width: 260px; z-index: 10;
   background: var(--bg-alt); border: 1px solid var(--border-soft); border-radius: 6px;
   padding: 12px 14px; font-size: 0.78rem; line-height: 1.5; color: var(--text-dim);
   text-transform: none; letter-spacing: normal; box-shadow: 0 10px 24px rgba(0,0,0,0.4);
@@ -4163,6 +4179,12 @@ footer.site-footer {
   display: flex; gap: 12px; align-items: flex-start; flex: 1 1 220px; min-width: 200px;
   padding-left: 20px; border-left: 1px solid var(--border-soft);
 }
+/* [hidden] and a single class selector tie on specificity -- without this,
+   this element's own display:flex above wins over [hidden] by source
+   order, so a null secondary task (renderSecondaryTask(null) sets
+   .hidden = true) still rendered an empty "Queued Action" block. Same
+   bug hit twice already elsewhere this session. */
+.bh4-task-advisor__secondary[hidden] { display: none; }
 .bh4-task-advisor__priority-icon--secondary { background: rgba(162,121,236,0.14); color: var(--purple-bright); width: 36px; height: 36px; }
 .bh4-task-advisor__priority-icon--secondary svg { width: 16px; height: 16px; }
 .bh4-task-advisor__secondary-title { margin: 0 0 10px; font-size: 0.88rem; color: var(--text); }
@@ -4171,21 +4193,35 @@ footer.site-footer {
 }
 .bh4-task-advisor__action-btn--secondary:hover { background: rgba(162,121,236,0.2); }
 
-/* Priority-state accents: critical/high stay red (matches the banner's
-   default border/glow above); normal/clear override the border, glow,
-   badge and icon colors together so the whole banner reads as the current
-   priority level, not just the icon. */
+/* Priority-state accents: critical stays red (matches the banner's default
+   border/glow above -- system alerts / repeated failed logins); high is
+   orange (medium-importance work like unresolved topic reports); normal is
+   green (routine operational work like pending dispatch translations);
+   clear is the same green (nothing needs attention). Border/glow, icon,
+   eyebrow, action button AND the priority badge above the card all recolor
+   together so the whole banner reads as the current priority level. */
+.bh4-task-advisor[data-state="high"] {
+  border-color: rgba(242,153,74,0.45);
+  background: linear-gradient(135deg, rgba(242,153,74,0.09), rgba(20,15,8,0.35));
+  box-shadow: 0 0 26px rgba(242,153,74,0.14);
+}
+.bh4-task-advisor[data-state="high"] .bh4-task-advisor__priority-icon { background: rgba(242,153,74,0.14); color: #f2994a; }
+.bh4-task-advisor[data-state="high"] .bh4-task-advisor__eyebrow { color: #f2994a; }
+.bh4-task-advisor[data-state="high"] .bh4-task-advisor__action-btn {
+  background: rgba(242,153,74,0.1); border-color: #f2994a; color: #f2994a;
+}
+.bh4-task-advisor[data-state="high"] .bh4-task-advisor__action-btn:hover { background: rgba(242,153,74,0.2); }
 .bh4-task-advisor[data-state="normal"] {
-  border-color: rgba(162,121,236,0.45);
-  background: linear-gradient(135deg, rgba(162,121,236,0.08), rgba(14,10,20,0.35));
-  box-shadow: 0 0 26px rgba(162,121,236,0.12);
+  border-color: rgba(62,207,142,0.4);
+  background: linear-gradient(135deg, rgba(62,207,142,0.08), rgba(10,18,14,0.35));
+  box-shadow: 0 0 26px rgba(62,207,142,0.12);
 }
-.bh4-task-advisor[data-state="normal"] .bh4-task-advisor__priority-icon { background: rgba(162,121,236,0.14); color: var(--purple-bright); }
-.bh4-task-advisor[data-state="normal"] .bh4-task-advisor__eyebrow { color: var(--purple-bright); }
+.bh4-task-advisor[data-state="normal"] .bh4-task-advisor__priority-icon { background: rgba(62,207,142,0.14); color: #3ecf8e; }
+.bh4-task-advisor[data-state="normal"] .bh4-task-advisor__eyebrow { color: #3ecf8e; }
 .bh4-task-advisor[data-state="normal"] .bh4-task-advisor__action-btn {
-  background: rgba(162,121,236,0.1); border-color: var(--purple-bright); color: var(--purple-bright);
+  background: rgba(62,207,142,0.1); border-color: #3ecf8e; color: #3ecf8e;
 }
-.bh4-task-advisor[data-state="normal"] .bh4-task-advisor__action-btn:hover { background: rgba(162,121,236,0.2); }
+.bh4-task-advisor[data-state="normal"] .bh4-task-advisor__action-btn:hover { background: rgba(62,207,142,0.2); }
 .bh4-task-advisor[data-state="clear"] {
   border-color: rgba(62,207,142,0.4);
   background: linear-gradient(135deg, rgba(62,207,142,0.08), rgba(10,18,14,0.35));
