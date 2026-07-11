@@ -336,11 +336,18 @@ a.nav-parent { cursor: pointer; }
   font-family: 'Jost', sans-serif; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.08em;
   color: var(--text);
 }
+.notif-dropdown-head-actions { display: flex; align-items: center; gap: 12px; }
 .notif-mark-all-btn {
   background: none; border: none; color: var(--purple-bright); font-size: 0.72rem;
   cursor: pointer; text-transform: none; letter-spacing: 0; font-family: 'Jost', sans-serif;
 }
 .notif-mark-all-btn:hover { color: var(--gold-bright); }
+.notif-settings-link {
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-faint); transition: color 0.2s ease;
+}
+.notif-settings-link svg { width: 15px; height: 15px; }
+.notif-settings-link:hover { color: var(--gold-bright); }
 .notif-dropdown-list { max-height: 360px; overflow-y: auto; }
 .notif-empty { padding: 24px 16px; text-align: center; color: var(--text-faint); font-size: 0.82rem; margin: 0; }
 .notif-row {
