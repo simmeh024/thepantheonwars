@@ -248,7 +248,7 @@
 
 <script src="js/main.js?v=2"></script>
 <script src="js/members.js?v=7"></script>
-<script src="js/notifications.js?v=5"></script>
+<script src="js/notifications.js?v=6"></script>
 <script>
 (function () {
   // Fixed icon-key enum resolved to SVG markup -- must match
@@ -481,7 +481,7 @@
       insertAtCursor('[img]' + url + '[/img]');
     });
 
-    makeBtn('Spoiler', 'Hide spoiler text behind a click-to-reveal button', function () { wrapSelection('[spoiler]', '[/spoiler]', 'spoiler text'); });
+    makeBtn('Spoiler', 'Spoiler tag', function () { wrapSelection('[spoiler]', '[/spoiler]', 'spoiler text'); });
 
     var colorWrap = document.createElement('label');
     colorWrap.className = 'editor-color-btn';

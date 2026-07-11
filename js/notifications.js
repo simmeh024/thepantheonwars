@@ -51,9 +51,30 @@ document.addEventListener('DOMContentLoaded', function () {
       (n.comment_id ? '&comment=' + encodeURIComponent(n.comment_id) : '');
   }
 
+  // This dropdown only ever runs .excerpt through escapeHtml (never
+  // community.html's formatBody), so BBCode markup would otherwise show up
+  // as literal [b]/[quote=...]/[spoiler] brackets. Strips it down to plain
+  // text instead -- spoiler content is replaced with a placeholder rather
+  // than un-hidden, since this is exactly the kind of preview a spoiler
+  // tag exists to protect against.
+  function stripBbcodePreview(raw) {
+    var s = String(raw || '');
+    s = s.replace(/\[spoiler\][\s\S]*?\[\/spoiler\]/gi, '(spoiler hidden)');
+    s = s.replace(/\[quote=[^\]]{1,150}\]([\s\S]*?)\[\/quote\]/gi, '$1');
+    s = s.replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, '$1');
+    s = s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '$1');
+    s = s.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '$1');
+    s = s.replace(/\[u\]([\s\S]*?)\[\/u\]/gi, '$1');
+    s = s.replace(/\[c\]([\s\S]*?)\[\/c\]/gi, '$1');
+    s = s.replace(/\[color=[^\]]+\]([\s\S]*?)\[\/color\]/gi, '$1');
+    s = s.replace(/\[url=[^\]]+\]([\s\S]*?)\[\/url\]/gi, '$1');
+    s = s.replace(/\[img\][\s\S]*?\[\/img\]/gi, '[image]');
+    return s;
+  }
+
   function notificationText(n) {
     var actor = n.actor ? escapeHtml(n.actor.display_name) : null;
-    var excerpt = n.excerpt ? escapeHtml(n.excerpt.slice(0, 80)) : '';
+    var excerpt = n.excerpt ? escapeHtml(stripBbcodePreview(n.excerpt).slice(0, 80)) : '';
     switch (n.type) {
       case 'like':
         var likeCount = n.like_count || 1;

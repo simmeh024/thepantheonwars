@@ -267,7 +267,7 @@
 
 <script src="js/main.js?v=2"></script>
 <script src="js/members.js?v=7"></script>
-<script src="js/notifications.js?v=5"></script>
+<script src="js/notifications.js?v=6"></script>
 <script>
 (function () {
   var gate = document.getElementById('profile-gate');
@@ -414,6 +414,27 @@
     var d = new Date(iso.replace(' ', 'T') + 'Z');
     if (isNaN(d.getTime())) return iso;
     return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  // This page's "Recent Comments" list renders comment bodies via
+  // .textContent (not community.html's formatBody), so BBCode markup would
+  // otherwise show up as literal [b]/[quote=...]/[spoiler] brackets. Strips
+  // it down to plain text instead -- spoiler content is replaced with a
+  // placeholder rather than un-hidden, since this is exactly the kind of
+  // preview a spoiler tag exists to protect against.
+  function stripBbcodePreview(raw) {
+    var s = String(raw || '');
+    s = s.replace(/\[spoiler\][\s\S]*?\[\/spoiler\]/gi, '(spoiler hidden)');
+    s = s.replace(/\[quote=[^\]]{1,150}\]([\s\S]*?)\[\/quote\]/gi, '$1');
+    s = s.replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, '$1');
+    s = s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '$1');
+    s = s.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '$1');
+    s = s.replace(/\[u\]([\s\S]*?)\[\/u\]/gi, '$1');
+    s = s.replace(/\[c\]([\s\S]*?)\[\/c\]/gi, '$1');
+    s = s.replace(/\[color=[^\]]+\]([\s\S]*?)\[\/color\]/gi, '$1');
+    s = s.replace(/\[url=[^\]]+\]([\s\S]*?)\[\/url\]/gi, '$1');
+    s = s.replace(/\[img\][\s\S]*?\[\/img\]/gi, '[image]');
+    return s;
   }
 
   function setRole(role, roleColor) {
@@ -747,7 +768,7 @@
           data.comments.forEach(function (c) {
             var item = document.createElement('div');
             item.className = 'profile-history-item';
-            item.textContent = c.body + ' — ' + fmtDate(c.created_at);
+            item.textContent = stripBbcodePreview(c.body) + ' — ' + fmtDate(c.created_at);
             commentsEl.appendChild(item);
           });
         } else {
