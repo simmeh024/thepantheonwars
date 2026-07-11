@@ -3976,6 +3976,29 @@ footer.site-footer {
   background: linear-gradient(90deg, rgba(0,0,0,0) 55%, var(--panel) 100%);
   pointer-events: none;
 }
+/* Positioned as a percentage of the media box (not the image's natural
+   pixels) so it tracks reasonably well across the container's variable
+   height (it stretches to match the taller sibling column via
+   .admin-home-top-row's align-items: stretch) -- not pixel-perfect at
+   every viewport, but close, for a decorative touch. */
+.bh4-eye-glow {
+  position: absolute;
+  left: 47%;
+  top: 19%;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(236,201,135,0.95) 0%, rgba(236,201,135,0.5) 45%, transparent 75%);
+  box-shadow: 0 0 6px 2px rgba(236,201,135,0.5);
+  animation: bh4EyeGlow 4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 2;
+}
+@keyframes bh4EyeGlow {
+  0%, 100% { opacity: 0.35; box-shadow: 0 0 4px 1px rgba(236,201,135,0.3); }
+  50% { opacity: 1; box-shadow: 0 0 16px 6px rgba(236,201,135,0.85); }
+}
 .bh4-hero-main {
   flex: 1;
   min-width: 0;
@@ -4273,6 +4296,7 @@ footer.site-footer {
 @media (prefers-reduced-motion: reduce) {
   .bh4-task-advisor__tooltip { transition: none; }
   .bh4-nominal-dot { animation: none; }
+  .bh4-eye-glow { animation: none; opacity: 0.75; }
 }
 
 /* Operational Queues -- three at-a-glance tiles below the Directive banner,
