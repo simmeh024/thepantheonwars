@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=130">
+<link rel="stylesheet" href="../css/style.css?v=131">
 </head>
 <body>
 
@@ -4132,10 +4132,8 @@
       var main = document.createElement('div');
       main.className = 'admin-row-main';
       main.innerHTML =
-        '<p class="admin-row-subject">' + escapeHtml(entry.name) +
-          (entry.is_protected ? '<span class="role-tag is-builtin">Protected</span>' : '') +
-          (!entry.is_public ? '<span class="role-tag is-superuser">Restricted</span>' : '') +
-        '</p>' +
+        '<p class="forum-board-row-title">' + escapeHtml(entry.name) + '</p>' +
+        (entry.description ? '<p class="forum-board-row-desc">' + escapeHtml(entry.description) + '</p>' : '') +
         '<div class="admin-row-meta">' +
           '<span>' + escapeHtml(entry.slug) + '</span>' +
           '<span class="admin-row-sep">&bull;</span>' +
@@ -4143,11 +4141,19 @@
         '</div>';
       row.appendChild(main);
 
+      var status = document.createElement('div');
+      status.className = 'forum-board-row-status';
+      status.innerHTML =
+        (entry.is_protected ? '<span class="forum-board-status-pill is-protected">Protected</span>' : '') +
+        (!entry.is_public ? '<span class="forum-board-status-pill is-restricted">Restricted</span>' : '');
+      row.appendChild(status);
+
       var actions = document.createElement('div');
       actions.className = 'role-row-actions';
       actions.innerHTML =
         '<button type="button" class="permission-mini-btn" data-board-action="up"' + (i === 0 ? ' disabled' : '') + '>Move Up</button>' +
-        '<button type="button" class="permission-mini-btn" data-board-action="down"' + (i === entries.length - 1 ? ' disabled' : '') + '>Move Down</button>';
+        '<button type="button" class="permission-mini-btn" data-board-action="down"' + (i === entries.length - 1 ? ' disabled' : '') + '>Move Down</button>' +
+        '<button type="button" class="permission-mini-btn" data-board-action="edit">Edit Forum</button>';
       row.appendChild(actions);
 
       actions.addEventListener('click', function (e) {
@@ -4155,6 +4161,7 @@
         if (!btn || btn.disabled) return;
         e.stopPropagation();
         var dir = btn.getAttribute('data-board-action');
+        if (dir === 'edit') { openForumBoardModal(entry); return; }
         reorderForumBoard(entry, dir === 'up' ? i - 1 : i + 1);
       });
 

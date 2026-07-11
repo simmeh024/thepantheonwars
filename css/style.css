@@ -5102,19 +5102,37 @@ footer.site-footer {
 }
 .permission-option-row input { accent-color: var(--purple-bright); cursor: pointer; margin-top: 2px; }
 
-/* .role-row-actions (reused here for Move Up/Down) is `flex-basis: 100%`
-   so it wraps onto its own line -- but that only works if this row also
-   wraps (like .role-row does) and .admin-row-main has a width floor,
+/* .role-row-actions (reused here for Move Up/Down/Edit) is `flex-basis:
+   100%` so it wraps onto its own line -- but that only works if this row
+   also wraps (like .role-row does) and .admin-row-main has a width floor,
    otherwise the shared min-width:0 on .admin-row-main lets the title
    collapse to 0 width fighting for space on the same nowrap line. */
 .forum-board-row { align-items: flex-start; flex-wrap: wrap; }
 .forum-board-row .admin-row-main { min-width: 200px; }
+/* Icon + title styling matches the public forum index's own board rows
+   (community.html's .board-index-icon/-title) so Forum Control reads as
+   "the same boards, admin view" rather than a differently-designed list. */
 .forum-board-row-icon {
-  flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;
-  display: flex; align-items: center; justify-content: center;
-  background: rgba(162,121,236,0.12); color: var(--purple-bright); margin-right: 12px;
+  flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%;
+  border: 1px solid var(--border-soft); background: var(--panel-2);
+  display: flex; align-items: center; justify-content: center; color: var(--purple-bright);
 }
-.forum-board-row-icon svg { width: 16px; height: 16px; }
+.forum-board-row-icon svg { width: 20px; height: 20px; }
+.forum-board-row-title { font-family: 'Cinzel', serif; font-size: 1rem; color: var(--text); margin: 0 0 4px; }
+.forum-board-row-desc { font-size: 0.82rem; color: var(--text-faint); margin: 0 0 6px; }
+/* Status pills pinned to the far right of the row's top line via
+   margin-left: auto, sized up from the small .role-tag badges used
+   elsewhere (Roles & Permissions) since these are this row's primary
+   at-a-glance signal, not a secondary annotation next to the title. */
+.forum-board-row-status { margin-left: auto; display: flex; align-items: center; gap: 8px; flex-shrink: 0; padding-top: 4px; }
+.forum-board-status-pill {
+  display: inline-flex; align-items: center; font-family: 'Jost', sans-serif;
+  font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border-soft); color: var(--text-faint);
+  white-space: nowrap;
+}
+.forum-board-status-pill.is-protected { border-color: #7c8fd6; color: #7c8fd6; background: rgba(124,143,214,0.1); }
+.forum-board-status-pill.is-restricted { border-color: #e05a4a; color: #e05a4a; background: rgba(224,90,74,0.1); }
 .forum-board-icon-row { display: flex; align-items: center; gap: 10px; }
 .forum-board-icon-preview {
   flex-shrink: 0; width: 34px; height: 34px; border-radius: 8px;
