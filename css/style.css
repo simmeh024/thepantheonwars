@@ -855,35 +855,37 @@ blockquote.myth cite {
 .world-card.locked { opacity: 0.6; }
 .world-card:hover .thumb { box-shadow: 0 0 22px var(--tag-color, var(--glow)); transition: box-shadow 0.3s ease; }
 
-/* Per-world accent colors */
+/* Per-world accent colors -- keyed by {slug}-card (uniform scheme so
+   worlds.js can derive ids from data alone; the detail section itself,
+   when a world has one, uses the bare {slug} id). */
 #neoh-card       { --tag-color: var(--purple-bright); --tag-dim: var(--purple-deep); }
-#high-hammer     { --tag-color: #f0c479; --tag-dim: #8a5a26; }
-#cerius          { --tag-color: #e05a4a; --tag-dim: #4a1712; }
-#reanium         { --tag-color: #8fe04a; --tag-dim: #335c22; }
+#high-hammer-card { --tag-color: #f0c479; --tag-dim: #8a5a26; }
+#cerius-card     { --tag-color: #e05a4a; --tag-dim: #4a1712; }
+#reanium-card    { --tag-color: #8fe04a; --tag-dim: #335c22; }
 #asmecu-card, #asmecu { --tag-color: #4fb3e8; --tag-dim: #1c4666; }
-#babki-prime     { --tag-color: #4f9d5c; --tag-dim: #1c3820; }
-#sed             { --tag-color: #ff7a3c; --tag-dim: #7a2e12; }
-#geof-v          { --tag-color: #b8c4d1; --tag-dim: #454b52; }
-#beoctica        { --tag-color: #cdeefa; --tag-dim: #35525c; }
-#terek-ii        { --tag-color: #ff2e4d; --tag-dim: #6e0f1f; }
-#valerium-prime  { --tag-color: #ffe9a8; --tag-dim: #8f742c; }
-#vermillia-xi    { --tag-color: #5aa9e6; --tag-dim: #b5591f; }
-#nexus-veil      { --tag-color: #e6d9ff; --tag-dim: #6a4bb0; }
+#babki-prime-card { --tag-color: #4f9d5c; --tag-dim: #1c3820; }
+#sed-card        { --tag-color: #ff7a3c; --tag-dim: #7a2e12; }
+#geof-v-card     { --tag-color: #b8c4d1; --tag-dim: #454b52; }
+#beoctica-card   { --tag-color: #cdeefa; --tag-dim: #35525c; }
+#terek-ii-card   { --tag-color: #ff2e4d; --tag-dim: #6e0f1f; }
+#valerium-prime-card { --tag-color: #ffe9a8; --tag-dim: #8f742c; }
+#vermillia-xi-card   { --tag-color: #5aa9e6; --tag-dim: #b5591f; }
+#nexus-veil-card { --tag-color: #e6d9ff; --tag-dim: #6a4bb0; }
 
 /* The Nexus Veil — prismatic shimmer instead of a flat color */
-#nexus-veil .world-tag {
+#nexus-veil-card .world-tag {
   background: linear-gradient(90deg, #ff5f6d, #ffc371, #f7ff5f, #5fffb0, #5f9fff, #b05fff, #ff5f6d);
   background-size: 200% auto;
   -webkit-background-clip: text; background-clip: text; color: transparent;
   animation: prismatic-shift 6s linear infinite;
 }
-#nexus-veil.card::before {
+#nexus-veil-card.card::before {
   background: linear-gradient(90deg, #ff5f6d, #ffc371, #f7ff5f, #5fffb0, #5f9fff, #b05fff, #ff5f6d);
   background-size: 200% auto;
   animation: prismatic-shift 4s linear infinite;
   opacity: 0.8;
 }
-#nexus-veil.card:hover { border-color: #b05fff; }
+#nexus-veil-card.card:hover { border-color: #b05fff; }
 @keyframes prismatic-shift { to { background-position: 200% center; } }
 .world-card .lore-status {
   display: inline-block; font-size: 0.62rem; text-transform: uppercase;
@@ -1595,9 +1597,21 @@ footer.site-footer {
 .city-layer.vault .layer-name { color: var(--purple-bright); }
 .city-layer.vault .layer-toggle .layer-tag { color: #7a5a9a; }
 
+/* World Control: fixed layer tint palette (replaces the one-off per-layer
+   classes above for any layer created/edited via the admin console --
+   applied as a modifier class instead of a bespoke per-layer class name). */
+.world-layer-tint--gold   { background: linear-gradient(90deg, rgba(198,154,63,0.14), transparent); }
+.world-layer-tint--purple { background: linear-gradient(90deg, rgba(162,121,236,0.10), transparent); }
+.world-layer-tint--teal   { background: linear-gradient(90deg, rgba(70,150,160,0.16), transparent); }
+.world-layer-tint--green  { background: linear-gradient(90deg, rgba(70,150,90,0.16), transparent); }
+.world-layer-tint--orange { background: linear-gradient(90deg, rgba(210,120,50,0.18), transparent); }
+.world-layer-tint--red    { background: linear-gradient(90deg, rgba(210,60,50,0.18), transparent); }
+.world-layer-tint--slate  { background: linear-gradient(90deg, rgba(120,120,130,0.16), transparent); }
+.world-layer-tint--black  { background: linear-gradient(90deg, rgba(8,8,12,0.55), transparent); }
+
 /* ---------------- High Hammer: horizontal harbor cross-section ---------------- */
 /* Scoped steampunk palette — brass, copper, and teal patina instead of Neoh's purple/gold */
-#high-hammer-view {
+#high-hammer {
   --gold: #c98a3c;
   --gold-dim: #8a5a26;
   --gold-bright: #f0c479;
@@ -1612,7 +1626,7 @@ footer.site-footer {
   --text-dim: #c9b89a;
   --text-faint: #9c8a68;
 }
-#high-hammer-view .map-lightbox-inner img { box-shadow: 0 0 60px var(--glow); }
+#high-hammer .map-lightbox-inner img { box-shadow: 0 0 60px var(--glow); }
 
 .harbor-map-figure {
   width: 100%;
@@ -3929,6 +3943,12 @@ footer.site-footer {
 .activity-card.activity-forum_board_created .activity-card-label, .activity-card.activity-forum_board_updated .activity-card-label, .activity-card.activity-forum_board_reordered .activity-card-label { color: var(--purple-bright); }
 .activity-card.activity-forum_board_deleted .activity-card-icon { background: rgba(224,90,74,0.15); color: #e05a4a; }
 .activity-card.activity-forum_board_deleted .activity-card-label { color: #e05a4a; }
+.activity-card.activity-world_created .activity-card-icon, .activity-card.activity-world_updated .activity-card-icon, .activity-card.activity-world_reordered .activity-card-icon, .activity-card.activity-world_layer_updated .activity-card-icon {
+  background: rgba(62,207,142,0.15); color: #3ecf8e;
+}
+.activity-card.activity-world_created .activity-card-label, .activity-card.activity-world_updated .activity-card-label, .activity-card.activity-world_reordered .activity-card-label, .activity-card.activity-world_layer_updated .activity-card-label { color: #3ecf8e; }
+.activity-card.activity-world_deleted .activity-card-icon { background: rgba(224,90,74,0.15); color: #e05a4a; }
+.activity-card.activity-world_deleted .activity-card-label { color: #e05a4a; }
 .activity-card.activity-backup_logged .activity-card-icon { background: rgba(62,207,142,0.15); color: #3ecf8e; }
 .activity-card.activity-backup_logged .activity-card-label { color: #3ecf8e; }
 .activity-card.activity-dispatches_resynced .activity-card-icon, .activity-card.activity-dispatch_title_edited .activity-card-icon {

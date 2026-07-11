@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=134">
+<link rel="stylesheet" href="../css/style.css?v=135">
 </head>
 <body>
 
@@ -38,13 +38,14 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category" data-category="lore" data-requires-permission="books.view">
+    <div class="admin-nav-category" data-category="lore" data-requires-permission="books.view,worlds.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
         <span>Lore Management</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li data-requires-permission="books.view"><button type="button" class="admin-nav-link" data-section="book-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>Book Control</button></li>
+        <li data-requires-permission="worlds.view"><button type="button" class="admin-nav-link" data-section="world-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>World Control</button></li>
       </ul>
     </div>
 
@@ -899,6 +900,13 @@
             <option value="book_updated">Book updated</option>
             <option value="book_deleted">Book deleted</option>
           </optgroup>
+          <optgroup label="World Control">
+            <option value="world_created">World created</option>
+            <option value="world_updated">World updated</option>
+            <option value="world_deleted">World deleted</option>
+            <option value="world_reordered">Worlds reordered</option>
+            <option value="world_layer_updated">World lore updated (layers/landmarks)</option>
+          </optgroup>
           <optgroup label="Dispatches">
             <option value="translation_added">Translation added</option>
             <option value="translation_updated">Translation updated</option>
@@ -1131,6 +1139,22 @@
 
       <div class="admin-list" id="book-list">
         <div class="admin-list-empty">Loading books&hellip;</div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-world-control" hidden>
+      <div class="admin-section-head">
+        <h1>World Control</h1>
+        <p>Manage the twelve worlds &mdash; card art, overlord, availability, and (for available worlds) the full cross-section of districts, sublocations, and landmarks.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button type="button" class="btn btn-solid" id="world-create-btn">+ Add World</button>
+        <span class="admin-count" id="world-count"></span>
+      </div>
+
+      <div class="admin-list" id="world-list">
+        <div class="admin-list-empty">Loading worlds&hellip;</div>
       </div>
     </section>
 
@@ -1636,6 +1660,308 @@
   </div>
 </div>
 
+<div class="admin-modal" id="world-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="world-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="world-modal-title">Edit World</h3>
+    <p class="admin-modal-sub" id="world-modal-sub"></p>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="world-name-input">Name</label>
+        <input type="text" id="world-name-input" maxlength="100">
+      </div>
+      <div class="admin-field" id="world-slug-field">
+        <label for="world-slug-input">Slug</label>
+        <p class="admin-field-hint">Lowercase letters, numbers, and hyphens only. Can&rsquo;t be changed after the world is created.</p>
+        <input type="text" id="world-slug-input" maxlength="50" placeholder="e.g. neoh">
+      </div>
+    </div>
+    <div class="admin-field">
+      <label for="world-tagline-input">Tagline</label>
+      <input type="text" id="world-tagline-input" maxlength="200" placeholder="e.g. The City That Never Forgets">
+    </div>
+    <div class="admin-field">
+      <label for="world-card-blurb-input">Card blurb</label>
+      <input type="text" id="world-card-blurb-input" maxlength="300" placeholder="One-line description shown on the card">
+    </div>
+
+    <div class="admin-field admin-image-field">
+      <label for="world-thumb-image-input">Thumbnail image</label>
+      <div class="admin-image-field-row">
+        <div class="admin-image-thumb" id="world-thumb-image-thumb">
+          <img id="world-thumb-image-preview" alt="" hidden>
+          <span class="admin-image-thumb-empty">No image</span>
+        </div>
+        <div class="admin-image-field-controls">
+          <input type="text" id="world-thumb-image-input" maxlength="255" placeholder="images/world-neoh.jpg">
+          <div class="admin-image-field-btns">
+            <button type="button" class="btn admin-image-upload-btn" data-image-type="thumb">Upload</button>
+            <button type="button" class="btn admin-image-browse-btn" data-image-type="thumb">Choose from Library</button>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="world-thumb-image-file" accept="image/png,image/jpeg,image/webp" hidden>
+    </div>
+
+    <div class="admin-field admin-image-field">
+      <label for="world-portrait-image-input">Overlord portrait (shown in the detail header)</label>
+      <div class="admin-image-field-row">
+        <div class="admin-image-thumb" id="world-portrait-image-thumb">
+          <img id="world-portrait-image-preview" alt="" hidden>
+          <span class="admin-image-thumb-empty">No image</span>
+        </div>
+        <div class="admin-image-field-controls">
+          <input type="text" id="world-portrait-image-input" maxlength="255" placeholder="Optional">
+          <div class="admin-image-field-btns">
+            <button type="button" class="btn admin-image-upload-btn" data-image-type="portrait">Upload</button>
+            <button type="button" class="btn admin-image-browse-btn" data-image-type="portrait">Choose from Library</button>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="world-portrait-image-file" accept="image/png,image/jpeg,image/webp" hidden>
+    </div>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="world-overlord-name-input">Overlord name</label>
+        <input type="text" id="world-overlord-name-input" maxlength="100" placeholder="Optional -- leave blank if unassigned">
+      </div>
+      <div class="admin-field">
+        <label for="world-overlord-title-input">Overlord title</label>
+        <input type="text" id="world-overlord-title-input" maxlength="100" placeholder="Optional, e.g. The Sky Duke">
+      </div>
+      <div class="admin-field">
+        <label for="world-overlord-page-slug-input">Overlord page slug</label>
+        <input type="text" id="world-overlord-page-slug-input" maxlength="100" placeholder="Optional, e.g. overlord-syn-dravus">
+      </div>
+    </div>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="world-status-select">Status</label>
+        <select id="world-status-select">
+          <option value="locked">Locked</option>
+          <option value="available">Available</option>
+        </select>
+      </div>
+      <div class="admin-field" id="world-lore-status-field">
+        <label for="world-lore-status-input">Lore status label (shown on card while locked)</label>
+        <input type="text" id="world-lore-status-input" maxlength="100" placeholder="Lore Coming Soon">
+      </div>
+    </div>
+
+    <div id="world-detail-fields">
+      <hr class="admin-modal-divider">
+      <div class="admin-field">
+        <label for="world-intro-1-input">Intro paragraph 1</label>
+        <textarea id="world-intro-1-input" maxlength="2000"></textarea>
+      </div>
+      <div class="admin-field">
+        <label for="world-intro-2-input">Intro paragraph 2</label>
+        <textarea id="world-intro-2-input" maxlength="2000"></textarea>
+      </div>
+      <div class="admin-field-row">
+        <div class="admin-field">
+          <label for="world-orientation-select">Layout</label>
+          <select id="world-orientation-select">
+            <option value="horizontal">Horizontal (harbor-style row)</option>
+            <option value="vertical">Vertical (city cross-section stack)</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-field-row" id="world-altitude-fields">
+        <div class="admin-field">
+          <label for="world-altitude-top-input">Top altitude caption</label>
+          <input type="text" id="world-altitude-top-input" maxlength="100" placeholder="e.g. above the smog line">
+        </div>
+        <div class="admin-field">
+          <label for="world-altitude-bottom-input">Bottom altitude caption</label>
+          <input type="text" id="world-altitude-bottom-input" maxlength="100" placeholder="e.g. no signal beyond this point">
+        </div>
+      </div>
+
+      <div class="admin-field admin-image-field">
+        <label for="world-map-thumb-image-input">Map thumbnail image</label>
+        <div class="admin-image-field-row">
+          <div class="admin-image-thumb" id="world-map-thumb-image-thumb">
+            <img id="world-map-thumb-image-preview" alt="" hidden>
+            <span class="admin-image-thumb-empty">No image</span>
+          </div>
+          <div class="admin-image-field-controls">
+            <input type="text" id="world-map-thumb-image-input" maxlength="255" placeholder="Optional">
+            <div class="admin-image-field-btns">
+              <button type="button" class="btn admin-image-upload-btn" data-image-type="map_thumb">Upload</button>
+              <button type="button" class="btn admin-image-browse-btn" data-image-type="map_thumb">Choose from Library</button>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="world-map-thumb-image-file" accept="image/png,image/jpeg,image/webp" hidden>
+      </div>
+      <div class="admin-field admin-image-field">
+        <label for="world-map-full-image-input">Full map image</label>
+        <div class="admin-image-field-row">
+          <div class="admin-image-thumb" id="world-map-full-image-thumb">
+            <img id="world-map-full-image-preview" alt="" hidden>
+            <span class="admin-image-thumb-empty">No image</span>
+          </div>
+          <div class="admin-image-field-controls">
+            <input type="text" id="world-map-full-image-input" maxlength="255" placeholder="Optional">
+            <div class="admin-image-field-btns">
+              <button type="button" class="btn admin-image-upload-btn" data-image-type="map_full">Upload</button>
+              <button type="button" class="btn admin-image-browse-btn" data-image-type="map_full">Choose from Library</button>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="world-map-full-image-file" accept="image/png,image/jpeg,image/webp" hidden>
+      </div>
+      <div class="admin-field">
+        <label for="world-map-caption-input">Map caption</label>
+        <input type="text" id="world-map-caption-input" maxlength="255">
+      </div>
+
+      <hr class="admin-modal-divider">
+
+      <p class="admin-field-group-label">Districts / Layers</p>
+      <div class="admin-toolbar">
+        <button type="button" class="btn" id="world-layer-create-btn">+ Add Layer</button>
+      </div>
+      <div class="admin-list" id="world-layer-list">
+        <div class="admin-list-empty">No layers yet.</div>
+      </div>
+
+      <hr class="admin-modal-divider">
+
+      <p class="admin-field-group-label">Distant landmarks (not tied to any one district)</p>
+      <div class="admin-toolbar">
+        <button type="button" class="btn" id="world-distant-landmark-create-btn">+ Add Distant Landmark</button>
+      </div>
+      <div class="admin-list" id="world-distant-landmark-list">
+        <div class="admin-list-empty">No distant landmarks yet.</div>
+      </div>
+    </div>
+
+    <p class="admin-modal-error" id="world-modal-error"></p>
+    <p class="admin-modal-status" id="world-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="world-save-btn">Save</button>
+      <button type="button" class="btn" id="world-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="world-delete-btn" hidden>Delete World</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal admin-modal-over" id="world-layer-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="world-layer-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="world-layer-modal-title">Edit Layer</h3>
+    <p class="admin-modal-sub" id="world-layer-modal-sub"></p>
+
+    <div class="admin-field">
+      <label for="world-layer-name-input">Name</label>
+      <input type="text" id="world-layer-name-input" maxlength="100" placeholder="e.g. The Spires">
+    </div>
+    <div class="admin-field">
+      <label for="world-layer-theme-tags-input">Theme tags</label>
+      <input type="text" id="world-layer-theme-tags-input" maxlength="200" placeholder="e.g. Loyalty &middot; Privilege &middot; Isolation">
+    </div>
+    <div class="admin-field">
+      <label for="world-layer-tagline-input">Tagline</label>
+      <input type="text" id="world-layer-tagline-input" maxlength="150" placeholder="e.g. Syn's Pinnacle">
+    </div>
+    <div class="admin-field">
+      <label for="world-layer-description-input">Description</label>
+      <textarea id="world-layer-description-input" maxlength="4000"></textarea>
+    </div>
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="world-layer-quote-input">Quote</label>
+        <textarea id="world-layer-quote-input" maxlength="400" placeholder="Optional"></textarea>
+      </div>
+      <div class="admin-field">
+        <label for="world-layer-quote-cite-input">Quote attribution</label>
+        <input type="text" id="world-layer-quote-cite-input" maxlength="150" placeholder="Optional">
+      </div>
+    </div>
+    <div class="admin-field">
+      <label for="world-layer-tint-select">Accent tint</label>
+      <select id="world-layer-tint-select">
+        <option value="gold">Gold</option>
+        <option value="purple">Purple</option>
+        <option value="teal">Teal</option>
+        <option value="green">Green</option>
+        <option value="orange">Orange</option>
+        <option value="red">Red</option>
+        <option value="slate">Slate</option>
+        <option value="black">Black</option>
+      </select>
+    </div>
+    <div class="admin-field">
+      <label for="world-layer-sublocations-input">Sublocations (one per line)</label>
+      <textarea id="world-layer-sublocations-input" class="admin-textarea-tall" placeholder="One sublocation name per line&hellip;"></textarea>
+    </div>
+
+    <hr class="admin-modal-divider">
+    <p class="admin-field-group-label">Landmarks in this district</p>
+    <div class="admin-toolbar">
+      <button type="button" class="btn" id="world-layer-landmark-create-btn">+ Add Landmark</button>
+    </div>
+    <div class="admin-list" id="world-layer-landmark-list">
+      <div class="admin-list-empty">No landmarks yet.</div>
+    </div>
+
+    <p class="admin-modal-error" id="world-layer-modal-error"></p>
+    <p class="admin-modal-status" id="world-layer-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="world-layer-save-btn">Save</button>
+      <button type="button" class="btn" id="world-layer-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="world-layer-delete-btn" hidden>Delete Layer</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal admin-modal-over" id="world-landmark-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner">
+    <button type="button" class="admin-modal-close" id="world-landmark-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="world-landmark-modal-title">Edit Landmark</h3>
+    <p class="admin-modal-sub" id="world-landmark-modal-sub"></p>
+
+    <div class="admin-field">
+      <label for="world-landmark-name-input">Name</label>
+      <input type="text" id="world-landmark-name-input" maxlength="100">
+    </div>
+    <div class="admin-field">
+      <label for="world-landmark-tag-label-input">Tag label</label>
+      <input type="text" id="world-landmark-tag-label-input" maxlength="150" placeholder="Optional">
+    </div>
+    <div class="admin-field">
+      <label for="world-landmark-description-input">Description</label>
+      <textarea id="world-landmark-description-input" maxlength="4000"></textarea>
+    </div>
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="world-landmark-quote-input">Quote</label>
+        <textarea id="world-landmark-quote-input" maxlength="400" placeholder="Optional"></textarea>
+      </div>
+      <div class="admin-field">
+        <label for="world-landmark-quote-cite-input">Quote attribution</label>
+        <input type="text" id="world-landmark-quote-cite-input" maxlength="150" placeholder="Optional">
+      </div>
+    </div>
+
+    <p class="admin-modal-error" id="world-landmark-modal-error"></p>
+    <p class="admin-modal-status" id="world-landmark-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="world-landmark-save-btn">Save</button>
+      <button type="button" class="btn" id="world-landmark-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="world-landmark-delete-btn" hidden>Delete Landmark</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-modal" id="forum-board-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner">
@@ -1816,6 +2142,7 @@
       if (name === 'topic-reports') loadTopicReports();
       if (name === 'forum-control') loadForumBoards();
       if (name === 'book-control') loadBookList();
+      if (name === 'world-control') loadWorldList();
       if (name === 'roles-permissions') loadRoles();
       if (name === 'visitor-stats') loadVisitorStats();
     }
@@ -2845,6 +3172,11 @@
     forum_board_updated: 'Forum board updated',
     forum_board_deleted: 'Forum board deleted',
     forum_board_reordered: 'Forum boards reordered',
+    world_created: 'World created',
+    world_updated: 'World updated',
+    world_deleted: 'World deleted',
+    world_reordered: 'Worlds reordered',
+    world_layer_updated: 'World lore updated',
     backup_logged: 'Backup logged',
     dispatches_resynced: 'Dispatches re-synced',
     dispatch_title_edited: 'Dispatch title edited'
@@ -2892,6 +3224,11 @@
     forum_board_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
     forum_board_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
     forum_board_reordered: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+    world_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>',
+    world_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.5 12.5l1.8 1.8L15.5 10"/></svg>',
+    world_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="9.5" y1="10" x2="14.5" y2="15"/><line x1="14.5" y1="10" x2="9.5" y2="15"/></svg>',
+    world_reordered: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/></svg>',
+    world_layer_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/><path d="M9.5 12.5l1.8 1.8L15.5 10"/></svg>',
     backup_logged: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',
     dispatches_resynced: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
     dispatch_title_edited: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>'
@@ -6157,25 +6494,50 @@
   }
   bookPreviewEnabledCheckbox.addEventListener('change', updateBookPreviewFieldsVisibility);
 
-  // ===== Book image fields: upload + choose-from-library ======================
+  // ===== Image fields: upload + choose-from-library =============================
+  // Shared registry across every admin section with an image field (Book
+  // Control, World Control, ...) -- each entry carries its own upload/list
+  // endpoint and modal error/status elements, so the upload button wiring,
+  // the choose-from-library modal, and the thumbnail preview logic below are
+  // all written once and reused by every section instead of duplicated per
+  // feature. Key must match the "type" query param each backend expects
+  // (unique across sections since book/world type vocab don't overlap).
   var IMAGE_FIELDS = {
     cover: {
       urlInput: bookCoverImageInput,
       thumbImg: document.getElementById('book-cover-image-preview'),
       thumbEmpty: document.querySelector('#book-cover-image-thumb .admin-image-thumb-empty'),
-      fileInput: document.getElementById('book-cover-image-file')
+      fileInput: document.getElementById('book-cover-image-file'),
+      uploadEndpoint: '/api/admin/books/upload-image.php',
+      listEndpoint: '/api/admin/books/list-images.php',
+      apiType: 'cover',
+      label: 'cover image',
+      errorEl: bookModalError,
+      statusEl: bookModalStatus
     },
     character: {
       urlInput: bookCharacterImageInput,
       thumbImg: document.getElementById('book-character-image-preview'),
       thumbEmpty: document.querySelector('#book-character-image-thumb .admin-image-thumb-empty'),
-      fileInput: document.getElementById('book-character-image-file')
+      fileInput: document.getElementById('book-character-image-file'),
+      uploadEndpoint: '/api/admin/books/upload-image.php',
+      listEndpoint: '/api/admin/books/list-images.php',
+      apiType: 'character',
+      label: 'character image',
+      errorEl: bookModalError,
+      statusEl: bookModalStatus
     },
     hero: {
       urlInput: bookPreviewHeroImageInput,
       thumbImg: document.getElementById('book-preview-hero-image-preview'),
       thumbEmpty: document.querySelector('#book-preview-hero-image-thumb .admin-image-thumb-empty'),
-      fileInput: document.getElementById('book-preview-hero-image-file')
+      fileInput: document.getElementById('book-preview-hero-image-file'),
+      uploadEndpoint: '/api/admin/books/upload-image.php',
+      listEndpoint: '/api/admin/books/list-images.php',
+      apiType: 'hero',
+      label: 'preview hero image',
+      errorEl: bookModalError,
+      statusEl: bookModalStatus
     }
   };
 
@@ -6211,7 +6573,14 @@
     Object.keys(IMAGE_FIELDS).forEach(refreshImageThumb);
   }
 
-  Object.keys(IMAGE_FIELDS).forEach(function (type) {
+  // Wires one IMAGE_FIELDS entry's urlInput/thumbImg/fileInput listeners.
+  // Called once per key already in IMAGE_FIELDS at load, and again by any
+  // section (e.g. World Control) that registers new keys into this shared
+  // registry after the fact -- the two document-wide upload/browse button
+  // listeners below need no re-wiring since they look up IMAGE_FIELDS lazily
+  // inside the click handler, but urlInput/fileInput listeners are bound
+  // per-element and do need this called explicitly for each new key.
+  function wireImageField(type) {
     var f = IMAGE_FIELDS[type];
     f.urlInput.addEventListener('input', function () { refreshImageThumb(type); });
     f.thumbImg.addEventListener('error', function () {
@@ -6220,34 +6589,23 @@
       f.thumbEmpty.textContent = "Can't load image";
       f.thumbEmpty.hidden = false;
     });
-  });
-
-  document.querySelectorAll('.admin-image-upload-btn').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-      var f = IMAGE_FIELDS[btn.getAttribute('data-image-type')];
-      if (f) f.fileInput.click();
-    });
-  });
-
-  Object.keys(IMAGE_FIELDS).forEach(function (type) {
-    IMAGE_FIELDS[type].fileInput.addEventListener('change', function () {
-      var f = IMAGE_FIELDS[type];
+    f.fileInput.addEventListener('change', function () {
       var file = f.fileInput.files && f.fileInput.files[0];
       if (!file) return;
       if (file.size > 8 * 1024 * 1024) {
-        bookModalError.textContent = 'That image is too large. Please choose a file under 8MB.';
-        bookModalError.classList.add('show');
+        f.errorEl.textContent = 'That image is too large. Please choose a file under 8MB.';
+        f.errorEl.classList.add('show');
         f.fileInput.value = '';
         return;
       }
       var formData = new FormData();
       formData.append('image', file);
-      formData.append('type', type);
+      formData.append('type', f.apiType);
       formData.append('csrf', window.PW_AUTH.csrf);
-      bookModalError.classList.remove('show');
-      bookModalStatus.textContent = 'Uploading\u2026';
-      bookModalStatus.classList.add('show');
-      fetch('/api/admin/books/upload-image.php', {
+      f.errorEl.classList.remove('show');
+      f.statusEl.textContent = 'Uploading\u2026';
+      f.statusEl.classList.add('show');
+      fetch(f.uploadEndpoint, {
         method: 'POST',
         credentials: 'same-origin',
         body: formData
@@ -6255,24 +6613,32 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
           if (!data.ok) {
-            bookModalStatus.classList.remove('show');
-            bookModalError.textContent = data.error || 'Upload failed. Please try again.';
-            bookModalError.classList.add('show');
+            f.statusEl.classList.remove('show');
+            f.errorEl.textContent = data.error || 'Upload failed. Please try again.';
+            f.errorEl.classList.add('show');
             return;
           }
           f.urlInput.value = data.url;
           refreshImageThumb(type);
-          bookModalStatus.textContent = 'Image uploaded.';
-          bookModalStatus.classList.add('show');
+          f.statusEl.textContent = 'Image uploaded.';
+          f.statusEl.classList.add('show');
         })
         .catch(function () {
-          bookModalStatus.classList.remove('show');
-          bookModalError.textContent = 'Upload failed. Please try again.';
-          bookModalError.classList.add('show');
+          f.statusEl.classList.remove('show');
+          f.errorEl.textContent = 'Upload failed. Please try again.';
+          f.errorEl.classList.add('show');
         })
         .finally(function () {
           f.fileInput.value = '';
         });
+    });
+  }
+  Object.keys(IMAGE_FIELDS).forEach(wireImageField);
+
+  document.querySelectorAll('.admin-image-upload-btn').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var f = IMAGE_FIELDS[btn.getAttribute('data-image-type')];
+      if (f) f.fileInput.click();
     });
   });
 
@@ -6286,7 +6652,6 @@
   var imageLibrarySiteGrid = document.getElementById('image-library-site-grid');
   var imageLibraryEmpty = document.getElementById('image-library-empty');
   var imageLibraryActiveType = null;
-  var IMAGE_TYPE_LABELS = { cover: 'cover image', character: 'character image', hero: 'preview hero image' };
 
   function closeImageLibraryModal() {
     imageLibraryModalEl.hidden = true;
@@ -6314,9 +6679,10 @@
   }
 
   function openImageLibraryModal(type) {
-    if (!IMAGE_FIELDS[type]) return;
+    var f = IMAGE_FIELDS[type];
+    if (!f) return;
     imageLibraryActiveType = type;
-    imageLibraryModalSub.textContent = 'Pick a ' + (IMAGE_TYPE_LABELS[type] || 'image') + ' below, or upload a new one from the field itself.';
+    imageLibraryModalSub.textContent = 'Pick a ' + (f.label || 'image') + ' below, or upload a new one from the field itself.';
     imageLibraryUploadedGrid.innerHTML = '';
     imageLibrarySiteGrid.innerHTML = '';
     imageLibraryUploadedGroup.hidden = true;
@@ -6324,7 +6690,7 @@
     imageLibraryEmpty.hidden = true;
     imageLibraryEmpty.textContent = 'No images found yet. Upload one to get started.';
     imageLibraryModalEl.hidden = false;
-    fetch('/api/admin/books/list-images.php?type=' + encodeURIComponent(type), { credentials: 'same-origin' })
+    fetch(f.listEndpoint + '?type=' + encodeURIComponent(f.apiType), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) {
@@ -6549,6 +6915,818 @@
         bookDeleteBtn.disabled = false;
         bookModalError.textContent = 'Could not delete this book. Please try again.';
         bookModalError.classList.add('show');
+      });
+  });
+
+  // ===== World Control (Lore Management) =======================================
+  // worlds is the source of truth for worlds.html's card grid + cross-section
+  // detail pages (js/worlds.js), replacing what used to be hand-authored
+  // markup. Three levels of nesting: a world has Layers (districts) and
+  // Distant Landmarks; a Layer has its own Sublocations (plain tag list,
+  // parsed from a textarea) and Landmarks. The Layer and Landmark modals
+  // stack on top of the World modal (admin-modal-over), same z-index
+  // pattern as the shared image-library-modal.
+  var TINT_LABELS = { gold: 'Gold', purple: 'Purple', teal: 'Teal', green: 'Green', orange: 'Orange', red: 'Red', slate: 'Slate', black: 'Black' };
+
+  var worldListEl = document.getElementById('world-list');
+  var worldCountEl = document.getElementById('world-count');
+  var worldCreateBtn = document.getElementById('world-create-btn');
+
+  var worldModal = document.getElementById('world-modal');
+  var worldModalTitle = document.getElementById('world-modal-title');
+  var worldModalSub = document.getElementById('world-modal-sub');
+  var worldModalError = document.getElementById('world-modal-error');
+  var worldModalStatus = document.getElementById('world-modal-status');
+  var worldCloseBtn = document.getElementById('world-modal-close');
+  var worldCancelBtn = document.getElementById('world-cancel-btn');
+  var worldSaveBtn = document.getElementById('world-save-btn');
+  var worldDeleteBtn = document.getElementById('world-delete-btn');
+
+  var worldNameInput = document.getElementById('world-name-input');
+  var worldSlugField = document.getElementById('world-slug-field');
+  var worldSlugInput = document.getElementById('world-slug-input');
+  var worldTaglineInput = document.getElementById('world-tagline-input');
+  var worldCardBlurbInput = document.getElementById('world-card-blurb-input');
+  var worldThumbImageInput = document.getElementById('world-thumb-image-input');
+  var worldPortraitImageInput = document.getElementById('world-portrait-image-input');
+  var worldOverlordNameInput = document.getElementById('world-overlord-name-input');
+  var worldOverlordTitleInput = document.getElementById('world-overlord-title-input');
+  var worldOverlordPageSlugInput = document.getElementById('world-overlord-page-slug-input');
+  var worldStatusSelect = document.getElementById('world-status-select');
+  var worldLoreStatusField = document.getElementById('world-lore-status-field');
+  var worldLoreStatusInput = document.getElementById('world-lore-status-input');
+  var worldDetailFields = document.getElementById('world-detail-fields');
+  var worldIntro1Input = document.getElementById('world-intro-1-input');
+  var worldIntro2Input = document.getElementById('world-intro-2-input');
+  var worldOrientationSelect = document.getElementById('world-orientation-select');
+  var worldAltitudeFields = document.getElementById('world-altitude-fields');
+  var worldAltitudeTopInput = document.getElementById('world-altitude-top-input');
+  var worldAltitudeBottomInput = document.getElementById('world-altitude-bottom-input');
+  var worldMapThumbImageInput = document.getElementById('world-map-thumb-image-input');
+  var worldMapFullImageInput = document.getElementById('world-map-full-image-input');
+  var worldMapCaptionInput = document.getElementById('world-map-caption-input');
+
+  var worldLayerListEl = document.getElementById('world-layer-list');
+  var worldLayerCreateBtn = document.getElementById('world-layer-create-btn');
+  var worldDistantLandmarkListEl = document.getElementById('world-distant-landmark-list');
+  var worldDistantLandmarkCreateBtn = document.getElementById('world-distant-landmark-create-btn');
+
+  var lastWorldEntries = [];
+  var worldModalMode = 'create';
+  var currentWorld = null; // full nested world object (layers + distant_landmarks) currently open
+
+  IMAGE_FIELDS.thumb = {
+    urlInput: worldThumbImageInput,
+    thumbImg: document.getElementById('world-thumb-image-preview'),
+    thumbEmpty: document.querySelector('#world-thumb-image-thumb .admin-image-thumb-empty'),
+    fileInput: document.getElementById('world-thumb-image-file'),
+    uploadEndpoint: '/api/admin/worlds/upload-image.php',
+    listEndpoint: '/api/admin/worlds/list-images.php',
+    apiType: 'thumb', label: 'thumbnail image',
+    errorEl: worldModalError, statusEl: worldModalStatus
+  };
+  IMAGE_FIELDS.portrait = {
+    urlInput: worldPortraitImageInput,
+    thumbImg: document.getElementById('world-portrait-image-preview'),
+    thumbEmpty: document.querySelector('#world-portrait-image-thumb .admin-image-thumb-empty'),
+    fileInput: document.getElementById('world-portrait-image-file'),
+    uploadEndpoint: '/api/admin/worlds/upload-image.php',
+    listEndpoint: '/api/admin/worlds/list-images.php',
+    apiType: 'portrait', label: 'overlord portrait',
+    errorEl: worldModalError, statusEl: worldModalStatus
+  };
+  IMAGE_FIELDS.map_thumb = {
+    urlInput: worldMapThumbImageInput,
+    thumbImg: document.getElementById('world-map-thumb-image-preview'),
+    thumbEmpty: document.querySelector('#world-map-thumb-image-thumb .admin-image-thumb-empty'),
+    fileInput: document.getElementById('world-map-thumb-image-file'),
+    uploadEndpoint: '/api/admin/worlds/upload-image.php',
+    listEndpoint: '/api/admin/worlds/list-images.php',
+    apiType: 'map', label: 'map thumbnail image',
+    errorEl: worldModalError, statusEl: worldModalStatus
+  };
+  IMAGE_FIELDS.map_full = {
+    urlInput: worldMapFullImageInput,
+    thumbImg: document.getElementById('world-map-full-image-preview'),
+    thumbEmpty: document.querySelector('#world-map-full-image-thumb .admin-image-thumb-empty'),
+    fileInput: document.getElementById('world-map-full-image-file'),
+    uploadEndpoint: '/api/admin/worlds/upload-image.php',
+    listEndpoint: '/api/admin/worlds/list-images.php',
+    apiType: 'map', label: 'full map image',
+    errorEl: worldModalError, statusEl: worldModalStatus
+  };
+  ['thumb', 'portrait', 'map_thumb', 'map_full'].forEach(wireImageField);
+
+  function refreshAllWorldImageThumbs() {
+    ['thumb', 'portrait', 'map_thumb', 'map_full'].forEach(refreshImageThumb);
+  }
+
+  function loadWorldList() {
+    worldListEl.innerHTML = '<div class="admin-list-empty">Loading worlds&hellip;</div>';
+    return fetch('/api/admin/worlds/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        lastWorldEntries = (data.ok && data.worlds) || [];
+        worldCountEl.textContent = lastWorldEntries.length + (lastWorldEntries.length === 1 ? ' world' : ' worlds');
+        renderWorldList(lastWorldEntries);
+      })
+      .catch(function () {
+        worldListEl.innerHTML = '<div class="admin-list-empty">Could not load worlds.</div>';
+      });
+  }
+
+  function renderWorldList(entries) {
+    if (!entries.length) {
+      worldListEl.innerHTML = '<div class="admin-list-empty">No worlds yet.</div>';
+      return;
+    }
+    worldListEl.innerHTML = '';
+    entries.forEach(function (entry, i) {
+      var row = document.createElement('div');
+      row.className = 'admin-row';
+      row.tabIndex = 0;
+      row.innerHTML =
+        (entry.thumb_image_url ? '<img class="admin-row-cover" src="' + resolveSiteImageUrl(entry.thumb_image_url) + '" alt="">' : '') +
+        '<div class="admin-row-main">' +
+          '<p class="admin-row-subject">' + escapeHtml(entry.name) + '</p>' +
+          '<div class="admin-row-meta">' +
+            '<span>' + (entry.status === 'available' ? 'Available' : 'Locked') + '</span>' +
+            (entry.overlord_name ? '<span class="admin-row-sep">&bull;</span><span>' + escapeHtml(entry.overlord_name) + '</span>' : '') +
+          '</div>' +
+        '</div>';
+
+      var actions = document.createElement('div');
+      actions.className = 'role-row-actions';
+      actions.innerHTML =
+        '<button type="button" class="permission-mini-btn" data-world-action="up"' + (i === 0 ? ' disabled' : '') + '>Move Up</button>' +
+        '<button type="button" class="permission-mini-btn" data-world-action="down"' + (i === entries.length - 1 ? ' disabled' : '') + '>Move Down</button>';
+      row.appendChild(actions);
+
+      actions.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-world-action]');
+        if (!btn || btn.disabled) return;
+        e.stopPropagation();
+        var dir = btn.getAttribute('data-world-action');
+        reorderWorld(entry, dir === 'up' ? i - 1 : i + 1);
+      });
+      row.addEventListener('click', function () { openWorldModal(entry); });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openWorldModal(entry); }
+      });
+      worldListEl.appendChild(row);
+    });
+  }
+
+  function reorderWorld(entry, targetIndex) {
+    if (targetIndex < 0 || targetIndex >= lastWorldEntries.length) return;
+    var ids = lastWorldEntries.map(function (w) { return w.id; });
+    var fromIndex = ids.indexOf(entry.id);
+    ids.splice(fromIndex, 1);
+    ids.splice(targetIndex, 0, entry.id);
+    fetch('/api/admin/worlds/reorder.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: ids, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function () { loadWorldList(); });
+  }
+
+  function updateWorldDetailFieldsVisibility() {
+    var isAvailable = worldStatusSelect.value === 'available';
+    worldDetailFields.hidden = !isAvailable;
+    worldLoreStatusField.hidden = isAvailable;
+    worldAltitudeFields.hidden = worldOrientationSelect.value !== 'vertical';
+  }
+  worldStatusSelect.addEventListener('change', updateWorldDetailFieldsVisibility);
+  worldOrientationSelect.addEventListener('change', updateWorldDetailFieldsVisibility);
+
+  // ===== Layers list (rendered inside the World modal) =========================
+  function renderWorldLayerList() {
+    var layers = (currentWorld && currentWorld.layers) || [];
+    if (!layers.length) {
+      worldLayerListEl.innerHTML = '<div class="admin-list-empty">No layers yet.</div>';
+      return;
+    }
+    worldLayerListEl.innerHTML = '';
+    layers.forEach(function (layer, i) {
+      var row = document.createElement('div');
+      row.className = 'admin-row';
+      row.tabIndex = 0;
+      row.innerHTML =
+        '<div class="admin-row-main">' +
+          '<p class="admin-row-subject">' + escapeHtml(layer.name) + '</p>' +
+          '<div class="admin-row-meta">' +
+            (layer.tagline ? '<span>' + escapeHtml(layer.tagline) + '</span><span class="admin-row-sep">&bull;</span>' : '') +
+            '<span>' + (TINT_LABELS[layer.tint_key] || layer.tint_key) + '</span>' +
+          '</div>' +
+        '</div>';
+
+      var actions = document.createElement('div');
+      actions.className = 'role-row-actions';
+      actions.innerHTML =
+        '<button type="button" class="permission-mini-btn" data-layer-action="up"' + (i === 0 ? ' disabled' : '') + '>Move Up</button>' +
+        '<button type="button" class="permission-mini-btn" data-layer-action="down"' + (i === layers.length - 1 ? ' disabled' : '') + '>Move Down</button>';
+      row.appendChild(actions);
+
+      actions.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-layer-action]');
+        if (!btn || btn.disabled) return;
+        e.stopPropagation();
+        var dir = btn.getAttribute('data-layer-action');
+        reorderWorldLayer(layer, dir === 'up' ? i - 1 : i + 1);
+      });
+      row.addEventListener('click', function () { openWorldLayerModal(layer); });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openWorldLayerModal(layer); }
+      });
+      worldLayerListEl.appendChild(row);
+    });
+  }
+
+  function reorderWorldLayer(layer, targetIndex) {
+    var layers = currentWorld.layers;
+    if (targetIndex < 0 || targetIndex >= layers.length) return;
+    var ids = layers.map(function (l) { return l.id; });
+    var fromIndex = ids.indexOf(layer.id);
+    ids.splice(fromIndex, 1);
+    ids.splice(targetIndex, 0, layer.id);
+    fetch('/api/admin/worlds/layers/reorder.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ world_id: currentWorld.id, ids: ids, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function () { refreshCurrentWorldDetail(); });
+  }
+
+  // ===== Distant landmarks list (rendered inside the World modal) ==============
+  function renderWorldDistantLandmarkList() {
+    var landmarks = (currentWorld && currentWorld.distant_landmarks) || [];
+    if (!landmarks.length) {
+      worldDistantLandmarkListEl.innerHTML = '<div class="admin-list-empty">No distant landmarks yet.</div>';
+      return;
+    }
+    worldDistantLandmarkListEl.innerHTML = '';
+    landmarks.forEach(function (lm) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'admin-row';
+      row.innerHTML =
+        '<div class="admin-row-main">' +
+          '<p class="admin-row-subject">' + escapeHtml(lm.name) + '</p>' +
+          (lm.tag_label ? '<div class="admin-row-meta"><span>' + escapeHtml(lm.tag_label) + '</span></div>' : '') +
+        '</div>';
+      row.addEventListener('click', function () { openWorldLandmarkModal(lm, { worldId: currentWorld.id, layerId: null }); });
+      worldDistantLandmarkListEl.appendChild(row);
+    });
+  }
+
+  // Refetches the world list and swaps currentWorld for the freshly-loaded
+  // copy of the same world, then re-renders whichever nested lists are
+  // visible -- used after any layer/landmark create/update/delete/reorder so
+  // the World modal (and, if open, the Layer modal's own landmark list)
+  // reflect the change without a full page reload.
+  function refreshCurrentWorldDetail() {
+    if (!currentWorld) return Promise.resolve();
+    return fetch('/api/admin/worlds/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        lastWorldEntries = data.worlds || [];
+        var fresh = lastWorldEntries.filter(function (w) { return w.id === currentWorld.id; })[0];
+        if (!fresh) return;
+        currentWorld = fresh;
+        renderWorldLayerList();
+        renderWorldDistantLandmarkList();
+        if (!worldLayerModal.hidden && currentWorldLayer) {
+          var freshLayer = fresh.layers.filter(function (l) { return l.id === currentWorldLayer.id; })[0];
+          if (freshLayer) {
+            currentWorldLayer = freshLayer;
+            renderWorldLayerLandmarkList();
+          }
+        }
+      });
+  }
+
+  function populateWorldForm(world) {
+    worldNameInput.value = world.name || '';
+    worldSlugInput.value = world.slug || '';
+    worldTaglineInput.value = world.tagline || '';
+    worldCardBlurbInput.value = world.card_blurb || '';
+    worldThumbImageInput.value = world.thumb_image_url || '';
+    worldPortraitImageInput.value = world.portrait_image_url || '';
+    worldOverlordNameInput.value = world.overlord_name || '';
+    worldOverlordTitleInput.value = world.overlord_title || '';
+    worldOverlordPageSlugInput.value = world.overlord_page_slug || '';
+    worldStatusSelect.value = world.status || 'locked';
+    worldLoreStatusInput.value = world.lore_status_label || 'Lore Coming Soon';
+    worldIntro1Input.value = world.intro_paragraph_1 || '';
+    worldIntro2Input.value = world.intro_paragraph_2 || '';
+    worldOrientationSelect.value = world.layout_orientation || 'horizontal';
+    worldAltitudeTopInput.value = world.altitude_top_label || '';
+    worldAltitudeBottomInput.value = world.altitude_bottom_label || '';
+    worldMapThumbImageInput.value = world.map_thumb_image_url || '';
+    worldMapFullImageInput.value = world.map_full_image_url || '';
+    worldMapCaptionInput.value = world.map_caption || '';
+    updateWorldDetailFieldsVisibility();
+    refreshAllWorldImageThumbs();
+    renderWorldLayerList();
+    renderWorldDistantLandmarkList();
+  }
+
+  function openWorldModal(entry) {
+    worldModalMode = 'edit';
+    currentWorld = entry;
+    worldModalTitle.textContent = 'Edit World';
+    worldModalSub.textContent = entry.slug;
+    worldSlugInput.disabled = true;
+    worldDeleteBtn.hidden = false;
+    worldModalError.classList.remove('show');
+    worldModalStatus.classList.remove('show');
+    populateWorldForm(entry);
+    worldModal.hidden = false;
+  }
+
+  function openCreateWorldModal() {
+    worldModalMode = 'create';
+    currentWorld = null;
+    worldModalTitle.textContent = 'Add World';
+    worldModalSub.textContent = '';
+    worldSlugInput.disabled = false;
+    worldDeleteBtn.hidden = true;
+    worldModalError.classList.remove('show');
+    worldModalStatus.classList.remove('show');
+    populateWorldForm({
+      status: 'locked', layout_orientation: 'horizontal',
+      lore_status_label: 'Lore Coming Soon', layers: [], distant_landmarks: []
+    });
+    worldModal.hidden = false;
+    setTimeout(function () { worldNameInput.focus(); }, 30);
+  }
+
+  function closeWorldModal() {
+    worldModal.hidden = true;
+    currentWorld = null;
+  }
+
+  worldCreateBtn.addEventListener('click', openCreateWorldModal);
+  worldCloseBtn.addEventListener('click', closeWorldModal);
+  worldCancelBtn.addEventListener('click', closeWorldModal);
+  worldModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeWorldModal);
+
+  worldSaveBtn.addEventListener('click', function () {
+    var payload = {
+      name: worldNameInput.value.trim(),
+      tagline: worldTaglineInput.value.trim(),
+      card_blurb: worldCardBlurbInput.value.trim(),
+      thumb_image_url: worldThumbImageInput.value.trim(),
+      portrait_image_url: worldPortraitImageInput.value.trim(),
+      overlord_name: worldOverlordNameInput.value.trim(),
+      overlord_title: worldOverlordTitleInput.value.trim(),
+      overlord_page_slug: worldOverlordPageSlugInput.value.trim(),
+      status: worldStatusSelect.value,
+      lore_status_label: worldLoreStatusInput.value.trim(),
+      intro_paragraph_1: worldIntro1Input.value.trim(),
+      intro_paragraph_2: worldIntro2Input.value.trim(),
+      layout_orientation: worldOrientationSelect.value,
+      altitude_top_label: worldAltitudeTopInput.value.trim(),
+      altitude_bottom_label: worldAltitudeBottomInput.value.trim(),
+      map_thumb_image_url: worldMapThumbImageInput.value.trim(),
+      map_full_image_url: worldMapFullImageInput.value.trim(),
+      map_caption: worldMapCaptionInput.value.trim(),
+      csrf: window.PW_AUTH.csrf
+    };
+
+    if (!payload.name) {
+      worldModalError.textContent = 'Give the world a name.';
+      worldModalError.classList.add('show');
+      return;
+    }
+
+    var url = '/api/admin/worlds/update.php';
+    if (worldModalMode === 'create') {
+      url = '/api/admin/worlds/create.php';
+      payload.slug = worldSlugInput.value.trim();
+      if (!/^[a-z0-9-]{1,50}$/.test(payload.slug)) {
+        worldModalError.textContent = 'Slug must be lowercase letters, numbers, and hyphens only.';
+        worldModalError.classList.add('show');
+        return;
+      }
+    } else if (currentWorld) {
+      payload.id = currentWorld.id;
+    }
+
+    worldModalError.classList.remove('show');
+    worldSaveBtn.disabled = true;
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        worldSaveBtn.disabled = false;
+        if (!data.ok) {
+          worldModalError.textContent = data.error || 'Could not save this world.';
+          worldModalError.classList.add('show');
+          return;
+        }
+        worldModalStatus.textContent = 'Saved.';
+        worldModalStatus.classList.add('show');
+        loadWorldList();
+        if (worldModalMode === 'create' && data.id) {
+          // Stay open so Layers/Distant Landmarks can be added right away,
+          // instead of forcing a reopen after the world already exists.
+          worldModalMode = 'edit';
+          worldSlugInput.disabled = true;
+          worldDeleteBtn.hidden = false;
+          fetch('/api/admin/worlds/list.php', { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (listData) {
+              if (!listData.ok) return;
+              lastWorldEntries = listData.worlds || [];
+              var fresh = lastWorldEntries.filter(function (w) { return w.id === data.id; })[0];
+              if (fresh) {
+                currentWorld = fresh;
+                worldModalTitle.textContent = 'Edit World';
+                worldModalSub.textContent = fresh.slug;
+              }
+            });
+        } else {
+          setTimeout(closeWorldModal, 700);
+        }
+      })
+      .catch(function () {
+        worldSaveBtn.disabled = false;
+        worldModalError.textContent = 'Could not save this world. Please try again.';
+        worldModalError.classList.add('show');
+      });
+  });
+
+  worldDeleteBtn.addEventListener('click', function () {
+    if (!currentWorld) return;
+    var confirmMsg = 'Permanently delete the world "' + currentWorld.name + '" and all of its layers and landmarks? This cannot be undone.';
+    if (!window.confirm(confirmMsg)) return;
+    worldDeleteBtn.disabled = true;
+    fetch('/api/admin/worlds/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentWorld.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        worldDeleteBtn.disabled = false;
+        if (!data.ok) {
+          worldModalError.textContent = data.error || 'Could not delete this world.';
+          worldModalError.classList.add('show');
+          return;
+        }
+        loadWorldList();
+        closeWorldModal();
+      })
+      .catch(function () {
+        worldDeleteBtn.disabled = false;
+        worldModalError.textContent = 'Could not delete this world. Please try again.';
+        worldModalError.classList.add('show');
+      });
+  });
+
+  // ===== Layer modal (stacks over the World modal) ==============================
+  var worldLayerModal = document.getElementById('world-layer-modal');
+  var worldLayerModalTitle = document.getElementById('world-layer-modal-title');
+  var worldLayerModalSub = document.getElementById('world-layer-modal-sub');
+  var worldLayerModalError = document.getElementById('world-layer-modal-error');
+  var worldLayerModalStatus = document.getElementById('world-layer-modal-status');
+  var worldLayerCloseBtn = document.getElementById('world-layer-modal-close');
+  var worldLayerCancelBtn = document.getElementById('world-layer-cancel-btn');
+  var worldLayerSaveBtn = document.getElementById('world-layer-save-btn');
+  var worldLayerDeleteBtn = document.getElementById('world-layer-delete-btn');
+  var worldLayerNameInput = document.getElementById('world-layer-name-input');
+  var worldLayerThemeTagsInput = document.getElementById('world-layer-theme-tags-input');
+  var worldLayerTaglineInput = document.getElementById('world-layer-tagline-input');
+  var worldLayerDescriptionInput = document.getElementById('world-layer-description-input');
+  var worldLayerQuoteInput = document.getElementById('world-layer-quote-input');
+  var worldLayerQuoteCiteInput = document.getElementById('world-layer-quote-cite-input');
+  var worldLayerTintSelect = document.getElementById('world-layer-tint-select');
+  var worldLayerSublocationsInput = document.getElementById('world-layer-sublocations-input');
+  var worldLayerLandmarkListEl = document.getElementById('world-layer-landmark-list');
+  var worldLayerLandmarkCreateBtn = document.getElementById('world-layer-landmark-create-btn');
+
+  var worldLayerModalMode = 'create';
+  var currentWorldLayer = null;
+
+  function renderWorldLayerLandmarkList() {
+    var landmarks = (currentWorldLayer && currentWorldLayer.landmarks) || [];
+    if (!landmarks.length) {
+      worldLayerLandmarkListEl.innerHTML = '<div class="admin-list-empty">No landmarks yet.</div>';
+      return;
+    }
+    worldLayerLandmarkListEl.innerHTML = '';
+    landmarks.forEach(function (lm) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'admin-row';
+      row.innerHTML =
+        '<div class="admin-row-main">' +
+          '<p class="admin-row-subject">' + escapeHtml(lm.name) + '</p>' +
+          (lm.tag_label ? '<div class="admin-row-meta"><span>' + escapeHtml(lm.tag_label) + '</span></div>' : '') +
+        '</div>';
+      row.addEventListener('click', function () {
+        openWorldLandmarkModal(lm, { worldId: currentWorld.id, layerId: currentWorldLayer.id });
+      });
+      worldLayerLandmarkListEl.appendChild(row);
+    });
+  }
+
+  function populateWorldLayerForm(layer) {
+    worldLayerNameInput.value = layer.name || '';
+    worldLayerThemeTagsInput.value = layer.theme_tags || '';
+    worldLayerTaglineInput.value = layer.tagline || '';
+    worldLayerDescriptionInput.value = layer.description || '';
+    worldLayerQuoteInput.value = layer.quote_text || '';
+    worldLayerQuoteCiteInput.value = layer.quote_cite || '';
+    worldLayerTintSelect.value = layer.tint_key || 'gold';
+    worldLayerSublocationsInput.value = (layer.sublocations || []).map(function (s) { return s.label || s; }).join('\n');
+    renderWorldLayerLandmarkList();
+  }
+
+  function openWorldLayerModal(layer) {
+    worldLayerModalMode = 'edit';
+    currentWorldLayer = layer;
+    worldLayerModalTitle.textContent = 'Edit Layer';
+    worldLayerModalSub.textContent = layer.name;
+    worldLayerDeleteBtn.hidden = false;
+    worldLayerModalError.classList.remove('show');
+    worldLayerModalStatus.classList.remove('show');
+    populateWorldLayerForm(layer);
+    worldLayerModal.hidden = false;
+  }
+
+  function openCreateWorldLayerModal() {
+    if (!currentWorld) return;
+    worldLayerModalMode = 'create';
+    currentWorldLayer = null;
+    worldLayerModalTitle.textContent = 'Add Layer';
+    worldLayerModalSub.textContent = '';
+    worldLayerDeleteBtn.hidden = true;
+    worldLayerModalError.classList.remove('show');
+    worldLayerModalStatus.classList.remove('show');
+    populateWorldLayerForm({ tint_key: 'gold', sublocations: [], landmarks: [] });
+    worldLayerModal.hidden = false;
+    setTimeout(function () { worldLayerNameInput.focus(); }, 30);
+  }
+
+  function closeWorldLayerModal() {
+    worldLayerModal.hidden = true;
+    currentWorldLayer = null;
+  }
+
+  worldLayerCreateBtn.addEventListener('click', openCreateWorldLayerModal);
+  worldLayerCloseBtn.addEventListener('click', closeWorldLayerModal);
+  worldLayerCancelBtn.addEventListener('click', closeWorldLayerModal);
+  worldLayerModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeWorldLayerModal);
+
+  worldLayerSaveBtn.addEventListener('click', function () {
+    if (!currentWorld) return;
+    var payload = {
+      world_id: currentWorld.id,
+      name: worldLayerNameInput.value.trim(),
+      theme_tags: worldLayerThemeTagsInput.value.trim(),
+      tagline: worldLayerTaglineInput.value.trim(),
+      description: worldLayerDescriptionInput.value.trim(),
+      quote_text: worldLayerQuoteInput.value.trim(),
+      quote_cite: worldLayerQuoteCiteInput.value.trim(),
+      tint_key: worldLayerTintSelect.value,
+      sublocations_text: worldLayerSublocationsInput.value,
+      csrf: window.PW_AUTH.csrf
+    };
+    if (!payload.name || !payload.description) {
+      worldLayerModalError.textContent = 'A layer needs at least a name and a description.';
+      worldLayerModalError.classList.add('show');
+      return;
+    }
+
+    var url = '/api/admin/worlds/layers/create.php';
+    if (worldLayerModalMode === 'edit' && currentWorldLayer) {
+      url = '/api/admin/worlds/layers/update.php';
+      payload.id = currentWorldLayer.id;
+    }
+
+    worldLayerModalError.classList.remove('show');
+    worldLayerSaveBtn.disabled = true;
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        worldLayerSaveBtn.disabled = false;
+        if (!data.ok) {
+          worldLayerModalError.textContent = data.error || 'Could not save this layer.';
+          worldLayerModalError.classList.add('show');
+          return;
+        }
+        worldLayerModalStatus.textContent = 'Saved.';
+        worldLayerModalStatus.classList.add('show');
+        refreshCurrentWorldDetail().then(function () {
+          setTimeout(closeWorldLayerModal, 700);
+        });
+      })
+      .catch(function () {
+        worldLayerSaveBtn.disabled = false;
+        worldLayerModalError.textContent = 'Could not save this layer. Please try again.';
+        worldLayerModalError.classList.add('show');
+      });
+  });
+
+  worldLayerDeleteBtn.addEventListener('click', function () {
+    if (!currentWorldLayer) return;
+    var confirmMsg = 'Delete the layer "' + currentWorldLayer.name + '" and everything nested inside it (sublocations, landmarks)? This cannot be undone.';
+    if (!window.confirm(confirmMsg)) return;
+    worldLayerDeleteBtn.disabled = true;
+    fetch('/api/admin/worlds/layers/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentWorldLayer.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        worldLayerDeleteBtn.disabled = false;
+        if (!data.ok) {
+          worldLayerModalError.textContent = data.error || 'Could not delete this layer.';
+          worldLayerModalError.classList.add('show');
+          return;
+        }
+        closeWorldLayerModal();
+        refreshCurrentWorldDetail();
+      })
+      .catch(function () {
+        worldLayerDeleteBtn.disabled = false;
+        worldLayerModalError.textContent = 'Could not delete this layer. Please try again.';
+        worldLayerModalError.classList.add('show');
+      });
+  });
+
+  // ===== Landmark modal (stacks over the World or Layer modal) =================
+  var worldLandmarkModal = document.getElementById('world-landmark-modal');
+  var worldLandmarkModalTitle = document.getElementById('world-landmark-modal-title');
+  var worldLandmarkModalSub = document.getElementById('world-landmark-modal-sub');
+  var worldLandmarkModalError = document.getElementById('world-landmark-modal-error');
+  var worldLandmarkModalStatus = document.getElementById('world-landmark-modal-status');
+  var worldLandmarkCloseBtn = document.getElementById('world-landmark-modal-close');
+  var worldLandmarkCancelBtn = document.getElementById('world-landmark-cancel-btn');
+  var worldLandmarkSaveBtn = document.getElementById('world-landmark-save-btn');
+  var worldLandmarkDeleteBtn = document.getElementById('world-landmark-delete-btn');
+  var worldLandmarkNameInput = document.getElementById('world-landmark-name-input');
+  var worldLandmarkTagLabelInput = document.getElementById('world-landmark-tag-label-input');
+  var worldLandmarkDescriptionInput = document.getElementById('world-landmark-description-input');
+  var worldLandmarkQuoteInput = document.getElementById('world-landmark-quote-input');
+  var worldLandmarkQuoteCiteInput = document.getElementById('world-landmark-quote-cite-input');
+
+  var worldLandmarkModalMode = 'create';
+  var currentWorldLandmark = null;
+  var currentWorldLandmarkContext = null; // { worldId, layerId }
+
+  function populateWorldLandmarkForm(lm) {
+    worldLandmarkNameInput.value = lm.name || '';
+    worldLandmarkTagLabelInput.value = lm.tag_label || '';
+    worldLandmarkDescriptionInput.value = lm.description || '';
+    worldLandmarkQuoteInput.value = lm.quote_text || '';
+    worldLandmarkQuoteCiteInput.value = lm.quote_cite || '';
+  }
+
+  function openWorldLandmarkModal(lm, context) {
+    worldLandmarkModalMode = 'edit';
+    currentWorldLandmark = lm;
+    currentWorldLandmarkContext = context;
+    worldLandmarkModalTitle.textContent = 'Edit Landmark';
+    worldLandmarkModalSub.textContent = lm.name;
+    worldLandmarkDeleteBtn.hidden = false;
+    worldLandmarkModalError.classList.remove('show');
+    worldLandmarkModalStatus.classList.remove('show');
+    populateWorldLandmarkForm(lm);
+    worldLandmarkModal.hidden = false;
+  }
+
+  function openCreateWorldLandmarkModal(context) {
+    worldLandmarkModalMode = 'create';
+    currentWorldLandmark = null;
+    currentWorldLandmarkContext = context;
+    worldLandmarkModalTitle.textContent = context.layerId ? 'Add Landmark' : 'Add Distant Landmark';
+    worldLandmarkModalSub.textContent = '';
+    worldLandmarkDeleteBtn.hidden = true;
+    worldLandmarkModalError.classList.remove('show');
+    worldLandmarkModalStatus.classList.remove('show');
+    populateWorldLandmarkForm({});
+    worldLandmarkModal.hidden = false;
+    setTimeout(function () { worldLandmarkNameInput.focus(); }, 30);
+  }
+
+  function closeWorldLandmarkModal() {
+    worldLandmarkModal.hidden = true;
+    currentWorldLandmark = null;
+    currentWorldLandmarkContext = null;
+  }
+
+  worldDistantLandmarkCreateBtn.addEventListener('click', function () {
+    if (!currentWorld) return;
+    openCreateWorldLandmarkModal({ worldId: currentWorld.id, layerId: null });
+  });
+  worldLayerLandmarkCreateBtn.addEventListener('click', function () {
+    if (!currentWorldLayer) return;
+    openCreateWorldLandmarkModal({ worldId: currentWorld.id, layerId: currentWorldLayer.id });
+  });
+  worldLandmarkCloseBtn.addEventListener('click', closeWorldLandmarkModal);
+  worldLandmarkCancelBtn.addEventListener('click', closeWorldLandmarkModal);
+  worldLandmarkModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeWorldLandmarkModal);
+
+  worldLandmarkSaveBtn.addEventListener('click', function () {
+    if (!currentWorldLandmarkContext) return;
+    var payload = {
+      world_id: currentWorldLandmarkContext.worldId,
+      layer_id: currentWorldLandmarkContext.layerId,
+      name: worldLandmarkNameInput.value.trim(),
+      tag_label: worldLandmarkTagLabelInput.value.trim(),
+      description: worldLandmarkDescriptionInput.value.trim(),
+      quote_text: worldLandmarkQuoteInput.value.trim(),
+      quote_cite: worldLandmarkQuoteCiteInput.value.trim(),
+      csrf: window.PW_AUTH.csrf
+    };
+    if (!payload.name || !payload.description) {
+      worldLandmarkModalError.textContent = 'A landmark needs at least a name and a description.';
+      worldLandmarkModalError.classList.add('show');
+      return;
+    }
+
+    var url = '/api/admin/worlds/landmarks/create.php';
+    if (worldLandmarkModalMode === 'edit' && currentWorldLandmark) {
+      url = '/api/admin/worlds/landmarks/update.php';
+      payload.id = currentWorldLandmark.id;
+    }
+
+    worldLandmarkModalError.classList.remove('show');
+    worldLandmarkSaveBtn.disabled = true;
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        worldLandmarkSaveBtn.disabled = false;
+        if (!data.ok) {
+          worldLandmarkModalError.textContent = data.error || 'Could not save this landmark.';
+          worldLandmarkModalError.classList.add('show');
+          return;
+        }
+        worldLandmarkModalStatus.textContent = 'Saved.';
+        worldLandmarkModalStatus.classList.add('show');
+        refreshCurrentWorldDetail().then(function () {
+          setTimeout(closeWorldLandmarkModal, 700);
+        });
+      })
+      .catch(function () {
+        worldLandmarkSaveBtn.disabled = false;
+        worldLandmarkModalError.textContent = 'Could not save this landmark. Please try again.';
+        worldLandmarkModalError.classList.add('show');
+      });
+  });
+
+  worldLandmarkDeleteBtn.addEventListener('click', function () {
+    if (!currentWorldLandmark) return;
+    var confirmMsg = 'Delete the landmark "' + currentWorldLandmark.name + '"? This cannot be undone.';
+    if (!window.confirm(confirmMsg)) return;
+    worldLandmarkDeleteBtn.disabled = true;
+    fetch('/api/admin/worlds/landmarks/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentWorldLandmark.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        worldLandmarkDeleteBtn.disabled = false;
+        if (!data.ok) {
+          worldLandmarkModalError.textContent = data.error || 'Could not delete this landmark.';
+          worldLandmarkModalError.classList.add('show');
+          return;
+        }
+        closeWorldLandmarkModal();
+        refreshCurrentWorldDetail();
+      })
+      .catch(function () {
+        worldLandmarkDeleteBtn.disabled = false;
+        worldLandmarkModalError.textContent = 'Could not delete this landmark. Please try again.';
+        worldLandmarkModalError.classList.add('show');
       });
   });
 

@@ -349,3 +349,73 @@ CREATE TABLE IF NOT EXISTS backup_log (
   logged_by INT UNSIGNED NULL,
   CONSTRAINT fk_backup_log_user FOREIGN KEY (logged_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- World Control: powers the public worlds.html page (replaces what used to
+-- be hand-authored HTML) plus the admin CRUD. A world's rich interactive
+-- detail section (cross-section map + accordion of layers/districts) is
+-- only populated for status = 'available' worlds.
+CREATE TABLE IF NOT EXISTS worlds (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(50) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL,
+  tagline VARCHAR(200) NOT NULL DEFAULT '',
+  card_blurb VARCHAR(300) NOT NULL DEFAULT '',
+  thumb_image_url VARCHAR(255) NOT NULL DEFAULT '',
+  portrait_image_url VARCHAR(255) NOT NULL DEFAULT '',
+  overlord_name VARCHAR(100) NOT NULL DEFAULT '',
+  overlord_title VARCHAR(100) NOT NULL DEFAULT '',
+  overlord_page_slug VARCHAR(100) NOT NULL DEFAULT '',
+  status ENUM('available','locked') NOT NULL DEFAULT 'locked',
+  lore_status_label VARCHAR(100) NOT NULL DEFAULT 'Lore Coming Soon',
+  intro_paragraph_1 TEXT NULL,
+  intro_paragraph_2 TEXT NULL,
+  layout_orientation ENUM('vertical','horizontal') NOT NULL DEFAULT 'horizontal',
+  altitude_top_label VARCHAR(100) NOT NULL DEFAULT '',
+  altitude_bottom_label VARCHAR(100) NOT NULL DEFAULT '',
+  map_thumb_image_url VARCHAR(255) NOT NULL DEFAULT '',
+  map_full_image_url VARCHAR(255) NOT NULL DEFAULT '',
+  map_caption VARCHAR(255) NOT NULL DEFAULT '',
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS world_layers (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  world_id INT UNSIGNED NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  name VARCHAR(100) NOT NULL,
+  theme_tags VARCHAR(200) NOT NULL DEFAULT '',
+  tagline VARCHAR(150) NOT NULL DEFAULT '',
+  description TEXT NOT NULL,
+  quote_text VARCHAR(400) NOT NULL DEFAULT '',
+  quote_cite VARCHAR(150) NOT NULL DEFAULT '',
+  tint_key VARCHAR(20) NOT NULL DEFAULT 'gold',
+  CONSTRAINT fk_world_layers_world FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS world_layer_sublocations (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  layer_id INT UNSIGNED NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  label VARCHAR(100) NOT NULL,
+  CONSTRAINT fk_world_layer_sublocations_layer FOREIGN KEY (layer_id) REFERENCES world_layers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Covers both kinds of landmark callout: "restricted" (nested inside a
+-- specific layer, e.g. Vault 17 inside Neoh's Spires -- layer_id set) and
+-- "distant" (attached to the world itself, outside any layer, e.g. Lios --
+-- layer_id NULL).
+CREATE TABLE IF NOT EXISTS world_landmarks (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  world_id INT UNSIGNED NOT NULL,
+  layer_id INT UNSIGNED NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  kind ENUM('restricted','distant') NOT NULL DEFAULT 'restricted',
+  name VARCHAR(100) NOT NULL,
+  tag_label VARCHAR(150) NOT NULL DEFAULT '',
+  description TEXT NOT NULL,
+  quote_text VARCHAR(400) NOT NULL DEFAULT '',
+  quote_cite VARCHAR(150) NOT NULL DEFAULT '',
+  CONSTRAINT fk_world_landmarks_world FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE,
+  CONSTRAINT fk_world_landmarks_layer FOREIGN KEY (layer_id) REFERENCES world_layers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

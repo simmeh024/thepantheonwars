@@ -1,5 +1,46 @@
 // The Pantheon Wars — site interactivity
 
+// City/harbor cross-section layer accordions + map lightbox viewers (Worlds
+// page). Exposed on window because worlds.js injects this markup from
+// api/worlds.php *after* DOMContentLoaded has already fired once, so it has
+// to call this again itself once the fetched markup is in the DOM.
+function wireWorldInteractions() {
+  document.querySelectorAll('.city-layer').forEach(function (layer) {
+    var toggleBtn = layer.querySelector('.layer-toggle');
+    if (!toggleBtn || toggleBtn.dataset.wired) return;
+    toggleBtn.dataset.wired = '1';
+    toggleBtn.addEventListener('click', function () {
+      var wasOpen = layer.classList.contains('open');
+      var group = layer.closest('.city-stack, .harbor-row');
+      if (group) {
+        group.querySelectorAll('.city-layer.open').forEach(function (other) {
+          if (other !== layer) other.classList.remove('open');
+        });
+      }
+      layer.classList.toggle('open', !wasOpen);
+    });
+  });
+
+  document.querySelectorAll('.map-thumb-btn').forEach(function (btn) {
+    if (btn.dataset.wired) return;
+    var lightbox = document.getElementById(btn.getAttribute('data-lightbox'));
+    if (!lightbox) return;
+    btn.dataset.wired = '1';
+    btn.addEventListener('click', function () { lightbox.hidden = false; });
+  });
+  document.querySelectorAll('.map-lightbox').forEach(function (lightbox) {
+    if (lightbox.dataset.wired) return;
+    lightbox.dataset.wired = '1';
+    var close = function () { lightbox.hidden = true; };
+    lightbox.querySelector('.map-lightbox-close').addEventListener('click', close);
+    lightbox.querySelector('.map-lightbox-backdrop').addEventListener('click', close);
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !lightbox.hidden) close();
+    });
+  });
+}
+window.wireWorldInteractions = wireWorldInteractions;
+
 document.addEventListener('DOMContentLoaded', function () {
   // Visitor Statistics beacon (admin console): fire-and-forget page-view
   // ping, backing the admin's "Visitor Statistics" page. Never blocks or
@@ -128,36 +169,12 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  // City cross-section layers (Worlds > Neoh, Worlds > High Hammer) — click a district to expand it.
-  document.querySelectorAll('.city-layer').forEach(function (layer) {
-    var toggleBtn = layer.querySelector('.layer-toggle');
-    if (!toggleBtn) return;
-    toggleBtn.addEventListener('click', function () {
-      var wasOpen = layer.classList.contains('open');
-      var group = layer.closest('.city-stack, .harbor-row');
-      if (group) {
-        group.querySelectorAll('.city-layer.open').forEach(function (other) {
-          if (other !== layer) other.classList.remove('open');
-        });
-      }
-      layer.classList.toggle('open', !wasOpen);
-    });
-  });
-
-  // Map lightbox (Worlds > Neoh full map viewer)
-  document.querySelectorAll('.map-thumb-btn').forEach(function (btn) {
-    var lightbox = document.getElementById(btn.getAttribute('data-lightbox'));
-    if (!lightbox) return;
-    btn.addEventListener('click', function () { lightbox.hidden = false; });
-  });
-  document.querySelectorAll('.map-lightbox').forEach(function (lightbox) {
-    var close = function () { lightbox.hidden = true; };
-    lightbox.querySelector('.map-lightbox-close').addEventListener('click', close);
-    lightbox.querySelector('.map-lightbox-backdrop').addEventListener('click', close);
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !lightbox.hidden) close();
-    });
-  });
+  // City/harbor cross-section layers + map lightbox (Worlds page). No-op on
+  // pages that don't have this markup yet (e.g. worlds.html before its
+  // fetched content loads) -- wireWorldInteractions() itself just finds
+  // nothing via querySelectorAll in that case, and worlds.js calls it again
+  // once the markup exists.
+  wireWorldInteractions();
 
   // Planetary two-scene view (Worlds > High Hammer) — arrow flips between scenes.
   document.querySelectorAll('.planet-view').forEach(function (view) {
