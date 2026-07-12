@@ -50,10 +50,15 @@ $canModerate = $currentUser ? pw_has_permission($currentUser, 'community.edit_an
 $canDeleteAny = $currentUser ? pw_has_permission($currentUser, 'community.delete_any') : false;
 
 $likedByMe = false;
+$bookmarked = false;
 if ($currentId !== null) {
     $myLikeStmt = $db->prepare("SELECT id FROM message_likes WHERE target_type = 'topic' AND target_id = ? AND user_id = ?");
     $myLikeStmt->execute([$id, $currentId]);
     $likedByMe = (bool)$myLikeStmt->fetch();
+
+    $myBookmarkStmt = $db->prepare('SELECT id FROM topic_bookmarks WHERE topic_id = ? AND user_id = ?');
+    $myBookmarkStmt->execute([$id, $currentId]);
+    $bookmarked = (bool)$myBookmarkStmt->fetch();
 }
 
 pw_json([
@@ -76,5 +81,6 @@ pw_json([
         'canModerate' => $canModerate,
         'like_count' => $likeCount,
         'likedByMe' => $likedByMe,
+        'bookmarked' => $bookmarked,
     ],
 ]);

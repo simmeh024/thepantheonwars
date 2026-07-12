@@ -2693,6 +2693,28 @@ footer.site-footer {
   background: var(--gold-bright); box-shadow: 0 0 6px rgba(226, 165, 92, 0.65); margin-right: 7px; vertical-align: middle;
 }
 
+/* Forum sub-nav: Forum List / Active Topics / Bookmarks / My Topics / FAQ */
+.forum-subnav {
+  display: flex; align-items: center; gap: 26px; margin-bottom: 22px;
+  border-bottom: 1px solid var(--border); flex-wrap: wrap;
+}
+.forum-subnav-tab {
+  background: none; border: none; cursor: pointer; padding: 0 0 12px;
+  font-family: 'Cinzel', serif; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-faint); border-bottom: 2px solid transparent; margin-bottom: -1px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.forum-subnav-tab:hover { color: var(--text-dim); }
+.forum-subnav-tab.active { color: var(--gold-bright); border-bottom-color: var(--gold-bright); }
+
+/* Small board-name badge on cross-board topic rows (Active Topics,
+   Bookmarks, My Topics) so it's clear where each topic lives. */
+.topic-row-board-tag {
+  display: inline-block; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--text-faint); background: var(--panel-2); border: 1px solid var(--border-soft);
+  padding: 2px 7px; border-radius: 3px; margin-bottom: 0.4em;
+}
+
 /* Board back-button + heading, shared by topic-list and topic-detail views */
 .board-back {
   background: none; border: none; color: var(--text-faint); cursor: pointer; padding: 0;
