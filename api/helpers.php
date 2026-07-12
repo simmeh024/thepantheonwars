@@ -308,6 +308,58 @@ function pw_mask_ip($ip) {
     return $ip;
 }
 
+// Resolves an IP to a [country_code, country_name] pair for the Visitor
+// Statistics "Traffic by Country" card and the Recent Visits country tag.
+// Checks the ip_country_cache table first (an IP's country is looked up at
+// most once, ever); on a cache miss, calls the free ip-api.com lookup
+// (no key required, ~45 req/min limit -- fine given the cache) with a short
+// timeout so a slow/unreachable lookup can't meaningfully delay the
+// fire-and-forget track-visit.php beacon. Private/reserved/invalid IPs
+// (localhost, LAN testing, 'unknown') are never looked up and always
+// resolve to [null, null].
+function pw_resolve_country($ip) {
+    if (!$ip || !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+        return [null, null];
+    }
+
+    $db = pw_db();
+    $stmt = $db->prepare('SELECT country_code, country_name FROM ip_country_cache WHERE ip_address = ?');
+    $stmt->execute([$ip]);
+    $cached = $stmt->fetch();
+    if ($cached) {
+        return [$cached['country_code'], $cached['country_name']];
+    }
+
+    $code = null;
+    $name = null;
+    $ch = curl_init('http://ip-api.com/json/' . urlencode($ip) . '?fields=status,countryCode,country');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_TIMEOUT => 3,
+        CURLOPT_CONNECTTIMEOUT => 2,
+    ]);
+    $response = curl_exec($ch);
+    curl_close($ch);
+
+    if ($response !== false) {
+        $data = json_decode($response, true);
+        if (is_array($data) && ($data['status'] ?? null) === 'success') {
+            $code = isset($data['countryCode']) ? substr((string)$data['countryCode'], 0, 2) : null;
+            $name = isset($data['country']) ? substr((string)$data['country'], 0, 100) : null;
+        }
+    }
+
+    if ($code !== null) {
+        $insertStmt = $db->prepare(
+            'INSERT INTO ip_country_cache (ip_address, country_code, country_name) VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE country_code = VALUES(country_code), country_name = VALUES(country_name)'
+        );
+        $insertStmt->execute([$ip, $code, $name]);
+    }
+
+    return [$code, $name];
+}
+
 // --- Login attempt tracking -------------------------------------------------
 // Every login attempt (success or failure) is logged here, independent of
 // the per-account failed_login_attempts/locked_until columns on users. This

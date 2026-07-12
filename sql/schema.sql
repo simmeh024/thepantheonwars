@@ -299,11 +299,26 @@ CREATE TABLE IF NOT EXISTS page_views (
   visitor_id CHAR(36) NOT NULL,
   user_id INT UNSIGNED NULL,
   ip_address VARCHAR(64) NULL,
+  country_code CHAR(2) NULL,
+  country_name VARCHAR(100) NULL,
   user_agent VARCHAR(255) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_created_at (created_at),
   KEY idx_visitor_id (visitor_id),
   CONSTRAINT fk_page_views_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Per-IP cache of resolved country (via a free ip-api.com lookup in
+-- pw_resolve_country(), api/helpers.php) so the same visitor's IP is only
+-- looked up once ever, not on every page view. Keyed on the raw IP string
+-- (same format pw_client_ip() returns); never expired/refreshed since an
+-- IP's country essentially never changes for the lifetime of this cache's
+-- usefulness.
+CREATE TABLE IF NOT EXISTS ip_country_cache (
+  ip_address VARCHAR(64) PRIMARY KEY,
+  country_code CHAR(2) NULL,
+  country_name VARCHAR(100) NULL,
+  resolved_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Permanent one-row-per-day rollup of page_views, so the "visits over

@@ -40,17 +40,21 @@ if (!empty($input['referrer'])) {
 
 $user = pw_current_user();
 $userAgent = isset($_SERVER['HTTP_USER_AGENT']) ? substr($_SERVER['HTTP_USER_AGENT'], 0, 255) : null;
+$ip = pw_client_ip();
+list($countryCode, $countryName) = pw_resolve_country($ip);
 
 $stmt = pw_db()->prepare(
-    'INSERT INTO page_views (path, referrer_host, visitor_id, user_id, ip_address, user_agent)
-     VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO page_views (path, referrer_host, visitor_id, user_id, ip_address, country_code, country_name, user_agent)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
 );
 $stmt->execute([
     $path,
     $referrerHost,
     $visitorId,
     $user ? (int)$user['id'] : null,
-    pw_client_ip(),
+    $ip,
+    $countryCode,
+    $countryName,
     $userAgent,
 ]);
 

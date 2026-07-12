@@ -630,6 +630,18 @@
         </div>
       </div>
 
+      <div class="activity-widget">
+        <div class="activity-widget-head">
+          <div class="activity-widget-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>
+            <span>Traffic by Country</span>
+          </div>
+        </div>
+        <ul class="ranked-list" id="top-countries-list">
+          <li class="admin-list-empty">Loading&hellip;</li>
+        </ul>
+      </div>
+
       <div class="activity-widget visits-chart-card">
         <div class="activity-widget-head">
           <div class="activity-widget-title">
@@ -3651,6 +3663,14 @@
   var heatmapRangeSelectEl = document.getElementById('heatmap-range-select');
   var topPagesListEl = document.getElementById('top-pages-list');
   var topReferrersListEl = document.getElementById('top-referrers-list');
+  var topCountriesListEl = document.getElementById('top-countries-list');
+
+  function countryFlagEmoji(code) {
+    if (!code || code.length !== 2) return '';
+    var upper = code.toUpperCase();
+    var points = [upper.charCodeAt(0) + 127397, upper.charCodeAt(1) + 127397];
+    return String.fromCodePoint(points[0], points[1]);
+  }
   var vstatsRecentListEl = document.getElementById('vstats-recent-list');
   var vstatsRecentPaginationEl = document.getElementById('vstats-recent-pagination');
   var vstatsRecentCountEl = document.getElementById('vstats-recent-count');
@@ -3879,6 +3899,7 @@
       loadVisitorJourneys();
       loadTopPages();
       loadTopReferrers();
+      loadTopCountries();
     });
   }
 
@@ -3990,6 +4011,19 @@
       .catch(function () {});
   }
 
+  function loadTopCountries() {
+    fetch('/api/admin/visitor-stats/top-countries.php?range=' + vstatsChartRange + vstatsAdminQS('&'), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        var countries = (data.countries || []).map(function (c) {
+          return { display: (countryFlagEmoji(c.country_code) + ' ' + c.country_name).trim(), views: c.views };
+        });
+        renderRankedList(topCountriesListEl, countries, 'display', 'No country data recorded yet.');
+      })
+      .catch(function () {});
+  }
+
   function renderRecentVisits(entries) {
     vstatsRecentListEl.innerHTML = '';
     if (!entries.length) {
@@ -4002,11 +4036,14 @@
       var tag = entry.is_member
         ? '<span class="vstats-visit-tag vstats-visit-tag-member">' + escapeHtml(entry.member_name || 'Member') + '</span>'
         : '<span class="vstats-visit-tag vstats-visit-tag-guest">Guest</span>';
+      var countryLabel = (countryFlagEmoji(entry.country_code) + ' ' + (entry.country_name || 'Unknown')).trim();
       row.innerHTML =
         '<div class="admin-row-main">' +
           '<p class="admin-row-subject">' + escapeHtml(entry.path) + '</p>' +
           '<div class="admin-row-meta">' +
             tag +
+            '<span class="admin-row-sep">&bull;</span>' +
+            '<span>' + escapeHtml(countryLabel) + '</span>' +
             '<span class="admin-row-sep">&bull;</span>' +
             '<span>' + escapeHtml(entry.referrer_host || 'Direct / Internal') + '</span>' +
             '<span class="admin-row-sep">&bull;</span>' +
@@ -4086,6 +4123,7 @@
     loadHeatmap();
     loadTopPages();
     loadTopReferrers();
+    loadTopCountries();
     loadRecentVisits();
   }
 
