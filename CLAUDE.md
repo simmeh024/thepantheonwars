@@ -108,16 +108,27 @@ correct key (value lives only in the secrets config, not in git).
 
 ## Admin console conventions (`admin/index.html` -- single large file)
 
-- Sidebar categories: Lore Management (Book Control), Development Dispatches
-  (Dispatch Control, Dispatch Translations), Community (Members, Topic Reports),
-  System (System Status, Audit Log). Home is the default landing section.
+- Sidebar categories: **Lore Management** (Book Control, World Control, Overlord
+  Control), **Community** (Forum Control, Members, Topic Reports), **Development
+  Dispatches** (Dispatch Control, Dispatch Translations), **System** (System Status,
+  Audit Log). Home is the default landing section.
 - `showSection(name)` toggles `.admin-section` visibility; `loadedSections[name]`
   guards first-load-only data fetches. Auto-refresh timers (Home: 60s, System Status:
   60s) are wired separately in `showSection` (start/stop pattern gated by
   `document.hidden` so backgrounded tabs don't poll).
 - CRUD list/modal pattern: `.admin-toolbar` + `.admin-list` of `.admin-row` buttons +
   modal with `.admin-field` divs, Save/Cancel/Delete, `.admin-modal-error` /
-  `.admin-modal-status`.
+  `.admin-modal-status`. World Control nests three levels deep (world -> layers ->
+  landmarks/sublocations) using stacked `.admin-modal-over` modals; Overlord Control
+  is a flat single-level version of the same pattern with a world-picker `<select>`
+  (assignment lives on the Overlord record's `world_id`, not on the World record).
+- Shared `IMAGE_FIELDS` registry (in the admin JS) powers every image
+  upload/choose-from-library field across Book/World/Overlord Control -- one
+  upload+list endpoint pair per section (`api/admin/{books,worlds,overlords}/
+  upload-image.php` + `list-images.php`), each writing re-encoded JPGs into
+  `uploads/{book,world,overlord}-images/<subfolder>/` (committed `.htaccess` per
+  folder denying PHP execution). Register a new field by adding a key to
+  `IMAGE_FIELDS` and calling `wireImageField(key)`.
 - Avatar+role-ring CSS: `.profile-avatar-wrap` + `.role-member`/`.role-moderator`/
   `.role-admin` (colors: grey/green/red). Used on public member list, member-edit
   modal, and admin Members list rows (`.member-avatar-wrap` 40px variant).
@@ -127,15 +138,22 @@ correct key (value lives only in the secrets config, not in git).
   Status's CPU chart -- computes its own x/y pixel scale from real data ranges, builds
   the whole `<svg>...</svg>` as a template string, sets `.innerHTML` once per refresh).
   Match whichever pattern fits if you add another chart.
-- Cache-busting: `css/style.css?v=N` -- bump `N` and `sed -i` it across all 22 HTML
-  files whenever `css/style.css` changes. Current: v=94.
-- Same pattern, separate counter: `js/members.js?v=N` across the same 22 HTML files
-  whenever `js/members.js` changes. Current: v=5. Easy to miss since it's not
-  mentioned anywhere near the CSS one and .htaccess's no-cache headers only cover
-  `.html$` -- a stale cached members.js can silently serve old JS after a deploy
-  even though the HTML/CSS look right. Confirmed this the hard way: deployed a
-  members.js change, HEAD/Last-Deployed SHAs matched, but the live modal still ran
-  the old code until this version bump.
+- Cache-busting: `css/style.css?v=N` -- bump `N` and `sed -i` it across all 23 HTML
+  files (22 public + `admin/index.html`) whenever `css/style.css` changes. Current: v=142.
+- Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
+  headers only cover `.html$` -- a stale cached JS file can silently serve old code
+  after a deploy even though the HTML/CSS look right (confirmed the hard way more
+  than once): `js/members.js?v=N` (current: v=7) and `js/notifications.js?v=N`
+  (current: v=6), both across the 22 public pages (not admin).
+- **No shared JS module anywhere in this static site** -- BBCode rendering
+  (`formatBody()`/`escapeHtml()`) is hand-duplicated in `community.html` (canonical,
+  also owns the editor toolbar) and `member.html` (Recent Posts). A plain-text
+  variant, `stripBbcodePreview()`, is *also* duplicated in `profile.html`,
+  `notifications.html`, and `js/notifications.js` (nav-bell dropdown) for contexts
+  that echo comment text without ever rendering BBCode (it strips brackets to plain
+  text, but replaces `[spoiler]...[/spoiler]` with a `"(spoiler hidden)"` placeholder
+  rather than un-hiding it). Any new BBCode tag must be added to all of these in
+  lockstep or it'll show as literal bracket text somewhere.
 
 ## Verification checklist before every commit
 
@@ -158,6 +176,63 @@ correct key (value lives only in the secrets config, not in git).
 
 ## Recent history (most recent first)
 
+- **Forum sub-navigation**: added a persistent 5-tab strip above the forum (Forum
+  List / Active Topics / Bookmarks / My Topics / FAQ). New `topic_bookmarks` table +
+  `api/topics/bookmark.php` toggle (login required, no admin permission needed, same
+  trust level as `message_likes`). The bookmark toggle is exposed through the topic
+  kebab menu (`buildModMenu` in `community.html`) which was previously visible to
+  everyone but only ever did anything for moderators/admins -- Bookmark now renders
+  unconditionally for `ctx.kind === 'topic'`, ahead of the still-gated
+  Pin/Lock/Move/Edit/Delete block, so regular members finally get value from that
+  menu. Active Topics/Bookmarks/My Topics all reuse one cross-board row renderer
+  (`buildTopicRow(t, {showBoard: true})`) fed by three new endpoints
+  (`api/topics/active.php`, `mine.php`, `bookmarks.php`), each filtered through
+  `pw_can_see_board()` so a hidden board never leaks into a cross-board view.
+- **Forum graphical polish pass** (`community.html`/`css/style.css`, no backend
+  changes): gold/silver/bronze glow on leaderboard ranks #1-3; per-reaction-type
+  accent colors (Shard/Ward/Ember) + a click pulse animation; unified all forum SVG
+  icons to `stroke-width="1.6"`; a client-side-only "unread" dot on board/topic rows
+  driven by a `pw_forum_last_seen` localStorage timestamp (no server-side
+  read-tracking exists -- per-browser nicety only); skeleton/shimmer placeholder
+  rows for the board index and topic list while fetching; reskinned the `[spoiler]`
+  reveal button with an eye icon + Overcode-flavored copy; smoother mod-menu
+  dropdown open animation (slight overshoot); a divider in the editor toolbar
+  between the format group (B/I/U/C) and the insert group (Link/Img/Spoiler/color);
+  pinned topics get an actual gold chip instead of plain text; reply-thread
+  collapse/expand now animates instead of an instant `hidden`-attribute snap.
+- Added a `[spoiler]...[/spoiler]` BBCode tag, collapsed behind a click-to-reveal
+  button. Required editing every duplicate `formatBody()`/`stripBbcodePreview()` copy
+  listed above in lockstep -- a bug was caught mid-session where `profile.html`'s
+  Recent Comments and both notification-excerpt renderers would have shown a
+  spoiler's actual hidden text in a preview with no reveal-gate at all (fixed by
+  having `stripBbcodePreview()` replace spoiler content with a placeholder instead
+  of unwrapping it).
+- Admin Home page: added a "Total Lines of Code" tile (Development Snapshot card)
+  with a `+N today` delta, styled after the existing trend-arrow pattern on
+  `dev-metrics.html`. `api/admin/loc-stats.php` runs `git ls-files` (via `shell_exec`
+  against `/home/rdy3i6my40b0/repositories/thepantheonwars`, the actual cPanel Git
+  working copy -- same `shell_exec` pattern already proven for `du -sb`) and sums
+  line counts across tracked source files, snapshotting once per calendar day into a
+  new `loc_snapshots` table so the scan doesn't run on every Home page load.
+- **Overlord Control**: new `overlords` table + `worlds.overlord_id` FK, replacing
+  the free-text `worlds.overlord_name`/`overlord_title`/`overlord_page_slug` columns
+  (kept for now, not yet dropped -- see loose ends below) with a real relationship.
+  The six hand-authored `overlord-*.html` pages became one dynamic template
+  (`overlord.html?slug=...`, same `?id=`-style pattern as `member.html`); the six old
+  filenames are now meta-refresh redirect stubs so no inbound link broke. Full admin
+  CRUD mirrors World Control's endpoints. Fixed a stale `worlds.html#high-hammer-view`
+  anchor as a side effect of switching to a real join instead of hand-typed strings.
+- **World Control**: `worlds`/`world_layers`/`world_layer_sublocations`/
+  `world_landmarks` tables replacing hand-authored markup in `worlds.html` (now a
+  dynamic template + `js/worlds.js`). Three admin CRUD levels (world -> layers ->
+  landmarks), an 8-color `tint_key` palette replacing one-off per-layer CSS classes.
+  Added a `world_available` notification type, broadcast on a world's status
+  transition into `available` (never on every save), with a per-user opt-out
+  preference.
+- **Forum Control**: `forum_boards`/`forum_board_roles` tables replacing hardcoded
+  board arrays in `community.html` and the API layer -- boards are now fully
+  admin-managed (name/description/icon/visibility/order), with hidden boards scoped
+  to specific roles via `pw_can_see_board()`.
 - Fixed Total Storage metric twice in a row post-deploy (see "Server introspection
   notes" above) -- first showed `undefined MB` (field-name mismatch with the shared
   `setAvatarStorageBar()` renderer, which expects `used_mb`/`max_mb` not `used_gb`/
@@ -168,9 +243,6 @@ correct key (value lives only in the secrets config, not in git).
   count) and expanded the Database card (connections, QPS, slow queries, uptime,
   buffer pool hit ratio, threads running, largest-tables list with collation-mismatch
   flagging). Fixed the `books` table's collation bug found via that research.
-- Reordered System Status cards: Database and Storage are paired side-by-side again
-  (a wide CPU card inserted between them had orphaned Storage onto its own row --
-  fixed by moving Storage back next to Database and putting CPU last).
 - Members admin section: avatar+role-ring in list rows (removed bare `@username`
   text), Generate Password button (14-char CSPRNG password, reveal-once UI, never
   logged in plaintext).
@@ -182,6 +254,12 @@ correct key (value lives only in the secrets config, not in git).
 
 ## Known non-blocking loose ends
 
+- `worlds.overlord_name`, `overlord_title`, and `overlord_page_slug` are unused dead
+  columns now (Overlord Control replaced them with a real `overlords` table +
+  `worlds.overlord_id` FK) but haven't been dropped yet -- planned as a short
+  follow-up migration once the cutover has been stable for a while, same two-step
+  caution already used for the `books` collation fix. Not urgent; nothing reads or
+  writes them anymore.
 - Two member accounts ("Josh" and "Cibit") had their passwords silently reset during
   an earlier live-verification session (a stuck `window.confirm()` dialog forced a
   page navigation mid-flow, and the Generate Password action had already fired before
