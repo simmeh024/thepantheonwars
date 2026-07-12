@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=144">
+<link rel="stylesheet" href="../css/style.css?v=145">
 </head>
 <body>
 
@@ -579,32 +579,46 @@
       </div>
 
       <div class="admin-home-grid vstats-top-grid">
-        <div class="activity-widget traffic-snapshot-card admin-home-grid-half">
-          <div class="activity-widget-head">
-            <div class="activity-widget-title">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
-              <span>Traffic Snapshot</span>
+        <div class="vstats-top-grid-col admin-home-grid-half">
+          <div class="activity-widget traffic-snapshot-card">
+            <div class="activity-widget-head">
+              <div class="activity-widget-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+                <span>Traffic Snapshot</span>
+              </div>
+            </div>
+            <div class="traffic-snapshot-grid" id="traffic-snapshot-grid">
+              <div class="traffic-snapshot-col">
+                <h3>Today</h3>
+                <div class="site-stat"><div class="site-stat-value" id="vstats-today-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
+                <div class="site-stat"><div class="site-stat-value" id="vstats-today-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
+                <div class="site-stat"><div class="site-stat-value" id="vstats-today-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
+              </div>
+              <div class="traffic-snapshot-col">
+                <h3>Last 7 Days</h3>
+                <div class="site-stat"><div class="site-stat-value" id="vstats-7d-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
+                <div class="site-stat"><div class="site-stat-value" id="vstats-7d-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
+                <div class="site-stat"><div class="site-stat-value" id="vstats-7d-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
+              </div>
+              <div class="traffic-snapshot-col">
+                <h3>Last 30 Days</h3>
+                <div class="site-stat"><div class="site-stat-value" id="vstats-30d-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
+                <div class="site-stat"><div class="site-stat-value" id="vstats-30d-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
+                <div class="site-stat"><div class="site-stat-value" id="vstats-30d-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
+              </div>
             </div>
           </div>
-          <div class="traffic-snapshot-grid" id="traffic-snapshot-grid">
-            <div class="traffic-snapshot-col">
-              <h3>Today</h3>
-              <div class="site-stat"><div class="site-stat-value" id="vstats-today-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
-              <div class="site-stat"><div class="site-stat-value" id="vstats-today-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
-              <div class="site-stat"><div class="site-stat-value" id="vstats-today-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
+
+          <div class="activity-widget">
+            <div class="activity-widget-head">
+              <div class="activity-widget-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>
+                <span>Traffic by Country</span>
+              </div>
             </div>
-            <div class="traffic-snapshot-col">
-              <h3>Last 7 Days</h3>
-              <div class="site-stat"><div class="site-stat-value" id="vstats-7d-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
-              <div class="site-stat"><div class="site-stat-value" id="vstats-7d-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
-              <div class="site-stat"><div class="site-stat-value" id="vstats-7d-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
-            </div>
-            <div class="traffic-snapshot-col">
-              <h3>Last 30 Days</h3>
-              <div class="site-stat"><div class="site-stat-value" id="vstats-30d-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
-              <div class="site-stat"><div class="site-stat-value" id="vstats-30d-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
-              <div class="site-stat"><div class="site-stat-value" id="vstats-30d-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
-            </div>
+            <ul class="ranked-list" id="top-countries-list">
+              <li class="admin-list-empty">Loading&hellip;</li>
+            </ul>
           </div>
         </div>
 
@@ -628,18 +642,6 @@
           </div>
           <div class="heatmap-legend" id="heatmap-legend"></div>
         </div>
-      </div>
-
-      <div class="activity-widget">
-        <div class="activity-widget-head">
-          <div class="activity-widget-title">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>
-            <span>Traffic by Country</span>
-          </div>
-        </div>
-        <ul class="ranked-list" id="top-countries-list">
-          <li class="admin-list-empty">Loading&hellip;</li>
-        </ul>
       </div>
 
       <div class="activity-widget visits-chart-card">

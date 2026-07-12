@@ -4789,7 +4789,7 @@ footer.site-footer {
   .visitor-journey-wrap { padding-left: 6px; padding-right: 6px; }
 }
 .vstats-top-grid { margin-bottom: 20px; }
-.vstats-top-grid .traffic-snapshot-card { flex: 1 1 380px; }
+.vstats-top-grid-col { flex: 1 1 380px; display: flex; flex-direction: column; gap: 20px; }
 .vstats-top-grid .heatmap-card { flex: 1 1 480px; }
 .traffic-snapshot-grid { display: flex; flex-wrap: wrap; gap: 26px; padding: 18px 20px; }
 .traffic-snapshot-col { display: flex; flex-direction: column; gap: 10px; min-width: 150px; }
