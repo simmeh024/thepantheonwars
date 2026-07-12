@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=140">
+<link rel="stylesheet" href="css/style.css?v=141">
 </head>
 <body>
 
@@ -371,7 +371,9 @@
     // [spoiler]text[/spoiler] -- collapsed behind a click-to-reveal button so
     // spoiler-averse readers can scroll past without seeing it by accident.
     s = s.replace(/\[spoiler\]([\s\S]*?)\[\/spoiler\]/gi, function (m, inner) {
-      return '<div class="comment-spoiler"><button type="button" class="comment-spoiler-toggle" onclick="var box=this.parentNode;box.classList.toggle(\'is-revealed\');this.textContent=box.classList.contains(\'is-revealed\')?\'Hide spoiler\':\'Show spoiler\';">Show spoiler</button><div class="comment-spoiler-content">' + inner + '</div></div>';
+      return '<div class="comment-spoiler"><button type="button" class="comment-spoiler-toggle" onclick="var box=this.parentNode;box.classList.toggle(\'is-revealed\');this.querySelector(\'.comment-spoiler-label-text\').textContent=box.classList.contains(\'is-revealed\')?\'Suppress again\':\'Reveal suppressed text\';">' +
+        '<span class="comment-spoiler-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>' +
+        '<span class="comment-spoiler-label-text">Reveal suppressed text</span></button><div class="comment-spoiler-content">' + inner + '</div></div>';
     });
     s = s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>');
     s = s.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<em>$1</em>');
@@ -456,10 +458,18 @@
       return btn;
     }
 
+    function addDivider() {
+      var divider = document.createElement('span');
+      divider.className = 'editor-toolbar-divider';
+      bar.appendChild(divider);
+    }
+
     makeBtn('B', 'Bold', function () { wrapSelection('[b]', '[/b]', 'bold text'); });
     makeBtn('I', 'Italic', function () { wrapSelection('[i]', '[/i]', 'italic text'); });
     makeBtn('U', 'Underline', function () { wrapSelection('[u]', '[/u]', 'underlined text'); });
     makeBtn('C', 'Code', function () { wrapSelection('[c]', '[/c]', 'code'); });
+
+    addDivider();
 
     makeBtn('Link', 'Insert link (URL only)', function () {
       var start = textarea.selectionStart;
@@ -482,6 +492,8 @@
     });
 
     makeBtn('Spoiler', 'Spoiler tag', function () { wrapSelection('[spoiler]', '[/spoiler]', 'spoiler text'); });
+
+    addDivider();
 
     var colorWrap = document.createElement('label');
     colorWrap.className = 'editor-color-btn';
@@ -749,6 +761,56 @@
     return null;
   }
 
+  // ---------- Unread indicators (client-side only, localStorage) ----------
+  // No server-side read-tracking exists, so "unread" here just means "this
+  // board/topic has activity newer than the last time this browser opened
+  // it" -- purely a visual nicety, not authoritative across devices.
+  var SEEN_STORAGE_KEY = 'pw_forum_last_seen';
+
+  function loadSeenStore() {
+    try {
+      return JSON.parse(window.localStorage.getItem(SEEN_STORAGE_KEY)) || { boards: {}, topics: {} };
+    } catch (e) {
+      return { boards: {}, topics: {} };
+    }
+  }
+
+  function markBoardSeen(slug) {
+    try {
+      var store = loadSeenStore();
+      store.boards[slug] = Date.now();
+      window.localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(store));
+    } catch (e) { /* localStorage unavailable (private mode, etc.) -- fine, just skip */ }
+  }
+
+  function markTopicSeen(id) {
+    try {
+      var store = loadSeenStore();
+      store.topics[id] = Date.now();
+      window.localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(store));
+    } catch (e) { /* localStorage unavailable (private mode, etc.) -- fine, just skip */ }
+  }
+
+  function isBoardUnread(slug, latestIso) {
+    if (!latestIso) return false;
+    var seen = loadSeenStore().boards[slug];
+    if (!seen) return true;
+    var latestMs = new Date(latestIso.replace(' ', 'T') + 'Z').getTime();
+    return !isNaN(latestMs) && latestMs > seen;
+  }
+
+  function isTopicUnread(id, lastActivityIso) {
+    if (!lastActivityIso) return false;
+    var seen = loadSeenStore().topics[id];
+    if (!seen) return true;
+    var latestMs = new Date(lastActivityIso.replace(' ', 'T') + 'Z').getTime();
+    return !isNaN(latestMs) && latestMs > seen;
+  }
+
+  function unreadDotHtml() {
+    return '<span class="unread-dot" aria-hidden="true"></span>';
+  }
+
   function fmtTime(iso) {
     var d = new Date(iso.replace(' ', 'T') + 'Z');
     if (isNaN(d.getTime())) return iso;
@@ -768,6 +830,18 @@
 
   // ---------- Board index (forum home) ----------
 
+  function skeletonRow() {
+    var row = document.createElement('div');
+    row.className = 'skeleton-row';
+    row.innerHTML =
+      '<span class="skeleton-line skeleton-avatar"></span>' +
+      '<span class="skeleton-lines">' +
+        '<span class="skeleton-line w-40"></span>' +
+        '<span class="skeleton-line w-60"></span>' +
+      '</span>';
+    return row;
+  }
+
   function loadBoardIndex() {
     boardIndexEl.innerHTML = '';
 
@@ -780,7 +854,12 @@
       '<span class="board-index-col-latest">Latest Post</span>';
     boardIndexEl.appendChild(head);
 
+    var skeletonWrap = document.createElement('div');
+    for (var i = 0; i < 4; i++) skeletonWrap.appendChild(skeletonRow());
+    boardIndexEl.appendChild(skeletonWrap);
+
     loadBoardsMeta().then(function (data) {
+      skeletonWrap.remove();
       var stats = (data.ok && data.boards) ? data.boards : {};
       BOARDS.forEach(function (b) {
         boardIndexEl.appendChild(buildBoardRow(b, stats[b.slug]));
@@ -794,10 +873,11 @@
 
     var forumCell = document.createElement('div');
     forumCell.className = 'board-index-forum';
+    var boardUnread = stat && stat.latest && isBoardUnread(b.slug, stat.latest.created_at);
     forumCell.innerHTML =
       '<span class="board-index-icon">' + b.icon + '</span>' +
       '<span class="board-index-text">' +
-        '<span class="board-index-title">' + b.name + '</span>' +
+        '<span class="board-index-title">' + (boardUnread ? unreadDotHtml() : '') + b.name + '</span>' +
         '<span class="board-index-desc"></span>' +
       '</span>';
     forumCell.querySelector('.board-index-desc').textContent = b.desc;
@@ -878,9 +958,13 @@
     showView('list');
     syncTopicListGate();
     loadTopics();
+    markBoardSeen(slug);
   }
 
   function loadTopics() {
+    topicListEl.innerHTML = '';
+    for (var i = 0; i < 4; i++) topicListEl.appendChild(skeletonRow());
+
     fetch('/api/topics/list.php?board=' + encodeURIComponent(currentBoard), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -923,7 +1007,13 @@
 
     var title = document.createElement('div');
     title.className = 'topic-row-title';
-    title.textContent = t.title;
+    if (isTopicUnread(t.id, t.last_activity)) {
+      var dot = document.createElement('span');
+      dot.className = 'unread-dot';
+      dot.setAttribute('aria-hidden', 'true');
+      title.appendChild(dot);
+    }
+    title.appendChild(document.createTextNode(t.title));
     topicCell.appendChild(title);
     row.appendChild(topicCell);
 
@@ -996,6 +1086,7 @@
     currentTopicId = topicId;
     showView('detail');
     loadTopicDetail();
+    markTopicSeen(topicId);
   }
 
   function loadTopicDetail() {
@@ -1324,11 +1415,16 @@
       btn.type = 'button';
       var count = (c.reactions && c.reactions[r.type]) || 0;
       var isActive = c.myReaction === r.type;
-      btn.className = 'reaction-btn' + (isActive ? ' active' : '');
+      btn.className = 'reaction-btn reaction-btn--' + r.type + (isActive ? ' active' : '');
       btn.innerHTML = r.icon + '<span class="reaction-count">' + count + '</span>';
       btn.setAttribute('aria-label', r.label);
       btn.setAttribute('title', r.label);
-      btn.addEventListener('click', requireLoginOrRun(function () { sendReaction(c.id, r.type, btn); }));
+      btn.addEventListener('click', requireLoginOrRun(function () {
+        btn.classList.remove('is-pulsing');
+        void btn.offsetWidth; // restart the animation if clicked again quickly
+        btn.classList.add('is-pulsing');
+        sendReaction(c.id, r.type, btn);
+      }));
       bar.appendChild(btn);
     });
     return bar;
@@ -1358,8 +1454,8 @@
 
   var MSG_ICONS = {
     quote: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.17 6.1C4.9 8 3.5 10.5 3.5 13.2c0 2.6 1.7 4.4 3.9 4.4 1.9 0 3.3-1.4 3.3-3.2 0-1.7-1.2-3-2.8-3-.3 0-.6 0-.8.1.3-1.6 1.5-3.2 3.1-4.3L7.17 6.1zm9 0c-2.3 1.9-3.7 4.4-3.7 7.1 0 2.6 1.7 4.4 3.9 4.4 1.9 0 3.3-1.4 3.3-3.2 0-1.7-1.2-3-2.8-3-.3 0-.6 0-.8.1.3-1.6 1.5-3.2 3.1-4.3L16.17 6.1z"/></svg>',
-    like: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11v9H4v-9h3z"/><path d="M7 11l3.4-6.8c.9 0 2.1.7 2.1 2.3V9h4.7c1.1 0 1.8.9 1.6 1.9l-1.2 5.8c-.2 1-1.1 1.7-2.1 1.7H7"/></svg>',
-    report: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="7.5" x2="12" y2="13"/><line x1="12" y1="16.3" x2="12" y2="16.4"/></svg>'
+    like: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M7 11v9H4v-9h3z"/><path d="M7 11l3.4-6.8c.9 0 2.1.7 2.1 2.3V9h4.7c1.1 0 1.8.9 1.6 1.9l-1.2 5.8c-.2 1-1.1 1.7-2.1 1.7H7"/></svg>',
+    report: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><line x1="12" y1="7.5" x2="12" y2="13"/><line x1="12" y1="16.3" x2="12" y2="16.4"/></svg>'
   };
 
   // "<Name> wrote on <full weekday> <day> <month> <year> @ <H:MM>:" -- used
@@ -1794,8 +1890,8 @@
       var collapsed = false;
       toggleRow.addEventListener('click', function () {
         collapsed = !collapsed;
-        line.hidden = collapsed;
-        childrenWrap.hidden = collapsed;
+        line.classList.toggle('is-collapsed', collapsed);
+        childrenWrap.classList.toggle('is-collapsed', collapsed);
         dot.textContent = collapsed ? '+' : '−';
         label.textContent = (collapsed ? 'Show ' : 'Hide ') + children.length + replyWord;
       });
@@ -1898,7 +1994,7 @@
           item.className = 'leaderboard-item';
 
           var rank = document.createElement('span');
-          rank.className = 'leaderboard-rank';
+          rank.className = 'leaderboard-rank' + (i < 3 ? ' rank-' + (i + 1) : '');
           rank.textContent = '#' + (i + 1);
           item.appendChild(rank);
 
@@ -1950,7 +2046,7 @@
           item.className = 'leaderboard-item';
 
           var rank = document.createElement('span');
-          rank.className = 'leaderboard-rank';
+          rank.className = 'leaderboard-rank' + (i < 3 ? ' rank-' + (i + 1) : '');
           rank.textContent = '#' + (i + 1);
           item.appendChild(rank);
 

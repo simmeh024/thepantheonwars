@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/style.css?v=140">
+<link rel="stylesheet" href="css/style.css?v=141">
 </head>
 <body>
 
@@ -201,7 +201,9 @@
     });
     s = s.replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, '<blockquote class="comment-quote">$1</blockquote>');
     s = s.replace(/\[spoiler\]([\s\S]*?)\[\/spoiler\]/gi, function (m, inner) {
-      return '<div class="comment-spoiler"><button type="button" class="comment-spoiler-toggle" onclick="var box=this.parentNode;box.classList.toggle(\'is-revealed\');this.textContent=box.classList.contains(\'is-revealed\')?\'Hide spoiler\':\'Show spoiler\';">Show spoiler</button><div class="comment-spoiler-content">' + inner + '</div></div>';
+      return '<div class="comment-spoiler"><button type="button" class="comment-spoiler-toggle" onclick="var box=this.parentNode;box.classList.toggle(\'is-revealed\');this.querySelector(\'.comment-spoiler-label-text\').textContent=box.classList.contains(\'is-revealed\')?\'Suppress again\':\'Reveal suppressed text\';">' +
+        '<span class="comment-spoiler-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>' +
+        '<span class="comment-spoiler-label-text">Reveal suppressed text</span></button><div class="comment-spoiler-content">' + inner + '</div></div>';
     });
     s = s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>');
     s = s.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<em>$1</em>');
