@@ -309,12 +309,21 @@ CREATE TABLE IF NOT EXISTS page_views (
 -- Permanent one-row-per-day rollup of page_views, so the "visits over
 -- time" chart can show long-range trends without the raw table above
 -- growing unbounded.
+-- total_views_excl_admin/unique_visitors_excl_admin/member_views_excl_admin
+-- back the Visitor Statistics page's "Include admin traffic" setting
+-- (default off): a parallel set of totals computed the same way but with
+-- any page view attributed to a superuser-role user removed. guest_views
+-- needs no excl_admin twin -- a superuser must be logged in to be
+-- identified as one, so admin views are always a subset of member_views.
 CREATE TABLE IF NOT EXISTS page_view_daily_stats (
   stat_date DATE PRIMARY KEY,
   total_views INT UNSIGNED NOT NULL DEFAULT 0,
   unique_visitors INT UNSIGNED NOT NULL DEFAULT 0,
   member_views INT UNSIGNED NOT NULL DEFAULT 0,
-  guest_views INT UNSIGNED NOT NULL DEFAULT 0
+  guest_views INT UNSIGNED NOT NULL DEFAULT 0,
+  total_views_excl_admin INT UNSIGNED NOT NULL DEFAULT 0,
+  unique_visitors_excl_admin INT UNSIGNED NOT NULL DEFAULT 0,
+  member_views_excl_admin INT UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Public-site notification system: one row per notification, covering all

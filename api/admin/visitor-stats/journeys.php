@@ -18,6 +18,9 @@ if (!in_array($range, [7, 30, 90], true)) {
     $range = 30;
 }
 
+$includeAdmin = isset($_GET['include_admin']) && $_GET['include_admin'] === '1';
+$adminFilterSql = $includeAdmin ? '1=1' : pw_admin_view_filter_sql();
+
 $stmt = $db->prepare(
     "SELECT from_path, to_path, COUNT(*) AS transitions
      FROM (
@@ -26,7 +29,7 @@ $stmt = $db->prepare(
               LEAD(path) OVER (PARTITION BY visitor_id ORDER BY created_at, id) AS to_path,
               LEAD(created_at) OVER (PARTITION BY visitor_id ORDER BY created_at, id) AS to_at
        FROM page_views
-       WHERE created_at >= (UTC_TIMESTAMP() - INTERVAL ? DAY)
+       WHERE created_at >= (UTC_TIMESTAMP() - INTERVAL ? DAY) AND $adminFilterSql
      ) AS visit_sequence
      WHERE to_path IS NOT NULL
        AND from_path <> to_path
@@ -45,4 +48,4 @@ $transitions = array_map(function ($row) {
     ];
 }, $stmt->fetchAll());
 
-pw_json(['ok' => true, 'range' => $range, 'transitions' => $transitions]);
+pw_json(['ok' => true, 'range' => $range, 'include_admin' => $includeAdmin, 'transitions' => $transitions]);

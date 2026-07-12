@@ -27,13 +27,30 @@ if (!defined('CRON_SAMPLE_KEY') || CRON_SAMPLE_KEY === '' || !hash_equals(CRON_S
 
 $db = pw_db();
 
+// admin_ids: superuser (any is_superuser role, not just the literal 'admin'
+// slug) user ids, computed once and reused in the two admin-excluded
+// aggregates below -- same definition as pw_admin_view_filter_sql() in
+// helpers.php, duplicated here since this cron endpoint deliberately
+// doesn't load helpers.php (see file-level comment).
+$adminIdsSql = "(SELECT u.id FROM users u
+                 LEFT JOIN user_roles ur ON ur.user_id = u.id
+                 LEFT JOIN roles r1 ON r1.slug = u.role
+                 LEFT JOIN roles r2 ON r2.slug = ur.role_slug
+                 WHERE r1.is_superuser = 1 OR r2.is_superuser = 1)";
+
 $rolledUp = $db->exec(
-    "INSERT INTO page_view_daily_stats (stat_date, total_views, unique_visitors, member_views, guest_views)
+    "INSERT INTO page_view_daily_stats (
+        stat_date, total_views, unique_visitors, member_views, guest_views,
+        total_views_excl_admin, unique_visitors_excl_admin, member_views_excl_admin
+     )
      SELECT DATE(created_at) AS stat_date,
             COUNT(*),
             COUNT(DISTINCT visitor_id),
             SUM(CASE WHEN user_id IS NOT NULL THEN 1 ELSE 0 END),
-            SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END)
+            SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END),
+            SUM(CASE WHEN user_id IS NULL OR user_id NOT IN $adminIdsSql THEN 1 ELSE 0 END),
+            COUNT(DISTINCT CASE WHEN user_id IS NULL OR user_id NOT IN $adminIdsSql THEN visitor_id END),
+            SUM(CASE WHEN user_id IS NOT NULL AND user_id NOT IN $adminIdsSql THEN 1 ELSE 0 END)
      FROM page_views
      WHERE created_at < UTC_DATE()
      GROUP BY DATE(created_at)
@@ -41,7 +58,10 @@ $rolledUp = $db->exec(
        total_views = VALUES(total_views),
        unique_visitors = VALUES(unique_visitors),
        member_views = VALUES(member_views),
-       guest_views = VALUES(guest_views)"
+       guest_views = VALUES(guest_views),
+       total_views_excl_admin = VALUES(total_views_excl_admin),
+       unique_visitors_excl_admin = VALUES(unique_visitors_excl_admin),
+       member_views_excl_admin = VALUES(member_views_excl_admin)"
 );
 
 $pruned = $db->exec('DELETE FROM page_views WHERE created_at < (UTC_TIMESTAMP() - INTERVAL 90 DAY)');

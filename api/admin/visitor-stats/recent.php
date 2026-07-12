@@ -23,7 +23,10 @@ if ($perPage > 100) {
     $perPage = 100;
 }
 
-$total = (int)$db->query('SELECT COUNT(*) AS c FROM page_views')->fetch()['c'];
+$includeAdmin = isset($_GET['include_admin']) && $_GET['include_admin'] === '1';
+$adminFilterSql = $includeAdmin ? '1=1' : pw_admin_view_filter_sql('pv');
+
+$total = (int)$db->query("SELECT COUNT(*) AS c FROM page_views pv WHERE $adminFilterSql")->fetch()['c'];
 $totalPages = $total > 0 ? (int)ceil($total / $perPage) : 1;
 if ($page > $totalPages) {
     $page = $totalPages;
@@ -35,6 +38,7 @@ $stmt = $db->prepare(
             pv.user_id, u.username, u.display_name
      FROM page_views pv
      LEFT JOIN users u ON u.id = pv.user_id
+     WHERE $adminFilterSql
      ORDER BY pv.created_at DESC, pv.id DESC
      LIMIT :limit OFFSET :offset"
 );
@@ -56,6 +60,7 @@ $out = array_map(function ($r) use ($canViewIp) {
 
 pw_json([
     'ok' => true,
+    'include_admin' => $includeAdmin,
     'entries' => $out,
     'page' => $page,
     'per_page' => $perPage,

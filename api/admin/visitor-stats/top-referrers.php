@@ -15,6 +15,9 @@ if (!in_array($range, [7, 30, 90], true)) {
     $range = 30;
 }
 
+$includeAdmin = isset($_GET['include_admin']) && $_GET['include_admin'] === '1';
+$adminFilterSql = $includeAdmin ? '1=1' : pw_admin_view_filter_sql();
+
 $stmt = $db->prepare(
     "SELECT
         CASE
@@ -24,7 +27,7 @@ $stmt = $db->prepare(
         END AS host,
         COUNT(*) AS views
      FROM page_views
-     WHERE created_at >= (UTC_TIMESTAMP() - INTERVAL ? DAY)
+     WHERE created_at >= (UTC_TIMESTAMP() - INTERVAL ? DAY) AND $adminFilterSql
      GROUP BY host
      ORDER BY views DESC
      LIMIT 10"
@@ -34,4 +37,4 @@ $rows = array_map(function ($r) {
     return ['host' => $r['host'] !== null ? $r['host'] : 'Direct / Internal', 'views' => (int)$r['views']];
 }, $stmt->fetchAll());
 
-pw_json(['ok' => true, 'range' => $range, 'referrers' => $rows]);
+pw_json(['ok' => true, 'range' => $range, 'include_admin' => $includeAdmin, 'referrers' => $rows]);

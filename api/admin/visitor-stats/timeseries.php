@@ -16,8 +16,14 @@ if (!in_array($range, [7, 30, 90], true)) {
     $range = 30;
 }
 
+$includeAdmin = isset($_GET['include_admin']) && $_GET['include_admin'] === '1';
+$totalCol = $includeAdmin ? 'total_views' : 'total_views_excl_admin';
+$uniqueCol = $includeAdmin ? 'unique_visitors' : 'unique_visitors_excl_admin';
+$memberCol = $includeAdmin ? 'member_views' : 'member_views_excl_admin';
+
 $stmt = $db->prepare(
-    "SELECT stat_date, total_views, unique_visitors, member_views, guest_views
+    "SELECT stat_date, $totalCol AS total_views, $uniqueCol AS unique_visitors,
+            $memberCol AS member_views, guest_views
      FROM page_view_daily_stats
      WHERE stat_date >= (UTC_DATE() - INTERVAL ? DAY) AND stat_date < UTC_DATE()
      ORDER BY stat_date ASC"
@@ -33,13 +39,14 @@ $points = array_map(function ($r) {
     ];
 }, $stmt->fetchAll());
 
+$adminFilterSql = $includeAdmin ? '1=1' : pw_admin_view_filter_sql();
 $todayStmt = $db->prepare(
     "SELECT COUNT(*) AS total,
             COUNT(DISTINCT visitor_id) AS unique_visitors,
             SUM(CASE WHEN user_id IS NOT NULL THEN 1 ELSE 0 END) AS member_views,
             SUM(CASE WHEN user_id IS NULL THEN 1 ELSE 0 END) AS guest_views
      FROM page_views
-     WHERE created_at >= UTC_DATE()"
+     WHERE created_at >= UTC_DATE() AND $adminFilterSql"
 );
 $todayStmt->execute();
 $today = $todayStmt->fetch();
@@ -51,4 +58,4 @@ $points[] = [
     'guest_views' => (int)$today['guest_views'],
 ];
 
-pw_json(['ok' => true, 'range' => $range, 'points' => $points]);
+pw_json(['ok' => true, 'range' => $range, 'include_admin' => $includeAdmin, 'points' => $points]);

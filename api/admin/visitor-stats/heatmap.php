@@ -26,6 +26,10 @@ if ($range === 'year') {
     $range = (string)$days;
 }
 
+$includeAdmin = isset($_GET['include_admin']) && $_GET['include_admin'] === '1';
+$adminFilterSql = $includeAdmin ? '1=1' : pw_admin_view_filter_sql();
+$whereSql .= " AND $adminFilterSql";
+
 $stmt = $db->prepare(
     "SELECT (DAYOFWEEK(created_at) - 1) AS weekday, HOUR(created_at) AS hour,
             COUNT(DISTINCT visitor_id) AS unique_visitors
@@ -49,4 +53,4 @@ foreach ($stmt->fetchAll() as $r) {
     }
 }
 
-pw_json(['ok' => true, 'range' => $range, 'max' => $max, 'cells' => $cells]);
+pw_json(['ok' => true, 'range' => $range, 'include_admin' => $includeAdmin, 'max' => $max, 'cells' => $cells]);

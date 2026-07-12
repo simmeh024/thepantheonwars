@@ -226,6 +226,23 @@ function pw_can_see_board($user, $board) {
     return (bool)$stmt->fetch();
 }
 
+// Visitor Statistics admin page: excludes page views attributed to a
+// superuser (any role with is_superuser = 1, not just the literal 'admin'
+// slug -- matches the same definition pw_user_permissions()/pw_can_see_board()
+// use) unless the admin viewing the page has opted back in via the page's
+// settings menu. $alias is the page_views table alias used in the calling
+// query (defaults to no alias for queries that don't need one).
+function pw_admin_view_filter_sql($alias = '') {
+    $col = $alias === '' ? 'user_id' : "$alias.user_id";
+    return "($col IS NULL OR $col NOT IN ("
+        . "SELECT u.id FROM users u "
+        . "LEFT JOIN user_roles ur ON ur.user_id = u.id "
+        . "LEFT JOIN roles r1 ON r1.slug = u.role "
+        . "LEFT JOIN roles r2 ON r2.slug = ur.role_slug "
+        . "WHERE r1.is_superuser = 1 OR r2.is_superuser = 1"
+        . "))";
+}
+
 // Shared lookup for the topics endpoints (create/list/get/move) that all
 // need to resolve a board slug to a real forum_boards row before allowing
 // an action against it.

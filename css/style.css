@@ -4834,6 +4834,27 @@ footer.site-footer {
 .admin-section-subhead { margin: 24px 0 16px; }
 .admin-section-subhead h2 { font-family: 'Cinzel', serif; font-size: 1.05rem; margin: 0; color: var(--text); }
 
+.vstats-section-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.vstats-settings { position: relative; flex-shrink: 0; }
+.vstats-settings-btn {
+  background: none; border: 1px solid var(--border-soft); border-radius: 6px; cursor: pointer;
+  color: var(--text-faint); padding: 7px; display: flex; align-items: center; justify-content: center;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.vstats-settings-btn svg { width: 17px; height: 17px; }
+.vstats-settings-btn:hover, .vstats-settings-btn[aria-expanded="true"] { color: var(--gold-bright); border-color: var(--purple-bright); }
+.vstats-settings-panel {
+  position: absolute; top: 100%; right: 0; margin-top: 8px; width: 260px;
+  background: var(--bg-alt); border: 1px solid var(--border-soft);
+  box-shadow: 0 14px 30px rgba(0,0,0,0.45); border-radius: 8px; padding: 14px 16px; z-index: 20;
+}
+.vstats-settings-option {
+  display: flex; align-items: center; gap: 9px; cursor: pointer;
+  font-size: 0.86rem; color: var(--text);
+}
+.vstats-settings-option input { width: 15px; height: 15px; accent-color: var(--purple-bright); cursor: pointer; }
+.vstats-settings-note { margin: 8px 0 0; font-size: 0.74rem; color: var(--text-faint); line-height: 1.4; }
+
 .vstats-visit-tag {
   display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 20px;
   font-size: 0.68rem; font-weight: 600;

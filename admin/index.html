@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=143">
+<link rel="stylesheet" href="../css/style.css?v=144">
 </head>
 <body>
 
@@ -559,9 +559,23 @@
     </section>
 
     <section class="admin-section" id="section-visitor-stats" hidden>
-      <div class="admin-section-head">
-        <h1>Visitor Statistics</h1>
-        <p>Page-view traffic across the public site &mdash; totals, trends over time, top pages/referrers, and a raw recent-visits feed.</p>
+      <div class="admin-section-head vstats-section-head">
+        <div>
+          <h1>Visitor Statistics</h1>
+          <p>Page-view traffic across the public site &mdash; totals, trends over time, top pages/referrers, and a raw recent-visits feed.</p>
+        </div>
+        <div class="vstats-settings">
+          <button type="button" class="vstats-settings-btn" id="vstats-settings-btn" aria-expanded="false" aria-label="Visitor statistics settings">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+          <div class="vstats-settings-panel" id="vstats-settings-panel" hidden>
+            <label class="vstats-settings-option">
+              <input type="checkbox" id="vstats-include-admin-toggle">
+              <span>Include admin traffic</span>
+            </label>
+            <p class="vstats-settings-note">Off by default so admin/staff page views don&rsquo;t skew totals, trends, and top lists below.</p>
+          </div>
+        </div>
       </div>
 
       <div class="admin-home-grid vstats-top-grid">
@@ -3645,8 +3659,43 @@
   var vstatsChartRange = 30;
   var vstatsRecentState = { page: 1, perPage: 25, totalPages: 1 };
 
+  // ===== Visitor Statistics settings menu (Include admin traffic) =============
+  var VSTATS_INCLUDE_ADMIN_KEY = 'pw_admin_vstats_include_admin';
+  var vstatsSettingsBtn = document.getElementById('vstats-settings-btn');
+  var vstatsSettingsPanel = document.getElementById('vstats-settings-panel');
+  var vstatsIncludeAdminToggle = document.getElementById('vstats-include-admin-toggle');
+  var vstatsIncludeAdmin = localStorage.getItem(VSTATS_INCLUDE_ADMIN_KEY) === '1';
+
+  function vstatsAdminQS(sep) { return vstatsIncludeAdmin ? (sep + 'include_admin=1') : ''; }
+
+  if (vstatsIncludeAdminToggle) vstatsIncludeAdminToggle.checked = vstatsIncludeAdmin;
+
+  if (vstatsSettingsBtn && vstatsSettingsPanel) {
+    vstatsSettingsBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var willOpen = vstatsSettingsPanel.hidden;
+      vstatsSettingsPanel.hidden = !willOpen;
+      vstatsSettingsBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+    });
+    document.addEventListener('click', function (e) {
+      if (vstatsSettingsPanel.hidden) return;
+      if (!e.target.closest('.vstats-settings')) {
+        vstatsSettingsPanel.hidden = true;
+        vstatsSettingsBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+  }
+
+  if (vstatsIncludeAdminToggle) {
+    vstatsIncludeAdminToggle.addEventListener('change', function () {
+      vstatsIncludeAdmin = vstatsIncludeAdminToggle.checked;
+      try { localStorage.setItem(VSTATS_INCLUDE_ADMIN_KEY, vstatsIncludeAdmin ? '1' : '0'); } catch (e) {}
+      loadVisitorStats();
+    });
+  }
+
   function loadVisitorStatsSummary() {
-    fetch('/api/admin/visitor-stats/summary.php', { credentials: 'same-origin' })
+    fetch('/api/admin/visitor-stats/summary.php' + vstatsAdminQS('?'), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) return;
@@ -3735,7 +3784,7 @@
   }
 
   function loadVisitsChart() {
-    fetch('/api/admin/visitor-stats/timeseries.php?range=' + vstatsChartRange, { credentials: 'same-origin' })
+    fetch('/api/admin/visitor-stats/timeseries.php?range=' + vstatsChartRange + vstatsAdminQS('&'), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) return;
@@ -3810,7 +3859,7 @@
 
   function loadVisitorJourneys() {
     if (visitorJourneyRangeEl) visitorJourneyRangeEl.textContent = 'Last ' + vstatsChartRange + ' days';
-    fetch('/api/admin/visitor-stats/journeys.php?range=' + vstatsChartRange, { credentials: 'same-origin' })
+    fetch('/api/admin/visitor-stats/journeys.php?range=' + vstatsChartRange + vstatsAdminQS('&'), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) { if (data.ok) renderVisitorJourneys(data.transitions || []); })
       .catch(function () {
@@ -3882,7 +3931,7 @@
 
   function loadHeatmap() {
     var range = heatmapRangeSelectEl ? heatmapRangeSelectEl.value : '30';
-    fetch('/api/admin/visitor-stats/heatmap.php?range=' + encodeURIComponent(range), { credentials: 'same-origin' })
+    fetch('/api/admin/visitor-stats/heatmap.php?range=' + encodeURIComponent(range) + vstatsAdminQS('&'), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) return;
@@ -3922,7 +3971,7 @@
   }
 
   function loadTopPages() {
-    fetch('/api/admin/visitor-stats/top-pages.php?range=' + vstatsChartRange, { credentials: 'same-origin' })
+    fetch('/api/admin/visitor-stats/top-pages.php?range=' + vstatsChartRange + vstatsAdminQS('&'), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) return;
@@ -3932,7 +3981,7 @@
   }
 
   function loadTopReferrers() {
-    fetch('/api/admin/visitor-stats/top-referrers.php?range=' + vstatsChartRange, { credentials: 'same-origin' })
+    fetch('/api/admin/visitor-stats/top-referrers.php?range=' + vstatsChartRange + vstatsAdminQS('&'), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) return;
@@ -4002,6 +4051,7 @@
     var params = new URLSearchParams();
     params.set('page', vstatsRecentState.page);
     params.set('per_page', vstatsRecentState.perPage);
+    if (vstatsIncludeAdmin) params.set('include_admin', '1');
     fetch('/api/admin/visitor-stats/recent.php?' + params.toString(), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
