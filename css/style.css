@@ -4775,6 +4775,19 @@ footer.site-footer {
 .cpu-chart-now-dot { fill: var(--gold-bright); }
 
 .visits-chart-card { margin-bottom: 20px; }
+.visitor-journey-card { margin-bottom: 20px; }
+.visitor-journey-range { font-size: 0.74rem; color: var(--text-faint); white-space: nowrap; }
+.visitor-journey-note { margin: 0; padding: 0 20px 10px; font-size: 0.77rem; color: var(--text-faint); }
+.visitor-journey-wrap { padding: 0 12px 16px; overflow-x: auto; }
+.visitor-journey-chart { display: block; width: 100%; min-width: 620px; height: auto; }
+.visitor-journey-column-label { fill: var(--text-faint); font-family: 'Cinzel', serif; font-size: 10px; letter-spacing: 0.09em; }
+.visitor-journey-link { fill: none; stroke: var(--purple-bright); stroke-opacity: 0.28; transition: stroke-opacity 0.18s ease; }
+.visitor-journey-link:hover { stroke-opacity: 0.68; }
+.visitor-journey-node { fill: var(--gold-bright); fill-opacity: 0.88; }
+.visitor-journey-node-label { fill: var(--text-dim); font-size: 11px; dominant-baseline: middle; }
+@media (max-width: 700px) {
+  .visitor-journey-wrap { padding-left: 6px; padding-right: 6px; }
+}
 .vstats-top-grid { margin-bottom: 20px; }
 .vstats-top-grid .traffic-snapshot-card { flex: 1 1 380px; }
 .vstats-top-grid .heatmap-card { flex: 1 1 480px; }
