@@ -304,8 +304,11 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 - **Visibility-aware presence:** `js/members.js` stops the logged-in session
   heartbeat entirely when a tab is hidden and restarts it with an immediate status
-  refresh when the tab becomes visible. The current members-script cache version is
-  v=10 across every public page and the admin console.
+  refresh when the tab becomes visible. `api/session-check.php` additionally
+  throttles `users.last_active_at` writes to once per user per minute; the online
+  window remains five minutes, so multi-tab activity stays accurate without
+  redundant row locks. The current members-script cache version is v=10 across
+  every public page and the admin console.
 
 - **Static asset caching:** `.htaccess` now gives versioned CSS, JavaScript,
   font, and image assets a one-year immutable cache lifetime, with matching

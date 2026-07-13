@@ -5,9 +5,16 @@ $user = pw_current_user();
 $roleColor = '#c7ccd6';
 
 if ($user) {
-    // Heartbeat: this endpoint is called on every page load (js/members.js),
-    // so it doubles as an "online now" signal for the member list.
-    $stmt = pw_db()->prepare('UPDATE users SET last_active_at = NOW() WHERE id = ?');
+    // Heartbeat: this endpoint runs on page load and every two minutes in an
+    // active tab. Only write once per minute: the member list treats users as
+    // online for five minutes, so this preserves accuracy while avoiding
+    // redundant row locks when a member has several tabs open.
+    $stmt = pw_db()->prepare(
+        'UPDATE users
+         SET last_active_at = NOW()
+         WHERE id = ?
+           AND (last_active_at IS NULL OR last_active_at < NOW() - INTERVAL 60 SECOND)'
+    );
     $stmt->execute([$user['id']]);
 
     $stmt = pw_db()->prepare('SELECT color FROM roles WHERE slug = ?');
