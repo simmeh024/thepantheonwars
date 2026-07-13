@@ -351,6 +351,23 @@ CREATE TABLE IF NOT EXISTS page_view_daily_stats (
   member_views_excl_admin INT UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Rule-based drafts are deliberately isolated from approved translations.
+-- A draft is never exposed through the public dispatch APIs; an admin must
+-- approve or edit it first, which moves its text into dispatch_translations.
+CREATE TABLE IF NOT EXISTS dispatch_translation_drafts (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  dispatch_id INT UNSIGNED NOT NULL,
+  sha VARCHAR(40) NOT NULL,
+  draft TEXT NOT NULL,
+  source ENUM('rule_based') NOT NULL DEFAULT 'rule_based',
+  draft_hash CHAR(64) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_dispatch_translation_draft (dispatch_id),
+  KEY idx_draft_sha (sha),
+  CONSTRAINT fk_dispatch_translation_drafts_dispatch FOREIGN KEY (dispatch_id) REFERENCES dispatch_entries(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Data-subject requests submitted through privacy-request.html. Fulfilment is
 -- deliberately manual: it creates a permissioned admin work item rather than
 -- automatically deleting or exporting any account data.

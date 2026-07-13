@@ -1517,6 +1517,7 @@
   color: var(--text-faint); white-space: nowrap;
 }
 .admin-status-badge.is-translated { border-color: #3ecf8e; color: #3ecf8e; }
+.admin-status-badge.is-draft { border-color: var(--gold-dim); color: var(--gold-bright); background: rgba(224,163,74,0.08); }
 
 .admin-row-sep { opacity: 0.5; }
 .member-row-badges { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }

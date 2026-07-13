@@ -8,6 +8,7 @@
  */
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../dispatch-helpers.php';
+require_once __DIR__ . '/../../dispatch-translation-drafts.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
@@ -95,6 +96,12 @@ while ($page <= $maxPages) {
         ]);
         if ($stmt->rowCount() > 0) {
             $inserted++;
+            try {
+                pw_create_dispatch_translation_draft($db, (int)$db->lastInsertId());
+            } catch (PDOException $e) {
+                // Keep manual resync functional until the one-off migration
+                // has been run in phpMyAdmin.
+            }
         }
     }
 

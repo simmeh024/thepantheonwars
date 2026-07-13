@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=177">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=178">
 </head>
 <body>
 
@@ -1168,13 +1168,14 @@
     <section class="admin-section" id="section-dispatch-translations" hidden>
       <div class="admin-section-head">
         <h1>Dispatch Translations</h1>
-        <p>End-user translations for development dispatches. Entries with a translation show a BH-4 badge on the public Development Dispatches page.</p>
+        <p>Rule-based drafts turn raw commits into clear end-user summaries. Review or edit each draft before approving it for the public Development Dispatches page.</p>
       </div>
 
       <div class="admin-toolbar">
         <div class="admin-filter-tabs" id="admin-filter-tabs">
           <button type="button" class="admin-filter-tab active" data-filter="all">All</button>
           <button type="button" class="admin-filter-tab" data-filter="translated">Translated</button>
+          <button type="button" class="admin-filter-tab" data-filter="draft">Draft ready</button>
           <button type="button" class="admin-filter-tab" data-filter="untranslated">Untranslated</button>
         </div>
         <input type="text" class="admin-search" id="admin-search" placeholder="Search subject or SHA&hellip;">
@@ -1381,13 +1382,14 @@
       <pre class="admin-commit-body" id="admin-commit-body"></pre>
     </div>
     <div class="admin-field">
-      <label for="admin-translation-text">End-user translation</label>
+      <label for="admin-translation-text">End-user summary</label>
       <textarea id="admin-translation-text" maxlength="5000" placeholder="Plain-language explanation of this dispatch for players&hellip;"></textarea>
     </div>
     <p class="admin-modal-error" id="admin-modal-error"></p>
     <p class="admin-modal-status" id="admin-modal-status"></p>
     <div class="admin-modal-actions">
-      <button type="button" class="btn btn-solid" id="admin-save-btn">Save</button>
+      <button type="button" class="btn btn-solid" id="admin-save-btn">Approve &amp; Publish</button>
+      <button type="button" class="btn" id="admin-generate-draft-btn">Generate Draft</button>
       <button type="button" class="btn" id="admin-cancel-btn">Cancel</button>
       <button type="button" class="admin-delete-btn" id="admin-delete-btn" hidden>Delete Translation</button>
     </div>
@@ -5178,6 +5180,7 @@
   var cancelBtn = document.getElementById('admin-cancel-btn');
   var closeBtn = document.querySelector('#admin-modal .admin-modal-close');
   var deleteBtn = document.getElementById('admin-delete-btn');
+  var generateDraftBtn = document.getElementById('admin-generate-draft-btn');
   var copyCommitBtn = document.getElementById('admin-copy-commit-btn');
 
   var currentFilter = 'all';
@@ -5228,8 +5231,8 @@
             '<span>' + escapeHtml(fmtDate(entry.committed_at)) + '</span>' +
           '</div>' +
         '</div>' +
-        '<span class="admin-status-badge' + (entry.has_translation ? ' is-translated' : '') + '">' +
-          (entry.has_translation ? 'Translated' : 'Not translated') +
+        '<span class="admin-status-badge' + (entry.has_translation ? ' is-translated' : (entry.has_draft ? ' is-draft' : '')) + '">' +
+          (entry.has_translation ? 'Published' : (entry.has_draft ? 'Draft ready' : 'Needs draft')) +
         '</span>';
       row.addEventListener('click', function () { openModal(entry); });
       listEl.appendChild(row);
@@ -5238,13 +5241,20 @@
 
   function openModal(entry) {
     currentEntry = entry;
-    modalTitle.textContent = 'Edit Translation';
+    modalTitle.textContent = entry.has_translation ? 'Edit Published Translation' : (entry.has_draft ? 'Review Rule-Based Draft' : 'Create Translation Draft');
     modalSub.innerHTML = escapeHtml(entry.subject) + ' &mdash; <span class="admin-sha">' + escapeHtml(entry.short_sha) + '</span>';
     commitBodyEl.textContent = entry.body && entry.body.trim() ? entry.body : 'No further commit details.';
-    textarea.value = entry.translation || '';
+    textarea.value = entry.translation || entry.generated_draft || '';
     modalError.classList.remove('show');
     modalStatus.classList.remove('show');
     deleteBtn.hidden = !entry.has_translation;
+    generateDraftBtn.hidden = entry.has_translation;
+    generateDraftBtn.textContent = entry.has_draft ? 'Regenerate Draft' : 'Generate Draft';
+    saveBtn.textContent = entry.has_translation ? 'Save Changes' : 'Approve & Publish';
+    if (entry.has_draft) {
+      modalStatus.textContent = 'Rule-based draft ready. Review it before publishing.';
+      modalStatus.classList.add('show');
+    }
     modal.hidden = false;
     setTimeout(function () { textarea.focus(); }, 30);
   }
@@ -5336,6 +5346,29 @@
       .catch(function () {
         saveBtn.disabled = false;
         modalError.textContent = 'Could not save translation. Please try again.';
+        modalError.classList.add('show');
+      });
+  });
+
+  generateDraftBtn.addEventListener('click', function () {
+    if (!currentEntry) return;
+    generateDraftBtn.disabled = true;
+    fetch('/api/admin/dispatch-translations/generate-draft.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dispatch_id: currentEntry.id, csrf: window.PW_AUTH.csrf }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        generateDraftBtn.disabled = false;
+        if (!data.ok) throw new Error(data.error || 'Could not generate draft.');
+        modalStatus.textContent = 'Draft generated. Reloading the translation queue.';
+        modalStatus.classList.add('show');
+        loadList();
+        setTimeout(function () { closeModal(); }, 650);
+      })
+      .catch(function (error) {
+        generateDraftBtn.disabled = false;
+        modalError.textContent = error.message || 'Could not generate draft.';
         modalError.classList.add('show');
       });
   });

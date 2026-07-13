@@ -42,6 +42,15 @@ $stmt = $db->prepare(
 );
 $stmt->execute([$dispatchId, $dispatch['sha'], $translation]);
 
+// Saving is explicit editorial approval. Remove any local rule-based draft
+// only after the approved text has been written successfully.
+try {
+    $draftStmt = $db->prepare('DELETE FROM dispatch_translation_drafts WHERE dispatch_id = ?');
+    $draftStmt->execute([$dispatchId]);
+} catch (PDOException $e) {
+    // Backward-compatible while the optional draft migration is pending.
+}
+
 pw_log_admin_activity(
     $isUpdate ? 'translation_updated' : 'translation_added',
     ($isUpdate ? 'Updated' : 'Added') . ' the BH-4 translation for "' . $dispatch['subject'] . '" (' . substr($dispatch['sha'], 0, 7) . ').',

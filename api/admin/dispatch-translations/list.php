@@ -6,7 +6,7 @@ pw_require_permission('dispatch_translations.view');
 $db = pw_db();
 
 $filter = isset($_GET['filter']) ? trim($_GET['filter']) : 'all';
-if (!in_array($filter, ['all', 'translated', 'untranslated'], true)) {
+if (!in_array($filter, ['all', 'translated', 'draft', 'untranslated'], true)) {
     $filter = 'all';
 }
 
@@ -24,16 +24,20 @@ if ($q !== '') {
 }
 if ($filter === 'translated') {
     $where[] = 'dt.id IS NOT NULL';
+} elseif ($filter === 'draft') {
+    $where[] = 'dt.id IS NULL AND dtd.id IS NOT NULL';
 } elseif ($filter === 'untranslated') {
-    $where[] = 'dt.id IS NULL';
+    $where[] = 'dt.id IS NULL AND dtd.id IS NULL';
 }
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
 $stmt = $db->prepare(
     'SELECT d.id, d.sha, d.subject, d.body, d.tag, d.committed_at,
-            dt.translation, dt.updated_at AS translation_updated_at
+            dt.translation, dt.updated_at AS translation_updated_at,
+            dtd.draft AS generated_draft, dtd.updated_at AS draft_updated_at
      FROM dispatch_entries d
      LEFT JOIN dispatch_translations dt ON dt.dispatch_id = d.id
+     LEFT JOIN dispatch_translation_drafts dtd ON dtd.dispatch_id = d.id
      ' . $whereSql . '
      ORDER BY d.committed_at DESC, d.id DESC'
 );
@@ -55,6 +59,9 @@ $out = array_map(function ($r) {
         'translation' => $r['translation'],
         'has_translation' => $r['translation'] !== null,
         'translation_updated_at' => $r['translation_updated_at'],
+        'generated_draft' => $r['generated_draft'],
+        'has_draft' => $r['generated_draft'] !== null,
+        'draft_updated_at' => $r['draft_updated_at'],
     ];
 }, $rows);
 

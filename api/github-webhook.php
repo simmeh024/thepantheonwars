@@ -7,6 +7,7 @@
  */
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/dispatch-helpers.php';
+require_once __DIR__ . '/dispatch-translation-drafts.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -113,6 +114,13 @@ foreach ($payload['commits'] as $commit) {
     ]);
     if ($stmt->rowCount() > 0) {
         $inserted++;
+        try {
+            pw_create_dispatch_translation_draft($db, (int)$db->lastInsertId());
+        } catch (PDOException $e) {
+            // The migration can be applied after deployment. Never reject a
+            // verified GitHub delivery merely because the optional draft table
+            // is not present yet.
+        }
     }
 }
 
