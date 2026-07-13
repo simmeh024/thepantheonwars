@@ -5730,3 +5730,17 @@ footer.site-footer {
   .admin-clock-slot { top: 18px; right: 14px; }
   .admin-utc-clock { padding: 4px 8px; font-size: 0.62rem; }
 }
+
+/* Site-wide accessibility fallback. Leave every control, status and loading
+   state visible, but remove the motion that can be disorienting for visitors
+   who request reduced motion in their operating system or browser. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
