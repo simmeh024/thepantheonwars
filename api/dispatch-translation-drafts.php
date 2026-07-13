@@ -37,7 +37,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/\bsign-out experience action\b/i' => 'sign-out experience',
         '/\bshared styling\b/i' => 'consistent visual styling',
         '/\bImprove rule based Dispatch draft wording\b/i' => 'the wording used in end-user summaries for development updates',
-        '/\bExpand Dispatch draft copy with reader facing context\b/i' => 'the detail in end-user summaries for development updates',
+        '/\bExpand Dispatch draft copy with reader facing context\b/i' => 'end-user summaries for development updates',
         '/\brule based Dispatch translation drafts\b/i' => 'a clearer local drafting process for development updates',
         '/\bAdmin Home card baseline treatment\b/i' => 'the default styling of Admin Home cards',
         '/\bAdmin Home visual polish\b/i' => 'the visual treatment of the Admin Home dashboard',
@@ -65,15 +65,15 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     }
 
     $benefits = [
-        'feature' => 'It gives visitors and community members a new, clearly focused part of the site to use.',
-        'improvement' => 'It makes the affected area clearer, more consistent, and easier to use.',
-        'fix' => 'It helps the affected area behave consistently for visitors and staff.',
-        'performance' => 'It reduces unnecessary work behind the scenes for a smoother experience.',
-        'ui_ux' => 'It makes the interface easier to read, navigate, and use.',
-        'lore' => 'It gives readers more detail and context to explore in the world of Pantheon Wars.',
-        'infrastructure' => 'It helps keep the site reliable during everyday use and future updates.',
-        'refactor' => 'No visible feature is changed, but it makes future improvements safer and easier to deliver.',
-        'experimental' => 'It is an early improvement that can be refined after it has been reviewed in use.',
+        'feature' => 'It gives visitors and community members a new, clearly focused part of the site to use. The addition is designed to fit naturally into the existing Pantheon Wars experience.',
+        'improvement' => 'It makes the affected area clearer, more consistent, and easier to use. The goal is a smoother experience without changing the familiar flow of the site.',
+        'fix' => 'It helps the affected area behave consistently for visitors and staff. This makes everyday use more dependable while preserving the intended experience.',
+        'performance' => 'It reduces unnecessary work behind the scenes for a smoother experience. This helps the affected pages stay responsive as more content and visitors are added.',
+        'ui_ux' => 'It makes the interface easier to read, navigate, and use. It also keeps the visual language consistent across the site and Admin Console.',
+        'lore' => 'It gives readers more detail and context to explore in the world of Pantheon Wars. The update is intended to deepen the setting without changing established story information.',
+        'infrastructure' => 'It helps keep the site reliable during everyday use and future updates. The work also gives later improvements a steadier foundation to build on.',
+        'refactor' => 'No visible feature is changed, but it makes future improvements safer and easier to deliver. The underlying structure is kept clearer so the experience can evolve reliably.',
+        'experimental' => 'It is an early improvement that can be refined after it has been reviewed in use. The change remains focused and can be adjusted as the site develops.',
     ];
     $benefit = $benefits[$tag] ?? 'It helps keep the site clear, reliable, and ready for future updates.';
     $object = lcfirst($clean);
@@ -83,7 +83,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/^(?:fix|resolve|repair)\s+(.+)$/i' => 'This update fixes %s.',
         '/^(?:restore)\s+(.+)$/i' => 'This update restores %s.',
         '/^(?:improve|enhance|refine|polish|streamline)\s+(.+)$/i' => 'This update improves %s.',
-        '/^(?:expand)\s+(.+)$/i' => 'This update expands %s.',
+        '/^(?:expand)\s+(.+)$/i' => 'This update adds more detail to %s.',
         '/^(?:keep)\s+(.+)$/i' => 'This update keeps %s clear and easy to read.',
         '/^(?:throttle|reduce)\s+(.+)$/i' => 'This update reduces unnecessary %s.',
         '/^(?:load|deliver)\s+(.+)$/i' => 'This update delivers %s more efficiently.',
@@ -128,7 +128,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag): string
 {
-    return hash('sha256', "dispatch-draft-v2\n" . $subject . "\n" . $body . "\n" . $tag);
+    return hash('sha256', "dispatch-draft-v3\n" . $subject . "\n" . $body . "\n" . $tag);
 }
 
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): bool

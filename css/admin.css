@@ -1752,7 +1752,7 @@
   background: rgba(69,209,201,0.055); color: var(--text-dim);
   font-size: 0.74rem; line-height: 1.45;
 }
-.translation-editor-guidance::before { content: 'âœ¦'; flex: 0 0 auto; color: #45d1c9; }
+.translation-editor-guidance::before { content: '\2726'; flex: 0 0 auto; color: #45d1c9; }
 .admin-field input[type="text"], .admin-field input[type="email"], .admin-field input[type="number"] {
   width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.92rem;
