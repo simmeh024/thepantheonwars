@@ -4,10 +4,11 @@
    CSS requires @import rules before all other rules for deterministic output.
    ========================================================================== */
 
-@import url('tokens.css?v=171');
-@import url('base.css?v=171');
-@import url('layout.css?v=171');
-@import url('components.css?v=171');
-@import url('content.css?v=171');
-@import url('community.css?v=171');
-@import url('admin.css?v=171');
+/* Compatibility bundle for any external or legacy page still requesting style.css. */
+@import url('tokens.css?v=172');
+@import url('base.css?v=172');
+@import url('layout.css?v=172');
+@import url('components.css?v=172');
+@import url('content.css?v=172');
+@import url('community.css?v=172');
+@import url('admin.css?v=172');

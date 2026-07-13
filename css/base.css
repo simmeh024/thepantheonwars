@@ -53,3 +53,29 @@ body::after {
     repeating-linear-gradient(115deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
   mix-blend-mode: normal;
 }
+
+/* Site-wide accessibility fallback. Leave every control, status and loading
+   state visible, but remove the motion that can be disorienting for visitors
+   who request reduced motion in their operating system or browser. */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto !important; }
+
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Shared keyboard focus treatment. The !important outline deliberately
+   defeats older component resets so keyboard focus remains visible. */
+:where(
+  a[href], button, input:not([type="hidden"]), select, textarea, summary,
+  [role="button"], [role="tab"], [role="switch"], [role="menuitem"],
+  [contenteditable="true"], [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline: 2px solid var(--gold-bright) !important;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(162, 121, 236, 0.34) !important;
+}

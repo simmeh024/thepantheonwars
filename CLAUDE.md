@@ -152,9 +152,11 @@ also supports a deliberately manual `?full=1` historical rebuild.
   motion and local UI state. Add either library only for a clearly measured feature,
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
-  `admin/index.html` whenever `css/style.css` changes. Current: v=171. The
-  entrypoint imports the ordered source files documented in `css/SOURCES.md`;
-  when changing a source file, bump both the page reference and every import query.
+  all bundle references whenever any CSS source changes. Current: v=172. Public
+  pages use `css/public.css`, community pages use `css/community-bundle.css`, and
+  the console uses `css/admin-bundle.css`; `css/style.css` remains the legacy full
+  compatibility bundle. The ordered source and bundle map is in `css/SOURCES.md`;
+  when changing a source file, bump every active page reference and import query.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more

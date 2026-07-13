@@ -18,6 +18,19 @@
 .privacy-content .card p:last-child { margin-bottom: 0; }
 .privacy-form-card { max-width: 720px; margin: 0 auto; padding: clamp(24px, 4vw, 38px); }
 .privacy-form-card .admin-field { margin: 20px 0; }
+.privacy-form-card .admin-field label {
+  display: block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--text-faint); margin-bottom: 0.5em;
+}
+.privacy-form-card .admin-field textarea,
+.privacy-form-card .admin-field select {
+  width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.92rem;
+}
+.privacy-form-card .admin-field textarea { min-height: 160px; line-height: 1.55; resize: vertical; }
+.privacy-form-card .admin-field select { cursor: pointer; }
+.privacy-form-card .admin-field textarea:focus,
+.privacy-form-card .admin-field select:focus { outline: none; border-color: var(--purple-bright); }
 .privacy-form-card .form-error { color: #e05a4a; }
 .privacy-form-card .form-status { color: #3ecf8e; }
 .privacy-request-status, .privacy-request-resolution { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 9px 10px; font-family: 'Jost', sans-serif; font-size: 0.82rem; }

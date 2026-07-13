@@ -1,0 +1,7 @@
+/* Admin bundle: shared foundation, member/profile primitives, and console-only styles. */
+@import url('tokens.css?v=172');
+@import url('base.css?v=172');
+@import url('layout.css?v=172');
+@import url('components.css?v=172');
+@import url('community.css?v=172');
+@import url('admin.css?v=172');
