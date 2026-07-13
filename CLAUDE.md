@@ -138,8 +138,8 @@ correct key (value lives only in the secrets config, not in git).
   Status's CPU chart -- computes its own x/y pixel scale from real data ranges, builds
   the whole `<svg>...</svg>` as a template string, sets `.innerHTML` once per refresh).
   Match whichever pattern fits if you add another chart.
-- Cache-busting: `css/style.css?v=N` -- bump `N` and `sed -i` it across all 23 HTML
-  files (22 public + `admin/index.html`) whenever `css/style.css` changes. Current: v=146.
+- Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
+  `admin/index.html` whenever `css/style.css` changes. Current: v=149.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
@@ -179,6 +179,16 @@ correct key (value lives only in the secrets config, not in git).
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Privacy Requests:** public `privacy.html` explains the site privacy contact
+  (Privacy@thepantheonwars.com) and links to `privacy-request.html`. Signed-in
+  users can submit access, correction, erasure, portability, restriction,
+  objection, or other requests; these always enter the permissioned Community
+  -> Privacy Requests queue and are never fulfilled automatically. Run
+  `migration_privacy_requests.sql` once in phpMyAdmin after deployment. BH-4
+  priority is critical alerts -> topic reports -> privacy requests -> dispatch
+  translations. Request content and staff outcomes must never be copied into
+  the ordinary admin audit log.
 
 - **SQL Performance monitoring:** `api/db.php` uses a guarded PDO statement
   wrapper to record only statements taking at least 100ms into

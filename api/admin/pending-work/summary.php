@@ -18,8 +18,18 @@ $reportsStmt = $db->query(
 );
 $reportsRow = $reportsStmt->fetch();
 
+$privacyCount = 0;
+try {
+    $privacyCount = (int)$db->query(
+        "SELECT COUNT(*) AS c FROM privacy_requests WHERE status IN ('submitted', 'identity_check', 'in_progress')"
+    )->fetch()['c'];
+} catch (PDOException $e) {
+    // The feature can be deployed before its one-off database migration.
+}
+
 pw_json([
     'ok' => true,
     'dispatches_awaiting_translation' => (int)$row['c'],
     'active_topic_reports' => (int)$reportsRow['c'],
+    'pending_privacy_requests' => $privacyCount,
 ]);

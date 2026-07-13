@@ -351,6 +351,28 @@ CREATE TABLE IF NOT EXISTS page_view_daily_stats (
   member_views_excl_admin INT UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Data-subject requests submitted through privacy-request.html. Fulfilment is
+-- deliberately manual: it creates a permissioned admin work item rather than
+-- automatically deleting or exporting any account data.
+CREATE TABLE IF NOT EXISTS privacy_requests (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  requester_user_id INT UNSIGNED DEFAULT NULL,
+  requester_email VARCHAR(255) NOT NULL,
+  request_type ENUM('access','rectification','erasure','portability','restriction','objection','other') NOT NULL,
+  message TEXT DEFAULT NULL,
+  status ENUM('submitted','identity_check','in_progress','fulfilled','partially_fulfilled','rejected','withdrawn') NOT NULL DEFAULT 'submitted',
+  staff_resolution TEXT DEFAULT NULL,
+  handled_by INT UNSIGNED DEFAULT NULL,
+  handled_at DATETIME DEFAULT NULL,
+  due_at DATETIME NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_status_due_created (status, due_at, created_at),
+  KEY idx_requester_created (requester_user_id, created_at),
+  CONSTRAINT fk_privacy_requests_requester FOREIGN KEY (requester_user_id) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT fk_privacy_requests_handler FOREIGN KEY (handled_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Application-level slow-query diagnostics for shared hosting, where the
 -- database slow-query log and Performance Schema are not accessible.
 CREATE TABLE IF NOT EXISTS sql_performance_logs (

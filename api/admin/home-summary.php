@@ -60,10 +60,19 @@ $pendingRow = $db->query(
         (SELECT COUNT(*) FROM dispatch_entries d LEFT JOIN dispatch_translations dt ON dt.dispatch_id = d.id WHERE dt.id IS NULL) AS translations,
         (SELECT COUNT(*) FROM content_reports WHERE status = 'open') AS reports"
 )->fetch();
+$privacyPending = 0;
+try {
+    $privacyPending = (int)$db->query(
+        "SELECT COUNT(*) AS c FROM privacy_requests WHERE status IN ('submitted', 'identity_check', 'in_progress')"
+    )->fetch()['c'];
+} catch (PDOException $e) {
+    // Migration may be run after code deployment; keep the dashboard available.
+}
 $pendingWork = [
     'ok' => true,
     'dispatches_awaiting_translation' => (int)$pendingRow['translations'],
     'active_topic_reports' => (int)$pendingRow['reports'],
+    'pending_privacy_requests' => $privacyPending,
 ];
 
 $draftRows = $db->query(

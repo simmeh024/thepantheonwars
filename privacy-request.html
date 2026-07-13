@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Make a Privacy Request — The Pantheon Wars</title>
+<meta name="description" content="Submit a privacy request for your The Pantheon Wars account.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+<link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="stylesheet" href="css/style.css?v=149">
+</head>
+<body>
+<header class="site-header"><div class="nav-inner"><a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a><nav class="main-nav"><a href="index.html">Home</a><a href="community.html">Community</a><a href="privacy.html">Privacy</a><span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span></nav><button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button></div></header>
+<main><section class="page-banner"><div class="container"><span class="eyebrow">Privacy &amp; Data Rights</span><h1>Make a Privacy Request</h1><p class="lede">Use this form for your account data. Requests are reviewed by our privacy team; account data is never deleted automatically.</p></div></section>
+<section><div class="container"><div class="card privacy-form-card" id="privacy-request-signin" hidden><h2>Sign in to continue</h2><p>Please sign in to submit a request for your account. If you cannot access your account, email <a href="mailto:Privacy@thepantheonwars.com">Privacy@thepantheonwars.com</a>.</p><button class="btn btn-solid auth-trigger" type="button">Sign in</button></div>
+<form class="card privacy-form-card" id="privacy-request-form" hidden novalidate><h2>Your request</h2><p class="form-status" id="privacy-request-account"></p><div class="admin-field"><label for="privacy-request-type">Request type</label><select id="privacy-request-type" required><option value="access">Access my personal data</option><option value="rectification">Correct my personal data</option><option value="erasure">Delete my personal data</option><option value="portability">Receive a portable copy of my data</option><option value="restriction">Restrict processing of my data</option><option value="objection">Object to processing</option><option value="other">Other privacy request</option></select></div><div class="admin-field"><label for="privacy-request-message">Details <small>(optional)</small></label><textarea id="privacy-request-message" maxlength="2000" placeholder="Tell us what you need, without adding passwords or identity-document details."></textarea></div><p class="form-error" id="privacy-request-error" hidden></p><p class="form-status" id="privacy-request-status" hidden></p><button class="btn btn-solid" id="privacy-request-submit" type="submit">Submit request</button></form></div></section></main>
+<footer class="site-footer"><div class="container"><div class="footer-bottom">&copy; 2026 Pascal Slettenaar. All rights reserved. &nbsp;&bull;&nbsp; <a href="privacy.html">Privacy</a></div></div></footer>
+<script src="js/main.js?v=2"></script><script src="js/members.js?v=8"></script>
+<script>
+(function () {
+  var signIn = document.getElementById('privacy-request-signin');
+  var form = document.getElementById('privacy-request-form');
+  var account = document.getElementById('privacy-request-account');
+  var error = document.getElementById('privacy-request-error');
+  var status = document.getElementById('privacy-request-status');
+  var submit = document.getElementById('privacy-request-submit');
+  function render() {
+    var user = window.PW_AUTH && window.PW_AUTH.user;
+    signIn.hidden = !!user; form.hidden = !user;
+    if (user) account.textContent = 'This request will be linked to the signed-in account (' + user.email + ').';
+  }
+  document.addEventListener('pw-auth-ready', render); render();
+  form.addEventListener('submit', function (event) {
+    event.preventDefault(); error.hidden = true; status.hidden = true; submit.disabled = true;
+    fetch('/api/privacy-requests/create.php', {method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'}, body:JSON.stringify({request_type:document.getElementById('privacy-request-type').value, message:document.getElementById('privacy-request-message').value.trim(), csrf:window.PW_AUTH.csrf})})
+      .then(function (response) { return response.json(); }).then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not submit your request.');
+        form.reset(); status.textContent = 'Your request has been received. Reference #' + data.request_id + '.'; status.hidden = false;
+      }).catch(function (err) { error.textContent = err.message; error.hidden = false; }).finally(function () { submit.disabled = false; });
+  });
+})();
+</script></body></html>

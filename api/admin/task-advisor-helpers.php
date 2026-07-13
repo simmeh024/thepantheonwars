@@ -8,6 +8,7 @@
 const PW_ADVISOR_ACTIONS = [
     'system_status' => ['label' => 'Open System Status', 'section' => 'system-status'],
     'topic_reports' => ['label' => 'Review reports', 'section' => 'topic-reports'],
+    'privacy_requests' => ['label' => 'Review privacy requests', 'section' => 'privacy-requests'],
     'dispatch_translations' => ['label' => 'Open translations', 'section' => 'dispatch-translations'],
 ];
 
@@ -16,6 +17,8 @@ function pw_build_task_advisor(array $signals) {
     $criticalPriority = $signals['critical_type_priority'];
     $reportsCount = $signals['reports_count'];
     $reportsAgeMinutes = $signals['reports_age_minutes'];
+    $privacyCount = $signals['privacy_count'];
+    $privacyAgeMinutes = $signals['privacy_age_minutes'];
     $translationsCount = $signals['translations_count'];
     $actions = $signals['actions'];
 
@@ -30,6 +33,20 @@ function pw_build_task_advisor(array $signals) {
             'oldest_age_minutes' => $reportsAgeMinutes,
             'action_label' => $actions['topic_reports']['label'],
             'action_url' => $actions['topic_reports']['section'],
+        ];
+    }
+
+    $privacyTask = null;
+    if ($privacyCount > 0) {
+        $privacyTask = [
+            'type' => 'privacy_requests',
+            'priority' => 'high',
+            'title' => $privacyCount === 1 ? 'Review 1 pending privacy request' : 'Review ' . $privacyCount . ' pending privacy requests',
+            'reason' => 'A data-subject request requires a documented response.',
+            'count' => $privacyCount,
+            'oldest_age_minutes' => $privacyAgeMinutes,
+            'action_label' => $actions['privacy_requests']['label'],
+            'action_url' => $actions['privacy_requests']['section'],
         ];
     }
 
@@ -64,7 +81,7 @@ function pw_build_task_advisor(array $signals) {
                 ];
                 return [
                     'primary' => $primary,
-                    'secondary' => $reportsTask ?: $translationsTask,
+                    'secondary' => $reportsTask ?: ($privacyTask ?: $translationsTask),
                     'active_alert_count' => count($criticalAlerts),
                 ];
             }
@@ -72,7 +89,10 @@ function pw_build_task_advisor(array $signals) {
     }
 
     if ($reportsTask) {
-        return ['primary' => $reportsTask, 'secondary' => $translationsTask, 'active_alert_count' => 0];
+        return ['primary' => $reportsTask, 'secondary' => $privacyTask ?: $translationsTask, 'active_alert_count' => 0];
+    }
+    if ($privacyTask) {
+        return ['primary' => $privacyTask, 'secondary' => $translationsTask, 'active_alert_count' => 0];
     }
     if ($translationsTask) {
         return ['primary' => $translationsTask, 'secondary' => null, 'active_alert_count' => 0];
@@ -177,6 +197,21 @@ function pw_collect_task_advisor($db, array $systemSignals) {
         ? max(0, (int)floor((time() - strtotime($reportsRow['oldest_at'] . ' UTC')) / 60))
         : null;
 
+    $privacyCount = 0;
+    $oldestPrivacyAgeMinutes = null;
+    try {
+        $privacyRow = $db->query(
+            "SELECT COUNT(*) AS c, MIN(created_at) AS oldest_at FROM privacy_requests
+             WHERE status IN ('submitted', 'identity_check', 'in_progress')"
+        )->fetch();
+        $privacyCount = (int)$privacyRow['c'];
+        $oldestPrivacyAgeMinutes = $privacyRow['oldest_at']
+            ? max(0, (int)floor((time() - strtotime($privacyRow['oldest_at'] . ' UTC')) / 60))
+            : null;
+    } catch (PDOException $e) {
+        // Optional until migration_privacy_requests.sql is applied.
+    }
+
     $translationsCount = (int)$db->query(
         'SELECT COUNT(*) AS c FROM dispatch_entries d LEFT JOIN dispatch_translations dt ON dt.dispatch_id = d.id WHERE dt.id IS NULL'
     )->fetch()['c'];
@@ -186,6 +221,8 @@ function pw_collect_task_advisor($db, array $systemSignals) {
         'critical_type_priority' => $criticalPriority,
         'reports_count' => $reportsCount,
         'reports_age_minutes' => $oldestReportAgeMinutes,
+        'privacy_count' => $privacyCount,
+        'privacy_age_minutes' => $oldestPrivacyAgeMinutes,
         'translations_count' => $translationsCount,
         'actions' => PW_ADVISOR_ACTIONS,
     ]);
@@ -198,6 +235,7 @@ function pw_collect_task_advisor($db, array $systemSignals) {
         'overview' => [
             'topic_reports' => $reportsCount,
             'dispatch_translations' => $translationsCount,
+            'privacy_requests' => $privacyCount,
             'system_alerts' => count($criticalAlerts),
         ],
     ];

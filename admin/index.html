@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=148">
+<link rel="stylesheet" href="../css/style.css?v=149">
 </head>
 <body>
 
@@ -59,6 +59,7 @@
         <li data-requires-permission="members.view"><button type="button" class="admin-nav-link" data-section="members"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>Members</button></li>
         <li data-requires-permission="roles.manage"><button type="button" class="admin-nav-link" data-section="roles-permissions"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>Roles &amp; Permissions</button></li>
         <li data-requires-permission="topic_reports.view"><button type="button" class="admin-nav-link" data-section="topic-reports"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>Topic Reports</button></li>
+        <li data-requires-permission="privacy_requests.view"><button type="button" class="admin-nav-link" data-section="privacy-requests"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>Privacy Requests</button></li>
         <li data-requires-permission="forum_boards.view"><button type="button" class="admin-nav-link" data-section="forum-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Forum Control</button></li>
       </ul>
     </div>
@@ -166,6 +167,7 @@
                         <ol>
                           <li>Critical system issues</li>
                           <li>Unresolved topic reports</li>
+                          <li>Pending privacy requests</li>
                           <li>Pending dispatch translations</li>
                         </ol>
                       </span>
@@ -454,6 +456,10 @@
             <li class="pending-work-row" id="pending-work-reports-row">
               <span class="pending-work-label">Active Topic Reports</span>
               <span class="pending-work-count pending-work-count-warn" id="pending-work-reports-count">&hellip;</span>
+            </li>
+            <li class="pending-work-row" id="pending-work-privacy-row" data-requires-permission="privacy_requests.view">
+              <span class="pending-work-label">Pending Privacy Request</span>
+              <span class="pending-work-count pending-work-count-warn" id="pending-work-privacy-count">&hellip;</span>
             </li>
           </ul>
         </div>
@@ -1182,6 +1188,22 @@
       <div class="admin-list" id="report-list">
         <div class="admin-list-empty">Loading reports&hellip;</div>
       </div>
+    </section>
+
+    <section class="admin-section" id="section-privacy-requests" hidden>
+      <div class="admin-section-head">
+        <h1>Privacy Requests</h1>
+        <p>Data-subject requests submitted through the public privacy form. Verify identity and document the outcome before closing a request.</p>
+      </div>
+      <div class="admin-toolbar">
+        <div class="admin-filter-tabs" id="privacy-request-filter-tabs">
+          <button type="button" class="admin-filter-tab active" data-filter="active">Active</button>
+          <button type="button" class="admin-filter-tab" data-filter="completed">Completed</button>
+          <button type="button" class="admin-filter-tab" data-filter="all">All</button>
+        </div>
+        <span class="admin-count" id="privacy-request-count"></span>
+      </div>
+      <div class="admin-list" id="privacy-request-list"><div class="admin-list-empty">Loading privacy requests&hellip;</div></div>
     </section>
 
     <section class="admin-section" id="section-forum-control" hidden>
@@ -2412,6 +2434,7 @@
       if (name === 'dispatch-translations') loadList();
       if (name === 'members') loadMembers();
       if (name === 'topic-reports') loadTopicReports();
+      if (name === 'privacy-requests') loadPrivacyRequests();
       if (name === 'forum-control') loadForumBoards();
       if (name === 'book-control') loadBookList();
       if (name === 'world-control') loadWorldList();
@@ -2493,6 +2516,8 @@
   var pendingTranslationsCountEl = document.getElementById('pending-work-translations-count');
   var pendingReportsRow = document.getElementById('pending-work-reports-row');
   var pendingReportsCountEl = document.getElementById('pending-work-reports-count');
+  var pendingPrivacyRow = document.getElementById('pending-work-privacy-row');
+  var pendingPrivacyCountEl = document.getElementById('pending-work-privacy-count');
 
   function loadPendingWork() {
     fetchHomeCard('pending_work', '/api/admin/pending-work/summary.php')
@@ -2504,6 +2529,10 @@
         if (pendingReportsCountEl) {
           pendingReportsCountEl.textContent = data.active_topic_reports;
           pendingReportsCountEl.classList.toggle('is-zero', data.active_topic_reports === 0);
+        }
+        if (pendingPrivacyCountEl) {
+          pendingPrivacyCountEl.textContent = data.pending_privacy_requests;
+          pendingPrivacyCountEl.classList.toggle('is-zero', data.pending_privacy_requests === 0);
         }
       })
       .catch(function () {
@@ -2527,6 +2556,12 @@
     pendingReportsRow.addEventListener('click', function () {
       showSection('topic-reports');
       loadTopicReports();
+    });
+  }
+  if (pendingPrivacyRow) {
+    pendingPrivacyRow.addEventListener('click', function () {
+      showSection('privacy-requests');
+      loadPrivacyRequests();
     });
   }
 
@@ -2705,6 +2740,8 @@
   var advisorOverviewReportsEl = document.getElementById('bh4-advisor-overview-reports');
   var advisorOverviewReportsSubEl = document.getElementById('bh4-advisor-overview-reports-sub');
   var advisorOverviewTranslationsEl = document.getElementById('bh4-advisor-overview-translations');
+  var advisorOverviewPrivacyEl = document.getElementById('bh4-advisor-overview-privacy');
+  var advisorOverviewPrivacySubEl = document.getElementById('bh4-advisor-overview-privacy-sub');
   var advisorOverviewAlertsEl = document.getElementById('bh4-advisor-overview-alerts');
   var advisorOverviewAlertsSubEl = document.getElementById('bh4-advisor-overview-alerts-sub');
   var advisorUpdatedEl = document.getElementById('bh4-advisor-updated');
@@ -2718,12 +2755,14 @@
     critical: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     topic_reports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>',
     dispatch_translations: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg>',
+    privacy_requests: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>',
     clear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
   };
 
   function advisorIconFor(type) {
     if (type === 'topic_reports') return ADVISOR_ICONS.topic_reports;
     if (type === 'dispatch_translations') return ADVISOR_ICONS.dispatch_translations;
+    if (type === 'privacy_requests') return ADVISOR_ICONS.privacy_requests;
     if (type === 'clear') return ADVISOR_ICONS.clear;
     return ADVISOR_ICONS.critical;
   }
@@ -2796,12 +2835,15 @@
     if (!overview) return;
     var reports = overview.topic_reports || 0;
     var translations = overview.dispatch_translations || 0;
+    var privacy = overview.privacy_requests || 0;
     var alerts = overview.system_alerts || 0;
     advisorOverviewReportsEl.textContent = reports;
     advisorOverviewTranslationsEl.textContent = translations;
+    if (advisorOverviewPrivacyEl) advisorOverviewPrivacyEl.textContent = privacy;
     advisorOverviewAlertsEl.textContent = alerts;
     if (advisorOverviewReportsSubEl) advisorOverviewReportsSubEl.classList.toggle('bh4-task-advisor__overview-sub-warn', reports > 0);
     if (advisorOverviewAlertsSubEl) advisorOverviewAlertsSubEl.classList.toggle('bh4-task-advisor__overview-sub-warn', alerts > 0);
+    if (advisorOverviewPrivacySubEl) advisorOverviewPrivacySubEl.classList.toggle('bh4-task-advisor__overview-sub-warn', privacy > 0);
   }
 
   function renderTaskAdvisor(data) {
@@ -3402,6 +3444,65 @@
     });
   }
 
+  // ===== Privacy Requests =====================================================
+  var privacyRequestListEl = document.getElementById('privacy-request-list');
+  var privacyRequestCountEl = document.getElementById('privacy-request-count');
+  var privacyRequestFilterTabs = document.getElementById('privacy-request-filter-tabs');
+  var privacyRequestFilter = 'active';
+  var PRIVACY_REQUEST_TYPES = { access: 'Access', rectification: 'Rectification', erasure: 'Erasure', portability: 'Portability', restriction: 'Restriction', objection: 'Objection', other: 'Other' };
+  var PRIVACY_REQUEST_STATUSES = { submitted: 'Submitted', identity_check: 'Identity check', in_progress: 'In progress', fulfilled: 'Fulfilled', partially_fulfilled: 'Partially fulfilled', rejected: 'Rejected', withdrawn: 'Withdrawn' };
+
+  function loadPrivacyRequests() {
+    if (!privacyRequestListEl) return;
+    privacyRequestListEl.innerHTML = '<div class="admin-list-empty">Loading privacy requests&hellip;</div>';
+    fetch('/api/admin/privacy-requests/list.php?status=' + encodeURIComponent(privacyRequestFilter), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); }).then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load privacy requests.');
+        privacyRequestCountEl.textContent = data.requests.length + (data.requests.length === 1 ? ' request' : ' requests');
+        renderPrivacyRequests(data.requests);
+      }).catch(function (err) {
+        privacyRequestListEl.innerHTML = '<div class="admin-list-empty">' + escapeHtml(err.message || 'Could not load privacy requests.') + '</div>';
+      });
+  }
+
+  function renderPrivacyRequests(requests) {
+    if (!requests.length) {
+      privacyRequestListEl.innerHTML = '<div class="admin-list-empty">No privacy requests match this filter.</div>';
+      return;
+    }
+    privacyRequestListEl.innerHTML = '';
+    requests.forEach(function (request) {
+      var row = document.createElement('div');
+      row.className = 'admin-row report-row';
+      var options = Object.keys(PRIVACY_REQUEST_STATUSES).map(function (key) {
+        return '<option value="' + key + '"' + (key === request.status ? ' selected' : '') + '>' + PRIVACY_REQUEST_STATUSES[key] + '</option>';
+      }).join('');
+      var canManage = pwHasPermission('privacy_requests.manage');
+      row.innerHTML = '<div class="admin-row-main">' +
+        '<p class="admin-row-subject">' + escapeHtml(PRIVACY_REQUEST_TYPES[request.request_type] || request.request_type) + ' <span class="report-status report-status-' + escapeHtml(request.status) + '">' + escapeHtml(PRIVACY_REQUEST_STATUSES[request.status] || request.status) + '</span></p>' +
+        '<div class="admin-row-meta"><span>' + escapeHtml(request.requester_display_name || request.requester_username) + '</span><span class="admin-row-sep">&bull;</span><span>' + escapeHtml(request.requester_email) + '</span><span class="admin-row-sep">&bull;</span><span>Received ' + escapeHtml(fmtDate(request.created_at)) + '</span><span class="admin-row-sep">&bull;</span><span>Due ' + escapeHtml(fmtDate(request.due_at)) + '</span></div>' +
+        (request.message ? '<p class="report-reason">' + escapeHtml(request.message) + '</p>' : '') +
+        (request.staff_resolution ? '<p class="report-resolution"><strong>Staff outcome</strong>' + (request.handler_username ? ' (by ' + escapeHtml(request.handler_username) + ')' : '') + ': ' + escapeHtml(request.staff_resolution) + '</p>' : '') +
+        '</div>' + (canManage ? '<div class="report-row-actions"><select class="privacy-request-status">' + options + '</select><textarea class="privacy-request-resolution" maxlength="2000" placeholder="Outcome / internal handling note">' + escapeHtml(request.staff_resolution || '') + '</textarea><button type="button" class="report-action-btn report-action-btn-close privacy-request-save">Save</button></div>' : '');
+      if (canManage) {
+        row.querySelector('.privacy-request-save').addEventListener('click', function () {
+          var button = row.querySelector('.privacy-request-save');
+          button.disabled = true;
+          fetch('/api/admin/privacy-requests/update.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: request.id, status: row.querySelector('.privacy-request-status').value, staff_resolution: row.querySelector('.privacy-request-resolution').value.trim(), csrf: window.PW_AUTH.csrf }) })
+            .then(function (r) { return r.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'Could not save the request.'); loadPrivacyRequests(); })
+            .catch(function (err) { button.disabled = false; window.alert(err.message); });
+        });
+      }
+      privacyRequestListEl.appendChild(row);
+    });
+  }
+
+  if (privacyRequestFilterTabs) privacyRequestFilterTabs.addEventListener('click', function (event) {
+    var button = event.target.closest('.admin-filter-tab'); if (!button) return;
+    privacyRequestFilterTabs.querySelectorAll('.admin-filter-tab').forEach(function (tab) { tab.classList.toggle('active', tab === button); });
+    privacyRequestFilter = button.getAttribute('data-filter'); loadPrivacyRequests();
+  });
+
   // Populates the sidebar's avatar/name/role footer for the logged-in admin
   // or moderator, reusing the same profile-avatar-wrap + role-* ring pattern
   // used everywhere else avatars appear (member rows, profile page) -- not
@@ -3528,6 +3629,7 @@
     report_content_deleted: 'Reported content deleted',
     report_resolved: 'Report closed',
     report_reopened: 'Report reopened',
+    privacy_request_updated: 'Privacy request updated',
     role_created: 'Role created',
     role_updated: 'Role updated',
     role_deleted: 'Role deleted',
@@ -3576,6 +3678,7 @@
     report_content_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
     report_resolved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M8 12.5l2.5 2.5L16 9.5"/></svg>',
     report_reopened: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M3 12a9 9 0 0 1 15.3-6.4L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.3 6.4L3 16"/><path d="M3 21v-5h5"/></svg>',
+    privacy_request_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>',
     role_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>',
     role_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>',
     role_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><line x1="9.5" y1="9.5" x2="14.5" y2="14.5"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/></svg>',
@@ -3625,6 +3728,7 @@
     if (action.indexOf('translation_') === 0 || action === 'category_edited' || action.indexOf('dispatch') === 0 || action.indexOf('development_') === 0) return { key: 'development', label: 'Development', icon: ACTIVITY_ICONS.dispatches_resynced };
     if (action.indexOf('member_') === 0) return { key: 'members', label: 'Members', icon: ACTIVITY_ICONS.member_updated };
     if (action.indexOf('topic_') === 0 || action.indexOf('comment_') === 0 || action.indexOf('content_') === 0 || action.indexOf('user_') === 0 || action.indexOf('report_') === 0) return { key: 'community', label: 'Community', icon: ACTIVITY_ICONS.forum_board_created };
+    if (action.indexOf('privacy_') === 0) return { key: 'community', label: 'Privacy', icon: ACTIVITY_ICONS.privacy_request_updated };
     if (action.indexOf('role_') === 0) return { key: 'roles', label: 'Roles', icon: ACTIVITY_ICONS.role_updated };
     if (action.indexOf('forum_board_') === 0) return { key: 'forum', label: 'Forum Boards', icon: ACTIVITY_ICONS.forum_board_created };
     if (action.indexOf('world_') === 0) return { key: 'worlds', label: 'Worlds', icon: ACTIVITY_ICONS.world_updated };
