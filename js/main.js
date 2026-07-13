@@ -42,30 +42,33 @@ function wireWorldInteractions() {
 window.wireWorldInteractions = wireWorldInteractions;
 
 document.addEventListener('DOMContentLoaded', function () {
-  // Visitor Statistics beacon (admin console): fire-and-forget page-view
-  // ping, backing the admin's "Visitor Statistics" page. Never blocks or
-  // delays the rest of page load -- any failure here (offline, ad blocker,
-  // etc.) is silently swallowed since it's non-critical telemetry.
+  // Visitor Statistics is non-critical telemetry. Run it when the browser is
+  // idle so it cannot compete with the hero, styles, or authentication state
+  // during the initial render.
   (function trackPageView() {
-    try {
-      var match = document.cookie.match(/(?:^|; )pw_vid=([^;]+)/);
-      var vid = match ? match[1] : null;
-      if (!vid) {
-        vid = crypto.randomUUID();
-        var expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
-        document.cookie = 'pw_vid=' + vid + '; expires=' + expires + '; path=/; SameSite=Lax';
-      }
-      fetch('/api/track-visit.php', {
-        method: 'POST',
-        keepalive: true,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          path: location.pathname,
-          referrer: document.referrer,
-          visitor_id: vid,
-        }),
-      }).catch(function () {});
-    } catch (e) {}
+    var send = function () {
+      try {
+        var match = document.cookie.match(/(?:^|; )pw_vid=([^;]+)/);
+        var vid = match ? match[1] : null;
+        if (!vid) {
+          vid = crypto.randomUUID();
+          var expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+          document.cookie = 'pw_vid=' + vid + '; expires=' + expires + '; path=/; SameSite=Lax';
+        }
+        fetch('/api/track-visit.php', {
+          method: 'POST',
+          keepalive: true,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            path: location.pathname,
+            referrer: document.referrer,
+            visitor_id: vid,
+          }),
+        }).catch(function () {});
+      } catch (e) {}
+    };
+    if ('requestIdleCallback' in window) window.requestIdleCallback(send, { timeout: 3000 });
+    else setTimeout(send, 1500);
   })();
 
   // Mobile nav toggle

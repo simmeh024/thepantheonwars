@@ -67,6 +67,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var forms = modal.querySelectorAll('.auth-form');
 
   function openModal(tab) {
+    startInitialAuthRefresh();
     modal.hidden = false;
     setTab(tab || 'login');
   }
@@ -229,12 +230,45 @@ document.addEventListener('DOMContentLoaded', function () {
           permissions: data.permissions || [],
         };
         renderNav();
+        if (window.PW_AUTH.loggedIn) loadNotifications();
         document.dispatchEvent(new CustomEvent('pw-auth-ready'));
       })
       .catch(function () { renderNav(); });
   };
 
-  refreshAuthNav();
+  var initialAuthRefreshStarted = false;
+
+  function startInitialAuthRefresh() {
+    if (initialAuthRefreshStarted) return;
+    initialAuthRefreshStarted = true;
+    window.refreshAuthNav();
+  }
+
+  function loadNotifications() {
+    if (!document.getElementById('notif-bell-btn') || document.getElementById('notifications-script')) return;
+    var script = document.createElement('script');
+    script.id = 'notifications-script';
+    script.src = '/js/notifications.js?v=7';
+    script.async = true;
+    document.body.appendChild(script);
+  }
+
+  // The session check only affects account chrome, not the first visible
+  // content. Start it after the load event/idle period, while opening the
+  // login dialog above starts it immediately when a visitor needs it.
+  function scheduleInitialAuthRefresh() {
+    var queue = function () {
+      if ('requestIdleCallback' in window) {
+        window.requestIdleCallback(startInitialAuthRefresh, { timeout: 2000 });
+      } else {
+        setTimeout(startInitialAuthRefresh, 0);
+      }
+    };
+    if (document.readyState === 'complete') queue();
+    else window.addEventListener('load', queue, { once: true });
+  }
+
+  scheduleInitialAuthRefresh();
 
   // Heartbeat: session-check.php stamps last_active_at for logged-in users,
   // which powers the "Online now" status on the member list. Do not keep a

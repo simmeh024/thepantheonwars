@@ -5,7 +5,7 @@
 // members.js (but that's already the existing script-tag order on every
 // page) isn't strictly required.
 
-document.addEventListener('DOMContentLoaded', function () {
+function initNotifications() {
   var bellBtn = document.getElementById('notif-bell-btn');
   var badgeEl = document.getElementById('notif-badge');
   var dropdownEl = document.getElementById('notif-dropdown');
@@ -216,4 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
   });
 
   if (window.PW_AUTH && window.PW_AUTH.loggedIn) startPolling();
-});
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initNotifications);
+else initNotifications();
