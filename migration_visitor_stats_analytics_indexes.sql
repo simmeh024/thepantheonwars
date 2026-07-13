@@ -6,8 +6,9 @@
 -- columns let MariaDB satisfy the corresponding aggregation from the index
 -- rather than reading the full page_views rows.
 --
--- Keep idx_created_at: it remains the smallest index for the raw-retention
--- delete and the Recent Visits feed's reverse chronological ordering.
+-- Keep idx_created_at during this migration: the follow-up
+-- migration_visitor_stats_recent_feed_index.sql replaces it with the
+-- order-matching (created_at, id) index for the Recent Visits feed.
 
 ALTER TABLE page_views
   ADD INDEX idx_created_visitor_user (created_at, visitor_id, user_id),

@@ -4,7 +4,8 @@
 -- phpMyAdmin after migration_visitor_stats_analytics_indexes.sql. Confirm the
 -- "key"/"key_name" field uses the named created_at-leading index, then record
 -- the reported r_rows and execution time. On the current small data set the
--- optimiser may still choose a table scan; repeat once page_views is larger.
+-- optimiser may still choose a table scan for grouped aggregations; the Recent
+-- Visits query should use idx_created_at_id and avoid a filesort.
 
 ANALYZE FORMAT=JSON
 SELECT COUNT(*) AS total,

@@ -308,7 +308,7 @@ CREATE TABLE IF NOT EXISTS page_views (
   country_name VARCHAR(100) NULL,
   user_agent VARCHAR(255) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  KEY idx_created_at (created_at),
+  KEY idx_created_at_id (created_at, id),
   -- Cover the time-windowed aggregate cards without reading full rows.
   KEY idx_created_visitor_user (created_at, visitor_id, user_id),
   KEY idx_created_path (created_at, path),
