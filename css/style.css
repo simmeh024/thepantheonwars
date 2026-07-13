@@ -5744,3 +5744,34 @@ footer.site-footer {
     scroll-behavior: auto !important;
   }
 }
+
+/* Shared keyboard focus treatment. This deliberately sits after every
+   component rule so older outline resets never leave a keyboard user without
+   a visible location. Gold marks the control itself; the purple halo keeps
+   the ring legible against both dark panel shades. */
+:where(
+  a[href],
+  button,
+  input:not([type="hidden"]),
+  select,
+  textarea,
+  summary,
+  [role="button"],
+  [role="tab"],
+  [role="switch"],
+  [role="menuitem"],
+  [contenteditable="true"],
+  [tabindex]:not([tabindex="-1"])
+):focus-visible {
+  outline: 2px solid var(--gold-bright) !important;
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(162, 121, 236, 0.34) !important;
+}
+
+/* The notification filter's checkbox is visually hidden, so move its
+   keyboard focus treatment to the visible switch track. */
+.notif-unread-toggle input:focus-visible + .notif-unread-toggle-track {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(162, 121, 236, 0.34);
+}
