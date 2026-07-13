@@ -176,6 +176,11 @@ correct key (value lives only in the secrets config, not in git).
 
 ## Recent history (most recent first)
 
+- **World catalog query optimization:** refactored public `api/worlds.php`
+  from an N+1 detail-loading pattern into four fixed bulk queries (worlds,
+  layers, landmarks, and sublocations). The endpoint groups the rows in PHP
+  using the same shape as the World Control admin endpoint, while preserving
+  the public `worlds` / single `world` response payload exactly.
 - **Forum + visitor-analytics query hardening:**
   `migration_forum_analytics_indexes.sql` adds composite indexes for active
   topics/comments, bookmark ordering, and ordered visitor journeys; it also
