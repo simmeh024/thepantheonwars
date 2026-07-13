@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=178">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=179">
 </head>
 <body>
 
@@ -1383,6 +1383,7 @@
     </div>
     <div class="admin-field">
       <label for="admin-translation-text">End-user summary</label>
+      <p class="translation-editor-guidance">This local draft stays private until you approve it. Check names, tone, and factual accuracy before publishing.</p>
       <textarea id="admin-translation-text" maxlength="5000" placeholder="Plain-language explanation of this dispatch for players&hellip;"></textarea>
     </div>
     <p class="admin-modal-error" id="admin-modal-error"></p>
@@ -5361,10 +5362,16 @@
       .then(function (data) {
         generateDraftBtn.disabled = false;
         if (!data.ok) throw new Error(data.error || 'Could not generate draft.');
-        modalStatus.textContent = 'Draft generated. Reloading the translation queue.';
+        textarea.value = data.draft || '';
+        currentEntry.generated_draft = data.draft || '';
+        currentEntry.has_draft = true;
+        currentEntry.has_translation = false;
+        generateDraftBtn.textContent = 'Regenerate Draft';
+        saveBtn.textContent = 'Approve & Publish';
+        modalError.classList.remove('show');
+        modalStatus.textContent = 'New rule-based draft generated. Review or edit it here before publishing.';
         modalStatus.classList.add('show');
         loadList();
-        setTimeout(function () { closeModal(); }, 650);
       })
       .catch(function (error) {
         generateDraftBtn.disabled = false;

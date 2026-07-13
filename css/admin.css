@@ -1745,6 +1745,14 @@
   white-space: pre-wrap; word-wrap: break-word;
 }
 .admin-field textarea:focus { outline: none; border-color: var(--purple-bright); }
+.translation-editor-guidance {
+  display: flex; align-items: flex-start; gap: 8px;
+  margin: -1px 0 9px; padding: 8px 10px;
+  border-left: 2px solid rgba(69,209,201,0.72);
+  background: rgba(69,209,201,0.055); color: var(--text-dim);
+  font-size: 0.74rem; line-height: 1.45;
+}
+.translation-editor-guidance::before { content: 'âœ¦'; flex: 0 0 auto; color: #45d1c9; }
 .admin-field input[type="text"], .admin-field input[type="email"], .admin-field input[type="number"] {
   width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.92rem;

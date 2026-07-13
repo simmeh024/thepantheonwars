@@ -26,5 +26,14 @@ if (!$created) {
     pw_error('This dispatch already has an approved translation or no longer exists.', 409);
 }
 
+$draftStmt = $db->prepare(
+    'SELECT draft, updated_at FROM dispatch_translation_drafts WHERE dispatch_id = ?'
+);
+$draftStmt->execute([$dispatchId]);
+$draft = $draftStmt->fetch();
+if (!$draft) {
+    pw_error('The draft could not be loaded after generation.', 500);
+}
+
 pw_log_admin_activity('translation_draft_generated', 'Generated a rule-based end-user draft for dispatch #' . $dispatchId . '.', $adminUser);
-pw_json(['ok' => true]);
+pw_json(['ok' => true, 'draft' => $draft['draft'], 'updated_at' => $draft['updated_at']]);

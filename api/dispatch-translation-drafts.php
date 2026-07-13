@@ -36,6 +36,8 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/\bprofile\b/i' => 'member profile',
         '/\bsign-out experience action\b/i' => 'sign-out experience',
         '/\bshared styling\b/i' => 'consistent visual styling',
+        '/\bImprove rule based Dispatch draft wording\b/i' => 'the wording used in end-user summaries for development updates',
+        '/\bExpand Dispatch draft copy with reader facing context\b/i' => 'the detail in end-user summaries for development updates',
         '/\brule based Dispatch translation drafts\b/i' => 'a clearer local drafting process for development updates',
         '/\bAdmin Home card baseline treatment\b/i' => 'the default styling of Admin Home cards',
         '/\bAdmin Home visual polish\b/i' => 'the visual treatment of the Admin Home dashboard',
@@ -43,6 +45,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/\bpersonal navigation settings\b/i' => 'personal navigation settings',
         '/\bpresence heartbeat writes\b/i' => 'how often online status is recorded',
         '/\bCSS bundles by page audience\b/i' => 'page-specific styling delivery',
+        '/\bPolish the admin sidebar and add personal navigation settings\b/i' => 'the Admin Console sidebar and personal navigation settings',
     ];
     foreach ($replacements as $pattern => $replacement) {
         $clean = preg_replace($pattern, $replacement, $clean);
@@ -80,6 +83,10 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/^(?:fix|resolve|repair)\s+(.+)$/i' => 'This update fixes %s.',
         '/^(?:restore)\s+(.+)$/i' => 'This update restores %s.',
         '/^(?:improve|enhance|refine|polish|streamline)\s+(.+)$/i' => 'This update improves %s.',
+        '/^(?:expand)\s+(.+)$/i' => 'This update expands %s.',
+        '/^(?:keep)\s+(.+)$/i' => 'This update keeps %s clear and easy to read.',
+        '/^(?:throttle|reduce)\s+(.+)$/i' => 'This update reduces unnecessary %s.',
+        '/^(?:load|deliver)\s+(.+)$/i' => 'This update delivers %s more efficiently.',
         '/^(?:optimi[sz]e|speed up)\s+(.+)$/i' => 'This update makes %s faster and more reliable.',
         '/^(?:update|refresh)\s+(.+)$/i' => 'This update refreshes %s.',
         '/^(?:remove|retire|delete)\s+(.+)$/i' => 'This update removes %s.',
