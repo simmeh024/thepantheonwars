@@ -223,11 +223,11 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         'It helps keep the site clear, reliable, and ready for future updates.',
     ], 'category');
     $contextLibrary = [
-        '/\b(?:security|sign in|sign out|session|password|CSRF|IP throttling|login|account)\b/i' => [
+        '/\b(?:security|sign in|sign out|session|password|CSRF|IP throttling|IP address|login|account|privacy|GDPR|data request)\b/i' => [
             'BH-4 notes that the change also narrows an avoidable point of risk for member activity.',
             'The affected path is now better prepared to protect normal member activity.',
         ],
-        '/\b(?:forum|community|topic|reply|member|notification|like|quote|mention|reaction|moderator)\b/i' => [
+        '/\b(?:forum|community|topic|reply|member|notification|like|quote|mention|reaction|moderator|profile|settings|email|nav)\b/i' => [
             'Community activity should be easier to follow without adding noise to everyday conversations.',
             'The change supports clearer participation for members and moderators alike.',
         ],
@@ -235,17 +235,21 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
             'Administrators gain a clearer operational view while routine work stays focused.',
             'The administrative path now presents the relevant information with less unnecessary searching.',
         ],
-        '/\b(?:mobile|responsive|cover artwork|interface|layout|card|tooltip|badge|portrait|hero|header|padding|color|animation|image)\b/i' => [
+        '/\b(?:mobile|responsive|cover artwork|interface|layout|card|tooltip|badge|portrait|hero|header|padding|color|animation|image|keyboard|focus|reduced motion|lightbox|scrollbar|favicon|logo|stylesheet|styling)\b/i' => [
             'The affected view should remain easier to read across the screens visitors actually use.',
             'This keeps the presentation stable and legible as the available screen space changes.',
         ],
-        '/\b(?:world|lore|book|chapter|Asmecu|Cerius|Neoh|overlord|affinity|resonance|Quiz History|map)\b/i' => [
+        '/\b(?:world|lore|book|chapter|Asmecu|Cerius|Neoh|overlord|affinity|resonance|Quiz History|map|soundtrack)\b/i' => [
             'Readers have a clearer route into the relevant part of the setting.',
             'The added detail is framed to support exploration without obscuring established information.',
         ],
-        '/\b(?:database|performance|loading|cache|CSS|visual styling|image|metrics|query|page view|CPU|asset|font|rollup|webhook|sync)\b/i' => [
+        '/\b(?:database|performance|loading|cache|CSS|visual styling|image|metrics|query|page view|CPU|asset|font|rollup|webhook|sync|visitor|statistics|Sankey|journey|traffic|feed)\b/i' => [
             'BH-4 expects the affected path to handle routine demand with less overhead.',
             'The improvement supports a more responsive experience as activity increases.',
+        ],
+        '/\b(?:presence|heartbeat|storage|error log|Site Errors|documentation|CLAUDE|README|deploy|cPanel|Git|htaccess)\b/i' => [
+            'The maintenance gives routine site operations a clearer and more dependable foundation.',
+            'BH-4 records a useful improvement to the systems that support future releases.',
         ],
     ];
     foreach ($contextLibrary as $pattern => $options) {
@@ -440,7 +444,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag): string
 {
-    return hash('sha256', "dispatch-draft-v10\n" . $subject . "\n" . $body . "\n" . $tag);
+    return hash('sha256', "dispatch-draft-v11\n" . $subject . "\n" . $body . "\n" . $tag);
 }
 
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): bool
