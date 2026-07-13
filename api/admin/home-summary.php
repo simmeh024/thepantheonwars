@@ -149,7 +149,11 @@ $siteStats = [
 ];
 
 $loginRows = $db->prepare(
-    "SELECT created_at FROM admin_activity_log WHERE user_id = ? AND action = 'login' ORDER BY created_at DESC LIMIT 2"
+    "SELECT id, created_at
+     FROM admin_activity_log
+     WHERE user_id = ? AND action IN ('login_ok', 'login')
+     ORDER BY created_at DESC, id DESC
+     LIMIT 2"
 );
 $loginRows->execute([$adminUser['id']]);
 $previousLogins = $loginRows->fetchAll();
@@ -159,7 +163,7 @@ $bh4Row = $db->prepare(
     "SELECT
         SUM(action = 'category_edited') AS dispatches_classified,
         SUM(action IN ('translation_added', 'translation_updated')) AS translations_completed,
-        SUM(action = 'login') AS admin_logins
+        SUM(action IN ('login_ok', 'login')) AS admin_logins
      FROM admin_activity_log WHERE created_at > ?"
 );
 $bh4Row->execute([$since]);

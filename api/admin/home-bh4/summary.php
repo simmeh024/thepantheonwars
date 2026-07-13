@@ -2,7 +2,8 @@
 /**
  * Feeds the "Welcome back" BH-4 card at the top of the admin console's Home
  * page. Everything here is scoped to "since your last session": we find the
- * current admin's previous login (the second-most-recent 'login' row in
+ * current admin's previous successful-login row (the second-most-recent
+ * 'login_ok' row; legacy deployments may still have older 'login' rows) in
  * admin_activity_log for this user_id -- the most recent row is the login
  * that started *this* session), then count what's happened system-wide
  * since that point. If there's no previous login on record (brand new
@@ -22,7 +23,11 @@ $user = pw_require_permission('dashboards.view_home');
 $db = pw_db();
 
 $stmt = $db->prepare(
-    "SELECT created_at FROM admin_activity_log WHERE user_id = ? AND action = 'login' ORDER BY created_at DESC LIMIT 2"
+    "SELECT id, created_at
+     FROM admin_activity_log
+     WHERE user_id = ? AND action IN ('login_ok', 'login')
+     ORDER BY created_at DESC, id DESC
+     LIMIT 2"
 );
 $stmt->execute([$user['id']]);
 $logins = $stmt->fetchAll();
@@ -50,7 +55,9 @@ $translationsStmt->execute([$since]);
 $translationsCompleted = (int)$translationsStmt->fetch()['c'];
 
 $loginsStmt = $db->prepare(
-    "SELECT COUNT(*) AS c FROM admin_activity_log WHERE action = 'login' AND created_at > ?"
+    "SELECT COUNT(*) AS c
+     FROM admin_activity_log
+     WHERE action IN ('login_ok', 'login') AND created_at > ?"
 );
 $loginsStmt->execute([$since]);
 $adminLogins = (int)$loginsStmt->fetch()['c'];
