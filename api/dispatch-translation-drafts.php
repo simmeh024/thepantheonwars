@@ -21,7 +21,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     // Separating that area from the actual change gives the draft formatter
     // a reliable description to work with, even when the title has no verb.
     $scopedCommit = '/^[A-Za-z][A-Za-z0-9 .&\/()\-]{1,60}:\s+(.+)$/';
-    $actionOpening = '/^(?:add|create|introduce|include|fix|resolve|repair|restore|improve|enhance|refine|polish|streamline|redesign|rework|restructure|expand|keep|show|align|widen|enlarge|split|stack|make|throttle|reduce|defer|slow|prevent|reserve|use|switch|load|deliver|cross link|connect|unlock|bump|optimi[sz]e|speed up|update|refresh|remove|retire|delete|move|reorganize|reorganise|reposition|secure|protect|harden|strengthen|color code|give|respect|clear|place|confine|pin|anchor|animate|preserve|preload|tighten|elevate|complete|alert|index|bundle|limit|pause|cache|pre aggregate|bulk load|track|collapse|graph|log|group|mask|rename|surface|reorder|finalize|swap|render|force|mirror|theme|store|merge|replace|auto refresh|always refresh|right align|put|pull|un float|paginate|increase|version|trim|revert|relative|sortable|styled|subtle|tiered|full|compact|label|highlight|explore)\b/i';
+    $actionOpening = '/^(?:add|create|introduce|include|fix|resolve|repair|restore|improve|enhance|refine|polish|streamline|redesign|rework|restructure|expand|keep|show|align|widen|enlarge|split|stack|make|throttle|reduce|defer|slow|prevent|reserve|use|switch|load|deliver|cross link|connect|unlock|bump|optimi[sz]e|speed up|update|refresh|remove|retire|delete|move|reorganize|reorganise|reposition|secure|protect|harden|strengthen|color code|give|respect|clear|place|confine|pin|anchor|animate|preserve|preload|tighten|elevate|complete|alert|index|bundle|limit|pause|cache|pre aggregate|bulk load|track|collapse|graph|log|group|mask|rename|surface|reorder|finalize|swap|render|force|mirror|theme|store|merge|replace|auto refresh|always refresh|right align|put|pull|un float|paginate|increase|version|trim|revert|relative|sortable|styled|subtle|tiered|full|compact|label|highlight|explore|sharpen|hide)\b/i';
     if (!preg_match($actionOpening, $clean) && preg_match($scopedCommit, $clean, $scopeMatches)) {
         $rulesMatched++;
         $clean = $scopeMatches[1];
@@ -31,6 +31,14 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     // They retain the commit's meaning while speaking in the language readers
     // encounter on the site. The most specific replacements come first.
     $replacements = [
+        '/\bsurface error log candidate paths in errors\.php response\b/i' => 'a focused review of available site error diagnostics',
+        '/\badd one click copy button for raw commit message\b/i' => 'a quick way to copy the original development note',
+        '/\b24h refresh cadence, stacked bar chart with day\/week\/month\/year filter\b/i' => 'a clearer language-history view with flexible time ranges',
+        '/\bstyled category pill, GitHub link, zebra rows\b/i' => 'clearer Dispatch Control labels, source links, and list rows',
+        '/\b500 error from duplicate named PDO placeholder\b/i' => 'a Dispatch search error',
+        '/\bshow match % on each Quiz History row\b/i' => 'the match percentage on each Quiz History entry',
+        '/\bSharpen High Hammer map \(unsharp mask and higher quality JPEG\) to reduce blur\b/i' => 'a sharper High Hammer map for easier exploration',
+        '/\bHide default scrollbar arrow buttons for cleaner themed look\b/i' => 'a cleaner themed scrollbar',
         '/\bGraphical polish pass on the forum\b/i' => 'a visual refinement pass for forum discussions',
         '/\bRestructure admin sidebar nav: Home category, moved Roles and Permissions, larger category labels\b/i' => 'a clearer Admin Console navigation structure',
         '/\bTemporary diagnostic endpoint: explore CPU\/DB introspection options\b/i' => 'a focused review of system monitoring options',
@@ -223,7 +231,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
             'Community activity should be easier to follow without adding noise to everyday conversations.',
             'The change supports clearer participation for members and moderators alike.',
         ],
-        '/\b(?:Admin|Audit Log|System Status|backup|dashboard|quick action|BH 4|UTC|clock|sidebar|role|permission|Development Dispatch)\b/i' => [
+        '/\b(?:Admin|Audit Log|System Status|backup|dashboard|quick action|BH 4|UTC|clock|sidebar|role|permission|Dispatch(?: Control| Translations)?|Development Dispatch)\b/i' => [
             'Administrators gain a clearer operational view while routine work stays focused.',
             'The administrative path now presents the relevant information with less unnecessary searching.',
         ],
@@ -231,7 +239,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
             'The affected view should remain easier to read across the screens visitors actually use.',
             'This keeps the presentation stable and legible as the available screen space changes.',
         ],
-        '/\b(?:world|lore|book|chapter|Asmecu|Cerius|Neoh|overlord|affinity|resonance)\b/i' => [
+        '/\b(?:world|lore|book|chapter|Asmecu|Cerius|Neoh|overlord|affinity|resonance|Quiz History|map)\b/i' => [
             'Readers have a clearer route into the relevant part of the setting.',
             'The added detail is framed to support exploration without obscuring established information.',
         ],
@@ -319,6 +327,8 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/^(?:compact)\s+(.+)$/i' => 'This update makes %s more focused without removing useful detail.',
         '/^(?:label|highlight)\s+(.+)$/i' => 'This update makes %s clearer at a glance.',
         '/^(?:explore)\s+(.+)$/i' => 'This update reviews %s to prepare a more reliable next step.',
+        '/^(?:sharpen)\s+(.+)$/i' => 'This update makes %s clearer to view.',
+        '/^(?:hide)\s+(.+)$/i' => 'This update removes unnecessary visual clutter from %s.',
     ];
     foreach ($actionTemplates as $pattern => $template) {
         if (preg_match($pattern, $clean, $matches)) {
@@ -430,7 +440,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag): string
 {
-    return hash('sha256', "dispatch-draft-v9\n" . $subject . "\n" . $body . "\n" . $tag);
+    return hash('sha256', "dispatch-draft-v10\n" . $subject . "\n" . $body . "\n" . $tag);
 }
 
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): bool
