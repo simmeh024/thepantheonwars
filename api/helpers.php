@@ -38,7 +38,14 @@ if (!empty($_SESSION['user_id'])) {
     }
 }
 
+// Every API endpoint includes this helper, so keep the baseline browser
+// protections here rather than relying on individual routes to remember them.
+// JSON responses should never be MIME-sniffed or framed, and cross-origin
+// navigations do not need the complete source URL as a referrer.
 header('Content-Type: application/json; charset=utf-8');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: strict-origin-when-cross-origin');
 
 // --- GitHub API auth -----------------------------------------------------------
 // Optional: define GITHUB_TOKEN in the outside-webroot secrets file (see

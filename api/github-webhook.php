@@ -9,6 +9,9 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/dispatch-helpers.php';
 
 header('Content-Type: application/json; charset=utf-8');
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: strict-origin-when-cross-origin');
 
 function gh_respond($data, $status = 200) {
     http_response_code($status);

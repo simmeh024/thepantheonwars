@@ -23,6 +23,9 @@ $secretsPath = '/home/rdy3i6my40b0/pantheonwars-secrets/config.php';
 if (!file_exists($secretsPath)) {
     http_response_code(500);
     header('Content-Type: application/json');
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
     echo json_encode(['ok' => false, 'error' => 'Member system is not configured yet.']);
     exit;
 }
