@@ -145,6 +145,10 @@ correct key (value lives only in the secrets config, not in git).
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
   than once): `js/members.js?v=N` (current: v=7) and `js/notifications.js?v=N`
   (current: v=6), both across the 22 public pages (not admin).
+- Static CSS, JavaScript, font, and image assets have a one-year
+  `public, immutable` cache policy in `.htaccess`; HTML remains no-cache so
+  changed version URLs reach visitors immediately. Never replace an asset at
+  the same URL without changing its filename or version query string.
 - **No shared JS module anywhere in this static site** -- BBCode rendering
   (`formatBody()`/`escapeHtml()`) is hand-duplicated in `community.html` (canonical,
   also owns the editor toolbar) and `member.html` (Recent Posts). A plain-text
@@ -175,6 +179,11 @@ correct key (value lives only in the secrets config, not in git).
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Static asset caching:** `.htaccess` now gives versioned CSS, JavaScript,
+  font, and image assets a one-year immutable cache lifetime, with matching
+  `Expires` metadata when mod_expires is available. HTML and dynamic PHP/API
+  responses retain their existing non-long-lived behavior.
 
 - **Sankey analytics scaling:** visitor journeys now read completed UTC days
   from a compact `page_view_daily_transitions` rollup and calculate only the
