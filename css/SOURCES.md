@@ -14,9 +14,10 @@ legacy or external pages.
 - `community.css` — authentication, member profiles, forum/community, dispatch, and metrics pages.
 - `admin.css` — the admin console, operational dashboards, modals, visitor statistics, and controls.
 
-When changing a source file, bump the active bundle `?v=N` page references and every
-import query in all four entrypoints. The site has no bundling step: preserving file
-order and versioning is what keeps production rendering deterministic.
+When changing a source file, bump the active bundle `?v=N` page reference and its
+matching import query (plus the compatibility entrypoint when it imports that source).
+The site has no bundling step: preserving file order and versioning is what keeps
+production rendering deterministic.
 
 ## Bundle routing
 

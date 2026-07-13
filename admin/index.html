@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=172">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=173">
 </head>
 <body>
 
@@ -27,6 +27,7 @@
       <a href="../index.html">The Pantheon Wars</a>
       <span class="admin-brand-sub">Admin Console</span>
     </div>
+    <div class="admin-nav-categories" id="admin-nav-categories">
     <div class="admin-nav-category" data-category="home" data-requires-permission="dashboards.view_home,analytics.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="true">
         <span>Home</span>
@@ -75,7 +76,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="system" data-requires-permission="dashboards.view_system_status,dashboards.view_audit_log">
+    <div class="admin-nav-category is-collapsed" data-category="system" data-requires-permission="dashboards.view_system_status,dashboards.view_audit_log,admin_console.access">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>System</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -83,7 +84,9 @@
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li data-requires-permission="dashboards.view_system_status"><button type="button" class="admin-nav-link" data-section="system-status"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>System Status</button></li>
         <li data-requires-permission="dashboards.view_audit_log"><button type="button" class="admin-nav-link" data-section="audit-log"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Audit Log</button></li>
+        <li data-requires-permission="admin_console.access"><button type="button" class="admin-nav-link" data-section="admin-settings"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.2 2.2-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56v.1h-3.1v-.1a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-2.2-2.2.06-.06A1.7 1.7 0 0 0 6.8 15a1.7 1.7 0 0 0-1.56-1.03h-.1v-3.1h.1A1.7 1.7 0 0 0 6.8 9.84a1.7 1.7 0 0 0-.34-1.88L6.4 7.9l2.2-2.2.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.03-1.56v-.1h3.1v.1a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.2 2.2-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03h.1v3.1h-.1A1.7 1.7 0 0 0 19.4 15z"/></svg>Admin Settings</button></li>
       </ul>
+    </div>
     </div>
 
     <div class="admin-back-link"><a href="../dev-dispatches.html">&larr; Back to site</a></div>
@@ -733,6 +736,23 @@
         <div class="admin-list-empty">Loading recent visits&hellip;</div>
       </div>
       <div class="admin-pagination" id="vstats-recent-pagination"></div>
+    </section>
+
+    <section class="admin-section" id="section-admin-settings" hidden>
+      <div class="admin-section-head">
+        <h1>Admin Settings</h1>
+        <p>Arrange this console around the way you work. Changes are personal to your signed-in admin account on this browser.</p>
+      </div>
+
+      <div class="admin-settings-intro">
+        <span class="admin-settings-intro-icon">⌘</span>
+        <div>
+          <strong>Personal navigation layout</strong>
+          <p>Move categories and the pages inside them. Category ownership is fixed, so a Community page can never be moved into System.</p>
+        </div>
+        <button type="button" class="admin-settings-reset" id="admin-sidebar-order-reset">Restore default</button>
+      </div>
+      <div class="admin-sidebar-order-grid" id="admin-sidebar-order-controls" aria-live="polite"></div>
     </section>
 
     <section class="admin-section" id="section-system-status" hidden>
@@ -2514,6 +2534,184 @@
     });
   })();
 
+  // ===== Personal sidebar order ==============================================
+  // Keep the category/page ownership in markup. The stored preference contains
+  // only an order, and is normalised against that fixed mapping before it is
+  // applied, so a page such as Members can never be moved into System.
+  var SIDEBAR_ORDER_KEY_PREFIX = 'pw_admin_sidebar_order_v1_';
+  var sidebarCategoryContainer = document.getElementById('admin-nav-categories');
+  var sidebarOrderControls = document.getElementById('admin-sidebar-order-controls');
+  var sidebarOrderReset = document.getElementById('admin-sidebar-order-reset');
+  var sidebarOrderStorageKey = null;
+  var defaultSidebarLayout = [];
+
+  function readSidebarLayoutFromDom() {
+    return Array.prototype.map.call(navCategories, function (category) {
+      return {
+        id: category.getAttribute('data-category'),
+        sections: Array.prototype.map.call(category.querySelectorAll('.admin-nav-link'), function (link) {
+          return link.getAttribute('data-section');
+        })
+      };
+    });
+  }
+
+  defaultSidebarLayout = readSidebarLayoutFromDom();
+
+  function normaliseSidebarLayout(candidate) {
+    var saved = Array.isArray(candidate) ? candidate : [];
+    var byId = {};
+    saved.forEach(function (entry) {
+      if (entry && typeof entry.id === 'string' && Array.isArray(entry.sections)) byId[entry.id] = entry.sections;
+    });
+    var orderedIds = saved.map(function (entry) { return entry && entry.id; })
+      .filter(function (id) { return defaultSidebarLayout.some(function (entry) { return entry.id === id; }); });
+    defaultSidebarLayout.forEach(function (entry) {
+      if (orderedIds.indexOf(entry.id) === -1) orderedIds.push(entry.id);
+    });
+    return orderedIds.map(function (categoryId) {
+      var base = defaultSidebarLayout.filter(function (entry) { return entry.id === categoryId; })[0];
+      var requested = byId[categoryId] || [];
+      var sections = requested.filter(function (section) { return base.sections.indexOf(section) !== -1; });
+      base.sections.forEach(function (section) {
+        if (sections.indexOf(section) === -1) sections.push(section);
+      });
+      return { id: categoryId, sections: sections };
+    });
+  }
+
+  function loadSidebarLayout() {
+    if (!sidebarOrderStorageKey) return normaliseSidebarLayout(null);
+    try { return normaliseSidebarLayout(JSON.parse(localStorage.getItem(sidebarOrderStorageKey))); }
+    catch (e) { return normaliseSidebarLayout(null); }
+  }
+
+  function saveSidebarLayout(layout) {
+    if (!sidebarOrderStorageKey) return;
+    try { localStorage.setItem(sidebarOrderStorageKey, JSON.stringify(layout)); } catch (e) {}
+  }
+
+  function applySidebarLayout(layout) {
+    if (!sidebarCategoryContainer) return;
+    layout.forEach(function (entry) {
+      var category = sidebarCategoryContainer.querySelector('.admin-nav-category[data-category="' + entry.id + '"]');
+      if (!category) return;
+      sidebarCategoryContainer.appendChild(category);
+      var list = category.querySelector('.admin-nav-list');
+      entry.sections.forEach(function (section) {
+        var link = category.querySelector('.admin-nav-link[data-section="' + section + '"]');
+        if (link && link.parentElement) list.appendChild(link.parentElement);
+      });
+    });
+  }
+
+  function sidebarLabel(categoryId, section) {
+    var category = sidebarCategoryContainer.querySelector('.admin-nav-category[data-category="' + categoryId + '"]');
+    var target = section ? category.querySelector('.admin-nav-link[data-section="' + section + '"]') : category.querySelector('.admin-nav-category-toggle span');
+    return target ? target.textContent.trim() : section || categoryId;
+  }
+
+  function orderControlButton(label, action, categoryId, section, disabled) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'admin-sidebar-order-move';
+    button.textContent = label;
+    button.setAttribute('data-sidebar-action', action);
+    button.setAttribute('data-category-id', categoryId);
+    if (section) button.setAttribute('data-section-id', section);
+    button.disabled = disabled;
+    return button;
+  }
+
+  function renderSidebarOrderControls() {
+    if (!sidebarOrderControls) return;
+    var layout = loadSidebarLayout();
+    sidebarOrderControls.textContent = '';
+    layout.forEach(function (entry, categoryIndex) {
+      var card = document.createElement('section');
+      card.className = 'admin-sidebar-order-card';
+      var head = document.createElement('div');
+      head.className = 'admin-sidebar-order-card-head';
+      var title = document.createElement('h2');
+      title.textContent = sidebarLabel(entry.id);
+      var categoryActions = document.createElement('div');
+      categoryActions.className = 'admin-sidebar-order-actions';
+      categoryActions.appendChild(orderControlButton('Move category up', 'category-up', entry.id, null, categoryIndex === 0));
+      categoryActions.appendChild(orderControlButton('Move category down', 'category-down', entry.id, null, categoryIndex === layout.length - 1));
+      head.appendChild(title);
+      head.appendChild(categoryActions);
+      card.appendChild(head);
+      var note = document.createElement('p');
+      note.className = 'admin-sidebar-order-note';
+      note.textContent = 'Pages remain in this category.';
+      card.appendChild(note);
+      var list = document.createElement('ol');
+      list.className = 'admin-sidebar-order-list';
+      entry.sections.forEach(function (section, sectionIndex) {
+        var item = document.createElement('li');
+        var label = document.createElement('span');
+        label.textContent = sidebarLabel(entry.id, section);
+        var actions = document.createElement('div');
+        actions.className = 'admin-sidebar-order-actions';
+        actions.appendChild(orderControlButton('Move page up', 'item-up', entry.id, section, sectionIndex === 0));
+        actions.appendChild(orderControlButton('Move page down', 'item-down', entry.id, section, sectionIndex === entry.sections.length - 1));
+        item.appendChild(label);
+        item.appendChild(actions);
+        list.appendChild(item);
+      });
+      card.appendChild(list);
+      sidebarOrderControls.appendChild(card);
+    });
+  }
+
+  function updateSidebarOrder(mutator) {
+    var layout = loadSidebarLayout();
+    mutator(layout);
+    layout = normaliseSidebarLayout(layout);
+    saveSidebarLayout(layout);
+    applySidebarLayout(layout);
+    renderSidebarOrderControls();
+  }
+
+  if (sidebarOrderControls) sidebarOrderControls.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-sidebar-action]');
+    if (!button || button.disabled) return;
+    var categoryId = button.getAttribute('data-category-id');
+    var section = button.getAttribute('data-section-id');
+    var direction = button.getAttribute('data-sidebar-action').indexOf('up') !== -1 ? -1 : 1;
+    updateSidebarOrder(function (layout) {
+      var categoryIndex = layout.map(function (entry) { return entry.id; }).indexOf(categoryId);
+      if (button.getAttribute('data-sidebar-action').indexOf('category') === 0) {
+        var nextCategoryIndex = categoryIndex + direction;
+        if (categoryIndex >= 0 && nextCategoryIndex >= 0 && nextCategoryIndex < layout.length) {
+          var category = layout.splice(categoryIndex, 1)[0];
+          layout.splice(nextCategoryIndex, 0, category);
+        }
+        return;
+      }
+      var sections = layout[categoryIndex].sections;
+      var sectionIndex = sections.indexOf(section);
+      var nextSectionIndex = sectionIndex + direction;
+      if (sectionIndex >= 0 && nextSectionIndex >= 0 && nextSectionIndex < sections.length) {
+        var moved = sections.splice(sectionIndex, 1)[0];
+        sections.splice(nextSectionIndex, 0, moved);
+      }
+    });
+  });
+
+  if (sidebarOrderReset) sidebarOrderReset.addEventListener('click', function () {
+    var layout = normaliseSidebarLayout(null);
+    saveSidebarLayout(layout);
+    applySidebarLayout(layout);
+    renderSidebarOrderControls();
+  });
+
+  function initialiseSidebarCustomization(userId) {
+    sidebarOrderStorageKey = SIDEBAR_ORDER_KEY_PREFIX + String(userId);
+    applySidebarLayout(loadSidebarLayout());
+    renderSidebarOrderControls();
+  }
+
   var homeViewAllLink = document.getElementById('home-activity-view-all');
   if (homeViewAllLink) {
     homeViewAllLink.addEventListener('click', function (e) {
@@ -3654,6 +3852,7 @@
     }
     applyNavPermissions();
     populateSidebarUser(window.PW_AUTH.user);
+    initialiseSidebarCustomization(window.PW_AUTH.user.id);
     gate.hidden = true;
     shell.classList.add('is-ready');
     startAdminUtcClock();
