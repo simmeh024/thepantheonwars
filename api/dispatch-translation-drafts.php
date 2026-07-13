@@ -12,6 +12,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     $clean = str_replace('_', ' ', $clean);
     $clean = preg_replace('/([a-z])\-([a-z])/i', '$1 $2', $clean);
     $clean = preg_replace('/\s*\+\s*/', ' and ', $clean);
+    $contextSource = $clean;
     $rulesMatched = 0;
 
     // Many legacy commits use a human-readable area before the description,
@@ -205,33 +206,33 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         'It helps keep the site clear, reliable, and ready for future updates.',
     ], 'category');
     $contextLibrary = [
-        '/\b(?:security|sign in|sign out|session|password|CSRF|IP throttling)\b/i' => [
+        '/\b(?:security|sign in|sign out|session|password|CSRF|IP throttling|login|account)\b/i' => [
             'BH-4 notes that the change also narrows an avoidable point of risk for member activity.',
             'The affected path is now better prepared to protect normal member activity.',
         ],
-        '/\b(?:forum|community|topic|reply|member|notification)\b/i' => [
+        '/\b(?:forum|community|topic|reply|member|notification|like|quote|mention|reaction|moderator)\b/i' => [
             'Community activity should be easier to follow without adding noise to everyday conversations.',
             'The change supports clearer participation for members and moderators alike.',
         ],
-        '/\b(?:Admin|Audit Log|System Status|backup|dashboard|quick action)\b/i' => [
+        '/\b(?:Admin|Audit Log|System Status|backup|dashboard|quick action|BH 4|UTC|clock|sidebar|role|permission|Development Dispatch)\b/i' => [
             'Administrators gain a clearer operational view while routine work stays focused.',
             'The administrative path now presents the relevant information with less unnecessary searching.',
         ],
-        '/\b(?:mobile|responsive|cover artwork|interface|layout|card|tooltip)\b/i' => [
+        '/\b(?:mobile|responsive|cover artwork|interface|layout|card|tooltip|badge|portrait|hero|header|padding|color|animation|image)\b/i' => [
             'The affected view should remain easier to read across the screens visitors actually use.',
             'This keeps the presentation stable and legible as the available screen space changes.',
         ],
-        '/\b(?:world|lore|book|chapter|Asmecu|Cerius|Neoh)\b/i' => [
+        '/\b(?:world|lore|book|chapter|Asmecu|Cerius|Neoh|overlord|affinity|resonance)\b/i' => [
             'Readers have a clearer route into the relevant part of the setting.',
             'The added detail is framed to support exploration without obscuring established information.',
         ],
-        '/\b(?:database|performance|loading|cache|CSS|image|metrics)\b/i' => [
+        '/\b(?:database|performance|loading|cache|CSS|visual styling|image|metrics|query|page view|CPU|asset|font|rollup|webhook|sync)\b/i' => [
             'BH-4 expects the affected path to handle routine demand with less overhead.',
             'The improvement supports a more responsive experience as activity increases.',
         ],
     ];
     foreach ($contextLibrary as $pattern => $options) {
-        if (preg_match($pattern, $clean)) {
+        if (preg_match($pattern, $contextSource . ' ' . $clean)) {
             $rulesMatched++;
             $benefit .= ' ' . $pickVariant($options, 'context');
             break;
@@ -350,12 +351,12 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
  */
 function pw_dispatch_draft_confidence(int $rulesMatched): array
 {
-    if ($rulesMatched >= 3) {
+    if ($rulesMatched >= 2) {
         return [
             'level' => 'high',
             'label' => 'High confidence',
             'rules_matched' => $rulesMatched,
-            'explanation' => $rulesMatched . ' rules matched the commit wording and context. Review for accuracy, then approve or edit as needed.',
+            'explanation' => $rulesMatched . ' independent rules matched the commit wording and context. Review for accuracy, then approve or edit as needed.',
         ];
     }
     if ($rulesMatched >= 1) {
@@ -363,7 +364,7 @@ function pw_dispatch_draft_confidence(int $rulesMatched): array
             'level' => 'medium',
             'label' => 'Medium confidence',
             'rules_matched' => $rulesMatched,
-            'explanation' => $rulesMatched . ' rule' . ($rulesMatched === 1 ? '' : 's') . ' matched the commit wording. Check the draft carefully before publishing.',
+            'explanation' => '1 rule matched the commit wording. Check the draft carefully before publishing.',
         ];
     }
 
@@ -417,7 +418,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag): string
 {
-    return hash('sha256', "dispatch-draft-v7\n" . $subject . "\n" . $body . "\n" . $tag);
+    return hash('sha256', "dispatch-draft-v8\n" . $subject . "\n" . $body . "\n" . $tag);
 }
 
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): bool
