@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=146">
+<link rel="stylesheet" href="../css/style.css?v=147">
 </head>
 <body>
 
@@ -3599,6 +3599,19 @@
   var auditUsernameDebounce = null;
   var auditState = { page: 1, perPage: 25, action: '', username: '', totalPages: 1 };
 
+  function activityCategory(action) {
+    if (action.indexOf('login') === 0) return { key: 'login', label: 'Login', icon: ACTIVITY_ICONS.login };
+    if (action.indexOf('book_') === 0) return { key: 'books', label: 'Books', icon: ACTIVITY_ICONS.book_created };
+    if (action.indexOf('translation_') === 0 || action === 'category_edited' || action.indexOf('dispatch') === 0) return { key: 'development', label: 'Development', icon: ACTIVITY_ICONS.dispatches_resynced };
+    if (action.indexOf('member_') === 0) return { key: 'members', label: 'Members', icon: ACTIVITY_ICONS.member_updated };
+    if (action.indexOf('topic_') === 0 || action.indexOf('comment_') === 0 || action.indexOf('content_') === 0 || action.indexOf('user_') === 0 || action.indexOf('report_') === 0) return { key: 'community', label: 'Community', icon: ACTIVITY_ICONS.forum_board_created };
+    if (action.indexOf('role_') === 0) return { key: 'roles', label: 'Roles', icon: ACTIVITY_ICONS.role_updated };
+    if (action.indexOf('forum_board_') === 0) return { key: 'forum', label: 'Forum Boards', icon: ACTIVITY_ICONS.forum_board_created };
+    if (action.indexOf('world_') === 0) return { key: 'worlds', label: 'Worlds', icon: ACTIVITY_ICONS.world_updated };
+    if (action.indexOf('overlord_') === 0) return { key: 'overlords', label: 'Overlords', icon: ACTIVITY_ICONS.overlord_updated };
+    return { key: 'system', label: 'System', icon: ACTIVITY_ICONS.backup_logged };
+  }
+
   function fmtDateTime(sqlDate) {
     if (!sqlDate) return '\u2014';
     var d = new Date(String(sqlDate).replace(' ', 'T') + 'Z');
@@ -3634,13 +3647,15 @@
     }
 
     entries.forEach(function (entry) {
+      var category = activityCategory(entry.action);
       var card = document.createElement('div');
-      card.className = 'activity-card activity-' + escapeHtml(entry.action);
+      card.className = 'activity-card activity-' + escapeHtml(entry.action) + ' activity-category-' + category.key;
       card.innerHTML =
         '<div class="activity-card-icon">' + (ACTIVITY_ICONS[entry.action] || '') + '</div>' +
         '<div class="activity-card-body">' +
           '<div class="activity-card-head">' +
-            '<span class="activity-card-label">' + escapeHtml((ACTIVITY_LABELS[entry.action] || entry.action).toUpperCase()) + '</span>' +
+            '<span class="activity-card-heading"><span class="activity-card-label">' + escapeHtml((ACTIVITY_LABELS[entry.action] || entry.action).toUpperCase()) + '</span>' +
+            '<span class="activity-card-pill">' + category.icon + escapeHtml(category.label) + '</span></span>' +
             '<span class="activity-card-time">' + escapeHtml(fmtRelativeTime(entry.created_at)) + '</span>' +
           '</div>' +
           '<p class="activity-card-desc">' + escapeHtml(entry.description) + '</p>' +
