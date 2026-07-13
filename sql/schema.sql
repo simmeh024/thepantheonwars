@@ -346,6 +346,19 @@ CREATE TABLE IF NOT EXISTS page_view_daily_stats (
   member_views_excl_admin INT UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Daily, pre-aggregated page-to-page transitions used by the Visitor
+-- Statistics Sankey chart. Two rows are stored per path pair: all traffic
+-- and the default admin-excluded view. See api/cron/rollup-page-view-journeys.php.
+CREATE TABLE IF NOT EXISTS page_view_daily_transitions (
+  stat_date DATE NOT NULL,
+  include_admin TINYINT(1) NOT NULL,
+  from_path VARCHAR(255) NOT NULL,
+  to_path VARCHAR(255) NOT NULL,
+  transition_count INT UNSIGNED NOT NULL,
+  PRIMARY KEY (stat_date, include_admin, from_path, to_path),
+  KEY idx_include_date (include_admin, stat_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Public-site notification system: one row per notification, covering all
 -- four trigger types (like, mention, quote, report_resolved). See
 -- api/messages/like.php, api/topics/create.php, api/comments/post.php, and

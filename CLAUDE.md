@@ -176,6 +176,14 @@ correct key (value lives only in the secrets config, not in git).
 
 ## Recent history (most recent first)
 
+- **Sankey analytics scaling:** visitor journeys now read completed UTC days
+  from a compact `page_view_daily_transitions` rollup and calculate only the
+  current day from raw `page_views`. The rollup table's `(include_admin,
+  stat_date)` composite index serves date-range lookup; the existing raw
+  `(visitor_id, created_at, id)` index remains the correct window-order index
+  and should not be duplicated. Run `migration_page_view_journey_rollups.sql`
+  and schedule its cron endpoint for 01:05 UTC after deployment.
+
 - **Image loading and layout stability:** the public home, books, about, and
   dynamic worlds pages now defer non-critical artwork with native
   `loading="lazy"` and `decoding="async"`. The API-driven books renderer applies
