@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=147">
+<link rel="stylesheet" href="../css/style.css?v=148">
 </head>
 <body>
 
@@ -3527,6 +3527,7 @@
     overlord_deleted: 'Overlord deleted',
     overlord_reordered: 'Overlords reordered',
     backup_logged: 'Backup logged',
+    development_snapshot_refreshed: 'Development snapshot refreshed',
     dispatches_resynced: 'Dispatches re-synced',
     dispatch_title_edited: 'Dispatch title edited'
   };
@@ -3583,6 +3584,7 @@
     overlord_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><line x1="9.5" y1="9.5" x2="14.5" y2="14.5"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/></svg>',
     overlord_reordered: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/></svg>',
     backup_logged: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',
+    development_snapshot_refreshed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
     dispatches_resynced: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
     dispatch_title_edited: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/></svg>'
   };
@@ -3602,7 +3604,7 @@
   function activityCategory(action) {
     if (action.indexOf('login') === 0) return { key: 'login', label: 'Login', icon: ACTIVITY_ICONS.login };
     if (action.indexOf('book_') === 0) return { key: 'books', label: 'Books', icon: ACTIVITY_ICONS.book_created };
-    if (action.indexOf('translation_') === 0 || action === 'category_edited' || action.indexOf('dispatch') === 0) return { key: 'development', label: 'Development', icon: ACTIVITY_ICONS.dispatches_resynced };
+    if (action.indexOf('translation_') === 0 || action === 'category_edited' || action.indexOf('dispatch') === 0 || action.indexOf('development_') === 0) return { key: 'development', label: 'Development', icon: ACTIVITY_ICONS.dispatches_resynced };
     if (action.indexOf('member_') === 0) return { key: 'members', label: 'Members', icon: ACTIVITY_ICONS.member_updated };
     if (action.indexOf('topic_') === 0 || action.indexOf('comment_') === 0 || action.indexOf('content_') === 0 || action.indexOf('user_') === 0 || action.indexOf('report_') === 0) return { key: 'community', label: 'Community', icon: ACTIVITY_ICONS.forum_board_created };
     if (action.indexOf('role_') === 0) return { key: 'roles', label: 'Roles', icon: ACTIVITY_ICONS.role_updated };
