@@ -1091,7 +1091,7 @@ blockquote.myth cite {
 }
 .author-portrait-frame img {
   width: 100%;
-  aspect-ratio: 3/4.6;
+  height: auto;
   object-fit: cover;
   filter: saturate(0.92) contrast(1.05);
 }
