@@ -5,13 +5,6 @@
    rules above) -- .auth-username is just the gold-tinted variant of
    .nav-parent, always gold rather than only gold on hover. */
 .auth-username { color: var(--gold); }
-.auth-nav-dropdown .auth-logout-btn {
-  background: none; border: none; color: var(--text-dim); cursor: pointer;
-  font-family: 'Jost', sans-serif; font-size: 0.9rem;
-  text-align: left; padding: 8px 20px; white-space: nowrap; width: 100%;
-}
-.auth-nav-dropdown .auth-logout-btn:hover { color: var(--purple-bright); background: rgba(124,79,214,0.12); }
-
 .auth-modal {
   position: fixed; inset: 0; z-index: 600;
   display: flex; align-items: center; justify-content: center; padding: 24px;

@@ -120,6 +120,29 @@ a.nav-parent { cursor: pointer; }
 }
 .nav-dropdown a:hover, .nav-dropdown a.active { color: var(--gold); background: rgba(124,79,214,0.12); }
 
+/* The profile dropdown is rendered by members.js on every public page, not
+   only community pages. Keep its button styled in the shared component layer
+   so the native browser button appearance can never leak through. */
+.auth-nav-dropdown .auth-logout-btn {
+  display: block;
+  width: 100%;
+  padding: 8px 20px;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: 'Jost', sans-serif;
+  font-size: 0.9rem;
+  line-height: inherit;
+  text-align: left;
+  white-space: nowrap;
+}
+.auth-nav-dropdown .auth-logout-btn:hover,
+.auth-nav-dropdown .auth-logout-btn:focus-visible {
+  color: var(--purple-bright);
+  background: rgba(124,79,214,0.12);
+}
+
 /* Notification bell (nav) + dropdown -- click-toggled via JS (js/notifications.js),
    not the hover-based .nav-dropdown pattern above, since it needs to stay
    open while the visitor reads it. */
