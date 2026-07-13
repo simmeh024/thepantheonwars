@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=174">
+<link rel="stylesheet" href="css/community-bundle.css?v=175">
 </head>
 <body>
 
@@ -470,11 +470,12 @@
       : '<div class="dispatch-public-update is-fallback">' +
           '<div class="dispatch-public-update-head"><span class="dispatch-public-update-kicker">Public Update</span><span class="dispatch-public-update-state">Original record</span></div>' +
           '<p class="dispatch-public-update-notice">A simpler explanation is not available right now. BH-4 has retained the original development record below.</p>' +
+          '<a class="dispatch-public-record-link" href="#dispatch-technical-' + entry.id + '">View BH-4 technical record <span aria-hidden="true">&rarr;</span></a>' +
         '</div>';
     bodyInner.innerHTML =
       '<div class="dispatch-entry-content-grid">' +
       publicUpdate +
-      '<aside class="dispatch-technical-record">' +
+      '<aside class="dispatch-technical-record" id="dispatch-technical-' + entry.id + '">' +
       '<div class="dispatch-technical-head">' +
       '<div class="dispatch-technical-avatar"><img src="images/bh4-dispatch.jpg" alt="BH-4" loading="lazy"></div>' +
       '<div><span class="dispatch-technical-kicker">BH-4 Technical Analysis</span><span class="dispatch-technical-subtitle">Technical transcript retained by BH-4</span></div>' +
@@ -486,9 +487,6 @@
       '</div>' +
       '<div class="dispatch-entry-footer">' +
       '<span>Committed by ' + escapeHtml(entry.author) + '</span>' +
-      '<div class="dispatch-entry-footer-right">' +
-      (entry.url ? '<a href="' + escapeHtml(entry.url) + '" target="_blank" rel="noopener">View on GitHub ↗</a>' : '') +
-      '</div>' +
       '</div>';
     body.appendChild(bodyInner);
     wrap.appendChild(body);
