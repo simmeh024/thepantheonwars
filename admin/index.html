@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=181">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=182">
 </head>
 <body>
 
@@ -1369,7 +1369,10 @@
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner">
     <button type="button" class="admin-modal-close" aria-label="Close">&times;</button>
-    <h3 class="admin-modal-title" id="admin-modal-title">Edit Translation</h3>
+    <div class="admin-modal-title-row">
+      <h3 class="admin-modal-title" id="admin-modal-title">Edit Translation</h3>
+      <span class="dispatch-confidence is-medium" id="admin-draft-confidence" tabindex="0" data-tooltip="Confidence reflects how many local wording and context rules matched this commit. Review every draft before publishing."><span class="dispatch-confidence-dot" aria-hidden="true"></span><span class="dispatch-confidence-label">Medium confidence · 1 rule</span></span>
+    </div>
     <p class="admin-modal-sub" id="admin-modal-sub"></p>
     <div class="admin-field">
       <div class="admin-field-label-row">
@@ -5183,6 +5186,7 @@
   var deleteBtn = document.getElementById('admin-delete-btn');
   var generateDraftBtn = document.getElementById('admin-generate-draft-btn');
   var copyCommitBtn = document.getElementById('admin-copy-commit-btn');
+  var draftConfidenceEl = document.getElementById('admin-draft-confidence');
 
   var currentFilter = 'all';
   var currentQuery = '';
@@ -5232,12 +5236,41 @@
             '<span>' + escapeHtml(fmtDate(entry.committed_at)) + '</span>' +
           '</div>' +
         '</div>' +
-        '<span class="admin-status-badge' + (entry.has_translation ? ' is-translated' : (entry.has_draft ? ' is-draft' : '')) + '">' +
-          (entry.has_translation ? 'Published' : (entry.has_draft ? 'Draft ready' : 'Needs draft')) +
-        '</span>';
+        '<div class="dispatch-translation-row-status">' +
+          '<span class="admin-status-badge' + (entry.has_translation ? ' is-translated' : (entry.has_draft ? ' is-draft' : '')) + '">' +
+            (entry.has_translation ? 'Published' : (entry.has_draft ? 'Draft ready' : 'Needs draft')) +
+          '</span>' +
+          confidenceMarkup(entry.confidence) +
+        '</div>';
       row.addEventListener('click', function () { openModal(entry); });
       listEl.appendChild(row);
     });
+  }
+
+  function confidenceMarkup(confidence) {
+    if (!confidence) return '';
+    var level = ['high', 'medium', 'low'].indexOf(confidence.level) !== -1 ? confidence.level : 'low';
+    var label = confidence.label || 'Low confidence';
+    var count = Number.isInteger(Number(confidence.rules_matched)) ? Number(confidence.rules_matched) : 0;
+    var displayLabel = label + ' \u00b7 ' + count + ' ' + (count === 1 ? 'rule' : 'rules');
+    var explanation = confidence.explanation || '0 rules matched the commit wording. Read and edit this draft carefully before publishing.';
+    return '<span class="dispatch-confidence is-' + level + '" data-tooltip="' + escapeHtml(explanation) + '" aria-label="' + escapeHtml(displayLabel + '. ' + explanation) + '">' +
+      '<span class="dispatch-confidence-dot" aria-hidden="true"></span>' +
+      '<span class="dispatch-confidence-label">' + escapeHtml(displayLabel) + '</span>' +
+    '</span>';
+  }
+
+  function updateDraftConfidence(confidence) {
+    if (!draftConfidenceEl) return;
+    var level = confidence && ['high', 'medium', 'low'].indexOf(confidence.level) !== -1 ? confidence.level : 'low';
+    var label = confidence && confidence.label ? confidence.label : 'Low confidence';
+    var count = confidence && Number.isInteger(Number(confidence.rules_matched)) ? Number(confidence.rules_matched) : 0;
+    var displayLabel = label + ' \u00b7 ' + count + ' ' + (count === 1 ? 'rule' : 'rules');
+    var explanation = confidence && confidence.explanation ? confidence.explanation : '0 rules matched the commit wording. Read and edit this draft carefully before publishing.';
+    draftConfidenceEl.className = 'dispatch-confidence is-' + level;
+    draftConfidenceEl.setAttribute('data-tooltip', explanation);
+    draftConfidenceEl.setAttribute('aria-label', displayLabel + '. ' + explanation);
+    draftConfidenceEl.querySelector('.dispatch-confidence-label').textContent = displayLabel;
   }
 
   function openModal(entry) {
@@ -5246,6 +5279,7 @@
     modalSub.innerHTML = escapeHtml(entry.subject) + ' &mdash; <span class="admin-sha">' + escapeHtml(entry.short_sha) + '</span>';
     commitBodyEl.textContent = entry.body && entry.body.trim() ? entry.body : 'No further commit details.';
     textarea.value = entry.translation || entry.generated_draft || '';
+    updateDraftConfidence(entry.confidence);
     modalError.classList.remove('show');
     modalStatus.classList.remove('show');
     deleteBtn.hidden = !entry.has_translation;
@@ -5364,6 +5398,7 @@
         if (!data.ok) throw new Error(data.error || 'Could not generate draft.');
         textarea.value = data.draft || '';
         currentEntry.generated_draft = data.draft || '';
+        currentEntry.confidence = data.confidence || currentEntry.confidence;
         currentEntry.has_draft = true;
         currentEntry.has_translation = false;
         generateDraftBtn.textContent = 'Regenerate Draft';
@@ -5371,6 +5406,7 @@
         modalError.classList.remove('show');
         modalStatus.textContent = 'New rule-based draft generated. Review or edit it here before publishing.';
         modalStatus.classList.add('show');
+        updateDraftConfidence(currentEntry.confidence);
         loadList();
       })
       .catch(function (error) {

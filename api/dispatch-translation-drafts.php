@@ -16,6 +16,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     // These are editorial substitutions, not opaque technical word removal.
     // They retain the commit's meaning while speaking in the language readers
     // encounter on the site. The most specific replacements come first.
+    $rulesMatched = 0;
     $replacements = [
         '/\bCreate deploy\.production\.yml\b/i' => 'the production deployment process',
         '/\breposition BH 4 badge beside the log, popup closes only via X\b/i' => 'the BH-4 status badge and its review panel',
@@ -97,7 +98,10 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/\blightbox\b/i' => 'full-screen image view',
     ];
     foreach ($replacements as $pattern => $replacement) {
-        $clean = preg_replace($pattern, $replacement, $clean);
+        if (preg_match($pattern, $clean)) {
+            $rulesMatched++;
+            $clean = preg_replace($pattern, $replacement, $clean);
+        }
     }
     $clean = preg_replace('/\s+/', ' ', trim($clean));
     $clean = trim($clean, " .:-");
@@ -109,6 +113,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     if ($unsafe) {
         return [
             'draft' => 'This update contains internal maintenance and reliability improvements. It helps keep the site stable and ready for future changes.',
+            'confidence' => pw_dispatch_draft_confidence(0),
             'hash' => pw_dispatch_draft_hash($subject, $body, $tag),
         ];
     }
@@ -216,6 +221,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     ];
     foreach ($contextLibrary as $pattern => $options) {
         if (preg_match($pattern, $clean)) {
+            $rulesMatched++;
             $benefit .= ' ' . $pickVariant($options, 'context');
             break;
         }
@@ -251,6 +257,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     ];
     foreach ($actionTemplates as $pattern => $template) {
         if (preg_match($pattern, $clean, $matches)) {
+            $rulesMatched++;
             $arguments = array_map(static function ($value): string {
                 return rtrim(lcfirst(trim($value)), '.');
             }, array_slice($matches, 1));
@@ -279,7 +286,40 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
 
     return [
         'draft' => $draft . ' ' . $benefit,
+        'confidence' => pw_dispatch_draft_confidence($rulesMatched),
         'hash' => pw_dispatch_draft_hash($subject, $body, $tag),
+    ];
+}
+
+/**
+ * Confidence is deliberately tied to explainable reader-facing rules, not to
+ * whether the generated prose sounds plausible. It tells editors how much of
+ * a commit was recognized by the local formatter before they approve it.
+ */
+function pw_dispatch_draft_confidence(int $rulesMatched): array
+{
+    if ($rulesMatched >= 3) {
+        return [
+            'level' => 'high',
+            'label' => 'High confidence',
+            'rules_matched' => $rulesMatched,
+            'explanation' => $rulesMatched . ' rules matched the commit wording and context. Review for accuracy, then approve or edit as needed.',
+        ];
+    }
+    if ($rulesMatched >= 1) {
+        return [
+            'level' => 'medium',
+            'label' => 'Medium confidence',
+            'rules_matched' => $rulesMatched,
+            'explanation' => $rulesMatched . ' rule' . ($rulesMatched === 1 ? '' : 's') . ' matched the commit wording. Check the draft carefully before publishing.',
+        ];
+    }
+
+    return [
+        'level' => 'low',
+        'label' => 'Low confidence',
+        'rules_matched' => 0,
+        'explanation' => '0 rules matched the commit wording. Read and edit this draft carefully before publishing.',
     ];
 }
 

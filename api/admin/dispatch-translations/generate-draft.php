@@ -27,7 +27,10 @@ if (!$created) {
 }
 
 $draftStmt = $db->prepare(
-    'SELECT draft, updated_at FROM dispatch_translation_drafts WHERE dispatch_id = ?'
+    'SELECT dtd.draft, dtd.updated_at, d.subject, d.body, d.tag
+     FROM dispatch_translation_drafts dtd
+     INNER JOIN dispatch_entries d ON d.id = dtd.dispatch_id
+     WHERE dtd.dispatch_id = ?'
 );
 $draftStmt->execute([$dispatchId]);
 $draft = $draftStmt->fetch();
@@ -36,4 +39,10 @@ if (!$draft) {
 }
 
 pw_log_admin_activity('translation_draft_generated', 'Generated a rule-based end-user draft for dispatch #' . $dispatchId . '.', $adminUser);
-pw_json(['ok' => true, 'draft' => $draft['draft'], 'updated_at' => $draft['updated_at']]);
+$metadata = pw_dispatch_end_user_draft($draft['subject'], (string)$draft['body'], $draft['tag']);
+pw_json([
+    'ok' => true,
+    'draft' => $draft['draft'],
+    'updated_at' => $draft['updated_at'],
+    'confidence' => $metadata['confidence'],
+]);

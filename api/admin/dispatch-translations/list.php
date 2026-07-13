@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
+require_once __DIR__ . '/../../dispatch-translation-drafts.php';
 
 pw_require_permission('dispatch_translations.view');
 
@@ -48,6 +49,7 @@ $stmt->execute();
 $rows = $stmt->fetchAll();
 
 $out = array_map(function ($r) {
+    $draftMetadata = pw_dispatch_end_user_draft($r['subject'], (string)$r['body'], $r['tag']);
     return [
         'id' => (int)$r['id'],
         'sha' => $r['sha'],
@@ -62,6 +64,7 @@ $out = array_map(function ($r) {
         'generated_draft' => $r['generated_draft'],
         'has_draft' => $r['generated_draft'] !== null,
         'draft_updated_at' => $r['draft_updated_at'],
+        'confidence' => $draftMetadata['confidence'],
     ];
 }, $rows);
 

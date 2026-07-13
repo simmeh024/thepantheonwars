@@ -321,6 +321,26 @@
   border: 1px solid var(--border-soft);
 }
 .admin-row-main { flex: 1; min-width: 0; }
+.dispatch-translation-row-status { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-shrink: 0; }
+.dispatch-confidence {
+  position: relative; display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0;
+  padding: 4px 8px; border: 1px solid currentColor; border-radius: 999px;
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.05em; line-height: 1; white-space: nowrap;
+  cursor: help;
+}
+.dispatch-confidence-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+.dispatch-confidence.is-high { color: #52d998; background: rgba(39,198,133,0.1); }
+.dispatch-confidence.is-medium { color: #edc862; background: rgba(224,177,62,0.1); }
+.dispatch-confidence.is-low { color: #e8796c; background: rgba(218,82,69,0.1); }
+.dispatch-confidence::after {
+  content: attr(data-tooltip); position: absolute; z-index: 12; right: 0; top: calc(100% + 9px);
+  width: 250px; padding: 9px 10px; border: 1px solid var(--border-soft); border-radius: 5px;
+  background: #160d29; color: var(--text-dim); box-shadow: 0 10px 24px rgba(0,0,0,0.32);
+  font-family: 'Jost', sans-serif; font-size: 0.7rem; font-weight: 400; letter-spacing: normal; line-height: 1.42;
+  text-transform: none; white-space: normal; opacity: 0; visibility: hidden; pointer-events: none; transition: opacity 0.16s ease, visibility 0.16s ease;
+}
+.dispatch-confidence:hover::after, .dispatch-confidence:focus-visible::after { opacity: 1; visibility: visible; }
+.dispatch-confidence:focus-visible { outline: 2px solid var(--gold-bright); outline-offset: 2px; }
 .admin-row-subject {
   font-size: 0.92rem; color: var(--text); margin: 0 0 4px;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -1718,7 +1738,9 @@
   transition: border-color 0.2s ease, color 0.2s ease;
 }
 .admin-modal-close:hover { border-color: var(--gold); color: var(--gold-bright); }
-.admin-modal-title { font-family: 'Cinzel', serif; font-size: 1.15rem; margin: 0 0 4px; padding-right: 30px; }
+.admin-modal-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding-right: 42px; margin-bottom: 4px; }
+.admin-modal-title { font-family: 'Cinzel', serif; font-size: 1.15rem; margin: 0; }
+.admin-modal-title-row .dispatch-confidence { margin-top: 1px; }
 .admin-modal-sub { color: var(--text-faint); font-size: 0.78rem; margin: 0 0 20px; }
 .admin-modal-sub .admin-sha { font-family: monospace; }
 .admin-field label {
