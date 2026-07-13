@@ -14,11 +14,16 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=161">
+<link rel="stylesheet" href="../css/style.css?v=162">
 </head>
 <body>
 
 <div class="admin-gate" id="admin-gate">Checking access&hellip;</div>
+
+<div class="admin-utc-clock" id="admin-utc-clock" title="Coordinated Universal Time" hidden>
+  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>
+  <time id="admin-utc-clock-time" aria-label="Current UTC time">--:--:-- UTC</time>
+</div>
 
 <div class="admin-shell" id="admin-shell">
 
@@ -107,12 +112,6 @@
   </aside>
 
   <main class="admin-main">
-    <div class="admin-utility-rail" aria-label="Console utilities">
-      <div class="admin-utc-clock" id="admin-utc-clock" title="Coordinated Universal Time" hidden>
-        <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>
-        <time id="admin-utc-clock-time" aria-label="Current UTC time">--:--:-- UTC</time>
-      </div>
-    </div>
 
     <section class="admin-section" id="section-home">
       <div class="admin-section-head">

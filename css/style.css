@@ -3836,21 +3836,16 @@ footer.site-footer {
   display: none;
   height: 100vh;
   background: var(--bg);
-  overflow: hidden;
 }
 .admin-shell.is-ready { display: flex; }
 .admin-main {
-  flex: 1 1 auto; min-width: 0; min-height: 0;
-  padding: 20px 44px 40px;
+  flex: 1 1 auto; min-width: 0;
+  padding: 28px 44px 40px;
   overflow-y: auto;
 }
-.admin-utility-rail {
-  position: sticky; top: 0; z-index: 40; height: 42px; margin: -20px 0 18px;
-  display: flex; align-items: center; justify-content: flex-end;
-  background: linear-gradient(to bottom, var(--bg) 64%, rgba(10,7,21,0));
-}
 .admin-utc-clock {
-  position: relative; z-index: 1;
+  position: fixed !important; top: 20px !important; right: 44px !important; bottom: auto !important; left: auto !important;
+  z-index: 501; margin: 0;
   display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 5px 10px;
   border: 1px solid rgba(162,121,236,0.45); border-radius: 999px;
   background: linear-gradient(120deg, rgba(37,22,70,0.94), rgba(18,10,37,0.9));
@@ -5715,8 +5710,8 @@ footer.site-footer {
   .admin-back-link { margin-top: 0; padding: 0 18px; flex-shrink: 0; }
   .admin-sidebar-user { flex-direction: row; align-items: center; padding: 0 18px; flex-shrink: 0; }
   .admin-sidebar-logout-btn { width: auto; white-space: nowrap; }
-  .admin-main { padding: 18px 20px 26px; }
-  .admin-utility-rail { height: 40px; margin: -18px 0 16px; }
+  .admin-main { padding: 26px 20px; }
+  .admin-utc-clock { top: 76px !important; right: 20px !important; }
   .admin-home-grid { flex-direction: column; }
   .admin-home-grid-main, .admin-home-grid-side { flex: 1 1 auto; width: 100%; }
   .admin-home-top-row { flex-direction: column; }
@@ -5729,6 +5724,5 @@ footer.site-footer {
 @media (max-width: 480px) {
   .admin-row { flex-wrap: wrap; }
   .admin-count { margin-left: 0; }
-  .admin-utility-rail { margin-bottom: 12px; }
-  .admin-utc-clock { padding: 4px 8px; font-size: 0.62rem; }
+  .admin-utc-clock { top: 70px !important; right: 14px !important; padding: 4px 8px; font-size: 0.62rem; }
 }
