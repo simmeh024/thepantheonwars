@@ -12,6 +12,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     $clean = str_replace('_', ' ', $clean);
     $clean = preg_replace('/([a-z])\-([a-z])/i', '$1 $2', $clean);
     $clean = preg_replace('/\s*\+\s*/', ' and ', $clean);
+    $clean = preg_replace('/\s*&\s*/', ' and ', $clean);
     $contextSource = $clean;
     $rulesMatched = 0;
 
@@ -20,7 +21,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     // Separating that area from the actual change gives the draft formatter
     // a reliable description to work with, even when the title has no verb.
     $scopedCommit = '/^[A-Za-z][A-Za-z0-9 .&\/()\-]{1,60}:\s+(.+)$/';
-    $actionOpening = '/^(?:add|create|introduce|include|fix|resolve|repair|restore|improve|enhance|refine|polish|streamline|redesign|rework|expand|keep|show|align|widen|enlarge|split|stack|make|throttle|reduce|defer|slow|prevent|reserve|use|switch|load|deliver|cross link|connect|unlock|bump|optimi[sz]e|speed up|update|refresh|remove|retire|delete|move|reorganize|reorganise|reposition|secure|protect|harden|strengthen|color code|give|respect|clear|place|confine|pin|anchor|animate|preserve|preload|tighten|elevate|complete|alert|index|bundle|limit|pause|cache|pre aggregate|bulk load|track|collapse|graph|log|group|mask|rename|surface|reorder|finalize|swap|render|force|mirror|theme|store|merge|replace|auto refresh|always refresh|right align|put|pull|un float|paginate|increase|version|trim|revert|relative|sortable|styled|subtle|tiered|full)\b/i';
+    $actionOpening = '/^(?:add|create|introduce|include|fix|resolve|repair|restore|improve|enhance|refine|polish|streamline|redesign|rework|restructure|expand|keep|show|align|widen|enlarge|split|stack|make|throttle|reduce|defer|slow|prevent|reserve|use|switch|load|deliver|cross link|connect|unlock|bump|optimi[sz]e|speed up|update|refresh|remove|retire|delete|move|reorganize|reorganise|reposition|secure|protect|harden|strengthen|color code|give|respect|clear|place|confine|pin|anchor|animate|preserve|preload|tighten|elevate|complete|alert|index|bundle|limit|pause|cache|pre aggregate|bulk load|track|collapse|graph|log|group|mask|rename|surface|reorder|finalize|swap|render|force|mirror|theme|store|merge|replace|auto refresh|always refresh|right align|put|pull|un float|paginate|increase|version|trim|revert|relative|sortable|styled|subtle|tiered|full|compact|label|highlight|explore)\b/i';
     if (!preg_match($actionOpening, $clean) && preg_match($scopedCommit, $clean, $scopeMatches)) {
         $rulesMatched++;
         $clean = $scopeMatches[1];
@@ -30,6 +31,14 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     // They retain the commit's meaning while speaking in the language readers
     // encounter on the site. The most specific replacements come first.
     $replacements = [
+        '/\bGraphical polish pass on the forum\b/i' => 'a visual refinement pass for forum discussions',
+        '/\bRestructure admin sidebar nav: Home category, moved Roles and Permissions, larger category labels\b/i' => 'a clearer Admin Console navigation structure',
+        '/\bTemporary diagnostic endpoint: explore CPU\/DB introspection options\b/i' => 'a focused review of system monitoring options',
+        '/\bAdmin Members: avatar and role ring in list rows, generate password button\b/i' => 'clearer member administration controls',
+        '/\bAdmin sidebar: collapsible nav categories, System group for Audit Log, tighter spacing\b/i' => 'a more focused Admin Console sidebar',
+        '/\bAdmin Home: compact Recent Activity widget \(5 entries\) and new Audit Log page\b/i' => 'a compact recent-activity view and direct Audit Log access',
+        '/\bMetric cards: clickable modal with Latest dispatches, Trend vs previous period, BH 4 verified badge\b/i' => 'a detailed view of current metrics and recent Dispatches',
+        '/\bLanguage history: 24h refresh cadence, stacked bar chart with day\/week\/month\/year filter\b/i' => 'a clearer language-history view with flexible time ranges',
         '/\bCreate deploy\.production\.yml\b/i' => 'the production deployment process',
         '/\breposition BH 4 badge beside the log, popup closes only via X\b/i' => 'the BH-4 status badge and its review panel',
         '/\baction type filter to the Audit Log page\b/i' => 'a clearer way to filter activity in the Audit Log',
@@ -246,7 +255,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/^(?:fix|resolve|repair)\s+(.+)$/i' => 'This update fixes %s.',
         '/^(?:restore)\s+(.+)$/i' => 'This update restores %s.',
         '/^(?:improve|enhance|refine|polish|streamline)\s+(.+)$/i' => 'This update improves %s.',
-        '/^(?:redesign|rework)\s+(.+)$/i' => 'This update gives %s a clearer presentation.',
+        '/^(?:redesign|rework|restructure)\s+(.+)$/i' => 'This update gives %s a clearer structure and presentation.',
         '/^(?:expand)\s+(.+)$/i' => 'This update adds more detail to %s.',
         '/^(?:keep|show|align)\s+(.+)$/i' => 'This update keeps %s clear and easy to read.',
         '/^(?:widen|enlarge)\s+(.+)$/i' => 'This update gives %s more room to work clearly.',
@@ -307,6 +316,9 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/^(?:relative)\s+(.+)$/i' => 'This update presents %s in a more useful time-based form.',
         '/^(?:sortable)\s+(.+)$/i' => 'This update makes %s easier to sort and review.',
         '/^(?:styled|subtle|tiered|full)\s+(.+)$/i' => 'This update refines the presentation of %s.',
+        '/^(?:compact)\s+(.+)$/i' => 'This update makes %s more focused without removing useful detail.',
+        '/^(?:label|highlight)\s+(.+)$/i' => 'This update makes %s clearer at a glance.',
+        '/^(?:explore)\s+(.+)$/i' => 'This update reviews %s to prepare a more reliable next step.',
     ];
     foreach ($actionTemplates as $pattern => $template) {
         if (preg_match($pattern, $clean, $matches)) {
@@ -418,7 +430,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag): string
 {
-    return hash('sha256', "dispatch-draft-v8\n" . $subject . "\n" . $body . "\n" . $tag);
+    return hash('sha256', "dispatch-draft-v9\n" . $subject . "\n" . $body . "\n" . $tag);
 }
 
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): bool
