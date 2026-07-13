@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=145">
+<link rel="stylesheet" href="../css/style.css?v=146">
 </head>
 <body>
 
@@ -895,6 +895,21 @@
               <div class="system-status-storage-bar-fill" id="sys-detail-avatar-bar"></div>
             </div>
           </div>
+        </div>
+
+        <div class="system-status-detail-card system-status-detail-card-wide">
+          <div class="system-status-head">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l3 8 4-16 3 8h4"/><circle cx="18" cy="5" r="2"/></svg>
+            <span>SQL Performance</span>
+          </div>
+          <ul class="system-status-list system-status-list-wide">
+            <li><span class="system-status-item-label">Slow queries today</span><span class="system-status-value" id="sys-sql-today">&hellip;</span></li>
+            <li><span class="system-status-item-label">Average slow query</span><span class="system-status-value" id="sys-sql-average">&hellip;</span></li>
+            <li><span class="system-status-item-label">Last 7 days</span><span class="system-status-value" id="sys-sql-week">&hellip;</span></li>
+            <li><span class="system-status-item-label">Last 30 days</span><span class="system-status-value" id="sys-sql-month">&hellip;</span></li>
+          </ul>
+          <p class="sql-performance-note" id="sys-sql-slowest">Loading performance diagnostics&hellip;</p>
+          <ul class="sql-performance-list" id="sys-sql-top-queries"></ul>
         </div>
 
         <div class="system-status-detail-card system-status-detail-card-wide">
@@ -4254,6 +4269,12 @@
   var sysDetailCpuLoadEl = document.getElementById('sys-detail-cpu-load');
   var sysDetailCpuCoresEl = document.getElementById('sys-detail-cpu-cores');
   var cpuChartWrapEl = document.getElementById('cpu-chart-wrap');
+  var sysSqlTodayEl = document.getElementById('sys-sql-today');
+  var sysSqlAverageEl = document.getElementById('sys-sql-average');
+  var sysSqlWeekEl = document.getElementById('sys-sql-week');
+  var sysSqlMonthEl = document.getElementById('sys-sql-month');
+  var sysSqlSlowestEl = document.getElementById('sys-sql-slowest');
+  var sysSqlTopQueriesEl = document.getElementById('sys-sql-top-queries');
 
   var SYSTEM_STATUS_AUTO_REFRESH_MS = 60000;
   var systemStatusAutoRefreshTimer = null;
@@ -4304,6 +4325,27 @@
       li.appendChild(nameSpan);
       li.appendChild(metaSpan);
       dbTableSizesListEl.appendChild(li);
+    });
+  }
+
+  function renderSqlPerformance(performance) {
+    if (!performance) return;
+    setPlainStatusValue(sysSqlTodayEl, { status: performance.status, label: performance.today + '' });
+    if (sysSqlAverageEl) sysSqlAverageEl.textContent = performance.average_ms + ' ms';
+    if (sysSqlWeekEl) sysSqlWeekEl.textContent = performance.week + '';
+    if (sysSqlMonthEl) sysSqlMonthEl.textContent = performance.month + '';
+    if (sysSqlSlowestEl) {
+      sysSqlSlowestEl.textContent = performance.slowest
+        ? 'Slowest: ' + performance.slowest.execution_ms + ' ms · ' + performance.slowest.endpoint
+        : 'No queries exceeded the 100 ms diagnostic threshold in the last 30 days.';
+    }
+    if (!sysSqlTopQueriesEl) return;
+    sysSqlTopQueriesEl.innerHTML = '';
+    (performance.top_queries || []).forEach(function (q) {
+      var li = document.createElement('li');
+      li.innerHTML = '<code>' + escapeHtml(q.query_fingerprint) + '</code>' +
+        '<span>' + escapeHtml(q.endpoint) + ' · ' + q.executions + '× · avg ' + q.average_ms + ' ms · total ' + q.total_ms + ' ms</span>';
+      sysSqlTopQueriesEl.appendChild(li);
     });
   }
 
@@ -4417,6 +4459,7 @@
         setAvatarStorageBar(sysDetailTotalStorageValueEl, sysDetailTotalStorageBarEl, data.total_storage);
         setAvatarStorageBar(sysDetailDbSizeValueEl, sysDetailDbSizeBarEl, data.database_size);
         renderDbTableSizes(data.db_tables);
+        renderSqlPerformance(data.sql_performance);
       })
       .catch(function () {
         [sysDetailGithubEl, sysDetailWebhookEl, sysDetailRateLimitEl, sysDetailSslEl, sysDetailDbLoadEl].forEach(function (el) {

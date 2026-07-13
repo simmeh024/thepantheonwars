@@ -571,6 +571,68 @@ function pw_check_last_backup($db) {
     return ['status' => $status, 'label' => $label, 'logged_at' => $row['created_at']];
 }
 
+// --- Application SQL performance -----------------------------------------------
+// Reads the lightweight fingerprints written by PW_PDO. This intentionally
+// returns a safe empty shape before the migration so System Status remains
+// deployable independently of the production schema change.
+function pw_check_sql_performance($db) {
+    $empty = [
+        'status' => 'unknown', 'label' => 'Awaiting migration', 'today' => 0,
+        'week' => 0, 'month' => 0, 'average_ms' => 0, 'total_ms' => 0,
+        'slowest' => null, 'top_queries' => [], 'trend' => [],
+    ];
+    try {
+        $overview = $db->query(
+            "SELECT SUM(created_at >= UTC_DATE()) AS today,
+                    SUM(created_at >= (UTC_DATE() - INTERVAL 7 DAY)) AS week,
+                    COUNT(*) AS month,
+                    AVG(execution_ms) AS average_ms,
+                    SUM(execution_ms) AS total_ms,
+                    MAX(execution_ms) AS max_ms
+             FROM sql_performance_logs
+             WHERE created_at >= (UTC_TIMESTAMP() - INTERVAL 30 DAY)"
+        )->fetch();
+        $today = (int)($overview['today'] ?? 0);
+        $max = (float)($overview['max_ms'] ?? 0);
+        $status = $max >= 2000 ? 'bad' : ($today >= 10 || $max >= 500 ? 'warn' : 'ok');
+        $slowest = $db->query(
+            "SELECT query_fingerprint, endpoint, execution_ms, severity, created_at
+             FROM sql_performance_logs
+             WHERE created_at >= (UTC_TIMESTAMP() - INTERVAL 30 DAY)
+             ORDER BY execution_ms DESC LIMIT 1"
+        )->fetch() ?: null;
+        $top = $db->query(
+            "SELECT query_fingerprint, endpoint, category, COUNT(*) AS executions,
+                    ROUND(AVG(execution_ms), 1) AS average_ms, ROUND(MAX(execution_ms), 1) AS maximum_ms,
+                    ROUND(SUM(execution_ms), 1) AS total_ms, MAX(created_at) AS last_seen
+             FROM sql_performance_logs
+             WHERE created_at >= (UTC_TIMESTAMP() - INTERVAL 30 DAY)
+             GROUP BY query_hash, query_fingerprint, endpoint, category
+             ORDER BY total_ms DESC LIMIT 5"
+        )->fetchAll();
+        $trend = $db->query(
+            "SELECT DATE(created_at) AS day, COUNT(*) AS count, ROUND(AVG(execution_ms), 1) AS average_ms
+             FROM sql_performance_logs
+             WHERE created_at >= (UTC_DATE() - INTERVAL 6 DAY)
+             GROUP BY DATE(created_at) ORDER BY day"
+        )->fetchAll();
+        return [
+            'status' => $status,
+            'label' => $today . ($today === 1 ? ' slow query today' : ' slow queries today'),
+            'today' => $today,
+            'week' => (int)($overview['week'] ?? 0),
+            'month' => (int)($overview['month'] ?? 0),
+            'average_ms' => round((float)($overview['average_ms'] ?? 0), 1),
+            'total_ms' => round((float)($overview['total_ms'] ?? 0), 1),
+            'slowest' => $slowest,
+            'top_queries' => $top,
+            'trend' => $trend,
+        ];
+    } catch (Exception $e) {
+        return $empty;
+    }
+}
+
 // --- Small duration formatter (seconds -> "12d 4h" / "3h 20m" / "45m" style) -----
 function pw_fmt_duration($seconds) {
     $days = intdiv($seconds, 86400);

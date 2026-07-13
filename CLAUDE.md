@@ -139,7 +139,7 @@ correct key (value lives only in the secrets config, not in git).
   the whole `<svg>...</svg>` as a template string, sets `.innerHTML` once per refresh).
   Match whichever pattern fits if you add another chart.
 - Cache-busting: `css/style.css?v=N` -- bump `N` and `sed -i` it across all 23 HTML
-  files (22 public + `admin/index.html`) whenever `css/style.css` changes. Current: v=142.
+  files (22 public + `admin/index.html`) whenever `css/style.css` changes. Current: v=146.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
@@ -179,6 +179,15 @@ correct key (value lives only in the secrets config, not in git).
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **SQL Performance monitoring:** `api/db.php` uses a guarded PDO statement
+  wrapper to record only statements taking at least 100ms into
+  `sql_performance_logs`. It fingerprints SQL by replacing literals, never
+  stores bound values, and ignores its own diagnostic insert. Apply
+  `migration_sql_performance_monitoring.sql` in phpMyAdmin after deployment.
+  The System Status page exposes the recent count, average, slowest endpoint,
+  and highest cumulative-cost fingerprints. If the table is not present yet,
+  normal requests and System Status safely continue without diagnostics.
 
 - **Visitor Statistics index plan:** raw `page_views` analytics are indexed
   by their shared UTC time window plus the grouping column used by each card:

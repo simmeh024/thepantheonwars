@@ -4695,6 +4695,12 @@ footer.site-footer {
 
 .system-status-detail-card-wide { grid-column: 1 / -1; }
 
+.sql-performance-note { margin: 0 0 12px; color: var(--text-dim); font-size: 0.8rem; }
+.sql-performance-list { list-style: none; padding: 0; margin: 0; border-top: 1px solid var(--border); }
+.sql-performance-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--border-soft); align-items: center; }
+.sql-performance-list code { color: var(--text); font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sql-performance-list span { color: var(--text-faint); font-size: 0.72rem; white-space: nowrap; }
+
 .db-table-sizes {
   margin-top: 18px;
   padding-top: 18px;
@@ -5446,6 +5452,7 @@ footer.site-footer {
   .quick-actions-card { flex-basis: auto; }
   .system-status-list-wide { grid-template-columns: 1fr; }
   .system-status-groups { grid-template-columns: 1fr; }
+  .sql-performance-list li { grid-template-columns: 1fr; gap: 4px; }
 }
 @media (max-width: 480px) {
   .admin-row { flex-wrap: wrap; }

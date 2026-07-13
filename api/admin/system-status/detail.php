@@ -113,6 +113,7 @@ $dbSize = pw_check_database_size($db);
 
 // --- Database: connections, throughput, cache efficiency, table sizes -----------
 $dbExtra = pw_check_database_extra($db);
+$sqlPerformance = pw_check_sql_performance($db);
 
 // --- CPU (shared host) -----------------------------------------------------------
 $cpuLoad = pw_check_cpu_load();
@@ -139,6 +140,7 @@ pw_json([
     'db_buffer_pool_hit_ratio' => $dbExtra['buffer_pool_hit_ratio'],
     'db_threads_running' => $dbExtra['threads_running'],
     'db_tables' => $dbExtra['tables'],
+    'sql_performance' => $sqlPerformance,
     'cpu_load' => $cpuLoad,
     'avatar_storage' => $avatarStorage,
     'total_storage' => $totalStorage,
