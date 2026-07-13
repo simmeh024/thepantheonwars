@@ -3840,12 +3840,18 @@ footer.site-footer {
 .admin-shell.is-ready { display: flex; }
 .admin-main {
   flex: 1 1 auto; min-width: 0;
-  padding: 28px 44px 40px;
+  padding: 88px 44px 40px;
   overflow-y: auto;
 }
+.admin-console-utility-header {
+  position: fixed; z-index: 501; top: 0; right: 0; left: 250px; height: 58px;
+  display: flex; align-items: center; justify-content: flex-end; padding: 0 44px;
+  border-bottom: 1px solid var(--border-soft);
+  background: linear-gradient(90deg, rgba(14,8,28,0.97), rgba(10,7,21,0.94));
+  box-shadow: 0 8px 22px rgba(0,0,0,0.18); pointer-events: none;
+}
 .admin-utc-clock {
-  position: fixed !important; top: 20px !important; right: 44px !important; bottom: auto !important; left: auto !important;
-  z-index: 501; margin: 0;
+  position: relative; z-index: 1; margin: 0;
   display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 5px 10px;
   border: 1px solid rgba(162,121,236,0.45); border-radius: 999px;
   background: linear-gradient(120deg, rgba(37,22,70,0.94), rgba(18,10,37,0.9));
@@ -5710,8 +5716,8 @@ footer.site-footer {
   .admin-back-link { margin-top: 0; padding: 0 18px; flex-shrink: 0; }
   .admin-sidebar-user { flex-direction: row; align-items: center; padding: 0 18px; flex-shrink: 0; }
   .admin-sidebar-logout-btn { width: auto; white-space: nowrap; }
-  .admin-main { padding: 26px 20px; }
-  .admin-utc-clock { top: 76px !important; right: 20px !important; }
+  .admin-main { padding: 126px 20px 26px; }
+  .admin-console-utility-header { top: 58px; left: 0; height: 48px; padding: 0 20px; }
   .admin-home-grid { flex-direction: column; }
   .admin-home-grid-main, .admin-home-grid-side { flex: 1 1 auto; width: 100%; }
   .admin-home-top-row { flex-direction: column; }
@@ -5724,5 +5730,7 @@ footer.site-footer {
 @media (max-width: 480px) {
   .admin-row { flex-wrap: wrap; }
   .admin-count { margin-left: 0; }
-  .admin-utc-clock { top: 70px !important; right: 14px !important; padding: 4px 8px; font-size: 0.62rem; }
+  .admin-main { padding-top: 118px; }
+  .admin-console-utility-header { top: 54px; height: 46px; padding: 0 14px; }
+  .admin-utc-clock { padding: 4px 8px; font-size: 0.62rem; }
 }
