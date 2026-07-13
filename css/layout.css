@@ -1,0 +1,98 @@
+img { max-width: 100%; display: block; }
+
+h1, h2, h3, h4 {
+  font-family: 'Cinzel', Georgia, serif;
+  color: var(--text);
+  margin: 0 0 0.5em;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+}
+
+h1 { font-size: clamp(2.2rem, 5vw, 3.6rem); line-height: 1.1; }
+h2 { font-size: clamp(1.6rem, 3vw, 2.3rem); line-height: 1.2; }
+h3 { font-size: 1.3rem; }
+
+p { margin: 0 0 1em; color: var(--text-dim); }
+
+a { color: var(--gold); text-decoration: none; }
+a:hover { color: var(--purple-bright); }
+
+.eyebrow {
+  display: inline-block;
+  font-family: 'Jost', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.28em;
+  font-size: 0.72rem;
+  color: var(--gold);
+  margin-bottom: 1em;
+}
+
+.container {
+  max-width: var(--maxw);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+.btn {
+  display: inline-block;
+  font-family: 'Jost', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 0.8rem;
+  padding: 14px 30px;
+  border: 1px solid var(--gold-dim);
+  color: var(--text);
+  background: transparent;
+  cursor: pointer;
+  transition: all var(--transition-slow);
+}
+.btn:hover {
+  border-color: var(--gold);
+  color: var(--gold-bright);
+  background: rgba(209,169,85,0.08);
+  box-shadow: 0 0 18px rgba(209,169,85,0.15);
+}
+.btn-solid {
+  background: linear-gradient(135deg, var(--purple-deep), var(--purple));
+  border-color: var(--purple-bright);
+  color: #f5efff;
+}
+.btn-solid:hover {
+  background: linear-gradient(135deg, var(--purple), var(--purple-bright));
+  border-color: var(--gold);
+  color: #fff;
+  box-shadow: 0 0 24px var(--glow);
+}
+.btn-amazon {
+  background: linear-gradient(135deg, #8a5a1f, #d99a2b);
+  border-color: #f0b429;
+  color: #1a1206;
+}
+.btn-amazon:hover {
+  background: linear-gradient(135deg, #d99a2b, #f0b429);
+  border-color: #fff;
+  color: #1a1206;
+  box-shadow: 0 0 24px rgba(240,180,41,0.35);
+}
+
+/* ---------------- Ornate corner frame ---------------- */
+.ornate { position: relative; }
+.ornate::before,
+.ornate::after,
+.ornate .orn-bl,
+.ornate .orn-br {
+  content: '';
+  position: absolute;
+  width: 54px; height: 54px;
+  background: url('../images/flourish.svg') no-repeat center / contain;
+  opacity: 0.8;
+  pointer-events: none;
+  z-index: 3;
+}
+.ornate::before { top: 14px; left: 14px; }
+.ornate::after { top: 14px; right: 14px; transform: scaleX(-1); }
+.ornate .orn-bl { bottom: 14px; left: 14px; transform: scaleY(-1); }
+.ornate .orn-br { bottom: 14px; right: 14px; transform: scale(-1,-1); }
+@media (max-width: 600px) {
+  .ornate::before, .ornate::after, .ornate .orn-bl, .ornate .orn-br { width: 34px; height: 34px; }
+}

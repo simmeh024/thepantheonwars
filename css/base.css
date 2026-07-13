@@ -1,0 +1,55 @@
+/* Themed scrollbar â€” replaces default OS grey bar site-wide */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--purple-bright) var(--panel);
+}
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: var(--panel);
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--gold-bright), var(--purple-bright));
+  border-radius: var(--radius-lg);
+  border: 2px solid var(--panel);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, var(--gold), var(--purple));
+}
+::-webkit-scrollbar-corner {
+  background: var(--panel);
+}
+::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  background-image:
+    radial-gradient(circle at 15% 0%, rgba(124,79,214,0.14) 0%, transparent 45%),
+    radial-gradient(circle at 100% 30%, rgba(124,79,214,0.10) 0%, transparent 40%);
+  color: var(--text);
+  font-family: 'Jost', 'Segoe UI', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  position: relative;
+}
+
+/* subtle fantasy vignette + grain overlay, sitewide */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at center, transparent 55%, rgba(4,2,10,0.55) 100%),
+    repeating-linear-gradient(115deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
+  mix-blend-mode: normal;
+}

@@ -1,0 +1,63 @@
+/* ==========================================================================
+   THE PANTHEON WARS â€” site stylesheet
+   Theme: purple cyberpunk mysticism â€” crystal shards, gold filigree, neon dusk
+   ========================================================================== */
+
+:root {
+  --bg: #0a0715;
+  --bg-alt: #110b21;
+  --panel: #170f2b;
+  --panel-2: #1c1336;
+  --border: #3c2c66;
+  --border-soft: #2a1f4d;
+  --text: #ece6f7;
+  --text-dim: #b0a2cf;
+  --text-faint: #7a6b9e;
+  --gold: #d1a955;
+  --gold-dim: #96803f;
+  --gold-bright: #ecc987;
+  --purple: #7c4fd6;
+  --purple-bright: #a279ec;
+  --purple-deep: #4a2f85;
+  --glow: rgba(157, 111, 232, 0.45);
+  --shadow: rgba(0, 0, 0, 0.65);
+  --maxw: 1180px;
+
+  /* Layout scale: use these for repeated component spacing. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 28px;
+  --space-7: 32px;
+
+  /* Shape scale: controls, cards and pill-shaped labels. */
+  --radius-xs: 2px;
+  --radius-sm: 3px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 10px;
+  --radius-pill: 999px;
+
+  /* Elevation: shared dark-surface shadows, ordered from compact to floating. */
+  --shadow-tooltip: 0 10px 24px rgba(0, 0, 0, 0.4);
+  --shadow-popover: 0 14px 30px rgba(0, 0, 0, 0.45);
+  --shadow-modal: 0 0 60px rgba(124, 79, 214, 0.3);
+
+  /* Motion: keep interaction timing consistent where a standard duration fits. */
+  --transition-fast: 0.15s ease;
+  --transition-base: 0.2s ease;
+  --transition-slow: 0.25s ease;
+
+  /* Semantic status colours: success, attention, failure, information and neutral state. */
+  --status-success: #3ecf8e;
+  --status-warning: #e8834a;
+  --status-critical: #e05a4a;
+  --status-info: #50c9bf;
+  --status-neutral: #8b9cb5;
+  --status-pending: var(--gold);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
