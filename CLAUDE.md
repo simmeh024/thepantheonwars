@@ -188,6 +188,8 @@ correct key (value lives only in the secrets config, not in git).
   The System Status page exposes the recent count, average, slowest endpoint,
   and highest cumulative-cost fingerprints. If the table is not present yet,
   normal requests and System Status safely continue without diagnostics.
+  BH-4 creates a critical System Status directive for a >=2s query or five
+  >=500ms queries within one hour.
 
 - **Visitor Statistics index plan:** raw `page_views` analytics are indexed
   by their shared UTC time window plus the grouping column used by each card:

@@ -98,7 +98,7 @@ function pw_collect_task_advisor($db, array $systemSignals) {
     );
     $criticalLogins = (int)$criticalStmt->fetch()['c'];
     $now = gmdate('Y-m-d\TH:i:s\Z');
-    $criticalPriority = ['security', 'database', 'database_load', 'forum', 'dispatch_sync', 'storage', 'github'];
+    $criticalPriority = ['security', 'database', 'database_load', 'sql_performance', 'forum', 'dispatch_sync', 'storage', 'github'];
     $criticalAlerts = [];
 
     if ($criticalLogins > 0) {
@@ -134,6 +134,39 @@ function pw_collect_task_advisor($db, array $systemSignals) {
             'detected_at' => $now,
             'action_url' => PW_ADVISOR_ACTIONS['system_status']['section'],
         ];
+    }
+
+    // Application-side query telemetry is intentionally optional: deployments
+    // remain healthy until migration_sql_performance_monitoring.sql has been
+    // run. A single >=2s query is immediately actionable; so is a recurring
+    // slow-query burst (five >=500ms queries in an hour), which is a stronger
+    // signal than one benign cold-cache request.
+    try {
+        $sqlRow = $db->query(
+            "SELECT COUNT(*) AS slow_count, MAX(execution_ms) AS max_ms,
+                    SUBSTRING_INDEX(GROUP_CONCAT(endpoint ORDER BY execution_ms DESC), ',', 1) AS endpoint
+             FROM sql_performance_logs
+             WHERE created_at >= (UTC_TIMESTAMP() - INTERVAL 1 HOUR)
+               AND execution_ms >= 500"
+        )->fetch();
+        $slowCount = (int)($sqlRow['slow_count'] ?? 0);
+        $maxMs = (float)($sqlRow['max_ms'] ?? 0);
+        if ($maxMs >= 2000 || $slowCount >= 5) {
+            $endpoint = !empty($sqlRow['endpoint']) ? $sqlRow['endpoint'] : 'an application endpoint';
+            $criticalAlerts['sql_performance'] = [
+                'type' => 'sql_performance',
+                'title' => $maxMs >= 2000
+                    ? 'A database query exceeded 2 seconds'
+                    : $slowCount . ' slow database queries in the last hour',
+                'reason' => $endpoint . ' generated the most expensive recent SQL activity ('
+                    . round($maxMs, 1) . ' ms peak). Review SQL Performance in System Status.',
+                'severity' => 'critical',
+                'detected_at' => $now,
+                'action_url' => PW_ADVISOR_ACTIONS['system_status']['section'],
+            ];
+        }
+    } catch (Exception $e) {
+        // The optional diagnostics table may not exist on an older deployment.
     }
 
     $reportsRow = $db->query(
