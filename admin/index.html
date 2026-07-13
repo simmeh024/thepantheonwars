@@ -20,12 +20,14 @@
 
 <div class="admin-gate" id="admin-gate">Checking access&hellip;</div>
 
-<div class="admin-shell" id="admin-shell">
+<!-- Kept outside the admin shell's scroll layout so position:fixed always
+     resolves against the browser viewport, not an internal console scroller. -->
+<div class="admin-utc-clock" id="admin-utc-clock" title="Coordinated Universal Time" hidden>
+  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>
+  <time id="admin-utc-clock-time" aria-label="Current UTC time">--:--:-- UTC</time>
+</div>
 
-  <div class="admin-utc-clock" id="admin-utc-clock" title="Coordinated Universal Time" hidden>
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>
-    <time id="admin-utc-clock-time" aria-label="Current UTC time">--:--:-- UTC</time>
-  </div>
+<div class="admin-shell" id="admin-shell">
 
   <aside class="admin-sidebar">
     <div class="admin-brand">
