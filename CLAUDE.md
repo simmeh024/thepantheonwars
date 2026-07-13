@@ -143,7 +143,7 @@ correct key (value lives only in the secrets config, not in git).
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/members.js?v=N` (current: v=7) and `js/notifications.js?v=N`
+  than once): `js/members.js?v=N` (current: v=8) and `js/notifications.js?v=N`
   (current: v=6), both across the 22 public pages (not admin).
 - Static CSS, JavaScript, font, and image assets have a one-year
   `public, immutable` cache policy in `.htaccess`; HTML remains no-cache so
@@ -179,6 +179,11 @@ correct key (value lives only in the secrets config, not in git).
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Visibility-aware presence:** `js/members.js` stops the logged-in
+  session heartbeat entirely when a tab is hidden and restarts it with an
+  immediate status refresh when the tab becomes visible. The members script
+  cache version is now v=8 across every public page and the admin console.
 
 - **Static asset caching:** `.htaccess` now gives versioned CSS, JavaScript,
   font, and image assets a one-year immutable cache lifetime, with matching

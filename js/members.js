@@ -237,10 +237,35 @@ document.addEventListener('DOMContentLoaded', function () {
   refreshAuthNav();
 
   // Heartbeat: session-check.php stamps last_active_at for logged-in users,
-  // which powers the "Online now" status on the member list. Re-ping every
-  // couple of minutes so it stays accurate for people who linger on one page
-  // instead of navigating (a single page-load ping wouldn't be enough).
-  setInterval(function () {
-    if (window.PW_AUTH.loggedIn) refreshAuthNav();
-  }, 2 * 60 * 1000);
+  // which powers the "Online now" status on the member list. Do not keep a
+  // hidden tab alive: it is neither an active visitor nor worth polling.
+  var heartbeatTimer = null;
+
+  function sendHeartbeat() {
+    if (!document.hidden && window.PW_AUTH && window.PW_AUTH.loggedIn) refreshAuthNav();
+  }
+
+  function stopHeartbeat() {
+    if (heartbeatTimer !== null) {
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
+    }
+  }
+
+  function startHeartbeat() {
+    if (heartbeatTimer === null) {
+      heartbeatTimer = setInterval(sendHeartbeat, 2 * 60 * 1000);
+    }
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) {
+      stopHeartbeat();
+      return;
+    }
+    startHeartbeat();
+    sendHeartbeat();
+  });
+
+  if (!document.hidden) startHeartbeat();
 });
