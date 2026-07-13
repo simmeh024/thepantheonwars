@@ -176,6 +176,13 @@ correct key (value lives only in the secrets config, not in git).
 
 ## Recent history (most recent first)
 
+- **Image loading and layout stability:** the public home, books, about, and
+  dynamic worlds pages now defer non-critical artwork with native
+  `loading="lazy"` and `decoding="async"`. Static images declare their source
+  dimensions, while the existing fixed/aspect-ratio image containers continue
+  to reserve space for dynamically managed world art. This reduces initial
+  image transfers without changing the rendered design.
+
 - **World catalog query optimization:** refactored public `api/worlds.php`
   from an N+1 detail-loading pattern into four fixed bulk queries (worlds,
   layers, landmarks, and sublocations). The endpoint groups the rows in PHP

@@ -32,7 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return (
         '<div class="world-card card available" id="' + cardId + '">' +
           '<a class="thumb" href="#' + world.slug + '">' +
-            '<img src="' + (world.thumb_image_url || '') + '" alt="' + world.name + '"></a>' +
+            '<img src="' + (world.thumb_image_url || '') + '" alt="' + world.name + '" loading="lazy" decoding="async"></a>' +
           '<span class="world-tag">' + overlordTagText(world) + '</span>' +
           '<h3>' + world.tagline + '</h3>' +
           '<p>' + world.card_blurb + '</p>' +
@@ -42,7 +42,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     return (
       '<div class="world-card card locked" id="' + cardId + '">' +
-        '<div class="thumb"><img src="' + (world.thumb_image_url || '') + '" alt="' + world.name + '"></div>' +
+        '<div class="thumb"><img src="' + (world.thumb_image_url || '') + '" alt="' + world.name + '" loading="lazy" decoding="async"></div>' +
         '<span class="world-tag">' + overlordTagText(world) + '</span>' +
         '<h3>' + world.tagline + '</h3>' +
         '<p>' + world.card_blurb + '</p>' +
@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var mapFigureHtml =
       '<div class="city-map-figure' + (isVertical ? '' : ' harbor-map-figure') + '">' +
         '<button type="button" class="map-thumb-btn" data-lightbox="' + world.slug + '-map-lightbox" aria-label="View full map of ' + world.name + '">' +
-          '<img src="' + (world.map_thumb_image_url || '') + '" alt="Map of ' + world.name + '">' +
+          '<img src="' + (world.map_thumb_image_url || '') + '" alt="Map of ' + world.name + '" loading="lazy" decoding="async">' +
           '<span class="map-expand-hint">&#128269; View Full Map</span>' +
         '</button>' +
         '<p class="map-caption">' + (world.map_caption || '') + '</p>' +
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '<section id="' + world.slug + '">' +
         '<div class="container">' +
           '<div class="world-detail-head">' +
-            (world.portrait_image_url ? '<span class="world-detail-portrait"><img src="' + world.portrait_image_url + '" alt="' + (world.overlord ? world.overlord.name : world.name) + '"></span>' : '') +
+            (world.portrait_image_url ? '<span class="world-detail-portrait"><img src="' + world.portrait_image_url + '" alt="' + (world.overlord ? world.overlord.name : world.name) + '" loading="lazy" decoding="async"></span>' : '') +
             '<h2>' + world.name + '</h2>' +
             overlordDetailTagHtml(world) +
           '</div>' +
@@ -160,7 +160,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="map-lightbox-backdrop"></div>' +
           '<button type="button" class="map-lightbox-close" aria-label="Close map">&times;</button>' +
           '<div class="map-lightbox-inner">' +
-            '<img src="' + (world.map_full_image_url || '') + '" alt="Full map of ' + world.name + '">' +
+            '<img src="' + (world.map_full_image_url || '') + '" alt="Full map of ' + world.name + '" loading="lazy" decoding="async">' +
           '</div>' +
         '</div>' +
       '</section>'
