@@ -36,6 +36,13 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/\bprofile\b/i' => 'member profile',
         '/\bsign-out experience action\b/i' => 'sign-out experience',
         '/\bshared styling\b/i' => 'consistent visual styling',
+        '/\brule based Dispatch translation drafts\b/i' => 'a clearer local drafting process for development updates',
+        '/\bAdmin Home card baseline treatment\b/i' => 'the default styling of Admin Home cards',
+        '/\bAdmin Home visual polish\b/i' => 'the visual treatment of the Admin Home dashboard',
+        '/\bdispatches sidebar label\b/i' => 'the Development Dispatches label in the sidebar',
+        '/\bpersonal navigation settings\b/i' => 'personal navigation settings',
+        '/\bpresence heartbeat writes\b/i' => 'how often online status is recorded',
+        '/\bCSS bundles by page audience\b/i' => 'page-specific styling delivery',
     ];
     foreach ($replacements as $pattern => $replacement) {
         $clean = preg_replace($pattern, $replacement, $clean);
@@ -49,12 +56,25 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     $unsafe = $clean === '' || preg_match('/(?:\b[0-9a-f]{7,40}\b|[\\\\\/]|\.php\b|\.js\b|\.css\b)/i', $clean);
     if ($unsafe) {
         return [
-            'draft' => 'This update contains internal maintenance and reliability improvements.',
-            'hash' => hash('sha256', $subject . "\n" . $body . "\n" . $tag),
+            'draft' => 'This update contains internal maintenance and reliability improvements. It helps keep the site stable and ready for future changes.',
+            'hash' => pw_dispatch_draft_hash($subject, $body, $tag),
         ];
     }
 
+    $benefits = [
+        'feature' => 'It gives visitors and community members a new, clearly focused part of the site to use.',
+        'improvement' => 'It makes the affected area clearer, more consistent, and easier to use.',
+        'fix' => 'It helps the affected area behave consistently for visitors and staff.',
+        'performance' => 'It reduces unnecessary work behind the scenes for a smoother experience.',
+        'ui_ux' => 'It makes the interface easier to read, navigate, and use.',
+        'lore' => 'It gives readers more detail and context to explore in the world of Pantheon Wars.',
+        'infrastructure' => 'It helps keep the site reliable during everyday use and future updates.',
+        'refactor' => 'No visible feature is changed, but it makes future improvements safer and easier to deliver.',
+        'experimental' => 'It is an early improvement that can be refined after it has been reviewed in use.',
+    ];
+    $benefit = $benefits[$tag] ?? 'It helps keep the site clear, reliable, and ready for future updates.';
     $object = lcfirst($clean);
+    $draft = '';
     $actionTemplates = [
         '/^(?:add|create|introduce|include)\s+(.+)$/i' => 'A new update adds %s.',
         '/^(?:fix|resolve|repair)\s+(.+)$/i' => 'This update fixes %s.',
@@ -69,10 +89,8 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     foreach ($actionTemplates as $pattern => $template) {
         if (preg_match($pattern, $clean, $matches)) {
             $object = lcfirst(trim($matches[1]));
-            return [
-                'draft' => sprintf($template, rtrim($object, '.')),
-                'hash' => hash('sha256', $subject . "\n" . $body . "\n" . $tag),
-            ];
+            $draft = sprintf($template, rtrim($object, '.'));
+            break;
         }
     }
 
@@ -89,10 +107,21 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     ];
     $template = isset($templates[$tag]) ? $templates[$tag] : 'This update improves %s.';
 
+    if ($draft === '') {
+        $draft = sprintf($template, rtrim($object, '.'));
+    }
+
     return [
-        'draft' => sprintf($template, rtrim($object, '.')),
-        'hash' => hash('sha256', $subject . "\n" . $body . "\n" . $tag),
+        'draft' => $draft . ' ' . $benefit,
+        'hash' => pw_dispatch_draft_hash($subject, $body, $tag),
     ];
+}
+
+// Bump the format version whenever wording rules change. Regenerate Draft then
+// refreshes old unapproved drafts even when their source commit is unchanged.
+function pw_dispatch_draft_hash(string $subject, string $body, string $tag): string
+{
+    return hash('sha256', "dispatch-draft-v2\n" . $subject . "\n" . $body . "\n" . $tag);
 }
 
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): bool
