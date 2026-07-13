@@ -42,7 +42,9 @@ class PW_SQL_Statement extends PDOStatement {
         }
         $started = hrtime(true);
         $ok = parent::execute($params);
-        PW_PDO::record_query($this->queryString, (hrtime(true) - $started) / 1000000, $this->rowCount());
+        $durationMs = (hrtime(true) - $started) / 1000000;
+        PW_PDO::add_request_metric($durationMs);
+        PW_PDO::record_query($this->queryString, $durationMs, $this->rowCount());
         return $ok;
     }
 }
@@ -51,6 +53,8 @@ class PW_PDO extends PDO {
     private static $monitoring = false;
     private static $thresholdMs = null;
     private static $instance = null;
+    private static $requestQueryCount = 0;
+    private static $requestDbMs = 0.0;
 
     public static function set_instance(PW_PDO $pdo): void {
         self::$instance = $pdo;
@@ -60,13 +64,25 @@ class PW_PDO extends PDO {
         return self::$monitoring;
     }
 
+    public static function add_request_metric(float $durationMs): void {
+        if (self::$monitoring) return;
+        self::$requestQueryCount++;
+        self::$requestDbMs += $durationMs;
+    }
+
+    public static function request_metrics(): array {
+        return ['queries' => self::$requestQueryCount, 'db_ms' => round(self::$requestDbMs, 3)];
+    }
+
     public function query(string $query, ?int $fetchMode = null, mixed ...$fetchModeArgs): PDOStatement|false {
         if (self::$monitoring) {
             return $fetchMode === null ? parent::query($query) : parent::query($query, $fetchMode, ...$fetchModeArgs);
         }
         $started = hrtime(true);
         $result = $fetchMode === null ? parent::query($query) : parent::query($query, $fetchMode, ...$fetchModeArgs);
-        self::record_query($query, (hrtime(true) - $started) / 1000000, $result ? $result->rowCount() : 0);
+        $durationMs = (hrtime(true) - $started) / 1000000;
+        self::add_request_metric($durationMs);
+        self::record_query($query, $durationMs, $result ? $result->rowCount() : 0);
         return $result;
     }
 
@@ -74,7 +90,9 @@ class PW_PDO extends PDO {
         if (self::$monitoring) return parent::exec($statement);
         $started = hrtime(true);
         $rows = parent::exec($statement);
-        self::record_query($statement, (hrtime(true) - $started) / 1000000, $rows === false ? 0 : $rows);
+        $durationMs = (hrtime(true) - $started) / 1000000;
+        self::add_request_metric($durationMs);
+        self::record_query($statement, $durationMs, $rows === false ? 0 : $rows);
         return $rows;
     }
 

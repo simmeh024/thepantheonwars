@@ -191,6 +191,13 @@ correct key (value lives only in the secrets config, not in git).
   BH-4 creates a critical System Status directive for a >=2s query or five
   >=500ms queries within one hour.
 
+- **Benchmarking:** JSON API responses using `helpers.php` emit a `Server-Timing`
+  header containing total PHP duration plus aggregate DB duration/query count.
+  Run `tools/benchmark-performance.ps1` before and after performance work; it
+  makes five public requests per target and saves raw JSON under ignored
+  `benchmarks/`. `PERFORMANCE_BENCHMARKS.md` defines the matching Lighthouse
+  and EXPLAIN/ANALYZE protocol.
+
 - **Visitor Statistics index plan:** raw `page_views` analytics are indexed
   by their shared UTC time window plus the grouping column used by each card:
   visitor/user, path, referrer and country. `analytics_explain_validation.sql`

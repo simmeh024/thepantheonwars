@@ -6,6 +6,11 @@
 
 require_once __DIR__ . '/db.php';
 
+// Benchmarks can read this standard response header without receiving any
+// application data. It reports the full PHP request duration plus aggregate
+// database time/query count for endpoints that use this shared helper.
+$GLOBALS['pw_request_started_at'] = hrtime(true);
+
 // --- Session bootstrap -----------------------------------------------------
 if (session_status() === PHP_SESSION_NONE) {
     session_set_cookie_params([
@@ -64,6 +69,13 @@ function pw_github_stream_header($userAgent = 'ThePantheonWars-Site') {
 
 // --- Response helpers --------------------------------------------------------
 function pw_json($data, $status = 200) {
+    if (!headers_sent()) {
+        $appMs = (hrtime(true) - $GLOBALS['pw_request_started_at']) / 1000000;
+        $metrics = PW_PDO::request_metrics();
+        header('Server-Timing: app;dur=' . round($appMs, 3)
+            . ', db;dur=' . $metrics['db_ms']
+            . ';desc="' . $metrics['queries'] . ' queries"');
+    }
     http_response_code($status);
     echo json_encode($data);
     exit;
