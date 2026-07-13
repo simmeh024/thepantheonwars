@@ -201,6 +201,20 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Recent history (most recent first)
 
+- **Public Development Dispatches:** expanded entries now present the approved
+  end-user translation first. If none is published, they show the notice
+  “A simpler explanation is not available right now. BH-4 has retained the
+  original development record below.” plus a link to the adjacent BH-4
+  Technical Analysis transcript. The transcript keeps the BH-4 avatar visible,
+  exposes the original commit body, and has the only GitHub source link (do not
+  add a second footer link). Its label is `Developer Record #<id>`.
+  `dispatch_entries.id` is an internal `AUTO_INCREMENT` value, **not** a
+  sequential Dispatch count: duplicate webhook/resync `INSERT IGNORE` attempts
+  can advance it even when the unique commit SHA is already present. Use the
+  short Git SHA for a developer-facing commit identifier; do not describe a
+  Developer Record number as “the Nth Dispatch.” The current page cache link is
+  `community-bundle.css?v=175`, which imports `community.css?v=174`.
+
 - **Notification bell polish:** `js/notifications.js` is dynamically appended only
   once an authenticated session is known (through `js/members.js`). It now manages
   `aria-expanded`/dialog state, outside-click and Escape closing (Escape returns
