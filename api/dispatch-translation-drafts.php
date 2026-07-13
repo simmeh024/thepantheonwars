@@ -9,9 +9,37 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     $clean = trim($subject);
     $clean = preg_replace('/^(?:feat(?:ure)?|fix|perf(?:ormance)?|refactor|chore|docs?|style|test)(?:\([^)]*\))?!?:\s*/i', '', $clean);
     $clean = preg_replace('/\s*\(?#[0-9]+\)?\s*$/', '', $clean);
-    $clean = preg_replace('/\b(?:api|css|javascript|js|php|sql|mysql|mariadb|cron|cache|caching|query|queries|endpoint|webhook)\b/i', 'site', $clean);
-    $clean = preg_replace('/\b(?:ui\/ux|ui)\b/i', 'interface', $clean);
-    $clean = preg_replace('/\b(?:admin console)\b/i', 'Admin Console', $clean);
+    $clean = str_replace('_', ' ', $clean);
+    $clean = preg_replace('/([a-z])\-([a-z])/i', '$1 $2', $clean);
+
+    // These are editorial substitutions, not opaque technical word removal.
+    // They retain the commit's meaning while speaking in the language readers
+    // encounter on the site. The most specific replacements come first.
+    $replacements = [
+        '/\bN\+1 queries?\b/i' => 'repeated database work',
+        '/\bcomposite indexes?\b/i' => 'database performance',
+        '/\bsession check\b/i' => 'online status updates',
+        '/\bheartbeat requests?\b/i' => 'background online-status checks',
+        '/\bCore Web Vitals?\b/i' => 'page loading experience',
+        '/\bLCP\b/i' => 'main page loading',
+        '/\bCSS\b/i' => 'visual styling',
+        '/\bJavaScript\b|\bJS\b/i' => 'interactive behaviour',
+        '/\bAPI\b|\bendpoint\b/i' => 'site service',
+        '/\bSQL\b|\bMySQL\b|\bMariaDB\b|\bquer(?:y|ies)\b/i' => 'database',
+        '/\bcach(?:e|ing)\b/i' => 'repeat-visit performance',
+        '/\bwebhook\b/i' => 'repository update delivery',
+        '/\bcron\b/i' => 'scheduled maintenance',
+        '/\bUI\/UX\b|\bUI\b/i' => 'interface',
+        '/\bAdmin Console\b/i' => 'Admin Console',
+        '/\blogout\b/i' => 'sign-out experience',
+        '/\bavatar\b/i' => 'member avatar',
+        '/\bprofile\b/i' => 'member profile',
+        '/\bsign-out experience action\b/i' => 'sign-out experience',
+        '/\bshared styling\b/i' => 'consistent visual styling',
+    ];
+    foreach ($replacements as $pattern => $replacement) {
+        $clean = preg_replace($pattern, $replacement, $clean);
+    }
     $clean = preg_replace('/\s+/', ' ', trim($clean));
     $clean = trim($clean, " .:-");
 
@@ -26,22 +54,43 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         ];
     }
 
-    $clean = ucfirst($clean);
+    $object = lcfirst($clean);
+    $actionTemplates = [
+        '/^(?:add|create|introduce|include)\s+(.+)$/i' => 'A new update adds %s.',
+        '/^(?:fix|resolve|repair)\s+(.+)$/i' => 'This update fixes %s.',
+        '/^(?:restore)\s+(.+)$/i' => 'This update restores %s.',
+        '/^(?:improve|enhance|refine|polish|streamline)\s+(.+)$/i' => 'This update improves %s.',
+        '/^(?:optimi[sz]e|speed up)\s+(.+)$/i' => 'This update makes %s faster and more reliable.',
+        '/^(?:update|refresh)\s+(.+)$/i' => 'This update refreshes %s.',
+        '/^(?:remove|retire|delete)\s+(.+)$/i' => 'This update removes %s.',
+        '/^(?:move|reorganize|reorganise)\s+(.+)$/i' => 'This update reorganizes %s.',
+        '/^(?:secure|protect|harden)\s+(.+)$/i' => 'This update strengthens protection for %s.',
+    ];
+    foreach ($actionTemplates as $pattern => $template) {
+        if (preg_match($pattern, $clean, $matches)) {
+            $object = lcfirst(trim($matches[1]));
+            return [
+                'draft' => sprintf($template, rtrim($object, '.')),
+                'hash' => hash('sha256', $subject . "\n" . $body . "\n" . $tag),
+            ];
+        }
+    }
+
     $templates = [
         'feature' => 'A new update adds %s.',
         'improvement' => 'This update improves %s.',
-        'fix' => 'This update resolves an issue affecting %s.',
-        'performance' => 'This update improves the speed and reliability of %s.',
-        'ui_ux' => 'This update refines the interface around %s.',
+        'fix' => 'This update improves reliability around %s.',
+        'performance' => 'This update makes %s faster and more reliable.',
+        'ui_ux' => 'This update refines the experience around %s.',
         'lore' => 'This update expands the worldbuilding around %s.',
         'infrastructure' => 'This update strengthens the reliability of %s.',
-        'refactor' => 'This update improves the underlying structure supporting %s.',
+        'refactor' => 'This update improves the foundations supporting %s.',
         'experimental' => 'This update introduces an experimental improvement for %s.',
     ];
     $template = isset($templates[$tag]) ? $templates[$tag] : 'This update improves %s.';
 
     return [
-        'draft' => sprintf($template, $clean),
+        'draft' => sprintf($template, rtrim($object, '.')),
         'hash' => hash('sha256', $subject . "\n" . $body . "\n" . $tag),
     ];
 }
