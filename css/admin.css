@@ -283,11 +283,15 @@
 }
 .admin-filter-tabs { display: flex; gap: 6px; }
 .admin-filter-tab {
-  background: none; border: 1px solid var(--border); color: var(--text-faint);
+  background: rgba(124,79,214,0.08); border: 1px solid rgba(150,100,230,0.28); color: #c8b4ee;
   padding: 8px 16px; font-family: 'Jost', sans-serif; font-size: 0.74rem; text-transform: uppercase;
-  letter-spacing: 0.08em; cursor: pointer; transition: all 0.2s ease;
+  letter-spacing: 0.08em; cursor: pointer; transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
 }
-.admin-filter-tab.active { border-color: var(--purple-bright); color: var(--gold-bright); background: rgba(124,79,214,0.1); }
+.admin-filter-tab[data-filter="translated"] { background: rgba(39,198,133,0.09); border-color: rgba(39,198,133,0.3); color: #72dca6; }
+.admin-filter-tab[data-filter="draft"] { background: rgba(224,177,62,0.1); border-color: rgba(224,177,62,0.34); color: #f0c969; }
+.admin-filter-tab[data-filter="untranslated"] { background: rgba(78,134,233,0.11); border-color: rgba(78,134,233,0.34); color: #98bdff; }
+.admin-filter-tab:hover { transform: translateY(-1px); filter: brightness(1.12); }
+.admin-filter-tab.active { border-color: currentColor; box-shadow: 0 0 0 1px currentColor, 0 5px 16px rgba(0,0,0,0.2); }
 .admin-search {
   flex: 1 1 220px; max-width: 320px;
   background: var(--panel); border: 1px solid var(--border); color: var(--text);
