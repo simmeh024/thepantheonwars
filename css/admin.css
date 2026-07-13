@@ -434,14 +434,23 @@
 
 .admin-home-grid-secondary { margin-top: 20px; }
 .admin-home-grid-half { flex: 1 1 360px; min-width: 280px; }
+.home-stats-stack { display: flex; flex-direction: column; gap: 20px; }
 
 .activity-widget-title-stats svg { color: #5b9cf5; }
 .activity-widget-title-snapshot svg { color: var(--purple-bright); }
+.activity-widget-title-confidence svg { color: var(--gold-bright); }
 
 .site-stats-grid { display: flex; flex-wrap: wrap; gap: 26px; padding: 18px 20px 8px; }
 .site-stat { display: flex; flex-direction: column; gap: 4px; min-width: 64px; }
 .site-stat-value { font-family: 'Cinzel', serif; font-size: 1.5rem; font-weight: 600; line-height: 1; color: #5b9cf5; }
 .site-stat:nth-child(even) .site-stat-value { color: var(--gold-bright); }
+.translation-confidence-card::before { background: linear-gradient(90deg, transparent, #52d998, var(--gold-bright), #e8796c, transparent); }
+.translation-confidence-grid { gap: 22px; }
+.translation-confidence-grid .site-stat:nth-child(even) .site-stat-value { color: inherit; }
+.translation-confidence-grid .site-stat:nth-child(1) .site-stat-value { color: var(--purple-bright); }
+.translation-confidence-grid .site-stat:nth-child(2) .site-stat-value { color: #52d998; }
+.translation-confidence-grid .site-stat:nth-child(3) .site-stat-value { color: #edc862; }
+.translation-confidence-grid .site-stat:nth-child(4) .site-stat-value { color: #e8796c; }
 .site-stat-label {
   font-family: 'Jost', sans-serif; font-size: 0.64rem; text-transform: uppercase;
   letter-spacing: 0.07em; color: var(--text-faint);

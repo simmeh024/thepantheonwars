@@ -323,6 +323,44 @@ function pw_dispatch_draft_confidence(int $rulesMatched): array
     ];
 }
 
+/**
+ * Summarize the current deterministic confidence rules across every Dispatch.
+ * The weighted average is intentionally conservative: high-confidence drafts
+ * score 100, medium 65, and low 25. The percentage distribution is kept
+ * alongside it so the dashboard never hides a concentration of low matches.
+ */
+function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
+{
+    $rows = $db->query('SELECT subject, body, tag FROM dispatch_entries')->fetchAll();
+    $total = count($rows);
+    $counts = ['high' => 0, 'medium' => 0, 'low' => 0];
+    $weights = ['high' => 100, 'medium' => 65, 'low' => 25];
+    $scoreTotal = 0;
+
+    foreach ($rows as $row) {
+        $confidence = pw_dispatch_end_user_draft($row['subject'], (string)$row['body'], $row['tag'])['confidence'];
+        $level = isset($counts[$confidence['level']]) ? $confidence['level'] : 'low';
+        $counts[$level]++;
+        $scoreTotal += $weights[$level];
+    }
+
+    $percent = static function (int $count) use ($total): int {
+        return $total > 0 ? (int)round(($count / $total) * 100) : 0;
+    };
+
+    return [
+        'ok' => true,
+        'total_dispatches' => $total,
+        'average_confidence' => $total > 0 ? (int)round($scoreTotal / $total) : 0,
+        'high_percent' => $percent($counts['high']),
+        'medium_percent' => $percent($counts['medium']),
+        'low_percent' => $percent($counts['low']),
+        'high_count' => $counts['high'],
+        'medium_count' => $counts['medium'],
+        'low_count' => $counts['low'],
+    ];
+}
+
 // Bump the format version whenever wording rules change. Regenerate Draft then
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag): string

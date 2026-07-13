@@ -13,6 +13,7 @@ require_once __DIR__ . '/system-status/status-helpers.php';
 require_once __DIR__ . '/task-advisor-helpers.php';
 require_once __DIR__ . '/../repo-languages-helpers.php';
 require_once __DIR__ . '/community-pulse/community-pulse-helpers.php';
+require_once __DIR__ . '/../dispatch-translation-drafts.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     pw_error('Method not allowed.', 405);
@@ -149,6 +150,7 @@ $siteStats = [
     'today_dispatches' => (int)$siteRow['today_dispatches'],
     'most_active_category' => $siteRow['most_active_category'],
 ];
+$translationConfidence = pw_get_dispatch_translation_confidence_statistics($db);
 
 $loginRows = $db->prepare(
     "SELECT id, created_at
@@ -211,6 +213,7 @@ $payload = [
     'community' => $community,
     'community_pulse' => $communityPulse,
     'site_stats' => $siteStats,
+    'translation_confidence' => $translationConfidence,
     'development_snapshot' => ['loc' => $loc, 'languages' => $languages],
     'bh4' => $bh4,
     'system_status' => $systemStatus,
