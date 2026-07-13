@@ -3839,13 +3839,13 @@ footer.site-footer {
 }
 .admin-shell.is-ready { display: flex; }
 .admin-main {
-  flex: 1 1 auto; min-width: 0;
+  flex: 1 1 auto; min-width: 0; position: relative;
   padding: 28px 44px 40px;
   overflow-y: auto;
 }
 .admin-clock-slot {
-  height: 48px; display: flex; align-items: flex-start; justify-content: flex-end;
-  margin: -8px 0 12px;
+  position: absolute; z-index: 2; top: 20px; right: 44px;
+  display: flex; align-items: flex-start; justify-content: flex-end;
 }
 .admin-utc-clock {
   position: relative; z-index: 1; margin: 0;
@@ -5714,7 +5714,7 @@ footer.site-footer {
   .admin-sidebar-user { flex-direction: row; align-items: center; padding: 0 18px; flex-shrink: 0; }
   .admin-sidebar-logout-btn { width: auto; white-space: nowrap; }
   .admin-main { padding: 26px 20px; }
-  .admin-clock-slot { height: 44px; margin: -6px 0 10px; }
+  .admin-clock-slot { top: 20px; right: 20px; }
   .admin-home-grid { flex-direction: column; }
   .admin-home-grid-main, .admin-home-grid-side { flex: 1 1 auto; width: 100%; }
   .admin-home-top-row { flex-direction: column; }
@@ -5727,6 +5727,6 @@ footer.site-footer {
 @media (max-width: 480px) {
   .admin-row { flex-wrap: wrap; }
   .admin-count { margin-left: 0; }
-  .admin-clock-slot { height: 40px; margin-bottom: 8px; }
+  .admin-clock-slot { top: 18px; right: 14px; }
   .admin-utc-clock { padding: 4px 8px; font-size: 0.62rem; }
 }
