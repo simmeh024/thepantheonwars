@@ -1,15 +1,16 @@
 <?php
 /**
- * Cron-only endpoint: rolls every finished day's raw page_views rows up
- * into one page_view_daily_stats row per day, then prunes page_views back
- * to a 90-day rolling window. Invoked once/day by a cPanel Cron Job hitting
+ * Cron-only endpoint: rolls yesterday's raw page_views rows up into one
+ * page_view_daily_stats row, then prunes page_views back to a 90-day rolling
+ * window. Invoked once/day by a cPanel Cron Job hitting
  * this URL with ?key=<CRON_SAMPLE_KEY> (the same shared secret that gates
  * api/cron/sample-load.php -- both are cron-only, publicly-reachable
  * endpoints with the same trust boundary, so one secret covers both).
  *
- * Recomputes the rollup for every day still present in page_views (not
- * just "yesterday"), so a missed cron run one day self-heals the next time
- * this runs rather than leaving a permanent gap in page_view_daily_stats.
+ * Normal runs only touch the completed UTC day, keeping the daily job small
+ * as raw traffic grows. Pass ?full=1 alongside the cron key to deliberately
+ * rebuild every finished day in the retained raw history after a repair or a
+ * missed period.
  *
  * Deliberately does not require helpers.php: a cron hit needs no
  * session/CSRF machinery, just the DB connection from db.php.
@@ -26,6 +27,10 @@ if (!defined('CRON_SAMPLE_KEY') || CRON_SAMPLE_KEY === '' || !hash_equals(CRON_S
 }
 
 $db = pw_db();
+$fullRebuild = isset($_GET['full']) && $_GET['full'] === '1';
+$rollupWhere = $fullRebuild
+    ? 'created_at < UTC_DATE()'
+    : 'created_at >= (UTC_DATE() - INTERVAL 1 DAY) AND created_at < UTC_DATE()';
 
 // admin_ids: superuser (any is_superuser role, not just the literal 'admin'
 // slug) user ids, computed once and reused in the two admin-excluded
@@ -52,7 +57,7 @@ $rolledUp = $db->exec(
             COUNT(DISTINCT CASE WHEN user_id IS NULL OR user_id NOT IN $adminIdsSql THEN visitor_id END),
             SUM(CASE WHEN user_id IS NOT NULL AND user_id NOT IN $adminIdsSql THEN 1 ELSE 0 END)
      FROM page_views
-     WHERE created_at < UTC_DATE()
+     WHERE $rollupWhere
      GROUP BY DATE(created_at)
      ON DUPLICATE KEY UPDATE
        total_views = VALUES(total_views),
@@ -66,4 +71,9 @@ $rolledUp = $db->exec(
 
 $pruned = $db->exec('DELETE FROM page_views WHERE created_at < (UTC_TIMESTAMP() - INTERVAL 90 DAY)');
 
-echo json_encode(['ok' => true, 'days_rolled_up' => $rolledUp, 'rows_pruned' => $pruned]);
+echo json_encode([
+    'ok' => true,
+    'mode' => $fullRebuild ? 'full' : 'daily',
+    'days_rolled_up' => $rolledUp,
+    'rows_pruned' => $pruned,
+]);

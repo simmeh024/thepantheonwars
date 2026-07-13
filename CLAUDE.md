@@ -197,6 +197,10 @@ correct key (value lives only in the secrets config, not in git).
   `(visitor_id, created_at, id)` index remains the correct window-order index
   and should not be duplicated. Run `migration_page_view_journey_rollups.sql`
   and schedule its cron endpoint for 01:05 UTC after deployment.
+- **Page-view rollup efficiency:** `api/cron/rollup-page-views.php` now
+  processes only yesterday on normal daily runs, rather than recomputing the
+  full retained history. A manual repair can use `?full=1` with the normal
+  cron key to rebuild every finished raw-data day deliberately.
 
 - **Image loading and layout stability:** the public home, books, about, and
   dynamic worlds pages now defer non-critical artwork with native
