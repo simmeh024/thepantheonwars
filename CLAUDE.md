@@ -98,13 +98,22 @@ Confirmed empirically (useful if extending System Status further):
 
 ## Cron jobs
 
-One cron job exists (cPanel -> Cron Jobs), running every minute:
+Two cPanel cron jobs exist:
+
+1. Every minute, CPU load sampling:
 ```
 curl -s -o /dev/null "https://thepantheonwars.com/api/cron/sample-load.php?key=<CRON_SAMPLE_KEY>"
 ```
 This samples `sys_getloadavg()` into the `cpu_load_history` table (pruned to ~25h),
 backing the System Status page's CPU 24h line chart. The endpoint 403s without the
 correct key (value lives only in the secrets config, not in git).
+
+2. At 01:05 UTC daily, visitor-journey rollups:
+```
+curl -s -o /dev/null "https://thepantheonwars.com/api/cron/rollup-page-view-journeys.php?key=<CRON_SAMPLE_KEY>"
+```
+This writes completed-day transitions to `page_view_daily_transitions`; the endpoint
+also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Admin console conventions (`admin/index.html` -- single large file)
 
@@ -138,6 +147,10 @@ correct key (value lives only in the secrets config, not in git).
   Status's CPU chart -- computes its own x/y pixel scale from real data ranges, builds
   the whole `<svg>...</svg>` as a template string, sets `.innerHTML` once per refresh).
   Match whichever pattern fits if you add another chart.
+- **No GSAP or Alpine dependency is installed.** Prefer CSS transitions and native
+  browser APIs (for example the Books page's `IntersectionObserver`) for modest
+  motion and local UI state. Add either library only for a clearly measured feature,
+  load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   `admin/index.html` whenever `css/style.css` changes. Current: v=156.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
@@ -183,6 +196,50 @@ correct key (value lives only in the secrets config, not in git).
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Notification bell polish:** `js/notifications.js` is dynamically appended only
+  once an authenticated session is known (through `js/members.js`). It now manages
+  `aria-expanded`/dialog state, outside-click and Escape closing (Escape returns
+  focus to the bell), a focus-visible ring, loading shimmer, icon-led empty state,
+  new-row highlight, and an unread-count pulse only when the count rises. The mobile
+  dropdown is a fixed-width panel below the header. Keep API calls and 60-second,
+  visibility-gated polling in this file; do not add Alpine for this isolated UI.
+  All of these motion effects must remain disabled under `prefers-reduced-motion`.
+
+- **Book-card motion:** `books.html` loads page-specific `js/books.js` (currently
+  v=3), which waits for its live API rows or static fallback before applying a
+  dependency-free `IntersectionObserver` reveal (16px rise, opacity fade, 70ms
+  stagger). Cover hover scales to 1.03 with a restrained gold edge glow; the title
+  rises 2px; `#book-1` through `#book-14` supply distinct colour variables for a
+  single passing cover-light sweep. Preserve the `prefers-reduced-motion` path,
+  which keeps cards visible and removes all new movement.
+
+- **Homepage LCP hardening:** do not reintroduce `.hero-glitch` as a second large
+  image element. The hero glitch reuses `.hero-bg`; a late duplicate had become a
+  new LCP candidate around 15–25 seconds after load. `index.html` preloads both the
+  hero image and the exact Latin Cinzel 600 WOFF2 used by the hero `<h1>` so the
+  background and final heading font do not create a late LCP update. Keep the hero
+  image preload `fetchpriority="high"` and do not animate/hide the LCP elements
+  before first paint.
+
+- **Initial-load request discipline:** `js/main.js` defers the public
+  `track-visit.php` beacon to `requestIdleCallback` (3-second fallback); it is
+  analytics, never render-critical. `js/members.js` defers the first session check
+  until after load/idle, but opens it immediately when a visitor opens the auth
+  modal. Do not move either request back into the initial render path without a
+  measured reason. Notification code is not referenced by public HTML; it is loaded
+  after the authenticated session result.
+
+- **About portrait ratio:** `images/pascal_author.jpg` is 700×1074. Its frame rule
+  must keep `width: 100%; height: auto`; omitting the explicit automatic height lets
+  the HTML `height="1074"` attribute survive a width resize and vertically stretch
+  the portrait.
+
+- **API response security headers:** `api/helpers.php` applies
+  `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and
+  `Referrer-Policy: strict-origin-when-cross-origin` to normal API responses.
+  Cron and bootstrap/error paths that cannot rely on helpers set the same headers
+  themselves; keep any new exceptional API entry point consistent.
 
 - **BH-4 status imagery:** Admin Home swaps the BH-4 portrait from normal to
   medium or critical automatically from the Task Advisor priority: `clear` /
@@ -241,10 +298,10 @@ correct key (value lives only in the secrets config, not in git).
   to recalculate, then rerenders the card. It does not push to GitHub or
   deploy code.
 
-- **Visibility-aware presence:** `js/members.js` stops the logged-in
-  session heartbeat entirely when a tab is hidden and restarts it with an
-  immediate status refresh when the tab becomes visible. The members script
-  cache version is now v=8 across every public page and the admin console.
+- **Visibility-aware presence:** `js/members.js` stops the logged-in session
+  heartbeat entirely when a tab is hidden and restarts it with an immediate status
+  refresh when the tab becomes visible. The current members-script cache version is
+  v=10 across every public page and the admin console.
 
 - **Static asset caching:** `.htaccess` now gives versioned CSS, JavaScript,
   font, and image assets a one-year immutable cache lifetime, with matching
