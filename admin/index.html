@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=151">
+<link rel="stylesheet" href="../css/style.css?v=152">
 </head>
 <body>
 
@@ -119,7 +119,7 @@
 
           <div class="bh4-hero-wrap">
             <div class="bh4-hero-media">
-              <img src="../images/bh4-dispatch.jpg" alt="BH-4" class="bh4-welcome-avatar">
+              <img src="../images/bh4-normal.png" alt="BH-4: systems nominal" class="bh4-welcome-avatar" id="bh4-welcome-avatar" data-status="normal">
             </div>
 
             <div class="bh4-hero-main">
@@ -2721,8 +2721,8 @@
   // ===== Home / BH-4 Task Advisor ===============================================
   // Deterministic (rule-based, not AI-generated) "what to work on next"
   // recommendation -- see api/admin/task-advisor.php for the priority logic
-  // (critical system issue > unresolved topic reports > pending dispatch
-  // translations > clear). This block only renders whatever that endpoint
+  // (critical system issue > unresolved topic reports > pending privacy
+  // requests > pending dispatch translations > clear). This block only renders whatever that endpoint
   // already decided; no priority logic lives here client-side.
   var advisorEl = document.getElementById('bh4-task-advisor');
   var advisorLoadingEl = document.getElementById('bh4-advisor-loading');
@@ -2749,7 +2749,39 @@
   var advisorRetryBtn = document.getElementById('bh4-advisor-retry-btn');
   var advisorInfoBtn = document.getElementById('bh4-advisor-info-btn');
   var advisorInfoTooltip = document.getElementById('bh4-advisor-info-tooltip');
+  var bh4WelcomeAvatarEl = document.getElementById('bh4-welcome-avatar');
   var advisorRequestInFlight = false;
+  var bh4ImageRequest = 0;
+
+  var BH4_STATUS_IMAGES = {
+    normal: { src: '../images/bh4-normal.png', alt: 'BH-4: systems nominal' },
+    medium: { src: '../images/bh4-medium.png', alt: 'BH-4: priority work requires attention' },
+    critical: { src: '../images/bh4-critical.png', alt: 'BH-4: critical system status' }
+  };
+
+  function setBh4StatusImage(priority) {
+    if (!bh4WelcomeAvatarEl) return;
+    var status = priority === 'critical' ? 'critical' : (priority === 'high' ? 'medium' : 'normal');
+    var image = BH4_STATUS_IMAGES[status];
+    if (bh4WelcomeAvatarEl.getAttribute('data-status') === status) {
+      bh4ImageRequest++;
+      return;
+    }
+    var request = ++bh4ImageRequest;
+    var preload = new Image();
+    preload.onload = function () {
+      if (request !== bh4ImageRequest) return;
+      bh4WelcomeAvatarEl.classList.add('is-changing');
+      setTimeout(function () {
+        if (request !== bh4ImageRequest) return;
+        bh4WelcomeAvatarEl.src = image.src;
+        bh4WelcomeAvatarEl.alt = image.alt;
+        bh4WelcomeAvatarEl.setAttribute('data-status', status);
+        bh4WelcomeAvatarEl.classList.remove('is-changing');
+      }, 140);
+    };
+    preload.src = image.src;
+  }
 
   var ADVISOR_ICONS = {
     critical: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
@@ -2783,6 +2815,7 @@
 
   function renderPrimaryTask(task) {
     advisorEl.setAttribute('data-state', task.priority);
+    setBh4StatusImage(task.priority);
     advisorPrimaryIconEl.innerHTML = advisorIconFor(task.type);
     advisorPrimaryTitleEl.textContent = task.title;
 

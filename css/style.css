@@ -4186,7 +4186,9 @@ footer.site-footer {
   object-fit: cover;
   object-position: top center;
   display: block;
+  transition: opacity 140ms ease, filter 140ms ease;
 }
+.bh4-welcome-avatar.is-changing { opacity: 0.28; filter: saturate(0.7); }
 .bh4-hero-media::after {
   content: '';
   position: absolute;
@@ -4491,6 +4493,7 @@ footer.site-footer {
 @media (prefers-reduced-motion: reduce) {
   .bh4-task-advisor__tooltip { transition: none; }
   .bh4-nominal-dot { animation: none; }
+  .bh4-welcome-avatar { transition: none; }
 }
 
 /* Operational Queues -- three at-a-glance tiles below the Directive banner,
