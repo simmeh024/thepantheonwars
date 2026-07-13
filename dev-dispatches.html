@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=173">
+<link rel="stylesheet" href="css/community-bundle.css?v=174">
 </head>
 <body>
 
@@ -246,53 +246,6 @@
       ' ' + d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
   }
 
-  // BH-4 translation badge: shown in an expanded entry's footer only when
-  // entry.has_translation is true. Hover/focus reveal the tooltip via CSS
-  // (same .bh4-verify-tooltip pattern as the pagination-row badge); click
-  // also toggles an .is-open class so the tooltip works on touch devices
-  // that can't hover. The translation text itself is fetched lazily, once,
-  // the first time the badge is interacted with.
-  function wireTranslationBadge(el, dispatchId) {
-    if (!el) return;
-    var textEl = el.querySelector('.dispatch-translation-text');
-    var loaded = false;
-    function ensureLoaded() {
-      if (loaded) return;
-      loaded = true;
-      fetch('/api/dispatches/get-translation.php?id=' + encodeURIComponent(dispatchId), { credentials: 'same-origin' })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          textEl.textContent = data.ok ? data.translation : 'Translation unavailable.';
-        })
-        .catch(function () {
-          textEl.textContent = 'Translation unavailable.';
-        });
-    }
-    el.addEventListener('mouseenter', ensureLoaded);
-    el.addEventListener('focus', ensureLoaded);
-    el.addEventListener('click', function (e) {
-      e.stopPropagation();
-      ensureLoaded();
-      var isOpen = el.classList.toggle('is-open');
-      el.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    });
-    el.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        el.click();
-      } else if (e.key === 'Escape') {
-        el.classList.remove('is-open');
-        el.setAttribute('aria-expanded', 'false');
-      }
-    });
-    document.addEventListener('click', function (e) {
-      if (el.classList.contains('is-open') && !el.contains(e.target)) {
-        el.classList.remove('is-open');
-        el.setAttribute('aria-expanded', 'false');
-      }
-    });
-  }
-
   function buildTagFilterPanel() {
     tagFilterPanel.innerHTML = '';
 
@@ -508,29 +461,37 @@
     body.className = 'dispatch-entry-body';
     var bodyInner = document.createElement('div');
     bodyInner.className = 'dispatch-entry-body-inner';
-    var bodyText = entry.body && entry.body.trim() ? entry.body : 'No further details on this commit.';
+    var rawCommit = entry.subject + (entry.body && entry.body.trim() ? '\n\n' + entry.body : '');
+    var publicUpdate = entry.has_translation && entry.translation && entry.translation.trim()
+      ? '<div class="dispatch-public-update is-published">' +
+          '<div class="dispatch-public-update-head"><span class="dispatch-public-update-kicker">Public Update</span><span class="dispatch-public-update-state">Translation published</span></div>' +
+          '<p class="dispatch-public-update-text">' + escapeHtml(entry.translation) + '</p>' +
+        '</div>'
+      : '<div class="dispatch-public-update is-fallback">' +
+          '<div class="dispatch-public-update-head"><span class="dispatch-public-update-kicker">Public Update</span><span class="dispatch-public-update-state">Original record</span></div>' +
+          '<p class="dispatch-public-update-notice">A simpler explanation is not available right now. BH-4 has retained the original development record below.</p>' +
+        '</div>';
     bodyInner.innerHTML =
-      '<pre class="dispatch-entry-full-message">' + escapeHtml(bodyText) + '</pre>' +
+      '<div class="dispatch-entry-content-grid">' +
+      publicUpdate +
+      '<aside class="dispatch-technical-record">' +
+      '<div class="dispatch-technical-head">' +
+      '<div class="dispatch-technical-avatar"><img src="images/bh4-dispatch.jpg" alt="BH-4" loading="lazy"></div>' +
+      '<div><span class="dispatch-technical-kicker">BH-4 Technical Analysis</span><span class="dispatch-technical-subtitle">Technical transcript retained by BH-4</span></div>' +
+      '</div>' +
+      '<span class="dispatch-technical-raw-label">Raw commit</span>' +
+      '<pre class="dispatch-technical-raw">' + escapeHtml(rawCommit) + '</pre>' +
+      (entry.url ? '<a class="dispatch-technical-link" href="' + escapeHtml(entry.url) + '" target="_blank" rel="noopener">View technical record on GitHub &rarr;</a>' : '') +
+      '</aside>' +
+      '</div>' +
       '<div class="dispatch-entry-footer">' +
       '<span>Committed by ' + escapeHtml(entry.author) + '</span>' +
       '<div class="dispatch-entry-footer-right">' +
-      (entry.has_translation ?
-        '<div class="bh4-verify dispatch-translation-badge" tabindex="0" role="button" aria-haspopup="true" aria-expanded="false" aria-label="View end-user translation" data-dispatch-id="' + entry.id + '">' +
-          '<div class="bh4-verify-avatar"><img src="images/bh4-dispatch.jpg" alt="BH-4" loading="lazy"></div>' +
-          '<div class="bh4-verify-tooltip dispatch-translation-tooltip">' +
-            '<div class="bh4-status-tooltip-head">BH-4 Analysis:</div>' +
-            '<p class="bh4-status-tooltip-line dispatch-translation-text">Loading translation&hellip;</p>' +
-          '</div>' +
-        '</div>' : '') +
       (entry.url ? '<a href="' + escapeHtml(entry.url) + '" target="_blank" rel="noopener">View on GitHub ↗</a>' : '') +
       '</div>' +
       '</div>';
     body.appendChild(bodyInner);
     wrap.appendChild(body);
-
-    if (entry.has_translation) {
-      wireTranslationBadge(bodyInner.querySelector('.dispatch-translation-badge'), entry.id);
-    }
 
     row.appendChild(wrap);
 
@@ -542,8 +503,8 @@
         body.style.overflow = 'hidden';
         body.style.maxHeight = bodyInner.scrollHeight + 'px';
         // Once the expand transition finishes, let overflow escape so the
-        // BH-4 tooltip (which pops up above the badge) isn't clipped by
-        // this box's own bounds when there isn't much room above it.
+        // The expanded technical record can scroll internally without being
+        // clipped by this container once the height transition has finished.
         body._pwOverflowTimer = setTimeout(function () {
           if (row.classList.contains('is-expanded')) body.style.overflow = 'visible';
         }, 320);

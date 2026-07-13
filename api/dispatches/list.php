@@ -58,6 +58,7 @@ $stmt = $db->prepare(
     'SELECT d.id, d.sha, d.subject, d.body, d.tag, d.author, d.committed_at, d.url,
             COALESCE(rc.like_count, 0) AS like_count,
             COALESCE(rc.dislike_count, 0) AS dislike_count,
+            dt.translation,
             (dt.id IS NOT NULL) AS has_translation
      FROM dispatch_entries d
      LEFT JOIN (
@@ -108,6 +109,7 @@ $out = array_map(function ($r) use ($myReactions) {
         'like_count' => (int)$r['like_count'],
         'dislike_count' => (int)$r['dislike_count'],
         'my_reaction' => isset($myReactions[(int)$r['id']]) ? $myReactions[(int)$r['id']] : null,
+        'translation' => $r['translation'],
         'has_translation' => (bool)$r['has_translation'],
     ];
 }, $rows);
