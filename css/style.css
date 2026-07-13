@@ -3840,21 +3840,29 @@ footer.site-footer {
 .admin-shell.is-ready { display: flex; }
 .admin-main {
   flex: 1 1 auto; min-width: 0;
-  padding: 28px 44px 40px;
+  /* Reserve a top utility rail for the UTC clock so it can never cover
+     per-page controls such as Visitor Statistics' settings button. */
+  padding: 74px 44px 40px;
   overflow-y: auto;
 }
 .admin-utc-clock {
   position: fixed; z-index: 30; top: 20px; right: 44px;
   display: inline-flex; align-items: center; gap: 7px; min-height: 30px; padding: 5px 10px;
   border: 1px solid rgba(162,121,236,0.45); border-radius: 999px;
-  background: rgba(18,10,37,0.86); box-shadow: 0 6px 18px rgba(0,0,0,0.24);
+  background: linear-gradient(120deg, rgba(37,22,70,0.94), rgba(18,10,37,0.9));
+  box-shadow: 0 6px 18px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.06);
   color: var(--text-dim); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.68rem; font-variant-numeric: tabular-nums; letter-spacing: 0.04em;
-  pointer-events: none;
+  pointer-events: none; animation: admin-utc-clock-pulse 4s ease-in-out infinite;
 }
 .admin-utc-clock[hidden] { display: none; }
-.admin-utc-clock svg { width: 14px; height: 14px; color: var(--gold-bright); }
-.admin-utc-clock time { white-space: nowrap; }
+.admin-utc-clock svg { width: 14px; height: 14px; color: var(--gold-bright); filter: drop-shadow(0 0 4px rgba(224,163,74,0.34)); }
+.admin-utc-clock time { white-space: nowrap; text-shadow: 0 0 10px rgba(162,121,236,0.2); }
+@keyframes admin-utc-clock-pulse {
+  0%, 100% { border-color: rgba(162,121,236,0.38); box-shadow: 0 6px 18px rgba(0,0,0,0.24), inset 0 1px 0 rgba(255,255,255,0.06); }
+  50% { border-color: rgba(224,163,74,0.58); box-shadow: 0 7px 22px rgba(51,31,96,0.36), inset 0 1px 0 rgba(255,255,255,0.09); }
+}
+@media (prefers-reduced-motion: reduce) { .admin-utc-clock { animation: none; } }
 .admin-sidebar {
   flex: 0 0 250px;
   border-right: 1px solid var(--border-soft);
@@ -5703,7 +5711,7 @@ footer.site-footer {
   .admin-back-link { margin-top: 0; padding: 0 18px; flex-shrink: 0; }
   .admin-sidebar-user { flex-direction: row; align-items: center; padding: 0 18px; flex-shrink: 0; }
   .admin-sidebar-logout-btn { width: auto; white-space: nowrap; }
-  .admin-main { padding: 26px 20px; }
+  .admin-main { padding: 126px 20px 26px; }
   .admin-utc-clock { top: 76px; right: 20px; }
   .admin-home-grid { flex-direction: column; }
   .admin-home-grid-main, .admin-home-grid-side { flex: 1 1 auto; width: 100%; }
@@ -5717,5 +5725,6 @@ footer.site-footer {
 @media (max-width: 480px) {
   .admin-row { flex-wrap: wrap; }
   .admin-count { margin-left: 0; }
+  .admin-main { padding-top: 116px; }
   .admin-utc-clock { top: 70px; right: 14px; padding: 4px 8px; font-size: 0.62rem; }
 }
