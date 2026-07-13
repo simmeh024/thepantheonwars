@@ -17,6 +17,15 @@ require_once __DIR__ . '/../helpers.php';
 
 pw_require_permission('dashboards.view_home');
 
+$forceRefresh = false;
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $input = pw_input();
+    pw_require_csrf($input);
+    $forceRefresh = true;
+} elseif ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+    pw_error('Method not allowed.', 405);
+}
+
 const PW_REPO_PATH = '/home/rdy3i6my40b0/repositories/thepantheonwars';
 const PW_LOC_EXTENSIONS = ['php', 'html', 'js', 'css', 'sql', 'md', 'json', 'yml', 'yaml'];
 
@@ -62,7 +71,7 @@ $stmt = $db->prepare('SELECT total_lines FROM loc_snapshots WHERE captured_at = 
 $stmt->execute([$today]);
 $todayRow = $stmt->fetch();
 
-if ($todayRow) {
+if ($todayRow && !$forceRefresh) {
     $totalLines = (int)$todayRow['total_lines'];
 } else {
     $totalLines = pw_compute_total_loc(PW_REPO_PATH);

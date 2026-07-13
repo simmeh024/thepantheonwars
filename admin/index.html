@@ -553,7 +553,13 @@
               <div class="site-stat-label">Current Languages</div>
             </div>
           </div>
-          <p class="site-stats-footnote" id="dev-snapshot-updated">Loading&hellip;</p>
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:2px 20px 16px;">
+            <p class="site-stats-footnote" id="dev-snapshot-updated" style="padding:0;">Loading&hellip;</p>
+            <button type="button" class="activity-refresh-btn" id="dev-snapshot-refresh-btn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 5v4h4"/><path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 19v-4h-4"/></svg>
+              Refresh now
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -2944,6 +2950,7 @@
   var devSnapshotCategoryEl = document.getElementById('dev-snapshot-category');
   var devSnapshotLangListEl = document.getElementById('dev-snapshot-lang-list');
   var devSnapshotUpdatedEl = document.getElementById('dev-snapshot-updated');
+  var devSnapshotRefreshBtn = document.getElementById('dev-snapshot-refresh-btn');
 
   var DEV_SNAPSHOT_LANG_COLORS = {
     HTML: '#ecc987', CSS: '#a279ec', PHP: '#6f76e8', JavaScript: '#45d1c9',
@@ -3031,6 +3038,43 @@
         devSnapshotLangListEl.textContent = '—';
         devSnapshotUpdatedEl.textContent = '';
       });
+  }
+
+  if (devSnapshotRefreshBtn) {
+    devSnapshotRefreshBtn.addEventListener('click', function () {
+      devSnapshotRefreshBtn.disabled = true;
+      devSnapshotRefreshBtn.classList.add('is-spinning');
+      fetch('/api/admin/repo-languages-refresh.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csrf: window.PW_AUTH.csrf }),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.error || 'Could not refresh GitHub data.');
+          return fetch('/api/admin/loc-stats.php', {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ csrf: window.PW_AUTH.csrf }),
+          });
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.error || 'Could not refresh code statistics.');
+          loadSiteStats();
+          loadDevSnapshotLoc();
+          loadDevSnapshotLanguages();
+        })
+        .catch(function () {
+          if (devSnapshotUpdatedEl) devSnapshotUpdatedEl.textContent = 'Refresh failed. Please try again.';
+        })
+        .finally(function () {
+          devSnapshotRefreshBtn.disabled = false;
+          devSnapshotRefreshBtn.classList.remove('is-spinning');
+        });
+    });
   }
 
   // ===== Topic Reports =========================================================

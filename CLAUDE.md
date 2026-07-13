@@ -180,6 +180,12 @@ correct key (value lives only in the secrets config, not in git).
 
 ## Recent history (most recent first)
 
+- **Development Snapshot refresh:** the Home card has a lower-right
+  “Refresh now” action. It performs a CSRF-protected admin request to GitHub
+  for a fresh language snapshot, forces the deployed-repository LOC snapshot
+  to recalculate, then rerenders the card. It does not push to GitHub or
+  deploy code.
+
 - **Visibility-aware presence:** `js/members.js` stops the logged-in
   session heartbeat entirely when a tab is hidden and restarts it with an
   immediate status refresh when the tab becomes visible. The members script
