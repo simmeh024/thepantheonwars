@@ -139,11 +139,12 @@ correct key (value lives only in the secrets config, not in git).
   the whole `<svg>...</svg>` as a template string, sets `.innerHTML` once per refresh).
   Match whichever pattern fits if you add another chart.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
-  `admin/index.html` whenever `css/style.css` changes. Current: v=152.
+  `admin/index.html` whenever `css/style.css` changes. Current: v=153.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/members.js?v=N` (current: v=8) and `js/notifications.js?v=N`
+  than once): `js/main.js?v=N` (current: v=3), `js/members.js?v=N` (current: v=8)
+  and `js/notifications.js?v=N`
   (current: v=6), both across the 22 public pages (not admin).
 - Static CSS, JavaScript, font, and image assets have a one-year
   `public, immutable` cache policy in `.htaccess`; HTML remains no-cache so

@@ -113,22 +113,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Random glitch bursts — hero image (homepage only)
   var heroEl = document.querySelector('.hero');
-  var heroGlitchLayer = document.querySelector('.hero-glitch');
-  if (heroEl && heroGlitchLayer) {
+  var heroBackgroundLayer = document.querySelector('.hero-bg');
+  if (heroEl && heroBackgroundLayer) {
     (function scheduleHeroGlitch() {
-      // First burst is deliberately pushed well past typical page-load
-      // measurement windows (Lighthouse/PSI, etc). This element shares
-      // the hero image and briefly becomes visible when the glitch
-      // plays, which can get it mistaken for the Largest Contentful
-      // Paint if it fires too early -- delaying it keeps the ambient
-      // effect without skewing LCP measurements.
+      // Reuse the visible hero image. A late duplicate background became a
+      // new LCP candidate in Chrome, so this effect must not reveal a second
+      // large image element.
       var delay = 15000 + Math.random() * 10000;
       setTimeout(function () {
         heroEl.classList.add('is-glitching');
-        heroGlitchLayer.classList.add('is-glitching');
+        heroBackgroundLayer.classList.add('is-glitching');
         setTimeout(function () {
           heroEl.classList.remove('is-glitching');
-          heroGlitchLayer.classList.remove('is-glitching');
+          heroBackgroundLayer.classList.remove('is-glitching');
         }, 350 + Math.random() * 150);
         scheduleHeroGlitch();
       }, delay);

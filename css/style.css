@@ -581,19 +581,9 @@ nav.main-nav a:hover, nav.main-nav a.active { color: var(--gold); }
 }
 
 /* Random digital glitch bursts — hero image (triggered by JS toggling .is-glitching) */
-.hero-glitch {
-  position: absolute; inset: 0; z-index: 1;
-  background-size: cover;
-  background-position: center 30%;
-  opacity: 0;
-  pointer-events: none;
-  mix-blend-mode: screen;
-}
-.hero-glitch.is-glitching {
-  opacity: 0.8;
+.hero-bg.is-glitching {
   filter: hue-rotate(160deg) saturate(2.2) brightness(1.3);
   animation: hero-glitch-slice 0.4s steps(6, end);
-  clip-path: polygon(0 18%, 100% 18%, 100% 23%, 0 23%, 0 41%, 100% 41%, 100% 47%, 0 47%, 0 68%, 100% 68%, 100% 74%, 0 74%, 0 88%, 100% 88%, 100% 92%, 0 92%);
 }
 @keyframes hero-glitch-slice {
   0%   { transform: translate(0, 0); }
@@ -620,8 +610,7 @@ nav.main-nav a:hover, nav.main-nav a.active { color: var(--gold); }
    crop toward him on smaller screens without disturbing the wide-screen
    framing (which already shows both the towers and the knight nicely). */
 @media (max-width: 900px) {
-  .hero-bg.effect-neoh,
-  .hero-glitch {
+  .hero-bg.effect-neoh {
     background-position: 78% 30%;
   }
 }
