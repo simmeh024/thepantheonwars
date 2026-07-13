@@ -80,7 +80,11 @@
   content: ''; width: 5px; height: 5px; border-radius: 50%; margin-right: 2px;
   background: var(--category-accent, var(--purple-bright)); box-shadow: 0 0 9px var(--category-accent, var(--purple-bright));
 }
-.admin-nav-category-toggle span { margin-right: auto; }
+.admin-nav-category-toggle span { margin-right: auto; white-space: nowrap; }
+.admin-nav-category[data-category="dispatches"] .admin-nav-category-toggle {
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+}
 .admin-nav-category-toggle:hover { opacity: 1; color: var(--text); background: rgba(124,79,214,0.055); }
 .admin-nav-category-chevron { width: 12px; height: 12px; flex-shrink: 0; transition: transform 0.2s ease; }
 .admin-nav-category.is-collapsed .admin-nav-category-chevron { transform: rotate(-90deg); }
