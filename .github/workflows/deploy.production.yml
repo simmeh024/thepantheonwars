@@ -1,0 +1,96 @@
+name: Deploy Production
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-deployment
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy main to production
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify production branch
+        shell: bash
+        run: |
+          CURRENT_BRANCH="$(git branch --show-current)"
+
+          if [ "$CURRENT_BRANCH" != "main" ]; then
+            echo "Production deployment must use the main branch."
+            exit 1
+          fi
+
+      - name: Run PHP syntax checks
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if find . -type f -name "*.php" -not -path "./vendor/*" -print -quit | grep -q .; then
+            find . \
+              -type f \
+              -name "*.php" \
+              -not -path "./vendor/*" \
+              -print0 |
+              xargs -0 -n1 php -l
+          else
+            echo "No PHP files found."
+          fi
+
+      - name: Configure production SSH key
+        shell: bash
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.CPANEL_SSH_PRIVATE_KEY }}
+          SSH_HOST: ${{ secrets.CPANEL_SSH_HOST }}
+        run: |
+          set -euo pipefail
+
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/cpanel_production
+          chmod 600 ~/.ssh/cpanel_production
+
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          cat >> ~/.ssh/config <<EOF
+          Host cpanel-production
+            HostName $SSH_HOST
+            IdentityFile ~/.ssh/cpanel_production
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+          EOF
+
+          chmod 600 ~/.ssh/config
+
+      - name: Add cPanel Git remote
+        shell: bash
+        env:
+          CPANEL_GIT_URL: ${{ secrets.CPANEL_GIT_URL }}
+        run: |
+          set -euo pipefail
+          git remote add production "$CPANEL_GIT_URL"
+
+      - name: Push main to cPanel
+        shell: bash
+        run: |
+          set -euo pipefail
+          git push production HEAD:main
+
+      - name: Confirm deployment
+        shell: bash
+        run: |
+          echo "Production deployment submitted successfully."
+          echo "Commit: $GITHUB_SHA"
