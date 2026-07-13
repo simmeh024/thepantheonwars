@@ -16,6 +16,17 @@ function initNotifications() {
   var POLL_MS = 60 * 1000;
   var pollTimer = null;
   var dropdownLoaded = false;
+  var previousUnread = null;
+  var hasRenderedEntries = false;
+  var renderedEntryIds = {};
+  var badgePulseTimer = null;
+
+  bellBtn.setAttribute('aria-haspopup', 'dialog');
+  bellBtn.setAttribute('aria-controls', 'notif-dropdown');
+  bellBtn.setAttribute('aria-expanded', 'false');
+  dropdownEl.setAttribute('role', 'dialog');
+  dropdownEl.setAttribute('aria-label', 'Notifications');
+  dropdownEl.setAttribute('tabindex', '-1');
 
   var TYPE_ICONS = {
     like: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7 22V11M2 13v7a2 2 0 0 0 2 2h13.5a2 2 0 0 0 2-1.6l1.2-6A2 2 0 0 0 18.7 12H14V6a2 2 0 0 0-2-2l-2 5.5V22"/></svg>',
@@ -24,6 +35,11 @@ function initNotifications() {
     report_resolved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>',
     world_available: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>',
   };
+  var EMPTY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
+
+  function loadingHtml() {
+    return '<div class="notif-loading" role="status" aria-label="Loading notifications"><span></span><span></span><span></span></div>';
+  }
 
   function escapeHtml(s) {
     return String(s == null ? '' : s)
@@ -97,11 +113,14 @@ function initNotifications() {
 
   function renderList(entries) {
     if (!entries.length) {
-      listEl.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
+      listEl.innerHTML = '<div class="notif-empty notif-empty--icon">' + EMPTY_ICON + '<span>No notifications yet.</span></div>';
       return;
     }
     listEl.innerHTML = entries.map(function (n) {
-      return '<a class="notif-row' + (n.is_read ? '' : ' notif-row-unread') + '" href="' + escapeHtml(notificationLink(n)) + '" data-id="' + n.id + '">' +
+      var id = String(n.id);
+      var isNew = hasRenderedEntries && !renderedEntryIds[id];
+      renderedEntryIds[id] = true;
+      return '<a class="notif-row' + (n.is_read ? '' : ' notif-row-unread') + (isNew ? ' notif-row-is-new' : '') + '" href="' + escapeHtml(notificationLink(n)) + '" data-id="' + n.id + '">' +
         '<span class="notif-row-dot"></span>' +
         '<span class="notif-row-icon">' + (TYPE_ICONS[n.type] || '') + '</span>' +
         '<span class="notif-row-body">' +
@@ -110,6 +129,17 @@ function initNotifications() {
         '</span>' +
       '</a>';
     }).join('');
+    hasRenderedEntries = true;
+  }
+
+  function pulseBadge() {
+    badgeEl.classList.remove('notif-badge-pulse');
+    void badgeEl.offsetWidth;
+    badgeEl.classList.add('notif-badge-pulse');
+    clearTimeout(badgePulseTimer);
+    badgePulseTimer = setTimeout(function () {
+      badgeEl.classList.remove('notif-badge-pulse');
+    }, 750);
   }
 
   function loadUnreadCount() {
@@ -120,15 +150,19 @@ function initNotifications() {
         if (data.unread > 0) {
           badgeEl.hidden = false;
           badgeEl.textContent = data.unread > 99 ? '99+' : String(data.unread);
+          bellBtn.setAttribute('aria-label', 'Notifications, ' + data.unread + ' unread');
         } else {
           badgeEl.hidden = true;
+          bellBtn.setAttribute('aria-label', 'Notifications');
         }
+        if (previousUnread !== null && data.unread > previousUnread) pulseBadge();
+        previousUnread = data.unread;
       })
       .catch(function () {});
   }
 
   function loadDropdown() {
-    listEl.innerHTML = '<div class="notif-empty">Loading&hellip;</div>';
+    listEl.innerHTML = loadingHtml();
     fetch('/api/notifications/list.php?per_page=8', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -145,21 +179,36 @@ function initNotifications() {
 
   function closeDropdown() {
     dropdownEl.hidden = true;
+    dropdownEl.classList.remove('is-open');
+    bellBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  function openDropdown() {
+    dropdownEl.hidden = false;
+    dropdownEl.classList.remove('is-open');
+    void dropdownEl.offsetWidth;
+    dropdownEl.classList.add('is-open');
+    bellBtn.setAttribute('aria-expanded', 'true');
+    dropdownEl.focus();
+    loadDropdown();
+    dropdownLoaded = true;
   }
 
   bellBtn.addEventListener('click', function (e) {
     e.stopPropagation();
-    var willOpen = dropdownEl.hidden;
-    dropdownEl.hidden = !willOpen;
-    if (willOpen) {
-      loadDropdown();
-      dropdownLoaded = true;
-    }
+    if (dropdownEl.hidden) openDropdown();
+    else closeDropdown();
   });
 
   document.addEventListener('click', function (e) {
     if (dropdownEl.hidden) return;
     if (!e.target.closest('.notif-nav-item')) closeDropdown();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || dropdownEl.hidden) return;
+    closeDropdown();
+    bellBtn.focus();
   });
 
   listEl.addEventListener('click', function (e) {
@@ -213,6 +262,7 @@ function initNotifications() {
     stopPolling();
     closeDropdown();
     badgeEl.hidden = true;
+    previousUnread = null;
   });
 
   if (window.PW_AUTH && window.PW_AUTH.loggedIn) startPolling();

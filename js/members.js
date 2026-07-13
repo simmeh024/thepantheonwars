@@ -248,7 +248,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!document.getElementById('notif-bell-btn') || document.getElementById('notifications-script')) return;
     var script = document.createElement('script');
     script.id = 'notifications-script';
-    script.src = '/js/notifications.js?v=7';
+    script.src = '/js/notifications.js?v=8';
     script.async = true;
     document.body.appendChild(script);
   }
