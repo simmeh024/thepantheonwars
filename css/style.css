@@ -5589,6 +5589,77 @@ footer.site-footer {
 .world-status-pill.is-available { border-color: #3ecf8e; color: #3ecf8e; background: rgba(62,207,142,0.12); }
 .world-status-pill.is-locked { border-color: #e0a34a; color: #e0a34a; background: rgba(224,163,74,0.12); }
 
+/* World Control's layer manager needs a dedicated row layout: its titles and
+   reorder actions are both primary controls, so the generic compact admin row
+   would squeeze the title down to a few characters on narrower modal widths. */
+.world-layer-management { margin: 0; }
+.world-layer-management-head {
+  display: flex; align-items: flex-end; justify-content: space-between; gap: 18px;
+  margin-bottom: 14px;
+}
+.world-layer-management-head .admin-field-group-label { margin-bottom: 5px; }
+.world-layer-management-copy { max-width: 490px; margin: 0; color: var(--text-faint); font-size: 0.77rem; line-height: 1.5; }
+.world-layer-create-btn { flex-shrink: 0; }
+.world-layer-list {
+  display: grid; gap: 10px; padding: 10px;
+  border: 1px solid var(--border-soft); background: rgba(8, 5, 17, 0.42);
+}
+.world-layer-list .admin-list-empty { padding: 22px; }
+.world-layer-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: stretch; gap: 12px;
+  padding: 13px 14px; border: 1px solid var(--border-soft); border-radius: 5px;
+  background: linear-gradient(115deg, rgba(124,79,214,0.12), rgba(20,12,39,0.22) 52%, rgba(224,163,74,0.04));
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.world-layer-row:hover { border-color: rgba(162,121,236,0.68); box-shadow: 0 8px 22px rgba(0,0,0,0.2); transform: translateY(-1px); }
+.world-layer-row-main {
+  min-width: 0; padding: 0; border: 0; background: none; color: inherit; text-align: left;
+  font-family: 'Jost', sans-serif; cursor: pointer;
+}
+.world-layer-row-main:focus-visible { outline: 1px solid var(--gold-bright); outline-offset: 5px; border-radius: 2px; }
+.world-layer-row-order {
+  display: block; margin-bottom: 3px; color: var(--purple-bright); font-size: 0.59rem;
+  font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+}
+.world-layer-row-title {
+  display: block; overflow: hidden; color: var(--text); font-family: 'Cinzel', serif;
+  font-size: clamp(1.12rem, 2.4vw, 1.46rem); line-height: 1.2; text-overflow: ellipsis; white-space: nowrap;
+}
+.world-layer-row-tagline {
+  display: block; overflow: hidden; margin-top: 4px; color: var(--text-dim); font-size: 0.78rem;
+  line-height: 1.4; text-overflow: ellipsis; white-space: nowrap;
+}
+.world-layer-row-tagline.is-empty { color: var(--text-faint); font-style: italic; }
+.world-layer-row-meta { display: flex; align-items: center; gap: 7px; margin-top: 10px; }
+.world-layer-tint-pill {
+  --layer-tint: #16131c; --layer-tint-rgb: 22,19,28;
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border: 1px solid var(--layer-tint);
+  border-radius: 999px; background: rgba(var(--layer-tint-rgb), 0.18); color: var(--layer-tint);
+  font-size: 0.61rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+}
+.world-layer-tint-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--layer-tint); box-shadow: 0 0 8px rgba(var(--layer-tint-rgb), 0.8); }
+.world-layer-tint-pill.is-gold { --layer-tint: #e0a34a; --layer-tint-rgb: 224,163,74; }
+.world-layer-tint-pill.is-purple { --layer-tint: #a279ec; --layer-tint-rgb: 162,121,236; }
+.world-layer-tint-pill.is-teal { --layer-tint: #50c9bf; --layer-tint-rgb: 80,201,191; }
+.world-layer-tint-pill.is-green { --layer-tint: #3ecf8e; --layer-tint-rgb: 62,207,142; }
+.world-layer-tint-pill.is-orange { --layer-tint: #e8834a; --layer-tint-rgb: 232,131,74; }
+.world-layer-tint-pill.is-red { --layer-tint: #e05a4a; --layer-tint-rgb: 224,90,74; }
+.world-layer-tint-pill.is-slate { --layer-tint: #8b9cb5; --layer-tint-rgb: 139,156,181; }
+.world-layer-tint-pill.is-black { --layer-tint: #b5afc4; --layer-tint-rgb: 181,175,196; }
+.world-layer-row .role-row-actions {
+  flex-basis: auto; align-self: center; flex-direction: column; flex-wrap: nowrap; margin: 0; padding: 0; border: 0;
+}
+.world-layer-row .permission-mini-btn { min-width: 84px; padding: 6px 9px; }
+.world-layer-row .permission-mini-btn:disabled { opacity: 0.38; cursor: not-allowed; }
+
+@media (max-width: 600px) {
+  .world-layer-management-head { align-items: flex-start; flex-direction: column; }
+  .world-layer-create-btn { width: 100%; }
+  .world-layer-row { grid-template-columns: 1fr; }
+  .world-layer-row .role-row-actions { flex-direction: row; }
+  .world-layer-row .permission-mini-btn { flex: 1; }
+}
+
 @media (max-width: 600px) {
   /* "4 members • 11 permissions • 4 categories" wrapping mid-line left a
      lone bullet stranded on its own row on narrow screens -- stack the

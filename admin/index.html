@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/style.css?v=156">
+<link rel="stylesheet" href="../css/style.css?v=157">
 </head>
 <body>
 
@@ -1927,12 +1927,18 @@
 
       <hr class="admin-modal-divider">
 
-      <p class="admin-field-group-label">Districts / Layers</p>
-      <div class="admin-toolbar">
-        <button type="button" class="btn" id="world-layer-create-btn">+ Add Layer</button>
-      </div>
-      <div class="admin-list" id="world-layer-list">
-        <div class="admin-list-empty">No layers yet.</div>
+      <section class="world-layer-management" aria-labelledby="world-layers-heading">
+        <div class="world-layer-management-head">
+          <div>
+            <p class="admin-field-group-label" id="world-layers-heading">Districts / Layers</p>
+            <p class="world-layer-management-copy">Arrange the journey through this world. Select a layer to refine its story, colour, and landmarks.</p>
+          </div>
+          <button type="button" class="btn world-layer-create-btn" id="world-layer-create-btn">+ Add Layer</button>
+        </div>
+        <div class="world-layer-list" id="world-layer-list">
+          <div class="admin-list-empty">No layers yet.</div>
+        </div>
+      </section>
       </div>
 
       <hr class="admin-modal-divider">
@@ -7809,16 +7815,18 @@
     worldLayerListEl.innerHTML = '';
     layers.forEach(function (layer, i) {
       var row = document.createElement('div');
-      row.className = 'admin-row';
-      row.tabIndex = 0;
+      var tintKey = TINT_LABELS[layer.tint_key] ? layer.tint_key : 'black';
+      var tintLabel = TINT_LABELS[tintKey];
+      row.className = 'world-layer-row';
       row.innerHTML =
-        '<div class="admin-row-main">' +
-          '<p class="admin-row-subject">' + escapeHtml(layer.name) + '</p>' +
-          '<div class="admin-row-meta">' +
-            (layer.tagline ? '<span>' + escapeHtml(layer.tagline) + '</span><span class="admin-row-sep">&bull;</span>' : '') +
-            '<span>' + (TINT_LABELS[layer.tint_key] || layer.tint_key) + '</span>' +
-          '</div>' +
-        '</div>';
+        '<button type="button" class="world-layer-row-main" aria-label="Edit ' + escapeHtml(layer.name) + '">' +
+          '<span class="world-layer-row-order">Layer ' + (i + 1) + '</span>' +
+          '<span class="world-layer-row-title">' + escapeHtml(layer.name) + '</span>' +
+          (layer.tagline ? '<span class="world-layer-row-tagline">' + escapeHtml(layer.tagline) + '</span>' : '<span class="world-layer-row-tagline is-empty">No layer tagline yet</span>') +
+          '<span class="world-layer-row-meta">' +
+            '<span class="world-layer-tint-pill is-' + tintKey + '"><span class="world-layer-tint-dot"></span>' + escapeHtml(tintLabel) + '</span>' +
+          '</span>' +
+        '</button>';
 
       var actions = document.createElement('div');
       actions.className = 'role-row-actions';
@@ -7834,10 +7842,7 @@
         var dir = btn.getAttribute('data-layer-action');
         reorderWorldLayer(layer, dir === 'up' ? i - 1 : i + 1);
       });
-      row.addEventListener('click', function () { openWorldLayerModal(layer); });
-      row.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openWorldLayerModal(layer); }
-      });
+      row.querySelector('.world-layer-row-main').addEventListener('click', function () { openWorldLayerModal(layer); });
       worldLayerListEl.appendChild(row);
     });
   }
