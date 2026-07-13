@@ -58,11 +58,12 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderBookRow(book) {
     var stage = Math.min(Math.max(parseInt(book.writing_stage, 10) || 1, 1), 15);
     var pct = (stage / 15 * 100).toFixed(2);
+    var imageLoading = book.book_number > 1 ? ' loading="lazy"' : '';
 
     var metaHtml = '';
     if (book.character_image_url) {
       metaHtml = '<div class="book-meta-row"><span class="book-figure"><img src="' + book.character_image_url +
-        '" alt="' + (book.character_alt || '') + '"></span><p class="meta">' + (book.meta_text || '') + '</p></div>';
+        '" alt="' + (book.character_alt || '') + '"' + imageLoading + ' decoding="async"></span><p class="meta">' + (book.meta_text || '') + '</p></div>';
     } else if (book.meta_text) {
       metaHtml = '<p class="meta">' + book.meta_text + '</p>';
     }
@@ -86,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '</div>' +
       '</div>' +
       '<div class="book-num">' + pad2(book.book_number) + '</div>' +
-      '<div class="book-art"><img src="' + (book.cover_image_url || '') + '" alt="' + book.title + ' cover"></div>' +
+      '<div class="book-art"><img src="' + (book.cover_image_url || '') + '" alt="' + book.title + ' cover"' + imageLoading + ' decoding="async"></div>' +
       '<div class="book-body">' +
         '<span class="status">' + book.status_label + '</span>' +
         '<h3>' + book.title + '</h3>' +
