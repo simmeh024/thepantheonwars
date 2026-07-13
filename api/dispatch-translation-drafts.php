@@ -17,6 +17,36 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     // They retain the commit's meaning while speaking in the language readers
     // encounter on the site. The most specific replacements come first.
     $replacements = [
+        '/\bCreate deploy\.production\.yml\b/i' => 'the production deployment process',
+        '/\breposition BH 4 badge beside the log, popup closes only via X\b/i' => 'the BH-4 status badge and its review panel',
+        '/\baction type filter to the Audit Log page\b/i' => 'a clearer way to filter activity in the Audit Log',
+        '/\bWiden error log candidate paths after live diagnostic\b/i' => 'system diagnostic coverage',
+        '/\bPending Work card \(dispatches awaiting translation\)\b/i' => 'a Pending Work overview for Dispatches awaiting translation',
+        '/\bbrowser security headers\b/i' => 'additional browser-level protections for site services',
+        '/\bhover tooltips explaining each of the 15 writing phases on book progress bars\b/i' => 'clearer explanations for book-writing progress',
+        '/\bMetric cards: clickable modal with Latest dispatches, Trend vs previous period, BH 4 verified badge\b/i' => 'a detailed view of current metrics and recent Dispatches',
+        '/\bCerius as a fully built world \(below Asmecu\)\b/i' => 'Cerius as a fully developed world to explore',
+        '/\bCascade delete a topic\'s replies when the topic itself is deleted\b/i' => 'cleaner removal of forum discussions',
+        '/\bSettings link to the logged in user\'s nav dropdown\b/i' => 'a direct link to member settings',
+        '/\bDevelopment Dispatches page with GitHub webhook auto sync\b/i' => 'a synchronized Development Dispatches page',
+        '/\bWorld Control list rows: large title, Edit button, status\/overlord pills\b/i' => 'clearer World Control entries with status information',
+        '/\bQuick Actions card and give Add Roles to Member its own icon\b/i' => 'a clearer set of Admin Console quick actions',
+        '/\bLast Backup row to System Status\b/i' => 'a visible record of the latest backup',
+        '/\bcross link Development Dispatches and Development Metrics\b/i' => 'clearer connections between Dispatches and development metrics',
+        '/\bReddit share on news posts, X\/Mastodon\/WhatsApp share on quiz result, and first chapter preview page\b/i' => 'more ways to share site content and preview the first chapter',
+        '/\bIP throttling, CSRF, HIBP, idle timeout, security headers\b/i' => 'stronger safeguards for member sign-in and sessions',
+        '/\bfooter "Explore" list collapsible on mobile\b/i' => 'a more compact Explore menu on mobile screens',
+        '/\bmetrics link \/ BH 4 badge overlapping pagination on mobile\b/i' => 'the mobile layout around metrics and BH-4 status',
+        '/\bLanguage history: 24h refresh cadence, stacked bar chart with day\/week\/month\/year filter\b/i' => 'a clearer language-history view with flexible time ranges',
+        '/\bvisible divider between world detail sections\b/i' => 'clearer separation between world detail sections',
+        '/\bSQL performance diagnostics to System Status\b/i' => 'performance diagnostics in System Status',
+        '/\bBH 4 welcome card: bigger portrait, stack the stat rows\b/i' => 'a clearer BH-4 welcome overview',
+        '/\bsite wide Statistics and Development Snapshot cards to Home\b/i' => 'site-wide statistics and a Development Snapshot on Home',
+        '/\bUnlock Asmecu on the worlds page with a full district map\b/i' => 'Asmecu and its full district map',
+        '/\bQuote\/Like next to the kebab; always show the kebab; attribute quotes\b/i' => 'clearer quote and reaction controls in forum discussions',
+        '/\busername search filter to the Audit Log\b/i' => 'a username search in the Audit Log',
+        '/\bNeoh intro copy: five tiers, not six, now that Vault 17 is nested\b/i' => 'the Neoh introduction so its five tiers are described accurately',
+        '/\bforum post cards with a profile section\b/i' => 'forum post cards with clearer member context',
         '/\bAdd Community Metrics card to Home and fix admin role badge colors\b/i' => 'a Community Pulse overview and clearer admin role indicators',
         '/\bAdd a Total Lines of Code tile with a daily delta to the admin Home page\b/i' => 'a daily codebase progress indicator on the Admin Home dashboard',
         '/\bAdd BH 4 Task Advisor: deterministic priority recommendation on the Home dashboard\b/i' => 'a BH-4 priority recommendation on the Home dashboard',
@@ -83,18 +113,113 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         ];
     }
 
-    $benefits = [
-        'feature' => 'It gives visitors and community members a new, clearly focused part of the site to use. The addition is designed to fit naturally into the existing Pantheon Wars experience.',
-        'improvement' => 'It makes the affected area clearer, more consistent, and easier to use. The goal is a smoother experience without changing the familiar flow of the site.',
-        'fix' => 'It helps the affected area behave consistently for visitors and staff. This makes everyday use more dependable while preserving the intended experience.',
-        'performance' => 'It reduces unnecessary work behind the scenes for a smoother experience. This helps the affected pages stay responsive as more content and visitors are added.',
-        'ui_ux' => 'It makes the interface easier to read, navigate, and use. It also keeps the visual language consistent across the site and Admin Console.',
-        'lore' => 'It gives readers more detail and context to explore in the world of Pantheon Wars. The update is intended to deepen the setting without changing established story information.',
-        'infrastructure' => 'It helps keep the site reliable during everyday use and future updates. The work also gives later improvements a steadier foundation to build on.',
-        'refactor' => 'No visible feature is changed, but it makes future improvements safer and easier to deliver. The underlying structure is kept clearer so the experience can evolve reliably.',
-        'experimental' => 'It is an early improvement that can be refined after it has been reviewed in use. The change remains focused and can be adjusted as the site develops.',
+    // A stable hash chooses an alternate phrasing for each commit. This keeps
+    // repeated categories from reading like boilerplate while ensuring that a
+    // regenerate action does not make the same source commit drift randomly.
+    $pickVariant = static function (array $options, string $salt) use ($subject): string {
+        $index = (int) sprintf('%u', crc32($subject . '|' . $salt)) % count($options);
+        return $options[$index];
+    };
+    $benefitLibrary = [
+        'feature' => [
+            'It gives visitors and community members a focused new part of the site to use.',
+            'The addition fits into the existing site without asking readers to relearn familiar paths.',
+            'It opens a useful new route through Pantheon Wars while keeping the experience coherent.',
+            'The new capability is placed where members and visitors can find it naturally.',
+            'This gives the site another practical piece of its growing public experience.',
+        ],
+        'improvement' => [
+            'The affected area should now feel clearer and more consistent in everyday use.',
+            'The change smooths an existing experience without changing its familiar purpose.',
+            'It makes a routine part of the site easier to understand and use.',
+            'This refinement keeps the surrounding experience aligned and dependable.',
+            'The result is a more deliberate, less distracting path through the affected area.',
+        ],
+        'fix' => [
+            'The affected area should now behave more consistently for visitors and staff.',
+            'This removes an avoidable interruption while preserving the intended experience.',
+            'Routine use of the affected feature is now more dependable.',
+            'The correction restores the expected path without changing how the feature is meant to feel.',
+            'It resolves a point of friction so the surrounding experience can remain steady.',
+        ],
+        'performance' => [
+            'It reduces unnecessary work behind the scenes so the affected pages can remain responsive.',
+            'The change helps the site use its resources more carefully as content and traffic grow.',
+            'This makes routine loading work lighter without changing the visible experience.',
+            'Visitors should see a steadier experience as the site handles more activity.',
+            'The update removes avoidable delay from a frequently used path.',
+        ],
+        'ui_ux' => [
+            'The interface is now easier to scan, navigate, and use with confidence.',
+            'This makes the affected controls more legible without disturbing the established visual language.',
+            'The change gives the interface a clearer rhythm for everyday use.',
+            'It improves how information and actions are presented at a glance.',
+            'The surrounding interface should now feel more intentional and easier to follow.',
+        ],
+        'lore' => [
+            'Readers gain clearer context for exploring the world of Pantheon Wars.',
+            'The update adds detail while keeping established story information intact.',
+            'It gives the setting a more legible path for readers who want to explore further.',
+            'This clarification helps the world remain rich without becoming harder to navigate.',
+            'The added context supports a deeper reading of the setting and its places.',
+        ],
+        'infrastructure' => [
+            'Routine site services now have a more dependable foundation for everyday use.',
+            'The maintenance reduces avoidable risk in the systems that support future updates.',
+            'This keeps background operations prepared for the next round of site work.',
+            'The change strengthens a supporting service without introducing a visible disruption.',
+            'It makes the site easier to maintain while keeping normal use steady.',
+        ],
+        'refactor' => [
+            'No visible feature changes, but future improvements can now be delivered with more confidence.',
+            'The underlying structure is clearer, making later work safer to review and extend.',
+            'This maintenance removes complexity from the path that future updates will use.',
+            'The work keeps the same experience in place while giving it a cleaner foundation.',
+            'It prepares the affected area for later changes without altering its present purpose.',
+        ],
+        'experimental' => [
+            'This is a measured early improvement that can be refined after review in use.',
+            'The change is intentionally contained so it can be observed and adjusted responsibly.',
+            'It tests a focused direction while keeping the existing experience stable.',
+            'This creates room to learn from real use before extending the idea further.',
+            'The trial remains deliberately narrow, with a clear path for later refinement.',
+        ],
     ];
-    $benefit = $benefits[$tag] ?? 'It helps keep the site clear, reliable, and ready for future updates.';
+    $benefit = $pickVariant($benefitLibrary[$tag] ?? [
+        'It helps keep the site clear, reliable, and ready for future updates.',
+    ], 'category');
+    $contextLibrary = [
+        '/\b(?:security|sign in|sign out|session|password|CSRF|IP throttling)\b/i' => [
+            'BH-4 notes that the change also narrows an avoidable point of risk for member activity.',
+            'The affected path is now better prepared to protect normal member activity.',
+        ],
+        '/\b(?:forum|community|topic|reply|member|notification)\b/i' => [
+            'Community activity should be easier to follow without adding noise to everyday conversations.',
+            'The change supports clearer participation for members and moderators alike.',
+        ],
+        '/\b(?:Admin|Audit Log|System Status|backup|dashboard|quick action)\b/i' => [
+            'Administrators gain a clearer operational view while routine work stays focused.',
+            'The administrative path now presents the relevant information with less unnecessary searching.',
+        ],
+        '/\b(?:mobile|responsive|cover artwork|interface|layout|card|tooltip)\b/i' => [
+            'The affected view should remain easier to read across the screens visitors actually use.',
+            'This keeps the presentation stable and legible as the available screen space changes.',
+        ],
+        '/\b(?:world|lore|book|chapter|Asmecu|Cerius|Neoh)\b/i' => [
+            'Readers have a clearer route into the relevant part of the setting.',
+            'The added detail is framed to support exploration without obscuring established information.',
+        ],
+        '/\b(?:database|performance|loading|cache|CSS|image|metrics)\b/i' => [
+            'BH-4 expects the affected path to handle routine demand with less overhead.',
+            'The improvement supports a more responsive experience as activity increases.',
+        ],
+    ];
+    foreach ($contextLibrary as $pattern => $options) {
+        if (preg_match($pattern, $clean)) {
+            $benefit .= ' ' . $pickVariant($options, 'context');
+            break;
+        }
+    }
     $object = lcfirst($clean);
     $draft = '';
     $actionTemplates = [
@@ -103,17 +228,25 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/^(?:fix|resolve|repair)\s+(.+)$/i' => 'This update fixes %s.',
         '/^(?:restore)\s+(.+)$/i' => 'This update restores %s.',
         '/^(?:improve|enhance|refine|polish|streamline)\s+(.+)$/i' => 'This update improves %s.',
+        '/^(?:redesign|rework)\s+(.+)$/i' => 'This update gives %s a clearer presentation.',
         '/^(?:expand)\s+(.+)$/i' => 'This update adds more detail to %s.',
-        '/^(?:keep|show)\s+(.+)$/i' => 'This update keeps %s clear and easy to read.',
+        '/^(?:keep|show|align)\s+(.+)$/i' => 'This update keeps %s clear and easy to read.',
+        '/^(?:widen|enlarge)\s+(.+)$/i' => 'This update gives %s more room to work clearly.',
+        '/^(?:split|stack)\s+(.+)$/i' => 'This update organizes %s into a clearer view.',
+        '/^(?:make)\s+(.+)$/i' => 'This update makes %s easier to use.',
         '/^(?:throttle|reduce|defer)\s+(.+)$/i' => 'This update reduces unnecessary %s.',
+        '/^(?:slow)\s+(.+)$/i' => 'This update gives %s a more considered refresh schedule.',
         '/^(?:prevent)\s+(.+)$/i' => 'This update helps prevent %s.',
         '/^(?:reserve)\s+(.+)$/i' => 'This update reserves clear space for %s.',
         '/^(?:use|switch)\s+(.+)$/i' => 'This update standardizes %s.',
         '/^(?:load|deliver)\s+(.+)$/i' => 'This update delivers %s more efficiently.',
+        '/^(?:cross link|connect)\s+(.+)$/i' => 'This update connects %s more clearly.',
+        '/^(?:unlock)\s+(.+)$/i' => 'This update opens up %s for visitors to explore.',
+        '/^(?:bump)\s+(.+)$/i' => 'This update refreshes the versioning for %s.',
         '/^(?:optimi[sz]e|speed up)\s+(.+)$/i' => 'This update makes %s faster and more reliable.',
         '/^(?:update|refresh)\s+(.+)$/i' => 'This update refreshes %s.',
         '/^(?:remove|retire|delete)\s+(.+)$/i' => 'This update removes %s.',
-        '/^(?:move|reorganize|reorganise)\s+(.+)$/i' => 'This update reorganizes %s.',
+        '/^(?:move|reorganize|reorganise|reposition)\s+(.+)$/i' => 'This update reorganizes %s.',
         '/^(?:secure|protect|harden)\s+(.+)$/i' => 'This update strengthens protection for %s.',
     ];
     foreach ($actionTemplates as $pattern => $template) {
@@ -154,7 +287,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag): string
 {
-    return hash('sha256', "dispatch-draft-v5\n" . $subject . "\n" . $body . "\n" . $tag);
+    return hash('sha256', "dispatch-draft-v6\n" . $subject . "\n" . $body . "\n" . $tag);
 }
 
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): bool
