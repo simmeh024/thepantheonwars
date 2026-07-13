@@ -1,4 +1,74 @@
 /* ===== Admin Console ===== */
++/* Admin Home polish: lift the operational cards out of the shared background
+   without changing their layout or interactions. Accent rails make the
+   dashboard easier to scan, while motion stays intentionally restrained. */
+#section-home .bh4-welcome-card,
+#section-home .quick-actions-card,
+#section-home .system-status-card,
+#section-home .activity-widget {
+  position: relative;
+  isolation: isolate;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.16);
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+#section-home .bh4-welcome-card::before,
+#section-home .quick-actions-card::before,
+#section-home .system-status-card::before,
+#section-home .activity-widget::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: 0;
+  left: 18px;
+  right: 18px;
+  height: 2px;
+  border-radius: 0 0 999px 999px;
+  background: linear-gradient(90deg, transparent, var(--purple-bright), transparent);
+  opacity: 0.72;
+  pointer-events: none;
+}
+#section-home .bh4-welcome-card::before { background: linear-gradient(90deg, transparent, var(--gold-bright), var(--purple-bright), transparent); }
+#section-home .quick-actions-card::before { background: linear-gradient(90deg, transparent, #45d1c9, transparent); }
+#section-home .system-status-card::before { background: linear-gradient(90deg, transparent, var(--gold-bright), transparent); }
+#section-home .content-drafts-card::before { background: linear-gradient(90deg, transparent, #3ecf8e, transparent); }
+#section-home .admin-home-grid-side:nth-child(2) .activity-widget::before { background: linear-gradient(90deg, transparent, #f2994a, transparent); }
+#section-home .dev-snapshot-card::before { background: linear-gradient(90deg, transparent, var(--purple-bright), #45d1c9, transparent); }
+#section-home .site-stats-card::before { background: linear-gradient(90deg, transparent, #5b9cf5, var(--gold-bright), transparent); }
+
+@media (hover: hover) {
+  #section-home .bh4-welcome-card:hover,
+  #section-home .quick-actions-card:hover,
+  #section-home .system-status-card:hover,
+  #section-home .activity-widget:hover {
+    transform: translateY(-3px);
+    border-color: rgba(162, 121, 236, 0.55);
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28), 0 0 22px rgba(124, 79, 214, 0.09);
+  }
+  #section-home .quick-action-btn:hover { transform: translateX(3px); }
+  #section-home .quick-action-btn:hover .quick-action-chevron { color: var(--gold-bright); transform: translateX(2px); }
+  #section-home .pending-work-row:hover { transform: translateX(3px); }
+  #section-home .bh4-queue-tile:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.18); }
+}
+#section-home .quick-action-btn,
+#section-home .pending-work-row,
+#section-home .bh4-queue-tile,
+#section-home .quick-action-chevron { transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease; }
+#section-home .activity-widget-head { background: linear-gradient(90deg, rgba(255,255,255,0.025), transparent); }
+#section-home .system-status-list li:not(.system-status-storage-row) { padding: 7px 9px; border-radius: 6px; background: rgba(255,255,255,0.018); border: 1px solid transparent; }
+#section-home .system-status-list li:not(.system-status-storage-row):hover { border-color: var(--border-soft); background: rgba(162,121,236,0.055); }
+#section-home .site-stat-value, #section-home .dev-snapshot-category { text-shadow: 0 0 18px currentColor; }
+
+@media (prefers-reduced-motion: reduce) {
+  #section-home .bh4-welcome-card,
+  #section-home .quick-actions-card,
+  #section-home .system-status-card,
+  #section-home .activity-widget,
+  #section-home .quick-action-btn,
+  #section-home .pending-work-row,
+  #section-home .bh4-queue-tile,
+  #section-home .quick-action-chevron { transition: none; }
+}
+
 .admin-gate {
   min-height: 100vh; display: flex; align-items: center; justify-content: center;
   font-family: 'Jost', sans-serif; color: var(--text-faint); font-size: 0.9rem;
