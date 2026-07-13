@@ -180,6 +180,13 @@ correct key (value lives only in the secrets config, not in git).
 
 ## Recent history (most recent first)
 
+- **Visitor Statistics index plan:** raw `page_views` analytics are indexed
+  by their shared UTC time window plus the grouping column used by each card:
+  visitor/user, path, referrer and country. `analytics_explain_validation.sql`
+  contains read-only MariaDB `ANALYZE FORMAT=JSON` checks (its `EXPLAIN
+  ANALYZE` equivalent) to run after the index migration. The heatmap's annual
+  query uses a sargable half-open UTC range rather than `YEAR(created_at)`.
+
 - **Admin Home summary endpoint:** `api/admin/home-summary.php` now returns
   every Home-card payload in one request (activity, queues, content/security/
   community metrics, site and Development Snapshot data, BH-4, System Status,

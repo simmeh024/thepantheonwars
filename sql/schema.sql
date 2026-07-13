@@ -309,6 +309,11 @@ CREATE TABLE IF NOT EXISTS page_views (
   user_agent VARCHAR(255) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_created_at (created_at),
+  -- Cover the time-windowed aggregate cards without reading full rows.
+  KEY idx_created_visitor_user (created_at, visitor_id, user_id),
+  KEY idx_created_path (created_at, path),
+  KEY idx_created_referrer (created_at, referrer_host),
+  KEY idx_created_country (created_at, country_code, country_name),
   KEY idx_visitor_created_id (visitor_id, created_at, id),
   CONSTRAINT fk_page_views_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

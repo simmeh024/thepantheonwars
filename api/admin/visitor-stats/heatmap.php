@@ -14,7 +14,11 @@ $db = pw_db();
 
 $range = isset($_GET['range']) ? (string)$_GET['range'] : '30';
 if ($range === 'year') {
-    $whereSql = 'YEAR(created_at) = YEAR(UTC_DATE())';
+    // A YEAR(created_at) predicate prevents MariaDB from using the
+    // created_at-leading analytics indexes. A half-open UTC range has the
+    // same meaning while remaining sargable.
+    $whereSql = "created_at >= DATE_FORMAT(UTC_DATE(), '%Y-01-01')"
+        . ' AND created_at < (UTC_DATE() + INTERVAL 1 DAY)';
     $params = [];
 } else {
     $days = (int)$range;
