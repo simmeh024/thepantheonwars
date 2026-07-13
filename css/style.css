@@ -4155,7 +4155,7 @@ footer.site-footer {
 .activity-card.activity-dispatches_resynced .activity-card-label, .activity-card.activity-dispatch_title_edited .activity-card-label, .activity-card.activity-development_snapshot_refreshed .activity-card-label { color: var(--gold-bright); }
 .admin-home-top-row {
   display: flex;
-  align-items: stretch;
+  align-items: flex-start;
   gap: 18px;
   margin-bottom: 22px;
 }
@@ -4551,9 +4551,8 @@ footer.site-footer {
 
 /* Quick Actions and System Status each sit in their own column now,
    stacked above a second small card (Content Drafts / Security Snapshot)
-   so the leftover height from matching the taller BH-4 card (see
-   .admin-home-top-row's align-items: stretch) gets used instead of sitting
-   empty below a short card. */
+   while the BH-4 card keeps its content-driven height instead of carrying
+   empty vertical space from a taller neighbouring column. */
 .bh4-side-col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .bh4-side-col--actions { flex: 0 0 265px; }
 .bh4-side-col--status { flex: 0 0 300px; }
