@@ -5,6 +5,7 @@
  * explicit escape hatch for immediately pulling current GitHub language data.
  */
 require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/../repo-languages-helpers.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
@@ -14,31 +15,12 @@ $adminUser = pw_require_permission('dashboards.view_home');
 $input = pw_input();
 pw_require_csrf($input);
 
-$url = 'https://api.github.com/repos/simmeh024/thepantheonwars/languages';
-$opts = [
-    'http' => [
-        'method' => 'GET',
-        'header' => pw_github_stream_header('ThePantheonWars-AdminConsole'),
-        'timeout' => 8,
-        'ignore_errors' => true,
-    ],
-];
-$raw = @file_get_contents($url, false, stream_context_create($opts));
-$languages = $raw === false ? null : json_decode($raw, true);
+$languages = pw_fetch_github_languages('ThePantheonWars-AdminConsole', 8);
 if (!is_array($languages) || empty($languages)) {
     pw_error('Could not retrieve language data from GitHub.', 502);
 }
 
-arsort($languages);
-$totalBytes = array_sum($languages);
-$out = [];
-foreach ($languages as $name => $bytes) {
-    $out[] = [
-        'name' => $name,
-        'bytes' => $bytes,
-        'pct' => $totalBytes > 0 ? round(($bytes / $totalBytes) * 1000) / 10 : 0,
-    ];
-}
+list($out, $totalBytes) = pw_langs_to_out($languages);
 
 $capturedAt = gmdate('Y-m-d H:i:s');
 $stmt = pw_db()->prepare(

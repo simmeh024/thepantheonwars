@@ -2292,8 +2292,32 @@
   // GitHub webhook pushes that land independently of anything the admin does.
   var HOME_AUTO_REFRESH_MS = 60000;
   var homeAutoRefreshTimer = null;
+  var homeSummaryBatch = null;
+  var homeSummaryRequestInFlight = false;
 
-  function refreshHomeCards() {
+  // During a bundled Home refresh, existing card renderers read their
+  // payload through this adapter. That keeps each card's established
+  // loading/error UI intact while replacing the former eleven-request fan-out
+  // with a single summary response.
+  function fetchHomeCard(key, url) {
+    if (homeSummaryBatch === false) {
+      return Promise.reject(new Error('Home summary request failed'));
+    }
+    if (homeSummaryBatch) {
+      var value = homeSummaryBatch;
+      key.split('.').forEach(function (part) {
+        value = value && value[part];
+      });
+      return Promise.resolve({
+        ok: true,
+        json: function () { return Promise.resolve(value || { ok: false }); }
+      });
+    }
+    return fetch(url, { credentials: 'same-origin' });
+  }
+
+  function applyHomeSummary(data) {
+    homeSummaryBatch = data;
     loadHomeActivity();
     loadPendingWork();
     loadContentDrafts();
@@ -2305,6 +2329,41 @@
     loadSystemStatus();
     loadSecuritySnapshot();
     loadTaskAdvisor();
+    homeSummaryBatch = null;
+  }
+
+  function loadHomeSummary(forceFresh) {
+    if (homeSummaryRequestInFlight) return;
+    homeSummaryRequestInFlight = true;
+    var url = '/api/admin/home-summary.php' + (forceFresh ? '?fresh=1' : '');
+    fetch(url, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Home summary request failed');
+        applyHomeSummary(data);
+      })
+      .catch(function () {
+        homeSummaryBatch = false;
+        loadHomeActivity();
+        loadPendingWork();
+        loadContentDrafts();
+        loadCommunityMetrics();
+        loadSiteStats();
+        loadDevSnapshotLanguages();
+        loadDevSnapshotLoc();
+        loadBh4Welcome();
+        loadSystemStatus();
+        loadSecuritySnapshot();
+        loadTaskAdvisor();
+        homeSummaryBatch = null;
+      })
+      .finally(function () {
+        homeSummaryRequestInFlight = false;
+      });
+  }
+
+  function refreshHomeCards() {
+    loadHomeSummary();
   }
 
   function startHomeAutoRefresh() {
@@ -2418,7 +2477,7 @@
   var pendingReportsCountEl = document.getElementById('pending-work-reports-count');
 
   function loadPendingWork() {
-    fetch('/api/admin/pending-work/summary.php', { credentials: 'same-origin' })
+    fetchHomeCard('pending_work', '/api/admin/pending-work/summary.php')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) return;
@@ -2460,7 +2519,7 @@
   var contentDraftsListEl = document.getElementById('content-drafts-list');
 
   function loadContentDrafts() {
-    fetch('/api/admin/home-content-drafts/summary.php', { credentials: 'same-origin' })
+    fetchHomeCard('content_drafts', '/api/admin/home-content-drafts/summary.php')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) return;
@@ -2497,7 +2556,7 @@
   var securityBannedAccountsEl = document.getElementById('security-banned-accounts');
 
   function loadSecuritySnapshot() {
-    fetch('/api/admin/home-security/summary.php', { credentials: 'same-origin' })
+    fetchHomeCard('security', '/api/admin/home-security/summary.php')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) return;
@@ -2527,7 +2586,7 @@
   }
 
   function loadCommunityMetrics() {
-    fetch('/api/admin/community-metrics/summary.php', { credentials: 'same-origin' })
+    fetchHomeCard('community', '/api/admin/community-metrics/summary.php')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) return;
@@ -2574,7 +2633,7 @@
   }
 
   function loadBh4Welcome() {
-    fetch('/api/admin/home-bh4/summary.php', { credentials: 'same-origin' })
+    fetchHomeCard('bh4', '/api/admin/home-bh4/summary.php')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) return;
@@ -2752,7 +2811,7 @@
       advisorLoadingEl.hidden = false;
     }
     advisorErrorEl.hidden = true;
-    fetch('/api/admin/task-advisor.php', { credentials: 'same-origin' })
+    fetchHomeCard('task_advisor', '/api/admin/task-advisor.php')
       .then(function (r) {
         if (!r.ok) throw new Error('advisor request failed');
         return r.json();
@@ -2773,13 +2832,13 @@
     advisorRefreshBtn.addEventListener('click', function () {
       if (advisorRefreshBtn.classList.contains('is-spinning')) return;
       advisorRefreshBtn.classList.add('is-spinning');
-      loadTaskAdvisor();
+      loadHomeSummary(true);
       setTimeout(function () { advisorRefreshBtn.classList.remove('is-spinning'); }, 600);
     });
   }
 
   if (advisorRetryBtn) {
-    advisorRetryBtn.addEventListener('click', function () { loadTaskAdvisor(); });
+    advisorRetryBtn.addEventListener('click', function () { loadHomeSummary(true); });
   }
 
   // Operational Queues tiles: fixed section tokens, same as the advisor's own
@@ -2891,7 +2950,7 @@
   }
 
   function loadSystemStatus() {
-    fetch('/api/admin/system-status/summary.php', { credentials: 'same-origin' })
+    fetchHomeCard('system_status', '/api/admin/system-status/summary.php')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) return;
@@ -2932,7 +2991,7 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
           sysStatusLogBackupBtn.disabled = false;
-          if (data.ok) loadSystemStatus();
+          if (data.ok) loadHomeSummary(true);
         })
         .catch(function () { sysStatusLogBackupBtn.disabled = false; });
     });
@@ -2958,7 +3017,7 @@
   };
 
   function loadSiteStats() {
-    fetch('/api/admin/site-stats/summary.php', { credentials: 'same-origin' })
+    fetchHomeCard('site_stats', '/api/admin/site-stats/summary.php')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) return;
@@ -2981,7 +3040,7 @@
   }
 
   function loadDevSnapshotLoc() {
-    fetch('/api/admin/loc-stats.php', { credentials: 'same-origin' })
+    fetchHomeCard('development_snapshot.loc', '/api/admin/loc-stats.php')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) {
@@ -3012,7 +3071,7 @@
   }
 
   function loadDevSnapshotLanguages() {
-    fetch('/api/repo-languages.php', { credentials: 'same-origin' })
+    fetchHomeCard('development_snapshot.languages', '/api/repo-languages.php')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok || !data.found || !data.languages.length) {
@@ -3063,9 +3122,7 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
           if (!data.ok) throw new Error(data.error || 'Could not refresh code statistics.');
-          loadSiteStats();
-          loadDevSnapshotLoc();
-          loadDevSnapshotLanguages();
+          loadHomeSummary(true);
         })
         .catch(function () {
           if (devSnapshotUpdatedEl) devSnapshotUpdatedEl.textContent = 'Refresh failed. Please try again.';
@@ -3586,7 +3643,7 @@
   // ----- Home widget: latest 5, no pagination -----
   function loadHomeActivity() {
     homeActivityListEl.innerHTML = '<div class="admin-list-empty">Loading activity&hellip;</div>';
-    fetch('/api/admin/activity-log/list.php?page=1&per_page=5', { credentials: 'same-origin' })
+    fetchHomeCard('activity', '/api/admin/activity-log/list.php?page=1&per_page=5')
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) {
@@ -3604,7 +3661,7 @@
     homeActivityRefreshBtn.addEventListener('click', function () {
       if (homeActivityRefreshBtn.classList.contains('is-spinning')) return;
       homeActivityRefreshBtn.classList.add('is-spinning');
-      loadHomeActivity();
+      loadHomeSummary(true);
       setTimeout(function () { homeActivityRefreshBtn.classList.remove('is-spinning'); }, 600);
     });
   }

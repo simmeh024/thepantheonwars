@@ -1,47 +1,8 @@
 <?php
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/repo-languages-helpers.php';
 
 date_default_timezone_set('UTC'); // store and compare snapshot times in UTC, unambiguously
-
-const PW_LANG_SNAPSHOT_TTL = 86400; // pull/push from GitHub at most once every 24 hours
-
-function pw_fetch_github_languages() {
-    $url = 'https://api.github.com/repos/simmeh024/thepantheonwars/languages';
-    $opts = [
-        'http' => [
-            'method' => 'GET',
-            'header' => pw_github_stream_header('ThePantheonWars-Site'),
-            'timeout' => 6,
-            'ignore_errors' => true,
-        ],
-    ];
-    $context = stream_context_create($opts);
-    $raw = @file_get_contents($url, false, $context);
-    if ($raw === false) {
-        return null;
-    }
-    $data = json_decode($raw, true);
-    if (!is_array($data)) {
-        return null;
-    }
-    return $data;
-}
-
-function pw_langs_to_out($langs) {
-    $total = array_sum($langs);
-    $out = [];
-    if ($total > 0) {
-        arsort($langs);
-        foreach ($langs as $name => $bytes) {
-            $out[] = [
-                'name' => $name,
-                'bytes' => $bytes,
-                'pct' => round(($bytes / $total) * 1000) / 10,
-            ];
-        }
-    }
-    return [$out, $total];
-}
 
 function pw_bucket_key($group, $ts) {
     switch ($group) {
@@ -77,23 +38,7 @@ function pw_bucket_label($group, $ts) {
 $db = pw_db();
 
 // --- Step 1: record a fresh snapshot if the last one is stale (or missing) ---
-$latest = $db->query('SELECT captured_at FROM repo_language_snapshots ORDER BY captured_at DESC LIMIT 1')->fetch();
-$needsRefresh = true;
-if ($latest) {
-    $age = time() - strtotime($latest['captured_at']);
-    if ($age < PW_LANG_SNAPSHOT_TTL) {
-        $needsRefresh = false;
-    }
-}
-
-if ($needsRefresh) {
-    $fresh = pw_fetch_github_languages();
-    if ($fresh !== null && !empty($fresh)) {
-        list($out, $total) = pw_langs_to_out($fresh);
-        $stmt = $db->prepare('INSERT INTO repo_language_snapshots (captured_at, total_bytes, languages_json) VALUES (:captured_at, :total, :json)');
-        $stmt->execute([':captured_at' => date('Y-m-d H:i:s'), ':total' => $total, ':json' => json_encode($out)]);
-    }
-}
+pw_ensure_repo_language_snapshot($db);
 
 // --- Step 2: resolve the requested date range -------------------------------
 $start = isset($_GET['start']) ? trim($_GET['start']) : '';

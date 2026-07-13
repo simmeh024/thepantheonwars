@@ -180,6 +180,16 @@ correct key (value lives only in the secrets config, not in git).
 
 ## Recent history (most recent first)
 
+- **Admin Home summary endpoint:** `api/admin/home-summary.php` now returns
+  every Home-card payload in one request (activity, queues, content/security/
+  community metrics, site and Development Snapshot data, BH-4, System Status,
+  and the Task Advisor). The browser's normal 60-second Home refresh uses
+  this single endpoint instead of eleven card requests. Its per-session
+  15-second server cache is bypassed with `?fresh=1` after a manual action.
+  The bundled response reuses one system-health pass for both System Status
+  and the Task Advisor; the card-specific endpoints remain for standalone
+  compatibility.
+
 - **Development Snapshot refresh:** the Home card has a lower-right
   “Refresh now” action. It performs a CSRF-protected admin request to GitHub
   for a fresh language snapshot, forces the deployed-repository LOC snapshot
