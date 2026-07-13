@@ -11,11 +11,19 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     $clean = preg_replace('/\s*\(?#[0-9]+\)?\s*$/', '', $clean);
     $clean = str_replace('_', ' ', $clean);
     $clean = preg_replace('/([a-z])\-([a-z])/i', '$1 $2', $clean);
+    $clean = preg_replace('/\s*\+\s*/', ' and ', $clean);
 
     // These are editorial substitutions, not opaque technical word removal.
     // They retain the commit's meaning while speaking in the language readers
     // encounter on the site. The most specific replacements come first.
     $replacements = [
+        '/\bAdd Community Metrics card to Home and fix admin role badge colors\b/i' => 'a Community Pulse overview and clearer admin role indicators',
+        '/\bAdd a Total Lines of Code tile with a daily delta to the admin Home page\b/i' => 'a daily codebase progress indicator on the Admin Home dashboard',
+        '/\bAdd BH 4 Task Advisor: deterministic priority recommendation on the Home dashboard\b/i' => 'a BH-4 priority recommendation on the Home dashboard',
+        '/\bAdd a UTC clock to the admin console\b/i' => 'a shared UTC time display in the Admin Console',
+        '/\bAdd Notification Settings tab with per type opt out checkboxes\b/i' => 'notification preferences that members can control',
+        '/\bAdd member system: PHP and MySQL login\/register\/session, community discussion board, profile page with saved quiz results\b/i' => 'a member area with sign-in, community discussions, profiles, and saved quiz results',
+        '/\bFix chapter one\.html hero staying on Book One when preview unavailable\b/i' => 'the Book One preview header when a preview is unavailable',
         '/\bN\+1 queries?\b/i' => 'repeated database work',
         '/\bcomposite indexes?\b/i' => 'database performance',
         '/\bsession check\b/i' => 'online status updates',
@@ -46,6 +54,17 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/\bpresence heartbeat writes\b/i' => 'how often online status is recorded',
         '/\bCSS bundles by page audience\b/i' => 'page-specific styling delivery',
         '/\bPolish the admin sidebar and add personal navigation settings\b/i' => 'the Admin Console sidebar and personal navigation settings',
+        '/\bTotal Lines of Code tile with a daily delta\b/i' => 'a daily codebase progress indicator',
+        '/\bBH 4 Task Advisor\b/i' => 'the BH-4 priority advisor on the Home dashboard',
+        '/\bCommunity Metrics card\b/i' => 'the Community Metrics overview on the Home dashboard',
+        '/\bnotification bell interaction\b/i' => 'the notification bell experience',
+        '/\bNotification Settings tab with per type opt out checkboxes\b/i' => 'notification preferences that members can control',
+        '/\bUTC clock\b/i' => 'the shared UTC time display',
+        '/\beye glow position\b/i' => 'BH-4’s visual details',
+        '/\bhero section padding\b/i' => 'Admin Console page spacing',
+        '/\bresponsive cover stretching\b/i' => 'cover artwork on smaller screens',
+        '/\bnon critical public images\b/i' => 'below-the-fold images',
+        '/\blightbox\b/i' => 'full-screen image view',
     ];
     foreach ($replacements as $pattern => $replacement) {
         $clean = preg_replace($pattern, $replacement, $clean);
@@ -76,16 +95,32 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         'experimental' => 'It is an early improvement that can be refined after it has been reviewed in use. The change remains focused and can be adjusted as the site develops.',
     ];
     $benefit = $benefits[$tag] ?? 'It helps keep the site clear, reliable, and ready for future updates.';
+    $bh4Openers = [
+        'feature' => 'BH-4 briefing: ',
+        'improvement' => 'BH-4 update: ',
+        'fix' => 'BH-4 correction: ',
+        'performance' => 'BH-4 efficiency report: ',
+        'ui_ux' => 'BH-4 interface note: ',
+        'lore' => 'BH-4 archive note: ',
+        'infrastructure' => 'BH-4 systems note: ',
+        'refactor' => 'BH-4 maintenance note: ',
+        'experimental' => 'BH-4 field note: ',
+    ];
+    $bh4Opener = $bh4Openers[$tag] ?? 'BH-4 briefing: ';
     $object = lcfirst($clean);
     $draft = '';
     $actionTemplates = [
+        '/^add\s+(.+)\s+and\s+fix\s+(.+)$/i' => 'This update adds %s and corrects %s.',
         '/^(?:add|create|introduce|include)\s+(.+)$/i' => 'A new update adds %s.',
         '/^(?:fix|resolve|repair)\s+(.+)$/i' => 'This update fixes %s.',
         '/^(?:restore)\s+(.+)$/i' => 'This update restores %s.',
         '/^(?:improve|enhance|refine|polish|streamline)\s+(.+)$/i' => 'This update improves %s.',
         '/^(?:expand)\s+(.+)$/i' => 'This update adds more detail to %s.',
-        '/^(?:keep)\s+(.+)$/i' => 'This update keeps %s clear and easy to read.',
-        '/^(?:throttle|reduce)\s+(.+)$/i' => 'This update reduces unnecessary %s.',
+        '/^(?:keep|show)\s+(.+)$/i' => 'This update keeps %s clear and easy to read.',
+        '/^(?:throttle|reduce|defer)\s+(.+)$/i' => 'This update reduces unnecessary %s.',
+        '/^(?:prevent)\s+(.+)$/i' => 'This update helps prevent %s.',
+        '/^(?:reserve)\s+(.+)$/i' => 'This update reserves clear space for %s.',
+        '/^(?:use|switch)\s+(.+)$/i' => 'This update standardizes %s.',
         '/^(?:load|deliver)\s+(.+)$/i' => 'This update delivers %s more efficiently.',
         '/^(?:optimi[sz]e|speed up)\s+(.+)$/i' => 'This update makes %s faster and more reliable.',
         '/^(?:update|refresh)\s+(.+)$/i' => 'This update refreshes %s.',
@@ -95,8 +130,11 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     ];
     foreach ($actionTemplates as $pattern => $template) {
         if (preg_match($pattern, $clean, $matches)) {
-            $object = lcfirst(trim($matches[1]));
-            $draft = sprintf($template, rtrim($object, '.'));
+            $arguments = array_map(static function ($value): string {
+                return rtrim(lcfirst(trim($value)), '.');
+            }, array_slice($matches, 1));
+            $object = $arguments[0];
+            $draft = vsprintf($template, $arguments);
             break;
         }
     }
@@ -119,7 +157,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     }
 
     return [
-        'draft' => $draft . ' ' . $benefit,
+        'draft' => $bh4Opener . $draft . ' ' . $benefit,
         'hash' => pw_dispatch_draft_hash($subject, $body, $tag),
     ];
 }
@@ -128,7 +166,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag): string
 {
-    return hash('sha256', "dispatch-draft-v3\n" . $subject . "\n" . $body . "\n" . $tag);
+    return hash('sha256', "dispatch-draft-v4\n" . $subject . "\n" . $body . "\n" . $tag);
 }
 
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): bool
