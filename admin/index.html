@@ -2278,6 +2278,7 @@
   var sections = document.querySelectorAll('.admin-section');
   var loadedSections = {};
   var checkedAuth = false;
+  var ACTIVE_SECTION_KEY = 'pw_admin_active_section';
 
   function escapeHtml(s) {
     var div = document.createElement('div');
@@ -2397,8 +2398,10 @@
   }
 
   function showSection(name) {
+    if (!document.getElementById('section-' + name)) name = firstVisibleSection();
     navLinks.forEach(function (l) { l.classList.toggle('active', l.getAttribute('data-section') === name); });
     sections.forEach(function (s) { s.hidden = (s.id !== 'section-' + name); });
+    try { localStorage.setItem(ACTIVE_SECTION_KEY, name); } catch (e) {}
     if (name === 'home') { startHomeAutoRefresh(); refreshHomeCards(); } else { stopHomeAutoRefresh(); }
     if (name === 'system-status') { startSystemStatusAutoRefresh(); } else { stopSystemStatusAutoRefresh(); }
     if (!loadedSections[name]) {
@@ -3453,6 +3456,21 @@
     return 'home';
   }
 
+  function restoredVisibleSection() {
+    var saved = null;
+    try { saved = localStorage.getItem(ACTIVE_SECTION_KEY); } catch (e) {}
+    if (!saved || !document.getElementById('section-' + saved)) return firstVisibleSection();
+    for (var i = 0; i < navLinks.length; i++) {
+      var link = navLinks[i];
+      if (link.getAttribute('data-section') !== saved) continue;
+      var li = link.closest('li');
+      var category = link.closest('.admin-nav-category');
+      if ((li && li.hidden) || (category && category.hidden)) return firstVisibleSection();
+      return saved;
+    }
+    return firstVisibleSection();
+  }
+
   function checkAccess() {
     if (checkedAuth) return;
     checkedAuth = true;
@@ -3464,7 +3482,7 @@
     populateSidebarUser(window.PW_AUTH.user);
     gate.hidden = true;
     shell.classList.add('is-ready');
-    showSection(firstVisibleSection());
+    showSection(restoredVisibleSection());
   }
 
   document.addEventListener('pw-auth-ready', checkAccess);
