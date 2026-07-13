@@ -5,7 +5,8 @@
 #section-home .bh4-welcome-card,
 #section-home .quick-actions-card,
 #section-home .system-status-card,
-#section-home .activity-widget {
+#section-home .activity-widget,
+#section-home .community-pulse-card {
   position: relative;
   isolation: isolate;
   border-color: rgba(162, 121, 236, 0.30);
@@ -17,7 +18,8 @@
 #section-home .bh4-welcome-card::before,
 #section-home .quick-actions-card::before,
 #section-home .system-status-card::before,
-#section-home .activity-widget::before {
+#section-home .activity-widget::before,
+#section-home .community-pulse-card::before {
   content: '';
   position: absolute;
   z-index: 1;
@@ -41,12 +43,14 @@
 #section-home .security-snapshot-card::before { background: linear-gradient(90deg, transparent, #5b9cf5, var(--purple-bright), transparent); }
 #section-home .traffic-snapshot-card::before { background: linear-gradient(90deg, transparent, #45d1c9, var(--purple-bright), transparent); }
 #section-home .heatmap-card::before { background: linear-gradient(90deg, transparent, #f2994a, var(--gold-bright), transparent); }
+#section-home .community-pulse-card::before { background: linear-gradient(90deg, transparent, #45d1c9, var(--purple-bright), transparent); }
 
 @media (hover: hover) {
   #section-home .bh4-welcome-card:hover,
   #section-home .quick-actions-card:hover,
   #section-home .system-status-card:hover,
-  #section-home .activity-widget:hover {
+  #section-home .activity-widget:hover,
+  #section-home .community-pulse-card:hover {
     transform: translateY(-3px);
     border-color: rgba(162, 121, 236, 0.55);
     box-shadow: 0 16px 36px rgba(0, 0, 0, 0.28), 0 0 22px rgba(124, 79, 214, 0.09);
@@ -70,6 +74,7 @@
   #section-home .quick-actions-card,
   #section-home .system-status-card,
   #section-home .activity-widget,
+  #section-home .community-pulse-card,
   #section-home .quick-action-btn,
   #section-home .pending-work-row,
   #section-home .bh4-queue-tile,
@@ -575,6 +580,15 @@
   gap: 18px;
   margin-bottom: 22px;
 }
+.bh4-primary-col {
+  flex: 1 1 auto;
+  min-width: 0;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.bh4-primary-col .bh4-welcome-card { flex: 0 0 auto; }
 .bh4-welcome-card {
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -586,6 +600,41 @@
   flex-direction: column;
   overflow: hidden;
 }
+
+/* Community Pulse deliberately fills the vertical space beside BH-4 rather
+   than leaving a dead area below the directive card. The horizontal chart
+   stays legible when forum board names vary in length. */
+.community-pulse-card {
+  min-height: 148px;
+  flex: 1 1 auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: linear-gradient(125deg, rgba(22, 41, 64, 0.50), var(--panel) 58%);
+  padding: 16px 22px 18px;
+  overflow: hidden;
+}
+.community-pulse-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.community-pulse-title-wrap { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.community-pulse-icon {
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto;
+  width: 30px; height: 30px; border-radius: 9px; color: #45d1c9;
+  background: rgba(69, 209, 201, 0.12); box-shadow: 0 0 18px rgba(69, 209, 201, 0.08);
+}
+.community-pulse-icon svg { width: 16px; height: 16px; }
+.community-pulse-title-wrap h2 { margin: 0; color: var(--text); font-family: 'Cinzel', serif; font-size: 0.86rem; line-height: 1.2; }
+.community-pulse-title-wrap p { margin: 2px 0 0; color: var(--text-faint); font-size: 0.70rem; line-height: 1.25; }
+.community-pulse-period {
+  flex: 0 0 auto; border: 1px solid rgba(69,209,201,0.22); border-radius: 999px;
+  padding: 3px 8px; color: #67ded7; background: rgba(69,209,201,0.06);
+  font-size: 0.62rem; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase;
+}
+.community-pulse-chart { display: flex; flex-direction: column; gap: 7px; margin-top: 13px; }
+.community-pulse-row { display: grid; grid-template-columns: minmax(92px, 0.8fr) minmax(80px, 2fr) auto; gap: 9px; align-items: center; }
+.community-pulse-label { overflow: hidden; color: var(--text-dim); font-size: 0.70rem; text-overflow: ellipsis; white-space: nowrap; }
+.community-pulse-track { height: 7px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,0.055); box-shadow: inset 0 1px 2px rgba(0,0,0,0.26); }
+.community-pulse-bar { display: block; width: 0; min-width: 3px; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #45d1c9, var(--purple-bright)); box-shadow: 0 0 9px rgba(69,209,201,0.38); transition: width 400ms ease; }
+.community-pulse-count { min-width: 18px; color: var(--text); font-family: 'Cinzel', serif; font-size: 0.76rem; text-align: right; }
+.community-pulse-loading, .community-pulse-empty { margin: 8px 0 0; color: var(--text-faint); font-size: 0.75rem; }
 .bh4-hero-wrap {
   display: flex;
   align-items: stretch;

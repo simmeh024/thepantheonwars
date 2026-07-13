@@ -12,6 +12,7 @@ require_once __DIR__ . '/loc-stats-helpers.php';
 require_once __DIR__ . '/system-status/status-helpers.php';
 require_once __DIR__ . '/task-advisor-helpers.php';
 require_once __DIR__ . '/../repo-languages-helpers.php';
+require_once __DIR__ . '/community-pulse/community-pulse-helpers.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
     pw_error('Method not allowed.', 405);
@@ -128,6 +129,7 @@ $community = [
     'moderators_active_24h' => (int)$communityRow['active_moderators'],
     'forum_posts_24h' => (int)$communityRow['forum_posts'],
 ];
+$communityPulse = pw_get_community_pulse($db);
 
 $siteRow = $db->query(
     "SELECT
@@ -207,6 +209,7 @@ $payload = [
     'content_drafts' => $contentDrafts,
     'security' => $security,
     'community' => $community,
+    'community_pulse' => $communityPulse,
     'site_stats' => $siteStats,
     'development_snapshot' => ['loc' => $loc, 'languages' => $languages],
     'bh4' => $bh4,

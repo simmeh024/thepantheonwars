@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=176">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=177">
 </head>
 <body>
 
@@ -124,6 +124,7 @@
       </div>
 
       <div class="admin-home-top-row">
+        <div class="bh4-primary-col">
         <div class="bh4-welcome-card" id="bh4-welcome-card">
 
           <div class="bh4-hero-wrap">
@@ -276,6 +277,25 @@
               <span>Reassess</span>
             </button>
           </div>
+        </div>
+
+        <section class="community-pulse-card" aria-labelledby="community-pulse-title">
+          <div class="community-pulse-head">
+            <div class="community-pulse-title-wrap">
+              <span class="community-pulse-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20V10"/><path d="M12 20V4"/><path d="M7 20v-6"/><path d="M4 20h16"/></svg>
+              </span>
+              <div>
+                <h2 id="community-pulse-title">Community Pulse</h2>
+                <p>Forum posts by board</p>
+              </div>
+            </div>
+            <span class="community-pulse-period">Last 7 days</span>
+          </div>
+          <div class="community-pulse-chart" id="community-pulse-chart" aria-live="polite">
+            <p class="community-pulse-loading">Loading forum activity&hellip;</p>
+          </div>
+        </section>
         </div>
 
         <div class="bh4-side-col bh4-side-col--actions">
@@ -2392,6 +2412,7 @@
     loadPendingWork();
     loadContentDrafts();
     loadCommunityMetrics();
+    loadCommunityPulse();
     loadSiteStats();
     loadDevSnapshotLanguages();
     loadDevSnapshotLoc();
@@ -2418,6 +2439,7 @@
         loadPendingWork();
         loadContentDrafts();
         loadCommunityMetrics();
+        loadCommunityPulse();
         loadSiteStats();
         loadDevSnapshotLanguages();
         loadDevSnapshotLoc();
@@ -2868,6 +2890,37 @@
   }
 
   // ===== Home / BH-4 Welcome card ==============================================
+  // ===== Home / Community Pulse ================================================
+  // It uses the bundled Home payload in normal operation and requests this
+  // fallback only when that summary cannot be loaded.
+  var communityPulseChartEl = document.getElementById('community-pulse-chart');
+
+  function loadCommunityPulse() {
+    if (!communityPulseChartEl) return;
+    fetchHomeCard('community_pulse', '/api/admin/community-pulse/summary.php')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok || !Array.isArray(data.boards)) throw new Error('Community pulse unavailable');
+        if (!data.boards.length) {
+          communityPulseChartEl.innerHTML = '<p class="community-pulse-empty">No forum boards are configured.</p>';
+          return;
+        }
+        var maxPosts = Math.max.apply(null, data.boards.map(function (board) { return Number(board.posts) || 0; }));
+        communityPulseChartEl.innerHTML = data.boards.map(function (board) {
+          var posts = Number(board.posts) || 0;
+          var width = maxPosts ? Math.max(3, Math.round((posts / maxPosts) * 100)) : 3;
+          return '<div class="community-pulse-row" title="' + escapeHtml(board.name) + ': ' + posts + ' posts in the last 7 days">' +
+            '<span class="community-pulse-label">' + escapeHtml(board.name) + '</span>' +
+            '<span class="community-pulse-track"><span class="community-pulse-bar" style="width:' + width + '%"></span></span>' +
+            '<span class="community-pulse-count">' + posts + '</span>' +
+          '</div>';
+        }).join('');
+      })
+      .catch(function () {
+        communityPulseChartEl.innerHTML = '<p class="community-pulse-empty">Forum activity is unavailable.</p>';
+      });
+  }
+
   var bh4NameEl = document.getElementById('bh4-welcome-name');
   var bh4DispatchesEl = document.getElementById('bh4-stat-dispatches');
   var bh4TranslationsEl = document.getElementById('bh4-stat-translations');
