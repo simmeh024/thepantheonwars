@@ -95,18 +95,6 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         'experimental' => 'It is an early improvement that can be refined after it has been reviewed in use. The change remains focused and can be adjusted as the site develops.',
     ];
     $benefit = $benefits[$tag] ?? 'It helps keep the site clear, reliable, and ready for future updates.';
-    $bh4Openers = [
-        'feature' => 'BH-4 briefing: ',
-        'improvement' => 'BH-4 update: ',
-        'fix' => 'BH-4 correction: ',
-        'performance' => 'BH-4 efficiency report: ',
-        'ui_ux' => 'BH-4 interface note: ',
-        'lore' => 'BH-4 archive note: ',
-        'infrastructure' => 'BH-4 systems note: ',
-        'refactor' => 'BH-4 maintenance note: ',
-        'experimental' => 'BH-4 field note: ',
-    ];
-    $bh4Opener = $bh4Openers[$tag] ?? 'BH-4 briefing: ';
     $object = lcfirst($clean);
     $draft = '';
     $actionTemplates = [
@@ -157,7 +145,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     }
 
     return [
-        'draft' => $bh4Opener . $draft . ' ' . $benefit,
+        'draft' => $draft . ' ' . $benefit,
         'hash' => pw_dispatch_draft_hash($subject, $body, $tag),
     ];
 }
@@ -166,7 +154,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag): string
 {
-    return hash('sha256', "dispatch-draft-v4\n" . $subject . "\n" . $body . "\n" . $tag);
+    return hash('sha256', "dispatch-draft-v5\n" . $subject . "\n" . $body . "\n" . $tag);
 }
 
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): bool
