@@ -12,11 +12,22 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     $clean = str_replace('_', ' ', $clean);
     $clean = preg_replace('/([a-z])\-([a-z])/i', '$1 $2', $clean);
     $clean = preg_replace('/\s*\+\s*/', ' and ', $clean);
+    $rulesMatched = 0;
+
+    // Many legacy commits use a human-readable area before the description,
+    // such as "Admin Home: add…" or "Language history: 24h refresh…".
+    // Separating that area from the actual change gives the draft formatter
+    // a reliable description to work with, even when the title has no verb.
+    $scopedCommit = '/^[A-Za-z][A-Za-z0-9 .&\/()\-]{1,60}:\s+(.+)$/';
+    $actionOpening = '/^(?:add|create|introduce|include|fix|resolve|repair|restore|improve|enhance|refine|polish|streamline|redesign|rework|expand|keep|show|align|widen|enlarge|split|stack|make|throttle|reduce|defer|slow|prevent|reserve|use|switch|load|deliver|cross link|connect|unlock|bump|optimi[sz]e|speed up|update|refresh|remove|retire|delete|move|reorganize|reorganise|reposition|secure|protect|harden|strengthen|color code|give|respect|clear|place|confine|pin|anchor|animate|preserve|preload|tighten|elevate|complete|alert|index|bundle|limit|pause|cache|pre aggregate|bulk load|track|collapse|graph|log|group|mask|rename|surface|reorder|finalize|swap|render|force|mirror|theme|store|merge|replace|auto refresh|always refresh|right align|put|pull|un float|paginate|increase|version|trim|revert|relative|sortable|styled|subtle|tiered|full)\b/i';
+    if (!preg_match($actionOpening, $clean) && preg_match($scopedCommit, $clean, $scopeMatches)) {
+        $rulesMatched++;
+        $clean = $scopeMatches[1];
+    }
 
     // These are editorial substitutions, not opaque technical word removal.
     // They retain the commit's meaning while speaking in the language readers
     // encounter on the site. The most specific replacements come first.
-    $rulesMatched = 0;
     $replacements = [
         '/\bCreate deploy\.production\.yml\b/i' => 'the production deployment process',
         '/\breposition BH 4 badge beside the log, popup closes only via X\b/i' => 'the BH-4 status badge and its review panel',
@@ -253,7 +264,48 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/^(?:update|refresh)\s+(.+)$/i' => 'This update refreshes %s.',
         '/^(?:remove|retire|delete)\s+(.+)$/i' => 'This update removes %s.',
         '/^(?:move|reorganize|reorganise|reposition)\s+(.+)$/i' => 'This update reorganizes %s.',
-        '/^(?:secure|protect|harden)\s+(.+)$/i' => 'This update strengthens protection for %s.',
+        '/^(?:secure|protect|harden|strengthen)\s+(.+)$/i' => 'This update strengthens protection for %s.',
+        '/^(?:color code|theme)\s+(.+)$/i' => 'This update gives %s clearer visual signals.',
+        '/^(?:give|elevate)\s+(.+)$/i' => 'This update gives %s a more considered presentation.',
+        '/^(?:respect|preserve)\s+(.+)$/i' => 'This update preserves %s for a more dependable experience.',
+        '/^(?:clear|tighten)\s+(.+)$/i' => 'This update makes %s more focused and easier to follow.',
+        '/^(?:place|pin|anchor)\s+(.+)$/i' => 'This update positions %s more deliberately.',
+        '/^(?:confine)\s+(.+)$/i' => 'This update keeps %s contained where it is needed.',
+        '/^(?:animate)\s+(.+)$/i' => 'This update adds measured motion to %s.',
+        '/^(?:preload)\s+(.+)$/i' => 'This update prepares %s earlier in the loading process.',
+        '/^(?:complete|finalize)\s+(.+)$/i' => 'This update completes %s.',
+        '/^(?:alert|surface)\s+(.+)$/i' => 'This update brings %s into clearer operational view.',
+        '/^(?:index)\s+(.+)$/i' => 'This update improves database support for %s.',
+        '/^(?:bundle)\s+(.+)$/i' => 'This update combines %s into a more efficient delivery path.',
+        '/^(?:limit)\s+(.+)$/i' => 'This update limits %s to the work that is still needed.',
+        '/^(?:pause)\s+(.+)$/i' => 'This update pauses %s when they are not needed.',
+        '/^(?:cache|cache bust)\s+(.+)$/i' => 'This update keeps %s current and efficient on repeat visits.',
+        '/^(?:pre aggregate|bulk load)\s+(.+)$/i' => 'This update prepares %s more efficiently before they are needed.',
+        '/^(?:track|log)\s+(.+)$/i' => 'This update records %s more clearly.',
+        '/^(?:collapse)\s+(.+)$/i' => 'This update makes %s more compact without hiding its purpose.',
+        '/^(?:graph)\s+(.+)$/i' => 'This update presents %s in a clearer visual form.',
+        '/^(?:group)\s+(.+)$/i' => 'This update groups %s into a clearer view.',
+        '/^(?:mask)\s+(.+)$/i' => 'This update protects %s from unnecessary exposure.',
+        '/^(?:rename)\s+(.+)$/i' => 'This update gives %s a clearer name.',
+        '/^(?:reorder|swap)\s+(.+)$/i' => 'This update reorganizes %s for easier use.',
+        '/^(?:render)\s+(.+)$/i' => 'This update presents %s more clearly.',
+        '/^(?:force)\s+(.+)$/i' => 'This update applies %s consistently.',
+        '/^(?:mirror)\s+(.+)$/i' => 'This update aligns %s with the surrounding experience.',
+        '/^(?:store)\s+(.+)$/i' => 'This update keeps %s available for reliable future use.',
+        '/^(?:merge)\s+(.+)$/i' => 'This update brings %s together in one clearer place.',
+        '/^(?:replace)\s+(.+)$/i' => 'This update replaces %s with a clearer approach.',
+        '/^(?:auto refresh|always refresh)\s+(.+)$/i' => 'This update keeps %s current automatically.',
+        '/^(?:right align)\s+(.+)$/i' => 'This update aligns %s more clearly.',
+        '/^(?:put|pull)\s+(.+)$/i' => 'This update places %s where it is easier to use.',
+        '/^(?:un float)\s+(.+)$/i' => 'This update keeps %s in the intended layout flow.',
+        '/^(?:paginate)\s+(.+)$/i' => 'This update breaks %s into easier-to-browse pages.',
+        '/^(?:increase)\s+(.+)$/i' => 'This update makes %s easier to notice and use.',
+        '/^(?:version)\s+(.+)$/i' => 'This update keeps %s current when a new release is deployed.',
+        '/^(?:trim)\s+(.+)$/i' => 'This update removes unnecessary space from %s.',
+        '/^(?:revert)\s+(.+)$/i' => 'This update restores the intended presentation for %s.',
+        '/^(?:relative)\s+(.+)$/i' => 'This update presents %s in a more useful time-based form.',
+        '/^(?:sortable)\s+(.+)$/i' => 'This update makes %s easier to sort and review.',
+        '/^(?:styled|subtle|tiered|full)\s+(.+)$/i' => 'This update refines the presentation of %s.',
     ];
     foreach ($actionTemplates as $pattern => $template) {
         if (preg_match($pattern, $clean, $matches)) {
@@ -365,7 +417,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag): string
 {
-    return hash('sha256', "dispatch-draft-v6\n" . $subject . "\n" . $body . "\n" . $tag);
+    return hash('sha256', "dispatch-draft-v7\n" . $subject . "\n" . $body . "\n" . $tag);
 }
 
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): bool
