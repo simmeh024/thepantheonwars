@@ -126,6 +126,8 @@ CREATE TABLE IF NOT EXISTS topics (
   edited_at DATETIME DEFAULT NULL,
   is_deleted TINYINT(1) NOT NULL DEFAULT 0,
   KEY idx_board (board),
+  KEY idx_board_active_created (board, is_deleted, created_at),
+  KEY idx_user_active_created (user_id, is_deleted, created_at),
   CONSTRAINT fk_topics_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -142,6 +144,8 @@ CREATE TABLE IF NOT EXISTS comments (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   edited_at DATETIME DEFAULT NULL,
   KEY idx_topic_id (topic_id),
+  KEY idx_topic_active_created (topic_id, is_deleted, created_at),
+  KEY idx_user_active_created (user_id, is_deleted, created_at),
   KEY idx_parent_id (parent_id),
   CONSTRAINT fk_comments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_comments_quoted FOREIGN KEY (quoted_comment_id) REFERENCES comments(id) ON DELETE SET NULL
@@ -154,6 +158,7 @@ CREATE TABLE IF NOT EXISTS topic_bookmarks (
   topic_id INT UNSIGNED NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_user_topic (user_id, topic_id),
+  KEY idx_user_created (user_id, created_at),
   CONSTRAINT fk_topic_bookmarks_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_topic_bookmarks_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -304,7 +309,7 @@ CREATE TABLE IF NOT EXISTS page_views (
   user_agent VARCHAR(255) NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_created_at (created_at),
-  KEY idx_visitor_id (visitor_id),
+  KEY idx_visitor_created_id (visitor_id, created_at, id),
   CONSTRAINT fk_page_views_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

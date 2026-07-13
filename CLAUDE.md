@@ -176,6 +176,18 @@ correct key (value lives only in the secrets config, not in git).
 
 ## Recent history (most recent first)
 
+- **Forum + visitor-analytics query hardening:**
+  `migration_forum_analytics_indexes.sql` adds composite indexes for active
+  topics/comments, bookmark ordering, and ordered visitor journeys; it also
+  replaces the redundant single-column `page_views.visitor_id` index. The
+  public forum index (`api/boards-summary.php`) now obtains per-board topic
+  counts, reply counts, and latest activity in three set-based queries rather
+  than four queries per visible board. Topic-list, Active Topics, My Topics,
+  and Bookmarks now aggregate replies by joining only the selected topics,
+  rather than first grouping every comment in the database. Verified in live
+  phpMyAdmin on 2026-07-13: all four index sets already exist, including
+  `idx_visitor_created_id`; do **not** re-run the migration on production.
+  `sql/schema.sql` now documents those existing indexes for new installs.
 - **Forum sub-navigation**: added a persistent 5-tab strip above the forum (Forum
   List / Active Topics / Bookmarks / My Topics / FAQ). New `topic_bookmarks` table +
   `api/topics/bookmark.php` toggle (login required, no admin permission needed, same

@@ -18,20 +18,17 @@ foreach ($boardRows as $b) {
 $stmt = $db->prepare(
     "SELECT t.id, t.board, t.title, t.created_at, t.is_pinned, t.is_locked, t.user_id,
             u.display_name, u.role, ro.color AS role_color,
-            COALESCE(rc.reply_count, 0) AS reply_count,
-            COALESCE(rc.last_reply_at, t.created_at) AS last_activity,
+            COUNT(c.id) AS reply_count,
+            COALESCE(MAX(c.created_at), t.created_at) AS last_activity,
             tb.created_at AS bookmarked_at
      FROM topic_bookmarks tb
      JOIN topics t ON t.id = tb.topic_id AND t.is_deleted = 0
      JOIN users u ON u.id = t.user_id
      LEFT JOIN roles ro ON ro.slug = u.role
-     LEFT JOIN (
-       SELECT topic_id, COUNT(*) AS reply_count, MAX(created_at) AS last_reply_at
-       FROM comments
-       WHERE is_deleted = 0
-       GROUP BY topic_id
-     ) rc ON rc.topic_id = t.id
+     LEFT JOIN comments c ON c.topic_id = t.id AND c.is_deleted = 0
      WHERE tb.user_id = ?
+     GROUP BY tb.id, tb.created_at, t.id, t.board, t.title, t.created_at, t.is_pinned,
+              t.is_locked, t.user_id, u.display_name, u.role, ro.color
      ORDER BY tb.created_at DESC
      LIMIT 100"
 );
