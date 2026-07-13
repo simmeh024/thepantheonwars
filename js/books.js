@@ -10,6 +10,31 @@ document.addEventListener('DOMContentLoaded', function () {
   };
   if (!phaseLists[1] && !phaseLists[2] && !phaseLists[3]) return;
 
+  var motionReady = 'IntersectionObserver' in window &&
+    !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var motionInitialized = false;
+
+  function setupBookMotion() {
+    if (!motionReady || motionInitialized) return;
+    motionInitialized = true;
+    var rows = Array.prototype.slice.call(document.querySelectorAll('.book-row'));
+    if (!rows.length) return;
+
+    document.body.classList.add('book-motion-ready');
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -5% 0px' });
+
+    rows.forEach(function (row, index) {
+      row.style.setProperty('--book-reveal-delay', (index % 4) * 70 + 'ms');
+      observer.observe(row);
+    });
+  }
+
   var STAGE_LABELS = [
     'Idea', 'Outline', 'First Draft', 'Second Draft', 'Developmental Revision',
     'Alpha Review', 'Third Draft', 'Beta Review', 'Fourth Draft',
@@ -102,7 +127,10 @@ document.addEventListener('DOMContentLoaded', function () {
   fetch('/api/books.php', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (data) {
-      if (!data.ok || !data.books || !data.books.length) return;
+      if (!data.ok || !data.books || !data.books.length) {
+        setupBookMotion();
+        return;
+      }
       var books = data.books.slice().sort(function (a, b) { return a.book_number - b.book_number; });
       [1, 2, 3].forEach(function (phase) {
         if (phaseLists[phase]) phaseLists[phase].innerHTML = '';
@@ -111,8 +139,10 @@ document.addEventListener('DOMContentLoaded', function () {
         var list = phaseLists[book.saga_phase];
         if (list) list.appendChild(renderBookRow(book));
       });
+      setupBookMotion();
     })
     .catch(function () {
       // Leave the static fallback markup in books.html untouched.
+      setupBookMotion();
     });
 });
