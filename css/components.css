@@ -60,7 +60,7 @@
 .auth-modal-title { font-family: 'Cinzel', serif; font-size: 1.2rem; margin-bottom: 0.9em; }
 .auth-oauth-divider { display: flex; align-items: center; gap: 10px; color: var(--text-faint); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.09em; }
 .auth-oauth-divider::before, .auth-oauth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border-soft); }
-.auth-google-btn { width: 100%; margin-top: 0; background: rgba(255,255,255,0.035); border-color: rgba(255,255,255,0.22); color: var(--text); }
+.auth-google-btn { display: flex; align-items: center; justify-content: center; width: 100%; margin-top: 0; background: rgba(255,255,255,0.035); border-color: rgba(255,255,255,0.22); color: var(--text); }
 .auth-google-btn:hover { border-color: var(--gold-dim); background: rgba(255,255,255,0.07); color: var(--gold-bright); }
 .auth-google-mark { display: inline-flex; align-items: center; justify-content: center; width: 25px; height: 25px; margin-right: 9px; border: 1px solid rgba(224,178,74,0.72); border-radius: 50%; background: linear-gradient(135deg, var(--purple-bright), var(--gold-dim)); color: #fff8df; font: 700 1rem/1 'Cinzel', serif; letter-spacing: -0.05em; vertical-align: -6px; }
 .auth-oauth-option { display: flex; align-items: flex-start; gap: 8px; color: var(--text-faint); font-size: 0.78rem; line-height: 1.35; cursor: pointer; }
