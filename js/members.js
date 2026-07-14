@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
     return '<div class="auth-password-field">' +
       '<input id="' + id + '" name="' + name + '" type="password" autocomplete="' + autocomplete + '" required' + (minlength ? ' minlength="' + minlength + '"' : '') + '>' +
       '<button type="button" class="auth-password-toggle" data-target="' + id + '" aria-label="Show password">' + EYE_ICON + '</button>' +
-    '</div>';
+    '</div><p class="auth-caps-warning" data-caps-for="' + id + '" hidden>Caps Lock is on.</p>';
   }
 
   function buildModal() {
@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '</div>' +
         '<form class="auth-form" data-form="login">' +
           '<h3 class="auth-modal-title">Welcome back</h3>' +
+          '<p class="auth-modal-intro">Return to the worlds beyond the Veil.</p>' +
           '<p class="auth-error"></p>' +
           '<div class="auth-field"><label for="login-identifier">Username or email</label><input id="login-identifier" name="identifier" type="text" autocomplete="username" required></div>' +
           '<div class="auth-field"><label for="login-password">Password</label>' + passwordFieldHtml('login-password', 'password', 'current-password') + '</div>' +
@@ -50,16 +51,19 @@ document.addEventListener('DOMContentLoaded', function () {
         '</form>' +
         '<form class="auth-form" data-form="register" hidden>' +
           '<h3 class="auth-modal-title">Join the Pantheon</h3>' +
+          '<p class="auth-modal-intro">Create your place in the Pantheon.</p>' +
           '<p class="auth-error"></p>' +
-          '<div class="auth-field"><label for="reg-username">Username</label><input id="reg-username" name="username" type="text" autocomplete="username" required minlength="3" maxlength="30"></div>' +
+          '<div class="auth-field"><label for="reg-username">Username</label><input id="reg-username" name="username" type="text" autocomplete="username" required minlength="3" maxlength="30"><small class="auth-field-hint">3–30 characters: letters, numbers, hyphens, or underscores.</small></div>' +
           '<div class="auth-field"><label for="reg-email">Email</label><input id="reg-email" name="email" type="email" autocomplete="email" required></div>' +
-          '<div class="auth-field"><label for="reg-password">Password</label>' + passwordFieldHtml('reg-password', 'password', 'new-password', 8) + '</div>' +
+          '<div class="auth-field"><label for="reg-password">Password</label>' + passwordFieldHtml('reg-password', 'password', 'new-password', 8) + '<div class="auth-password-strength" id="reg-password-strength" aria-live="polite"><span></span><small>Use 8 or more characters.</small></div></div>' +
           '<div class="auth-field"><label for="reg-password-confirm">Confirm Password</label>' + passwordFieldHtml('reg-password-confirm', 'password-confirm', 'new-password', 8) + '</div>' +
           '<div class="auth-oauth-divider"><span>or</span></div>' +
           '<label class="auth-oauth-option"><input type="checkbox" id="reg-google-avatar" checked>Import my Google profile picture when available</label>' +
           '<button type="button" class="btn auth-google-btn" data-google-oauth="register"><span class="auth-google-mark" aria-hidden="true">G</span>Register with Google</button>' +
           '<button type="submit" class="btn btn-solid auth-submit">Create Account</button>' +
         '</form>' +
+        '<div class="auth-success" hidden aria-live="polite"><span class="auth-success-mark">✓</span><h3>Welcome to the Pantheon.</h3><p>Your account is ready. Preparing your profile&hellip;</p></div>' +
+        '<p class="auth-privacy-note">Your profile and notification preferences stay under your control. <a href="/privacy.html">Privacy</a></p>' +
       '</div>';
     document.body.appendChild(wrap);
     return wrap;
@@ -70,6 +74,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var closeBtn = modal.querySelector('.auth-modal-close');
   var tabs = modal.querySelectorAll('.auth-tab');
   var forms = modal.querySelectorAll('.auth-form');
+  var authSuccess = modal.querySelector('.auth-success');
 
   function openModal(tab) {
     startInitialAuthRefresh();
@@ -83,6 +88,7 @@ document.addEventListener('DOMContentLoaded', function () {
   window.openAuthModal = openModal;
 
   function setTab(name) {
+    authSuccess.hidden = true;
     tabs.forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-tab') === name); });
     forms.forEach(function (f) {
       var match = f.getAttribute('data-form') === name;
@@ -160,8 +166,12 @@ document.addEventListener('DOMContentLoaded', function () {
     submitBtn.disabled = true;
     postJson('/api/register.php', { username: username, email: email, password: password, csrf: window.PW_AUTH.csrf }).then(function (r) {
       if (r.data && r.data.ok) {
-        closeModal();
-        refreshAuthNav();
+        form.hidden = true;
+        authSuccess.hidden = false;
+        setTimeout(function () {
+          closeModal();
+          refreshAuthNav();
+        }, 1250);
       } else {
         showFormError(form, (r.data && r.data.error) || 'Something went wrong.');
       }
@@ -261,6 +271,35 @@ document.addEventListener('DOMContentLoaded', function () {
       window.location.assign(url);
     });
   });
+
+  modal.querySelectorAll('input[type="password"]').forEach(function (input) {
+    function updateCapsLock(event) {
+      var warning = modal.querySelector('[data-caps-for="' + input.id + '"]');
+      if (warning) warning.hidden = !(event.getModifierState && event.getModifierState('CapsLock'));
+    }
+    input.addEventListener('keydown', updateCapsLock);
+    input.addEventListener('keyup', updateCapsLock);
+    input.addEventListener('blur', function () {
+      var warning = modal.querySelector('[data-caps-for="' + input.id + '"]');
+      if (warning) warning.hidden = true;
+    });
+  });
+
+  var registerPassword = modal.querySelector('#reg-password');
+  var registerStrength = modal.querySelector('#reg-password-strength');
+  if (registerPassword && registerStrength) {
+    registerPassword.addEventListener('input', function () {
+      var value = registerPassword.value;
+      var score = 0;
+      if (value.length >= 8) score++;
+      if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score++;
+      if (/\d/.test(value)) score++;
+      if (/[^A-Za-z0-9]/.test(value)) score++;
+      registerStrength.setAttribute('data-strength', String(score));
+      registerStrength.querySelector('small').textContent = value.length === 0 ? 'Use 8 or more characters.' :
+        (score <= 1 ? 'Add variety for a stronger password.' : score <= 3 ? 'Good password strength.' : 'Strong password.');
+    });
+  }
 
   function handleOAuthResult() {
     var params = new URLSearchParams(location.search);
