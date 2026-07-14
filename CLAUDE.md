@@ -173,12 +173,11 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the same URL without changing its filename or version query string.
 - **Browser security headers:** `.htaccess` applies CSP, HSTS, `nosniff`,
   anti-framing, referrer and permissions policies site-wide. CSP permits local
-  scripts plus exact SHA-256 hashes for the current page-specific inline
-  scripts; it deliberately has no `unsafe-inline` script exception. Read
-  `docs/security-headers.md` and regenerate the affected hash before editing
-  any inline `<script>` block. New click behaviour must use listeners rather
-  than HTML `on*=` attributes. The one hash-based exception is the shared
-  Google Fonts preload `onload` handler. The same root config permanently
+  scripts and a temporary `unsafe-inline` compatibility exception for legacy
+  inline scripts. The shared host rewrites inline bytes after deployment, so
+  exact hashes are not stable; move those scripts to versioned local assets
+  before removing the exception. Read `docs/security-headers.md`; new click
+  behaviour must use listeners rather than HTML `on*=` attributes. The same root config permanently
   redirects HTTP to `https://thepantheonwars.com` to cover the first-visit
   period before HSTS can be stored; preserve this rule when editing rewrites.
 - **No shared JS module anywhere in this static site** -- BBCode rendering

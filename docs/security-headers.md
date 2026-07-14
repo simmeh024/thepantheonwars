@@ -16,20 +16,17 @@ visible on both page and API requests in browser developer tools.
 
 ## Inline-script policy
 
-`script-src` does **not** contain `unsafe-inline`. The small number of existing
-page-specific inline scripts are each authorised by their exact SHA-256 hash.
-Any altered or injected inline script is blocked by the browser. The only
-event-handler exception is the exact hash of the font stylesheet loader:
-`this.onload=null;this.rel='stylesheet'`. It is intentionally constrained with
-`script-src-attr 'unsafe-hashes'`; all application click handlers use normal
-JavaScript listeners.
+The application retains a narrow compatibility exception: `script-src` includes
+`'unsafe-inline'` because the shared host rewrites inline scripts after deployment
+and changes their bytes across response variants. Hash allowlisting therefore blocks
+legitimate scripts unpredictably. External scripts remain same-origin only; framing,
+plugins, cross-origin forms, and third-party script origins remain blocked.
 
-The shared host also minifies inline script blocks after deployment. Therefore
-the CSP lists both the repository hashes and the deterministic production hashes.
-When changing an inline `<script>` block, regenerate the repository hash before
-changing the CSP, deploy to a safe test window, then verify and add the served
-production hash from the response before considering the CSP change complete.
-From the repository root in PowerShell:
+The security follow-up is to move each legacy inline script into a versioned local
+JavaScript asset, then remove this exception. Do not add new inline scripts or HTML
+event handlers; use versioned local JavaScript listeners instead.
+
+The old hash verification command is retained below for use after that migration:
 
 ```powershell
 $utf8 = [System.Text.UTF8Encoding]::new($false)
