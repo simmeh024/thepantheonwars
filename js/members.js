@@ -377,19 +377,13 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.appendChild(script);
   }
 
-  // The session check only affects account chrome, not the first visible
-  // content. Start it after the load event/idle period, while opening the
-  // login dialog above starts it immediately when a visitor needs it.
+  // Account chrome is part of the header visitors interact with immediately.
+  // Start its session check as soon as this DOM-ready script runs; waiting for
+  // load plus requestIdleCallback could leave an already signed-in visitor
+  // looking logged out for several seconds on a busy refresh. Analytics remains
+  // deferred independently in js/main.js.
   function scheduleInitialAuthRefresh() {
-    var queue = function () {
-      if ('requestIdleCallback' in window) {
-        window.requestIdleCallback(startInitialAuthRefresh, { timeout: 2000 });
-      } else {
-        setTimeout(startInitialAuthRefresh, 0);
-      }
-    };
-    if (document.readyState === 'complete') queue();
-    else window.addEventListener('load', queue, { once: true });
+    startInitialAuthRefresh();
   }
 
   scheduleInitialAuthRefresh();

@@ -160,7 +160,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=4), `js/members.js?v=N` (current: v=13)
+  than once): `js/main.js?v=N` (current: v=4), `js/members.js?v=N` (current: v=14)
   and `js/notifications.js?v=N` (current: v=8), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
@@ -282,11 +282,11 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 - **Initial-load request discipline:** `js/main.js` defers the public
   `track-visit.php` beacon to `requestIdleCallback` (3-second fallback); it is
-  analytics, never render-critical. `js/members.js` defers the first session check
-  until after load/idle, but opens it immediately when a visitor opens the auth
-  modal. Do not move either request back into the initial render path without a
-  measured reason. Notification code is not referenced by public HTML; it is loaded
-  after the authenticated session result.
+  analytics, never render-critical. `js/members.js` starts its first session check
+  as soon as its DOM-ready handler runs, because the account state in the header is
+  interactive chrome and an idle delay left signed-in visitors looking logged out.
+  Notification code is not referenced by public HTML; it is loaded after the
+  authenticated session result.
 
 - **About portrait ratio:** `images/pascal_author.jpg` is 700×1074. Its frame rule
   must keep `width: 100%; height: auto`; omitting the explicit automatic height lets
@@ -394,7 +394,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   refresh when the tab becomes visible. `api/session-check.php` additionally
   throttles `users.last_active_at` writes to once per user per minute; the online
   window remains five minutes, so multi-tab activity stays accurate without
-  redundant row locks. The current members-script cache version is v=10 across
+  redundant row locks. The current members-script cache version is v=14 across
   every public page and the admin console.
 
 - **Static asset caching:** `.htaccess` now gives versioned CSS, JavaScript,
