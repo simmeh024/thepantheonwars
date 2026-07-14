@@ -178,7 +178,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   `docs/security-headers.md` and regenerate the affected hash before editing
   any inline `<script>` block. New click behaviour must use listeners rather
   than HTML `on*=` attributes. The one hash-based exception is the shared
-  Google Fonts preload `onload` handler.
+  Google Fonts preload `onload` handler. The same root config permanently
+  redirects HTTP to `https://thepantheonwars.com` to cover the first-visit
+  period before HSTS can be stored; preserve this rule when editing rewrites.
 - **No shared JS module anywhere in this static site** -- BBCode rendering
   (`formatBody()`/`escapeHtml()`) is hand-duplicated in `community.html` (canonical,
   also owns the editor toolbar) and `member.html` (Recent Posts). A plain-text

@@ -1,3 +1,12 @@
+# Redirect the first HTTP visit before HSTS has had a chance to be stored.
+# HSTS protects subsequent visits; this redirect closes the bootstrap gap and
+# keeps every route and query string on the canonical HTTPS origin.
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^ https://thepantheonwars.com%{REQUEST_URI} [R=301,L,NE]
+</IfModule>
+
 # Force browsers (mobile in particular) to always revalidate HTML pages
 # with the server instead of serving a heuristically-cached copy for hours
 # or days. "no-cache" here means "cache it, but check with the server

@@ -41,3 +41,15 @@ $sha.Dispose()
 Keep the policy restrictive: prefer a versioned external JavaScript file for
 new behaviour. If an inline block is unavoidable, add only its newly generated
 hash; never add `unsafe-inline` to `script-src`.
+
+## First-visit HTTPS protection
+
+HSTS only takes effect after a browser first receives it over HTTPS. The root
+`.htaccess` therefore also redirects every HTTP request to the canonical HTTPS
+origin with a permanent `301`, preserving the route and query string. Test both
+the redirect and the HTTPS response after deployment:
+
+```powershell
+curl.exe -I http://thepantheonwars.com/
+curl.exe -I https://thepantheonwars.com/
+```
