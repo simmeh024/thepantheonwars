@@ -24,8 +24,12 @@ event-handler exception is the exact hash of the font stylesheet loader:
 `script-src-attr 'unsafe-hashes'`; all application click handlers use normal
 JavaScript listeners.
 
-When changing an inline `<script>` block, regenerate the hashes before changing
-the CSP. From the repository root in PowerShell:
+The shared host also minifies inline script blocks after deployment. Therefore
+the CSP lists both the repository hashes and the deterministic production hashes.
+When changing an inline `<script>` block, regenerate the repository hash before
+changing the CSP, deploy to a safe test window, then verify and add the served
+production hash from the response before considering the CSP change complete.
+From the repository root in PowerShell:
 
 ```powershell
 $utf8 = [System.Text.UTF8Encoding]::new($false)
