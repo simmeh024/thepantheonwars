@@ -41,15 +41,17 @@
   ExpiresByType font/woff2 "access plus 1 year"
 </IfModule>
 
-# Baseline security headers, applied site-wide (static pages and PHP API
-# responses alike). No Content-Security-Policy here on purpose: this site
-# relies on inline <script>/<style> throughout (admin/index.html especially)
-# with no build step to add nonces/hashes, so a real CSP would need a
-# frontend refactor first -- tracked as a follow-up, not skipped by oversight.
+# Browser security headers, applied site-wide to static pages and PHP API
+# responses alike. The CSP intentionally has no `unsafe-inline` script
+# exception: every required inline script is pinned by an exact SHA-256 hash.
+# When changing an inline script, regenerate its hash and update this policy;
+# docs/security-headers.md records the verification command and directives.
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"
-  Header always set X-Frame-Options "SAMEORIGIN"
+  Header always set X-Frame-Options "DENY"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
-  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
-  Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
+  Header always set X-XSS-Protection "0"
+  Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains"
+  Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'sha256-3Wq8ru84oGX8ZkiLNvfKCoYxLZVBeuofJTZr1hTlJrw=' 'sha256-P1c4ZrGVLj2XQcGzfTWSoQe+e7sMHFyPaTOkBGAkZco=' 'sha256-N1JT1Y2yVvX5Axju1NkkM1ie4YAgeBeOHa5NXM03hfs=' 'sha256-UjPCvJ7GPk6YUNW/CybSLYWkewDhxtW3Bg3sLDAS4YU=' 'sha256-7mZvPxyW8Gn7wsKcWk2AFw8lrDeT0P/EoSk1Sj4jlq8=' 'sha256-LxTledPNR4JKofWI4OTAJobHXgrDCI9G85FqONpnwMk=' 'sha256-QRGEMvBrRA7h3Lu2/H70Ip3expgSXKZeLLYggz0g7Wc=' 'sha256-O49MOJiK9rvMcB/3NYWSBVX52tgTeyYxUMsTiLr1WiQ=' 'sha256-YVXTHcKqIVBlvrSNYYwmFhRdtIUe6Xi2f7KxV6EsJ6E=' 'sha256-k2yK521vYfx4G0EFhsxEWWjRsuUKnGMXwR5XGKAzY4w=' 'sha256-vv+tCLGMa7NvwACJhd3KNTVeH8A9jExEBUo20lcR3NY='; script-src-attr 'unsafe-hashes' 'sha256-1jAmyYXcRq6zFldLe/GCgIDJBiOONdXjTLgEFMDnDSM='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: http:; connect-src 'self'; frame-src https://open.spotify.com; media-src 'self'; manifest-src 'self'; worker-src 'self'"
 </IfModule>

@@ -171,6 +171,14 @@ also supports a deliberately manual `?full=1` historical rebuild.
   `public, immutable` cache policy in `.htaccess`; HTML remains no-cache so
   changed version URLs reach visitors immediately. Never replace an asset at
   the same URL without changing its filename or version query string.
+- **Browser security headers:** `.htaccess` applies CSP, HSTS, `nosniff`,
+  anti-framing, referrer and permissions policies site-wide. CSP permits local
+  scripts plus exact SHA-256 hashes for the current page-specific inline
+  scripts; it deliberately has no `unsafe-inline` script exception. Read
+  `docs/security-headers.md` and regenerate the affected hash before editing
+  any inline `<script>` block. New click behaviour must use listeners rather
+  than HTML `on*=` attributes. The one hash-based exception is the shared
+  Google Fonts preload `onload` handler.
 - **No shared JS module anywhere in this static site** -- BBCode rendering
   (`formatBody()`/`escapeHtml()`) is hand-duplicated in `community.html` (canonical,
   also owns the editor toolbar) and `member.html` (Recent Posts). A plain-text
@@ -288,7 +296,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
 - **API response security headers:** `api/helpers.php` applies
   `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and
   `Referrer-Policy: strict-origin-when-cross-origin` to normal API responses.
-  Cron and bootstrap/error paths that cannot rely on helpers set the same headers
+  The root `.htaccess` adds the site-wide CSP and HSTS policies to APIs as well
+  as HTML; do not replace its CSP with a route-specific policy. Cron and
+  bootstrap/error paths that cannot rely on helpers set the same basic headers
   themselves; keep any new exceptional API entry point consistent.
 
 - **BH-4 status imagery:** Admin Home swaps the BH-4 portrait from normal to

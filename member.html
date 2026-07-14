@@ -155,6 +155,18 @@
 <script src="js/members.js?v=10"></script>
 <script>
 (function () {
+  // Delegated so spoiler controls created from safe BBCode markup do not need
+  // inline event handlers. This keeps them compatible with the site CSP.
+  document.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-spoiler-toggle]');
+    if (!button) return;
+    var box = button.closest('.comment-spoiler');
+    if (!box) return;
+    box.classList.toggle('is-revealed');
+    var label = button.querySelector('.comment-spoiler-label-text');
+    if (label) label.textContent = box.classList.contains('is-revealed') ? 'Suppress again' : 'Reveal suppressed text';
+  });
+
   var gate = document.getElementById('member-gate');
   var content = document.getElementById('member-content');
   var avatarImg = document.getElementById('member-avatar-img');
@@ -201,7 +213,7 @@
     });
     s = s.replace(/\[quote\]([\s\S]*?)\[\/quote\]/gi, '<blockquote class="comment-quote">$1</blockquote>');
     s = s.replace(/\[spoiler\]([\s\S]*?)\[\/spoiler\]/gi, function (m, inner) {
-      return '<div class="comment-spoiler"><button type="button" class="comment-spoiler-toggle" onclick="var box=this.parentNode;box.classList.toggle(\'is-revealed\');this.querySelector(\'.comment-spoiler-label-text\').textContent=box.classList.contains(\'is-revealed\')?\'Suppress again\':\'Reveal suppressed text\';">' +
+      return '<div class="comment-spoiler"><button type="button" class="comment-spoiler-toggle" data-spoiler-toggle>' +
         '<span class="comment-spoiler-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>' +
         '<span class="comment-spoiler-label-text">Reveal suppressed text</span></button><div class="comment-spoiler-content">' + inner + '</div></div>';
     });
