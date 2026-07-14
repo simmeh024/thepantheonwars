@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=194">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=195">
 </head>
 <body>
 
@@ -1248,6 +1248,13 @@
         <span class="admin-count" id="member-count"></span>
       </div>
 
+      <div class="member-list-columns" aria-hidden="true">
+        <span></span>
+        <span>Account name</span>
+        <span>Last login</span>
+        <span>Account source</span>
+        <span>Role</span>
+      </div>
       <div class="admin-list" id="member-list">
         <div class="admin-list-empty">Loading members&hellip;</div>
       </div>
@@ -6104,23 +6111,31 @@
       row.appendChild(buildMemberRowAvatar(entry));
 
       var main = document.createElement('div');
-      main.className = 'admin-row-main';
+      main.className = 'admin-row-main member-account-column';
       main.innerHTML =
         '<p class="admin-row-subject">' + escapeHtml(entry.display_name) + '</p>' +
         '<div class="admin-row-meta">' +
           '<span>' + escapeHtml(entry.email) + '</span>' +
-          '<span class="admin-row-sep">&bull;</span>' +
-          '<span>' + escapeHtml(fmtLastLogin(entry)) + '</span>' +
         '</div>';
       row.appendChild(main);
 
-      var badges = document.createElement('div');
-      badges.className = 'member-row-badges';
-      badges.innerHTML =
-        '<span class="member-auth-badge ' + (entry.has_google_identity ? 'member-auth-badge-google' : 'member-auth-badge-pantheon') + '">' + (entry.has_google_identity ? 'Google' : 'Pantheon Wars') + '</span>' +
+      var lastLogin = document.createElement('div');
+      lastLogin.className = 'member-last-login-column';
+      lastLogin.textContent = fmtLastLogin(entry);
+      row.appendChild(lastLogin);
+
+      var source = document.createElement('div');
+      source.className = 'member-source-column';
+      source.innerHTML =
+        '<span class="member-auth-badge ' + (entry.has_google_identity ? 'member-auth-badge-google' : 'member-auth-badge-pantheon') + '">' + (entry.has_google_identity ? 'Google' : 'Pantheon Wars') + '</span>';
+      row.appendChild(source);
+
+      var role = document.createElement('div');
+      role.className = 'member-role-column';
+      role.innerHTML =
         '<span class="member-role-badge" style="--role-color:' + escapeHtml(roleColorFor(entry.role)) + '">' + escapeHtml(roleLabelFor(entry.role)) + '</span>' +
         (entry.banned ? '<span class="member-banned-badge">' + (entry.banned_until ? 'Banned until ' + escapeHtml(fmtDate(entry.banned_until)) : 'Banned') + '</span>' : '');
-      row.appendChild(badges);
+      row.appendChild(role);
 
       row.addEventListener('click', function () { openMemberModal(entry); });
       memberListEl.appendChild(row);

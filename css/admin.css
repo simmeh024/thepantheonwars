@@ -1576,6 +1576,28 @@
 .admin-status-badge.is-draft { border-color: var(--gold-dim); color: var(--gold-bright); background: rgba(224,163,74,0.08); }
 
 .admin-row-sep { opacity: 0.5; }
+.member-list-columns,
+.admin-row.member-row {
+  display: grid;
+  grid-template-columns: 40px minmax(220px, 1.5fr) minmax(185px, 1fr) 132px 120px;
+  align-items: center;
+  column-gap: 16px;
+}
+.member-list-columns {
+  margin: 0 18px;
+  padding: 0 0 9px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-faint);
+  font-size: 0.61rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.admin-row.member-row { gap: 0 16px; }
+.member-row .member-avatar-wrap { grid-column: 1; }
+.member-last-login-column { color: var(--text-faint); font-size: 0.72rem; line-height: 1.4; }
+.member-source-column, .member-role-column { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.member-role-column { flex-wrap: wrap; }
 .member-row-badges { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
 .member-role-badge {
   flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
@@ -1592,6 +1614,32 @@
 .member-banned-badge {
   flex-shrink: 0; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.06em;
   padding: 3px 10px; border-radius: 3px; border: 1px solid #e05a4a; color: #e05a4a; white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .member-list-columns { display: none; }
+  .admin-row.member-row {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-areas:
+      'avatar account source'
+      'avatar login role';
+  }
+  .member-row .member-avatar-wrap { grid-area: avatar; }
+  .member-account-column { grid-area: account; }
+  .member-last-login-column { grid-area: login; }
+  .member-source-column { grid-area: source; justify-content: flex-end; }
+  .member-role-column { grid-area: role; justify-content: flex-end; }
+}
+@media (max-width: 560px) {
+  .admin-row.member-row {
+    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-areas:
+      'avatar account'
+      'avatar login'
+      'avatar source'
+      'avatar role';
+  }
+  .member-source-column, .member-role-column { justify-content: flex-start; }
 }
 
 .admin-field-hint { font-size: 0.76rem; color: var(--text-faint); margin: -0.3em 0 0.6em; }
