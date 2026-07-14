@@ -7,14 +7,6 @@
   RewriteRule ^ https://thepantheonwars.com%{REQUEST_URI} [R=301,L,NE]
 </IfModule>
 
-# cPanel's PageSpeed layer rewrites inline script bytes after deployment. That
-# makes a hash-based CSP non-deterministic and can block valid application
-# scripts. Disable the transform when the module is present; the directive is
-# conditional so hosts without PageSpeed are unaffected.
-<IfModule pagespeed_module>
-  ModPagespeed off
-</IfModule>
-
 # Force browsers (mobile in particular) to always revalidate HTML pages
 # with the server instead of serving a heuristically-cached copy for hours
 # or days. "no-cache" here means "cache it, but check with the server
@@ -60,8 +52,9 @@
 
 # Browser security headers, applied site-wide to static pages and PHP API
 # responses alike. The CSP intentionally has no `unsafe-inline` script
-# exception: every required inline script is pinned by an exact SHA-256 hash.
-# PageSpeed is disabled above so these bytes remain deterministic after deploy.
+# compatibility exception for the site's legacy inline scripts. The shared
+# host rewrites those scripts after deployment outside PageSpeed control, so
+# stable hash allowlisting is not possible until they are externalized.
 <IfModule mod_headers.c>
   Header always set X-Content-Type-Options "nosniff"
   Header always set X-Frame-Options "DENY"
@@ -69,5 +62,5 @@
   Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(), usb=()"
   Header always set X-XSS-Protection "0"
   Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains"
-  Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'sha256-3Wq8ru84oGX8ZkiLNvfKCoYxLZVBeuofJTZr1hTlJrw=' 'sha256-P1c4ZrGVLj2XQcGzfTWSoQe+e7sMHFyPaTOkBGAkZco=' 'sha256-N1JT1Y2yVvX5Axju1NkkM1ie4YAgeBeOHa5NXM03hfs=' 'sha256-UjPCvJ7GPk6YUNW/CybSLYWkewDhxtW3Bg3sLDAS4YU=' 'sha256-7mZvPxyW8Gn7wsKcWk2AFw8lrDeT0P/EoSk1Sj4jlq8=' 'sha256-LxTledPNR4JKofWI4OTAJobHXgrDCI9G85FqONpnwMk=' 'sha256-QRGEMvBrRA7h3Lu2/H70Ip3expgSXKZeLLYggz0g7Wc=' 'sha256-O49MOJiK9rvMcB/3NYWSBVX52tgTeyYxUMsTiLr1WiQ=' 'sha256-uPnyW2VWI1PS6Y4ucWgZei6UmngRmSqUdIFj53LyZ4E=' 'sha256-k2yK521vYfx4G0EFhsxEWWjRsuUKnGMXwR5XGKAzY4w=' 'sha256-vv+tCLGMa7NvwACJhd3KNTVeH8A9jExEBUo20lcR3NY='; script-src-attr 'unsafe-hashes' 'sha256-1jAmyYXcRq6zFldLe/GCgIDJBiOONdXjTLgEFMDnDSM='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: http:; connect-src 'self'; frame-src https://open.spotify.com; media-src 'self'; manifest-src 'self'; worker-src 'self'"
+  Header always set Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https: http:; connect-src 'self'; frame-src https://open.spotify.com; media-src 'self'; manifest-src 'self'; worker-src 'self'"
 </IfModule>

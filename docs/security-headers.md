@@ -16,15 +16,14 @@ visible on both page and API requests in browser developer tools.
 
 ## Inline-script policy
 
-`script-src` does **not** contain `unsafe-inline`. The small number of existing
-page-specific inline scripts are each authorised by their exact SHA-256 hash.
-The root `.htaccess` disables the optional PageSpeed module when present because
-it rewrites inline bytes after deployment and would invalidate those hashes.
-Do not add new inline scripts or HTML event handlers; use versioned local
-JavaScript listeners instead.
+`script-src` includes a temporary compatibility `unsafe-inline` exception for
+legacy inline scripts. The shared host rewrites those bytes after deployment,
+and the rewrite is outside the PageSpeed module, so a hash policy cannot be
+made stable. External scripts remain limited to same-origin only.
 
-When changing an inline `<script>` block, regenerate its hash before changing
-the CSP. From the repository root in PowerShell:
+Do not add new inline scripts or HTML event handlers; use versioned local
+JavaScript listeners instead. The next CSP hardening phase is to externalize
+each legacy inline block, then remove this exception.
 
 ```powershell
 $utf8 = [System.Text.UTF8Encoding]::new($false)

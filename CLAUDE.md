@@ -173,10 +173,10 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the same URL without changing its filename or version query string.
 - **Browser security headers:** `.htaccess` applies CSP, HSTS, `nosniff`,
   anti-framing, referrer and permissions policies site-wide. CSP permits local
-  scripts plus exact SHA-256 hashes for the current page-specific inline
-  scripts; it deliberately has no `unsafe-inline` script exception. The root
-  config disables PageSpeed when available because it mutates inline bytes and
-  invalidates hashes. Read `docs/security-headers.md`; new click behaviour
+  scripts and a temporary `unsafe-inline` compatibility exception for legacy
+  inline scripts. The host mutates their bytes after deployment outside
+  PageSpeed, so hash authorization is unreliable until they are moved to
+  versioned local assets. Read `docs/security-headers.md`; new click behaviour
   must use listeners rather than HTML `on*=` attributes. The same root config permanently
   redirects HTTP to `https://thepantheonwars.com` to cover the first-visit
   period before HSTS can be stored; preserve this rule when editing rewrites.
