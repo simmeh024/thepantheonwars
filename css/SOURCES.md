@@ -19,6 +19,11 @@ matching import query (plus the compatibility entrypoint when it imports that so
 The site has no bundling step: preserving file order and versioning is what keeps
 production rendering deterministic.
 
+Authentication modal and navigation styles live in `components.css`, not
+`community.css`, because `js/members.js` injects the same modal on both public and
+community pages. Keep the modal rules in the shared bundle so a public-page login
+trigger always opens a fixed, visible dialog.
+
 ## Bundle routing
 
 - `public.css` — public editorial, world, book, privacy, soundtrack, news, quiz,
