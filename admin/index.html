@@ -176,10 +176,10 @@
                         BH-4 selects the highest active priority:
                         <ol>
                           <li>Critical system issues</li>
+                          <li>Backup reviews</li>
                           <li>Unresolved topic reports</li>
                           <li>Pending privacy requests</li>
                           <li>Pending dispatch translations</li>
-                          <li>Backup reviews</li>
                         </ol>
                       </span>
                     </span>
@@ -3025,8 +3025,8 @@
   // ===== Home / BH-4 Task Advisor ===============================================
   // Deterministic (rule-based, not AI-generated) "what to work on next"
   // recommendation -- see api/admin/task-advisor.php for the priority logic
-  // (critical system issue > unresolved topic reports > pending privacy
-  // requests > pending dispatch translations > backup review > clear). This block only renders whatever that endpoint
+  // (critical system issue > backup review > unresolved topic reports > pending
+  // privacy requests > pending dispatch translations > clear). This block only renders whatever that endpoint
   // already decided; no priority logic lives here client-side.
   var advisorEl = document.getElementById('bh4-task-advisor');
   var advisorLoadingEl = document.getElementById('bh4-advisor-loading');

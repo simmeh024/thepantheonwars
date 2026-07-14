@@ -89,6 +89,16 @@ function pw_build_task_advisor(array $signals) {
         }
     }
 
+    // A stale backup is a warning-level system concern. It follows only
+    // critical conditions, ahead of community and publishing queues.
+    if ($backupTask) {
+        return [
+            'primary' => $backupTask,
+            'secondary' => $reportsTask ?: ($privacyTask ?: $translationsTask),
+            'active_alert_count' => 0,
+        ];
+    }
+
     if ($reportsTask) {
         return ['primary' => $reportsTask, 'secondary' => $privacyTask ?: $translationsTask, 'active_alert_count' => 0];
     }
@@ -96,10 +106,7 @@ function pw_build_task_advisor(array $signals) {
         return ['primary' => $privacyTask, 'secondary' => $translationsTask, 'active_alert_count' => 0];
     }
     if ($translationsTask) {
-        return ['primary' => $translationsTask, 'secondary' => $backupTask, 'active_alert_count' => 0];
-    }
-    if ($backupTask) {
-        return ['primary' => $backupTask, 'secondary' => null, 'active_alert_count' => 0];
+        return ['primary' => $translationsTask, 'secondary' => null, 'active_alert_count' => 0];
     }
     return [
         'primary' => [

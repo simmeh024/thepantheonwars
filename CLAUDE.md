@@ -457,8 +457,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
 - **Last Backup** is a manually logged health signal because cPanel account backups
   are unavailable on this host: OK under 3 days, warning at 3 days, critical at 7
   days, and immediately critical when no backup has ever been logged. BH-4 surfaces
-  warnings after higher-priority queues; a stale/missing backup is a critical system
-  directive with its own explicit remediation wording.
+  its yellow backup-review warning immediately after critical system events, ahead
+  of reports, privacy requests, and translations; a stale/missing backup is a
+  critical system directive with its own explicit remediation wording.
 - Added System Status "CPU (Shared)" card (24h line chart, live load1/5/15 + core
   count) and expanded the Database card (connections, QPS, slow queries, uptime,
   buffer pool hit ratio, threads running, largest-tables list with collation-mismatch
