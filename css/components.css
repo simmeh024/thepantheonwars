@@ -79,6 +79,7 @@
 .auth-modal-intro { margin: 0 0 0.45em; color: var(--text-faint); font-size: 0.86rem; line-height: 1.5; }
 .auth-field-hint, .auth-caps-warning { display: block; margin-top: 6px; color: var(--text-faint); font-size: 0.72rem; line-height: 1.35; }
 .auth-caps-warning { color: var(--gold-bright); }
+.auth-caps-warning[hidden] { display: none; }
 .auth-password-strength { display: flex; align-items: center; gap: 5px; margin-top: 8px; color: var(--text-faint); }
 .auth-password-strength i { display: block; width: 11px; height: 3px; background: var(--border-soft); transition: background-color 0.18s ease, box-shadow 0.18s ease; }
 .auth-password-strength[data-strength="1"] i:nth-child(-n+1) { background: #e05a4a; box-shadow: 0 0 6px rgba(224,90,74,0.4); }
