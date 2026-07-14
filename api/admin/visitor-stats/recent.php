@@ -34,7 +34,7 @@ if ($page > $totalPages) {
 $offset = ($page - 1) * $perPage;
 
 $stmt = $db->prepare(
-    "SELECT pv.path, pv.referrer_host, pv.ip_address, pv.country_code, pv.country_name, pv.created_at,
+    "SELECT pv.path, pv.referrer_host, pv.ip_address, pv.country_code, pv.country_name, pv.user_agent, pv.created_at,
             pv.user_id, u.username, u.display_name
      FROM page_views pv
      LEFT JOIN users u ON u.id = pv.user_id
@@ -48,11 +48,17 @@ $stmt->execute();
 $rows = $stmt->fetchAll();
 
 $out = array_map(function ($r) use ($canViewIp) {
+    // An authenticated visit always keeps its existing member classification.
+    // Crawler detection is only the more useful anonymous-visitor label.
+    $crawlerName = $r['user_id'] === null ? pw_crawler_name($r['user_agent']) : null;
+
     return [
         'path' => $r['path'],
         'referrer_host' => $r['referrer_host'],
         'is_member' => $r['user_id'] !== null,
         'member_name' => $r['user_id'] !== null ? ($r['display_name'] ?: $r['username']) : null,
+        'is_crawler' => $crawlerName !== null,
+        'crawler_name' => $crawlerName,
         'ip_address' => $canViewIp ? pw_mask_ip($r['ip_address']) : null,
         'country_code' => $r['country_code'],
         'country_name' => $r['country_name'],

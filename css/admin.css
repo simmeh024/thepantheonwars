@@ -1480,6 +1480,7 @@
 }
 .vstats-visit-tag-member { background: rgba(79,143,247,0.16); color: #5b9cf5; }
 .vstats-visit-tag-guest { background: rgba(255,255,255,0.06); color: var(--text-faint); }
+.vstats-visit-tag-crawler { background: rgba(224,163,74,0.16); color: #e0a34a; }
 
 .heatmap-range-select {
   font-size: 0.76rem; padding: 5px 10px; max-width: 160px;

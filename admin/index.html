@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=185">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=186">
 </head>
 <body>
 
@@ -4694,7 +4694,9 @@
       row.className = 'admin-row';
       var tag = entry.is_member
         ? '<span class="vstats-visit-tag vstats-visit-tag-member">' + escapeHtml(entry.member_name || 'Member') + '</span>'
-        : '<span class="vstats-visit-tag vstats-visit-tag-guest">Guest</span>';
+        : entry.is_crawler
+          ? '<span class="vstats-visit-tag vstats-visit-tag-crawler" title="Recognized User-Agent: ' + escapeHtml(entry.crawler_name || 'Crawler') + '">Crawler</span>'
+          : '<span class="vstats-visit-tag vstats-visit-tag-guest">Guest</span>';
       var countryLabel = (countryFlagEmoji(entry.country_code) + ' ' + (entry.country_name || 'Unknown')).trim();
       row.innerHTML =
         '<div class="admin-row-main">' +

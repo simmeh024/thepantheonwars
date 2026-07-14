@@ -352,6 +352,11 @@ also supports a deliberately manual `?full=1` historical rebuild.
   contains read-only MariaDB `ANALYZE FORMAT=JSON` checks (its `EXPLAIN
   ANALYZE` equivalent) to run after the index migration. The heatmap's annual
   query uses a sargable half-open UTC range rather than `YEAR(created_at)`.
+  The Recent Visits feed derives an anonymous `Crawler` pill from the stored
+  User-Agent through the allowlisted `pw_crawler_name()` helper; add recognised
+  search-engine signatures there. It does not alter stored visits, counting,
+  IP masking, or authenticated member classifications; unknown bots remain
+  Guests.
 
 - **Admin Home summary endpoint:** `api/admin/home-summary.php` now returns
   every Home-card payload in one request (activity, queues, content/security/

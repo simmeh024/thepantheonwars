@@ -331,6 +331,41 @@ function pw_mask_ip($ip) {
     return $ip;
 }
 
+// Maps only explicitly recognised crawler User-Agent signatures to a readable
+// name for analytics display. Keep this deliberately allowlisted: an unknown
+// bot remains a normal Guest, rather than incorrectly changing visitor
+// classification based on a broad "bot" match. Add new signatures here as
+// search engines introduce them.
+function pw_crawler_name($userAgent) {
+    if (!is_string($userAgent) || $userAgent === '') {
+        return null;
+    }
+
+    static $signatures = [
+        'googlebot' => 'Googlebot',
+        'bingbot' => 'Bingbot',
+        'duckduckbot' => 'DuckDuckBot',
+        'yandexbot' => 'YandexBot',
+        'baiduspider' => 'Baiduspider',
+        'applebot' => 'Applebot',
+        'yahoo! slurp' => 'Yahoo! Slurp',
+        'sogou' => 'Sogou Spider',
+        'seznambot' => 'SeznamBot',
+        'petalbot' => 'PetalBot',
+        'naverbot' => 'Naverbot',
+        'google-inspectiontool' => 'Google Inspection Tool',
+    ];
+
+    $normalized = strtolower($userAgent);
+    foreach ($signatures as $signature => $name) {
+        if (strpos($normalized, $signature) !== false) {
+            return $name;
+        }
+    }
+
+    return null;
+}
+
 // Resolves an IP to a [country_code, country_name] pair for the Visitor
 // Statistics "Traffic by Country" card and the Recent Visits country tag.
 // Checks the ip_country_cache table first (an IP's country is looked up at
