@@ -179,7 +179,7 @@ if (pw_has_permission($adminUser, 'dashboards.view_system_status')) {
     $systemStatus = array_merge(
         ['ok' => true],
         $systemSignals,
-        ['backup' => pw_check_last_backup($db), 'checked_at' => gmdate('c')]
+        ['checked_at' => gmdate('c')]
     );
 }
 

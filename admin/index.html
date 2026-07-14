@@ -179,6 +179,7 @@
                           <li>Unresolved topic reports</li>
                           <li>Pending privacy requests</li>
                           <li>Pending dispatch translations</li>
+                          <li>Backup reviews</li>
                         </ol>
                       </span>
                     </span>
@@ -3025,7 +3026,7 @@
   // Deterministic (rule-based, not AI-generated) "what to work on next"
   // recommendation -- see api/admin/task-advisor.php for the priority logic
   // (critical system issue > unresolved topic reports > pending privacy
-  // requests > pending dispatch translations > clear). This block only renders whatever that endpoint
+  // requests > pending dispatch translations > backup review > clear). This block only renders whatever that endpoint
   // already decided; no priority logic lives here client-side.
   var advisorEl = document.getElementById('bh4-task-advisor');
   var advisorLoadingEl = document.getElementById('bh4-advisor-loading');
@@ -3091,6 +3092,7 @@
     topic_reports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>',
     dispatch_translations: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg>',
     privacy_requests: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>',
+    backup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',
     clear: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
   };
 
@@ -3098,6 +3100,7 @@
     if (type === 'topic_reports') return ADVISOR_ICONS.topic_reports;
     if (type === 'dispatch_translations') return ADVISOR_ICONS.dispatch_translations;
     if (type === 'privacy_requests') return ADVISOR_ICONS.privacy_requests;
+    if (type === 'backup') return ADVISOR_ICONS.backup;
     if (type === 'clear') return ADVISOR_ICONS.clear;
     return ADVISOR_ICONS.critical;
   }

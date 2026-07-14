@@ -3,7 +3,7 @@
  * Feeds the "System Status" card next to the BH-4 welcome card on the admin
  * Home page. Every item below reports a normalized status of ok/warn/bad/
  * unknown (used by the frontend to color the value green/gold/red) plus a
- * human label. Six signals:
+ * human label. Seven signals:
  *
  *  - GitHub Repository: a live HTTP call to the GitHub REST API for the
  *    latest commit on main. If it responds 200, the repo is reachable; we
@@ -25,13 +25,15 @@
  *    (Dispatch Control > Re-Sync) is needed to catch up.
  *  - Avatar Storage: total bytes under uploads/avatars against a 5 GiB soft
  *    budget (see status-helpers.php for the thresholds).
+ *  - Last Backup: most recent manually logged backup; it is warning at three
+ *    days and critical at seven days (or immediately critical when missing).
  *
  * (A "Site Errors" check was tried here too, but this host's PHP error log
  * isn't readable from application code -- see status-helpers.php's removed
  * pw_error_log_path() history in git log for the investigation -- so it was
  * pulled back out rather than permanently showing "Unavailable".)
  *
- * The actual six checks live in pw_build_system_signals() (status-helpers.php)
+ * The actual checks live in pw_build_system_signals() (status-helpers.php)
  * so api/admin/task-advisor.php can reuse them verbatim for its critical-alert
  * detection instead of re-implementing the same GitHub/DB/forum/sync/storage
  * checks a second time.
@@ -44,10 +46,4 @@ $db = pw_db();
 
 $signals = pw_build_system_signals($db);
 
-// Not folded into pw_build_system_signals() -- that function's signals are
-// also reused by api/admin/task-advisor.php for critical-alert detection,
-// and a stale manually-logged backup isn't meant to trigger BH-4's
-// critical-override directive, just show up here.
-$backup = pw_check_last_backup($db);
-
-pw_json(array_merge(['ok' => true], $signals, ['backup' => $backup, 'checked_at' => gmdate('c')]));
+pw_json(array_merge(['ok' => true], $signals, ['checked_at' => gmdate('c')]));

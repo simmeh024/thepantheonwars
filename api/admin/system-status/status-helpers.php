@@ -90,6 +90,12 @@ function pw_build_system_signals($db) {
     // --- Avatar Storage -------------------------------------------------------------
     $avatarStorage = pw_check_avatar_storage();
 
+    // --- Last Backup ---------------------------------------------------------------
+    // This is a manually logged check on this hosting account. Its warning and
+    // critical states are also consumed by BH-4's directive, so a stale record
+    // receives the same escalation path as other system-health signals.
+    $backup = pw_check_last_backup($db);
+
     return [
         'github' => ['status' => $githubStatus, 'label' => $githubLabel],
         'database' => ['status' => $dbStatus, 'label' => $dbLabel],
@@ -97,6 +103,7 @@ function pw_build_system_signals($db) {
         'forum' => ['status' => $forumStatus, 'label' => $forumLabel],
         'dispatch_sync' => ['status' => $dispatchSyncStatus, 'label' => $dispatchSyncLabel],
         'avatar_storage' => $avatarStorage,
+        'backup' => $backup,
     ];
 }
 

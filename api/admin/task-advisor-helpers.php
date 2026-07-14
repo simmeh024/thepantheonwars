@@ -20,6 +20,7 @@ function pw_build_task_advisor(array $signals) {
     $privacyCount = $signals['privacy_count'];
     $privacyAgeMinutes = $signals['privacy_age_minutes'];
     $translationsCount = $signals['translations_count'];
+    $backupTask = $signals['backup_task'];
     $actions = $signals['actions'];
 
     $reportsTask = null;
@@ -95,7 +96,10 @@ function pw_build_task_advisor(array $signals) {
         return ['primary' => $privacyTask, 'secondary' => $translationsTask, 'active_alert_count' => 0];
     }
     if ($translationsTask) {
-        return ['primary' => $translationsTask, 'secondary' => null, 'active_alert_count' => 0];
+        return ['primary' => $translationsTask, 'secondary' => $backupTask, 'active_alert_count' => 0];
+    }
+    if ($backupTask) {
+        return ['primary' => $backupTask, 'secondary' => null, 'active_alert_count' => 0];
     }
     return [
         'primary' => [
@@ -118,7 +122,7 @@ function pw_collect_task_advisor($db, array $systemSignals) {
     );
     $criticalLogins = (int)$criticalStmt->fetch()['c'];
     $now = gmdate('Y-m-d\TH:i:s\Z');
-    $criticalPriority = ['security', 'database', 'database_load', 'sql_performance', 'forum', 'dispatch_sync', 'storage', 'github'];
+    $criticalPriority = ['security', 'backup', 'database', 'database_load', 'sql_performance', 'forum', 'dispatch_sync', 'storage', 'github'];
     $criticalAlerts = [];
 
     if ($criticalLogins > 0) {
@@ -152,6 +156,31 @@ function pw_collect_task_advisor($db, array $systemSignals) {
             'reason' => $spec['reason'],
             'severity' => 'critical',
             'detected_at' => $now,
+            'action_url' => PW_ADVISOR_ACTIONS['system_status']['section'],
+        ];
+    }
+
+    $backupTask = null;
+    $backup = $systemSignals['backup'];
+    if ($backup['status'] === 'bad') {
+        $neverLogged = empty($backup['logged_at']);
+        $criticalAlerts['backup'] = [
+            'type' => 'backup',
+            'title' => $neverLogged ? 'Critical backup record missing' : 'Backup is overdue',
+            'reason' => $neverLogged
+                ? 'Critical record missing. BH-4 found no previous backup entry. Complete the check and log it immediately.'
+                : 'Immediate action required. The backup is overdue. Complete it and update the log without delay.',
+            'severity' => 'critical',
+            'detected_at' => $now,
+            'action_url' => PW_ADVISOR_ACTIONS['system_status']['section'],
+        ];
+    } elseif ($backup['status'] === 'warn') {
+        $backupTask = [
+            'type' => 'backup',
+            'priority' => 'high',
+            'title' => 'Schedule a backup inspection',
+            'reason' => 'Attention required. The current backup is becoming outdated. Schedule a new inspection soon.',
+            'action_label' => PW_ADVISOR_ACTIONS['system_status']['label'],
             'action_url' => PW_ADVISOR_ACTIONS['system_status']['section'],
         ];
     }
@@ -224,12 +253,15 @@ function pw_collect_task_advisor($db, array $systemSignals) {
         'privacy_count' => $privacyCount,
         'privacy_age_minutes' => $oldestPrivacyAgeMinutes,
         'translations_count' => $translationsCount,
+        'backup_task' => $backupTask,
         'actions' => PW_ADVISOR_ACTIONS,
     ]);
 
     return [
         'generated_at' => $now,
-        'critical_events' => $criticalLogins,
+        // The welcome state and the directive must agree: include every
+        // active critical system condition, not just failed staff logins.
+        'critical_events' => $result['active_alert_count'],
         'primary' => $result['primary'],
         'secondary' => $result['secondary'],
         'overview' => [
