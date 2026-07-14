@@ -607,6 +607,22 @@
   background: rgba(224,178,74,0.15); color: var(--gold-bright);
 }
 .activity-card.activity-dispatches_resynced .activity-card-label, .activity-card.activity-dispatch_title_edited .activity-card-label, .activity-card.activity-development_snapshot_refreshed .activity-card-label { color: var(--gold-bright); }
+.activity-card.activity-translation_auto_published .activity-card-icon { background: rgba(62,207,142,0.18); color: #3ecf8e; }
+.activity-card.activity-translation_auto_published .activity-card-label { color: #3ecf8e; }
+.activity-card.activity-translation_draft_waiting_review .activity-card-icon { background: rgba(224,178,74,0.18); color: var(--gold-bright); }
+.activity-card.activity-translation_draft_waiting_review .activity-card-label { color: var(--gold-bright); }
+.activity-card.activity-translation_draft_generated .activity-card-icon { background: rgba(91,141,217,0.18); color: #5b8dd9; }
+.activity-card.activity-translation_draft_generated .activity-card-label { color: #5b8dd9; }
+.activity-card.activity-role_created .activity-card-icon { background: rgba(62,207,142,0.18); color: #3ecf8e; }
+.activity-card.activity-role_created .activity-card-label { color: #3ecf8e; }
+.activity-card.activity-role_updated .activity-card-icon { background: rgba(69,209,201,0.18); color: #45d1c9; }
+.activity-card.activity-role_updated .activity-card-label { color: #45d1c9; }
+.activity-card.activity-role_deleted .activity-card-icon { background: rgba(224,90,74,0.18); color: #e05a4a; }
+.activity-card.activity-role_deleted .activity-card-label { color: #e05a4a; }
+.activity-card.activity-privacy_request_updated .activity-card-icon { background: rgba(69,209,201,0.18); color: #45d1c9; }
+.activity-card.activity-privacy_request_updated .activity-card-label { color: #45d1c9; }
+.activity-card.activity-overlord_updated .activity-card-icon { background: rgba(35,60,112,0.48); color: #7da9ff; }
+.activity-card.activity-overlord_updated .activity-card-label { color: #7da9ff; }
 .admin-home-top-row {
   display: flex;
   align-items: flex-start;

@@ -154,7 +154,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
   versions: public v=174, community v=174 (the Dispatches page is v=176), and
-  admin v=184. Public pages use
+  admin v=185. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
