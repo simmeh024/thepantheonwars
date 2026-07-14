@@ -65,10 +65,15 @@ if ($page > $totalPages) {
 $offset = ($page - 1) * $perPage;
 
 $stmt = $db->prepare(
-    "SELECT id, username, email, display_name, role, created_at, last_login_at, last_login_ip, banned_at, banned_until
-     FROM users
+    "SELECT u.id, u.username, u.email, u.display_name, u.role, u.created_at, u.last_login_at, u.last_login_ip, u.banned_at, u.banned_until,
+            EXISTS(
+                SELECT 1
+                FROM oauth_identities oi
+                WHERE oi.user_id = u.id AND oi.provider = 'google'
+            ) AS has_google_identity
+     FROM users u
      $whereSql
-     ORDER BY created_at DESC, id DESC
+     ORDER BY u.created_at DESC, u.id DESC
      LIMIT :limit OFFSET :offset"
 );
 foreach ($params as $k => $v) {
@@ -96,6 +101,7 @@ $out = array_map(function ($r) use ($otherRolesByUser, $canViewIp) {
         'email' => $r['email'],
         'display_name' => $r['display_name'],
         'role' => $r['role'],
+        'has_google_identity' => (bool)$r['has_google_identity'],
         'other_roles' => isset($otherRolesByUser[$r['id']]) ? $otherRolesByUser[$r['id']] : [],
         'created_at' => $r['created_at'],
         'last_login_at' => $r['last_login_at'],

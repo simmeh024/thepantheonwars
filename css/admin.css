@@ -1582,6 +1582,13 @@
   padding: 3px 10px; border-radius: 3px; font-family: 'Cinzel', serif; font-size: 0.64rem;
   text-transform: uppercase; letter-spacing: 0.07em; border: 1px solid currentColor; white-space: nowrap;
 }
+.member-auth-badge {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  padding: 3px 9px; border-radius: 999px; font-size: 0.62rem; font-weight: 600;
+  letter-spacing: 0.07em; text-transform: uppercase; white-space: nowrap;
+}
+.member-auth-badge-pantheon { color: #d2b4ff; background: rgba(137,87,229,0.16); border: 1px solid rgba(162,121,236,0.52); }
+.member-auth-badge-google { color: #9ed9ff; background: rgba(65,150,235,0.15); border: 1px solid rgba(99,180,255,0.5); }
 .member-banned-badge {
   flex-shrink: 0; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.06em;
   padding: 3px 10px; border-radius: 3px; border: 1px solid #e05a4a; color: #e05a4a; white-space: nowrap;
