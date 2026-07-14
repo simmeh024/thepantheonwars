@@ -15,6 +15,15 @@ define('DB_NAME', 'rdy3i6my40b0_pantheonwars');
 define('DB_USER', 'rdy3i6my40b0_pwuser');
 define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 
+// Google OAuth (optional until Google sign-in is enabled). Create a Web
+// application OAuth client in Google Cloud Console and register this exact
+// authorised redirect URI:
+// https://thepantheonwars.com/api/oauth/callback.php?provider=google
+// Keep the real client secret only in the outside-webroot config.php file.
+// define('GOOGLE_OAUTH_CLIENT_ID', 'REPLACE_WITH_GOOGLE_CLIENT_ID');
+// define('GOOGLE_OAUTH_CLIENT_SECRET', 'REPLACE_WITH_GOOGLE_CLIENT_SECRET');
+// define('GOOGLE_OAUTH_REDIRECT_URI', 'https://thepantheonwars.com/api/oauth/callback.php?provider=google');
+
 // Optional. Raises the GitHub REST API rate limit used by the System
 // Status card/page and the language-snapshot sync from 60 requests/hour
 // (unauthenticated) to 5,000 requests/hour (authenticated) -- see

@@ -58,6 +58,13 @@
 .auth-error { color: #e05a4a; font-size: 0.85rem; margin: 0; display: none; }
 .auth-error.show { display: block; }
 .auth-modal-title { font-family: 'Cinzel', serif; font-size: 1.2rem; margin-bottom: 0.9em; }
+.auth-oauth-divider { display: flex; align-items: center; gap: 10px; color: var(--text-faint); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.09em; }
+.auth-oauth-divider::before, .auth-oauth-divider::after { content: ''; flex: 1; height: 1px; background: var(--border-soft); }
+.auth-google-btn { width: 100%; margin-top: 0; background: rgba(255,255,255,0.035); border-color: rgba(255,255,255,0.22); color: var(--text); }
+.auth-google-btn:hover { border-color: var(--gold-dim); background: rgba(255,255,255,0.07); color: var(--gold-bright); }
+.auth-google-mark { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; margin-right: 8px; border-radius: 50%; background: conic-gradient(#4285f4 0 25%, #34a853 0 50%, #fbbc05 0 75%, #ea4335 0); color: #fff; font: 700 0.72rem/1 Arial, sans-serif; vertical-align: -2px; }
+.auth-oauth-option { display: flex; align-items: flex-start; gap: 8px; color: var(--text-faint); font-size: 0.78rem; line-height: 1.35; cursor: pointer; }
+.auth-oauth-option input { margin: 2px 0 0; accent-color: var(--purple-bright); }
 
 header.site-header {
   position: fixed;

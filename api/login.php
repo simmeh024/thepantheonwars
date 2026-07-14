@@ -45,7 +45,10 @@ if (!empty($user['locked_until']) && strtotime($user['locked_until']) > time()) 
     pw_error('Too many failed attempts. Try again in a few minutes.', 429);
 }
 
-if (!password_verify($password, $user['password_hash'])) {
+// OAuth-only accounts deliberately have no local password. Return the same
+// generic credential response as a wrong password so account auth methods are
+// not disclosed to an unauthenticated caller.
+if ($user['password_hash'] === null || $user['password_hash'] === '' || !password_verify($password, $user['password_hash'])) {
     $attempts = (int)$user['failed_login_attempts'] + 1;
     $lockedUntil = null;
     if ($attempts >= 6) {
@@ -74,7 +77,7 @@ if (pw_is_banned($user)) {
 // Opportunistically upgrade the hash if PHP's default algorithm/cost has
 // changed since this hash was created (e.g. a bcrypt cost bump), so existing
 // users benefit without a bulk migration.
-if (password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
+if ($user['password_hash'] !== null && $user['password_hash'] !== '' && password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
     $newHash = password_hash($password, PASSWORD_DEFAULT);
     $db->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([$newHash, $user['id']]);
 }

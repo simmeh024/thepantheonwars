@@ -153,15 +153,14 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=174, community v=175 (the Dispatches page is v=176), and
-  admin v=186. Public pages use
+  versions: public v=175, community v=177, and admin v=187. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=4), `js/members.js?v=N` (current: v=10)
+  than once): `js/main.js?v=N` (current: v=4), `js/members.js?v=N` (current: v=11)
   and `js/notifications.js?v=N` (current: v=8), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
@@ -311,6 +310,19 @@ also supports a deliberately manual `?full=1` historical rebuild.
   sessions; bans revoke all sessions. The Profile -> User Sessions panel uses
   `api/user-sessions/{list,revoke,revoke-others,revoke-all}.php`; signing out
   everywhere requires the current password and destroys the local session.
+
+- **Google OAuth:** the provider-neutral `api/oauth.php` centralizes OAuth state,
+  PKCE, safe local return URLs, Google code exchange/userinfo validation, identity
+  linking and optional first-registration avatar import. `oauth_identities` stores
+  only `(provider, provider_subject, verified email)`—never provider tokens. Run
+  `migration_oauth_google.sql` before defining `GOOGLE_OAUTH_CLIENT_ID`,
+  `GOOGLE_OAUTH_CLIENT_SECRET`, and `GOOGLE_OAUTH_REDIRECT_URI` in the external
+  secrets config; `docs/google-oauth.md` has the exact Google Console redirect URI.
+  Existing email addresses are never auto-linked: users sign in normally, then use
+  Profile Settings -> Sign-in Methods to link Google. Google-only accounts have a
+  NULL password hash, may add a local password later, and cannot unlink their last
+  sign-in method until they do. Google login/registration/link/unlink outcomes are
+  recorded in `admin_activity_log` and sessions carry `auth_provider = google`.
 
 - **BH-4 status imagery:** Admin Home swaps the BH-4 portrait from normal to
   medium or critical automatically from the Task Advisor priority: `clear` /

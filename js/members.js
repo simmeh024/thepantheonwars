@@ -44,6 +44,8 @@ document.addEventListener('DOMContentLoaded', function () {
           '<p class="auth-error"></p>' +
           '<div class="auth-field"><label for="login-identifier">Username or email</label><input id="login-identifier" name="identifier" type="text" autocomplete="username" required></div>' +
           '<div class="auth-field"><label for="login-password">Password</label>' + passwordFieldHtml('login-password', 'password', 'current-password') + '</div>' +
+          '<div class="auth-oauth-divider"><span>or</span></div>' +
+          '<button type="button" class="btn auth-google-btn" data-google-oauth="login"><span class="auth-google-mark" aria-hidden="true">G</span>Continue with Google</button>' +
           '<button type="submit" class="btn btn-solid auth-submit">Log In</button>' +
         '</form>' +
         '<form class="auth-form" data-form="register" hidden>' +
@@ -53,6 +55,9 @@ document.addEventListener('DOMContentLoaded', function () {
           '<div class="auth-field"><label for="reg-email">Email</label><input id="reg-email" name="email" type="email" autocomplete="email" required></div>' +
           '<div class="auth-field"><label for="reg-password">Password</label>' + passwordFieldHtml('reg-password', 'password', 'new-password', 8) + '</div>' +
           '<div class="auth-field"><label for="reg-password-confirm">Confirm Password</label>' + passwordFieldHtml('reg-password-confirm', 'password-confirm', 'new-password', 8) + '</div>' +
+          '<div class="auth-oauth-divider"><span>or</span></div>' +
+          '<label class="auth-oauth-option"><input type="checkbox" id="reg-google-avatar" checked>Import my Google profile picture when available</label>' +
+          '<button type="button" class="btn auth-google-btn" data-google-oauth="register"><span class="auth-google-mark" aria-hidden="true">G</span>Register with Google</button>' +
           '<button type="submit" class="btn btn-solid auth-submit">Create Account</button>' +
         '</form>' +
       '</div>';
@@ -244,6 +249,45 @@ document.addEventListener('DOMContentLoaded', function () {
     window.refreshAuthNav();
   }
 
+  modal.querySelectorAll('[data-google-oauth]').forEach(function (button) {
+    button.addEventListener('click', function () {
+      var intent = button.getAttribute('data-google-oauth');
+      var returnTo = location.pathname + location.search;
+      var url = '/api/oauth/start.php?provider=google&intent=' + encodeURIComponent(intent) + '&return_to=' + encodeURIComponent(returnTo);
+      if (intent === 'register') {
+        var importAvatar = modal.querySelector('#reg-google-avatar');
+        url += '&import_avatar=' + (importAvatar && importAvatar.checked ? '1' : '0');
+      }
+      window.location.assign(url);
+    });
+  });
+
+  function handleOAuthResult() {
+    var params = new URLSearchParams(location.search);
+    var result = params.get('oauth');
+    if (!result) return;
+    var messages = {
+      'google-not-configured': 'Google sign-in is not configured yet. Please use your username/email and password.',
+      'google-cancelled': 'Google sign-in was cancelled. You can try again whenever you are ready.',
+      'google-failed': 'Google sign-in could not be completed. Please try again or use your password.',
+      'google-link-required': 'This email already has an account. Sign in with your password, then link Google from Profile Settings.',
+      'google-banned': 'This account has been suspended.',
+    };
+    // These are Profile Settings outcomes. Leave the parameter in place for
+    // profile.html's own script to render beside the Google link controls.
+    if (result === 'google-linked' || result === 'google-link-conflict' || result === 'google-link-expired') {
+      return;
+    }
+    if (messages[result]) {
+      openModal('login');
+      showFormError(modal.querySelector('[data-form="login"]'), messages[result]);
+    }
+    params.delete('oauth');
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, '', location.pathname + (params.toString() ? '?' + params.toString() : '') + location.hash);
+    }
+  }
+
   function loadNotifications() {
     if (!document.getElementById('notif-bell-btn') || document.getElementById('notifications-script')) return;
     var script = document.createElement('script');
@@ -269,6 +313,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   scheduleInitialAuthRefresh();
+  handleOAuthResult();
 
   // Heartbeat: session-check.php stamps last_active_at for logged-in users,
   // which powers the "Online now" status on the member list. Do not keep a

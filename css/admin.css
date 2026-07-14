@@ -539,6 +539,12 @@
 
 .activity-card.activity-login .activity-card-icon, .activity-card.activity-login_ok .activity-card-icon, .activity-card.activity-login_failed .activity-card-icon, .activity-card.activity-login_locked .activity-card-icon, .activity-card.activity-login_banned .activity-card-icon, .activity-card.activity-login_ip_blocked .activity-card-icon { background: rgba(141,73,25,0.45); color: #f0a554; }
 .activity-card.activity-login .activity-card-label, .activity-card.activity-login_ok .activity-card-label, .activity-card.activity-login_failed .activity-card-label, .activity-card.activity-login_locked .activity-card-label, .activity-card.activity-login_banned .activity-card-label, .activity-card.activity-login_ip_blocked .activity-card-label { color: #f0a554; }
+.activity-card.activity-google_registered .activity-card-icon, .activity-card.activity-google_login .activity-card-icon, .activity-card.activity-google_linked .activity-card-icon { background: rgba(62,207,142,0.16); color: #3ecf8e; }
+.activity-card.activity-google_registered .activity-card-label, .activity-card.activity-google_login .activity-card-label, .activity-card.activity-google_linked .activity-card-label { color: #3ecf8e; }
+.activity-card.activity-google_unlinked .activity-card-icon, .activity-card.activity-google_link_required .activity-card-icon { background: rgba(224,178,74,0.16); color: var(--gold-bright); }
+.activity-card.activity-google_unlinked .activity-card-label, .activity-card.activity-google_link_required .activity-card-label { color: var(--gold-bright); }
+.activity-card.activity-google_login_banned .activity-card-icon, .activity-card.activity-google_oauth_failed .activity-card-icon, .activity-card.activity-google_oauth_cancelled .activity-card-icon { background: rgba(224,90,74,0.16); color: #e05a4a; }
+.activity-card.activity-google_login_banned .activity-card-label, .activity-card.activity-google_oauth_failed .activity-card-label, .activity-card.activity-google_oauth_cancelled .activity-card-label { color: #e05a4a; }
 .activity-card.activity-book_created .activity-card-icon { background: rgba(62,207,142,0.15); color: #3ecf8e; }
 .activity-card.activity-book_created .activity-card-label { color: #3ecf8e; }
 .activity-card.activity-book_updated .activity-card-icon { background: rgba(69,209,201,0.15); color: #45d1c9; }

@@ -25,6 +25,13 @@ $stmt = $db->prepare('SELECT id, body, created_at FROM comments WHERE user_id = 
 $stmt->execute([$user['id']]);
 $comments = $stmt->fetchAll();
 
+// OAuth-only accounts intentionally have no local password until the member
+// chooses to add one from Profile Settings.
+$passwordStmt = $db->prepare('SELECT password_hash FROM users WHERE id = ?');
+$passwordStmt->execute([$user['id']]);
+$passwordRow = $passwordStmt->fetch();
+$hasPassword = $passwordRow && $passwordRow['password_hash'] !== null && $passwordRow['password_hash'] !== '';
+
 pw_json([
     'ok' => true,
     'user' => [
@@ -36,6 +43,7 @@ pw_json([
         'role' => $user['role'],
         'role_color' => $roleColor,
         'created_at' => $user['created_at'],
+        'has_password' => $hasPassword,
     ],
     'quizHistory' => $quizHistory,
     'comments' => $comments,

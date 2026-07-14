@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=175">
+<link rel="stylesheet" href="css/community-bundle.css?v=177">
 </head>
 <body>
 
@@ -123,9 +123,9 @@
         </div>
 
         <div id="profile-panel-settings" class="profile-panel">
-          <h3>Change Password</h3>
+          <h3 id="password-settings-title">Change Password</h3>
           <form id="password-form" class="auth-form">
-            <div class="auth-field">
+            <div class="auth-field" id="current-password-field">
               <label for="current-password">Current Password</label>
               <input type="password" id="current-password" autocomplete="current-password" required>
             </div>
@@ -141,6 +141,24 @@
             <p id="password-success" class="profile-success" hidden>Password updated.</p>
             <button type="submit" class="btn btn-solid auth-submit">Update Password</button>
           </form>
+
+          <div class="profile-divider"><span class="profile-divider-shard"></span></div>
+
+          <section class="profile-signin-methods" aria-labelledby="signin-methods-title">
+            <h3 id="signin-methods-title">Sign-in Methods</h3>
+            <p class="profile-field-note">Connect a trusted provider for a passwordless way back into your account.</p>
+            <div class="profile-oauth-row">
+              <div>
+                <strong>Google</strong>
+                <small id="profile-google-status">Checking connection&hellip;</small>
+              </div>
+              <div class="profile-oauth-actions">
+                <button type="button" class="btn" id="profile-google-link-btn">Link Google</button>
+                <button type="button" class="btn btn-danger" id="profile-google-unlink-btn" hidden>Unlink</button>
+              </div>
+            </div>
+            <p id="profile-oauth-status" class="profile-success" hidden></p>
+          </section>
 
           <h3 style="margin-top: 2em;">Display Name</h3>
           <div class="profile-field-locked">
@@ -285,7 +303,7 @@
 </div>
 
 <script src="js/main.js?v=4"></script>
-<script src="js/members.js?v=10"></script>
+<script src="js/members.js?v=11"></script>
 <script>
 (function () {
   var gate = document.getElementById('profile-gate');
@@ -532,8 +550,67 @@
   var passwordForm = document.getElementById('password-form');
   var passwordError = document.getElementById('password-error');
   var passwordSuccess = document.getElementById('password-success');
+  var currentPasswordField = document.getElementById('current-password-field');
+  var currentPasswordInput = document.getElementById('current-password');
+  var passwordSettingsTitle = document.getElementById('password-settings-title');
+  var passwordSubmit = passwordForm.querySelector('button[type="submit"]');
+  var googleStatus = document.getElementById('profile-google-status');
+  var googleLinkBtn = document.getElementById('profile-google-link-btn');
+  var googleUnlinkBtn = document.getElementById('profile-google-unlink-btn');
+  var oauthStatus = document.getElementById('profile-oauth-status');
+  var profileHasPassword = true;
   var notifPrefsLoaded = false;
   var userSessionsLoaded = false;
+
+  function setPasswordMode(hasPassword) {
+    profileHasPassword = !!hasPassword;
+    currentPasswordField.hidden = !profileHasPassword;
+    currentPasswordInput.disabled = !profileHasPassword;
+    currentPasswordInput.required = profileHasPassword;
+    passwordSettingsTitle.textContent = profileHasPassword ? 'Change Password' : 'Add a Password';
+    passwordSubmit.textContent = profileHasPassword ? 'Update Password' : 'Add Password';
+  }
+
+  function setOauthStatus(message, isError) {
+    oauthStatus.textContent = message;
+    oauthStatus.hidden = !message;
+    oauthStatus.classList.toggle('show-error', !!isError);
+  }
+
+  function loadGoogleIdentity() {
+    googleStatus.textContent = 'Checking connection\u2026';
+    fetch('/api/oauth/identities.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load sign-in methods.');
+        var google = (data.identities || []).find(function (identity) { return identity.provider === 'google'; });
+        googleStatus.textContent = google ? ('Linked to ' + google.email) : 'Not linked';
+        googleLinkBtn.hidden = !!google;
+        googleUnlinkBtn.hidden = !google;
+      })
+      .catch(function () {
+        googleStatus.textContent = 'Connection status unavailable';
+      });
+  }
+
+  googleLinkBtn.addEventListener('click', function () {
+    window.location.assign('/api/oauth/start.php?provider=google&intent=link&return_to=%2Fprofile.html');
+  });
+  googleUnlinkBtn.addEventListener('click', function () {
+    if (!window.confirm('Remove Google as a sign-in method? You can link it again later.')) return;
+    setOauthStatus('', false);
+    fetch('/api/oauth/unlink.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ provider: 'google', csrf: window.PW_AUTH.csrf }),
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not unlink Google.');
+        setOauthStatus('Google sign-in removed.', false);
+        loadGoogleIdentity();
+      })
+      .catch(function (error) { setOauthStatus(error.message, true); });
+  });
 
   function activateProfilePanel(panel) {
     Array.prototype.forEach.call(profileMenu.querySelectorAll('.profile-menu-tab'), function (tab) {
@@ -653,8 +730,13 @@
     }).catch(function (error) { sessionStatus(error.message, true); });
   });
   userSessionsAllBtn.addEventListener('click', function () {
-    var password = window.prompt('Sign out everywhere, including this device. Enter your current password to continue:');
-    if (password === null) return;
+    var password = '';
+    if (profileHasPassword) {
+      password = window.prompt('Sign out everywhere, including this device. Enter your current password to continue:');
+      if (password === null) return;
+    } else if (!window.confirm('Sign out everywhere, including this device?')) {
+      return;
+    }
     postSessionAction('/api/user-sessions/revoke-all.php', { current_password: password }).then(function (data) {
       if (!data.ok) throw new Error(data.error || 'Could not sign out everywhere.');
       window.location.href = 'index.html';
@@ -750,6 +832,7 @@
           return;
         }
         passwordForm.reset();
+        setPasswordMode(true);
         passwordSuccess.hidden = false;
       })
       .catch(function () {
@@ -783,6 +866,22 @@
         loadAvatar(data.user.id, data.user.display_name);
         lockedNameInput.value = data.user.display_name;
         lockedEmailInput.value = data.user.email;
+        setPasswordMode(data.user.has_password);
+        loadGoogleIdentity();
+
+        var oauthResult = new URLSearchParams(location.search).get('oauth');
+        if (oauthResult === 'google-linked') {
+          setOauthStatus('Google is now linked to your account.', false);
+        } else if (oauthResult === 'google-link-conflict') {
+          setOauthStatus('That Google account is already linked to another member.', true);
+        } else if (oauthResult === 'google-link-expired') {
+          setOauthStatus('Your Google linking request expired. Please try again.', true);
+        }
+        if (oauthResult && window.history && window.history.replaceState) {
+          var params = new URLSearchParams(location.search);
+          params.delete('oauth');
+          window.history.replaceState({}, '', location.pathname + (params.toString() ? '?' + params.toString() : ''));
+        }
 
         var affBox = document.getElementById('profile-affinity-box');
         var scoresBox = document.getElementById('profile-affinity-scores');

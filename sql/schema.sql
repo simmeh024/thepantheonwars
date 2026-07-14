@@ -48,7 +48,9 @@ CREATE TABLE IF NOT EXISTS users (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(30) NOT NULL,
   email VARCHAR(255) NOT NULL,
-  password_hash VARCHAR(255) NOT NULL,
+  -- NULL is intentional for OAuth-only accounts. A member can add a local
+  -- password later from Profile Settings.
+  password_hash VARCHAR(255) NULL,
   display_name VARCHAR(50) NOT NULL,
   overlord_affinity VARCHAR(50) DEFAULT NULL,
   role VARCHAR(40) NOT NULL DEFAULT 'member',
@@ -349,6 +351,23 @@ CREATE TABLE IF NOT EXISTS page_view_daily_stats (
   total_views_excl_admin INT UNSIGNED NOT NULL DEFAULT 0,
   unique_visitors_excl_admin INT UNSIGNED NOT NULL DEFAULT 0,
   member_views_excl_admin INT UNSIGNED NOT NULL DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- One external identity per provider per member. No OAuth access or refresh
+-- tokens are stored: this table keeps only the provider's stable subject and
+-- the email that was verified during linking.
+CREATE TABLE IF NOT EXISTS oauth_identities (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  provider VARCHAR(32) NOT NULL,
+  provider_subject VARCHAR(255) NOT NULL,
+  provider_email VARCHAR(255) NOT NULL,
+  linked_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_used_at DATETIME NULL,
+  UNIQUE KEY uniq_oauth_provider_subject (provider, provider_subject),
+  UNIQUE KEY uniq_oauth_user_provider (user_id, provider),
+  KEY idx_oauth_user (user_id),
+  CONSTRAINT fk_oauth_identities_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Safe aggregate metadata derived from GitHub commit diffs. It deliberately

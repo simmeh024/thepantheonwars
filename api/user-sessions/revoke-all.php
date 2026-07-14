@@ -9,12 +9,15 @@ $user = pw_require_login();
 $input = pw_input();
 pw_require_csrf($input);
 $password = isset($input['current_password']) ? (string)$input['current_password'] : '';
-if ($password === '') pw_error('Enter your current password to sign out everywhere.', 403);
 
 $stmt = pw_db()->prepare('SELECT password_hash FROM users WHERE id = ?');
 $stmt->execute([$user['id']]);
 $row = $stmt->fetch();
-if (!$row || !password_verify($password, $row['password_hash'])) {
+if (!$row) {
+    pw_error('Your account could not be verified.', 403);
+}
+$hasPassword = $row['password_hash'] !== null && $row['password_hash'] !== '';
+if ($hasPassword && ($password === '' || !password_verify($password, $row['password_hash']))) {
     pw_error('Your current password is incorrect.', 403);
 }
 

@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=186">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=187">
 </head>
 <body>
 
@@ -1046,6 +1046,10 @@
             <option value="login_locked">Account locked</option>
             <option value="login_banned">Banned account blocked</option>
             <option value="login_ip_blocked">IP throttled</option>
+            <option value="google_registered">Google account created</option>
+            <option value="google_login">Google sign-in</option>
+            <option value="google_linked">Google linked</option>
+            <option value="google_unlinked">Google unlinked</option>
           </optgroup>
           <optgroup label="Book Control">
             <option value="book_created">Book created</option>
@@ -2369,7 +2373,7 @@
   </div>
 </div>
 
-<script src="../js/members.js?v=10"></script>
+<script src="../js/members.js?v=11"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -3996,6 +4000,14 @@
     login_locked: 'Account locked',
     login_banned: 'Banned account blocked',
     login_ip_blocked: 'IP throttled',
+    google_registered: 'Google account created',
+    google_login: 'Google sign-in',
+    google_login_banned: 'Google sign-in blocked',
+    google_linked: 'Google linked',
+    google_unlinked: 'Google unlinked',
+    google_link_required: 'Google link required',
+    google_oauth_cancelled: 'Google sign-in cancelled',
+    google_oauth_failed: 'Google sign-in failed',
     book_created: 'Book created',
     book_updated: 'Book updated',
     book_deleted: 'Book deleted',
@@ -4057,6 +4069,10 @@
     login_locked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
     login_banned: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="5.6" y1="5.6" x2="18.4" y2="18.4"/></svg>',
     login_ip_blocked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><line x1="5.5" y1="18.5" x2="18.5" y2="5.5"/></svg>',
+    google_registered: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/><path d="M18 5v6M15 8h6"/></svg>',
+    google_login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+    google_linked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1"/></svg>',
+    google_unlinked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1"/><line x1="3" y1="3" x2="21" y2="21"/></svg>',
     book_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>',
     book_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9.5 12.5l1.8 1.8L15.5 10"/></svg>',
     book_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9.5" y1="10" x2="14.5" y2="15"/><line x1="14.5" y1="10" x2="9.5" y2="15"/></svg>',
@@ -4126,6 +4142,7 @@
 
   function activityCategory(action) {
     if (action.indexOf('login') === 0) return { key: 'login', label: 'Login', icon: ACTIVITY_ICONS.login };
+    if (action.indexOf('google_') === 0) return { key: 'login', label: 'Google', icon: ACTIVITY_ICONS.google_login };
     if (action.indexOf('book_') === 0) return { key: 'books', label: 'Books', icon: ACTIVITY_ICONS.book_created };
     if (action.indexOf('translation_') === 0 || action === 'category_edited' || action.indexOf('dispatch') === 0 || action.indexOf('development_') === 0) return { key: 'development', label: 'Development', icon: ACTIVITY_ICONS.dispatches_resynced };
     if (action.indexOf('member_') === 0) return { key: 'members', label: 'Members', icon: ACTIVITY_ICONS.member_updated };
