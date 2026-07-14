@@ -5454,15 +5454,28 @@
       .then(function (data) {
         generateDraftBtn.disabled = false;
         if (!data.ok) throw new Error(data.error || 'Could not generate draft.');
-        textarea.value = data.draft || '';
-        currentEntry.generated_draft = data.draft || '';
+        textarea.value = data.translation || data.draft || '';
         currentEntry.confidence = data.confidence || currentEntry.confidence;
-        currentEntry.has_draft = true;
-        currentEntry.has_translation = false;
-        generateDraftBtn.textContent = 'Regenerate Draft';
-        saveBtn.textContent = 'Approve & Publish';
+        if (data.auto_published) {
+          currentEntry.translation = data.translation || '';
+          currentEntry.generated_draft = null;
+          currentEntry.has_draft = false;
+          currentEntry.has_translation = true;
+          modalTitle.textContent = 'Edit Published Translation';
+          generateDraftBtn.hidden = true;
+          deleteBtn.hidden = false;
+          saveBtn.textContent = 'Save Changes';
+        } else {
+          currentEntry.generated_draft = data.draft || '';
+          currentEntry.has_draft = true;
+          currentEntry.has_translation = false;
+          generateDraftBtn.textContent = 'Regenerate Draft';
+          saveBtn.textContent = 'Approve & Publish';
+        }
         modalError.classList.remove('show');
-        modalStatus.textContent = 'New rule-based draft generated. Review or edit it here before publishing.';
+        modalStatus.textContent = data.auto_published
+          ? 'High-confidence draft automatically published. You can still edit the published text here.'
+          : 'New rule-based draft generated. Review or edit it here before publishing.';
         modalStatus.classList.add('show');
         updateDraftConfidence(currentEntry.confidence);
         loadList();

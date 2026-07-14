@@ -202,6 +202,17 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Recent history (most recent first)
 
+- **High-confidence Dispatch auto-publication:** when the deterministic
+  formatter finds two or more independent rules, newly received webhook
+  Dispatches and manual Generate/Regenerate Draft actions publish that text
+  directly to `dispatch_translations`. Medium and low confidence always remain
+  in the editor queue. Publication uses `INSERT IGNORE` so it cannot overwrite
+  a concurrent editor approval, and a successful automatic publication removes
+  any local draft. The admin modal stays open and becomes an editable published
+  translation, with an Audit Log entry for manual auto-publications. Existing
+  queued drafts are deliberately not bulk-published; regenerate one to apply
+  this rule.
+
 - **Dispatch translation confidence (v12):** the deterministic formatter now
   recognizes a wider set of action verbs, uses a commit body only as an
   additional confidence-context signal, and gives safe descriptive legacy

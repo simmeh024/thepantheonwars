@@ -1,8 +1,9 @@
 <?php
 /**
  * Local, deterministic copy formatter for end-user Dispatch drafts. It does
- * not call an external service and never publishes anything: callers save the
- * result in dispatch_translation_drafts for an editor to approve or edit.
+ * not call an external service. High-confidence results can be published
+ * automatically; medium and low results remain in dispatch_translation_drafts
+ * for an editor to approve or edit.
  */
 function pw_dispatch_end_user_draft(string $subject, string $body, string $tag): array
 {
@@ -476,22 +477,48 @@ function pw_dispatch_draft_hash(string $subject, string $body, string $tag): str
     return hash('sha256', "dispatch-draft-v12\n" . $subject . "\n" . $body . "\n" . $tag);
 }
 
-function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): bool
+function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
 {
     $entryStmt = $db->prepare('SELECT id, sha, subject, body, tag FROM dispatch_entries WHERE id = ?');
     $entryStmt->execute([$dispatchId]);
     $entry = $entryStmt->fetch();
     if (!$entry) {
-        return false;
+        return ['ok' => false, 'reason' => 'missing'];
     }
 
     $approvedStmt = $db->prepare('SELECT 1 FROM dispatch_translations WHERE dispatch_id = ?');
     $approvedStmt->execute([$dispatchId]);
     if ($approvedStmt->fetch()) {
-        return false;
+        return ['ok' => false, 'reason' => 'published'];
     }
 
     $result = pw_dispatch_end_user_draft($entry['subject'], (string)$entry['body'], $entry['tag']);
+    if ($result['confidence']['level'] === 'high') {
+        // INSERT IGNORE deliberately avoids replacing an editor's approval if
+        // one is written concurrently between the check above and this insert.
+        $publishStmt = $db->prepare(
+            'INSERT IGNORE INTO dispatch_translations (dispatch_id, sha, translation)
+             VALUES (?, ?, ?)'
+        );
+        $publishStmt->execute([$dispatchId, $entry['sha'], $result['draft']]);
+        if ($publishStmt->rowCount() > 0) {
+            try {
+                $deleteDraftStmt = $db->prepare('DELETE FROM dispatch_translation_drafts WHERE dispatch_id = ?');
+                $deleteDraftStmt->execute([$dispatchId]);
+            } catch (PDOException $e) {
+                // A high-confidence publication is valid even on installations
+                // that have not yet created the optional draft storage table.
+            }
+            return [
+                'ok' => true,
+                'auto_published' => true,
+                'translation' => $result['draft'],
+                'confidence' => $result['confidence'],
+            ];
+        }
+        return ['ok' => false, 'reason' => 'published'];
+    }
+
     $stmt = $db->prepare(
         'INSERT INTO dispatch_translation_drafts (dispatch_id, sha, draft, source, draft_hash)
          VALUES (?, ?, ?, \'rule_based\', ?)
@@ -502,5 +529,10 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): bool
            source = VALUES(source)'
     );
     $stmt->execute([$dispatchId, $entry['sha'], $result['draft'], $result['hash']]);
-    return true;
+    return [
+        'ok' => true,
+        'auto_published' => false,
+        'draft' => $result['draft'],
+        'confidence' => $result['confidence'],
+    ];
 }

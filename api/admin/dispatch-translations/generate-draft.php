@@ -17,13 +17,23 @@ if ($dispatchId <= 0) {
 
 $db = pw_db();
 try {
-    $created = pw_create_dispatch_translation_draft($db, $dispatchId);
+    $result = pw_create_dispatch_translation_draft($db, $dispatchId);
 } catch (PDOException $e) {
     pw_error('Draft storage is not available yet. Run migration_dispatch_translation_drafts.sql first.', 503);
 }
 
-if (!$created) {
+if (empty($result['ok'])) {
     pw_error('This dispatch already has an approved translation or no longer exists.', 409);
+}
+
+if (!empty($result['auto_published'])) {
+    pw_log_admin_activity('translation_auto_published', 'Automatically published a high-confidence end-user translation for dispatch #' . $dispatchId . '.', $adminUser);
+    pw_json([
+        'ok' => true,
+        'auto_published' => true,
+        'translation' => $result['translation'],
+        'confidence' => $result['confidence'],
+    ]);
 }
 
 $draftStmt = $db->prepare(
@@ -45,4 +55,5 @@ pw_json([
     'draft' => $draft['draft'],
     'updated_at' => $draft['updated_at'],
     'confidence' => $metadata['confidence'],
+    'auto_published' => false,
 ]);
