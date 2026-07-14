@@ -48,8 +48,23 @@ foreach ($params as $k => $v) {
 $stmt->execute();
 $rows = $stmt->fetchAll();
 
-$out = array_map(function ($r) {
-    $draftMetadata = pw_dispatch_end_user_draft($r['subject'], (string)$r['body'], $r['tag']);
+$contexts = pw_get_dispatch_diff_contexts($db, array_column($rows, 'id'));
+$recentTranslations = [];
+try {
+    $recentTranslations = array_column(
+        $db->query('SELECT translation FROM dispatch_translations ORDER BY updated_at DESC, id DESC LIMIT 20')->fetchAll(),
+        'translation'
+    );
+} catch (PDOException $e) {
+    // Keep the translations list available if an older deployment is missing
+    // a dependency needed only for repetition-aware confidence metadata.
+}
+
+$out = array_map(function ($r) use ($contexts, $recentTranslations) {
+    $draftMetadata = pw_dispatch_end_user_draft($r['subject'], (string)$r['body'], $r['tag'], [
+        'diff_context' => $contexts[(int)$r['id']] ?? [],
+        'recent_translations' => $recentTranslations,
+    ]);
     return [
         'id' => (int)$r['id'],
         'sha' => $r['sha'],

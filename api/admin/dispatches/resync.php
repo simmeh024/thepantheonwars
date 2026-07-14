@@ -8,6 +8,7 @@
  */
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../dispatch-helpers.php';
+require_once __DIR__ . '/../../dispatch-diff-context.php';
 require_once __DIR__ . '/../../dispatch-translation-drafts.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -96,8 +97,13 @@ while ($page <= $maxPages) {
         ]);
         if ($stmt->rowCount() > 0) {
             $inserted++;
+            $dispatchId = (int)$db->lastInsertId();
+            // The commits-list API omits changed files. Fetch a bounded
+            // number of newly inserted commits, then retain aggregates rather
+            // than paths or source content. Normal webhooks need no lookup.
+            pw_store_dispatch_diff_context($db, $dispatchId, pw_fetch_github_dispatch_diff_context($c['sha']));
             try {
-                pw_create_dispatch_translation_draft($db, (int)$db->lastInsertId());
+                pw_create_dispatch_translation_draft($db, $dispatchId);
             } catch (PDOException $e) {
                 // Keep manual resync functional until the one-off migration
                 // has been run in phpMyAdmin.

@@ -351,6 +351,20 @@ CREATE TABLE IF NOT EXISTS page_view_daily_stats (
   member_views_excl_admin INT UNSIGNED NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Safe aggregate metadata derived from GitHub commit diffs. It deliberately
+-- excludes source code and file paths; the Dispatch Draft Translator uses it
+-- only for reader-facing context such as affected product areas and file types.
+CREATE TABLE IF NOT EXISTS dispatch_diff_context (
+  dispatch_id INT UNSIGNED NOT NULL PRIMARY KEY,
+  files_changed SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  extensions_json VARCHAR(255) NOT NULL DEFAULT '[]',
+  areas_json VARCHAR(255) NOT NULL DEFAULT '[]',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_dispatch_diff_context_dispatch
+    FOREIGN KEY (dispatch_id) REFERENCES dispatch_entries(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Rule-based drafts are deliberately isolated from approved translations.
 -- A draft is never exposed through the public dispatch APIs; an admin must
 -- approve or edit it first, which moves its text into dispatch_translations.

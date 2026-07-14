@@ -7,6 +7,7 @@
  */
 require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/dispatch-helpers.php';
+require_once __DIR__ . '/dispatch-diff-context.php';
 require_once __DIR__ . '/dispatch-translation-drafts.php';
 
 header('Content-Type: application/json; charset=utf-8');
@@ -114,8 +115,19 @@ foreach ($payload['commits'] as $commit) {
     ]);
     if ($stmt->rowCount() > 0) {
         $inserted++;
+        $dispatchId = (int)$db->lastInsertId();
+        $paths = array_merge(
+            is_array($commit['added'] ?? null) ? $commit['added'] : [],
+            is_array($commit['modified'] ?? null) ? $commit['modified'] : [],
+            is_array($commit['removed'] ?? null) ? $commit['removed'] : []
+        );
+        pw_store_dispatch_diff_context(
+            $db,
+            $dispatchId,
+            pw_dispatch_diff_context_from_paths($paths)
+        );
         try {
-            pw_create_dispatch_translation_draft($db, (int)$db->lastInsertId());
+            pw_create_dispatch_translation_draft($db, $dispatchId);
         } catch (PDOException $e) {
             // The migration can be applied after deployment. Never reject a
             // verified GitHub delivery merely because the optional draft table

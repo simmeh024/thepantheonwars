@@ -47,11 +47,10 @@ if (!$draft) {
     pw_error('The draft could not be loaded after generation.', 500);
 }
 
-$metadata = pw_dispatch_end_user_draft($draft['subject'], (string)$draft['body'], $draft['tag']);
 pw_json([
     'ok' => true,
     'draft' => $draft['draft'],
     'updated_at' => $draft['updated_at'],
-    'confidence' => $metadata['confidence'],
+    'confidence' => $result['confidence'],
     'auto_published' => false,
 ]);

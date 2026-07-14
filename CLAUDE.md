@@ -217,14 +217,21 @@ also supports a deliberately manual `?full=1` historical rebuild.
   empty icon slot. Existing queued drafts are deliberately not bulk-published;
   regenerate one to apply this rule.
 
-- **Dispatch translation confidence (v12):** the deterministic formatter now
-  recognizes a wider set of action verbs, uses a commit body only as an
-  additional confidence-context signal, and gives safe descriptive legacy
-  titles one explicit structural match. Technical titles containing a file
-  path can receive a cautious score only when a separate service or
-  maintenance cue is present; path-only and hash-like records remain low.
-  The draft-format hash is `dispatch-draft-v12`, so an admin regeneration
-  refreshes only unapproved local drafts and never overwrites published text.
+- **Dispatch Draft Translator (v13):** the deterministic formatter recognizes
+  commit domains (security, database, performance, community, content,
+  interface, and operations) and uses domain-specific BH-4 templates rather
+  than one generic sentence shape. It also uses optional safe diff metadata:
+  only changed-file count plus allow-listed file-type and product-area labels
+  are stored—never paths, code, or diffs. Run
+  `migration_dispatch_diff_context.sql` once in phpMyAdmin after deploy. The
+  webhook records this aggregate context directly; a manual re-sync fetches
+  it only for newly inserted commits and caps those supplemental lookups at
+  25. Draft creation checks the 20 latest
+  published translations and deterministically chooses another phrasing when
+  a candidate sentence is already present. The draft-format hash is
+  `dispatch-draft-v13`, so regeneration refreshes unapproved local drafts
+  without overwriting published text. If the optional migration is absent,
+  the translator safely falls back to subject/body/tag-only behavior.
 
 - **Public Development Dispatches:** expanded entries now present the approved
   end-user translation first. If none is published, they show the notice

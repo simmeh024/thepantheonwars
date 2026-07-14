@@ -5,8 +5,70 @@
  * automatically; medium and low results remain in dispatch_translation_drafts
  * for an editor to approve or edit.
  */
-function pw_dispatch_end_user_draft(string $subject, string $body, string $tag): array
+require_once __DIR__ . '/dispatch-diff-context.php';
+
+function pw_dispatch_draft_phrase_is_recent(string $candidate, array $recentTranslations): bool
 {
+    $needle = strtolower(trim(preg_replace('/[^a-z0-9 ]/i', '', $candidate)));
+    if (strlen($needle) < 32) {
+        return false;
+    }
+    foreach ($recentTranslations as $translation) {
+        $haystack = strtolower(trim(preg_replace('/[^a-z0-9 ]/i', '', (string)$translation)));
+        if ($haystack !== '' && strpos($haystack, $needle) !== false) {
+            return true;
+        }
+    }
+    return false;
+}
+
+function pw_dispatch_draft_domain(string $text, string $tag, array $diffContext): string
+{
+    $haystack = $text . ' ' . implode(' ', $diffContext['areas'] ?? []) . ' ' . implode(' ', $diffContext['extensions'] ?? []);
+    $domains = [
+        'security' => '/\b(?:security|csrf|password|login|session|privacy|gdpr|permission|authentication|authorization|header|x-frame|referrer)\b/i',
+        'database' => '/\b(?:database|sql|mysql|mariadb|query|index|migration|rollup)\b/i',
+        'performance' => '/\b(?:performance|faster|speed|cache|loading|lcp|lighthouse|lazy|preload|defer|bandwidth|core web vitals)\b/i',
+        'community' => '/\b(?:forum|community|topic|reply|comment|member|moderator|notification|report|reaction|profile)\b/i',
+        'content' => '/\b(?:book|chapter|world|lore|overlord|dispatch|translation|story|map|character|quiz)\b/i',
+        'interface' => '/\b(?:css|ui|ux|interface|layout|sidebar|card|modal|button|icon|image|hero|responsive|focus|animation)\b/i',
+        'operations' => '/\b(?:admin|backup|system status|audit log|github|webhook|cron|deploy|monitor|analytics)\b/i',
+    ];
+    foreach ($domains as $domain => $pattern) {
+        if (preg_match($pattern, $haystack)) {
+            return $domain;
+        }
+    }
+    return $tag === 'infrastructure' ? 'operations' : 'general';
+}
+
+function pw_dispatch_draft_action_mode(string $clean): string
+{
+    if (preg_match('/^(?:add|create|introduce|include|enable|allow|expose|support)\b/i', $clean)) {
+        return 'addition';
+    }
+    if (preg_match('/^(?:fix|resolve|repair|restore|prevent|secure|protect|harden|correct)\b/i', $clean)) {
+        return 'correction';
+    }
+    return 'refinement';
+}
+
+function pw_dispatch_draft_diff_sentence(array $diffContext): string
+{
+    $files = (int)($diffContext['files_changed'] ?? 0);
+    $areas = is_array($diffContext['areas'] ?? null) ? array_values(array_filter($diffContext['areas'])) : [];
+    $extensions = is_array($diffContext['extensions'] ?? null) ? array_values(array_filter($diffContext['extensions'])) : [];
+    if ($files <= 0) {
+        return '';
+    }
+    $scope = $areas ? implode(' and ', array_slice($areas, 0, 2)) : ($extensions ? implode(' and ', array_slice($extensions, 0, 2)) : 'supporting site files');
+    return 'The work spans ' . $files . ($files === 1 ? ' file in ' : ' files across ') . $scope . '.';
+}
+
+function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, array $options = []): array
+{
+    $diffContext = is_array($options['diff_context'] ?? null) ? $options['diff_context'] : [];
+    $recentTranslations = is_array($options['recent_translations'] ?? null) ? $options['recent_translations'] : [];
     $clean = trim($subject);
     $clean = preg_replace('/^(?:feat(?:ure)?|fix|perf(?:ormance)?|refactor|chore|docs?|style|test)(?:\([^)]*\))?!?:\s*/i', '', $clean);
     $clean = preg_replace('/\s*\(?#[0-9]+\)?\s*$/', '', $clean);
@@ -153,24 +215,33 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         if ($technicalCue) {
             $rulesMatched++;
             return [
-                'draft' => 'BH-4 has completed a focused maintenance update to a supporting site service. It reduces avoidable friction behind the scenes while keeping the reader-facing experience steady.',
+                'draft' => 'BH-4 has completed a focused maintenance update to a supporting site service. '
+                    . pw_dispatch_draft_diff_sentence($diffContext)
+                    . ' It reduces avoidable friction behind the scenes while keeping the reader-facing experience steady.',
                 'confidence' => pw_dispatch_draft_confidence($rulesMatched),
-                'hash' => pw_dispatch_draft_hash($subject, $body, $tag),
+                'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
             ];
         }
         return [
             'draft' => 'This update contains internal maintenance and reliability improvements. It helps keep the site stable and ready for future changes.',
             'confidence' => pw_dispatch_draft_confidence(0),
-            'hash' => pw_dispatch_draft_hash($subject, $body, $tag),
+            'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
         ];
     }
 
     // A stable hash chooses an alternate phrasing for each commit. This keeps
     // repeated categories from reading like boilerplate while ensuring that a
     // regenerate action does not make the same source commit drift randomly.
-    $pickVariant = static function (array $options, string $salt) use ($subject): string {
-        $index = (int) sprintf('%u', crc32($subject . '|' . $salt)) % count($options);
-        return $options[$index];
+    $pickVariant = static function (array $variants, string $salt) use ($subject, $recentTranslations): string {
+        $count = count($variants);
+        $index = (int) sprintf('%u', crc32($subject . '|' . $salt)) % $count;
+        for ($offset = 0; $offset < $count; $offset++) {
+            $candidate = $variants[($index + $offset) % $count];
+            if (!pw_dispatch_draft_phrase_is_recent($candidate, $recentTranslations)) {
+                return $candidate;
+            }
+        }
+        return $variants[$index];
     };
     $benefitLibrary = [
         'feature' => [
@@ -393,10 +464,62 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         $draft = sprintf($template, rtrim($object, '.'));
     }
 
+    // Commit-type templates give recurring domains their own BH-4 vocabulary.
+    // The title still supplies the object, while the domain determines the
+    // reader-facing intent: security work reads differently from community,
+    // database, content, interface, or performance work.
+    $domain = pw_dispatch_draft_domain($contextSource . ' ' . $clean . ' ' . $bodyContext, $tag, $diffContext);
+    $mode = pw_dispatch_draft_action_mode($clean);
+    $domainTemplates = [
+        'security' => [
+            'addition' => ['BH-4 has added an extra safeguard for %s.', 'BH-4 has extended protection around %s.'],
+            'correction' => ['BH-4 has repaired a protection issue around %s.', 'BH-4 has restored a safer path through %s.'],
+            'refinement' => ['BH-4 has reinforced the safeguards around %s.', 'BH-4 has tightened the protection supporting %s.'],
+        ],
+        'database' => [
+            'addition' => ['BH-4 has expanded database support for %s.', 'BH-4 has added clearer database coverage for %s.'],
+            'correction' => ['BH-4 has corrected database work affecting %s.', 'BH-4 has repaired a data-service issue around %s.'],
+            'refinement' => ['BH-4 has strengthened the database path behind %s.', 'BH-4 has made the data work supporting %s more deliberate.'],
+        ],
+        'performance' => [
+            'addition' => ['BH-4 has added a lighter delivery path for %s.', 'BH-4 has introduced a more efficient route for %s.'],
+            'correction' => ['BH-4 has removed avoidable delay around %s.', 'BH-4 has corrected a performance issue affecting %s.'],
+            'refinement' => ['BH-4 has reduced avoidable work behind %s.', 'BH-4 has refined %s for a steadier response.'],
+        ],
+        'community' => [
+            'addition' => ['BH-4 has opened a clearer community path for %s.', 'BH-4 has added a more useful community tool around %s.'],
+            'correction' => ['BH-4 has repaired a community interaction around %s.', 'BH-4 has restored the expected community path for %s.'],
+            'refinement' => ['BH-4 has made the community experience around %s easier to follow.', 'BH-4 has refined how members move through %s.'],
+        ],
+        'content' => [
+            'addition' => ['BH-4 has expanded the reader-facing record for %s.', 'BH-4 has added new reader context around %s.'],
+            'correction' => ['BH-4 has corrected the reader-facing record for %s.', 'BH-4 has restored clearer context around %s.'],
+            'refinement' => ['BH-4 has refined the reader-facing presentation of %s.', 'BH-4 has made the record around %s easier to explore.'],
+        ],
+        'interface' => [
+            'addition' => ['BH-4 has added a clearer interface path for %s.', 'BH-4 has introduced a more legible view for %s.'],
+            'correction' => ['BH-4 has repaired the interface behaviour around %s.', 'BH-4 has restored the intended presentation of %s.'],
+            'refinement' => ['BH-4 has refined the interface around %s.', 'BH-4 has made %s clearer at a glance.'],
+        ],
+        'operations' => [
+            'addition' => ['BH-4 has added a clearer operational record for %s.', 'BH-4 has expanded the site operations supporting %s.'],
+            'correction' => ['BH-4 has repaired an operational issue around %s.', 'BH-4 has restored a dependable operational path for %s.'],
+            'refinement' => ['BH-4 has clarified the operational support for %s.', 'BH-4 has strengthened the routine systems behind %s.'],
+        ],
+    ];
+    if (isset($domainTemplates[$domain][$mode])) {
+        $draft = sprintf($pickVariant($domainTemplates[$domain][$mode], 'domain-' . $domain . '-' . $mode), rtrim($object, '.'));
+    }
+
+    $diffSentence = pw_dispatch_draft_diff_sentence($diffContext);
+    if ($diffSentence !== '') {
+        $rulesMatched++;
+    }
+
     return [
-        'draft' => $draft . ' ' . $benefit,
+        'draft' => $draft . ($diffSentence !== '' ? ' ' . $diffSentence : '') . ' ' . $benefit,
         'confidence' => pw_dispatch_draft_confidence($rulesMatched),
-        'hash' => pw_dispatch_draft_hash($subject, $body, $tag),
+        'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
     ];
 }
 
@@ -440,14 +563,17 @@ function pw_dispatch_draft_confidence(int $rulesMatched): array
  */
 function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 {
-    $rows = $db->query('SELECT subject, body, tag FROM dispatch_entries')->fetchAll();
+    $rows = $db->query('SELECT id, subject, body, tag FROM dispatch_entries')->fetchAll();
+    $contexts = pw_get_dispatch_diff_contexts($db, array_column($rows, 'id'));
     $total = count($rows);
     $counts = ['high' => 0, 'medium' => 0, 'low' => 0];
     $weights = ['high' => 100, 'medium' => 65, 'low' => 25];
     $scoreTotal = 0;
 
     foreach ($rows as $row) {
-        $confidence = pw_dispatch_end_user_draft($row['subject'], (string)$row['body'], $row['tag'])['confidence'];
+        $confidence = pw_dispatch_end_user_draft($row['subject'], (string)$row['body'], $row['tag'], [
+            'diff_context' => $contexts[(int)$row['id']] ?? [],
+        ])['confidence'];
         $level = isset($counts[$confidence['level']]) ? $confidence['level'] : 'low';
         $counts[$level]++;
         $scoreTotal += $weights[$level];
@@ -472,9 +598,30 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 
 // Bump the format version whenever wording rules change. Regenerate Draft then
 // refreshes old unapproved drafts even when their source commit is unchanged.
-function pw_dispatch_draft_hash(string $subject, string $body, string $tag): string
+function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v12\n" . $subject . "\n" . $body . "\n" . $tag);
+    return hash('sha256', "dispatch-draft-v13\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+}
+
+function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId): array
+{
+    $contexts = pw_get_dispatch_diff_contexts($db, [$dispatchId]);
+    $recentTranslations = [];
+    try {
+        $stmt = $db->prepare(
+            'SELECT translation FROM dispatch_translations
+             WHERE dispatch_id <> ? ORDER BY updated_at DESC, id DESC LIMIT 20'
+        );
+        $stmt->execute([$dispatchId]);
+        $recentTranslations = array_column($stmt->fetchAll(), 'translation');
+    } catch (PDOException $e) {
+        // Draft creation already handles the translations table independently;
+        // an empty guard is safer than preventing a webhook from completing.
+    }
+    return [
+        'diff_context' => $contexts[$dispatchId] ?? [],
+        'recent_translations' => $recentTranslations,
+    ];
 }
 
 // Webhook-created Dispatches have no signed-in administrator, but their
@@ -509,7 +656,12 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
         return ['ok' => false, 'reason' => 'published'];
     }
 
-    $result = pw_dispatch_end_user_draft($entry['subject'], (string)$entry['body'], $entry['tag']);
+    $result = pw_dispatch_end_user_draft(
+        $entry['subject'],
+        (string)$entry['body'],
+        $entry['tag'],
+        pw_dispatch_draft_options_for_dispatch($db, $dispatchId)
+    );
     if ($result['confidence']['level'] === 'high') {
         // INSERT IGNORE deliberately avoids replacing an editor's approval if
         // one is written concurrently between the check above and this insert.
