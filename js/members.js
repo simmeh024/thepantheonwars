@@ -26,6 +26,10 @@ document.addEventListener('DOMContentLoaded', function () {
     '</div><p class="auth-caps-warning" data-caps-for="' + id + '" hidden>Caps Lock is on.</p>';
   }
 
+  function fieldStateHtml() {
+    return '<span class="auth-field-state" aria-hidden="true"></span>';
+  }
+
   function buildModal() {
     var wrap = document.createElement('div');
     wrap.className = 'auth-modal';
@@ -35,17 +39,21 @@ document.addEventListener('DOMContentLoaded', function () {
       '<div class="auth-modal-backdrop"></div>' +
       '<div class="auth-modal-inner">' +
         '<button type="button" class="auth-modal-close" aria-label="Close">&times;</button>' +
-        '<div class="auth-tabs">' +
-          '<button type="button" class="auth-tab active" data-tab="login">Log In</button>' +
-          '<button type="button" class="auth-tab" data-tab="register">Create Account</button>' +
+        '<div class="auth-modal-header">' +
+          '<span class="auth-modal-kicker">The Pantheon Wars</span>' +
+          '<div class="auth-tabs">' +
+            '<button type="button" class="auth-tab active" data-tab="login">Log In</button>' +
+            '<button type="button" class="auth-tab" data-tab="register">Create Account</button>' +
+          '</div>' +
         '</div>' +
+        '<div class="auth-modal-body">' +
         '<form class="auth-form" data-form="login">' +
           '<h3 class="auth-modal-title">Welcome back</h3>' +
           '<p class="auth-modal-intro">Return to the worlds beyond the Veil.</p>' +
           '<p class="auth-error"></p>' +
-          '<div class="auth-field"><label for="login-identifier">Username or email</label><input id="login-identifier" name="identifier" type="text" autocomplete="username" required></div>' +
-          '<div class="auth-field"><label for="login-password">Password</label>' + passwordFieldHtml('login-password', 'password', 'current-password') + '</div>' +
-          '<div class="auth-oauth-divider"><span>or</span></div>' +
+          '<div class="auth-field"><label for="login-identifier">Username or email</label><input id="login-identifier" name="identifier" type="text" autocomplete="username" required>' + fieldStateHtml() + '</div>' +
+          '<div class="auth-field"><label for="login-password">Password</label>' + passwordFieldHtml('login-password', 'password', 'current-password') + fieldStateHtml() + '</div>' +
+          '<div class="auth-oauth-divider"><span>or continue through Google</span></div>' +
           '<button type="button" class="btn auth-google-btn" data-google-oauth="login"><span class="auth-google-mark" aria-hidden="true">G</span>Continue with Google</button>' +
           '<button type="submit" class="btn btn-solid auth-submit">Log In</button>' +
         '</form>' +
@@ -53,17 +61,18 @@ document.addEventListener('DOMContentLoaded', function () {
           '<h3 class="auth-modal-title">Join the Pantheon</h3>' +
           '<p class="auth-modal-intro">Create your place in the Pantheon.</p>' +
           '<p class="auth-error"></p>' +
-          '<div class="auth-field"><label for="reg-username">Username</label><input id="reg-username" name="username" type="text" autocomplete="username" required minlength="3" maxlength="30"><small class="auth-field-hint">3–30 characters: letters, numbers, hyphens, or underscores.</small></div>' +
-          '<div class="auth-field"><label for="reg-email">Email</label><input id="reg-email" name="email" type="email" autocomplete="email" required></div>' +
-          '<div class="auth-field"><label for="reg-password">Password</label>' + passwordFieldHtml('reg-password', 'password', 'new-password', 8) + '<div class="auth-password-strength" id="reg-password-strength" aria-live="polite"><span></span><small>Use 8 or more characters.</small></div></div>' +
-          '<div class="auth-field"><label for="reg-password-confirm">Confirm Password</label>' + passwordFieldHtml('reg-password-confirm', 'password-confirm', 'new-password', 8) + '</div>' +
-          '<div class="auth-oauth-divider"><span>or</span></div>' +
+          '<div class="auth-field"><label for="reg-username">Username</label><input id="reg-username" name="username" type="text" autocomplete="username" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_-]+"><small class="auth-field-hint">3–30 characters: letters, numbers, hyphens, or underscores.</small>' + fieldStateHtml() + '</div>' +
+          '<div class="auth-field"><label for="reg-email">Email</label><input id="reg-email" name="email" type="email" autocomplete="email" required>' + fieldStateHtml() + '</div>' +
+          '<div class="auth-field"><label for="reg-password">Password</label>' + passwordFieldHtml('reg-password', 'password', 'new-password', 8) + '<div class="auth-password-strength" id="reg-password-strength" aria-live="polite"><i></i><i></i><i></i><i></i><small>Use 8 or more characters.</small></div>' + fieldStateHtml() + '</div>' +
+          '<div class="auth-field"><label for="reg-password-confirm">Confirm Password</label>' + passwordFieldHtml('reg-password-confirm', 'password-confirm', 'new-password', 8) + fieldStateHtml() + '</div>' +
+          '<div class="auth-oauth-divider"><span>or continue through Google</span></div>' +
           '<label class="auth-oauth-option"><input type="checkbox" id="reg-google-avatar" checked>Import my Google profile picture when available</label>' +
           '<button type="button" class="btn auth-google-btn" data-google-oauth="register"><span class="auth-google-mark" aria-hidden="true">G</span>Register with Google</button>' +
           '<button type="submit" class="btn btn-solid auth-submit">Create Account</button>' +
         '</form>' +
-        '<div class="auth-success" hidden aria-live="polite"><span class="auth-success-mark">✓</span><h3>Welcome to the Pantheon.</h3><p>Your account is ready. Preparing your profile&hellip;</p></div>' +
-        '<p class="auth-privacy-note">Your profile and notification preferences stay under your control. <a href="/privacy.html">Privacy</a></p>' +
+        '<div class="auth-success" hidden aria-live="polite"><span class="auth-success-mark">✓</span><span class="auth-success-label">Account created</span><h3>Welcome to the Pantheon.</h3><p>Your account is ready. Preparing your profile&hellip;</p></div>' +
+        '<p class="auth-privacy-note">Your profile and notification preferences stay under your control. <a href="/privacy.html">Review our privacy commitment</a></p>' +
+        '</div>' +
       '</div>';
     document.body.appendChild(wrap);
     return wrap;
@@ -122,6 +131,23 @@ document.addEventListener('DOMContentLoaded', function () {
     err.classList.add('show');
   }
 
+  function setFieldState(input, state) {
+    var field = input.closest && input.closest('.auth-field');
+    if (!field) return;
+    field.classList.remove('is-typing', 'is-valid', 'is-invalid');
+    if (state) field.classList.add('is-' + state);
+  }
+
+  function updateFieldState(input) {
+    var value = input.value.trim();
+    var state = '';
+    if (value) {
+      if (input.id === 'reg-password-confirm' && input.value !== modal.querySelector('#reg-password').value) state = 'typing';
+      else state = input.checkValidity() ? 'valid' : 'typing';
+    }
+    setFieldState(input, state);
+  }
+
   function postJson(url, body) {
     return fetch(url, {
       method: 'POST',
@@ -138,6 +164,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var form = e.target;
     var identifier = form.querySelector('#login-identifier').value.trim();
     var password = form.querySelector('#login-password').value;
+    form.querySelectorAll('input[required]').forEach(function (input) { updateFieldState(input); });
     var submitBtn = form.querySelector('.auth-submit');
     submitBtn.disabled = true;
     postJson('/api/login.php', { identifier: identifier, password: password, csrf: window.PW_AUTH.csrf }).then(function (r) {
@@ -159,9 +186,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var password = form.querySelector('#reg-password').value;
     var confirmPassword = form.querySelector('#reg-password-confirm').value;
     if (password !== confirmPassword) {
+      setFieldState(form.querySelector('#reg-password-confirm'), 'invalid');
       showFormError(form, 'Passwords don\'t match.');
       return;
     }
+    form.querySelectorAll('input[required]').forEach(function (input) { updateFieldState(input); });
     var submitBtn = form.querySelector('.auth-submit');
     submitBtn.disabled = true;
     postJson('/api/register.php', { username: username, email: email, password: password, csrf: window.PW_AUTH.csrf }).then(function (r) {
@@ -285,6 +314,16 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
+  modal.querySelectorAll('.auth-form input[required]').forEach(function (input) {
+    input.addEventListener('input', function () { updateFieldState(input); });
+    input.addEventListener('blur', function () { updateFieldState(input); });
+  });
+  modal.querySelectorAll('.auth-form').forEach(function (form) {
+    form.addEventListener('invalid', function (event) {
+      setFieldState(event.target, 'invalid');
+    }, true);
+  });
+
   var registerPassword = modal.querySelector('#reg-password');
   var registerStrength = modal.querySelector('#reg-password-strength');
   if (registerPassword && registerStrength) {
@@ -298,6 +337,8 @@ document.addEventListener('DOMContentLoaded', function () {
       registerStrength.setAttribute('data-strength', String(score));
       registerStrength.querySelector('small').textContent = value.length === 0 ? 'Use 8 or more characters.' :
         (score <= 1 ? 'Add variety for a stronger password.' : score <= 3 ? 'Good password strength.' : 'Strong password.');
+      var confirmation = modal.querySelector('#reg-password-confirm');
+      if (confirmation && confirmation.value) updateFieldState(confirmation);
     });
   }
 
