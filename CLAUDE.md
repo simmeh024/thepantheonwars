@@ -153,7 +153,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=174, community v=174 (the Dispatches page is v=176), and
+  versions: public v=174, community v=175 (the Dispatches page is v=176), and
   admin v=185. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
@@ -302,6 +302,16 @@ also supports a deliberately manual `?full=1` historical rebuild.
   as HTML; do not replace its CSP with a route-specific policy. Cron and
   bootstrap/error paths that cannot rely on helpers set the same basic headers
   themselves; keep any new exceptional API entry point consistent.
+
+- **User Sessions:** `user_sessions` is a revocable registry layered over PHP
+  sessions. It stores only SHA-256 hashes of opaque per-session and PHP-session
+  identifiers—never raw cookies or tokens. Run `sql/migration_user_sessions.sql`
+  manually after deployment. `pw_current_user()` validates each authenticated
+  request against the registry and only updates `last_active_at` every five
+  minutes. Login/register create a record; password changes revoke other
+  sessions; bans revoke all sessions. The Profile -> User Sessions panel uses
+  `api/user-sessions/{list,revoke,revoke-others,revoke-all}.php`; signing out
+  everywhere requires the current password and destroys the local session.
 
 - **BH-4 status imagery:** Admin Home swaps the BH-4 portrait from normal to
   medium or critical automatically from the Task Advisor priority: `clear` /

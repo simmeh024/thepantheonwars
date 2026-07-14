@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=174">
+<link rel="stylesheet" href="css/community-bundle.css?v=175">
 </head>
 <body>
 
@@ -117,6 +117,7 @@
 
         <div class="profile-menu" id="profile-menu">
           <button type="button" class="profile-menu-tab active" data-panel="settings">Profile Settings</button>
+          <button type="button" class="profile-menu-tab" data-panel="sessions">User Sessions</button>
           <button type="button" class="profile-menu-tab" data-panel="notifications">Notification Settings</button>
           <button type="button" class="profile-menu-tab" data-panel="posts">My Posts</button>
         </div>
@@ -202,6 +203,23 @@
 
           <p id="notif-prefs-status" class="profile-success" hidden></p>
           <button type="button" class="btn btn-solid" id="notif-prefs-save-btn" style="margin-top: 1em;">Save Notification Settings</button>
+        </div>
+
+        <div id="profile-panel-sessions" class="profile-panel" hidden>
+          <div class="profile-session-heading">
+            <div>
+              <h3>User Sessions</h3>
+              <p class="profile-field-note">Review where your account is signed in. Do not recognise a device? Sign it out and change your password.</p>
+            </div>
+            <button type="button" class="btn" id="sessions-refresh-btn">Refresh</button>
+          </div>
+          <div id="user-sessions-list" class="user-sessions-list" aria-live="polite"></div>
+          <p id="user-sessions-empty" class="lore-status" hidden>You are only signed in on this device.</p>
+          <p id="user-sessions-status" class="profile-success" hidden></p>
+          <div class="profile-session-actions">
+            <button type="button" class="btn" id="sessions-revoke-others-btn">Sign Out Other Devices</button>
+            <button type="button" class="btn btn-danger" id="sessions-revoke-all-btn">Sign Out Everywhere</button>
+          </div>
         </div>
 
         <div id="profile-panel-posts" class="profile-panel" hidden>
@@ -506,6 +524,7 @@
 
   var profileMenu = document.getElementById('profile-menu');
   var panelSettings = document.getElementById('profile-panel-settings');
+  var panelSessions = document.getElementById('profile-panel-sessions');
   var panelNotifications = document.getElementById('profile-panel-notifications');
   var panelPosts = document.getElementById('profile-panel-posts');
   var lockedNameInput = document.getElementById('profile-name-locked');
@@ -514,14 +533,20 @@
   var passwordError = document.getElementById('password-error');
   var passwordSuccess = document.getElementById('password-success');
   var notifPrefsLoaded = false;
+  var userSessionsLoaded = false;
 
   function activateProfilePanel(panel) {
     Array.prototype.forEach.call(profileMenu.querySelectorAll('.profile-menu-tab'), function (tab) {
       tab.classList.toggle('active', tab.getAttribute('data-panel') === panel);
     });
     panelSettings.hidden = panel !== 'settings';
+    panelSessions.hidden = panel !== 'sessions';
     panelNotifications.hidden = panel !== 'notifications';
     panelPosts.hidden = panel !== 'posts';
+    if (panel === 'sessions' && !userSessionsLoaded) {
+      userSessionsLoaded = true;
+      loadUserSessions();
+    }
     if (panel === 'notifications' && !notifPrefsLoaded) {
       notifPrefsLoaded = true;
       loadNotificationPrefs();
@@ -532,6 +557,108 @@
     var btn = e.target.closest('[data-panel]');
     if (!btn) return;
     activateProfilePanel(btn.getAttribute('data-panel'));
+  });
+
+  var userSessionsList = document.getElementById('user-sessions-list');
+  var userSessionsEmpty = document.getElementById('user-sessions-empty');
+  var userSessionsStatus = document.getElementById('user-sessions-status');
+  var userSessionsRefreshBtn = document.getElementById('sessions-refresh-btn');
+  var userSessionsOthersBtn = document.getElementById('sessions-revoke-others-btn');
+  var userSessionsAllBtn = document.getElementById('sessions-revoke-all-btn');
+
+  function sessionDate(value) {
+    if (!value) return 'Unknown';
+    var date = new Date(value.replace(' ', 'T') + 'Z');
+    if (isNaN(date.getTime())) return value;
+    var delta = Math.max(0, Math.round((Date.now() - date.getTime()) / 60000));
+    if (delta < 1) return 'Just now';
+    if (delta < 60) return delta + ' minutes ago';
+    if (delta < 1440) return Math.floor(delta / 60) + ' hours ago';
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  }
+
+  function sessionStatus(message, isError) {
+    userSessionsStatus.textContent = message;
+    userSessionsStatus.hidden = !message;
+    userSessionsStatus.classList.toggle('show-error', !!isError);
+  }
+
+  function postSessionAction(url, body) {
+    body.csrf = window.PW_AUTH.csrf;
+    return fetch(url, {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    }).then(function (response) { return response.json(); });
+  }
+
+  function loadUserSessions() {
+    userSessionsStatus.hidden = true;
+    userSessionsList.innerHTML = '<p class="profile-field-note">Loading active sessions&hellip;</p>';
+    fetch('/api/user-sessions/list.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load your sessions.');
+        userSessionsList.innerHTML = '';
+        var others = 0;
+        data.sessions.forEach(function (session) {
+          if (!session.is_current) others++;
+          var row = document.createElement('article');
+          row.className = 'user-session-row' + (session.is_current ? ' is-current' : '');
+          var details = document.createElement('div');
+          details.className = 'user-session-details';
+          var title = document.createElement('div');
+          title.className = 'user-session-title';
+          title.textContent = session.device_label;
+          if (session.is_current) {
+            var current = document.createElement('span');
+            current.className = 'user-session-current';
+            current.textContent = 'Current session';
+            title.appendChild(current);
+          }
+          var meta = document.createElement('p');
+          meta.className = 'user-session-meta';
+          meta.textContent = session.location + ' · IP: ' + (session.ip_masked || 'Unavailable') + ' · ' + session.auth_provider;
+          var timing = document.createElement('p');
+          timing.className = 'user-session-timing';
+          timing.textContent = 'Last active: ' + sessionDate(session.last_active_at) + ' · Signed in: ' + sessionDate(session.created_at);
+          details.appendChild(title); details.appendChild(meta); details.appendChild(timing);
+          var revoke = document.createElement('button');
+          revoke.type = 'button'; revoke.className = 'btn user-session-revoke'; revoke.textContent = session.is_current ? 'Sign Out' : 'Sign Out Device';
+          revoke.addEventListener('click', function () {
+            var message = session.is_current ? 'Sign out this device now?' : 'Sign out this device?';
+            if (!window.confirm(message)) return;
+            postSessionAction('/api/user-sessions/revoke.php', { session_id: session.id }).then(function (result) {
+              if (!result.ok) throw new Error(result.error || 'Could not revoke this session.');
+              if (result.signed_out_current) { window.location.href = 'index.html'; return; }
+              sessionStatus('Device signed out.', false); loadUserSessions();
+            }).catch(function (error) { sessionStatus(error.message, true); });
+          });
+          row.appendChild(details); row.appendChild(revoke); userSessionsList.appendChild(row);
+        });
+        userSessionsEmpty.hidden = others !== 0;
+        userSessionsOthersBtn.disabled = others === 0;
+      })
+      .catch(function (error) {
+        userSessionsList.innerHTML = '';
+        userSessionsEmpty.hidden = true;
+        sessionStatus(error.message || 'Could not load your sessions.', true);
+      });
+  }
+
+  userSessionsRefreshBtn.addEventListener('click', loadUserSessions);
+  userSessionsOthersBtn.addEventListener('click', function () {
+    if (!window.confirm('Sign out all other devices? This device will remain signed in.')) return;
+    postSessionAction('/api/user-sessions/revoke-others.php', {}).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Could not sign out other devices.');
+      sessionStatus((data.revoked || 0) + ' other device(s) signed out.', false); loadUserSessions();
+    }).catch(function (error) { sessionStatus(error.message, true); });
+  });
+  userSessionsAllBtn.addEventListener('click', function () {
+    var password = window.prompt('Sign out everywhere, including this device. Enter your current password to continue:');
+    if (password === null) return;
+    postSessionAction('/api/user-sessions/revoke-all.php', { current_password: password }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Could not sign out everywhere.');
+      window.location.href = 'index.html';
+    }).catch(function (error) { sessionStatus(error.message, true); });
   });
 
   var notifPrefItems = Array.prototype.slice.call(document.querySelectorAll('.notif-pref-item'));

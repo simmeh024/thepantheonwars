@@ -8,12 +8,15 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $input = pw_input();
 pw_require_csrf($input);
 
-$_SESSION = [];
-if (ini_get('session.use_cookies')) {
-    $params = session_get_cookie_params();
-    setcookie(session_name(), '', time() - 42000,
-        $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+$user = pw_current_user();
+if ($user) {
+    // A regular logout revokes only this browser's registry record.
+    try {
+        pw_db()->prepare('UPDATE user_sessions SET revoked_at = UTC_TIMESTAMP(), revoked_reason = ? WHERE user_id = ? AND session_token_hash = ? AND revoked_at IS NULL')
+            ->execute(['signed_out', (int)$user['id'], pw_session_hash(pw_current_session_token())]);
+    } catch (Throwable $e) {}
+    pw_log_activity('session_revoked', 'Signed out the current session.', (int)$user['id'], $user['username']);
 }
-session_destroy();
+pw_destroy_local_session();
 
 pw_json(['ok' => true]);

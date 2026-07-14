@@ -137,11 +137,15 @@ function pw_current_user() {
     if (!$user) {
         return null;
     }
+    if (!pw_validate_current_user_session((int)$user['id'])) {
+        pw_destroy_local_session();
+        return null;
+    }
     if (pw_is_banned($user)) {
         // Account was banned after this session was issued -- kill the
         // session immediately rather than letting it ride out.
-        $_SESSION = [];
-        session_destroy();
+        pw_revoke_user_sessions((int)$user['id'], null, 'account_banned');
+        pw_destroy_local_session();
         return null;
     }
     return $user;
@@ -377,6 +381,117 @@ function pw_resolve_country($ip) {
     }
 
     return [$code, $name];
+}
+
+// --- Account session registry ----------------------------------------------
+// PHP keeps the authenticated browser state in its normal secure cookie. This
+// registry adds a revocable, database-backed record alongside it. The browser
+// only receives an opaque random identifier inside the PHP session; the DB
+// stores a SHA-256 hash, never a raw PHP session ID or registry token.
+function pw_current_session_token() {
+    return isset($_SESSION['pw_session_token']) && is_string($_SESSION['pw_session_token'])
+        ? $_SESSION['pw_session_token'] : null;
+}
+
+function pw_session_hash($value) {
+    return hash('sha256', (string)$value);
+}
+
+function pw_session_client_details() {
+    $ua = substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 500);
+    $browser = 'Unknown browser';
+    if (stripos($ua, 'Edg/') !== false) $browser = 'Microsoft Edge';
+    elseif (stripos($ua, 'OPR/') !== false || stripos($ua, 'Opera') !== false) $browser = 'Opera';
+    elseif (stripos($ua, 'Firefox/') !== false) $browser = 'Firefox';
+    elseif (stripos($ua, 'Chrome/') !== false || stripos($ua, 'CriOS/') !== false) $browser = 'Chrome';
+    elseif (stripos($ua, 'Safari/') !== false) $browser = 'Safari';
+
+    $os = 'Unknown operating system';
+    if (stripos($ua, 'Windows') !== false) $os = 'Windows';
+    elseif (stripos($ua, 'Android') !== false) $os = 'Android';
+    elseif (stripos($ua, 'iPhone') !== false || stripos($ua, 'iPad') !== false || stripos($ua, 'iOS') !== false) $os = 'iOS';
+    elseif (stripos($ua, 'Mac OS X') !== false || stripos($ua, 'Macintosh') !== false) $os = 'macOS';
+    elseif (stripos($ua, 'Linux') !== false) $os = 'Linux';
+
+    return [$ua, $browser, $os, $browser . ' on ' . $os];
+}
+
+function pw_issue_user_session($userId, $provider = 'password') {
+    $token = bin2hex(random_bytes(32));
+    $_SESSION['pw_session_token'] = $token;
+    $_SESSION['pw_authenticated_at'] = time();
+    $_SESSION['pw_session_provider'] = $provider;
+    try {
+        [$ua, $browser, $os, $label] = pw_session_client_details();
+        $ip = pw_client_ip();
+        // Reuse any country already learned by visit analytics, but never make
+        // sign-in wait on a third-party geolocation request.
+        $countryCode = null;
+        $countryName = null;
+        $countryStmt = pw_db()->prepare('SELECT country_code, country_name FROM ip_country_cache WHERE ip_address = ?');
+        $countryStmt->execute([$ip]);
+        if ($country = $countryStmt->fetch()) {
+            $countryCode = $country['country_code'];
+            $countryName = $country['country_name'];
+        }
+        $stmt = pw_db()->prepare(
+            'INSERT INTO user_sessions (user_id, session_token_hash, php_session_id_hash, device_label, user_agent, browser_name, operating_system, ip_address, country_code, country_name, auth_provider, expires_at, is_persistent)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL 30 DAY), 1)'
+        );
+        $stmt->execute([$userId, pw_session_hash($token), pw_session_hash(session_id()), $label, $ua, $browser, $os, $ip, $countryCode, $countryName, $provider]);
+    } catch (Throwable $e) {
+        // The registry migration may not have run yet. Do not break a valid
+        // login during deployment; once present, validation becomes strict.
+    }
+    return $token;
+}
+
+function pw_validate_current_user_session($userId) {
+    $token = pw_current_session_token();
+    if ($token === null) {
+        pw_issue_user_session($userId, 'password'); // transparent legacy-session adoption
+        return true;
+    }
+    try {
+        $stmt = pw_db()->prepare(
+            'SELECT id, last_active_at FROM user_sessions
+             WHERE user_id = ? AND session_token_hash = ? AND revoked_at IS NULL AND expires_at > UTC_TIMESTAMP() LIMIT 1'
+        );
+        $stmt->execute([$userId, pw_session_hash($token)]);
+        $row = $stmt->fetch();
+        if (!$row) return false;
+        if (empty($row['last_active_at']) || strtotime($row['last_active_at']) < time() - 300) {
+            pw_db()->prepare('UPDATE user_sessions SET last_active_at = UTC_TIMESTAMP() WHERE id = ?')->execute([$row['id']]);
+        }
+        return true;
+    } catch (Throwable $e) {
+        return true; // fail open only while the optional migration is absent
+    }
+}
+
+function pw_revoke_user_sessions($userId, $exceptToken = null, $reason = 'user_requested') {
+    try {
+        $sql = 'UPDATE user_sessions SET revoked_at = UTC_TIMESTAMP(), revoked_reason = ? WHERE user_id = ? AND revoked_at IS NULL';
+        $params = [$reason, $userId];
+        if ($exceptToken !== null) {
+            $sql .= ' AND session_token_hash != ?';
+            $params[] = pw_session_hash($exceptToken);
+        }
+        $stmt = pw_db()->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->rowCount();
+    } catch (Throwable $e) {
+        return 0;
+    }
+}
+
+function pw_destroy_local_session() {
+    $_SESSION = [];
+    if (ini_get('session.use_cookies')) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+    }
+    session_destroy();
 }
 
 // --- Login attempt tracking -------------------------------------------------

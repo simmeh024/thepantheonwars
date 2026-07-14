@@ -46,4 +46,7 @@ $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
 $stmt = $db->prepare('UPDATE users SET password_hash = ? WHERE id = ?');
 $stmt->execute([$newHash, $user['id']]);
 
-pw_json(['ok' => true]);
+$revoked = pw_revoke_user_sessions((int)$user['id'], pw_current_session_token(), 'password_changed');
+pw_log_activity('sessions_revoked_after_password_change', 'Changed password and signed out ' . $revoked . ' other session(s).', (int)$user['id'], $user['username']);
+
+pw_json(['ok' => true, 'other_sessions_revoked' => $revoked]);

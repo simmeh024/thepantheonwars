@@ -596,3 +596,30 @@ CREATE TABLE IF NOT EXISTS overlords (
 
 ALTER TABLE worlds
   ADD CONSTRAINT fk_worlds_overlord FOREIGN KEY (overlord_id) REFERENCES overlords(id) ON DELETE SET NULL;
+
+-- Revocable account-session registry. Hashes only: never persist raw PHP
+-- session IDs or opaque browser session tokens.
+CREATE TABLE IF NOT EXISTS user_sessions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  session_token_hash CHAR(64) NOT NULL,
+  php_session_id_hash CHAR(64) NOT NULL,
+  device_label VARCHAR(120) NOT NULL,
+  user_agent VARCHAR(500) NOT NULL DEFAULT '',
+  browser_name VARCHAR(80) NOT NULL DEFAULT 'Unknown browser',
+  operating_system VARCHAR(80) NOT NULL DEFAULT 'Unknown operating system',
+  ip_address VARCHAR(64) NOT NULL,
+  country_code CHAR(2) NULL,
+  country_name VARCHAR(100) NULL,
+  auth_provider VARCHAR(30) NOT NULL DEFAULT 'password',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_active_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at DATETIME NOT NULL,
+  revoked_at DATETIME NULL,
+  revoked_reason VARCHAR(64) NULL,
+  is_persistent TINYINT(1) NOT NULL DEFAULT 1,
+  UNIQUE KEY uniq_session_token_hash (session_token_hash),
+  KEY idx_user_active (user_id, revoked_at, expires_at),
+  KEY idx_user_last_active (user_id, last_active_at),
+  CONSTRAINT fk_user_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

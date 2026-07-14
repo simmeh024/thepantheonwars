@@ -85,8 +85,10 @@ pw_log_login_attempt($ip, $identifier, true);
 
 session_regenerate_id(true);
 $_SESSION['user_id'] = (int)$user['id'];
+pw_issue_user_session((int)$user['id'], 'password');
 
 pw_log_activity('login_ok', ucfirst($user['role']) . ' logged in.', (int)$user['id'], $user['username']);
+pw_log_activity('session_created', 'Created a password-authenticated session.', (int)$user['id'], $user['username']);
 
 pw_json(['ok' => true, 'user' => [
     'id' => (int)$user['id'],

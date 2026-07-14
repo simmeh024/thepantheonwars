@@ -138,6 +138,10 @@ $bannedUntil = $banned ? $newBannedUntil : null;
 $stmt = $db->prepare('UPDATE users SET display_name = ?, email = ?, role = ?, banned_at = ?, banned_until = ? WHERE id = ?');
 $stmt->execute([$displayName, $email, $role, $bannedAt, $bannedUntil, $id]);
 
+if ($banned && !$wasBanned) {
+    $revokedSessions = pw_revoke_user_sessions($id, null, 'account_banned');
+}
+
 $targetLabel = $existing['username'];
 $roleLabels = [];
 foreach ($db->query('SELECT slug, label FROM roles') as $r) {
@@ -216,6 +220,7 @@ if ($banned && !$wasBanned) {
         'Banned the account ' . $targetLabel . ' ' . pw_ban_description($bannedUntil) . '.',
         $adminUser
     );
+    pw_log_admin_activity('member_sessions_revoked', 'Revoked ' . ($revokedSessions ?? 0) . ' session(s) for banned account ' . $targetLabel . '.', $adminUser);
 } elseif ($banned && $wasBanned && $bannedUntil !== $existing['banned_until']) {
     pw_log_admin_activity(
         'member_banned',

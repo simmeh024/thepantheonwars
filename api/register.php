@@ -44,6 +44,8 @@ $userId = (int)$db->lastInsertId();
 
 session_regenerate_id(true);
 $_SESSION['user_id'] = $userId;
+pw_issue_user_session($userId, 'password');
+pw_log_activity('session_created', 'Created a password-authenticated session.', $userId, $username);
 
 pw_json(['ok' => true, 'user' => [
     'id' => $userId,
