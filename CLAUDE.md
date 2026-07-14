@@ -212,7 +212,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   translation. `translation_auto_published` and
   `translation_draft_waiting_review` are written once by the central generator
   with `BH-4` as the system actor, so webhook and resync events appear in the
-  Audit Log too. Existing queued drafts are deliberately not bulk-published;
+  Audit Log too. Both have dedicated document-status icons; unknown future
+  actions fall back to their category icon so activity cards never render an
+  empty icon slot. Existing queued drafts are deliberately not bulk-published;
   regenerate one to apply this rule.
 
 - **Dispatch translation confidence (v12):** the deterministic formatter now
@@ -294,9 +296,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   objection, or other requests; these always enter the permissioned Community
   -> Privacy Requests queue and are never fulfilled automatically. Run
   `migration_privacy_requests.sql` once in phpMyAdmin after deployment. BH-4
-  priority is critical alerts -> topic reports -> privacy requests -> dispatch
-  translations. Request content and staff outcomes must never be copied into
-  the ordinary admin audit log.
+  priority is critical alerts -> backup reviews -> topic reports -> privacy
+  requests -> dispatch translations. Request content and staff outcomes must
+  never be copied into the ordinary admin audit log.
 
 - **SQL Performance monitoring:** `api/db.php` uses a guarded PDO statement
   wrapper to record only statements taking at least 100ms into

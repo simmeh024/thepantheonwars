@@ -4000,6 +4000,8 @@
     book_deleted: 'Book deleted',
     translation_added: 'Translation added',
     translation_updated: 'Translation updated',
+    translation_auto_published: 'Translation auto-published',
+    translation_draft_waiting_review: 'Translation awaiting review',
     category_edited: 'Category changed',
     member_updated: 'Member updated',
     member_role_changed: 'Role changed',
@@ -4058,6 +4060,8 @@
     book_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9.5" y1="10" x2="14.5" y2="15"/><line x1="14.5" y1="10" x2="9.5" y2="15"/></svg>',
     translation_added: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M5 12h14M12 5v14"/></svg>',
     translation_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
+    translation_auto_published: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h5"/><path d="m8.5 15 2.1 2.1L15.5 12"/></svg>',
+    translation_draft_waiting_review: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h5"/><circle cx="12" cy="15" r="3.5"/><path d="M12 13v2l1.3.9"/></svg>',
     category_edited: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M20.6 12.6 12.7 20.5a2 2 0 0 1-2.8 0l-6.4-6.4a2 2 0 0 1 0-2.8L11.4 3.3a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v6.6a2 2 0 0 1-.4 1.7z"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/></svg>',
     member_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
     member_role_changed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3z"/></svg>',
@@ -4170,7 +4174,7 @@
       var card = document.createElement('div');
       card.className = 'activity-card activity-' + escapeHtml(entry.action) + ' activity-category-' + category.key;
       card.innerHTML =
-        '<div class="activity-card-icon">' + (ACTIVITY_ICONS[entry.action] || '') + '</div>' +
+        '<div class="activity-card-icon">' + (ACTIVITY_ICONS[entry.action] || category.icon || '') + '</div>' +
         '<div class="activity-card-body">' +
           '<div class="activity-card-head">' +
             '<span class="activity-card-heading"><span class="activity-card-label">' + escapeHtml((ACTIVITY_LABELS[entry.action] || entry.action).toUpperCase()) + '</span>' +
