@@ -450,6 +450,7 @@
 .profile-oauth-row strong { display: block; font-family: 'Cinzel', serif; font-size: 0.82rem; color: var(--gold-bright); }
 .profile-oauth-row small { display: block; margin-top: 3px; color: var(--text-faint); font-size: 0.75rem; }
 .profile-oauth-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.profile-oauth-actions > [hidden] { display: none; }
 @media (max-width: 520px) { .profile-oauth-row { align-items: flex-start; flex-direction: column; } }
 
 .profile-session-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 1.15em; }

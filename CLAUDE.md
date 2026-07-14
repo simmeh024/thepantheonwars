@@ -153,7 +153,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=181, community v=183, and admin v=195. Public pages use
+  versions: public v=181, community v=184, and admin v=195. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -253,7 +253,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   can advance it even when the unique commit SHA is already present. Use the
   short Git SHA for a developer-facing commit identifier; do not describe a
   Developer Record number as “the Nth Dispatch.” The current page cache link is
-  `community-bundle.css?v=176`, which imports `community.css?v=174`.
+  `community-bundle.css?v=184`, which imports `community.css?v=177`.
 
 - **Notification bell polish:** `js/notifications.js` is dynamically appended only
   once an authenticated session is known (through `js/members.js`). It now manages
