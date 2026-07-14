@@ -477,6 +477,23 @@ function pw_dispatch_draft_hash(string $subject, string $body, string $tag): str
     return hash('sha256', "dispatch-draft-v12\n" . $subject . "\n" . $body . "\n" . $tag);
 }
 
+// Webhook-created Dispatches have no signed-in administrator, but their
+// translation state still belongs in the same audit trail. Use BH-4 as a
+// clearly identifiable system actor and never let a nonessential audit write
+// prevent a verified repository update from being processed.
+function pw_log_dispatch_translation_lifecycle(PDO $db, string $action, string $description): void
+{
+    try {
+        $stmt = $db->prepare(
+            'INSERT INTO admin_activity_log (user_id, username, action, description, ip_address)
+             VALUES (NULL, ?, ?, ?, ?)'
+        );
+        $stmt->execute(['BH-4', $action, $description, $_SERVER['REMOTE_ADDR'] ?? 'system']);
+    } catch (PDOException $e) {
+        // Audit logging must not make webhook delivery or manual resync fail.
+    }
+}
+
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
 {
     $entryStmt = $db->prepare('SELECT id, sha, subject, body, tag FROM dispatch_entries WHERE id = ?');
@@ -509,6 +526,11 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
                 // A high-confidence publication is valid even on installations
                 // that have not yet created the optional draft storage table.
             }
+            pw_log_dispatch_translation_lifecycle(
+                $db,
+                'translation_auto_published',
+                'BH-4 automatically published a high-confidence end-user translation for dispatch #' . $dispatchId . '.'
+            );
             return [
                 'ok' => true,
                 'auto_published' => true,
@@ -529,6 +551,13 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
            source = VALUES(source)'
     );
     $stmt->execute([$dispatchId, $entry['sha'], $result['draft'], $result['hash']]);
+    if ($stmt->rowCount() === 1) {
+        pw_log_dispatch_translation_lifecycle(
+            $db,
+            'translation_draft_waiting_review',
+            'BH-4 created a ' . $result['confidence']['level'] . '-confidence end-user draft for dispatch #' . $dispatchId . '; editorial review is required before publication.'
+        );
+    }
     return [
         'ok' => true,
         'auto_published' => false,

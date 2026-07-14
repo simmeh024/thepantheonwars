@@ -209,9 +209,11 @@ also supports a deliberately manual `?full=1` historical rebuild.
   in the editor queue. Publication uses `INSERT IGNORE` so it cannot overwrite
   a concurrent editor approval, and a successful automatic publication removes
   any local draft. The admin modal stays open and becomes an editable published
-  translation, with an Audit Log entry for manual auto-publications. Existing
-  queued drafts are deliberately not bulk-published; regenerate one to apply
-  this rule.
+  translation. `translation_auto_published` and
+  `translation_draft_waiting_review` are written once by the central generator
+  with `BH-4` as the system actor, so webhook and resync events appear in the
+  Audit Log too. Existing queued drafts are deliberately not bulk-published;
+  regenerate one to apply this rule.
 
 - **Dispatch translation confidence (v12):** the deterministic formatter now
   recognizes a wider set of action verbs, uses a commit body only as an

@@ -27,7 +27,6 @@ if (empty($result['ok'])) {
 }
 
 if (!empty($result['auto_published'])) {
-    pw_log_admin_activity('translation_auto_published', 'Automatically published a high-confidence end-user translation for dispatch #' . $dispatchId . '.', $adminUser);
     pw_json([
         'ok' => true,
         'auto_published' => true,
@@ -48,7 +47,6 @@ if (!$draft) {
     pw_error('The draft could not be loaded after generation.', 500);
 }
 
-pw_log_admin_activity('translation_draft_generated', 'Generated a rule-based end-user draft for dispatch #' . $dispatchId . '.', $adminUser);
 $metadata = pw_dispatch_end_user_draft($draft['subject'], (string)$draft['body'], $draft['tag']);
 pw_json([
     'ok' => true,
