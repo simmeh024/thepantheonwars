@@ -202,6 +202,15 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Recent history (most recent first)
 
+- **Dispatch translation confidence (v12):** the deterministic formatter now
+  recognizes a wider set of action verbs, uses a commit body only as an
+  additional confidence-context signal, and gives safe descriptive legacy
+  titles one explicit structural match. Technical titles containing a file
+  path can receive a cautious score only when a separate service or
+  maintenance cue is present; path-only and hash-like records remain low.
+  The draft-format hash is `dispatch-draft-v12`, so an admin regeneration
+  refreshes only unapproved local drafts and never overwrites published text.
+
 - **Public Development Dispatches:** expanded entries now present the approved
   end-user translation first. If none is published, they show the notice
   “A simpler explanation is not available right now. BH-4 has retained the

@@ -14,6 +14,10 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     $clean = preg_replace('/\s*\+\s*/', ' and ', $clean);
     $clean = preg_replace('/\s*&\s*/', ' and ', $clean);
     $contextSource = $clean;
+    // Legacy commits often have a terse subject but a useful explanatory body.
+    // Treat the body as an additional, independently recognizable context signal;
+    // it shapes confidence only and is never copied verbatim into reader copy.
+    $bodyContext = trim(preg_replace('/\s+/', ' ', str_replace(['_', '+', '&'], [' ', ' and ', ' and '], $body)));
     $rulesMatched = 0;
 
     // Many legacy commits use a human-readable area before the description,
@@ -21,7 +25,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     // Separating that area from the actual change gives the draft formatter
     // a reliable description to work with, even when the title has no verb.
     $scopedCommit = '/^[A-Za-z][A-Za-z0-9 .&\/()\-]{1,60}:\s+(.+)$/';
-    $actionOpening = '/^(?:add|create|introduce|include|fix|resolve|repair|restore|improve|enhance|refine|polish|streamline|redesign|rework|restructure|expand|keep|show|align|widen|enlarge|split|stack|make|throttle|reduce|defer|slow|prevent|reserve|use|switch|load|deliver|cross link|connect|unlock|bump|optimi[sz]e|speed up|update|refresh|remove|retire|delete|move|reorganize|reorganise|reposition|secure|protect|harden|strengthen|color code|give|respect|clear|place|confine|pin|anchor|animate|preserve|preload|tighten|elevate|complete|alert|index|bundle|limit|pause|cache|pre aggregate|bulk load|track|collapse|graph|log|group|mask|rename|surface|reorder|finalize|swap|render|force|mirror|theme|store|merge|replace|auto refresh|always refresh|right align|put|pull|un float|paginate|increase|version|trim|revert|relative|sortable|styled|subtle|tiered|full|compact|label|highlight|explore|sharpen|hide)\b/i';
+    $actionOpening = '/^(?:add|create|introduce|include|fix|resolve|repair|restore|improve|enhance|refine|polish|streamline|redesign|rework|restructure|expand|keep|show|align|widen|enlarge|split|stack|make|throttle|reduce|defer|slow|prevent|reserve|use|switch|load|deliver|cross link|connect|unlock|bump|optimi[sz]e|speed up|update|refresh|remove|retire|delete|move|reorganize|reorganise|reposition|secure|protect|harden|strengthen|color code|give|respect|clear|place|confine|pin|anchor|animate|preserve|preload|tighten|elevate|complete|alert|index|bundle|limit|pause|cache|pre aggregate|bulk load|track|collapse|graph|log|group|mask|rename|surface|reorder|finalize|swap|render|force|mirror|theme|store|merge|replace|auto refresh|always refresh|right align|put|pull|un float|paginate|increase|version|trim|revert|relative|sortable|styled|subtle|tiered|full|compact|label|highlight|explore|sharpen|hide|implement|enable|allow|expose|adjust|correct|clarify|consolidate|standardize|standardise|simplify|migrate|integrate|validate|verify|review|audit|diagnose|stabilize|stabilise|modernize|modernise|address|ensure|support|avoid|guard|isolate|measure|monitor|prepare|document|describe)\b/i';
     if (!preg_match($actionOpening, $clean) && preg_match($scopedCommit, $clean, $scopeMatches)) {
         $rulesMatched++;
         $clean = $scopeMatches[1];
@@ -140,6 +144,19 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
     // about a feature when the source message cannot be safely rephrased.
     $unsafe = $clean === '' || preg_match('/(?:\b[0-9a-f]{7,40}\b|[\\\\\/]|\.php\b|\.js\b|\.css\b)/i', $clean);
     if ($unsafe) {
+        // A file name alone is not reader-facing, but an otherwise meaningful
+        // technical title can still be recognized safely. This preserves a
+        // cautious medium/high score instead of treating every path reference
+        // as opaque, while hashes and path-only titles remain low confidence.
+        $technicalCue = preg_match('/\b(?:API|SQL|MySQL|MariaDB|database|session|cache|query|performance|security|header|cron|webhook|deployment|GitHub|font|image|asset|stylesheet)\b/i', $contextSource . ' ' . $bodyContext);
+        if ($technicalCue) {
+            $rulesMatched++;
+            return [
+                'draft' => 'BH-4 has completed a focused maintenance update to a supporting site service. It reduces avoidable friction behind the scenes while keeping the reader-facing experience steady.',
+                'confidence' => pw_dispatch_draft_confidence($rulesMatched),
+                'hash' => pw_dispatch_draft_hash($subject, $body, $tag),
+            ];
+        }
         return [
             'draft' => 'This update contains internal maintenance and reliability improvements. It helps keep the site stable and ready for future changes.',
             'confidence' => pw_dispatch_draft_confidence(0),
@@ -253,11 +270,17 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         ],
     ];
     foreach ($contextLibrary as $pattern => $options) {
-        if (preg_match($pattern, $contextSource . ' ' . $clean)) {
+        if (preg_match($pattern, $contextSource . ' ' . $clean . ' ' . $bodyContext)) {
             $rulesMatched++;
             $benefit .= ' ' . $pickVariant($options, 'context');
             break;
         }
+    }
+    // A safe, descriptive title can still be useful to an editor even when it
+    // uses an uncommon verb. Count that structure as one explicit rule, but
+    // keep opaque values and bare technical tokens in the low-confidence path.
+    if ($rulesMatched === 0 && preg_match_all('/[A-Za-z]{3,}/', $clean) >= 3) {
+        $rulesMatched++;
     }
     $object = lcfirst($clean);
     $draft = '';
@@ -333,6 +356,12 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag):
         '/^(?:explore)\s+(.+)$/i' => 'This update reviews %s to prepare a more reliable next step.',
         '/^(?:sharpen)\s+(.+)$/i' => 'This update makes %s clearer to view.',
         '/^(?:hide)\s+(.+)$/i' => 'This update removes unnecessary visual clutter from %s.',
+        '/^(?:implement|enable|allow|expose|support)\s+(.+)$/i' => 'This update makes %s available in a clearer, more reliable way.',
+        '/^(?:adjust|correct|clarify)\s+(.+)$/i' => 'This update clarifies and improves %s.',
+        '/^(?:consolidate|standardize|standardise|simplify|integrate)\s+(.+)$/i' => 'This update brings %s into a clearer, more consistent approach.',
+        '/^(?:migrate)\s+(.+)$/i' => 'This update moves %s onto a more dependable foundation.',
+        '/^(?:validate|verify|review|audit|diagnose|measure|monitor)\s+(.+)$/i' => 'This update gives %s a more reliable basis for review.',
+        '/^(?:stabilize|stabilise|modernize|modernise|address|ensure|avoid|guard|isolate|prepare|document|describe)\s+(.+)$/i' => 'This update makes %s more dependable and easier to follow.',
     ];
     foreach ($actionTemplates as $pattern => $template) {
         if (preg_match($pattern, $clean, $matches)) {
@@ -444,7 +473,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag): string
 {
-    return hash('sha256', "dispatch-draft-v11\n" . $subject . "\n" . $body . "\n" . $tag);
+    return hash('sha256', "dispatch-draft-v12\n" . $subject . "\n" . $body . "\n" . $tag);
 }
 
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): bool
