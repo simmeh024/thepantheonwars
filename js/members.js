@@ -248,9 +248,12 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     if (!slot) return;
     if (loggedIn) {
+      var displayName = escapeHtml(window.PW_AUTH.user.display_name);
+      var initial = escapeHtml(String(window.PW_AUTH.user.display_name || window.PW_AUTH.user.username || '?').charAt(0).toUpperCase());
+      var roleColor = escapeHtml(window.PW_AUTH.user.role_color || '#a279ec');
       slot.className = 'nav-item has-dropdown auth-nav-item';
       slot.innerHTML =
-        '<span class="nav-parent auth-username">' + escapeHtml(window.PW_AUTH.user.display_name) + '<span class="nav-caret">⌄</span></span>' +
+        '<span class="nav-parent auth-profile-chip" style="--auth-role-color:' + roleColor + '"><span class="auth-profile-initial">' + initial + '</span><span class="auth-profile-name">' + displayName + '</span><span class="nav-caret">⌄</span></span>' +
         '<div class="nav-dropdown auth-nav-dropdown">' +
           '<a href="member.html?id=' + encodeURIComponent(window.PW_AUTH.user.id) + '">Profile</a>' +
           '<a href="profile.html">Settings</a>' +

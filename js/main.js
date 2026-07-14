@@ -42,6 +42,65 @@ function wireWorldInteractions() {
 window.wireWorldInteractions = wireWorldInteractions;
 
 document.addEventListener('DOMContentLoaded', function () {
+  // Public navigation polish: mark the actual route (including dropdown
+  // destinations), and enrich the two discovery-oriented menus without
+  // duplicating navigation markup on every page.
+  (function enhancePublicNavigation() {
+    var nav = document.querySelector('.main-nav');
+    if (!nav) return;
+    var normalizePath = function (value) {
+      var path = new URL(value, location.origin).pathname.replace(/\/index\.html$/, '/');
+      return path === '/' ? '/' : path.replace(/\/$/, '');
+    };
+    var currentPath = normalizePath(location.pathname);
+    Array.prototype.forEach.call(nav.querySelectorAll('a[href]'), function (link) {
+      if (normalizePath(link.getAttribute('href')) !== currentPath) return;
+      link.classList.add('active');
+      var group = link.closest('.nav-item.has-dropdown');
+      if (group) group.classList.add('nav-current');
+    });
+    var routeGroups = {
+      'The Universe': ['/books.html', '/chapter-one.html', '/worlds.html', '/overlord.html', '/overlords.html', '/soundtracks.html'],
+      'News': ['/news.html', '/dev-dispatches.html', '/dev-metrics.html'],
+      'Community': ['/community.html', '/member.html', '/memberlist.html', '/profile.html', '/notifications.html', '/quiz.html']
+    };
+    Array.prototype.forEach.call(nav.querySelectorAll('.nav-item.has-dropdown'), function (item) {
+      var navLabel = item.querySelector('.nav-parent');
+      var name = navLabel ? navLabel.childNodes[0].textContent.trim() : '';
+      if (routeGroups[name] && routeGroups[name].indexOf(currentPath) !== -1) item.classList.add('nav-current');
+    });
+
+    var panels = {
+      'The Universe': {
+        eyebrow: 'Explore the Pantheon',
+        text: 'Follow the worlds, their rulers, and the stories that bind them.'
+      },
+      'Community': {
+        eyebrow: 'Enter Nexus Veil',
+        text: 'Meet fellow readers, exchange theories, and shape the conversation.'
+      }
+    };
+    Array.prototype.forEach.call(nav.querySelectorAll('.nav-item.has-dropdown'), function (item) {
+      var parent = item.querySelector('.nav-parent');
+      var dropdown = item.querySelector('.nav-dropdown');
+      var label = parent ? parent.childNodes[0].textContent.trim() : '';
+      var panel = panels[label];
+      if (!panel || !dropdown || dropdown.dataset.enhanced) return;
+      dropdown.dataset.enhanced = 'true';
+      dropdown.classList.add('nav-dropdown-rich');
+      var links = document.createElement('div');
+      links.className = 'nav-dropdown-links';
+      Array.prototype.slice.call(dropdown.querySelectorAll(':scope > a')).forEach(function (link) {
+        links.appendChild(link);
+      });
+      var aside = document.createElement('div');
+      aside.className = 'nav-dropdown-aside';
+      aside.innerHTML = '<span class="nav-dropdown-eyebrow">' + panel.eyebrow + '</span><span class="nav-dropdown-copy">' + panel.text + '</span>';
+      dropdown.appendChild(links);
+      dropdown.appendChild(aside);
+    });
+  })();
+
   // Visitor Statistics is non-critical telemetry. Run it when the browser is
   // idle so it cannot compete with the hero, styles, or authentication state
   // during the initial render.

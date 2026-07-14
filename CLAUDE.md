@@ -153,14 +153,14 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=182, community v=185, and admin v=196. Public pages use
+  versions: public v=183, community v=186, and admin v=197. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=4), `js/members.js?v=N` (current: v=14)
+  than once): `js/main.js?v=N` (current: v=5), `js/members.js?v=N` (current: v=15)
   and `js/notifications.js?v=N` (current: v=8), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
@@ -394,7 +394,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   refresh when the tab becomes visible. `api/session-check.php` additionally
   throttles `users.last_active_at` writes to once per user per minute; the online
   window remains five minutes, so multi-tab activity stays accurate without
-  redundant row locks. The current members-script cache version is v=14 across
+  redundant row locks. The current members-script cache version is v=15 across
   every public page and the admin console.
 
 - **Static asset caching:** `.htaccess` now gives versioned CSS, JavaScript,

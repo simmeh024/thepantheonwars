@@ -498,6 +498,49 @@ nav.main-nav a {
   color: var(--text-dim);
 }
 nav.main-nav a:hover, nav.main-nav a.active { color: var(--gold); }
+
+/* Public navigation: a restrained temple-rail hierarchy with route beacons,
+   constellation dots, and discovery panels for the two larger sections. */
+header.site-header::after {
+  content: ''; position: absolute; right: 0; bottom: -1px; left: 0; height: 1px;
+  background: linear-gradient(90deg, transparent 2%, rgba(162,121,236,0.45) 22%, rgba(224,178,74,0.52) 50%, rgba(162,121,236,0.45) 78%, transparent 98%);
+  pointer-events: none;
+}
+nav.main-nav > a, nav.main-nav > .nav-item { position: relative; padding: 7px 0 9px; }
+nav.main-nav > a::after, .nav-item:not(.auth-nav-item) .nav-parent::after {
+  content: ''; position: absolute; right: 12%; bottom: 0; left: 12%; height: 2px;
+  background: linear-gradient(90deg, var(--purple-bright), var(--gold-bright), var(--purple-bright));
+  box-shadow: 0 0 10px rgba(224,178,74,0.38); transform: scaleX(0); transform-origin: center;
+  transition: transform 0.22s ease;
+}
+.nav-item:not(.auth-nav-item) .nav-parent::after { right: 0; left: 0; }
+nav.main-nav > a.active::after, .nav-item.nav-current .nav-parent::after { transform: scaleX(1); }
+nav.main-nav > a::before, .nav-item:not(.auth-nav-item) .nav-parent::before {
+  content: ''; display: inline-block; width: 4px; height: 4px; margin: 0 7px 2px 0;
+  border-radius: 50%; background: var(--purple-bright); box-shadow: 0 0 7px rgba(162,121,236,0.62);
+  opacity: 0.34; transition: opacity 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
+.nav-item:hover .nav-parent::before, .nav-item:focus-within .nav-parent::before,
+.nav-item.nav-current .nav-parent::before { opacity: 1; background: var(--gold-bright); box-shadow: 0 0 9px rgba(224,178,74,0.7); }
+.nav-item.nav-current .nav-parent { color: var(--gold); }
+.nav-dropdown-rich {
+  min-width: 430px; display: grid; grid-template-columns: minmax(180px, 1.05fr) minmax(150px, 0.95fr);
+  gap: 10px; padding: 10px; align-items: stretch;
+}
+.nav-dropdown-links { display: flex; flex-direction: column; padding: 2px 0; }
+.nav-dropdown-rich .nav-dropdown-links a { padding: 8px 10px; border-radius: var(--radius-sm); }
+.nav-dropdown-aside {
+  display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 13px 14px;
+  border: 1px solid rgba(162,121,236,0.22); border-radius: var(--radius-sm);
+  background: linear-gradient(145deg, rgba(124,79,214,0.15), rgba(224,178,74,0.045));
+}
+.nav-dropdown-eyebrow { color: var(--gold-bright); font-size: 0.61rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.nav-dropdown-copy { color: var(--text-faint); font-size: 0.72rem; line-height: 1.45; }
+.auth-profile-chip { gap: 7px; padding: 4px 8px 4px 4px; border: 1px solid rgba(162,121,236,0.33); border-radius: 999px; background: rgba(124,79,214,0.08); transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; }
+.auth-nav-item:hover .auth-profile-chip, .auth-nav-item:focus-within .auth-profile-chip { border-color: var(--auth-role-color, var(--gold-dim)); background: rgba(124,79,214,0.14); box-shadow: 0 0 16px rgba(162,121,236,0.16); }
+.auth-profile-initial { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--auth-role-color, var(--purple-bright)); border-radius: 50%; color: var(--text); font: 600 0.68rem/1 'Cinzel', serif; box-shadow: 0 0 8px rgba(162,121,236,0.42); }
+.auth-profile-name { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .nav-toggle {
   display: none;
   flex-direction: column;
@@ -537,6 +580,25 @@ nav.main-nav a:hover, nav.main-nav a.active { color: var(--gold); }
     gap: 12px;
   }
   .nav-dropdown a { padding: 0; }
+  nav.main-nav {
+    background: linear-gradient(160deg, rgba(24,15,45,0.98), rgba(11,7,23,0.99));
+    gap: 10px;
+  }
+  nav.main-nav > a, nav.main-nav > .nav-item, nav.main-nav > .auth-nav-item {
+    box-sizing: border-box; width: 100%; min-height: 46px; padding: 12px 14px;
+    border: 1px solid rgba(162,121,236,0.18); border-radius: var(--radius-sm);
+    background: rgba(255,255,255,0.018);
+  }
+  nav.main-nav > a.active, nav.main-nav > .nav-item.nav-current { border-color: rgba(224,178,74,0.52); background: rgba(124,79,214,0.12); }
+  .nav-item:not(.auth-nav-item) .nav-parent::before { margin-left: 0; }
+  .nav-dropdown { width: 100%; padding: 12px 0 0; }
+  .nav-dropdown-links { gap: 7px; }
+  .nav-dropdown-rich { display: flex; gap: 10px; }
+  .nav-dropdown-rich .nav-dropdown-links a { padding: 8px 10px; border: 1px solid rgba(162,121,236,0.14); background: rgba(255,255,255,0.018); }
+  .nav-dropdown-aside { margin-top: 2px; }
+  .auth-nav-item { justify-content: flex-start; }
+  .auth-profile-chip { width: 100%; justify-content: flex-start; border: 0; padding: 0; background: none; box-shadow: none; }
+  .auth-profile-initial { width: 26px; height: 26px; }
 }
 
 /* ---------------- Hero ---------------- */
