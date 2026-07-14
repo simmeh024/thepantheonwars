@@ -451,8 +451,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   notes" above) -- first showed `undefined MB` (field-name mismatch with the shared
   `setAvatarStorageBar()` renderer, which expects `used_mb`/`max_mb` not `used_gb`/
   `max_gb`), then showed a real but wrong `0 MB` (the `disk_free_space()` quota
-  assumption was wrong). Now uses `du -sb` and reads ~600 MB / 24576 MB, matching
-  cPanel's own Disk Usage page.
+  assumption was wrong). Now uses `du -sb` and reads ~600 MB / 50483 MB (the
+  49.3 GiB account allowance, deliberately displayed in MB), matching cPanel's
+  own Disk Usage page. The database-size soft budget is 2048 MB.
 - Added System Status "CPU (Shared)" card (24h line chart, live load1/5/15 + core
   count) and expanded the Database card (connections, QPS, slow queries, uptime,
   buffer pool hit ratio, threads running, largest-tables list with collation-mismatch

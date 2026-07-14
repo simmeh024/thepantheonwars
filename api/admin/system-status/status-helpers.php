@@ -196,7 +196,7 @@ function pw_check_database_load($db) {
 // PW_DB_SIZE_BUDGET_BYTES if it doesn't match how this host actually caps
 // things.
 function pw_check_database_size($db) {
-    $maxBytes = 500 * 1024 * 1024; // 500 MiB soft budget
+    $maxBytes = 2048 * 1024 * 1024; // 2,048 MiB soft budget
     $usedBytes = 0;
     try {
         $row = $db->query(
@@ -237,17 +237,18 @@ function pw_check_database_size($db) {
 // disk_free_space()/disk_total_space() were tried first but turned out to
 // reflect the underlying shared partition (effectively unlimited), not this
 // account's actual quota -- confirmed live: they always computed ~0 MB used
-// against a 24 GiB budget, while cPanel's own Disk Usage page showed the
+// against the account budget, while cPanel's own Disk Usage page showed the
 // real figure (a few hundred MB). `du -sb` against the home directory is
 // what actually agrees with cPanel's own numbers, so that's what's used
 // here (shell_exec is available on this host -- confirmed during the CPU/DB
 // introspection sweep). PW budget constants below match the real hosting
-// plan size (24 GiB); update them if the plan ever changes.
+// plan size (49.3 GiB / 50,483 MiB); update them if the plan ever changes.
 function pw_check_total_storage() {
     $homeDir = '/home/rdy3i6my40b0';
-    $maxBytes = 24 * 1024 * 1024 * 1024; // 24 GiB plan budget
-    $warnBytes = 20 * 1024 * 1024 * 1024; // warn once used crosses 20 GiB
-    $badBytes = 22 * 1024 * 1024 * 1024; // bad once used crosses 22 GiB (~92%)
+    $maxMb = 50483; // 49.3 GiB, deliberately displayed as MB in the console
+    $maxBytes = $maxMb * 1024 * 1024;
+    $warnBytes = $maxBytes * (20 / 24); // warn once usage crosses ~83%
+    $badBytes = $maxBytes * (22 / 24); // bad once usage crosses ~92%
 
     $usedBytes = null;
     if (function_exists('shell_exec')) {
@@ -262,7 +263,7 @@ function pw_check_total_storage() {
             'used_bytes' => 0,
             'max_bytes' => $maxBytes,
             'used_mb' => 0,
-            'max_mb' => round($maxBytes / (1024 * 1024)),
+            'max_mb' => $maxMb,
             'pct' => 0,
             'status' => 'unknown',
         ];
@@ -283,7 +284,7 @@ function pw_check_total_storage() {
         // setAvatarStorageBar() renderer is shared across all three and
         // expects *_mb specifically, not *_gb.
         'used_mb' => round($usedBytes / (1024 * 1024), 2),
-        'max_mb' => round($maxBytes / (1024 * 1024)),
+        'max_mb' => $maxMb,
         'pct' => round($pct, 1),
         'status' => $status,
     ];
