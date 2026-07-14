@@ -154,7 +154,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
   versions: public v=174, community v=175 (the Dispatches page is v=176), and
-  admin v=185. Public pages use
+  admin v=186. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -354,9 +354,12 @@ also supports a deliberately manual `?full=1` historical rebuild.
   query uses a sargable half-open UTC range rather than `YEAR(created_at)`.
   The Recent Visits feed derives an anonymous `Crawler` pill from the stored
   User-Agent through the allowlisted `pw_crawler_name()` helper; add recognised
-  search-engine signatures there. It does not alter stored visits, counting,
-  IP masking, or authenticated member classifications; unknown bots remain
-  Guests.
+  search-engine signatures there. The helper currently covers Googlebot,
+  Bingbot, DuckDuckBot, YandexBot, Baiduspider, Applebot and several smaller
+  engine crawlers. `api/admin/visitor-stats/recent.php` exposes only the
+  derived `is_crawler`/`crawler_name` values, never the raw User-Agent. This
+  does not alter stored visits, counting, IP masking, or authenticated member
+  classifications; unknown bots remain Guests.
 
 - **Admin Home summary endpoint:** `api/admin/home-summary.php` now returns
   every Home-card payload in one request (activity, queues, content/security/
