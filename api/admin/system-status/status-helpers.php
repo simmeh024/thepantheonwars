@@ -563,9 +563,9 @@ function pw_check_last_backup($db) {
     }
 
     $status = 'ok';
-    if ($days >= 14) {
+    if ($days >= 7) {
         $status = 'bad';
-    } elseif ($days >= 7) {
+    } elseif ($days >= 3) {
         $status = 'warn';
     }
 

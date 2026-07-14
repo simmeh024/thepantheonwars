@@ -454,6 +454,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   assumption was wrong). Now uses `du -sb` and reads ~600 MB / 50483 MB (the
   49.3 GiB account allowance, deliberately displayed in MB), matching cPanel's
   own Disk Usage page. The database-size soft budget is 2048 MB.
+- **Last Backup** is a manually logged health signal because cPanel account backups
+  are unavailable on this host: OK under 3 days, warning at 3 days, critical at 7
+  days, and immediately critical when no backup has ever been logged.
 - Added System Status "CPU (Shared)" card (24h line chart, live load1/5/15 + core
   count) and expanded the Database card (connections, QPS, slow queries, uptime,
   buffer pool hit ratio, threads running, largest-tables list with collation-mismatch
