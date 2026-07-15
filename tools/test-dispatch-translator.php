@@ -28,6 +28,13 @@ $cases = [
         'tag' => 'fix',
         'forbidden' => ['fixes fix chapter', 'around fix chapter'],
     ],
+    [
+        'subject' => 'Preserve action intent across all Dispatch title rewrites',
+        'body' => 'Safe replacements now retain the original action when a technical title becomes a concise reader-facing phrase.',
+        'tag' => 'refactor',
+        'contains' => ['development updates', 'original purpose'],
+        'forbidden' => ['record around action intent', 'made action intent'],
+    ],
 ];
 
 foreach ($cases as $case) {
@@ -39,6 +46,12 @@ foreach ($cases as $case) {
     foreach ($case['forbidden'] ?? [] as $fragment) {
         if (stripos($draft, $fragment) !== false) {
             fwrite(STDERR, "Action leaked into reader-facing object: " . $draft . "\n");
+            exit(1);
+        }
+    }
+    foreach ($case['contains'] ?? [] as $fragment) {
+        if (stripos($draft, $fragment) === false) {
+            fwrite(STDERR, "Expected reader-facing context is missing: " . $draft . "\n");
             exit(1);
         }
     }

@@ -40,6 +40,18 @@ phrases such as “made unlock…” or “fixed fix…” across the engine. Ru
 High confidence still requires multiple independent signals, preserving the
 existing auto-publication safety gate.
 
+## Reader-safe terminology dictionary
+
+Before the generic action templates run, PHP applies a narrow, reviewed
+dictionary of recurring project terminology. It converts known technical commit
+subjects into reader-safe objects and gives recurring product areas (accounts,
+navigation, analytics, privacy, security, backups, performance, styling, and
+Dispatch tooling) a concise BH-4 explanation. These entries are deterministic:
+they do not infer facts from an external service or write raw code details into
+the public update. Add a dictionary entry only for a specific, recurring commit
+pattern and add a matching regression case whenever it protects against a
+previously observed awkward phrase.
+
 ## cPanel setup (one time)
 
 1. In cPanel, open **Setup Python App** and create a Python **3.11 or 3.12**
@@ -56,11 +68,14 @@ existing auto-publication safety gate.
 
    ```php
    define('SPACY_PYTHON_BIN', '/home/rdy3i6my40b0/virtualenv/dispatch-nlp/3.11/bin/python');
-   define('SPACY_MODEL', 'en_core_web_md');
+   define('SPACY_MODEL', 'en_core_web_sm');
    ```
 
-4. Regenerate one medium or low-confidence Dispatch draft. The medium model is
-   larger than `sm`, but gives the local worker word vectors for semantic
-   domain matching. If the constants are removed or
+4. Regenerate one medium or low-confidence Dispatch draft. Keep the small model
+   as the production default: the deterministic PHP planner remains responsible
+   for reader-facing wording, while spaCy supplies only bounded local context.
+   The medium model is an optional experiment for vector-based domain hints; it
+   is slower and should be kept only if a measured review demonstrates a benefit.
+   If the constants are removed or
    the virtual environment is unavailable, the site safely returns to the
    original formatter without an error or a changed publication decision.

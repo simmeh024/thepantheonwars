@@ -153,6 +153,42 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // They retain the commit's meaning while speaking in the language readers
     // encounter on the site. The most specific replacements come first.
     $replacements = [
+        '/\bPreserve action intent across all Dispatch title rewrites\b/i' => 'how technical updates retain their intended meaning in reader-facing summaries',
+        '/\bMatch capitalized world-release commit titles\b/i' => 'how new world releases are recognized in reader-facing summaries',
+        '/\bWrite concrete world-release Dispatch summaries\b/i' => 'clearer public updates for new world releases',
+        '/\bPrioritize explicit worldbuilding evidence in Dispatch drafts\b/i' => 'how development updates recognize worldbuilding work',
+        '/\bPrevent vector domains from overriding clear Dispatch context\b/i' => 'the safeguards that keep development summaries on the right topic',
+        '/\bStrengthen Dispatch translation evidence engine\b/i' => 'the evidence checks behind reader-facing development summaries',
+        '/\bUse spaCy vectors for clearer Dispatch drafts\b/i' => 'local language analysis for development summaries',
+        '/\bFix spaCy worker launch on shared hosting\b/i' => 'the local language helper used for development summaries',
+        '/\bMonitor spaCy from Security and Scripts\b/i' => 'visibility into the local language helper',
+        '/\bPolish the signed-in profile navigation\b/i' => 'the profile menu for signed-in members',
+        '/\bAdd contextual hover detail to navigation panels\b/i' => 'helpful context in navigation panels',
+        '/\bElevate public navigation hierarchy and discovery\b/i' => 'clearer ways to explore the public site',
+        '/\bGive notification navigation a card treatment\b/i' => 'a clearer presentation for notifications',
+        '/\bRefresh account navigation without idle delay\b/i' => 'faster account-state updates in the site navigation',
+        '/\bHide unavailable Google unlink action\b/i' => 'clearer Google sign-in controls',
+        '/\bAdd Google OAuth authentication\b/i' => 'the option to sign in or register with Google',
+        '/\bAdd revocable user session management\b/i' => 'a way for members to review and revoke active sessions',
+        '/\bAdd crawler labels to visitor statistics\b/i' => 'a clearer distinction between search crawlers and human visitors',
+        '/\bHarden browser security policy\b/i' => 'stronger browser protections for the site',
+        '/\bKeep CSP compatible with host rewriting\b/i' => 'browser protections that remain compatible with the hosting environment',
+        '/\bColor-code audit activity icons\b/i' => 'clearer visual signals in the Audit Log',
+        '/\bPrioritize BH-4 backup reviews\b/i' => 'earlier attention for backup reviews',
+        '/\bEscalate stale backups through BH-4\b/i' => 'clearer escalation when a backup needs attention',
+        '/\bAuto-publish high-confidence Dispatch translations\b/i' => 'faster publication of well-supported development summaries',
+        '/\bAdd Translation Confidence Statistics to Admin Home\b/i' => 'a clearer overview of development-summary confidence',
+        '/\bKeep the dispatches sidebar label on one line\b/i' => 'a clearer Development Dispatches label in the sidebar',
+        '/\bPolish the admin sidebar and add personal navigation settings\b/i' => 'a more flexible Admin Console sidebar',
+        '/\bLoad CSS bundles by page audience\b/i' => 'page-specific styling delivery',
+        '/\bIntroduce shared CSS design tokens\b/i' => 'a more consistent visual foundation',
+        '/\bRespect reduced-motion preferences site-wide\b/i' => 'a steadier experience for visitors who reduce motion',
+        '/\bRestore active admin section after refresh\b/i' => 'the active Admin Console page after a refresh',
+        '/\bAdd privacy request workflow and GDPR notice\b/i' => 'a clearer privacy-request path for members and visitors',
+        '/\bPause presence heartbeats in hidden tabs\b/i' => 'background online-status checks when a tab is not visible',
+        '/\bPre-aggregate visitor journey transitions\b/i' => 'how visitor journeys are prepared for faster analysis',
+        '/\bBulk-load public world details\b/i' => 'how world details are prepared more efficiently for visitors',
+        '/\bAdd visitor journey Sankey diagram\b/i' => 'a visual view of how visitors move between pages',
         '/\bsurface error log candidate paths in errors\.php response\b/i' => 'a focused review of available site error diagnostics',
         '/\badd one click copy button for raw commit message\b/i' => 'a quick way to copy the original development note',
         '/\b24h refresh cadence, stacked bar chart with day\/week\/month\/year filter\b/i' => 'a clearer language-history view with flexible time ranges',
@@ -560,6 +596,46 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     $evidence['semantic_context'] = $plan['semantic_domain'] !== '';
     $naturalOverrideApplied = false;
     $naturalOverrides = [
+        '/\b(?:action intent|Dispatch title rewrites|translator regression|reader-facing development summaries|Dispatch Draft Translator)\b/i' => [
+            'draft' => [
+                'BH-4 refined how development updates are prepared for readers.',
+                'BH-4 strengthened the local process that prepares development updates for readers.',
+            ],
+            'benefit' => [
+                'The original purpose of a change is now less likely to be lost when it is explained in plain language.',
+                'This keeps the original purpose of technical work clear when it is explained in plain language.',
+            ],
+        ],
+        '/\b(?:Google OAuth|sign in or register with Google|Google sign-in)\b/i' => [
+            'draft' => [
+                'BH-4 added a more direct Google sign-in path for members.',
+                'BH-4 improved how members can use Google to enter their account.',
+            ],
+            'benefit' => [
+                'Existing account safeguards and member settings remain part of the same familiar experience.',
+                'The added option sits alongside the existing sign-in path rather than replacing it.',
+            ],
+        ],
+        '/\b(?:revocable user session|active sessions?|session management)\b/i' => [
+            'draft' => [
+                'BH-4 added clearer control over active member sessions.',
+                'BH-4 made it easier for members to review where their account is active.',
+            ],
+            'benefit' => [
+                'Members can now remove sessions they no longer recognise or need.',
+                'This gives account holders a more deliberate way to manage ongoing access.',
+            ],
+        ],
+        '/\b(?:crawler labels?|search crawlers?|visitor statistics)\b/i' => [
+            'draft' => [
+                'BH-4 clarified which recent visits come from recognised search crawlers.',
+                'BH-4 separated known indexing traffic from ordinary visitor records.',
+            ],
+            'benefit' => [
+                'Visitor Statistics can now present human activity with clearer context.',
+                'This improves analytics clarity without changing the privacy protections already in place.',
+            ],
+        ],
         '/\b(?:spaCy|spacy)\s+(?:worker|translation).*\b(?:launch|start|hosting|shared host)\b/i' => [
             'draft' => [
                 'BH-4 improved how the Dispatch translation worker starts on the shared host.',
@@ -809,7 +885,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v20\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v21\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array
