@@ -529,14 +529,16 @@ nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
   gap: 10px; padding: 10px; align-items: stretch;
 }
 .nav-dropdown-links { display: flex; flex-direction: column; padding: 2px 0; }
-.nav-dropdown-rich .nav-dropdown-links a { padding: 8px 10px; border-radius: var(--radius-sm); }
+.nav-dropdown-rich .nav-dropdown-links a { padding: 8px 10px; border-radius: var(--radius-sm); transition: color 0.18s ease, background-color 0.18s ease, padding-left 0.18s ease; }
+.nav-dropdown-rich .nav-dropdown-links a:hover, .nav-dropdown-rich .nav-dropdown-links a:focus-visible { padding-left: 14px; background: rgba(124,79,214,0.16); }
 .nav-dropdown-aside {
-  display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 13px 14px;
+  position: relative; isolation: isolate; overflow: hidden; display: flex; flex-direction: column; justify-content: center; gap: 8px; padding: 13px 14px;
   border: 1px solid rgba(162,121,236,0.22); border-radius: var(--radius-sm);
   background: linear-gradient(145deg, rgba(124,79,214,0.15), rgba(224,178,74,0.045));
 }
-.nav-dropdown-eyebrow { color: var(--gold-bright); font-size: 0.61rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
-.nav-dropdown-copy { color: var(--text-faint); font-size: 0.72rem; line-height: 1.45; }
+.nav-dropdown-aside::after { content: attr(data-watermark); position: absolute; z-index: 0; right: -12px; bottom: -9px; color: rgba(224,178,74,0.1); font: 700 1.45rem/1 'Cinzel', serif; letter-spacing: 0.08em; white-space: nowrap; pointer-events: none; }
+.nav-dropdown-eyebrow { position: relative; z-index: 1; color: var(--gold-bright); font-size: 0.61rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
+.nav-dropdown-copy { position: relative; z-index: 1; color: var(--text-faint); font-size: 0.72rem; line-height: 1.45; }
 .auth-profile-chip { gap: 7px; padding: 4px 8px 4px 4px; border: 1px solid rgba(162,121,236,0.33); border-radius: 999px; background: rgba(124,79,214,0.08); transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; }
 .auth-nav-item:hover .auth-profile-chip, .auth-nav-item:focus-within .auth-profile-chip { border-color: var(--auth-role-color, var(--gold-dim)); background: rgba(124,79,214,0.14); box-shadow: 0 0 16px rgba(162,121,236,0.16); }
 .auth-profile-initial { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--auth-role-color, var(--purple-bright)); border-radius: 50%; color: var(--text); font: 600 0.68rem/1 'Cinzel', serif; box-shadow: 0 0 8px rgba(162,121,236,0.42); }

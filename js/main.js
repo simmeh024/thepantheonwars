@@ -73,11 +73,33 @@ document.addEventListener('DOMContentLoaded', function () {
     var panels = {
       'The Universe': {
         eyebrow: 'Explore the Pantheon',
-        text: 'Follow the worlds, their rulers, and the stories that bind them.'
+        text: 'Follow the worlds, their rulers, and the stories that bind them.',
+        watermark: 'VEIL',
+        links: {
+          'The Books': { eyebrow: 'The Books', text: 'Begin with the novels and follow the fractures they leave behind.', watermark: 'BOOKS' },
+          'The Worlds': { eyebrow: 'The Worlds', text: 'Trace the realms beyond the Veil and the forces that shape them.', watermark: 'WORLDS' },
+          'The Overlords': { eyebrow: 'The Overlords', text: 'Meet the powers whose influence reaches across every world.', watermark: 'OVERLORDS' },
+          'The Soundtracks': { eyebrow: 'The Soundtracks', text: 'Listen to the score and atmosphere behind the Pantheon Wars.', watermark: 'SOUND' }
+        }
+      },
+      'News': {
+        eyebrow: 'Follow the record',
+        text: 'Read public updates and the development record behind the world.',
+        watermark: 'RECORD',
+        links: {
+          'Latest News': { eyebrow: 'Latest News', text: 'The newest announcements and public messages from the Pantheon.', watermark: 'NEWS' },
+          'Development Dispatches': { eyebrow: 'Development Dispatches', text: 'A reader-friendly chronicle of the work shaping the site.', watermark: 'DISPATCH' }
+        }
       },
       'Community': {
         eyebrow: 'Enter Nexus Veil',
-        text: 'Meet fellow readers, exchange theories, and shape the conversation.'
+        text: 'Meet fellow readers, exchange theories, and shape the conversation.',
+        watermark: 'NEXUS',
+        links: {
+          'Nexus Veil (Forum)': { eyebrow: 'Nexus Veil', text: 'Meet fellow readers, exchange theories, and shape the conversation.', watermark: 'NEXUS' },
+          'Member List': { eyebrow: 'Member List', text: 'Discover the readers, theorists, and creators gathered in the Veil.', watermark: 'MEMBERS' },
+          'Quiz': { eyebrow: 'Pantheon Quiz', text: 'Find the world, allegiance, and resonance that best answer your call.', watermark: 'ORACLE' }
+        }
       }
     };
     Array.prototype.forEach.call(nav.querySelectorAll('.nav-item.has-dropdown'), function (item) {
@@ -95,7 +117,23 @@ document.addEventListener('DOMContentLoaded', function () {
       });
       var aside = document.createElement('div');
       aside.className = 'nav-dropdown-aside';
-      aside.innerHTML = '<span class="nav-dropdown-eyebrow">' + panel.eyebrow + '</span><span class="nav-dropdown-copy">' + panel.text + '</span>';
+      var eyebrow = document.createElement('span');
+      eyebrow.className = 'nav-dropdown-eyebrow';
+      var copy = document.createElement('span');
+      copy.className = 'nav-dropdown-copy';
+      aside.appendChild(eyebrow);
+      aside.appendChild(copy);
+      var setPanelCopy = function (details) {
+        eyebrow.textContent = details.eyebrow;
+        copy.textContent = details.text;
+        aside.dataset.watermark = details.watermark || '';
+      };
+      setPanelCopy(panel);
+      Array.prototype.forEach.call(links.querySelectorAll('a'), function (link) {
+        var details = panel.links[link.textContent.trim()] || panel;
+        link.addEventListener('pointerenter', function () { setPanelCopy(details); });
+        link.addEventListener('focus', function () { setPanelCopy(details); });
+      });
       dropdown.appendChild(links);
       dropdown.appendChild(aside);
     });
