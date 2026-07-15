@@ -26,6 +26,11 @@ an unsupported draft high confidence on its own. Vector domains resolve only a
 genuinely unclassified commit and never replace an explicit local domain cue.
 Named worlds, maps, districts, books, and worldbuilding scope are decisive
 content cues before broad technical terms are evaluated.
+
+World-release records headed by `Unlock <World>` have an additional deterministic
+planner. It uses only stated facts—world name, full map, clickable district count,
+and landmarks—to produce a concrete public update rather than generic content
+language.
 High confidence still requires multiple independent signals, preserving the
 existing auto-publication safety gate.
 
