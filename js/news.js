@@ -8,6 +8,7 @@
   if (!container) return;
   var allPosts = [];
   var activeTag = '';
+  var moreTagsOpen = false;
 
   function dateLabel(value) {
     var date = new Date(String(value || '').replace(' ', 'T') + 'Z');
@@ -39,9 +40,12 @@
     title.textContent = post.title;
     article.appendChild(title);
 
+    makeParagraphs(post.body, article);
+
     if (post.tags && post.tags.length) {
       var tags = document.createElement('div');
       tags.className = 'post-tags';
+      tags.setAttribute('aria-label', 'Article tags');
       post.tags.forEach(function (tag) {
         var chip = document.createElement('span');
         chip.className = 'post-tag';
@@ -50,7 +54,6 @@
       });
       article.appendChild(tags);
     }
-    makeParagraphs(post.body, article);
 
     var stamp = document.createElement('div');
     stamp.className = 'stamp';
@@ -82,24 +85,60 @@
     if (!filters) return;
     var bySlug = {};
     allPosts.forEach(function (post) {
-      (post.tags || []).forEach(function (tag) { bySlug[tag.slug] = tag.label; });
+      (post.tags || []).forEach(function (tag) {
+        if (!bySlug[tag.slug]) bySlug[tag.slug] = { slug: tag.slug, label: tag.label, count: 0 };
+        bySlug[tag.slug].count++;
+      });
     });
     filters.textContent = '';
-    [{ slug: '', label: 'All updates' }].concat(Object.keys(bySlug).sort(function (a, b) {
-      return bySlug[a].localeCompare(bySlug[b]);
-    }).map(function (slug) { return { slug: slug, label: bySlug[slug] }; })).forEach(function (tag) {
+    var tags = Object.keys(bySlug).map(function (slug) { return bySlug[slug]; }).sort(function (a, b) {
+      return b.count - a.count || a.label.localeCompare(b.label);
+    });
+
+    function selectTag(slug) {
+      activeTag = slug;
+      if (tags.slice(10).some(function (tag) { return tag.slug === slug; })) moreTagsOpen = true;
+      renderTagFilters();
+      renderPosts();
+    }
+
+    function addTagButton(tag, target) {
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'news-tag-filter' + (activeTag === tag.slug ? ' is-active' : '');
       button.textContent = tag.label;
       button.setAttribute('aria-pressed', activeTag === tag.slug ? 'true' : 'false');
       button.addEventListener('click', function () {
-        activeTag = tag.slug;
-        renderTagFilters();
-        renderPosts();
+        selectTag(tag.slug);
       });
-      filters.appendChild(button);
+      target.appendChild(button);
+    }
+
+    addTagButton({ slug: '', label: 'All updates' }, filters);
+    tags.slice(0, 10).forEach(function (tag) { addTagButton(tag, filters); });
+
+    var extraTags = tags.slice(10);
+    if (!extraTags.length) return;
+
+    var more = document.createElement('div');
+    more.className = 'news-more-tags';
+    var toggle = document.createElement('button');
+    toggle.type = 'button';
+    toggle.className = 'news-more-tags-toggle';
+    toggle.setAttribute('aria-expanded', moreTagsOpen ? 'true' : 'false');
+    toggle.textContent = (moreTagsOpen ? 'Hide' : 'See') + ' more tags (' + extraTags.length + ')';
+    toggle.addEventListener('click', function () {
+      moreTagsOpen = !moreTagsOpen;
+      renderTagFilters();
     });
+    more.appendChild(toggle);
+
+    var moreList = document.createElement('div');
+    moreList.className = 'news-more-tags-list';
+    moreList.hidden = !moreTagsOpen;
+    extraTags.forEach(function (tag) { addTagButton(tag, moreList); });
+    more.appendChild(moreList);
+    filters.appendChild(more);
   }
 
   function renderPosts() {

@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=187">
+<link rel="stylesheet" href="css/public.css?v=188">
 </head>
 <body>
 
@@ -80,20 +80,38 @@
     <div class="container">
 
       <div class="dispatch-intro">
-        <img src="images/bh4-dispatch.jpg" alt="BH-4, Dispatch Unit">
-        <div>
+        <div class="dispatch-intro-portrait">
+          <img src="images/bh4-dispatch.jpg" alt="BH-4, Dispatch Unit">
+          <span class="dispatch-intro-signal" aria-hidden="true"></span>
+        </div>
+        <div class="dispatch-intro-copy">
+          <span class="dispatch-intro-kicker">Secure transmission relay</span>
           <span class="who">Delivered by BH-4 — Dispatch Unit</span>
           <p>Origin unknown. Loyalty unconfirmed. BH-4 carries every transmission on this page across worlds that officially don't talk to each other. Reliability: questionable. Punctuality: worse. Read on anyway.</p>
+          <div class="dispatch-intro-meta" aria-label="BH-4 transmission details">
+            <span>Channel: Nexus Veil</span>
+            <span>Signal: Stable</span>
+          </div>
         </div>
       </div>
 
-      <div class="news-public-filter" aria-label="Filter news by tag">
-        <span class="news-public-filter-label">Filter updates</span>
-        <div class="news-public-filter-options" id="news-tag-filters"></div>
-      </div>
+      <div class="news-layout">
+        <div class="news-feed">
+          <div id="news-posts" aria-live="polite">
+            <p class="lore-status">Loading news from the Nexus Veil&hellip;</p>
+          </div>
+        </div>
 
-      <div id="news-posts" aria-live="polite">
-        <p class="lore-status">Loading news from the Nexus Veil&hellip;</p>
+        <aside class="news-sidebar" aria-label="News filters">
+          <div class="news-public-filter">
+            <div class="news-public-filter-heading">
+              <span class="news-public-filter-label">News archive</span>
+              <h2>Filter updates</h2>
+              <p>Browse transmissions by subject.</p>
+            </div>
+            <div class="news-public-filter-options" id="news-tag-filters"></div>
+          </div>
+        </aside>
       </div>
 
     </div>
@@ -156,6 +174,6 @@
 
 <script src="js/main.js?v=6"></script>
 <script src="js/members.js?v=20"></script>
-<script src="js/news.js?v=2"></script>
+<script src="js/news.js?v=3"></script>
 </body>
 </html>
