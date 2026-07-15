@@ -29,6 +29,9 @@ $report = $stmt->fetch();
 if (!$report) {
     pw_error('Report not found.', 404);
 }
+if (!in_array($report['target_type'], ['topic', 'comment'], true)) {
+    pw_error('Deletion is only available for Forum reports.', 400);
+}
 
 if ($report['target_type'] === 'topic') {
     $stmt = $db->prepare('SELECT id, title, is_deleted FROM topics WHERE id = ?');

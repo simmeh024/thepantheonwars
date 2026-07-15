@@ -29,6 +29,9 @@ $report = $stmt->fetch();
 if (!$report) {
     pw_error('Report not found.', 404);
 }
+if (!in_array($report['target_type'], ['topic', 'comment'], true)) {
+    pw_error('Locking is only available for Forum reports.', 400);
+}
 
 // A comment report has no lock state of its own -- locking applies to the
 // whole topic it belongs to.

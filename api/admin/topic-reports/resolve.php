@@ -52,7 +52,7 @@ $topicId = null;
 $commentId = null;
 if ($report['target_type'] === 'topic') {
     $topicId = (int)$report['target_id'];
-} else {
+} elseif ($report['target_type'] === 'comment') {
     $commentId = (int)$report['target_id'];
     $topicStmt = $db->prepare('SELECT topic_id FROM comments WHERE id = ?');
     $topicStmt->execute([$commentId]);

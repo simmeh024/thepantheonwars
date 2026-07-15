@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=208">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=209">
 </head>
 <body>
 
@@ -1318,7 +1318,7 @@
     <section class="admin-section" id="section-topic-reports" hidden>
       <div class="admin-section-head">
         <h1>Topic Reports</h1>
-        <p>Reports raised by members against forum topics and replies &mdash; review, act, and close them out.</p>
+        <p>Reports raised by members against Forum topics, Forum replies, and News replies &mdash; review, act, and close them out.</p>
       </div>
 
       <div class="admin-toolbar">
@@ -3693,6 +3693,9 @@
   var pendingReportAction = null; // { report, action: 'lock'|'move'|'delete'|'resolve'|'reopen' }
 
   function reportLink(r) {
+    if (r.source === 'news') {
+      return '../news-post.html?slug=' + encodeURIComponent(r.news_slug) + '#news-comment-' + encodeURIComponent(r.target_id);
+    }
     var url = '../community.html?topic=' + encodeURIComponent(r.topic_id);
     if (r.target_type === 'comment') url += '&comment=' + encodeURIComponent(r.target_id);
     return url;
@@ -3732,13 +3735,15 @@
         '<p class="admin-row-subject">' +
           escapeHtml(r.topic_title) +
           (r.target_type === 'comment' ? ' <span class="report-type-badge">Reply</span>' : '') +
+          (r.target_type === 'news_comment' ? ' <span class="report-type-badge">News reply</span>' : '') +
+          ' <span class="report-source-badge report-source-' + escapeHtml(r.source || 'forum') + '">' + (r.source === 'news' ? 'News' : 'Forum') + '</span>' +
           ' <a href="' + reportLink(r) + '" target="_blank" rel="noopener" class="report-view-link">View &rarr;</a>' +
           (r.target_deleted ? ' <span class="report-deleted-badge">Content deleted</span>' : '') +
         '</p>' +
         '<div class="admin-row-meta">' +
           '<span>by @' + escapeHtml(r.author.username) + '</span>' +
           '<span class="admin-row-sep">&bull;</span>' +
-          '<span>' + escapeHtml(BOARD_LABELS[r.board] || r.board) + '</span>' +
+          '<span>' + (r.source === 'news' ? 'News transmission' : escapeHtml(BOARD_LABELS[r.board] || r.board)) + '</span>' +
           '<span class="admin-row-sep">&bull;</span>' +
           '<span>' + escapeHtml(fmtDate(r.created_at)) + '</span>' +
           '<span class="admin-row-sep">&bull;</span>' +
@@ -3756,7 +3761,7 @@
       // Lock/Move/Delete act on the reported content itself -- once a report
       // is resolved there's nothing left to action from this row, so those
       // three are swapped out for a single Re-open button instead.
-      if (!r.target_deleted && r.status === 'open') {
+      if (r.source === 'forum' && !r.target_deleted && r.status === 'open') {
         var lockBtn = document.createElement('button');
         lockBtn.type = 'button';
         lockBtn.className = 'report-action-btn';

@@ -13,7 +13,7 @@ $targetType = isset($input['target_type']) ? trim((string)$input['target_type'])
 $targetId = isset($input['target_id']) ? (int)$input['target_id'] : 0;
 $reason = isset($input['reason']) ? trim((string)$input['reason']) : '';
 
-if (!in_array($targetType, ['topic', 'comment'], true)) {
+if (!in_array($targetType, ['topic', 'comment', 'news_comment'], true)) {
     pw_error('Unknown report target.');
 }
 if ($targetId <= 0) {
@@ -30,8 +30,10 @@ $db = pw_db();
 
 if ($targetType === 'topic') {
     $stmt = $db->prepare('SELECT id FROM topics WHERE id = ? AND is_deleted = 0');
-} else {
+} elseif ($targetType === 'comment') {
     $stmt = $db->prepare('SELECT id FROM comments WHERE id = ? AND is_deleted = 0');
+} else {
+    $stmt = $db->prepare('SELECT id FROM news_comments WHERE id = ?');
 }
 $stmt->execute([$targetId]);
 if (!$stmt->fetch()) {

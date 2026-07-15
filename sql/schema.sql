@@ -268,7 +268,7 @@ CREATE TABLE IF NOT EXISTS loc_snapshots (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Reports raised by members against a topic or a reply, reviewed by
+-- Reports raised by members against forum content or a News reply, reviewed by
 -- moderators/admins on the admin console's Topic Reports page. resolution
 -- is filled in when a mod closes the report; resolved_by/resolved_at record
 -- who closed it and when. Quick actions taken from that page (lock/move the
@@ -276,7 +276,7 @@ CREATE TABLE IF NOT EXISTS loc_snapshots (
 -- admin_activity_log -- they don't automatically close the report.
 CREATE TABLE IF NOT EXISTS content_reports (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  target_type ENUM('topic','comment') NOT NULL,
+  target_type ENUM('topic','comment','news_comment') NOT NULL,
   target_id INT UNSIGNED NOT NULL,
   reporter_user_id INT UNSIGNED NOT NULL,
   reason VARCHAR(1000) NOT NULL,

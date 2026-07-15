@@ -159,7 +159,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=192, community v=192, and admin v=208. Public pages use
+  versions: public v=193, community v=193, and admin v=209. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -173,7 +173,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   `js/books.js?v=N` is page-specific (current: v=3) and only needs a version
   bump in `books.html`. `js/news.js?v=N` is likewise page-specific (current: v=7)
   and only needs a version bump in `news.html`. `js/news-post.js?v=N` powers the
-  dedicated public transmission page (current: v=1); it is only loaded by
+  dedicated public transmission page (current: v=2); it is only loaded by
   `news-post.html`.
 - Static CSS, JavaScript, font, and image assets have a one-year
   `public, immutable` cache policy in `.htaccess`; HTML remains no-cache so
@@ -239,6 +239,11 @@ also supports a deliberately manual `?full=1` historical rebuild.
   flat member discussion live. Run `sql/migration_news_comments.sql` once to
   add `news_comments` and the per-post `comments_enabled` toggle (enabled by
   default); the toggle is controlled in the News Management modal.
+  News replies can be reported from that detail page; those reports share the
+  existing Topic Reports moderation queue and are marked with a **News** source
+  pill (Forum reports retain the **Forum** pill). Run
+  `sql/migration_news_comment_reports.sql` once after the comments migration to
+  extend the shared report target enum.
 
 - **Member presence:** run `migration_user_presence_status.sql` after deploy.
   `users.presence_status` stores only `online`, `away`, or `inactive`; **Offline

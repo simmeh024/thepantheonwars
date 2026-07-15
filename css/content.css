@@ -445,6 +445,10 @@
 .news-comment-meta span, .news-comment-meta time { color: var(--text-faint); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; }
 .news-comment-meta time { margin-left: auto; letter-spacing: 0; text-transform: none; }
 .news-comment-copy p { margin: 8px 0 0; color: var(--text-dim); font-size: 0.91rem; line-height: 1.6; white-space: pre-wrap; }
+.news-comment:target { margin-inline: -10px; padding-inline: 10px; background: rgba(124,79,214,0.11); box-shadow: inset 2px 0 0 var(--purple-bright); }
+.news-comment-actions { display: flex; justify-content: flex-end; margin-top: 9px; }
+.news-comment-report { padding: 0; border: 0; background: transparent; color: var(--text-faint); cursor: pointer; font: 600 0.63rem 'Jost', sans-serif; letter-spacing: 0.07em; text-transform: uppercase; transition: color 160ms ease; }
+.news-comment-report:hover { color: #f08b6e; }
 .news-comments-login { padding: 20px 0 0; }
 .news-comments-login p { color: var(--text-faint); font-size: 0.87rem; }
 .news-comments-login .btn { padding: 10px 16px; font-size: 0.68rem; }

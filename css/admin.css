@@ -439,6 +439,8 @@
   display: inline-block; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.06em;
   color: var(--text-faint); border: 1px solid var(--border-soft); border-radius: 3px; padding: 1px 7px; margin-left: 4px;
 }
+.report-source-badge { display: inline-block; padding: 1px 7px; margin-left: 4px; border: 1px solid rgba(162,121,236,0.55); border-radius: 999px; background: rgba(162,121,236,0.1); color: var(--purple-bright); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }
+.report-source-news { border-color: rgba(80,201,191,0.55); background: rgba(80,201,191,0.1); color: #76d8d0; }
 .report-view-link { color: var(--purple-bright); font-size: 0.78rem; margin-left: 8px; text-decoration: none; }
 .report-view-link:hover { color: var(--gold-bright); }
 .report-deleted-badge {

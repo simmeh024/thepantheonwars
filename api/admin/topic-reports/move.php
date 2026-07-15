@@ -34,6 +34,9 @@ $report = $stmt->fetch();
 if (!$report) {
     pw_error('Report not found.', 404);
 }
+if (!in_array($report['target_type'], ['topic', 'comment'], true)) {
+    pw_error('Moving is only available for Forum reports.', 400);
+}
 
 if ($report['target_type'] === 'topic') {
     $topicId = (int)$report['target_id'];

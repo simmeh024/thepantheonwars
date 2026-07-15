@@ -10,7 +10,7 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=192">
+<link rel="stylesheet" href="css/public.css?v=193">
 </head>
 <body>
 <header class="site-header">
@@ -49,9 +49,20 @@
     </div>
   </section>
 </main>
+<div class="auth-modal" id="news-report-modal" hidden>
+  <div class="auth-modal-backdrop"></div>
+  <div class="auth-modal-inner">
+    <button type="button" class="auth-modal-close" id="news-report-modal-close" aria-label="Close">&times;</button>
+    <h3 class="auth-modal-title">Report this reply</h3>
+    <p class="report-modal-sub">Tell the moderators what needs attention. They will review this News reply in the shared moderation queue.</p>
+    <div class="auth-field"><label for="news-report-reason">Why are you reporting this?</label><textarea id="news-report-reason" maxlength="1000" placeholder="Tell the moderators what is wrong with this reply…"></textarea></div>
+    <p class="auth-error" id="news-report-error"></p><p class="report-modal-status" id="news-report-status"></p>
+    <div class="report-modal-actions"><button type="button" class="btn btn-solid" id="news-report-submit">Submit report</button><button type="button" class="btn" id="news-report-cancel">Cancel</button></div>
+  </div>
+</div>
 <footer class="site-footer"><div class="container"><div class="footer-grid"><div><h4>The Pantheon Wars</h4><p>A fourteen-book saga by Pascal Slettenaar — twelve worlds, twelve tyrants, and the prophecy that could end them all.</p></div><div><h4>Explore</h4><ul><li><a href="books.html">The Books</a></li><li><a href="worlds.html">Worlds</a></li><li><a href="news.html">News</a></li><li><a href="community.html">Community</a></li></ul></div><div><h4>Stay Connected</h4><ul><li><a href="privacy.html">Privacy</a></li><li><a href="about.html">About the Author</a></li></ul></div></div><div class="footer-bottom">© 2026 Pascal Slettenaar. All rights reserved.</div></div></footer>
 <script src="js/main.js?v=6"></script>
 <script src="js/members.js?v=21"></script>
-<script src="js/news-post.js?v=1"></script>
+<script src="js/news-post.js?v=2"></script>
 </body>
 </html>

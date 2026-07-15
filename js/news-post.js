@@ -14,6 +14,14 @@
   var commentBody = document.getElementById('news-comment-body');
   var commentError = document.getElementById('news-comment-error');
   var commentSubmit = document.getElementById('news-comment-submit');
+  var reportModal = document.getElementById('news-report-modal');
+  var reportReason = document.getElementById('news-report-reason');
+  var reportError = document.getElementById('news-report-error');
+  var reportStatus = document.getElementById('news-report-status');
+  var reportSubmit = document.getElementById('news-report-submit');
+  var reportCancel = document.getElementById('news-report-cancel');
+  var reportClose = document.getElementById('news-report-modal-close');
+  var reportTargetId = null;
   var entry = null;
 
   if (!articleHost || !/^[a-z0-9-]{1,120}$/.test(slug)) {
@@ -132,6 +140,7 @@
     comments.forEach(function (comment) {
       var item = document.createElement('article');
       item.className = 'news-comment';
+      item.id = 'news-comment-' + comment.id;
       var avatar = document.createElement('span');
       avatar.className = 'news-comment-avatar';
       avatar.style.setProperty('--comment-role-color', comment.role_color || '#a279ec');
@@ -156,6 +165,22 @@
       var text = document.createElement('p');
       text.textContent = comment.body;
       copy.appendChild(text);
+      var actions = document.createElement('div');
+      actions.className = 'news-comment-actions';
+      var report = document.createElement('button');
+      report.type = 'button';
+      report.className = 'news-comment-report';
+      report.textContent = 'Report reply';
+      report.addEventListener('click', function () {
+        if (!window.PW_AUTH || !window.PW_AUTH.loggedIn) {
+          var login = document.querySelector('.auth-trigger');
+          if (login) login.click();
+          return;
+        }
+        openReportModal(comment.id);
+      });
+      actions.appendChild(report);
+      copy.appendChild(actions);
       item.appendChild(copy);
       commentsList.appendChild(item);
     });
@@ -171,6 +196,13 @@
           return;
         }
         renderComments(data.comments || []);
+        if (window.location.hash) {
+          var target = document.getElementById(window.location.hash.slice(1));
+          if (target) target.scrollIntoView({
+            behavior: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+            block: 'center'
+          });
+        }
       })
       .catch(function () {
         commentsList.textContent = '';
@@ -203,6 +235,54 @@
     }).finally(function () {
       commentSubmit.disabled = false;
       commentSubmit.textContent = 'Post reply';
+    });
+  });
+
+  function openReportModal(commentId) {
+    reportTargetId = commentId;
+    reportReason.value = '';
+    reportError.classList.remove('show');
+    reportStatus.classList.remove('show');
+    reportSubmit.hidden = false;
+    reportSubmit.disabled = false;
+    reportModal.hidden = false;
+    setTimeout(function () { reportReason.focus(); }, 30);
+  }
+
+  function closeReportModal() {
+    reportModal.hidden = true;
+    reportTargetId = null;
+  }
+
+  reportClose.addEventListener('click', closeReportModal);
+  reportCancel.addEventListener('click', closeReportModal);
+  reportModal.querySelector('.auth-modal-backdrop').addEventListener('click', closeReportModal);
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !reportModal.hidden) closeReportModal();
+  });
+  reportSubmit.addEventListener('click', function () {
+    var reason = reportReason.value.trim();
+    reportError.classList.remove('show');
+    if (!reason) {
+      reportError.textContent = "Tell us why you're reporting this reply.";
+      reportError.classList.add('show');
+      return;
+    }
+    if (!reportTargetId || !window.PW_AUTH || !window.PW_AUTH.csrf) return;
+    reportSubmit.disabled = true;
+    fetch('/api/reports/create.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target_type: 'news_comment', target_id: reportTargetId, reason: reason, csrf: window.PW_AUTH.csrf })
+    }).then(function (response) { return response.json(); }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Could not submit that report.');
+      reportStatus.textContent = 'Thanks — this has been sent to the moderators.';
+      reportStatus.classList.add('show');
+      reportSubmit.hidden = true;
+      setTimeout(closeReportModal, 1500);
+    }).catch(function (error) {
+      reportSubmit.disabled = false;
+      reportError.textContent = error.message || 'Could not submit that report.';
+      reportError.classList.add('show');
     });
   });
 
