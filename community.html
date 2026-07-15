@@ -144,6 +144,10 @@
               <button type="button" class="btn auth-trigger" data-tab="login">Log In</button>
             </div>
 
+            <div id="community-feed"></div>
+
+            <!-- Keep the composer after the complete conversation so a reply
+                 naturally follows the most recent context. -->
             <form id="community-form" class="community-form" hidden>
               <div class="auth-field">
                 <label for="community-body">Post a reply</label>
@@ -152,8 +156,6 @@
               <p class="auth-error" id="community-error"></p>
               <button type="submit" class="btn btn-solid">Reply</button>
             </form>
-
-            <div id="community-feed"></div>
             <p id="community-empty" class="lore-status" hidden>No replies yet — be the first to respond.</p>
           </div>
 
