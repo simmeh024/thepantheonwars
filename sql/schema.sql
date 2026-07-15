@@ -193,12 +193,28 @@ CREATE TABLE IF NOT EXISTS news_posts (
   body TEXT NOT NULL,
   author_type ENUM('bh4','member') NOT NULL DEFAULT 'bh4',
   author_user_id INT UNSIGNED NULL,
+  comments_enabled TINYINT(1) NOT NULL DEFAULT 1,
   published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_news_slug (slug),
   KEY idx_news_published (published_at, id),
   CONSTRAINT fk_news_posts_author FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Flat, public replies attached to a News transmission. These are deliberately
+-- separate from forum comments: a news post is editorial content, not a forum
+-- topic, but replies retain the same account, role, and moderation safeguards.
+CREATE TABLE IF NOT EXISTS news_comments (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  news_post_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  body TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_news_comments_post_created (news_post_id, created_at),
+  KEY idx_news_comments_user_created (user_id, created_at),
+  CONSTRAINT fk_news_comments_post FOREIGN KEY (news_post_id) REFERENCES news_posts(id) ON DELETE CASCADE,
+  CONSTRAINT fk_news_comments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Reusable tag catalogue and the many-to-many relation for public news.

@@ -63,7 +63,7 @@ function initNotifications() {
 
   function notificationLink(n) {
     if (n.type === 'world_available' && n.world_slug) return 'worlds.html#' + encodeURIComponent(n.world_slug);
-    if (n.type === 'news_published' && n.news_slug) return 'news.html#' + encodeURIComponent(n.news_slug);
+    if (n.type === 'news_published' && n.news_slug) return 'news-post.html?slug=' + encodeURIComponent(n.news_slug);
     if (!n.topic_id) return 'notifications.html';
     return 'community.html?topic=' + encodeURIComponent(n.topic_id) +
       (n.comment_id ? '&comment=' + encodeURIComponent(n.comment_id) : '');

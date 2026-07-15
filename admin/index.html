@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=207">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=208">
 </head>
 <body>
 
@@ -1495,6 +1495,10 @@
         <label class="news-author-option"><input type="radio" name="news-author" value="member"> <span><strong id="news-self-author-label">Yourself</strong><small>Published under your member profile</small></span></label>
       </div>
     </fieldset>
+    <label class="admin-field news-comments-toggle" for="news-comments-enabled">
+      <span><strong>Enable comments</strong><small>Members can discuss this transmission on its dedicated page.</small></span>
+      <input type="checkbox" id="news-comments-enabled" checked>
+    </label>
     <p class="admin-modal-error" id="news-modal-error"></p>
     <p class="admin-modal-status" id="news-modal-status"></p>
     <div class="admin-modal-actions">
@@ -2475,7 +2479,7 @@
   </div>
 </div>
 
-<script src="../js/members.js?v=20"></script>
+<script src="../js/members.js?v=21"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -9354,6 +9358,7 @@
   var newsModalCloseBtn = document.getElementById('news-modal-close');
   var newsTitleInput = document.getElementById('news-title-input');
   var newsBodyInput = document.getElementById('news-body-input');
+  var newsCommentsEnabled = document.getElementById('news-comments-enabled');
   var newsSaveBtn = document.getElementById('news-save-btn');
   var newsCancelBtn = document.getElementById('news-cancel-btn');
   var newsDeleteBtn = document.getElementById('news-delete-btn');
@@ -9520,9 +9525,10 @@
     newsCurrent = entry || null;
     newsModalMode = entry ? 'edit' : 'create';
     newsModalTitle.textContent = entry ? 'Edit News Post' : 'New News Post';
-    newsModalSub.textContent = entry ? ('Public address: news.html#' + entry.slug) : 'This update appears on the public News page as soon as it is saved.';
+    newsModalSub.textContent = entry ? ('Public address: news-post.html?slug=' + entry.slug) : 'This update appears on the public News page as soon as it is saved.';
     newsTitleInput.value = entry ? entry.title : '';
     newsBodyInput.value = entry ? entry.body : '';
+    newsCommentsEnabled.checked = entry ? entry.comments_enabled !== false : true;
     newsSelectedTags = entry ? (entry.tags || []).map(function (tag) { return tag.label; }) : [];
     newsTagInput.value = '';
     renderSelectedNewsTags();
@@ -9578,6 +9584,7 @@
       title: newsTitleInput.value.trim(),
       body: newsBodyInput.value.trim(),
       author_type: newsAuthorType(),
+      comments_enabled: newsCommentsEnabled.checked,
       tags: newsSelectedTags,
       csrf: window.PW_AUTH.csrf
     };

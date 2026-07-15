@@ -32,6 +32,7 @@ function pw_news_input($input) {
         'title' => $title,
         'body' => $body,
         'author_type' => $authorType,
+        'comments_enabled' => !array_key_exists('comments_enabled', $input) || !empty($input['comments_enabled']),
         'tags' => pw_news_normalize_tags(isset($input['tags']) ? $input['tags'] : []),
     ];
 }

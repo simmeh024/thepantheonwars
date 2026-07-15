@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=190">
+<link rel="stylesheet" href="css/public.css?v=191">
 </head>
 <body>
 
@@ -216,7 +216,7 @@
 </footer>
 
 <script src="js/main.js?v=6"></script>
-<script src="js/members.js?v=20"></script>
+<script src="js/members.js?v=21"></script>
 <script>
 (function () {
   var gate = document.getElementById('notif-page-gate');
@@ -274,7 +274,7 @@
 
   function notificationLink(n) {
     if (n.type === 'world_available' && n.world_slug) return 'worlds.html#' + encodeURIComponent(n.world_slug);
-    if (n.type === 'news_published' && n.news_slug) return 'news.html#' + encodeURIComponent(n.news_slug);
+    if (n.type === 'news_published' && n.news_slug) return 'news-post.html?slug=' + encodeURIComponent(n.news_slug);
     if (!n.topic_id) return '#';
     return 'community.html?topic=' + encodeURIComponent(n.topic_id) +
       (n.comment_id ? '&comment=' + encodeURIComponent(n.comment_id) : '');

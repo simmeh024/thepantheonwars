@@ -73,14 +73,18 @@
     syncDateReset();
   }
 
-  function makeParagraphs(body, article) {
+  function makeParagraphs(body, article, maximum) {
+    var appended = 0;
     String(body || '').split(/\n\s*\n+/).forEach(function (paragraph) {
+      if (maximum && appended >= maximum) return;
       var text = paragraph.trim();
       if (!text) return;
       var element = document.createElement('p');
       element.textContent = text;
       article.appendChild(element);
+      appended++;
     });
+    return appended;
   }
 
   function signalFor(post) {
@@ -150,7 +154,13 @@
     title.textContent = post.title;
     content.appendChild(title);
 
-    makeParagraphs(post.body, content);
+    makeParagraphs(post.body, content, 2);
+
+    var readCue = document.createElement('a');
+    readCue.className = 'post-read-cue';
+    readCue.href = 'news-post.html?slug=' + encodeURIComponent(post.slug);
+    readCue.textContent = 'Read transmission →';
+    content.appendChild(readCue);
 
     if (post.tags && post.tags.length) {
       var tags = document.createElement('div');
@@ -178,22 +188,6 @@
     }
     content.appendChild(stamp);
 
-    var readCue = document.createElement('span');
-    readCue.className = 'post-read-cue';
-    readCue.setAttribute('aria-hidden', 'true');
-    readCue.textContent = 'Read transmission →';
-    content.appendChild(readCue);
-
-    var share = document.createElement('div');
-    share.className = 'post-share';
-    var link = document.createElement('a');
-    link.className = 'btn share-reddit';
-    link.target = '_blank';
-    link.rel = 'noopener';
-    link.textContent = 'Share on Reddit ↗';
-    link.href = 'https://www.reddit.com/submit?url=' + encodeURIComponent(window.location.origin + window.location.pathname + '#' + post.slug) + '&title=' + encodeURIComponent(post.title);
-    share.appendChild(link);
-    content.appendChild(share);
     article.appendChild(content);
     return article;
   }

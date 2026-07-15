@@ -711,7 +711,7 @@ function pw_notify_world_available($worldId) {
 // Broadcasts a news-publication notice to eligible members. The article title
 // is kept as the notification excerpt so both the bell and the full history
 // can render the same stable reader-facing message, while the stored slug
-// takes the reader directly to the article on news.html.
+// takes the reader directly to the dedicated news article.
 function pw_notify_news_published($actorUserId, $title, $slug) {
     $db = pw_db();
     $stmt = $db->prepare(

@@ -26,9 +26,9 @@ $authorUserId = $data['author_type'] === 'member' ? (int)$adminUser['id'] : null
 try {
     $db->beginTransaction();
     $stmt = $db->prepare(
-        'UPDATE news_posts SET title = ?, body = ?, author_type = ?, author_user_id = ? WHERE id = ?'
+        'UPDATE news_posts SET title = ?, body = ?, author_type = ?, author_user_id = ?, comments_enabled = ? WHERE id = ?'
     );
-    $stmt->execute([$data['title'], $data['body'], $data['author_type'], $authorUserId, $id]);
+    $stmt->execute([$data['title'], $data['body'], $data['author_type'], $authorUserId, $data['comments_enabled'] ? 1 : 0, $id]);
     pw_news_sync_tags($db, $id, $data['tags']);
     $db->commit();
 } catch (Throwable $e) {

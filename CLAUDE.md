@@ -159,20 +159,22 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=190, community v=190, and admin v=207. Public pages use
+  versions: public v=191, community v=191, and admin v=208. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=6), `js/members.js?v=N` (current: v=20)
-  and `js/notifications.js?v=N` (current: v=9), across the public pages
+  than once): `js/main.js?v=N` (current: v=6), `js/members.js?v=N` (current: v=21)
+  and `js/notifications.js?v=N` (current: v=10), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
   `js/books.js?v=N` is page-specific (current: v=3) and only needs a version
-  bump in `books.html`. `js/news.js?v=N` is likewise page-specific (current: v=6)
-  and only needs a version bump in `news.html`.
+  bump in `books.html`. `js/news.js?v=N` is likewise page-specific (current: v=7)
+  and only needs a version bump in `news.html`. `js/news-post.js?v=N` powers the
+  dedicated public transmission page (current: v=1); it is only loaded by
+  `news-post.html`.
 - Static CSS, JavaScript, font, and image assets have a one-year
   `public, immutable` cache policy in `.htaccess`; HTML remains no-cache so
   changed version URLs reach visitors immediately. Never replace an asset at
@@ -232,6 +234,11 @@ also supports a deliberately manual `?full=1` historical rebuild.
   and the public News page filters articles client-side by tag. The current full
   `migration_news_management.sql` includes those tables. If the prior News
   migration was already run, execute `sql/migration_news_tags.sql` once instead.
+  Each feed card now previews only its first two paragraphs and links to
+  `news-post.html?slug=...`, where the full article, Reddit share action, and
+  flat member discussion live. Run `sql/migration_news_comments.sql` once to
+  add `news_comments` and the per-post `comments_enabled` toggle (enabled by
+  default); the toggle is controlled in the News Management modal.
 
 - **Member presence:** run `migration_user_presence_status.sql` after deploy.
   `users.presence_status` stores only `online`, `away`, or `inactive`; **Offline
@@ -632,7 +639,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
 - **News publication notifications:** News Management creates public posts
   immediately, then broadcasts a `news_published` notification only after the
   database transaction commits. Each notification deep-links to
-  `news.html#slug`; the publishing administrator is skipped and members can
+  `news-post.html?slug=...`; the publishing administrator is skipped and members can
   opt out through Profile Settings &rarr; Notification Settings (enabled by
   default, including for existing accounts).
 - **Public News layout:** `news.html` uses `.news-layout`: the feed occupies the
