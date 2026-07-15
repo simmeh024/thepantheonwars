@@ -1,6 +1,7 @@
 <?php
 /** Public, read-only detail record for one News transmission. */
 require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/../admin/news/news-helpers.php';
 
 $slug = isset($_GET['slug']) ? trim((string)$_GET['slug']) : '';
 if (!preg_match('/^[a-z0-9-]{1,120}$/', $slug)) {
@@ -20,6 +21,7 @@ $post = $stmt->fetch();
 if (!$post) {
     pw_error('That news article no longer exists.', 404);
 }
+$body = pw_news_public_body($post['body']);
 
 $tagStmt = $db->prepare(
     'SELECT t.slug, t.label
@@ -40,7 +42,8 @@ pw_json([
         'id' => (int)$post['id'],
         'slug' => $post['slug'],
         'title' => $post['title'],
-        'body' => $post['body'],
+        'body' => $body,
+        'body_is_rich' => pw_news_is_rich_body($body),
         'author_type' => $post['author_type'],
         'author_display_name' => $post['author_display_name'],
         'comments_enabled' => (bool)$post['comments_enabled'],

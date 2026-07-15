@@ -184,8 +184,9 @@ CREATE TABLE IF NOT EXISTS dispatch_entries (
 
 -- Public news updates, managed through Admin Console > Content > News
 -- Management. Posts can be relayed by BH-4 or attributed to the admin who
--- published them. The body is deliberately plain text; news.js safely turns
--- blank-line-separated text into public paragraphs.
+-- published them. The body supports a small server-sanitised editorial HTML
+-- subset (including images from uploads/news-images); legacy plain-text bodies
+-- remain readable as blank-line-separated public paragraphs.
 CREATE TABLE IF NOT EXISTS news_posts (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   slug VARCHAR(120) NOT NULL,

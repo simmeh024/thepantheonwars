@@ -1,5 +1,6 @@
 // Dedicated public News transmission view and its lightweight, member-only discussion.
-// Article and comment text are always inserted with textContent.
+// Comment text is always inserted with textContent. Article bodies use only a
+// small server-sanitised editorial HTML subset returned by api/news/get.php.
 (function () {
   'use strict';
 
@@ -69,6 +70,16 @@
     });
   }
 
+  function renderArticleBody(post, target) {
+    if (post.body_is_rich) {
+      // The server strips every unsupported tag/attribute and limits images to
+      // re-encoded files in /uploads/news-images before this assignment.
+      target.innerHTML = post.body;
+      return;
+    }
+    appendParagraphs(post.body, target);
+  }
+
   function renderArticle(post) {
     document.title = post.title + ' — The Pantheon Wars';
     bannerTitle.textContent = post.title;
@@ -92,7 +103,7 @@
 
     var body = document.createElement('div');
     body.className = 'news-detail-body';
-    appendParagraphs(post.body, body);
+    renderArticleBody(post, body);
     article.appendChild(body);
 
     if (post.tags && post.tags.length) {

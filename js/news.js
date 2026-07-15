@@ -1,5 +1,5 @@
-// Public News feed. Post bodies are received as plain text and are only ever
-// assigned through textContent, so staff-authored content cannot become HTML.
+// Public News feed. Rich bodies are already restricted to a small, server-side
+// sanitised editorial subset; preview text is still read as text only here.
 (function () {
   'use strict';
 
@@ -73,9 +73,22 @@
     syncDateReset();
   }
 
-  function makeParagraphs(body, article, maximum) {
+  function newsPreviewBlocks(post) {
+    var body = String(post.body || '');
+    if (post.body_is_rich) {
+      body = body
+        .replace(/<\s*br\s*\/?>/gi, '\n')
+        .replace(/<\/(?:p|h2|h3|li|blockquote|figcaption|figure)>/gi, '\n\n')
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/&amp;/gi, '&');
+    }
+    return body.split(/\n\s*\n+/).map(function (part) { return part.trim(); }).filter(Boolean);
+  }
+
+  function makeParagraphs(post, article, maximum) {
     var appended = 0;
-    String(body || '').split(/\n\s*\n+/).forEach(function (paragraph) {
+    newsPreviewBlocks(post).forEach(function (paragraph) {
       if (maximum && appended >= maximum) return;
       var text = paragraph.trim();
       if (!text) return;
@@ -162,7 +175,7 @@
     title.textContent = post.title;
     content.appendChild(title);
 
-    makeParagraphs(post.body, content, 2);
+    makeParagraphs(post, content, 2);
 
     var readCue = document.createElement('a');
     readCue.className = 'post-read-cue';

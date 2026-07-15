@@ -24,11 +24,13 @@ foreach ($tagRows as $tag) {
 }
 
 $entries = array_map(function ($row) use ($tagsByPost) {
+    $body = pw_news_public_body($row['body']);
     return [
         'id' => (int)$row['id'],
         'slug' => $row['slug'],
         'title' => $row['title'],
-        'body' => $row['body'],
+        'body' => $body,
+        'body_is_rich' => pw_news_is_rich_body($body),
         'author_type' => $row['author_type'],
         'author_user_id' => $row['author_user_id'] !== null ? (int)$row['author_user_id'] : null,
         'comments_enabled' => (bool)$row['comments_enabled'],

@@ -164,7 +164,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=195, community v=195, and admin v=210. Public pages use
+  versions: public v=196, community v=196, and admin v=211. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -176,9 +176,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
   `js/books.js?v=N` is page-specific (current: v=3) and only needs a version
-  bump in `books.html`. `js/news.js?v=N` is likewise page-specific (current: v=8)
+  bump in `books.html`. `js/news.js?v=N` is likewise page-specific (current: v=9)
   and only needs a version bump in `news.html`. `js/news-post.js?v=N` powers the
-  dedicated public transmission page (current: v=2); it is only loaded by
+  dedicated public transmission page (current: v=3); it is only loaded by
   `news-post.html`.
 - Static CSS, JavaScript, font, and image assets have a one-year
   `public, immutable` cache policy in `.htaccess`; HTML remains no-cache so
@@ -225,8 +225,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
 ## Recent history (most recent first)
 
 - **News Management**: the static `news.html` articles are now served from the
-  `news_posts` table via `api/news/list.php` and safely rendered as plain-text
-  paragraphs by `js/news.js`. Admin Console > Content > News Management provides
+  `news_posts` table via `api/news/list.php`. Admin Console > Content > News Management provides
   create/edit/delete operations with a server-enforced author choice: `bh4` has no
   user id; `member` always resolves to the currently authenticated editor, never a
   client-selected account. Permissions are `news.view`, `news.edit`, and
@@ -241,7 +240,12 @@ also supports a deliberately manual `?full=1` historical rebuild.
   migration was already run, execute `sql/migration_news_tags.sql` once instead.
   Each feed card now previews only its first two paragraphs and links to
   `news-post.html?slug=...`, where the full article, Reddit share action, and
-  flat member discussion live. Run `sql/migration_news_comments.sql` once to
+  flat member discussion live. The editor now stores a small server-sanitised HTML
+  subset (paragraphs, headings, emphasis, lists, quotes, safe links and News-library
+  images) while legacy plain-text records remain readable. Image uploads are decoded,
+  re-encoded as JPGs in `uploads/news-images/`, and only those random server-generated
+  URLs are accepted in article markup. No SQL migration is needed for this editor.
+  Run `sql/migration_news_comments.sql` once to
   add `news_comments` and the per-post `comments_enabled` toggle (enabled by
   default); the toggle is controlled in the News Management modal.
   News replies can be reported from that detail page; those reports share the

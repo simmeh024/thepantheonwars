@@ -1,6 +1,7 @@
 <?php
 /** Public, read-only News feed. Deliberately does not require a session. */
 require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/../admin/news/news-helpers.php';
 
 $db = pw_db();
 $rows = $db->query(
@@ -28,10 +29,12 @@ foreach ($tagRows as $tag) {
 }
 
 $entries = array_map(function ($row) use ($tagsByPost) {
+    $body = pw_news_public_body($row['body']);
     return [
         'slug' => $row['slug'],
         'title' => $row['title'],
-        'body' => $row['body'],
+        'body' => $body,
+        'body_is_rich' => pw_news_is_rich_body($body),
         'author_type' => $row['author_type'],
         'author_display_name' => $row['author_display_name'],
         'published_at' => $row['published_at'],

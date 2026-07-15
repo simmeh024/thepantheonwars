@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=210">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=211">
 </head>
 <body>
 
@@ -1481,8 +1481,23 @@
     </div>
     <div class="admin-field">
       <label for="news-body-input">Public update</label>
-      <p class="admin-field-hint">Use a blank line to start a new paragraph. Plain text keeps public updates safe and readable.</p>
-      <textarea id="news-body-input" maxlength="15000" placeholder="Write the update your readers should see."></textarea>
+      <p class="admin-field-hint">Use the editorial tools for reader-facing structure. Click an inserted caption to describe the image; links and News-library images are safely checked again when you publish.</p>
+      <div class="news-editor" data-editor="news-body-input">
+        <div class="news-editor-toolbar" role="toolbar" aria-label="News writing tools">
+          <button type="button" class="news-editor-tool" data-news-command="formatBlock" data-news-value="p" title="Paragraph" aria-label="Paragraph">P</button>
+          <button type="button" class="news-editor-tool" data-news-command="formatBlock" data-news-value="h2" title="Section heading" aria-label="Section heading">H2</button>
+          <button type="button" class="news-editor-tool" data-news-command="bold" title="Bold" aria-label="Bold"><strong>B</strong></button>
+          <button type="button" class="news-editor-tool" data-news-command="italic" title="Italic" aria-label="Italic"><em>I</em></button>
+          <button type="button" class="news-editor-tool" data-news-command="insertUnorderedList" title="Bulleted list" aria-label="Bulleted list">• List</button>
+          <button type="button" class="news-editor-tool" data-news-command="formatBlock" data-news-value="blockquote" title="Quote" aria-label="Quote">“ Quote</button>
+          <button type="button" class="news-editor-tool" data-news-command="link" title="Add link" aria-label="Add link">↗ Link</button>
+          <span class="news-editor-toolbar-divider" aria-hidden="true"></span>
+          <button type="button" class="news-editor-tool news-editor-tool-image" id="news-image-upload-btn">Upload image</button>
+          <button type="button" class="news-editor-tool news-editor-tool-image" id="news-image-library-btn">Image library</button>
+        </div>
+        <div id="news-body-input" class="news-editor-canvas" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Public update" data-placeholder="Write the update your readers should see."></div>
+      </div>
+      <input type="file" id="news-image-file" accept="image/jpeg,image/png,image/webp" hidden>
     </div>
     <div class="admin-field">
       <label for="news-tag-input">Tags</label>
@@ -1510,6 +1525,24 @@
       <button type="button" class="btn btn-solid" id="news-save-btn">Publish Update</button>
       <button type="button" class="btn" id="news-cancel-btn">Cancel</button>
       <button type="button" class="admin-delete-btn" id="news-delete-btn" hidden>Delete Post</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal admin-modal-over" id="news-image-library-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="news-image-library-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title">News Image Library</h3>
+    <p class="admin-modal-sub">Choose an image to place it at the current writing position. New uploads are re-encoded before they enter this library.</p>
+    <div class="news-image-library-actions">
+      <button type="button" class="btn btn-solid" id="news-image-library-upload-btn">Upload Image</button>
+      <span class="news-image-library-status" id="news-image-library-status" aria-live="polite"></span>
+    </div>
+    <div class="admin-image-grid news-image-library-grid" id="news-image-library-grid"></div>
+    <p class="admin-list-empty" id="news-image-library-empty" hidden>No News images have been uploaded yet.</p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn" id="news-image-library-cancel-btn">Cancel</button>
     </div>
   </div>
 </div>
@@ -9373,10 +9406,8 @@
   });
 
   // ===== News Management ======================================================
-  // Public news remains a deliberately small CRUD surface: titles and plain-text
-  // paragraphs only, with the server owning author identity. A member author is
-  // always the currently signed-in editor; the browser cannot select another
-  // account id and impersonate it.
+  // News author identity remains server-owned. The writing canvas is a compact
+  // WYSIWYG surface; every rich body is sanitised server-side before storage.
   var newsListEl = document.getElementById('news-list');
   var newsCountEl = document.getElementById('news-count');
   var newsCreateBtn = document.getElementById('news-create-btn');
@@ -9390,6 +9421,17 @@
   var newsModalCloseBtn = document.getElementById('news-modal-close');
   var newsTitleInput = document.getElementById('news-title-input');
   var newsBodyInput = document.getElementById('news-body-input');
+  var newsEditorToolbar = newsModal.querySelector('.news-editor-toolbar');
+  var newsImageFileInput = document.getElementById('news-image-file');
+  var newsImageUploadBtn = document.getElementById('news-image-upload-btn');
+  var newsImageLibraryBtn = document.getElementById('news-image-library-btn');
+  var newsImageLibraryModal = document.getElementById('news-image-library-modal');
+  var newsImageLibraryCloseBtn = document.getElementById('news-image-library-close');
+  var newsImageLibraryCancelBtn = document.getElementById('news-image-library-cancel-btn');
+  var newsImageLibraryUploadBtn = document.getElementById('news-image-library-upload-btn');
+  var newsImageLibraryGrid = document.getElementById('news-image-library-grid');
+  var newsImageLibraryEmpty = document.getElementById('news-image-library-empty');
+  var newsImageLibraryStatus = document.getElementById('news-image-library-status');
   var newsCommentsEnabled = document.getElementById('news-comments-enabled');
   var newsSaveBtn = document.getElementById('news-save-btn');
   var newsCancelBtn = document.getElementById('news-cancel-btn');
@@ -9404,6 +9446,7 @@
   var newsCurrent = null;
   var newsModalMode = 'create';
   var newsSearchTimer = null;
+  var newsEditorSelection = null;
 
   function newsAuthorType() {
     var selected = newsModal.querySelector('input[name="news-author"]:checked');
@@ -9413,6 +9456,153 @@
   function setNewsAuthorType(type) {
     var radio = newsModal.querySelector('input[name="news-author"][value="' + type + '"]');
     if (radio) radio.checked = true;
+  }
+
+  function newsPlainTextToHtml(body) {
+    return String(body || '').split(/\n\s*\n+/).map(function (paragraph) {
+      var text = paragraph.trim();
+      return text ? '<p>' + escapeHtml(text).replace(/\n/g, '<br>') + '</p>' : '';
+    }).join('');
+  }
+
+  function newsBodyValue() {
+    return newsBodyInput.innerHTML.trim();
+  }
+
+  function newsEntryPreview(entry) {
+    return String(entry.body || '')
+      .replace(/<\s*br\s*\/?>/gi, ' ')
+      .replace(/<[^>]*>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function rememberNewsEditorSelection() {
+    var selection = window.getSelection && window.getSelection();
+    if (!selection || !selection.rangeCount) return;
+    var range = selection.getRangeAt(0);
+    if (newsBodyInput.contains(range.commonAncestorContainer)) {
+      newsEditorSelection = range.cloneRange();
+    }
+  }
+
+  function restoreNewsEditorSelection() {
+    newsBodyInput.focus();
+    if (!newsEditorSelection) return;
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(newsEditorSelection);
+  }
+
+  function runNewsEditorCommand(command, value) {
+    restoreNewsEditorSelection();
+    if (command === 'link') {
+      var href = window.prompt('Enter a full https:// URL, a mailto: address, or a site-relative /path:');
+      if (!href) return;
+      command = 'createLink';
+      value = href.trim();
+    }
+    if (command === 'formatBlock') value = '<' + value + '>';
+    document.execCommand(command, false, value || null);
+    rememberNewsEditorSelection();
+  }
+
+  function newsImageAlt(name) {
+    var filename = String(name || '');
+    if (/^img_[a-f0-9]{16}\.jpg$/i.test(filename)) return 'News image';
+    return filename.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ').trim() || 'News image';
+  }
+
+  function insertNewsImage(url, name, width, height) {
+    restoreNewsEditorSelection();
+    var safeUrl = String(url || '');
+    if (!/^\/uploads\/news-images\/img_[a-f0-9]{16}\.jpg$/.test(safeUrl)) return;
+    var alt = newsImageAlt(name);
+    var dimensions = Number.isInteger(Number(width)) && Number.isInteger(Number(height)) && Number(width) > 0 && Number(height) > 0
+      ? ' width="' + Number(width) + '" height="' + Number(height) + '"' : '';
+    var markup = '<figure class="news-embedded-image"><img src="' + escapeHtml(safeUrl) + '" alt="' + escapeHtml(alt) + '"' + dimensions + '><figcaption>' + escapeHtml(alt) + '</figcaption></figure><p><br></p>';
+    document.execCommand('insertHTML', false, markup);
+    rememberNewsEditorSelection();
+  }
+
+  function closeNewsImageLibrary() {
+    newsImageLibraryModal.hidden = true;
+    newsImageLibraryStatus.textContent = '';
+  }
+
+  function renderNewsImageLibrary(images) {
+    newsImageLibraryGrid.textContent = '';
+    newsImageLibraryEmpty.hidden = images.length > 0;
+    images.forEach(function (image) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'admin-image-grid-item';
+      item.title = 'Insert ' + image.name;
+      var preview = document.createElement('img');
+      preview.src = image.url;
+      preview.alt = newsImageAlt(image.name);
+      preview.loading = 'lazy';
+      item.appendChild(preview);
+      item.addEventListener('click', function () {
+        insertNewsImage(image.url, image.name, image.width, image.height);
+        closeNewsImageLibrary();
+      });
+      newsImageLibraryGrid.appendChild(item);
+    });
+  }
+
+  function loadNewsImageLibrary() {
+    newsImageLibraryGrid.textContent = '';
+    newsImageLibraryEmpty.hidden = true;
+    newsImageLibraryStatus.textContent = 'Loading image library…';
+    fetch('/api/admin/news/list-images.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load the News image library.');
+        renderNewsImageLibrary(data.images || []);
+        newsImageLibraryStatus.textContent = (data.images || []).length ? 'Choose an image to insert it.' : '';
+      })
+      .catch(function (error) {
+        newsImageLibraryEmpty.hidden = false;
+        newsImageLibraryEmpty.textContent = error.message || 'Could not load the News image library.';
+        newsImageLibraryStatus.textContent = '';
+      });
+  }
+
+  function openNewsImageLibrary() {
+    if (!pwHasPermission('news.edit')) return;
+    rememberNewsEditorSelection();
+    newsImageLibraryModal.hidden = false;
+    loadNewsImageLibrary();
+  }
+
+  function uploadNewsImage(file) {
+    if (!file || !pwHasPermission('news.edit')) return;
+    var data = new FormData();
+    data.append('image', file);
+    data.append('csrf', window.PW_AUTH.csrf);
+    newsImageLibraryStatus.textContent = 'Uploading and preparing image…';
+    newsImageUploadBtn.disabled = true;
+    newsImageLibraryUploadBtn.disabled = true;
+    fetch('/api/admin/news/upload-image.php', { method: 'POST', credentials: 'same-origin', body: data })
+      .then(function (response) { return response.json(); })
+      .then(function (result) {
+        if (!result.ok) throw new Error(result.error || 'Could not upload this image.');
+        insertNewsImage(result.url, result.name, result.width, result.height);
+        newsModalStatus.textContent = 'Image added to the draft. It will be saved with the post.';
+        newsModalStatus.classList.add('show');
+        if (!newsImageLibraryModal.hidden) closeNewsImageLibrary();
+      })
+      .catch(function (error) {
+        newsModalError.textContent = error.message || 'Could not upload this image.';
+        newsModalError.classList.add('show');
+        newsImageLibraryStatus.textContent = '';
+      })
+      .finally(function () {
+        newsImageUploadBtn.disabled = false;
+        newsImageLibraryUploadBtn.disabled = false;
+        newsImageFileInput.value = '';
+      });
   }
 
   function loadNewsList() {
@@ -9531,7 +9721,7 @@
       row.type = 'button';
       row.className = 'admin-row news-management-row';
       var author = entry.author_type === 'bh4' ? 'BH-4' : (entry.author_display_name || 'Member');
-      var preview = String(entry.body || '').replace(/\s+/g, ' ').trim();
+      var preview = newsEntryPreview(entry);
       if (preview.length > 150) preview = preview.slice(0, 147) + '...';
       var tags = (entry.tags || []).map(function (tag) { return '<span class="news-row-tag">' + escapeHtml(tag.label) + '</span>'; }).join('');
       row.innerHTML =
@@ -9559,7 +9749,9 @@
     newsModalTitle.textContent = entry ? 'Edit News Post' : 'New News Post';
     newsModalSub.textContent = entry ? ('Public address: news-post.html?slug=' + entry.slug) : 'This update appears on the public News page as soon as it is saved.';
     newsTitleInput.value = entry ? entry.title : '';
-    newsBodyInput.value = entry ? entry.body : '';
+    newsBodyInput.innerHTML = entry
+      ? (entry.body_is_rich ? entry.body : newsPlainTextToHtml(entry.body))
+      : '';
     newsCommentsEnabled.checked = entry ? entry.comments_enabled !== false : true;
     newsSelectedTags = entry ? (entry.tags || []).map(function (tag) { return tag.label; }) : [];
     newsTagInput.value = '';
@@ -9577,6 +9769,7 @@
 
   function closeNewsModal() {
     newsModal.hidden = true;
+    if (!newsImageLibraryModal.hidden) closeNewsImageLibrary();
     newsCurrent = null;
   }
 
@@ -9586,6 +9779,37 @@
   newsModalCloseBtn.addEventListener('click', closeNewsModal);
   newsCancelBtn.addEventListener('click', closeNewsModal);
   newsModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeNewsModal);
+  newsEditorToolbar.addEventListener('mousedown', function (event) {
+    if (event.target.closest('.news-editor-tool')) event.preventDefault();
+  });
+  newsEditorToolbar.addEventListener('click', function (event) {
+    var tool = event.target.closest('.news-editor-tool');
+    if (!tool) return;
+    if (tool === newsImageUploadBtn) {
+      rememberNewsEditorSelection();
+      newsImageFileInput.click();
+      return;
+    }
+    if (tool === newsImageLibraryBtn) {
+      openNewsImageLibrary();
+      return;
+    }
+    runNewsEditorCommand(tool.getAttribute('data-news-command'), tool.getAttribute('data-news-value'));
+  });
+  ['keyup', 'mouseup', 'input', 'focus'].forEach(function (eventName) {
+    newsBodyInput.addEventListener(eventName, rememberNewsEditorSelection);
+  });
+  newsBodyInput.addEventListener('paste', function (event) {
+    event.preventDefault();
+    var text = (event.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, text);
+    rememberNewsEditorSelection();
+  });
+  newsImageFileInput.addEventListener('change', function () { uploadNewsImage(newsImageFileInput.files[0]); });
+  newsImageLibraryUploadBtn.addEventListener('click', function () { newsImageFileInput.click(); });
+  newsImageLibraryCloseBtn.addEventListener('click', closeNewsImageLibrary);
+  newsImageLibraryCancelBtn.addEventListener('click', closeNewsImageLibrary);
+  newsImageLibraryModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeNewsImageLibrary);
   newsSearchEl.addEventListener('input', function () {
     clearTimeout(newsSearchTimer);
     newsSearchTimer = setTimeout(renderNewsList, 140);
@@ -9614,7 +9838,7 @@
     if (!pwHasPermission('news.edit')) return;
     var payload = {
       title: newsTitleInput.value.trim(),
-      body: newsBodyInput.value.trim(),
+      body: newsBodyValue(),
       author_type: newsAuthorType(),
       comments_enabled: newsCommentsEnabled.checked,
       tags: newsSelectedTags,
