@@ -23,10 +23,18 @@ if (!$existing) {
 }
 
 $authorUserId = $data['author_type'] === 'member' ? (int)$adminUser['id'] : null;
-$stmt = $db->prepare(
-    'UPDATE news_posts SET title = ?, body = ?, author_type = ?, author_user_id = ? WHERE id = ?'
-);
-$stmt->execute([$data['title'], $data['body'], $data['author_type'], $authorUserId, $id]);
+try {
+    $db->beginTransaction();
+    $stmt = $db->prepare(
+        'UPDATE news_posts SET title = ?, body = ?, author_type = ?, author_user_id = ? WHERE id = ?'
+    );
+    $stmt->execute([$data['title'], $data['body'], $data['author_type'], $authorUserId, $id]);
+    pw_news_sync_tags($db, $id, $data['tags']);
+    $db->commit();
+} catch (Throwable $e) {
+    if ($db->inTransaction()) $db->rollBack();
+    throw $e;
+}
 
 pw_log_admin_activity(
     'news_post_updated',

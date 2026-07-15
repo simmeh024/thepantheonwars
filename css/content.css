@@ -313,6 +313,14 @@
 .post .date { font-size: 0.75rem; letter-spacing: 0.14em; text-transform: uppercase; color: var(--purple-bright); }
 .post h2 { margin-top: 0.4em; }
 .post p { font-size: 1rem; }
+.news-public-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; max-width: 760px; margin: 0 0 26px; padding: 12px 14px; border: 1px solid var(--border-soft); background: rgba(124,79,214,0.045); }
+.news-public-filter-label { color: var(--text-faint); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; }
+.news-public-filter-options, .post-tags { display: flex; flex-wrap: wrap; gap: 7px; }
+.news-tag-filter { padding: 5px 9px; border: 1px solid rgba(162,121,236,0.3); border-radius: 999px; background: rgba(162,121,236,0.07); color: var(--text-dim); cursor: pointer; font: 600 0.66rem 'Jost', sans-serif; letter-spacing: 0.05em; text-transform: uppercase; transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease; }
+.news-tag-filter:hover, .news-tag-filter.is-active { border-color: var(--gold); background: rgba(224,163,74,0.1); color: var(--gold-bright); }
+.post-tags { margin: 12px 0 -2px; }
+.post-tag { padding: 4px 8px; border: 1px solid rgba(80,201,191,0.35); border-radius: 999px; background: rgba(80,201,191,0.07); color: #76d8d0; font-size: 0.65rem; letter-spacing: 0.05em; text-transform: uppercase; }
+@media (max-width: 560px) { .news-public-filter { align-items: flex-start; flex-direction: column; } }
 
 .dispatch-intro {
   display: flex; gap: 30px; align-items: center;

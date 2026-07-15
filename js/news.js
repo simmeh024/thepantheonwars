@@ -4,7 +4,10 @@
   'use strict';
 
   var container = document.getElementById('news-posts');
+  var filters = document.getElementById('news-tag-filters');
   if (!container) return;
+  var allPosts = [];
+  var activeTag = '';
 
   function dateLabel(value) {
     var date = new Date(String(value || '').replace(' ', 'T') + 'Z');
@@ -35,6 +38,18 @@
     var title = document.createElement('h2');
     title.textContent = post.title;
     article.appendChild(title);
+
+    if (post.tags && post.tags.length) {
+      var tags = document.createElement('div');
+      tags.className = 'post-tags';
+      post.tags.forEach(function (tag) {
+        var chip = document.createElement('span');
+        chip.className = 'post-tag';
+        chip.textContent = tag.label;
+        tags.appendChild(chip);
+      });
+      article.appendChild(tags);
+    }
     makeParagraphs(post.body, article);
 
     var stamp = document.createElement('div');
@@ -63,19 +78,52 @@
     return article;
   }
 
+  function renderTagFilters() {
+    if (!filters) return;
+    var bySlug = {};
+    allPosts.forEach(function (post) {
+      (post.tags || []).forEach(function (tag) { bySlug[tag.slug] = tag.label; });
+    });
+    filters.textContent = '';
+    [{ slug: '', label: 'All updates' }].concat(Object.keys(bySlug).sort(function (a, b) {
+      return bySlug[a].localeCompare(bySlug[b]);
+    }).map(function (slug) { return { slug: slug, label: bySlug[slug] }; })).forEach(function (tag) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'news-tag-filter' + (activeTag === tag.slug ? ' is-active' : '');
+      button.textContent = tag.label;
+      button.setAttribute('aria-pressed', activeTag === tag.slug ? 'true' : 'false');
+      button.addEventListener('click', function () {
+        activeTag = tag.slug;
+        renderTagFilters();
+        renderPosts();
+      });
+      filters.appendChild(button);
+    });
+  }
+
+  function renderPosts() {
+    container.textContent = '';
+    var posts = activeTag ? allPosts.filter(function (post) {
+      return (post.tags || []).some(function (tag) { return tag.slug === activeTag; });
+    }) : allPosts;
+    if (!posts.length) {
+      var empty = document.createElement('p');
+      empty.className = 'lore-status';
+      empty.textContent = activeTag ? 'No updates use this tag yet.' : 'No public updates have been transmitted yet.';
+      container.appendChild(empty);
+      return;
+    }
+    posts.forEach(function (post) { container.appendChild(createPost(post)); });
+  }
+
   fetch('/api/news/list.php', { credentials: 'same-origin' })
     .then(function (response) { return response.json(); })
     .then(function (data) {
       if (!data.ok) throw new Error(data.error || 'News could not be loaded.');
-      container.textContent = '';
-      if (!data.entries || !data.entries.length) {
-        var empty = document.createElement('p');
-        empty.className = 'lore-status';
-        empty.textContent = 'No public updates have been transmitted yet.';
-        container.appendChild(empty);
-        return;
-      }
-      data.entries.forEach(function (post) { container.appendChild(createPost(post)); });
+      allPosts = data.entries || [];
+      renderTagFilters();
+      renderPosts();
     })
     .catch(function () {
       container.textContent = '';

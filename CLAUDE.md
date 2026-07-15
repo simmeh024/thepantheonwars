@@ -159,7 +159,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=186, community v=190, and admin v=206. Public pages use
+  versions: public v=187, community v=190, and admin v=207. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -171,7 +171,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
   `js/books.js?v=N` is page-specific (current: v=3) and only needs a version
-  bump in `books.html`. `js/news.js?v=N` is likewise page-specific (current: v=1)
+  bump in `books.html`. `js/news.js?v=N` is likewise page-specific (current: v=2)
   and only needs a version bump in `news.html`.
 - Static CSS, JavaScript, font, and image assets have a one-year
   `public, immutable` cache policy in `.htaccess`; HTML remains no-cache so
@@ -227,6 +227,11 @@ also supports a deliberately manual `?full=1` historical rebuild.
   roles can be granted them through Roles & Permissions. Run
   `sql/migration_news_management.sql` once in phpMyAdmin after deployment: it adds
   the table/permission catalogue and imports the two former static articles.
+  News posts now also support up to ten reusable tags through `news_tags` and
+  `news_post_tags`; the editor uses its persisted tag catalogue for autocomplete
+  and the public News page filters articles client-side by tag. The current full
+  `migration_news_management.sql` includes those tables. If the prior News
+  migration was already run, execute `sql/migration_news_tags.sql` once instead.
 
 - **Member presence:** run `migration_user_presence_status.sql` after deploy.
   `users.presence_status` stores only `online`, `away`, or `inactive`; **Offline

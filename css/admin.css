@@ -9,8 +9,22 @@
 .news-author-option strong { color: var(--text); font-family: 'Cinzel', serif; font-size: 0.74rem; letter-spacing: 0.04em; }
 .news-author-option small { margin-top: 3px; color: var(--text-faint); font-size: 0.72rem; }
 .news-management-row .admin-row-subject { font-family: 'Cinzel', serif; }
+.news-management-columns,
+.admin-row.news-management-row { display: grid; grid-template-columns: minmax(0, 1fr) 150px; align-items: center; column-gap: 16px; }
+.news-management-columns { margin: 0 18px; padding: 3px 10px; color: var(--text-faint); font-size: 0.64rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.news-management-columns > span:last-child { text-align: right; }
 .news-management-row .news-author-pill { display: inline-flex; align-items: center; padding: 3px 7px; border: 1px solid rgba(162,121,236,0.5); border-radius: 999px; color: var(--purple-bright); font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }
 .news-management-row .news-author-pill.is-bh4 { border-color: rgba(224,163,74,0.52); color: var(--gold-bright); }
+.news-management-row .news-author-pill { justify-self: end; }
+.news-row-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+.news-row-tag, .news-tag-chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px; border: 1px solid rgba(80,201,191,0.34); border-radius: 999px; background: rgba(80,201,191,0.08); color: #78d8d1; font-size: 0.62rem; letter-spacing: 0.04em; }
+.news-tag-editor { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; min-height: 42px; padding: 7px 9px; border: 1px solid var(--border); background: var(--panel); }
+.news-tag-editor:focus-within { border-color: var(--purple-bright); }
+.news-tag-selected { display: flex; flex-wrap: wrap; gap: 6px; }
+.news-tag-editor input { flex: 1 1 150px; min-width: 0; padding: 3px; border: 0; outline: 0; background: transparent; color: var(--text); font: inherit; }
+.news-tag-chip-remove { display: inline-grid; width: 15px; height: 15px; place-items: center; padding: 0; border: 0; background: transparent; color: inherit; cursor: pointer; font: inherit; font-size: 0.86rem; line-height: 1; }
+.news-tag-chip-remove:hover { color: var(--gold-bright); }
+@media (max-width: 720px) { .news-management-columns { display: none; } .admin-row.news-management-row { display: flex; align-items: flex-start; gap: 10px 16px; flex-wrap: wrap; } .news-management-row .news-author-pill { justify-self: auto; } }
 @media (max-width: 600px) { .news-author-options { grid-template-columns: 1fr; } }
 
 /* Admin Home polish: lift the operational cards out of the shared background

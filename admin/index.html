@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=206">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=207">
 </head>
 <body>
 
@@ -1233,10 +1233,14 @@
 
       <div class="admin-toolbar">
         <button type="button" class="btn btn-solid" id="news-create-btn">+ New News Post</button>
+        <select class="admin-search admin-tag-select" id="news-tag-filter" aria-label="Filter by tag">
+          <option value="">All tags</option>
+        </select>
         <input type="search" class="admin-search" id="news-search" placeholder="Search title or text&hellip;">
         <span class="admin-count" id="news-count"></span>
       </div>
 
+      <div class="news-management-columns" aria-hidden="true"><span>News Title</span><span>Publisher</span></div>
       <div class="admin-list" id="news-list">
         <div class="admin-list-empty">Loading news posts&hellip;</div>
       </div>
@@ -1474,6 +1478,15 @@
       <label for="news-body-input">Public update</label>
       <p class="admin-field-hint">Use a blank line to start a new paragraph. Plain text keeps public updates safe and readable.</p>
       <textarea id="news-body-input" maxlength="15000" placeholder="Write the update your readers should see."></textarea>
+    </div>
+    <div class="admin-field">
+      <label for="news-tag-input">Tags</label>
+      <p class="admin-field-hint">Type a tag and press Enter or comma. Existing tags appear as suggestions; up to 10 tags per post.</p>
+      <div class="news-tag-editor" id="news-tag-editor">
+        <div class="news-tag-selected" id="news-tag-selected" aria-live="polite"></div>
+        <input type="text" id="news-tag-input" list="news-tag-suggestions" maxlength="40" placeholder="e.g. Books, Lore, Soundtrack">
+      </div>
+      <datalist id="news-tag-suggestions"></datalist>
     </div>
     <fieldset class="admin-field news-author-field">
       <legend>Post as</legend>
@@ -9332,6 +9345,7 @@
   var newsCountEl = document.getElementById('news-count');
   var newsCreateBtn = document.getElementById('news-create-btn');
   var newsSearchEl = document.getElementById('news-search');
+  var newsTagFilterEl = document.getElementById('news-tag-filter');
   var newsModal = document.getElementById('news-modal');
   var newsModalTitle = document.getElementById('news-modal-title');
   var newsModalSub = document.getElementById('news-modal-sub');
@@ -9344,7 +9358,12 @@
   var newsCancelBtn = document.getElementById('news-cancel-btn');
   var newsDeleteBtn = document.getElementById('news-delete-btn');
   var newsSelfAuthorLabel = document.getElementById('news-self-author-label');
+  var newsTagInput = document.getElementById('news-tag-input');
+  var newsTagSelectedEl = document.getElementById('news-tag-selected');
+  var newsTagSuggestionsEl = document.getElementById('news-tag-suggestions');
   var newsEntries = [];
+  var newsKnownTags = [];
+  var newsSelectedTags = [];
   var newsCurrent = null;
   var newsModalMode = 'create';
   var newsSearchTimer = null;
@@ -9362,6 +9381,7 @@
   function loadNewsList() {
     if (!newsListEl) return;
     newsCreateBtn.hidden = !pwHasPermission('news.edit');
+    loadNewsTags();
     newsListEl.innerHTML = '<div class="admin-list-empty">Loading news posts&hellip;</div>';
     fetch('/api/admin/news/list.php', { credentials: 'same-origin' })
       .then(function (response) { return response.json(); })
@@ -9375,12 +9395,93 @@
       });
   }
 
+  function loadNewsTags() {
+    fetch('/api/admin/news/tags.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        newsKnownTags = data.tags || [];
+        renderNewsTagControls();
+      })
+      .catch(function () {});
+  }
+
+  function renderNewsTagControls() {
+    var selectedFilter = newsTagFilterEl.value;
+    newsTagFilterEl.textContent = '';
+    var all = document.createElement('option');
+    all.value = '';
+    all.textContent = 'All tags';
+    newsTagFilterEl.appendChild(all);
+    newsKnownTags.forEach(function (tag) {
+      var option = document.createElement('option');
+      option.value = tag.slug;
+      option.textContent = tag.label + (tag.post_count ? ' (' + tag.post_count + ')' : '');
+      newsTagFilterEl.appendChild(option);
+    });
+    newsTagFilterEl.value = selectedFilter;
+
+    newsTagSuggestionsEl.textContent = '';
+    newsKnownTags.forEach(function (tag) {
+      var option = document.createElement('option');
+      option.value = tag.label;
+      newsTagSuggestionsEl.appendChild(option);
+    });
+  }
+
+  function newsTagKey(label) {
+    return String(label || '').trim().replace(/^#+/, '').replace(/\s+/g, ' ').toLowerCase();
+  }
+
+  function renderSelectedNewsTags() {
+    newsTagSelectedEl.textContent = '';
+    newsSelectedTags.forEach(function (tag) {
+      var chip = document.createElement('span');
+      chip.className = 'news-tag-chip';
+      chip.appendChild(document.createTextNode(tag));
+      var remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'news-tag-chip-remove';
+      remove.setAttribute('aria-label', 'Remove tag ' + tag);
+      remove.textContent = '×';
+      remove.addEventListener('click', function () {
+        newsSelectedTags = newsSelectedTags.filter(function (current) { return newsTagKey(current) !== newsTagKey(tag); });
+        renderSelectedNewsTags();
+      });
+      chip.appendChild(remove);
+      newsTagSelectedEl.appendChild(chip);
+    });
+  }
+
+  function addNewsTag(raw) {
+    var label = String(raw || '').trim().replace(/^#+/, '').replace(/\s+/g, ' ');
+    if (!label) return;
+    if (label.length > 40) {
+      newsModalError.textContent = 'Each tag must be 40 characters or fewer.';
+      newsModalError.classList.add('show');
+      return;
+    }
+    var existing = newsKnownTags.filter(function (tag) { return newsTagKey(tag.label) === newsTagKey(label); })[0];
+    if (existing) label = existing.label;
+    if (newsSelectedTags.some(function (tag) { return newsTagKey(tag) === newsTagKey(label); })) return;
+    if (newsSelectedTags.length >= 10) {
+      newsModalError.textContent = 'Use at most 10 tags per news post.';
+      newsModalError.classList.add('show');
+      return;
+    }
+    newsSelectedTags.push(label);
+    newsTagInput.value = '';
+    renderSelectedNewsTags();
+  }
+
   function renderNewsList() {
     var query = (newsSearchEl.value || '').trim().toLowerCase();
+    var tagFilter = newsTagFilterEl.value;
     var entries = newsEntries.filter(function (entry) {
-      if (!query) return true;
-      return String(entry.title || '').toLowerCase().indexOf(query) !== -1 ||
+      var matchesQuery = !query || String(entry.title || '').toLowerCase().indexOf(query) !== -1 ||
         String(entry.body || '').toLowerCase().indexOf(query) !== -1;
+      var matchesTag = !tagFilter || (entry.tags || []).some(function (tag) { return tag.slug === tagFilter; });
+      return matchesQuery && matchesTag;
     });
     newsCountEl.textContent = entries.length + (entries.length === 1 ? ' post' : ' posts');
     if (!entries.length) {
@@ -9395,10 +9496,12 @@
       var author = entry.author_type === 'bh4' ? 'BH-4' : (entry.author_display_name || 'Member');
       var preview = String(entry.body || '').replace(/\s+/g, ' ').trim();
       if (preview.length > 150) preview = preview.slice(0, 147) + '...';
+      var tags = (entry.tags || []).map(function (tag) { return '<span class="news-row-tag">' + escapeHtml(tag.label) + '</span>'; }).join('');
       row.innerHTML =
         '<div class="admin-row-main">' +
           '<p class="admin-row-subject">' + escapeHtml(entry.title) + '</p>' +
           '<div class="admin-row-meta"><span>' + escapeHtml(fmtDate(entry.published_at)) + '</span><span class="admin-row-sep">&bull;</span><span>' + escapeHtml(preview) + '</span></div>' +
+          (tags ? '<div class="news-row-tags">' + tags + '</div>' : '') +
         '</div>' +
         '<span class="news-author-pill' + (entry.author_type === 'bh4' ? ' is-bh4' : '') + '">' + escapeHtml(author) + '</span>';
       row.addEventListener('click', function () { openNewsModal(entry); });
@@ -9420,6 +9523,9 @@
     newsModalSub.textContent = entry ? ('Public address: news.html#' + entry.slug) : 'This update appears on the public News page as soon as it is saved.';
     newsTitleInput.value = entry ? entry.title : '';
     newsBodyInput.value = entry ? entry.body : '';
+    newsSelectedTags = entry ? (entry.tags || []).map(function (tag) { return tag.label; }) : [];
+    newsTagInput.value = '';
+    renderSelectedNewsTags();
     var selfName = window.PW_AUTH.user && (window.PW_AUTH.user.display_name || window.PW_AUTH.user.username);
     newsSelfAuthorLabel.textContent = selfName || 'Yourself';
     setNewsAuthorType(entry ? entry.author_type : 'bh4');
@@ -9446,6 +9552,25 @@
     clearTimeout(newsSearchTimer);
     newsSearchTimer = setTimeout(renderNewsList, 140);
   });
+  newsTagFilterEl.addEventListener('change', renderNewsList);
+  newsTagInput.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter' || event.key === ',') {
+      event.preventDefault();
+      addNewsTag(newsTagInput.value);
+    }
+    if (event.key === 'Backspace' && !newsTagInput.value && newsSelectedTags.length) {
+      newsSelectedTags.pop();
+      renderSelectedNewsTags();
+    }
+  });
+  newsTagInput.addEventListener('input', function () {
+    if (newsTagInput.value.indexOf(',') !== -1) {
+      var parts = newsTagInput.value.split(',');
+      parts.slice(0, -1).forEach(addNewsTag);
+      newsTagInput.value = parts[parts.length - 1];
+    }
+  });
+  newsTagInput.addEventListener('blur', function () { addNewsTag(newsTagInput.value); });
 
   newsSaveBtn.addEventListener('click', function () {
     if (!pwHasPermission('news.edit')) return;
@@ -9453,6 +9578,7 @@
       title: newsTitleInput.value.trim(),
       body: newsBodyInput.value.trim(),
       author_type: newsAuthorType(),
+      tags: newsSelectedTags,
       csrf: window.PW_AUTH.csrf
     };
     if (!payload.title || !payload.body) {

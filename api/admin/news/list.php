@@ -12,7 +12,18 @@ $rows = $db->query(
      ORDER BY n.published_at DESC, n.id DESC'
 )->fetchAll();
 
-$entries = array_map(function ($row) {
+$tagRows = $db->query(
+    'SELECT npt.news_post_id, t.slug, t.label
+     FROM news_post_tags npt
+     INNER JOIN news_tags t ON t.id = npt.news_tag_id
+     ORDER BY t.label ASC'
+)->fetchAll();
+$tagsByPost = [];
+foreach ($tagRows as $tag) {
+    $tagsByPost[(int)$tag['news_post_id']][] = ['slug' => $tag['slug'], 'label' => $tag['label']];
+}
+
+$entries = array_map(function ($row) use ($tagsByPost) {
     return [
         'id' => (int)$row['id'],
         'slug' => $row['slug'],
@@ -24,6 +35,7 @@ $entries = array_map(function ($row) {
         'published_at' => $row['published_at'],
         'created_at' => $row['created_at'],
         'updated_at' => $row['updated_at'],
+        'tags' => $tagsByPost[(int)$row['id']] ?? [],
     ];
 }, $rows);
 
