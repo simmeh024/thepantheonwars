@@ -225,7 +225,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   empty icon slot. Existing queued drafts are deliberately not bulk-published;
   regenerate one to apply this rule.
 
-- **Dispatch Draft Translator (v16 + optional spaCy vectors):** the deterministic formatter recognizes
+- **Dispatch Draft Translator (v17 + optional spaCy vectors):** the deterministic formatter recognizes
   commit domains (security, database, performance, community, content,
   interface, and operations) and uses domain-specific BH-4 templates rather
   than one generic sentence shape. It also uses optional safe diff metadata:
@@ -241,7 +241,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   recent translations, and uses that score to begin with a different stable
   wording variant for near-duplicate updates. Raw prior translations never
   leave the PHP/Python process boundary. The draft-format hash is
-  `dispatch-draft-v16`, so regeneration refreshes unapproved local drafts
+  `dispatch-draft-v17`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
   Before rendering prose, PHP builds a reader-safe plan from recognized commit
@@ -253,7 +253,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   make an unsupported draft high confidence or bypass the multi-signal
   auto-publication gate. Vector domains may resolve only an otherwise general
   record—they must never override an explicit local cue such as a named world,
-  map, member feature, or security term. spaCy is an optional, entirely local enhancement: `tools/dispatch-nlp.py`
+  map, member feature, or security term. Named worlds, maps, districts, books,
+  and worldbuilding areas are decisive content signals before broad technical
+  terms are considered. spaCy is an optional, entirely local enhancement: `tools/dispatch-nlp.py`
   extracts verbs, noun phrases, named terms, and (with `en_core_web_md`)
   conservative vector-based domain hints for vague commits, but never
   writes prose, calls an external service, or changes confidence/auto-publish

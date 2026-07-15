@@ -26,13 +26,20 @@ function pw_dispatch_draft_phrase_is_recent(string $candidate, array $recentTran
 function pw_dispatch_draft_domain(string $text, string $tag, array $diffContext): string
 {
     $haystack = $text . ' ' . implode(' ', $diffContext['areas'] ?? []) . ' ' . implode(' ', $diffContext['extensions'] ?? []);
+    // A named world, a district map, or an explicit worldbuilding scope is a
+    // decisive reader-facing cue. Do this before broad technical vocabulary:
+    // a world record can legitimately mention image loading or responsive
+    // behaviour without becoming a performance Dispatch.
+    if (preg_match('/\b(?:Asmecu|Cerius|Neoh|High Hammer|worlds?|worldbuilding|district(?:s)?|map|overlord|lore|book|chapter)\b/i', $haystack)) {
+        return 'content';
+    }
     $domains = [
         'security' => '/\b(?:security|csrf|password|login|session|privacy|gdpr|permission|authentication|authorization|header|x-frame|referrer)\b/i',
         'database' => '/\b(?:database|sql|mysql|mariadb|query|index|migration|rollup)\b/i',
-        'performance' => '/\b(?:performance|faster|speed|cache|loading|lcp|lighthouse|lazy|preload|defer|bandwidth|core web vitals)\b/i',
         'community' => '/\b(?:forum|community|topic|reply|comment|member|moderator|notification|report|reaction|profile)\b/i',
-        'content' => '/\b(?:book|chapter|world|lore|overlord|dispatch|translation|story|map|character|quiz)\b/i',
         'interface' => '/\b(?:css|ui|ux|interface|layout|sidebar|card|modal|button|icon|image|hero|responsive|focus|animation)\b/i',
+        'performance' => '/\b(?:performance|faster|speed|cache|loading|lcp|lighthouse|lazy|preload|defer|bandwidth|core web vitals)\b/i',
+        'content' => '/\b(?:dispatch|translation|story|character|quiz)\b/i',
         'operations' => '/\b(?:admin|backup|system status|audit log|github|webhook|cron|deploy|monitor|analytics)\b/i',
     ];
     foreach ($domains as $domain => $pattern) {
@@ -762,7 +769,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v16\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v17\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array

@@ -24,6 +24,8 @@ intent, body context, changed-file scope, and semantic context contribute to a
 score; vector context is capped at a small supporting weight and can never make
 an unsupported draft high confidence on its own. Vector domains resolve only a
 genuinely unclassified commit and never replace an explicit local domain cue.
+Named worlds, maps, districts, books, and worldbuilding scope are decisive
+content cues before broad technical terms are evaluated.
 High confidence still requires multiple independent signals, preserving the
 existing auto-publication safety gate.
 
