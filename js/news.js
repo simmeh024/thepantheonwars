@@ -10,10 +10,20 @@
   var activeTag = '';
   var moreTagsOpen = false;
 
+  function ordinal(day) {
+    var remainder = day % 100;
+    if (remainder >= 11 && remainder <= 13) return day + 'th';
+    return day + ({ 1: 'st', 2: 'nd', 3: 'rd' }[day % 10] || 'th');
+  }
+
   function dateLabel(value) {
     var date = new Date(String(value || '').replace(' ', 'T') + 'Z');
     if (isNaN(date.getTime())) return '';
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+    var weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    var hours = String(date.getUTCHours()).padStart(2, '0');
+    var minutes = String(date.getUTCMinutes()).padStart(2, '0');
+    return hours + ':' + minutes + ' UTC - ' + weekdays[date.getUTCDay()] + ' ' + ordinal(date.getUTCDate()) + ' - ' + months[date.getUTCMonth()] + ' ' + date.getUTCFullYear();
   }
 
   function makeParagraphs(body, article) {

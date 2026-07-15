@@ -171,7 +171,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
   `js/books.js?v=N` is page-specific (current: v=3) and only needs a version
-  bump in `books.html`. `js/news.js?v=N` is likewise page-specific (current: v=3)
+  bump in `books.html`. `js/news.js?v=N` is likewise page-specific (current: v=4)
   and only needs a version bump in `news.html`.
 - Static CSS, JavaScript, font, and image assets have a one-year
   `public, immutable` cache policy in `.htaccess`; HTML remains no-cache so
