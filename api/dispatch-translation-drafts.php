@@ -580,7 +580,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // profile. Extract only facts stated in the commit: the named world, an
     // explicit map, a stated district count, and landmarks. This also prevents
     // an action verb such as "unlock" from being left inside an object phrase.
-    if (!$naturalOverrideApplied && preg_match('/\bunlock\s+([A-Z][A-Za-z0-9-]{2,50})\b/', $intentSource, $worldMatch)) {
+    if (!$naturalOverrideApplied && preg_match('/\bunlock\s+([A-Z][A-Za-z0-9-]{2,50})\b/i', $intentSource, $worldMatch)) {
         $worldName = $worldMatch[1];
         $worldText = $contextSource . ' ' . $clean . ' ' . $bodyContext;
         $hasMap = (bool)preg_match('/\b(?:district\s+)?map\b/i', $worldText);
@@ -796,7 +796,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v18\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v19\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array
