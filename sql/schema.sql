@@ -392,7 +392,7 @@ CREATE TABLE IF NOT EXISTS dispatch_translation_drafts (
   dispatch_id INT UNSIGNED NOT NULL,
   sha VARCHAR(40) NOT NULL,
   draft TEXT NOT NULL,
-  source ENUM('rule_based') NOT NULL DEFAULT 'rule_based',
+  source ENUM('rule_based', 'rule_based_spacy') NOT NULL DEFAULT 'rule_based',
   draft_hash CHAR(64) NOT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

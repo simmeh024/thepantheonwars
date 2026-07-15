@@ -6,6 +6,7 @@
  * for an editor to approve or edit.
  */
 require_once __DIR__ . '/dispatch-diff-context.php';
+require_once __DIR__ . '/dispatch-spacy.php';
 
 function pw_dispatch_draft_phrase_is_recent(string $candidate, array $recentTranslations): bool
 {
@@ -69,6 +70,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
 {
     $diffContext = is_array($options['diff_context'] ?? null) ? $options['diff_context'] : [];
     $recentTranslations = is_array($options['recent_translations'] ?? null) ? $options['recent_translations'] : [];
+    $spacyAnalysis = is_array($options['spacy_analysis'] ?? null) ? $options['spacy_analysis'] : [];
     $clean = trim($subject);
     $clean = preg_replace('/^(?:feat(?:ure)?|fix|perf(?:ormance)?|refactor|chore|docs?|style|test)(?:\([^)]*\))?!?:\s*/i', '', $clean);
     $clean = preg_replace('/\s*\(?#[0-9]+\)?\s*$/', '', $clean);
@@ -460,7 +462,14 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     ];
     $template = isset($templates[$tag]) ? $templates[$tag] : 'This update improves %s.';
 
+    // spaCy contributes only a safe extracted phrase when the local action
+    // library could not identify an object. It never changes the confidence
+    // score or publication threshold; those remain explainable PHP rules.
     if ($draft === '') {
+        $spacyObject = pw_dispatch_spacy_reader_object($spacyAnalysis);
+        if ($spacyObject !== '') {
+            $object = lcfirst($spacyObject);
+        }
         $draft = sprintf($template, rtrim($object, '.'));
     }
 
@@ -600,10 +609,10 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v13\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v14\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
-function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId): array
+function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array
 {
     $contexts = pw_get_dispatch_diff_contexts($db, [$dispatchId]);
     $recentTranslations = [];
@@ -621,6 +630,9 @@ function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId): array
     return [
         'diff_context' => $contexts[$dispatchId] ?? [],
         'recent_translations' => $recentTranslations,
+        // The caller already loaded this Dispatch. Passing its text here avoids
+        // introducing an extra database query just for optional NLP analysis.
+        'spacy_analysis' => ($subject !== '' || $body !== '') ? pw_dispatch_spacy_analyze($subject, $body) : [],
     ];
 }
 
@@ -656,11 +668,12 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
         return ['ok' => false, 'reason' => 'published'];
     }
 
+    $draftOptions = pw_dispatch_draft_options_for_dispatch($db, $dispatchId, (string)$entry['subject'], (string)$entry['body']);
     $result = pw_dispatch_end_user_draft(
         $entry['subject'],
         (string)$entry['body'],
         $entry['tag'],
-        pw_dispatch_draft_options_for_dispatch($db, $dispatchId)
+        $draftOptions
     );
     if ($result['confidence']['level'] === 'high') {
         // INSERT IGNORE deliberately avoids replacing an editor's approval if
@@ -695,14 +708,20 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
 
     $stmt = $db->prepare(
         'INSERT INTO dispatch_translation_drafts (dispatch_id, sha, draft, source, draft_hash)
-         VALUES (?, ?, ?, \'rule_based\', ?)
+         VALUES (?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
            sha = VALUES(sha),
            draft = IF(draft_hash <> VALUES(draft_hash), VALUES(draft), draft),
            draft_hash = VALUES(draft_hash),
            source = VALUES(source)'
     );
-    $stmt->execute([$dispatchId, $entry['sha'], $result['draft'], $result['hash']]);
+    $stmt->execute([
+        $dispatchId,
+        $entry['sha'],
+        $result['draft'],
+        empty($draftOptions['spacy_analysis']) ? 'rule_based' : 'rule_based_spacy',
+        $result['hash'],
+    ]);
     if ($stmt->rowCount() === 1) {
         pw_log_dispatch_translation_lifecycle(
             $db,

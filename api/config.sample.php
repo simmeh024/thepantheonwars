@@ -24,6 +24,13 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // define('GOOGLE_OAUTH_CLIENT_SECRET', 'REPLACE_WITH_GOOGLE_CLIENT_SECRET');
 // define('GOOGLE_OAUTH_REDIRECT_URI', 'https://thepantheonwars.com/api/oauth/callback.php?provider=google');
 
+// Optional local spaCy enrichment for Dispatch translations. The rule-based
+// formatter remains fully functional without it. Create the Python venv with
+// the instructions in docs/dispatch-spacy.md, then point at that interpreter.
+// Keep this outside the web root because the exact venv path is host-specific.
+// define('SPACY_PYTHON_BIN', '/home/rdy3i6my40b0/virtualenv/dispatch-nlp/3.11/bin/python');
+// define('SPACY_MODEL', 'en_core_web_sm');
+
 // Optional. Raises the GitHub REST API rate limit used by the System
 // Status card/page and the language-snapshot sync from 60 requests/hour
 // (unauthenticated) to 5,000 requests/hour (authenticated) -- see

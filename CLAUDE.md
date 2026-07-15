@@ -225,7 +225,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   empty icon slot. Existing queued drafts are deliberately not bulk-published;
   regenerate one to apply this rule.
 
-- **Dispatch Draft Translator (v13):** the deterministic formatter recognizes
+- **Dispatch Draft Translator (v14 + optional spaCy):** the deterministic formatter recognizes
   commit domains (security, database, performance, community, content,
   interface, and operations) and uses domain-specific BH-4 templates rather
   than one generic sentence shape. It also uses optional safe diff metadata:
@@ -237,9 +237,16 @@ also supports a deliberately manual `?full=1` historical rebuild.
   25. Draft creation checks the 20 latest
   published translations and deterministically chooses another phrasing when
   a candidate sentence is already present. The draft-format hash is
-  `dispatch-draft-v13`, so regeneration refreshes unapproved local drafts
+  `dispatch-draft-v14`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
+  spaCy is an optional, entirely local enhancement: `tools/dispatch-nlp.py`
+  extracts verbs, noun phrases, and named terms for vague commits, but never
+  writes prose, calls an external service, or changes confidence/auto-publish
+  thresholds. PHP uses the existing deterministic templates as the source of
+  truth and falls back immediately if the configured venv is unavailable.
+  See `docs/dispatch-spacy.md`; run `migration_dispatch_spacy.sql` after deploy
+  to store the `rule_based_spacy` source marker.
 
 - **Public Development Dispatches:** expanded entries now present the approved
   end-user translation first. If none is published, they show the notice
