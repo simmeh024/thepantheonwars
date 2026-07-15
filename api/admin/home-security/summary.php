@@ -7,6 +7,7 @@
  * happened in the last 24h, not the total currently in effect).
  */
 require_once __DIR__ . '/../../helpers.php';
+require_once __DIR__ . '/../system-status/status-helpers.php';
 
 pw_require_permission('dashboards.view_home');
 
@@ -28,10 +29,12 @@ $bannedStmt = $db->query(
     "SELECT COUNT(*) AS c FROM users WHERE banned_at IS NOT NULL AND (banned_until IS NULL OR banned_until > NOW())"
 );
 $bannedAccounts = (int)$bannedStmt->fetch()['c'];
+$spacy = pw_dispatch_spacy_status();
 
 pw_json([
     'ok' => true,
     'failed_logins_24h' => $failedLogins,
     'locked_accounts' => $lockedAccounts,
     'banned_accounts' => $bannedAccounts,
+    'spacy' => $spacy,
 ]);

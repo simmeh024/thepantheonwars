@@ -174,6 +174,7 @@ $bh4Row->execute([$since]);
 $bh4Counts = $bh4Row->fetch();
 // The old page queried this once for System Status and again for the advisor.
 $systemSignals = pw_build_system_signals($db);
+$security['spacy'] = $systemSignals['spacy'];
 $systemStatus = ['ok' => false];
 if (pw_has_permission($adminUser, 'dashboards.view_system_status')) {
     $systemStatus = array_merge(

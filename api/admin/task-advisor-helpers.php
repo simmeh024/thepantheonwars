@@ -129,7 +129,7 @@ function pw_collect_task_advisor($db, array $systemSignals) {
     );
     $criticalLogins = (int)$criticalStmt->fetch()['c'];
     $now = gmdate('Y-m-d\TH:i:s\Z');
-    $criticalPriority = ['security', 'backup', 'database', 'database_load', 'sql_performance', 'forum', 'dispatch_sync', 'storage', 'github'];
+    $criticalPriority = ['security', 'spacy', 'backup', 'database', 'database_load', 'sql_performance', 'forum', 'dispatch_sync', 'storage', 'github'];
     $criticalAlerts = [];
 
     if ($criticalLogins > 0) {
@@ -152,6 +152,7 @@ function pw_collect_task_advisor($db, array $systemSignals) {
         'dispatch_sync' => ['type' => 'dispatch_sync', 'title' => 'Dispatch sync is unreachable', 'reason' => 'Could not verify whether dispatch entries are in sync with GitHub.'],
         'avatar_storage' => ['type' => 'storage', 'title' => 'Avatar storage is nearing capacity', 'reason' => 'Avatar storage has reached ' . $systemSignals['avatar_storage']['pct'] . '% of its budget.'],
         'github' => ['type' => 'github', 'title' => 'GitHub repository is unreachable', 'reason' => 'The GitHub API check for the main branch is currently failing.'],
+        'spacy' => ['type' => 'spacy', 'title' => 'spaCy translation service is disconnected', 'reason' => 'BH-4 could not load the local spaCy worker or its English language model. Dispatch drafting has reverted to the deterministic fallback until the script connection is restored.'],
     ];
     foreach ($systemAlertSpecs as $signalKey => $spec) {
         if ($systemSignals[$signalKey]['status'] !== 'bad') {

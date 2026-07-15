@@ -12,7 +12,9 @@
  * investigation if a future host makes this feasible again.)
  */
 
-// --- The six "System Status" card signals -----------------------------------------
+require_once __DIR__ . '/../../dispatch-spacy.php';
+
+// --- The System Status card signals -----------------------------------------
 // Extracted out of system-status/summary.php so api/admin/task-advisor.php can
 // reuse the exact same checks for its critical-alert detection instead of
 // re-implementing (and potentially drifting from) this logic. See
@@ -96,6 +98,12 @@ function pw_build_system_signals($db) {
     // receives the same escalation path as other system-health signals.
     $backup = pw_check_last_backup($db);
 
+    // --- spaCy worker ---------------------------------------------------------------
+    // This is a real, short-lived model-load probe. The translator keeps its
+    // rule-only fallback when it fails, but BH-4 must surface that degraded
+    // state to admins because spaCy enrichment is now enabled in production.
+    $spacy = pw_dispatch_spacy_status();
+
     return [
         'github' => ['status' => $githubStatus, 'label' => $githubLabel],
         'database' => ['status' => $dbStatus, 'label' => $dbLabel],
@@ -104,6 +112,7 @@ function pw_build_system_signals($db) {
         'dispatch_sync' => ['status' => $dispatchSyncStatus, 'label' => $dispatchSyncLabel],
         'avatar_storage' => $avatarStorage,
         'backup' => $backup,
+        'spacy' => $spacy,
     ];
 }
 

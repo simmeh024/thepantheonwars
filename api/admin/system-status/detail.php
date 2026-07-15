@@ -120,6 +120,7 @@ $cpuLoad = pw_check_cpu_load();
 
 // --- SSL certificate + Avatar storage + Total storage ----------------------------
 $ssl = pw_check_ssl_expiry();
+$spacy = pw_dispatch_spacy_status();
 $avatarStorage = pw_check_avatar_storage();
 $totalStorage = pw_check_total_storage();
 
@@ -131,6 +132,7 @@ pw_json([
     'last_sync' => ['label' => $lastSyncLabel],
     'next_sync' => ['label' => $nextSyncLabel],
     'ssl' => ['status' => $ssl['status'], 'label' => $ssl['label']],
+    'spacy' => $spacy,
     'db_load' => $dbLoad,
     'database_size' => $dbSize,
     'db_connections' => $dbExtra['connections'],

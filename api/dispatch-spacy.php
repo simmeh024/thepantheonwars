@@ -43,10 +43,15 @@ function pw_dispatch_spacy_analyze(string $subject, string $body): array
     $truncate = static function (string $value, int $length): string {
         return function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length);
     };
-    $payload = json_encode([
-        'subject' => $truncate($subject, 4000),
-        'body' => $truncate($body, 8000),
-    ], JSON_UNESCAPED_UNICODE);
+    $payload = json_encode(
+        ($subject === '' && $body === '')
+            ? ['health' => true]
+            : [
+                'subject' => $truncate($subject, 4000),
+                'body' => $truncate($body, 8000),
+            ],
+        JSON_UNESCAPED_UNICODE
+    );
     if ($payload === false) {
         return [];
     }
@@ -105,4 +110,17 @@ function pw_dispatch_spacy_analyze(string $subject, string $body): array
         'phrases' => is_array($analysis['phrases'] ?? null) ? $analysis['phrases'] : [],
         'entities' => is_array($analysis['entities'] ?? null) ? $analysis['entities'] : [],
     ];
+}
+
+/**
+ * The System Status page uses a real model-load check rather than merely
+ * checking whether a secrets constant exists. This catches a removed venv,
+ * a missing model, disabled proc_open, and an unresponsive worker alike.
+ */
+function pw_dispatch_spacy_status(): array
+{
+    $analysis = pw_dispatch_spacy_analyze('', '');
+    return $analysis === []
+        ? ['status' => 'bad', 'label' => 'Disconnected']
+        : ['status' => 'ok', 'label' => 'Connected'];
 }

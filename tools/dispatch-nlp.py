@@ -54,14 +54,18 @@ def main() -> int:
             raise ValueError("Expected an object.")
         subject = str(payload.get("subject", ""))[:4000]
         body = str(payload.get("body", ""))[:8000]
+        health_check = bool(payload.get("health"))
         text = (subject + ". " + body).strip()
-        if not text:
+        if not text and not health_check:
             raise ValueError("No dispatch text supplied.")
 
         import spacy
 
         model_name = os.environ.get("PW_SPACY_MODEL", "en_core_web_sm")
         nlp = spacy.load(model_name, disable=["textcat"])
+        if health_check:
+            print(json.dumps({"ok": True, "model": model_name, "health": True}))
+            return 0
         doc = nlp(text)
 
         actions = unique([

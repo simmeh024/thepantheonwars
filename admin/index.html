@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=200">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=201">
 </head>
 <body>
 
@@ -427,7 +427,7 @@
           <div class="activity-widget-head">
             <div class="activity-widget-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>
-              <span>Security Snapshot</span>
+              <span>Security and Scripts</span>
             </div>
           </div>
           <ul class="pending-work-list" id="security-snapshot-list">
@@ -442,6 +442,10 @@
             <li class="pending-work-row">
               <span class="pending-work-label">Currently banned</span>
               <span class="pending-work-count" id="security-banned-accounts">&hellip;</span>
+            </li>
+            <li class="pending-work-row">
+              <span class="pending-work-label">spaCy status<span class="pending-work-sublabel">Dispatch translation enrichment</span></span>
+              <span class="pending-work-count security-script-status" id="security-spacy-status">&hellip;</span>
             </li>
           </ul>
         </div>
@@ -860,7 +864,7 @@
         <div class="system-status-detail-card">
           <div class="system-status-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-            <span>Security</span>
+            <span>Security and Scripts</span>
           </div>
           <ul class="system-status-list system-status-list-wide system-status-list-single">
             <li>
@@ -869,6 +873,13 @@
                 SSL Certificate
               </span>
               <span class="system-status-value" id="sys-detail-ssl">&hellip;</span>
+            </li>
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h5M8 17h3"/></svg>
+                spaCy Script
+              </span>
+              <span class="system-status-value" id="sys-detail-spacy">&hellip;</span>
             </li>
           </ul>
         </div>
@@ -2892,6 +2903,14 @@
   var securityFailedLoginsEl = document.getElementById('security-failed-logins');
   var securityLockedAccountsEl = document.getElementById('security-locked-accounts');
   var securityBannedAccountsEl = document.getElementById('security-banned-accounts');
+  var securitySpacyStatusEl = document.getElementById('security-spacy-status');
+
+  function setSecurityScriptStatus(item) {
+    if (!securitySpacyStatusEl || !item) return;
+    securitySpacyStatusEl.textContent = item.label || 'Unknown';
+    securitySpacyStatusEl.classList.remove('security-script-status-ok', 'security-script-status-bad', 'security-script-status-unknown');
+    securitySpacyStatusEl.classList.add('security-script-status-' + (item.status || 'unknown'));
+  }
 
   function loadSecuritySnapshot() {
     fetchHomeCard('security', '/api/admin/home-security/summary.php')
@@ -2901,8 +2920,10 @@
         setMetricCount(securityFailedLoginsEl, data.failed_logins_24h);
         setMetricCount(securityLockedAccountsEl, data.locked_accounts);
         setMetricCount(securityBannedAccountsEl, data.banned_accounts);
+        setSecurityScriptStatus(data.spacy);
       })
       .catch(function () {
+        setSecurityScriptStatus({ status: 'unknown', label: 'Unknown' });
         if (securityFailedLoginsEl) securityFailedLoginsEl.textContent = '—';
         if (securityLockedAccountsEl) securityLockedAccountsEl.textContent = '—';
         if (securityBannedAccountsEl) securityBannedAccountsEl.textContent = '—';
@@ -4823,6 +4844,7 @@
   var sysDetailLastSyncEl = document.getElementById('sys-detail-last-sync');
   var sysDetailNextSyncEl = document.getElementById('sys-detail-next-sync');
   var sysDetailSslEl = document.getElementById('sys-detail-ssl');
+  var sysDetailSpacyEl = document.getElementById('sys-detail-spacy');
   var sysDetailDbLoadEl = document.getElementById('sys-detail-dbload');
   var sysDetailAvatarValueEl = document.getElementById('sys-detail-avatar-value');
   var sysDetailAvatarBarEl = document.getElementById('sys-detail-avatar-bar');
@@ -5017,6 +5039,7 @@
         setPlainStatusValue(sysDetailWebhookEl, data.webhook);
         setPlainStatusValue(sysDetailRateLimitEl, data.rate_limit);
         setPlainStatusValue(sysDetailSslEl, data.ssl);
+        setPlainStatusValue(sysDetailSpacyEl, data.spacy);
         setPlainStatusValue(sysDetailDbLoadEl, data.db_load);
         setPlainStatusValue(sysDetailDbConnEl, data.db_connections);
         setPlainStatusValue(sysDetailDbQpsEl, data.db_qps);
@@ -5033,7 +5056,7 @@
         renderSqlPerformance(data.sql_performance);
       })
       .catch(function () {
-        [sysDetailGithubEl, sysDetailWebhookEl, sysDetailRateLimitEl, sysDetailSslEl, sysDetailDbLoadEl].forEach(function (el) {
+        [sysDetailGithubEl, sysDetailWebhookEl, sysDetailRateLimitEl, sysDetailSslEl, sysDetailSpacyEl, sysDetailDbLoadEl].forEach(function (el) {
           if (el) el.textContent = 'Unknown';
         });
       });

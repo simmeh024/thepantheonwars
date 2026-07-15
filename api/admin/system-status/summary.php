@@ -3,7 +3,7 @@
  * Feeds the "System Status" card next to the BH-4 welcome card on the admin
  * Home page. Every item below reports a normalized status of ok/warn/bad/
  * unknown (used by the frontend to color the value green/gold/red) plus a
- * human label. Seven signals:
+ * human label. Eight signals:
  *
  *  - GitHub Repository: a live HTTP call to the GitHub REST API for the
  *    latest commit on main. If it responds 200, the repo is reachable; we
@@ -27,6 +27,8 @@
  *    budget (see status-helpers.php for the thresholds).
  *  - Last Backup: most recent manually logged backup; it is warning at three
  *    days and critical at seven days (or immediately critical when missing).
+ *  - spaCy: performs a real local model-load probe for the Dispatch
+ *    translation enrichment worker, so a missing venv or model is visible.
  *
  * (A "Site Errors" check was tried here too, but this host's PHP error log
  * isn't readable from application code -- see status-helpers.php's removed

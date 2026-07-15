@@ -426,6 +426,10 @@
 
 .pending-work-count-warn { background: rgba(236,201,66,0.22); color: #ecc942; }
 .pending-work-count-warn.is-zero { background: rgba(255,255,255,0.05); color: var(--text-faint); }
+.pending-work-count.security-script-status { min-width: 92px; }
+.pending-work-count.security-script-status-ok { background: rgba(62,207,142,0.18); color: var(--status-success); }
+.pending-work-count.security-script-status-bad { background: rgba(224,90,74,0.18); color: var(--status-critical); }
+.pending-work-count.security-script-status-unknown { background: rgba(224,178,74,0.14); color: var(--gold-bright); }
 
 #community-metrics-list.pending-work-list .pending-work-row { cursor: default; }
 #community-metrics-list.pending-work-list .pending-work-row:hover { background: none; }
