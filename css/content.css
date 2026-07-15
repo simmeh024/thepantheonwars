@@ -319,9 +319,11 @@
 .post-meta-rail, .post-card-content { position: relative; z-index: 1; min-width: 0; }
 .post-meta-rail { display: flex; flex-direction: column; align-items: flex-start; gap: 9px; padding: 4px 0 4px 14px; border-left: 2px solid var(--news-accent); }
 .post .date { font-size: 0.67rem; line-height: 1.45; letter-spacing: 0.1em; text-transform: uppercase; color: var(--news-accent); }
-.post-rail-author, .post-rail-tags { color: var(--text-faint); font-size: 0.61rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
+.post-rail-author, .post-rail-tags, .post-rail-comments { color: var(--text-faint); font-size: 0.61rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
 .post-rail-author::before { content: '◈ '; color: var(--news-accent); }
 .post-rail-tags::before { content: '# '; color: var(--news-accent); }
+.post-rail-comments { color: var(--news-accent); text-decoration: none; transition: color 160ms ease; }
+.post-rail-comments:hover { color: var(--gold-bright); }
 .post-card-content { padding-right: 2px; }
 .post h2 { margin: 0.36em 0 0; transition: transform 220ms ease, color 220ms ease; }
 .post p { font-size: 1rem; }
@@ -449,6 +451,12 @@
 .news-comment-actions { display: flex; justify-content: flex-end; margin-top: 9px; }
 .news-comment-report { padding: 0; border: 0; background: transparent; color: var(--text-faint); cursor: pointer; font: 600 0.63rem 'Jost', sans-serif; letter-spacing: 0.07em; text-transform: uppercase; transition: color 160ms ease; }
 .news-comment-report:hover { color: #f08b6e; }
+.news-report-modal .auth-field textarea { box-sizing: border-box; width: 100%; min-height: 110px; padding: 12px 14px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font: 400 0.9rem/1.5 'Jost', sans-serif; resize: vertical; }
+.news-report-modal .auth-field textarea:focus { border-color: var(--purple-bright); outline: none; }
+.news-report-modal .report-modal-sub { margin: -0.6em 0 1.2em; color: var(--text-faint); font-size: 0.8rem; }
+.news-report-modal .report-modal-status { display: none; margin: 0.6em 0 0; color: #3ecf8e; font-size: 0.85rem; }
+.news-report-modal .report-modal-status.show { display: block; }
+.news-report-modal .report-modal-actions { display: flex; gap: 10px; margin-top: 16px; }
 .news-comments-login { padding: 20px 0 0; }
 .news-comments-login p { color: var(--text-faint); font-size: 0.87rem; }
 .news-comments-login .btn { padding: 10px 16px; font-size: 0.68rem; }

@@ -159,7 +159,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=193, community v=193, and admin v=209. Public pages use
+  versions: public v=194, community v=194, and admin v=209. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -171,7 +171,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
   `js/books.js?v=N` is page-specific (current: v=3) and only needs a version
-  bump in `books.html`. `js/news.js?v=N` is likewise page-specific (current: v=7)
+  bump in `books.html`. `js/news.js?v=N` is likewise page-specific (current: v=8)
   and only needs a version bump in `news.html`. `js/news-post.js?v=N` powers the
   dedicated public transmission page (current: v=2); it is only loaded by
   `news-post.html`.

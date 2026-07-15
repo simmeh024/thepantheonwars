@@ -122,6 +122,14 @@
     var count = (post.tags || []).length;
     tagCount.textContent = count + ' tag' + (count === 1 ? '' : 's');
     rail.appendChild(tagCount);
+
+    var commentCount = Number(post.comment_count || 0);
+    var comments = document.createElement('a');
+    comments.className = 'post-rail-comments';
+    comments.href = 'news-post.html?slug=' + encodeURIComponent(post.slug) + '#news-comments-section';
+    comments.textContent = '#' + commentCount + ' comment' + (commentCount === 1 ? '' : 's');
+    comments.setAttribute('aria-label', 'Read ' + commentCount + ' comment' + (commentCount === 1 ? '' : 's') + ' on ' + post.title);
+    rail.appendChild(comments);
     article.appendChild(rail);
 
     var content = document.createElement('div');

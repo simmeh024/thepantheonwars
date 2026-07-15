@@ -4,9 +4,15 @@ require_once __DIR__ . '/../helpers.php';
 
 $db = pw_db();
 $rows = $db->query(
-    'SELECT n.id, n.slug, n.title, n.body, n.author_type, n.published_at, u.display_name AS author_display_name
+    'SELECT n.id, n.slug, n.title, n.body, n.author_type, n.published_at, u.display_name AS author_display_name,
+            COALESCE(comment_counts.comment_count, 0) AS comment_count
      FROM news_posts n
      LEFT JOIN users u ON u.id = n.author_user_id
+     LEFT JOIN (
+       SELECT news_post_id, COUNT(*) AS comment_count
+       FROM news_comments
+       GROUP BY news_post_id
+     ) comment_counts ON comment_counts.news_post_id = n.id
      ORDER BY n.published_at DESC, n.id DESC'
 )->fetchAll();
 
@@ -29,6 +35,7 @@ $entries = array_map(function ($row) use ($tagsByPost) {
         'author_type' => $row['author_type'],
         'author_display_name' => $row['author_display_name'],
         'published_at' => $row['published_at'],
+        'comment_count' => (int)$row['comment_count'],
         'tags' => $tagsByPost[(int)$row['id']] ?? [],
     ];
 }, $rows);
