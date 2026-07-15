@@ -12,7 +12,18 @@ require_once __DIR__ . '/db.php';
 $GLOBALS['pw_request_started_at'] = hrtime(true);
 
 // --- Session bootstrap -----------------------------------------------------
-if (session_status() === PHP_SESSION_NONE) {
+// A public page fires several independent API calls at once (visitor
+// analytics, forum summaries, leaderboards, and the account session check).
+// Starting a brand-new PHP session in every one of those requests races their
+// Set-Cookie responses: a browser can retain session B while the login form
+// received the CSRF token from session A. Start automatically only when an
+// existing session cookie is present; routes that intentionally establish a
+// session call pw_start_session() below.
+function pw_start_session() {
+    if (session_status() !== PHP_SESSION_NONE) {
+        return;
+    }
+
     session_set_cookie_params([
         'lifetime' => 60 * 60 * 24 * 30, // 30 days
         'path' => '/',
@@ -21,6 +32,10 @@ if (session_status() === PHP_SESSION_NONE) {
         'samesite' => 'Lax',
     ]);
     session_start();
+}
+
+if (isset($_COOKIE[session_name()])) {
+    pw_start_session();
 }
 
 // Idle session timeout: a logged-in session that hasn't made a single API
@@ -100,6 +115,7 @@ function pw_input() {
 
 // --- CSRF --------------------------------------------------------------------
 function pw_csrf_token() {
+    pw_start_session();
     if (empty($_SESSION['csrf_token'])) {
         $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
     }
@@ -107,6 +123,7 @@ function pw_csrf_token() {
 }
 
 function pw_require_csrf($input) {
+    pw_start_session();
     $token = isset($input['csrf']) ? $input['csrf'] : '';
     if (empty($_SESSION['csrf_token']) || !hash_equals($_SESSION['csrf_token'], $token)) {
         pw_error('Invalid or expired session token. Please refresh the page and try again.', 403);

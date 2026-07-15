@@ -61,6 +61,9 @@ function pw_oauth_redirect($returnTo, $result) {
 }
 
 function pw_oauth_begin_flow($provider, $intent, $returnTo, $importAvatar = false, $linkUserId = null) {
+    // OAuth can begin for a brand-new visitor, so it must deliberately create
+    // the session that persists state and the PKCE verifier across redirects.
+    pw_start_session();
     $state = bin2hex(random_bytes(32));
     $verifier = bin2hex(random_bytes(48));
     $_SESSION['pw_oauth_flow'] = [

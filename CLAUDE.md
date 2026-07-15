@@ -95,6 +95,12 @@ Confirmed empirically (useful if extending System Status further):
   the first time -- don't repeat that mistake.
 - PHP 8.3.31, litespeed SAPI, MariaDB 10.11.18-cll-lve, 12 CPU cores reported (whole
   shared box, not a per-account allocation).
+- **Session bootstrap is intentionally lazy.** Public API calls without an existing
+  `PHPSESSID` do not create one, preventing concurrent first-page requests from
+  racing competing `Set-Cookie` responses and invalidating a CSRF token. Only
+  `pw_csrf_token()`/`pw_require_csrf()` and OAuth flow setup explicitly start a new
+  session. Do not change this back to unconditional `session_start()` in
+  `api/helpers.php`.
 
 ## Cron jobs
 
