@@ -210,6 +210,25 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Recent history (most recent first)
 
+- **Dispatch Translation workflow documentation and queue clarity:**
+  `docs/dispatch-spacy.md` now contains the complete Mermaid-ready translation
+  flow: webhook/re-sync/manual input, deterministic PHP planning, optional local
+  spaCy analysis, RapidFuzz reviewed-concept matching, confidence scoring,
+  editor review, auto-publication, and public rendering. RapidFuzz runs only
+  locally, needs a 92+ unambiguous reviewed alias match (four-point lead),
+  returns only a concept id/score, and always sets `requires_editor_review`.
+  In Admin → Dispatch Translations, the aligned columns are **Commit title**,
+  **Status**, and **Confidence score**; the keyboard-accessible `?` explains the
+  exact evidence weights and review gate. On narrow screens this header hides
+  and rows return to the compact wrapped layout.
+
+- **Home Security Snapshot:** the Admin Home card now shows only failed logins,
+  locked accounts, and currently banned accounts. It is deliberately not a
+  duplicate spaCy health surface: the Home security endpoint no longer loads
+  the worker, while System Status → **Security and Scripts** remains the single
+  visible spaCy Connected/Disconnected check. BH-4 still receives the shared
+  System Status signal for a disconnected-worker alert.
+
 - **High-confidence Dispatch auto-publication:** when the deterministic
   formatter finds two or more independent rules, newly received webhook
   Dispatches and manual Generate/Regenerate Draft actions publish that text

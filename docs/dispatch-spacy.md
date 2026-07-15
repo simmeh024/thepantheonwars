@@ -17,6 +17,63 @@ RapidFuzz do not call an AI or send commit text outside the hosting account. If
 the worker is unavailable or exceeds its 6-second budget, PHP uses the existing
 rule-only translation without changing auto-publication.
 
+## End-to-end translation flow
+
+This is the current implementation flow, suitable as the source for a visual
+flowchart. The PHP formatter is the authority for every reader-facing sentence;
+the Python worker can only return bounded, local analysis signals.
+
+```mermaid
+flowchart TD
+    A[GitHub webhook, re-sync, or admin Generate Draft] --> B[Read raw subject, body, tag, and safe diff aggregate]
+    B --> C[Load existing translation and latest approved wording variants]
+    C --> D[Deterministic PHP classification]
+    D --> D1[Recognise action, domain, named content, and reader-safe dictionary]
+    D --> D2[Allow-list changed-file scope and calculate safe file summary]
+    D --> E{Optional local Python worker available?}
+    E -- No, error, or timeout --> F[Use deterministic PHP plan only]
+    E -- Yes --> G[spaCy extracts verbs, noun phrases, entities, and bounded semantic hints]
+    G --> H[RapidFuzz compares the current commit with reviewed concept aliases and recent approved wording]
+    H --> I{Strong, unambiguous reviewed concept match?}
+    I -- Yes --> J[Return only reviewed concept id and score; PHP validates the id]
+    I -- No --> K[Return bounded similarity and semantic signals only]
+    J --> L[Build reader-safe BH-4 draft from PHP templates]
+    K --> L
+    F --> L
+    L --> M[Append separate safe file-scope paragraph when available]
+    M --> N[Score explainable evidence]
+    N --> O{High: at least 65% plus independent signals?}
+    O -- No --> P[Create private draft for editor review]
+    O -- Yes --> Q{RapidFuzz reviewed concept used?}
+    Q -- Yes --> P
+    Q -- No --> R[Auto-publish translation and audit the event]
+    P --> S[Editor approves, edits, publishes, or regenerates]
+    R --> T[Public Dispatch shows end-user translation first]
+    S --> T
+```
+
+### What each stage is allowed to do
+
+- **Input and scope:** commit subject/body are used only inside the hosting
+  account. Stored diff context contains only a file count and approved product
+  area/type labels—never raw paths, diffs, or source code.
+- **Deterministic PHP planner:** identifies explicit local facts and chooses the
+  approved BH-4 wording template. It remains the sole source of public prose.
+- **spaCy:** supplies local verbs, noun phrases, named terms, semantic-domain
+  hints, and similarity scores. These are supporting context only.
+- **RapidFuzz:** runs locally in the same worker. It compares current wording
+  with the reviewed aliases in `tools/dispatch-fuzzy-concepts.json` and checks
+  textual similarity against recent approved translations. A concept is usable
+  only when its score is at least 92 and at least four points ahead of the next
+  candidate. PHP then revalidates the returned id against its own allow-list.
+  It never returns another translation's prose to PHP.
+- **Safety gate:** a validated RapidFuzz concept can improve a private draft but
+  always sets `requires_editor_review`; it cannot auto-publish. A missing,
+  failing, or slow worker produces the normal deterministic result instead.
+- **Output:** the public page displays an approved end-user explanation first;
+  the original technical record remains separately available through BH-4's
+  technical analysis.
+
 ## Draft planning and confidence
 
 PHP builds a reader-safe plan before writing each draft: intent, affected
@@ -45,6 +102,14 @@ phrases such as “made unlock…” or “fixed fix…” across the engine. Ru
 `php tools/test-dispatch-translator.php` on the server after translator changes.
 High confidence still requires multiple independent signals, preserving the
 existing auto-publication safety gate.
+
+The visible **Confidence score** help control in Admin → Dispatch Translations
+uses these exact weights: recognized subject **25**, reviewed reader-safe
+dictionary **10**, commit intent **30**, body context **10**, safe changed-file
+scope **20**, and optional semantic context **5**. Two independent deterministic
+formatter rules establish a 65% floor for older records that do not have stored
+diff context. High confidence requires at least 65% and independent evidence;
+otherwise the draft is medium or low confidence and stays in the review queue.
 
 The reviewed RapidFuzz concept library is stored in
 `tools/dispatch-fuzzy-concepts.json`. It contains ids, aliases, and PHP-owned
