@@ -31,6 +31,12 @@ World-release records headed by `Unlock <World>` have an additional deterministi
 planner. It uses only stated facts—world name, full map, clickable district count,
 and landmarks—to produce a concrete public update rather than generic content
 language.
+
+For every domain, the formatter preserves an action-led source title before it
+applies a reader-safe replacement. If a replacement becomes a noun phrase, the
+original action is retained and the new phrase becomes its object; this prevents
+phrases such as “made unlock…” or “fixed fix…” across the engine. Run
+`php tools/test-dispatch-translator.php` on the server after translator changes.
 High confidence still requires multiple independent signals, preserving the
 existing auto-publication safety gate.
 

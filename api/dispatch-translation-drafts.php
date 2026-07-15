@@ -499,17 +499,30 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         '/^(?:stabilize|stabilise|modernize|modernise|address|ensure|avoid|guard|isolate|prepare|document|describe)\s+(.+)$/i' => 'This update makes %s more dependable and easier to follow.',
     ];
     foreach ($actionTemplates as $pattern => $template) {
+        $matchedSource = '';
         if (preg_match($pattern, $clean, $matches)) {
-            $rulesMatched++;
-            $evidence['commit_intent'] = true;
-            $evidence['recognized_subject'] = true;
-            $arguments = array_map(static function ($value): string {
-                return rtrim(lcfirst(trim($value)), '.');
-            }, array_slice($matches, 1));
-            $object = $arguments[0];
-            $draft = vsprintf($template, $arguments);
-            break;
+            $matchedSource = 'reader';
+        } elseif ($clean !== $intentSource && preg_match($pattern, $intentSource, $matches)) {
+            // A precise replacement can turn "Add …" or "Unlock …" into a
+            // concise noun phrase. Preserve the original action while using
+            // that safer phrase as the object. This is the engine-wide guard
+            // against action verbs leaking into the reader-facing noun slot.
+            $matchedSource = 'original';
+        } else {
+            continue;
         }
+        $rulesMatched++;
+        $evidence['commit_intent'] = true;
+        $evidence['recognized_subject'] = true;
+        $arguments = array_map(static function ($value): string {
+            return rtrim(lcfirst(trim($value)), '.');
+        }, array_slice($matches, 1));
+        if ($matchedSource === 'original' && substr_count($template, '%s') === 1) {
+            $arguments = [rtrim(lcfirst(trim($clean)), '.')];
+        }
+        $object = $arguments[0];
+        $draft = vsprintf($template, $arguments);
+        break;
     }
 
     $templates = [
@@ -796,7 +809,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v19\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v20\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array
