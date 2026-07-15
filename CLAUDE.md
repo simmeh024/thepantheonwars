@@ -221,6 +221,21 @@ also supports a deliberately manual `?full=1` historical rebuild.
   **Status**, and **Confidence score**; the keyboard-accessible `?` explains the
   exact evidence weights and review gate. On narrow screens this header hides
   and rows return to the compact wrapped layout.
+  **Flowchart source of truth:** input is GitHub webhook, Admin Re-Sync, or
+  Generate/Regenerate Draft; duplicate SHAs are ignored; PHP creates safe
+  aggregate diff context; it then loads at most 20 recent approved translations
+  and plans public wording deterministically. If the local worker responds,
+  spaCy supplies bounded linguistic/semantic hints and RapidFuzz compares the
+  commit with reviewed aliases plus at most eight recent translations. A fuzzy
+  concept needs score >=92 and a >=4-point lead over the runner-up; PHP
+  allow-list-validates the returned ID. The final path is PHP draft -> optional
+  separate safe file-scope paragraph -> explainable confidence -> private review
+  draft or auto-publication -> audit entry -> public end-user Dispatch. The
+  exact evidence weights are recognized subject 25, dictionary 10, commit
+  intent 30, body context 10, path scope 20, semantic support 5. High requires
+  >=65 plus independent evidence (two deterministic formatter rules may set the
+  65 floor for older records); any RapidFuzz concept match always requires
+  editorial review and never auto-publishes.
 
 - **Home Security Snapshot:** the Admin Home card now shows only failed logins,
   locked accounts, and currently banned accounts. It is deliberately not a
