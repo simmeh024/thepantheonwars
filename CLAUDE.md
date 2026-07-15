@@ -93,8 +93,9 @@ Confirmed empirically (useful if extending System Status further):
   `shell_exec('du -sb <dir>')` instead for real usage figures (confirmed to agree with
   cPanel's own Disk Usage page). This cost two extra debug/fix/redeploy round trips
   the first time -- don't repeat that mistake.
-- PHP 8.3.31, litespeed SAPI, MariaDB 10.11.18-cll-lve, 12 CPU cores reported (whole
-  shared box, not a per-account allocation).
+- PHP 8.3.31, litespeed SAPI, MariaDB 10.11.18-cll-lve. The plan is allocated 2
+  virtual CPU cores; `/proc/cpuinfo` exposes 12 host cores, which must only be used
+  to contextualise the host-wide load average, not as this account's allocation.
 - **Session bootstrap is intentionally lazy.** Public API calls without an existing
   `PHPSESSID` do not create one, preventing concurrent first-page requests from
   racing competing `Set-Cookie` responses and invalidating a CSRF token. Only
@@ -675,17 +676,18 @@ also supports a deliberately manual `?full=1` historical rebuild.
   notes" above) -- first showed `undefined MB` (field-name mismatch with the shared
   `setAvatarStorageBar()` renderer, which expects `used_mb`/`max_mb` not `used_gb`/
   `max_gb`), then showed a real but wrong `0 MB` (the `disk_free_space()` quota
-  assumption was wrong). Now uses `du -sb` and reads ~600 MB / 50483 MB (the
-  49.3 GiB account allowance, deliberately displayed in MB), matching cPanel's
-  own Disk Usage page. The database-size soft budget is 2048 MB.
+  assumption was wrong). Now uses `du -sb` and reports against the 75 GiB disk
+  allowance (76,800 MB, deliberately displayed in MB), matching cPanel's own Disk
+  Usage page. The database-size allocation is 73.57 GiB (75,336.68 MB).
 - **Last Backup** is a manually logged health signal because cPanel account backups
   are unavailable on this host: OK under 3 days, warning at 3 days, critical at 7
   days, and immediately critical when no backup has ever been logged. BH-4 surfaces
   its yellow backup-review warning immediately after critical system events, ahead
   of reports, privacy requests, and translations; a stale/missing backup is a
   critical system directive with its own explicit remediation wording.
-- Added System Status "CPU (Shared)" card (24h line chart, live load1/5/15 + core
-  count) and expanded the Database card (connections, QPS, slow queries, uptime,
+- Added System Status "CPU Allocation & Host Load" card (24h line chart, live
+  load1/5/15 + the 2-vCPU plan allocation) and expanded the Database card
+  (connections, QPS, slow queries, uptime,
   buffer pool hit ratio, threads running, largest-tables list with collation-mismatch
   flagging). Fixed the `books` table's collation bug found via that research.
 - Members admin section: avatar+role-ring in list rows (removed bare `@username`

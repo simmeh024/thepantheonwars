@@ -225,7 +225,7 @@ function pw_check_database_load($db) {
 // PW_DB_SIZE_BUDGET_BYTES if it doesn't match how this host actually caps
 // things.
 function pw_check_database_size($db) {
-    $maxBytes = 2048 * 1024 * 1024; // 2,048 MiB soft budget
+    $maxBytes = 73.57 * 1024 * 1024 * 1024; // 73.57 GiB hosting allocation
     $usedBytes = 0;
     try {
         $row = $db->query(
@@ -271,10 +271,10 @@ function pw_check_database_size($db) {
 // what actually agrees with cPanel's own numbers, so that's what's used
 // here (shell_exec is available on this host -- confirmed during the CPU/DB
 // introspection sweep). PW budget constants below match the real hosting
-// plan size (49.3 GiB / 50,483 MiB); update them if the plan ever changes.
+// plan size (75 GiB / 76,800 MiB); update them if the plan ever changes.
 function pw_check_total_storage() {
     $homeDir = '/home/rdy3i6my40b0';
-    $maxMb = 50483; // 49.3 GiB, deliberately displayed as MB in the console
+    $maxMb = 75 * 1024; // 75 GiB, deliberately displayed as MB in the console
     $maxBytes = $maxMb * 1024 * 1024;
     $warnBytes = $maxBytes * (20 / 24); // warn once usage crosses ~83%
     $badBytes = $maxBytes * (22 / 24); // bad once usage crosses ~92%
@@ -368,9 +368,11 @@ function pw_check_ssl_expiry($host = 'thepantheonwars.com') {
 // --- CPU load (shared host) ------------------------------------------------------
 // sys_getloadavg() reports the load average for the ENTIRE shared box, not
 // this account in isolation -- there's no per-account CPU metric available
-// on shared hosting. Still a useful "is something hammering the server"
+// on shared hosting. This plan is allocated two virtual CPU cores, while the
+// host currently exposes all of its processors through /proc/cpuinfo. Still
+// a useful "is something hammering the server"
 // signal (including this site's own traffic), which is what backs the
-// CPU (Shared) card's live numbers and its 24h history chart (samples are
+// CPU Allocation & Host Load card's live numbers and its 24h history chart (samples are
 // collected once a minute by a cron job into cpu_load_history -- see
 // api/cron/sample-load.php -- since a single request can only ever see a
 // single instant, not a trend, and a DDoS-style spike needs the trend to
@@ -384,17 +386,22 @@ function pw_check_cpu_load() {
             'load1' => null,
             'load5' => null,
             'load15' => null,
-            'cores' => null,
+            // The allocation is known even if the host cannot provide a
+            // current load reading.
+            'cores' => 2,
         ];
     }
-    $cores = 1;
+    $hostCores = 1;
     if (is_readable('/proc/cpuinfo')) {
         $cpuinfo = @file_get_contents('/proc/cpuinfo');
         if ($cpuinfo !== false) {
-            $cores = max(1, preg_match_all('/^processor\s*:/m', $cpuinfo));
+            $hostCores = max(1, preg_match_all('/^processor\s*:/m', $cpuinfo));
         }
     }
-    $ratio = $load[0] / $cores;
+    // Keep host-wide load thresholds calibrated to the host processor count.
+    // Dividing a whole-server reading by this account's allocation would make
+    // normal shared-host activity look like a false warning for this site.
+    $ratio = $load[0] / $hostCores;
     $status = 'ok';
     if ($ratio >= 1.0) {
         $status = 'bad';
@@ -407,7 +414,7 @@ function pw_check_cpu_load() {
         'load1' => round($load[0], 2),
         'load5' => round($load[1], 2),
         'load15' => round($load[2], 2),
-        'cores' => $cores,
+        'cores' => 2,
     ];
 }
 
