@@ -42,7 +42,7 @@ function pw_dispatch_spacy_semantic_domain(array $analysis): string
     return '';
 }
 
-function pw_dispatch_spacy_analyze(string $subject, string $body): array
+function pw_dispatch_spacy_analyze(string $subject, string $body, array $recentTranslations = []): array
 {
     static $unavailable = false;
     if ($unavailable || !function_exists('proc_open') || !defined('SPACY_PYTHON_BIN')) {
@@ -59,12 +59,19 @@ function pw_dispatch_spacy_analyze(string $subject, string $body): array
     $truncate = static function (string $value, int $length): string {
         return function_exists('mb_substr') ? mb_substr($value, 0, $length, 'UTF-8') : substr($value, 0, $length);
     };
+    $recentTranslations = array_slice(array_values(array_filter($recentTranslations, 'is_string')), 0, 8);
+    $recentTranslations = array_map(static function (string $translation) use ($truncate): string {
+        return $truncate($translation, 900);
+    }, $recentTranslations);
     $payload = json_encode(
         ($subject === '' && $body === '')
             ? ['health' => true]
             : [
                 'subject' => $truncate($subject, 4000),
                 'body' => $truncate($body, 8000),
+                // The worker returns only a similarity score, never the recent
+                // text. This makes repetition avoidance local and private.
+                'recent_translations' => $recentTranslations,
             ],
         JSON_UNESCAPED_UNICODE
     );
@@ -137,6 +144,7 @@ function pw_dispatch_spacy_analyze(string $subject, string $body): array
         'phrases' => is_array($analysis['phrases'] ?? null) ? $analysis['phrases'] : [],
         'entities' => is_array($analysis['entities'] ?? null) ? $analysis['entities'] : [],
         'semantic_domains' => is_array($analysis['semantic_domains'] ?? null) ? $analysis['semantic_domains'] : [],
+        'nearest_similarity' => isset($analysis['nearest_similarity']) ? (float)$analysis['nearest_similarity'] : 0.0,
     ];
 }
 

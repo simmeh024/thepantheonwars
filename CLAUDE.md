@@ -225,7 +225,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   empty icon slot. Existing queued drafts are deliberately not bulk-published;
   regenerate one to apply this rule.
 
-- **Dispatch Draft Translator (v15 + optional spaCy vectors):** the deterministic formatter recognizes
+- **Dispatch Draft Translator (v16 + optional spaCy vectors):** the deterministic formatter recognizes
   commit domains (security, database, performance, community, content,
   interface, and operations) and uses domain-specific BH-4 templates rather
   than one generic sentence shape. It also uses optional safe diff metadata:
@@ -236,11 +236,22 @@ also supports a deliberately manual `?full=1` historical rebuild.
   it only for newly inserted commits and caps those supplemental lookups at
   25. Draft creation checks the 20 latest
   published translations and deterministically chooses another phrasing when
-  a candidate sentence is already present. The draft-format hash is
-  `dispatch-draft-v15`, so regeneration refreshes unapproved local drafts
+  a candidate sentence is already present. With the local medium spaCy model,
+  it also receives only the closest vector-similarity score across at most eight
+  recent translations, and uses that score to begin with a different stable
+  wording variant for near-duplicate updates. Raw prior translations never
+  leave the PHP/Python process boundary. The draft-format hash is
+  `dispatch-draft-v16`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
-  spaCy is an optional, entirely local enhancement: `tools/dispatch-nlp.py`
+  Before rendering prose, PHP builds a reader-safe plan from recognized commit
+  intent, domain, allow-listed changed-file scope, and optional semantic support.
+  Domain profiles give security, database, performance, community, content,
+  interface, and operations records distinct BH-4 vocabulary. Confidence is
+  an explainable evidence score (recognized subject, intent, body context,
+  path scope, semantic support), with semantic support capped at 5%; it cannot
+  make an unsupported draft high confidence or bypass the multi-signal
+  auto-publication gate. spaCy is an optional, entirely local enhancement: `tools/dispatch-nlp.py`
   extracts verbs, noun phrases, named terms, and (with `en_core_web_md`)
   conservative vector-based domain hints for vague commits, but never
   writes prose, calls an external service, or changes confidence/auto-publish

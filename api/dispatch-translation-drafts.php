@@ -66,6 +66,37 @@ function pw_dispatch_draft_diff_sentence(array $diffContext): string
     return 'The work spans ' . $files . ($files === 1 ? ' file in ' : ' files across ') . $scope . '.';
 }
 
+/**
+ * Build a compact, reader-safe plan before rendering Dispatch prose. The plan
+ * deliberately contains only allow-listed scopes and evidence labels: raw
+ * paths, source code, and commit-body text never become reader-facing copy.
+ */
+function pw_dispatch_draft_plan(string $text, string $tag, array $diffContext, array $spacyAnalysis, string $intentText = ''): array
+{
+    $areas = is_array($diffContext['areas'] ?? null) ? array_values(array_filter($diffContext['areas'], 'is_string')) : [];
+    $extensions = is_array($diffContext['extensions'] ?? null) ? array_values(array_filter($diffContext['extensions'], 'is_string')) : [];
+    $domain = pw_dispatch_draft_domain($text, $tag, $diffContext);
+    $semanticDomain = pw_dispatch_spacy_semantic_domain($spacyAnalysis);
+    if ($semanticDomain !== '' && ($domain === 'general' || in_array($tag, ['infrastructure', 'refactor'], true))) {
+        $domain = $semanticDomain;
+    }
+
+    return [
+        'intent' => pw_dispatch_draft_action_mode($intentText !== '' ? $intentText : $text),
+        'domain' => $domain,
+        'semantic_domain' => $semanticDomain,
+        'scopes' => array_slice($areas ?: $extensions, 0, 2),
+        'has_path_scope' => !empty($areas) || !empty($extensions),
+        'files_changed' => max(0, (int)($diffContext['files_changed'] ?? 0)),
+    ];
+}
+
+function pw_dispatch_draft_nearest_similarity(array $spacyAnalysis): float
+{
+    $similarity = isset($spacyAnalysis['nearest_similarity']) ? (float)$spacyAnalysis['nearest_similarity'] : 0.0;
+    return $similarity >= 0.0 && $similarity <= 1.0 ? $similarity : 0.0;
+}
+
 function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, array $options = []): array
 {
     $diffContext = is_array($options['diff_context'] ?? null) ? $options['diff_context'] : [];
@@ -84,6 +115,13 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // it shapes confidence only and is never copied verbatim into reader copy.
     $bodyContext = trim(preg_replace('/\s+/', ' ', str_replace(['_', '+', '&'], [' ', ' and ', ' and '], $body)));
     $rulesMatched = 0;
+    $evidence = [
+        'recognized_subject' => false,
+        'commit_intent' => false,
+        'body_context' => false,
+        'path_scope' => false,
+        'semantic_context' => false,
+    ];
 
     // Many legacy commits use a human-readable area before the description,
     // such as "Admin Home: add…" or "Language history: 24h refresh…".
@@ -93,6 +131,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     $actionOpening = '/^(?:add|create|introduce|include|fix|resolve|repair|restore|improve|enhance|refine|polish|streamline|redesign|rework|restructure|expand|keep|show|align|widen|enlarge|split|stack|make|throttle|reduce|defer|slow|prevent|reserve|use|switch|load|deliver|cross link|connect|unlock|bump|optimi[sz]e|speed up|update|refresh|remove|retire|delete|move|reorganize|reorganise|reposition|secure|protect|harden|strengthen|color code|give|respect|clear|place|confine|pin|anchor|animate|preserve|preload|tighten|elevate|complete|alert|index|bundle|limit|pause|cache|pre aggregate|bulk load|track|collapse|graph|log|group|mask|rename|surface|reorder|finalize|swap|render|force|mirror|theme|store|merge|replace|auto refresh|always refresh|right align|put|pull|un float|paginate|increase|version|trim|revert|relative|sortable|styled|subtle|tiered|full|compact|label|highlight|explore|sharpen|hide|implement|enable|allow|expose|adjust|correct|clarify|consolidate|standardize|standardise|simplify|migrate|integrate|validate|verify|review|audit|diagnose|stabilize|stabilise|modernize|modernise|address|ensure|support|avoid|guard|isolate|measure|monitor|prepare|document|describe)\b/i';
     if (!preg_match($actionOpening, $clean) && preg_match($scopedCommit, $clean, $scopeMatches)) {
         $rulesMatched++;
+        $evidence['recognized_subject'] = true;
         $clean = $scopeMatches[1];
     }
 
@@ -198,6 +237,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     foreach ($replacements as $pattern => $replacement) {
         if (preg_match($pattern, $clean)) {
             $rulesMatched++;
+            $evidence['recognized_subject'] = true;
             $clean = preg_replace($pattern, $replacement, $clean);
         }
     }
@@ -220,7 +260,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
                 'draft' => 'BH-4 has completed a focused maintenance update to a supporting site service. '
                     . pw_dispatch_draft_diff_sentence($diffContext)
                     . ' It reduces avoidable friction behind the scenes while keeping the reader-facing experience steady.',
-                'confidence' => pw_dispatch_draft_confidence($rulesMatched),
+                'confidence' => pw_dispatch_draft_confidence($rulesMatched, ['recognized_subject' => true, 'path_scope' => !empty($diffContext)]),
                 'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
             ];
         }
@@ -234,9 +274,13 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // A stable hash chooses an alternate phrasing for each commit. This keeps
     // repeated categories from reading like boilerplate while ensuring that a
     // regenerate action does not make the same source commit drift randomly.
-    $pickVariant = static function (array $variants, string $salt) use ($subject, $recentTranslations): string {
+    $nearestSimilarity = pw_dispatch_draft_nearest_similarity($spacyAnalysis);
+    $pickVariant = static function (array $variants, string $salt) use ($subject, $recentTranslations, $nearestSimilarity): string {
         $count = count($variants);
-        $index = (int) sprintf('%u', crc32($subject . '|' . $salt)) % $count;
+        // A highly similar recent translation starts at a different stable
+        // variant. Exact phrase checks below still provide the final guard.
+        $shift = $nearestSimilarity >= 0.80 && $count > 1 ? 1 : 0;
+        $index = ((int) sprintf('%u', crc32($subject . '|' . $salt)) + $shift) % $count;
         for ($offset = 0; $offset < $count; $offset++) {
             $candidate = $variants[($index + $offset) % $count];
             if (!pw_dispatch_draft_phrase_is_recent($candidate, $recentTranslations)) {
@@ -346,6 +390,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     foreach ($contextLibrary as $pattern => $options) {
         if (preg_match($pattern, $contextSource . ' ' . $clean . ' ' . $bodyContext)) {
             $rulesMatched++;
+            $evidence['body_context'] = $bodyContext !== '';
             // Context still strengthens confidence, but a second generic
             // benefit sentence often repeated the title without adding a
             // reader-facing fact. Keep the published copy concise instead.
@@ -442,6 +487,8 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     foreach ($actionTemplates as $pattern => $template) {
         if (preg_match($pattern, $clean, $matches)) {
             $rulesMatched++;
+            $evidence['commit_intent'] = true;
+            $evidence['recognized_subject'] = true;
             $arguments = array_map(static function ($value): string {
                 return rtrim(lcfirst(trim($value)), '.');
             }, array_slice($matches, 1));
@@ -479,15 +526,11 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // The title still supplies the object, while the domain determines the
     // reader-facing intent: security work reads differently from community,
     // database, content, interface, or performance work.
-    $domain = pw_dispatch_draft_domain($contextSource . ' ' . $clean . ' ' . $bodyContext, $tag, $diffContext);
-    $semanticDomain = pw_dispatch_spacy_semantic_domain($spacyAnalysis);
-    // Vectors only break a tie for broad maintenance/refactor commits, where
-    // a file or incidental word can otherwise send a generic update into the
-    // wrong reader-facing domain. Specific PHP rules remain authoritative.
-    if ($semanticDomain !== '' && ($domain === 'general' || in_array($tag, ['infrastructure', 'refactor'], true))) {
-        $domain = $semanticDomain;
-    }
-    $mode = pw_dispatch_draft_action_mode($clean);
+    $plan = pw_dispatch_draft_plan($contextSource . ' ' . $clean . ' ' . $bodyContext, $tag, $diffContext, $spacyAnalysis, $clean);
+    $domain = $plan['domain'];
+    $mode = $plan['intent'];
+    $evidence['path_scope'] = $plan['has_path_scope'];
+    $evidence['semantic_context'] = $plan['semantic_domain'] !== '';
     $naturalOverrideApplied = false;
     $naturalOverrides = [
         '/\b(?:spaCy|spacy)\s+(?:worker|translation).*\b(?:launch|start|hosting|shared host)\b/i' => [
@@ -560,47 +603,110 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         $draft = sprintf($pickVariant($domainTemplates[$domain][$mode], 'domain-' . $domain . '-' . $mode), rtrim($object, '.'));
     }
 
+    // Each domain has its own restrained reader-facing voice. These benefits
+    // stay factual and never claim a result that the commit evidence cannot
+    // support; they simply avoid a security, performance, or community change
+    // all sounding like the same generic maintenance note.
+    $domainBenefits = [
+        'security' => ['Member activity has a clearer layer of protection around this path.', 'The affected account or data path now carries a more deliberate safeguard.'],
+        'database' => ['The supporting data work is now clearer and easier to maintain.', 'This gives the affected records a more dependable foundation.'],
+        'performance' => ['The affected path now avoids work that visitors do not need to wait for.', 'This supports a steadier experience as routine activity grows.'],
+        'community' => ['Members and moderators should find the affected interaction easier to follow.', 'The change supports clearer participation without adding noise to community activity.'],
+        'content' => ['Readers have a clearer route into the affected part of the Pantheon Wars record.', 'The added context supports exploration while preserving the established setting.'],
+        'interface' => ['The surrounding controls should now be easier to read and use at a glance.', 'The established visual language remains intact while the path becomes clearer.'],
+        'operations' => ['The routine service behind this update now has a clearer operational foundation.', 'BH-4 records a more dependable path for the systems supporting future releases.'],
+    ];
+    if (!$naturalOverrideApplied && isset($domainBenefits[$domain])) {
+        $benefit = $pickVariant($domainBenefits[$domain], 'voice-' . $domain);
+    }
+
     $diffSentence = pw_dispatch_draft_diff_sentence($diffContext);
     if ($diffSentence !== '') {
         $rulesMatched++;
+        $evidence['path_scope'] = true;
     }
 
     return [
         'draft' => $draft . ($diffSentence !== '' ? ' ' . $diffSentence : '') . ' ' . $benefit,
-        'confidence' => pw_dispatch_draft_confidence($rulesMatched),
+        'confidence' => pw_dispatch_draft_confidence($rulesMatched, $evidence),
+        'plan' => $plan,
         'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
     ];
 }
 
 /**
- * Confidence is deliberately tied to explainable reader-facing rules, not to
- * whether the generated prose sounds plausible. It tells editors how much of
- * a commit was recognized by the local formatter before they approve it.
+ * Confidence is deliberately tied to explainable evidence, not to whether the
+ * generated prose sounds plausible. The score separates recognized intent,
+ * scope, body context, and optional semantic support so editors can see why a
+ * draft deserves more or less scrutiny. spaCy can only add a small supporting
+ * signal; it can never make an unsupported draft high confidence by itself.
  */
-function pw_dispatch_draft_confidence(int $rulesMatched): array
+function pw_dispatch_draft_confidence(int $rulesMatched, array $evidence = []): array
 {
-    if ($rulesMatched >= 2) {
+    $weights = [
+        'recognized_subject' => 25,
+        'commit_intent' => 30,
+        'body_context' => 10,
+        'path_scope' => 20,
+        'semantic_context' => 5,
+    ];
+    $score = 0;
+    $matchedEvidence = [];
+    foreach ($weights as $name => $weight) {
+        if (!empty($evidence[$name])) {
+            $score += $weight;
+            $matchedEvidence[] = str_replace('_', ' ', $name);
+        }
+    }
+    // Keep the established deterministic gate meaningful on older Dispatches
+    // that predate stored diff context. Two formatter rules are still two
+    // independent local signals, not an opaque model prediction.
+    if ($rulesMatched >= 2 && $score < 65) {
+        $score = 65;
+        $matchedEvidence[] = 'independent formatter rules';
+    } elseif ($score === 0 && $rulesMatched === 1) {
+        $score = 30;
+        $matchedEvidence[] = 'recognized formatter rule';
+    }
+    $independentSignals = count($matchedEvidence);
+    $level = $score >= 65 && ($independentSignals >= 2 || $rulesMatched >= 2) ? 'high' : ($score >= 30 ? 'medium' : 'low');
+    $labels = [
+        'high' => 'High confidence',
+        'medium' => 'Medium confidence',
+        'low' => 'Low confidence',
+    ];
+    $explanation = $matchedEvidence
+        ? ucfirst(implode(', ', $matchedEvidence)) . ' support this draft (' . $score . '% evidence score).'
+        : 'No reliable intent, scope, or context evidence was identified.';
+
+    if ($level === 'high') {
         return [
             'level' => 'high',
-            'label' => 'High confidence',
+            'label' => $labels['high'],
             'rules_matched' => $rulesMatched,
-            'explanation' => $rulesMatched . ' independent rules matched the commit wording and context. Review for accuracy, then approve or edit as needed.',
+            'score' => $score,
+            'evidence' => $matchedEvidence,
+            'explanation' => $explanation . ' Review for accuracy, then approve or edit as needed.',
         ];
     }
-    if ($rulesMatched >= 1) {
+    if ($level === 'medium') {
         return [
             'level' => 'medium',
-            'label' => 'Medium confidence',
+            'label' => $labels['medium'],
             'rules_matched' => $rulesMatched,
-            'explanation' => '1 rule matched the commit wording. Check the draft carefully before publishing.',
+            'score' => $score,
+            'evidence' => $matchedEvidence,
+            'explanation' => $explanation . ' Check the draft carefully before publishing.',
         ];
     }
 
     return [
         'level' => 'low',
-        'label' => 'Low confidence',
-        'rules_matched' => 0,
-        'explanation' => '0 rules matched the commit wording. Read and edit this draft carefully before publishing.',
+        'label' => $labels['low'],
+        'rules_matched' => $rulesMatched,
+        'score' => $score,
+        'evidence' => $matchedEvidence,
+        'explanation' => $explanation . ' Read and edit this draft carefully before publishing.',
     ];
 }
 
@@ -649,7 +755,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v15\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v16\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array
@@ -672,7 +778,7 @@ function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string
         'recent_translations' => $recentTranslations,
         // The caller already loaded this Dispatch. Passing its text here avoids
         // introducing an extra database query just for optional NLP analysis.
-        'spacy_analysis' => ($subject !== '' || $body !== '') ? pw_dispatch_spacy_analyze($subject, $body) : [],
+        'spacy_analysis' => ($subject !== '' || $body !== '') ? pw_dispatch_spacy_analyze($subject, $body, $recentTranslations) : [],
     ];
 }
 

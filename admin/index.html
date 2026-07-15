@@ -5374,9 +5374,10 @@
     if (!confidence) return '';
     var level = ['high', 'medium', 'low'].indexOf(confidence.level) !== -1 ? confidence.level : 'low';
     var label = confidence.label || 'Low confidence';
+    var score = Number.isFinite(Number(confidence.score)) ? Math.round(Number(confidence.score)) : null;
     var count = Number.isInteger(Number(confidence.rules_matched)) ? Number(confidence.rules_matched) : 0;
-    var displayLabel = label + ' \u00b7 ' + count + ' ' + (count === 1 ? 'rule' : 'rules');
-    var explanation = confidence.explanation || '0 rules matched the commit wording. Read and edit this draft carefully before publishing.';
+    var displayLabel = score !== null ? (label + ' \u00b7 ' + score + '% evidence') : (label + ' \u00b7 ' + count + ' ' + (count === 1 ? 'rule' : 'rules'));
+    var explanation = confidence.explanation || 'No reliable evidence was identified. Read and edit this draft carefully before publishing.';
     return '<span class="dispatch-confidence is-' + level + '" data-tooltip="' + escapeHtml(explanation) + '" aria-label="' + escapeHtml(displayLabel + '. ' + explanation) + '">' +
       '<span class="dispatch-confidence-dot" aria-hidden="true"></span>' +
       '<span class="dispatch-confidence-label">' + escapeHtml(displayLabel) + '</span>' +
@@ -5387,9 +5388,10 @@
     if (!draftConfidenceEl) return;
     var level = confidence && ['high', 'medium', 'low'].indexOf(confidence.level) !== -1 ? confidence.level : 'low';
     var label = confidence && confidence.label ? confidence.label : 'Low confidence';
+    var score = confidence && Number.isFinite(Number(confidence.score)) ? Math.round(Number(confidence.score)) : null;
     var count = confidence && Number.isInteger(Number(confidence.rules_matched)) ? Number(confidence.rules_matched) : 0;
-    var displayLabel = label + ' \u00b7 ' + count + ' ' + (count === 1 ? 'rule' : 'rules');
-    var explanation = confidence && confidence.explanation ? confidence.explanation : '0 rules matched the commit wording. Read and edit this draft carefully before publishing.';
+    var displayLabel = score !== null ? (label + ' \u00b7 ' + score + '% evidence') : (label + ' \u00b7 ' + count + ' ' + (count === 1 ? 'rule' : 'rules'));
+    var explanation = confidence && confidence.explanation ? confidence.explanation : 'No reliable evidence was identified. Read and edit this draft carefully before publishing.';
     draftConfidenceEl.className = 'dispatch-confidence is-' + level;
     draftConfidenceEl.setAttribute('data-tooltip', explanation);
     draftConfidenceEl.setAttribute('aria-label', displayLabel + '. ' + explanation);

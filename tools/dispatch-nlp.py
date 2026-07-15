@@ -15,7 +15,7 @@ import sys
 from typing import Any
 
 
-MAX_INPUT_CHARS = 12000
+MAX_INPUT_CHARS = 24000
 MAX_ITEMS = 6
 GENERIC_TERMS = {
     "change", "changes", "update", "updates", "work", "project", "site",
@@ -71,6 +71,20 @@ def semantic_domains(doc: Any, nlp: Any) -> list[dict[str, Any]]:
     return sorted(scores, key=lambda item: item["score"], reverse=True)[:2]
 
 
+def nearest_translation_similarity(doc: Any, nlp: Any, values: Any) -> float:
+    """Return only the strongest local vector similarity, never source text."""
+    if nlp.vocab.vectors_length == 0 or not doc.has_vector or doc.vector_norm == 0:
+        return 0.0
+    if not isinstance(values, list):
+        return 0.0
+    candidates = [str(value)[:900] for value in values[:8] if isinstance(value, str) and value.strip()]
+    best = 0.0
+    for candidate in nlp.pipe(candidates, disable=["parser", "ner"]):
+        if candidate.has_vector and candidate.vector_norm:
+            best = max(best, float(doc.similarity(candidate)))
+    return round(max(0.0, min(best, 1.0)), 3)
+
+
 def main() -> int:
     try:
         payload = json.loads(sys.stdin.read(MAX_INPUT_CHARS + 1))
@@ -78,6 +92,7 @@ def main() -> int:
             raise ValueError("Expected an object.")
         subject = str(payload.get("subject", ""))[:4000]
         body = str(payload.get("body", ""))[:8000]
+        recent_translations = payload.get("recent_translations", [])
         health_check = bool(payload.get("health"))
         text = (subject + ". " + body).strip()
         if not text and not health_check:
@@ -120,6 +135,7 @@ def main() -> int:
             "phrases": phrases,
             "entities": unique(entities + acronyms),
             "semantic_domains": semantic_domains(doc, nlp),
+            "nearest_similarity": nearest_translation_similarity(doc, nlp, recent_translations),
         }
         print(json.dumps(result, ensure_ascii=False))
         return 0
