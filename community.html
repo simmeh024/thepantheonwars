@@ -296,7 +296,7 @@
 </div>
 
 <script src="js/main.js?v=6"></script>
-<script src="js/members.js?v=17"></script>
+<script src="js/members.js?v=18"></script>
 <script>
 (function () {
   // Delegated so spoiler controls created from safe BBCode markup do not need
@@ -337,18 +337,22 @@
   function loadBoardsMeta() {
     if (boardsMetaPromise) return boardsMetaPromise;
     boardsMetaPromise = fetch('/api/boards-summary.php', { credentials: 'same-origin' })
-      .then(function (r) { return r.json(); })
+      .then(function (r) {
+        if (!r.ok) throw new Error('The forum index could not be reached.');
+        return r.json();
+      })
       .then(function (data) {
-        if (data.ok && data.board_list) {
-          BOARDS = data.board_list.map(function (b) {
-            return {
-              slug: b.slug,
-              name: b.name,
-              desc: b.description,
-              icon: ICONS[b.icon_key] || ICONS.scroll,
-            };
-          });
+        if (!data || !data.ok || !Array.isArray(data.board_list)) {
+          throw new Error((data && data.error) || 'The forum index returned an invalid response.');
         }
+        BOARDS = data.board_list.map(function (b) {
+          return {
+            slug: b.slug,
+            name: b.name,
+            desc: b.description,
+            icon: ICONS[b.icon_key] || ICONS.scroll,
+          };
+        });
         return data;
       });
     return boardsMetaPromise;
@@ -974,10 +978,27 @@
 
     loadBoardsMeta().then(function (data) {
       skeletonWrap.remove();
-      var stats = (data.ok && data.boards) ? data.boards : {};
+      var stats = data.boards || {};
       BOARDS.forEach(function (b) {
         boardIndexEl.appendChild(buildBoardRow(b, stats[b.slug]));
       });
+    }).catch(function () {
+      // Do not leave the forum frozen on its skeleton when a transient
+      // request, cached error page, or render error occurs. Resetting the
+      // shared promise allows the visitor to retry without reloading.
+      if (skeletonWrap.parentNode) skeletonWrap.remove();
+      boardsMetaPromise = null;
+      var notice = document.createElement('div');
+      notice.className = 'lore-status forum-load-error';
+      notice.textContent = 'The forum list could not be loaded right now.';
+      var retry = document.createElement('button');
+      retry.type = 'button';
+      retry.className = 'btn forum-load-retry';
+      retry.textContent = 'Try again';
+      retry.addEventListener('click', loadBoardIndex);
+      notice.appendChild(document.createTextNode(' '));
+      notice.appendChild(retry);
+      boardIndexEl.appendChild(notice);
     });
   }
 

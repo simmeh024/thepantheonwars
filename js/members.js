@@ -164,17 +164,20 @@ document.addEventListener('DOMContentLoaded', function () {
     var form = e.target;
     var identifier = form.querySelector('#login-identifier').value.trim();
     var password = form.querySelector('#login-password').value;
-    form.querySelectorAll('input[required]').forEach(function (input) { updateFieldState(input); });
     var submitBtn = form.querySelector('.auth-submit');
     submitBtn.disabled = true;
-    postJson('/api/login.php', { identifier: identifier, password: password, csrf: window.PW_AUTH.csrf }).then(function (r) {
+    ensureCsrfToken().then(function () {
+      return postJson('/api/login.php', { identifier: identifier, password: password, csrf: window.PW_AUTH.csrf });
+    }).then(function (r) {
       if (r.data && r.data.ok) {
         closeModal();
         refreshAuthNav();
       } else {
         showFormError(form, (r.data && r.data.error) || 'Something went wrong.');
       }
-    }).catch(function () { showFormError(form, 'Could not reach the server. Try again in a moment.'); })
+    }).catch(function (error) {
+      showFormError(form, (error && error.message) || 'Could not reach the server. Try again in a moment.');
+    })
       .finally(function () { submitBtn.disabled = false; });
   });
 
@@ -193,7 +196,9 @@ document.addEventListener('DOMContentLoaded', function () {
     form.querySelectorAll('input[required]').forEach(function (input) { updateFieldState(input); });
     var submitBtn = form.querySelector('.auth-submit');
     submitBtn.disabled = true;
-    postJson('/api/register.php', { username: username, email: email, password: password, csrf: window.PW_AUTH.csrf }).then(function (r) {
+    ensureCsrfToken().then(function () {
+      return postJson('/api/register.php', { username: username, email: email, password: password, csrf: window.PW_AUTH.csrf });
+    }).then(function (r) {
       if (r.data && r.data.ok) {
         form.hidden = true;
         authSuccess.hidden = false;
@@ -204,7 +209,9 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         showFormError(form, (r.data && r.data.error) || 'Something went wrong.');
       }
-    }).catch(function () { showFormError(form, 'Could not reach the server. Try again in a moment.'); })
+    }).catch(function (error) {
+      showFormError(form, (error && error.message) || 'Could not reach the server. Try again in a moment.');
+    })
       .finally(function () { submitBtn.disabled = false; });
   });
 
@@ -248,6 +255,15 @@ document.addEventListener('DOMContentLoaded', function () {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function ensureCsrfToken() {
+    if (window.PW_AUTH && window.PW_AUTH.csrf) return Promise.resolve();
+    return window.refreshAuthNav().then(function () {
+      if (!window.PW_AUTH || !window.PW_AUTH.csrf) {
+        throw new Error('Could not establish a secure session. Please try again.');
+      }
+    });
   }
 
   var PRESENCE_LABELS = { online: 'Online', away: 'Away', inactive: 'Inactive', offline: 'Offline' };
@@ -372,11 +388,13 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   });
 
-  modal.querySelectorAll('.auth-form input[required]').forEach(function (input) {
+  // Registration benefits from visible completion feedback. The compact login
+  // form should stay quiet until it needs to show a real authentication error.
+  modal.querySelectorAll('[data-form="register"] input[required]').forEach(function (input) {
     input.addEventListener('input', function () { updateFieldState(input); });
     input.addEventListener('blur', function () { updateFieldState(input); });
   });
-  modal.querySelectorAll('.auth-form').forEach(function (form) {
+  modal.querySelectorAll('[data-form="register"]').forEach(function (form) {
     form.addEventListener('invalid', function (event) {
       setFieldState(event.target, 'invalid');
     }, true);
