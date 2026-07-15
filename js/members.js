@@ -259,10 +259,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function ensureCsrfToken() {
     if (window.PW_AUTH && window.PW_AUTH.csrf) return Promise.resolve();
-    return window.refreshAuthNav().then(function () {
-      if (!window.PW_AUTH || !window.PW_AUTH.csrf) {
+    // This deliberately does not call refreshAuthNav(). That routine also
+    // renders the navigation and starts notification loading; an unrelated
+    // UI exception there must never prevent a login form from obtaining the
+    // CSRF token supplied by the session endpoint.
+    return fetch('/api/session-check.php?refresh=' + Date.now(), {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' },
+    }).then(function (res) {
+      if (!res.ok) throw new Error('Could not reach the secure session service.');
+      return res.json();
+    }).then(function (data) {
+      if (!data || !data.ok || !data.csrf) {
         throw new Error('Could not establish a secure session. Please try again.');
       }
+      window.PW_AUTH = {
+        loggedIn: !!data.loggedIn,
+        user: data.user || null,
+        csrf: data.csrf,
+        permissions: data.permissions || [],
+      };
     });
   }
 
@@ -338,9 +355,17 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   window.refreshAuthNav = function refreshAuthNav() {
-    return fetch('/api/session-check.php', { credentials: 'same-origin' })
-      .then(function (res) { return res.json(); })
+    return fetch('/api/session-check.php?refresh=' + Date.now(), {
+      credentials: 'same-origin',
+      cache: 'no-store',
+      headers: { 'Accept': 'application/json' },
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error('Session check failed.');
+        return res.json();
+      })
       .then(function (data) {
+        if (!data || !data.ok || !data.csrf) throw new Error('Invalid session response.');
         window.PW_AUTH = {
           loggedIn: !!data.loggedIn,
           user: data.user || null,
