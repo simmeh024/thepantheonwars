@@ -15,23 +15,39 @@ const PW_ADVISOR_ACTIONS = [
 function pw_build_task_advisor(array $signals) {
     $criticalAlerts = $signals['critical_alerts'];
     $criticalPriority = $signals['critical_type_priority'];
-    $reportsCount = $signals['reports_count'];
-    $reportsAgeMinutes = $signals['reports_age_minutes'];
+    $topicReportsCount = $signals['topic_reports_count'];
+    $topicReportsAgeMinutes = $signals['topic_reports_age_minutes'];
+    $newsCommentReportsCount = $signals['news_comment_reports_count'];
+    $newsCommentReportsAgeMinutes = $signals['news_comment_reports_age_minutes'];
     $privacyCount = $signals['privacy_count'];
     $privacyAgeMinutes = $signals['privacy_age_minutes'];
     $translationsCount = $signals['translations_count'];
     $backupTask = $signals['backup_task'];
     $actions = $signals['actions'];
 
-    $reportsTask = null;
-    if ($reportsCount > 0) {
-        $reportsTask = [
+    $topicReportsTask = null;
+    if ($topicReportsCount > 0) {
+        $topicReportsTask = [
             'type' => 'topic_reports',
             'priority' => 'high',
-            'title' => $reportsCount === 1 ? 'Review 1 unresolved topic report' : 'Review ' . $reportsCount . ' unresolved topic reports',
-            'reason' => 'Community moderation requires attention.',
-            'count' => $reportsCount,
-            'oldest_age_minutes' => $reportsAgeMinutes,
+            'title' => $topicReportsCount === 1 ? 'Review 1 unresolved topic report' : 'Review ' . $topicReportsCount . ' unresolved topic reports',
+            'reason' => 'Forum moderation requires attention.',
+            'count' => $topicReportsCount,
+            'oldest_age_minutes' => $topicReportsAgeMinutes,
+            'action_label' => $actions['topic_reports']['label'],
+            'action_url' => $actions['topic_reports']['section'],
+        ];
+    }
+
+    $newsCommentReportsTask = null;
+    if ($newsCommentReportsCount > 0) {
+        $newsCommentReportsTask = [
+            'type' => 'news_comment_reports',
+            'priority' => 'high',
+            'title' => $newsCommentReportsCount === 1 ? 'Review 1 unresolved News comment report' : 'Review ' . $newsCommentReportsCount . ' unresolved News comment reports',
+            'reason' => 'News discussion moderation requires attention.',
+            'count' => $newsCommentReportsCount,
+            'oldest_age_minutes' => $newsCommentReportsAgeMinutes,
             'action_label' => $actions['topic_reports']['label'],
             'action_url' => $actions['topic_reports']['section'],
         ];
@@ -82,7 +98,7 @@ function pw_build_task_advisor(array $signals) {
                 ];
                 return [
                     'primary' => $primary,
-                    'secondary' => $reportsTask ?: ($privacyTask ?: $translationsTask),
+                    'secondary' => $topicReportsTask ?: ($newsCommentReportsTask ?: ($privacyTask ?: $translationsTask)),
                     'active_alert_count' => count($criticalAlerts),
                 ];
             }
@@ -94,13 +110,16 @@ function pw_build_task_advisor(array $signals) {
     if ($backupTask) {
         return [
             'primary' => $backupTask,
-            'secondary' => $reportsTask ?: ($privacyTask ?: $translationsTask),
+            'secondary' => $topicReportsTask ?: ($newsCommentReportsTask ?: ($privacyTask ?: $translationsTask)),
             'active_alert_count' => 0,
         ];
     }
 
-    if ($reportsTask) {
-        return ['primary' => $reportsTask, 'secondary' => $privacyTask ?: $translationsTask, 'active_alert_count' => 0];
+    if ($topicReportsTask) {
+        return ['primary' => $topicReportsTask, 'secondary' => $newsCommentReportsTask ?: ($privacyTask ?: $translationsTask), 'active_alert_count' => 0];
+    }
+    if ($newsCommentReportsTask) {
+        return ['primary' => $newsCommentReportsTask, 'secondary' => $privacyTask ?: $translationsTask, 'active_alert_count' => 0];
     }
     if ($privacyTask) {
         return ['primary' => $privacyTask, 'secondary' => $translationsTask, 'active_alert_count' => 0];
@@ -227,11 +246,21 @@ function pw_collect_task_advisor($db, array $systemSignals) {
     }
 
     $reportsRow = $db->query(
-        "SELECT COUNT(*) AS c, MIN(created_at) AS oldest_at FROM content_reports WHERE status = 'open'"
+        "SELECT
+            SUM(target_type IN ('topic', 'comment')) AS topic_reports_count,
+            MIN(CASE WHEN target_type IN ('topic', 'comment') THEN created_at END) AS topic_reports_oldest_at,
+            SUM(target_type = 'news_comment') AS news_comment_reports_count,
+            MIN(CASE WHEN target_type = 'news_comment' THEN created_at END) AS news_comment_reports_oldest_at
+         FROM content_reports
+         WHERE status = 'open'"
     )->fetch();
-    $reportsCount = (int)$reportsRow['c'];
-    $oldestReportAgeMinutes = $reportsRow['oldest_at']
-        ? max(0, (int)floor((time() - strtotime($reportsRow['oldest_at'] . ' UTC')) / 60))
+    $topicReportsCount = (int)($reportsRow['topic_reports_count'] ?? 0);
+    $oldestTopicReportAgeMinutes = !empty($reportsRow['topic_reports_oldest_at'])
+        ? max(0, (int)floor((time() - strtotime($reportsRow['topic_reports_oldest_at'] . ' UTC')) / 60))
+        : null;
+    $newsCommentReportsCount = (int)($reportsRow['news_comment_reports_count'] ?? 0);
+    $oldestNewsCommentReportAgeMinutes = !empty($reportsRow['news_comment_reports_oldest_at'])
+        ? max(0, (int)floor((time() - strtotime($reportsRow['news_comment_reports_oldest_at'] . ' UTC')) / 60))
         : null;
 
     $privacyCount = 0;
@@ -256,8 +285,10 @@ function pw_collect_task_advisor($db, array $systemSignals) {
     $result = pw_build_task_advisor([
         'critical_alerts' => $criticalAlerts,
         'critical_type_priority' => $criticalPriority,
-        'reports_count' => $reportsCount,
-        'reports_age_minutes' => $oldestReportAgeMinutes,
+        'topic_reports_count' => $topicReportsCount,
+        'topic_reports_age_minutes' => $oldestTopicReportAgeMinutes,
+        'news_comment_reports_count' => $newsCommentReportsCount,
+        'news_comment_reports_age_minutes' => $oldestNewsCommentReportAgeMinutes,
         'privacy_count' => $privacyCount,
         'privacy_age_minutes' => $oldestPrivacyAgeMinutes,
         'translations_count' => $translationsCount,
@@ -273,7 +304,8 @@ function pw_collect_task_advisor($db, array $systemSignals) {
         'primary' => $result['primary'],
         'secondary' => $result['secondary'],
         'overview' => [
-            'topic_reports' => $reportsCount,
+            'topic_reports' => $topicReportsCount,
+            'news_comment_reports' => $newsCommentReportsCount,
             'dispatch_translations' => $translationsCount,
             'privacy_requests' => $privacyCount,
             'system_alerts' => count($criticalAlerts),

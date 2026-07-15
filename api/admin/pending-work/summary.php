@@ -14,7 +14,11 @@ $stmt = $db->query(
 $row = $stmt->fetch();
 
 $reportsStmt = $db->query(
-    "SELECT COUNT(*) AS c FROM content_reports WHERE status = 'open'"
+    "SELECT
+        SUM(target_type IN ('topic', 'comment')) AS topic_reports,
+        SUM(target_type = 'news_comment') AS news_comment_reports
+     FROM content_reports
+     WHERE status = 'open'"
 );
 $reportsRow = $reportsStmt->fetch();
 
@@ -30,6 +34,7 @@ try {
 pw_json([
     'ok' => true,
     'dispatches_awaiting_translation' => (int)$row['c'],
-    'active_topic_reports' => (int)$reportsRow['c'],
+    'active_topic_reports' => (int)($reportsRow['topic_reports'] ?? 0),
+    'active_news_comment_reports' => (int)($reportsRow['news_comment_reports'] ?? 0),
     'pending_privacy_requests' => $privacyCount,
 ]);

@@ -61,7 +61,8 @@ if (pw_has_permission($adminUser, 'dashboards.view_audit_log')) {
 $pendingRow = $db->query(
     "SELECT
         (SELECT COUNT(*) FROM dispatch_entries d LEFT JOIN dispatch_translations dt ON dt.dispatch_id = d.id WHERE dt.id IS NULL) AS translations,
-        (SELECT COUNT(*) FROM content_reports WHERE status = 'open') AS reports"
+        (SELECT COUNT(*) FROM content_reports WHERE status = 'open' AND target_type IN ('topic', 'comment')) AS topic_reports,
+        (SELECT COUNT(*) FROM content_reports WHERE status = 'open' AND target_type = 'news_comment') AS news_comment_reports"
 )->fetch();
 $privacyPending = 0;
 try {
@@ -74,7 +75,8 @@ try {
 $pendingWork = [
     'ok' => true,
     'dispatches_awaiting_translation' => (int)$pendingRow['translations'],
-    'active_topic_reports' => (int)$pendingRow['reports'],
+    'active_topic_reports' => (int)$pendingRow['topic_reports'],
+    'active_news_comment_reports' => (int)$pendingRow['news_comment_reports'],
     'pending_privacy_requests' => $privacyPending,
 ];
 

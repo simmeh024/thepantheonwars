@@ -391,10 +391,24 @@ a.nav-parent { cursor: pointer; }
 
 /* Full notifications.html page */
 .notif-status-card {
+  position: relative; isolation: isolate; overflow: hidden;
   display: flex; gap: 20px; align-items: flex-start; padding: 22px var(--space-5); margin-bottom: 18px;
-  background: var(--panel); border: 1px solid var(--border-soft); border-radius: var(--radius-xl);
+  background:
+    radial-gradient(circle at 8% 0%, rgba(162,121,236,0.16), transparent 34%),
+    linear-gradient(135deg, rgba(32,21,59,0.96), rgba(18,11,36,0.96));
+  border: 1px solid var(--border-soft); border-radius: var(--radius-xl);
   box-shadow: 0 0 26px rgba(162,121,236,0.22), inset 0 0 0 1px rgba(162,121,236,0.08);
 }
+.notif-status-card::before {
+  content: ''; position: absolute; z-index: 0; inset: 0 auto 0 0; width: 4px;
+  background: linear-gradient(180deg, var(--gold-bright), var(--purple-bright), transparent 86%);
+  box-shadow: 0 0 16px rgba(224,178,74,0.4);
+}
+.notif-status-card::after {
+  content: ''; position: absolute; z-index: 0; top: -90px; right: -58px; width: 210px; height: 210px;
+  border: 1px solid rgba(162,121,236,0.18); border-radius: 50%; box-shadow: 0 0 0 34px rgba(162,121,236,0.025), 0 0 0 68px rgba(162,121,236,0.018);
+}
+.notif-status-card > * { position: relative; z-index: 1; }
 /* Higher specificity than the generic .profile-avatar-wrap/.profile-avatar
    rules (declared later in this file) is needed here -- a same-specificity,
    single-class ".notif-status-avatar-wrap" rule was losing the cascade tie
@@ -403,10 +417,14 @@ a.nav-parent { cursor: pointer; }
    below) rendered at 108px -- the size mismatch between an absolutely
    positioned image and its wrapper box was the "not round enough" bug. */
 .notif-status-card .notif-status-avatar-wrap {
-  width: 108px; height: 108px; border-radius: 50%; overflow: hidden;
+  --role-color: var(--purple-bright);
+  position: relative; flex: 0 0 108px; width: 108px; height: 108px; border-radius: 50%; overflow: hidden;
+  background: var(--panel-2); border: 3px solid var(--role-color);
+  box-shadow: 0 0 0 3px rgba(162,121,236,0.12), 0 0 22px rgba(162,121,236,0.38);
 }
-.notif-status-avatar-wrap .profile-avatar {
-  width: 108px; height: 108px; border-radius: 50%; object-position: top;
+.notif-status-card .notif-status-avatar-wrap .profile-avatar {
+  position: static; display: block; width: 100%; height: 100%; border: 0; border-radius: 50%;
+  object-fit: cover; object-position: center top;
   animation: bh4-avatar-pulse 3.5s ease-in-out infinite;
 }
 @keyframes bh4-avatar-pulse {

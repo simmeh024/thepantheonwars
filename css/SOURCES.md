@@ -24,6 +24,10 @@ Authentication modal and navigation styles live in `components.css`, not
 community pages. Keep the modal rules in the shared bundle so a public-page login
 trigger always opens a fixed, visible dialog.
 
+The full Notifications page also uses `components.css`. Its BH-4 status-card avatar
+must remain self-contained there (explicit circle sizing and `object-fit: cover`),
+because the public bundle deliberately does not import the community profile CSS.
+
 ## Bundle routing
 
 - `public.css` — public editorial, world, book, privacy, soundtrack, news, quiz,
