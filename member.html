@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=189">
+<link rel="stylesheet" href="css/community-bundle.css?v=190">
 </head>
 <body>
 
@@ -152,7 +152,7 @@
 </footer>
 
 <script src="js/main.js?v=6"></script>
-<script src="js/members.js?v=16"></script>
+<script src="js/members.js?v=17"></script>
 <script>
 (function () {
   // Delegated so spoiler controls created from safe BBCode markup do not need
@@ -295,13 +295,24 @@
         };
         probe.src = '/uploads/avatars/' + m.id + '.jpg';
 
+        var existingPresence = avatarWrap.querySelector('.profile-avatar-presence');
+        if (existingPresence) existingPresence.remove();
+        var presenceStatus = ['online', 'away', 'inactive', 'offline'].indexOf(m.presence_status) !== -1 ? m.presence_status : 'offline';
+        var avatarPresence = document.createElement('span');
+        avatarPresence.className = 'profile-avatar-presence is-' + presenceStatus;
+        avatarPresence.dataset.presenceLabel = presenceStatus.charAt(0).toUpperCase() + presenceStatus.slice(1);
+        avatarPresence.setAttribute('role', 'img');
+        avatarPresence.setAttribute('tabindex', '0');
+        avatarPresence.setAttribute('aria-label', avatarPresence.dataset.presenceLabel);
+        avatarWrap.appendChild(avatarPresence);
+
         document.getElementById('member-joined').textContent = 'Joined ' + fmtDate(m.created_at);
 
         var statusEl = document.getElementById('member-status');
         var statusText = document.getElementById('member-status-text');
-        statusEl.classList.toggle('is-online', !!m.is_online);
-        if (m.is_online) {
-          statusText.textContent = 'Online now';
+        statusEl.className = 'member-status is-' + presenceStatus;
+        if (presenceStatus !== 'offline') {
+          statusText.textContent = presenceStatus === 'online' ? 'Online now' : (presenceStatus.charAt(0).toUpperCase() + presenceStatus.slice(1));
         } else if (m.last_active_at) {
           statusText.textContent = 'Last seen ' + fmtDate(m.last_active_at);
         } else if (m.last_login_at) {

@@ -60,6 +60,9 @@ CREATE TABLE IF NOT EXISTS users (
   last_login_at DATETIME DEFAULT NULL,
   last_login_ip VARCHAR(64) DEFAULT NULL,
   last_active_at DATETIME DEFAULT NULL,
+  -- Offline is derived from inactive/revoked sessions. Signed-in members can
+  -- choose one of the three visible states below.
+  presence_status ENUM('online','away','inactive') NOT NULL DEFAULT 'online',
   banned_at DATETIME DEFAULT NULL,
   banned_until DATETIME DEFAULT NULL,
   UNIQUE KEY uniq_username (username),

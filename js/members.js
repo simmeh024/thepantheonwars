@@ -215,6 +215,23 @@ document.addEventListener('DOMContentLoaded', function () {
       e.preventDefault();
       openModal(trigger.getAttribute('data-tab') || 'login');
     }
+    var presenceBtn = e.target.closest && e.target.closest('.auth-presence-option');
+    if (presenceBtn) {
+      e.preventDefault();
+      var nextStatus = presenceBtn.getAttribute('data-presence-status') || '';
+      if (!window.PW_AUTH.loggedIn || !window.PW_AUTH.user || !['online', 'away', 'inactive'].includes(nextStatus)) return;
+      if (window.PW_AUTH.user.presence_status === nextStatus) return;
+      presenceBtn.disabled = true;
+      postJson('/api/presence/update.php', { status: nextStatus, csrf: window.PW_AUTH.csrf }).then(function (result) {
+        if (!result.data || !result.data.ok) throw new Error('Could not update status.');
+        window.PW_AUTH.user.presence_status = result.data.presence_status;
+        renderNav();
+        document.dispatchEvent(new CustomEvent('pw-presence-updated', { detail: { status: result.data.presence_status } }));
+      }).catch(function () {
+        presenceBtn.disabled = false;
+      });
+      return;
+    }
     var logoutBtn = e.target.closest && e.target.closest('.auth-logout-btn');
     if (logoutBtn) {
       e.preventDefault();
@@ -231,6 +248,25 @@ document.addEventListener('DOMContentLoaded', function () {
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  var PRESENCE_LABELS = { online: 'Online', away: 'Away', inactive: 'Inactive', offline: 'Offline' };
+
+  function normalizedPresenceStatus(status) {
+    return ['online', 'away', 'inactive'].indexOf(status) !== -1 ? status : 'online';
+  }
+
+  function presencePickerHtml(currentStatus) {
+    var statuses = ['online', 'away', 'inactive'];
+    return '<div class="auth-presence-picker" aria-label="Presence status">' +
+      '<span class="auth-presence-picker-label">Set your status</span>' +
+      '<div class="auth-presence-options" role="group" aria-label="Choose your presence status">' +
+      statuses.map(function (status) {
+        var active = status === currentStatus;
+        return '<button type="button" class="auth-presence-option is-' + status + (active ? ' is-active' : '') + '" data-presence-status="' + status + '" aria-pressed="' + String(active) + '">' +
+          '<i class="auth-presence-dot is-' + status + '" aria-hidden="true"></i><span>' + PRESENCE_LABELS[status] + '</span></button>';
+      }).join('') +
+      '</div></div>';
   }
 
   // Logged-in state is rendered as a .nav-item.has-dropdown, reusing the
@@ -254,19 +290,23 @@ document.addEventListener('DOMContentLoaded', function () {
       var roleName = String(window.PW_AUTH.user.role || 'member').replace(/(^|_)([a-z])/g, function (match, prefix, letter) {
         return (prefix ? ' ' : '') + letter.toUpperCase();
       });
+      var presenceStatus = normalizedPresenceStatus(window.PW_AUTH.user.presence_status);
+      var presenceLabel = PRESENCE_LABELS[presenceStatus];
       var avatarUrl = '/uploads/avatars/' + encodeURIComponent(window.PW_AUTH.user.id) + '.jpg';
       var profileIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.25"/><path d="M5.2 20c.9-3.3 3.15-5 6.8-5s5.9 1.7 6.8 5"/></svg>';
       var settingsIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.05.05-2.1 2.1-.05-.05a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.04 1.56v.08h-3v-.08A1.7 1.7 0 0 0 10.68 18.64a1.7 1.7 0 0 0-1.88.34l-.05.05-2.1-2.1.05-.05A1.7 1.7 0 0 0 7.04 15 1.7 1.7 0 0 0 5.48 14H5.4v-3h.08A1.7 1.7 0 0 0 7.04 9.96 1.7 1.7 0 0 0 6.7 8.08l-.05-.05 2.1-2.1.05.05a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.72 4.8v-.08h3v.08a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.88-.34l.05-.05 2.1 2.1-.05.05a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.96 11H21v3h-.04A1.7 1.7 0 0 0 19.4 15Z"/></svg>';
       var adminIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 19 6v5.2c0 4.2-2.7 7.6-7 9.3-4.3-1.7-7-5.1-7-9.3V6l7-2.5Z"/><path d="m9.2 12 1.8 1.8 3.9-4"/></svg>';
       var logoutIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5"/><path d="m14 8 4 4-4 4M8 12h10"/></svg>';
       slot.className = 'nav-item has-dropdown auth-nav-item';
+      slot.style.setProperty('--auth-role-color', roleColor);
       slot.innerHTML =
         '<span class="nav-parent auth-profile-chip" style="--auth-role-color:' + roleColor + '"><span class="auth-profile-initial">' + initial + '</span><span class="auth-profile-name">' + displayName + '</span><span class="nav-caret">⌄</span></span>' +
         '<div class="nav-dropdown auth-nav-dropdown">' +
           '<a class="auth-profile-summary" href="member.html?id=' + encodeURIComponent(window.PW_AUTH.user.id) + '" aria-label="View ' + displayName + '\'s profile">' +
             '<span class="auth-profile-avatar"><img src="' + avatarUrl + '" alt="" onerror="this.hidden=true"><span class="auth-profile-avatar-fallback">' + initial + '</span></span>' +
-            '<span class="auth-profile-summary-copy"><strong>' + displayName + '</strong><span><i class="auth-online-dot"></i>' + escapeHtml(roleName) + ' · Online</span></span>' +
+            '<span class="auth-profile-summary-copy"><strong>' + displayName + '</strong><span><i class="auth-online-dot auth-presence-dot is-' + presenceStatus + '"></i>' + escapeHtml(roleName) + ' · ' + presenceLabel + '</span></span>' +
           '</a>' +
+          presencePickerHtml(presenceStatus) +
           '<div class="auth-dropdown-actions">' +
             '<a href="member.html?id=' + encodeURIComponent(window.PW_AUTH.user.id) + '">' + profileIcon + '<span>Profile</span></a>' +
             '<a href="profile.html">' + settingsIcon + '<span>Settings</span></a>' +
@@ -276,6 +316,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '</div>';
     } else {
       slot.className = 'auth-nav-item';
+      slot.style.removeProperty('--auth-role-color');
       slot.innerHTML = '<a href="#" class="auth-trigger">Login</a>';
     }
   }

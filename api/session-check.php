@@ -35,6 +35,7 @@ pw_json([
         'overlord_affinity' => $user['overlord_affinity'],
         'role' => $user['role'],
         'role_color' => $roleColor,
+        'presence_status' => $user['presence_status'] ?? 'online',
     ] : null,
     // Frontend uses this (not the raw role string) to decide what to show --
     // '*' means every permission (superuser role, e.g. admin).

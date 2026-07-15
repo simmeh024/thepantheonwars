@@ -6,7 +6,7 @@ require_once __DIR__ . '/../helpers.php';
 // page load (see session-check.php) for logged-in visitors.
 $db = pw_db();
 $stmt = $db->prepare(
-    "SELECT u.id, u.username, u.display_name, u.role, u.last_login_at, u.last_active_at, r.color AS role_color,
+    "SELECT u.id, u.username, u.display_name, u.role, u.last_login_at, u.last_active_at, u.presence_status, r.color AS role_color,
        (SELECT COUNT(*) FROM comments c WHERE c.user_id = u.id AND c.is_deleted = 0) +
        (SELECT COUNT(*) FROM topics t WHERE t.user_id = u.id AND t.is_deleted = 0) AS post_count,
        (u.last_active_at IS NOT NULL AND u.last_active_at >= (NOW() - INTERVAL 5 MINUTE)) AS is_online
@@ -31,6 +31,7 @@ $out = array_map(function ($r) {
         'last_login_at' => $r['last_login_at'],
         'last_active_at' => $r['last_active_at'],
         'is_online' => (bool)$r['is_online'],
+        'presence_status' => pw_public_presence_status($r['presence_status'], $r['last_active_at']),
     ];
 }, $rows);
 

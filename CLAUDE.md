@@ -153,14 +153,14 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=185, community v=189, and admin v=205. Public pages use
+  versions: public v=186, community v=190, and admin v=205. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=6), `js/members.js?v=N` (current: v=16)
+  than once): `js/main.js?v=N` (current: v=6), `js/members.js?v=N` (current: v=17)
   and `js/notifications.js?v=N` (current: v=8), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
@@ -209,6 +209,17 @@ also supports a deliberately manual `?full=1` historical rebuild.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Member presence:** run `migration_user_presence_status.sql` after deploy.
+  `users.presence_status` stores only `online`, `away`, or `inactive`; **Offline
+  is never selectable or stored** and is derived from the five-minute active
+  session window. `api/presence/update.php` is CSRF-protected and updates the
+  current signed-in user's selected state. Logout revokes the current registry
+  session then clears `users.last_active_at` only if no other recently active
+  session remains. The public nav dropdown uses role-coloured avatar rings and
+  offers the three-state picker. Forum topic/reply, member-list, and public
+  profile avatars render a presence dot with hover/focus text; API responses use
+  `pw_public_presence_status()` so stale sessions resolve to Offline.
 
 - **Dispatch Translation workflow documentation and queue clarity:**
   `docs/dispatch-spacy.md` now contains the complete Mermaid-ready translation

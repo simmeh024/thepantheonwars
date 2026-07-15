@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=189">
+<link rel="stylesheet" href="css/community-bundle.css?v=190">
 </head>
 <body>
 
@@ -296,7 +296,7 @@
 </div>
 
 <script src="js/main.js?v=6"></script>
-<script src="js/members.js?v=16"></script>
+<script src="js/members.js?v=17"></script>
 <script>
 (function () {
   // Delegated so spoiler controls created from safe BBCode markup do not need
@@ -1337,6 +1337,18 @@
     }
   }
 
+  function appendAvatarPresence(avatarWrap, status) {
+    var labels = { online: 'Online', away: 'Away', inactive: 'Inactive', offline: 'Offline' };
+    status = labels[status] ? status : 'offline';
+    var dot = document.createElement('span');
+    dot.className = 'profile-avatar-presence is-' + status;
+    dot.dataset.presenceLabel = labels[status];
+    dot.setAttribute('role', 'img');
+    dot.setAttribute('tabindex', '0');
+    dot.setAttribute('aria-label', labels[status]);
+    avatarWrap.appendChild(dot);
+  }
+
   function buildTopicProfile(t) {
     var profile = document.createElement('div');
     profile.className = 'comment-profile';
@@ -1363,6 +1375,8 @@
       avatarFallback.hidden = true;
     };
     probe.src = '/uploads/avatars/' + t.user_id + '.jpg';
+
+    appendAvatarPresence(avatarWrap, t.presence_status);
 
     profile.appendChild(avatarWrap);
 
@@ -1596,6 +1610,8 @@
       avatarFallback.hidden = true;
     };
     probe.src = '/uploads/avatars/' + c.user_id + '.jpg';
+
+    appendAvatarPresence(avatarWrap, c.presence_status);
 
     profile.appendChild(avatarWrap);
 

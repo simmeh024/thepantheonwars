@@ -15,6 +15,7 @@ if ($user) {
         pw_db()->prepare('UPDATE user_sessions SET revoked_at = UTC_TIMESTAMP(), revoked_reason = ? WHERE user_id = ? AND session_token_hash = ? AND revoked_at IS NULL')
             ->execute(['signed_out', (int)$user['id'], pw_session_hash(pw_current_session_token())]);
     } catch (Throwable $e) {}
+    pw_mark_user_offline_if_no_active_sessions((int)$user['id']);
     pw_log_activity('session_revoked', 'Signed out the current session.', (int)$user['id'], $user['username']);
 }
 pw_destroy_local_session();

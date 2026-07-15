@@ -131,7 +131,7 @@ function pw_current_user() {
     if (empty($_SESSION['user_id'])) {
         return null;
     }
-    $stmt = pw_db()->prepare('SELECT id, username, email, display_name, overlord_affinity, role, created_at, banned_at, banned_until FROM users WHERE id = ?');
+    $stmt = pw_db()->prepare('SELECT id, username, email, display_name, overlord_affinity, role, presence_status, created_at, banned_at, banned_until FROM users WHERE id = ?');
     $stmt->execute([$_SESSION['user_id']]);
     $user = $stmt->fetch();
     if (!$user) {
@@ -329,6 +329,37 @@ function pw_mask_ip($ip) {
         }
     }
     return $ip;
+}
+
+/**
+ * A member can choose Online, Away, or Inactive while signed in. Offline is
+ * never stored or selectable; it is derived from the existing five-minute
+ * activity window so stale or revoked sessions cannot claim an active state.
+ */
+function pw_public_presence_status($selectedStatus, $lastActiveAt): string {
+    if (empty($lastActiveAt) || strtotime((string)$lastActiveAt) < time() - 300) {
+        return 'offline';
+    }
+    $selectedStatus = strtolower(trim((string)$selectedStatus));
+    return in_array($selectedStatus, ['online', 'away', 'inactive'], true) ? $selectedStatus : 'online';
+}
+
+function pw_mark_user_offline_if_no_active_sessions(int $userId): void {
+    try {
+        $stmt = pw_db()->prepare(
+            'SELECT 1 FROM user_sessions
+             WHERE user_id = ? AND revoked_at IS NULL AND expires_at > UTC_TIMESTAMP()
+               AND last_active_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 5 MINUTE)
+             LIMIT 1'
+        );
+        $stmt->execute([$userId]);
+        if (!$stmt->fetch()) {
+            pw_db()->prepare('UPDATE users SET last_active_at = NULL WHERE id = ?')->execute([$userId]);
+        }
+    } catch (Throwable $e) {
+        // Session presence is an enhancement. A pending session migration must
+        // never make sign-out fail.
+    }
 }
 
 // Maps only explicitly recognised crawler User-Agent signatures to a readable
