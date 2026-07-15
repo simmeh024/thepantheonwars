@@ -43,6 +43,14 @@ $cases = [
         'options' => ['diff_context' => ['files_changed' => 4, 'areas' => ['site services', 'local site tooling']]],
         'contains' => ["\n\nTotal files edited: 4 in site services and local site tooling."],
     ],
+    [
+        'subject' => 'Metric cards: clickable modal with Latest dispatches, Trend vs previous period, BH-4 verified badge',
+        'body' => '',
+        'tag' => 'feature',
+        'contains' => ['detailed view of current metrics and recent Dispatches'],
+        'evidence' => ['reader safe dictionary'],
+        'level' => 'high',
+    ],
 ];
 
 foreach ($cases as $case) {
@@ -69,6 +77,10 @@ foreach ($cases as $case) {
             fwrite(STDERR, "Expected confidence evidence is missing: " . $label . "\n");
             exit(1);
         }
+    }
+    if (isset($case['level']) && ($result['confidence']['level'] ?? '') !== $case['level']) {
+        fwrite(STDERR, "Unexpected confidence level: " . ($result['confidence']['level'] ?? 'missing') . "\n");
+        exit(1);
     }
 }
 

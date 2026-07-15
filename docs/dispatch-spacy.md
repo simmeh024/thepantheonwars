@@ -53,6 +53,9 @@ pattern and add a matching regression case whenever it protects against a
 previously observed awkward phrase. A matched entry is also worth 10 points of
 explicit confidence evidence. It raises the score only for reviewed project
 vocabulary and does not replace the existing two-signal high-confidence gate.
+For legacy `Area: change` titles, the same reviewed dictionary also checks the
+complete title after the formatter has separated its area prefix; only the
+first, most specific scoped match is used.
 
 When a safe changed-file aggregate is available, the formatter adds it as a
 separate final paragraph: `Total files edited: N in <allow-listed scope>.`

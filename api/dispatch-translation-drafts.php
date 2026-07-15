@@ -190,6 +190,39 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         '/\bPre-aggregate visitor journey transitions\b/i' => 'how visitor journeys are prepared for faster analysis',
         '/\bBulk-load public world details\b/i' => 'how world details are prepared more efficiently for visitors',
         '/\bAdd visitor journey Sankey diagram\b/i' => 'a visual view of how visitors move between pages',
+        '/\bRecognize reviewed Dispatch vocabulary in confidence\b/i' => 'how reviewed development terminology supports clearer summaries',
+        '/\bLink auto-published translations to public dispatches\b/i' => 'a direct route from approved development summaries to their public records',
+        '/\bCenter Google authentication control\b/i' => 'a more balanced Google sign-in control',
+        '/\bFlatten Google sign-in emblem\b/i' => 'a simpler Google sign-in emblem that fits the site theme',
+        '/\bRedirect all HTTP traffic to HTTPS\b/i' => 'a safer secure connection for every visit',
+        '/\bEnrich Dispatch Draft Translator context\b/i' => 'clearer context for reader-facing development summaries',
+        '/\bFill missing audit activity icons\b/i' => 'complete visual markers for Audit Log activity',
+        '/\bRecognize more low-confidence Dispatch drafts\b/i' => 'clearer recognition of reader-safe development updates',
+        '/\bShorten the Dispatch developer record label\b/i' => 'a clearer label for the technical development record',
+        '/\bGraphical polish pass on the forum\b/i' => 'a more polished forum presentation',
+        '/\bAdmin Members: avatar and role ring in list rows, generate password button\b/i' => 'clearer member records and safer account-management tools',
+        '/\bBH-4 welcome card: bigger portrait, stack the stat rows\b/i' => 'a clearer BH-4 status presentation on the Admin Home page',
+        '/\bTopic Reports View link 404s\b/i' => 'the Topic Reports review link',
+        '/\bban Permanent\/Temporary radios visible before checkbox is checked\b/i' => 'the member-ban controls',
+        '/\bavatar row and meta panel staying visible in Create Member modal\b/i' => 'the Create Member form',
+        '/\bAdmin sidebar: collapsible nav categories, System group for Audit Log, tighter spacing\b/i' => 'a more focused Admin Console navigation',
+        '/\bAdmin Home: terminal-style activity log and refresh button\b/i' => 'a clearer activity view on the Admin Home page',
+        '/\bAdmin console: Home page with activity log\b/i' => 'the Admin Home activity view',
+        '/\bMetric cards: clickable modal with Latest dispatches, Trend vs previous period, BH-4 verified badge\b/i' => 'a detailed view of current metrics and recent Dispatches',
+        '/\bLanguage history: 24h refresh cadence, stacked bar chart with day\/week\/month\/year filter\b/i' => 'a clearer language-history view with flexible time ranges',
+        '/\bAdmin console tweaks and dispatch footer reorder\b/i' => 'a more consistent Admin Console and Dispatch layout',
+        '/\bBH-4 verified easter egg on Development Dispatches\b/i' => 'a small BH-4 detail on Development Dispatches',
+        '/\bred Fix tag color and per-category icons on dispatch tags\b/i' => 'clearer category signals on Development Dispatches',
+        '/\bwebhook committed at was converted to server timezone\b/i' => 'the correct ordering of Development Dispatch records',
+        '/\blike\/dislike reactions and zebra striping on Development Dispatches\b/i' => 'clearer reactions and easier-to-scan Development Dispatches',
+        '/\bzebra striping and announcement emphasis for forum topic rows\b/i' => 'a clearer forum topic list',
+        '/\bBH-4 newsletter image leaving empty space above it\b/i' => 'the BH-4 newsletter presentation',
+        '/\bterminal transition sequence on Re Sync Overlord Resonance click\b/i' => 'a more responsive Overlord Resonance interaction',
+        '/\bper overlord 100% Overlord Resonance bar effects\b/i' => 'clearer Overlord Resonance status effects',
+        '/\boverlord portraits and zebra striping on Quiz History rows\b/i' => 'a clearer Quiz History view',
+        '/\bCascade delete a topic\'s replies when the topic itself is deleted\b/i' => 'cleaner removal of forum discussions',
+        '/\bCommunity: threaded replies \(2 deep\), reactions, pinning, Top Voices leaderboard\b/i' => 'richer ways for members to follow and take part in forum discussions',
+        '/\bCommunity nav item becomes a category\b/i' => 'a clearer route into the Nexus Veil community',
         '/\bsurface error log candidate paths in errors\.php response\b/i' => 'a focused review of available site error diagnostics',
         '/\badd one click copy button for raw commit message\b/i' => 'a quick way to copy the original development note',
         '/\b24h refresh cadence, stacked bar chart with day\/week\/month\/year filter\b/i' => 'a clearer language-history view with flexible time ranges',
@@ -294,6 +327,20 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
             // phrase has a stable, reader-safe meaning in this project.
             $evidence['reader_safe_dictionary'] = true;
             $clean = preg_replace($pattern, $replacement, $clean);
+            continue;
+        }
+        // Older Dispatches often use an explicit area before a colon. The
+        // scope parser correctly removes that technical prefix before prose is
+        // rendered, but the curated dictionary still needs to see the complete
+        // original title. A specific scoped match is safe to replace wholesale
+        // because every entry is reviewed project vocabulary; stop at the
+        // first (most specific) scoped match to avoid stacking substitutions.
+        if (preg_match($pattern, $contextSource)) {
+            $rulesMatched++;
+            $evidence['recognized_subject'] = true;
+            $evidence['reader_safe_dictionary'] = true;
+            $clean = $replacement;
+            break;
         }
     }
     $clean = preg_replace('/\s+/', ' ', trim($clean));
@@ -892,7 +939,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v23\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v24\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array
