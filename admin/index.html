@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=205">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=206">
 </head>
 <body>
 
@@ -48,6 +48,16 @@
         <li data-requires-permission="books.view"><button type="button" class="admin-nav-link" data-section="book-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>Book Control</button></li>
         <li data-requires-permission="worlds.view"><button type="button" class="admin-nav-link" data-section="world-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>World Control</button></li>
         <li data-requires-permission="overlords.view"><button type="button" class="admin-nav-link" data-section="overlord-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><circle cx="12" cy="10" r="2.5"/></svg>Overlord Control</button></li>
+      </ul>
+    </div>
+
+    <div class="admin-nav-category is-collapsed" data-category="content" data-requires-permission="news.view">
+      <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
+        <span>Content</span>
+        <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <ul class="admin-nav-list admin-nav-list-collapsible">
+        <li data-requires-permission="news.view"><button type="button" class="admin-nav-link" data-section="news-management"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>News Management</button></li>
       </ul>
     </div>
 
@@ -1063,6 +1073,11 @@
             <option value="book_updated">Book updated</option>
             <option value="book_deleted">Book deleted</option>
           </optgroup>
+          <optgroup label="News Management">
+            <option value="news_post_created">News post published</option>
+            <option value="news_post_updated">News post updated</option>
+            <option value="news_post_deleted">News post deleted</option>
+          </optgroup>
           <optgroup label="World Control">
             <option value="world_created">World created</option>
             <option value="world_updated">World updated</option>
@@ -1208,6 +1223,23 @@
       </div>
 
       <div class="admin-pagination" id="control-pagination"></div>
+    </section>
+
+    <section class="admin-section" id="section-news-management" hidden>
+      <div class="admin-section-head">
+        <h1>News Management</h1>
+        <p>Write and maintain the public updates shown on the News page. Publish under your own name or relay the update through BH-4.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button type="button" class="btn btn-solid" id="news-create-btn">+ New News Post</button>
+        <input type="search" class="admin-search" id="news-search" placeholder="Search title or text&hellip;">
+        <span class="admin-count" id="news-count"></span>
+      </div>
+
+      <div class="admin-list" id="news-list">
+        <div class="admin-list-empty">Loading news posts&hellip;</div>
+      </div>
     </section>
 
     <section class="admin-section" id="section-dispatch-translations" hidden>
@@ -1423,6 +1455,39 @@
     <div class="admin-modal-actions">
       <button type="button" class="btn btn-solid" id="control-save-btn">Save</button>
       <button type="button" class="btn" id="control-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal" id="news-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="news-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="news-modal-title">New News Post</h3>
+    <p class="admin-modal-sub" id="news-modal-sub">This update appears on the public News page as soon as it is saved.</p>
+
+    <div class="admin-field">
+      <label for="news-title-input">Title</label>
+      <input type="text" id="news-title-input" maxlength="200" placeholder="A clear headline for readers">
+    </div>
+    <div class="admin-field">
+      <label for="news-body-input">Public update</label>
+      <p class="admin-field-hint">Use a blank line to start a new paragraph. Plain text keeps public updates safe and readable.</p>
+      <textarea id="news-body-input" maxlength="15000" placeholder="Write the update your readers should see."></textarea>
+    </div>
+    <fieldset class="admin-field news-author-field">
+      <legend>Post as</legend>
+      <div class="news-author-options">
+        <label class="news-author-option"><input type="radio" name="news-author" value="bh4" checked> <span><strong>BH-4</strong><small>Relayed by the Dispatch Unit</small></span></label>
+        <label class="news-author-option"><input type="radio" name="news-author" value="member"> <span><strong id="news-self-author-label">Yourself</strong><small>Published under your member profile</small></span></label>
+      </div>
+    </fieldset>
+    <p class="admin-modal-error" id="news-modal-error"></p>
+    <p class="admin-modal-status" id="news-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="news-save-btn">Publish Update</button>
+      <button type="button" class="btn" id="news-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="news-delete-btn" hidden>Delete Post</button>
     </div>
   </div>
 </div>
@@ -2555,6 +2620,7 @@
       if (name === 'audit-log') loadAuditLog();
       if (name === 'system-status') { loadSystemStatusDetail(); loadCpuHistory(); }
       if (name === 'dispatch-control') loadControlList();
+      if (name === 'news-management') loadNewsList();
       if (name === 'dispatch-translations') loadList();
       if (name === 'members') loadMembers();
       if (name === 'topic-reports') loadTopicReports();
@@ -2582,7 +2648,7 @@
   // Standard/default state: every category collapsed except Home. This only
   // applies until the user's first click on a toggle, at which point their
   // explicit preference (saved below) takes over permanently.
-  var DEFAULT_COLLAPSED = ['lore', 'community', 'dispatches', 'system'];
+  var DEFAULT_COLLAPSED = ['lore', 'content', 'community', 'dispatches', 'system'];
 
   function getCollapsedSet() {
     try {
@@ -4034,6 +4100,9 @@
     book_created: 'Book created',
     book_updated: 'Book updated',
     book_deleted: 'Book deleted',
+    news_post_created: 'News post published',
+    news_post_updated: 'News post updated',
+    news_post_deleted: 'News post deleted',
     translation_added: 'Translation added',
     translation_updated: 'Translation updated',
     translation_auto_published: 'Translation auto-published',
@@ -4099,6 +4168,9 @@
     book_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>',
     book_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9.5 12.5l1.8 1.8L15.5 10"/></svg>',
     book_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9.5" y1="10" x2="14.5" y2="15"/><line x1="14.5" y1="10" x2="9.5" y2="15"/></svg>',
+    news_post_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 3h16v18H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+    news_post_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 3h16v18H4z"/><path d="M8 8h8M8 12h5"/><path d="m14 17 4-4 1.5 1.5-4 4L13 19z"/></svg>',
+    news_post_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 3h16v18H4z"/><path d="M8 8h8M8 12h5"/><line x1="9" y1="16" x2="15" y2="20"/><line x1="15" y1="16" x2="9" y2="20"/></svg>',
     translation_added: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 4h16v16H4z" opacity="0"/><path d="M5 12h14M12 5v14"/></svg>',
     translation_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>',
     translation_auto_published: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M5 3h10l4 4v14H5z"/><path d="M15 3v5h5"/><path d="m8.5 15 2.1 2.1L15.5 12"/></svg>',
@@ -4167,6 +4239,7 @@
     if (action.indexOf('login') === 0) return { key: 'login', label: 'Login', icon: ACTIVITY_ICONS.login };
     if (action.indexOf('google_') === 0) return { key: 'login', label: 'Google', icon: ACTIVITY_ICONS.google_login };
     if (action.indexOf('book_') === 0) return { key: 'books', label: 'Books', icon: ACTIVITY_ICONS.book_created };
+    if (action.indexOf('news_') === 0) return { key: 'content', label: 'News', icon: ACTIVITY_ICONS.news_post_created };
     if (action.indexOf('translation_') === 0 || action === 'category_edited' || action.indexOf('dispatch') === 0 || action.indexOf('development_') === 0) return { key: 'development', label: 'Development', icon: ACTIVITY_ICONS.dispatches_resynced };
     if (action.indexOf('member_') === 0) return { key: 'members', label: 'Members', icon: ACTIVITY_ICONS.member_updated };
     if (action.indexOf('topic_') === 0 || action.indexOf('comment_') === 0 || action.indexOf('content_') === 0 || action.indexOf('user_') === 0 || action.indexOf('report_') === 0) return { key: 'community', label: 'Community', icon: ACTIVITY_ICONS.forum_board_created };
@@ -9247,6 +9320,188 @@
         overlordDeleteBtn.disabled = false;
         overlordModalError.textContent = 'Could not delete this overlord. Please try again.';
         overlordModalError.classList.add('show');
+      });
+  });
+
+  // ===== News Management ======================================================
+  // Public news remains a deliberately small CRUD surface: titles and plain-text
+  // paragraphs only, with the server owning author identity. A member author is
+  // always the currently signed-in editor; the browser cannot select another
+  // account id and impersonate it.
+  var newsListEl = document.getElementById('news-list');
+  var newsCountEl = document.getElementById('news-count');
+  var newsCreateBtn = document.getElementById('news-create-btn');
+  var newsSearchEl = document.getElementById('news-search');
+  var newsModal = document.getElementById('news-modal');
+  var newsModalTitle = document.getElementById('news-modal-title');
+  var newsModalSub = document.getElementById('news-modal-sub');
+  var newsModalError = document.getElementById('news-modal-error');
+  var newsModalStatus = document.getElementById('news-modal-status');
+  var newsModalCloseBtn = document.getElementById('news-modal-close');
+  var newsTitleInput = document.getElementById('news-title-input');
+  var newsBodyInput = document.getElementById('news-body-input');
+  var newsSaveBtn = document.getElementById('news-save-btn');
+  var newsCancelBtn = document.getElementById('news-cancel-btn');
+  var newsDeleteBtn = document.getElementById('news-delete-btn');
+  var newsSelfAuthorLabel = document.getElementById('news-self-author-label');
+  var newsEntries = [];
+  var newsCurrent = null;
+  var newsModalMode = 'create';
+  var newsSearchTimer = null;
+
+  function newsAuthorType() {
+    var selected = newsModal.querySelector('input[name="news-author"]:checked');
+    return selected ? selected.value : 'bh4';
+  }
+
+  function setNewsAuthorType(type) {
+    var radio = newsModal.querySelector('input[name="news-author"][value="' + type + '"]');
+    if (radio) radio.checked = true;
+  }
+
+  function loadNewsList() {
+    if (!newsListEl) return;
+    newsCreateBtn.hidden = !pwHasPermission('news.edit');
+    newsListEl.innerHTML = '<div class="admin-list-empty">Loading news posts&hellip;</div>';
+    fetch('/api/admin/news/list.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load news posts.');
+        newsEntries = data.entries || [];
+        renderNewsList();
+      })
+      .catch(function () {
+        newsListEl.innerHTML = '<div class="admin-list-empty">Could not load news posts.</div>';
+      });
+  }
+
+  function renderNewsList() {
+    var query = (newsSearchEl.value || '').trim().toLowerCase();
+    var entries = newsEntries.filter(function (entry) {
+      if (!query) return true;
+      return String(entry.title || '').toLowerCase().indexOf(query) !== -1 ||
+        String(entry.body || '').toLowerCase().indexOf(query) !== -1;
+    });
+    newsCountEl.textContent = entries.length + (entries.length === 1 ? ' post' : ' posts');
+    if (!entries.length) {
+      newsListEl.innerHTML = '<div class="admin-list-empty">' + (query ? 'No matching news posts.' : 'No news posts yet.') + '</div>';
+      return;
+    }
+    newsListEl.textContent = '';
+    entries.forEach(function (entry) {
+      var row = document.createElement('button');
+      row.type = 'button';
+      row.className = 'admin-row news-management-row';
+      var author = entry.author_type === 'bh4' ? 'BH-4' : (entry.author_display_name || 'Member');
+      var preview = String(entry.body || '').replace(/\s+/g, ' ').trim();
+      if (preview.length > 150) preview = preview.slice(0, 147) + '...';
+      row.innerHTML =
+        '<div class="admin-row-main">' +
+          '<p class="admin-row-subject">' + escapeHtml(entry.title) + '</p>' +
+          '<div class="admin-row-meta"><span>' + escapeHtml(fmtDate(entry.published_at)) + '</span><span class="admin-row-sep">&bull;</span><span>' + escapeHtml(preview) + '</span></div>' +
+        '</div>' +
+        '<span class="news-author-pill' + (entry.author_type === 'bh4' ? ' is-bh4' : '') + '">' + escapeHtml(author) + '</span>';
+      row.addEventListener('click', function () { openNewsModal(entry); });
+      newsListEl.appendChild(row);
+    });
+  }
+
+  function clearNewsModalMessages() {
+    newsModalError.classList.remove('show');
+    newsModalStatus.classList.remove('show');
+    newsModalError.textContent = '';
+    newsModalStatus.textContent = '';
+  }
+
+  function openNewsModal(entry) {
+    newsCurrent = entry || null;
+    newsModalMode = entry ? 'edit' : 'create';
+    newsModalTitle.textContent = entry ? 'Edit News Post' : 'New News Post';
+    newsModalSub.textContent = entry ? ('Public address: news.html#' + entry.slug) : 'This update appears on the public News page as soon as it is saved.';
+    newsTitleInput.value = entry ? entry.title : '';
+    newsBodyInput.value = entry ? entry.body : '';
+    var selfName = window.PW_AUTH.user && (window.PW_AUTH.user.display_name || window.PW_AUTH.user.username);
+    newsSelfAuthorLabel.textContent = selfName || 'Yourself';
+    setNewsAuthorType(entry ? entry.author_type : 'bh4');
+    newsDeleteBtn.hidden = !entry || !pwHasPermission('news.delete');
+    newsSaveBtn.disabled = !pwHasPermission('news.edit');
+    newsSaveBtn.textContent = entry ? 'Save Changes' : 'Publish Update';
+    clearNewsModalMessages();
+    newsModal.hidden = false;
+    setTimeout(function () { newsTitleInput.focus(); }, 30);
+  }
+
+  function closeNewsModal() {
+    newsModal.hidden = true;
+    newsCurrent = null;
+  }
+
+  if (newsCreateBtn) {
+    newsCreateBtn.addEventListener('click', function () { openNewsModal(null); });
+  }
+  newsModalCloseBtn.addEventListener('click', closeNewsModal);
+  newsCancelBtn.addEventListener('click', closeNewsModal);
+  newsModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeNewsModal);
+  newsSearchEl.addEventListener('input', function () {
+    clearTimeout(newsSearchTimer);
+    newsSearchTimer = setTimeout(renderNewsList, 140);
+  });
+
+  newsSaveBtn.addEventListener('click', function () {
+    if (!pwHasPermission('news.edit')) return;
+    var payload = {
+      title: newsTitleInput.value.trim(),
+      body: newsBodyInput.value.trim(),
+      author_type: newsAuthorType(),
+      csrf: window.PW_AUTH.csrf
+    };
+    if (!payload.title || !payload.body) {
+      newsModalError.textContent = !payload.title ? 'Give the news post a title.' : 'Write the public update before publishing it.';
+      newsModalError.classList.add('show');
+      return;
+    }
+    if (newsModalMode === 'edit' && newsCurrent) payload.id = newsCurrent.id;
+    clearNewsModalMessages();
+    newsSaveBtn.disabled = true;
+    fetch(newsModalMode === 'edit' ? '/api/admin/news/update.php' : '/api/admin/news/create.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        newsSaveBtn.disabled = false;
+        if (!data.ok) throw new Error(data.error || 'Could not save this news post.');
+        newsModalStatus.textContent = newsModalMode === 'edit' ? 'Changes saved.' : 'News post published.';
+        newsModalStatus.classList.add('show');
+        loadNewsList();
+        setTimeout(closeNewsModal, 600);
+      })
+      .catch(function (error) {
+        newsSaveBtn.disabled = false;
+        newsModalError.textContent = error.message || 'Could not save this news post. Please try again.';
+        newsModalError.classList.add('show');
+      });
+  });
+
+  newsDeleteBtn.addEventListener('click', function () {
+    if (!newsCurrent || !pwHasPermission('news.delete')) return;
+    if (!window.confirm('Delete "' + newsCurrent.title + '"? This cannot be undone.')) return;
+    clearNewsModalMessages();
+    newsDeleteBtn.disabled = true;
+    fetch('/api/admin/news/delete.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: newsCurrent.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        newsDeleteBtn.disabled = false;
+        if (!data.ok) throw new Error(data.error || 'Could not delete this news post.');
+        loadNewsList();
+        closeNewsModal();
+      })
+      .catch(function (error) {
+        newsDeleteBtn.disabled = false;
+        newsModalError.textContent = error.message || 'Could not delete this news post. Please try again.';
+        newsModalError.classList.add('show');
       });
   });
 

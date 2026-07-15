@@ -182,6 +182,25 @@ CREATE TABLE IF NOT EXISTS dispatch_entries (
   KEY idx_committed_at (committed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Public news updates, managed through Admin Console > Content > News
+-- Management. Posts can be relayed by BH-4 or attributed to the admin who
+-- published them. The body is deliberately plain text; news.js safely turns
+-- blank-line-separated text into public paragraphs.
+CREATE TABLE IF NOT EXISTS news_posts (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(120) NOT NULL,
+  title VARCHAR(200) NOT NULL,
+  body TEXT NOT NULL,
+  author_type ENUM('bh4','member') NOT NULL DEFAULT 'bh4',
+  author_user_id INT UNSIGNED NULL,
+  published_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_news_slug (slug),
+  KEY idx_news_published (published_at, id),
+  CONSTRAINT fk_news_posts_author FOREIGN KEY (author_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS dispatch_reactions (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   dispatch_id INT UNSIGNED NOT NULL,
