@@ -225,28 +225,55 @@ a.nav-parent { cursor: pointer; }
 }
 .nav-dropdown a:hover, .nav-dropdown a.active { color: var(--gold); background: rgba(124,79,214,0.12); }
 
-/* The profile dropdown is rendered by members.js on every public page, not
-   only community pages. Keep its button styled in the shared component layer
-   so the native browser button appearance can never leak through. */
+/* The profile dropdown is rendered by members.js on every public page. It is
+   intentionally an identity card first, then a compact set of account actions. */
+.auth-nav-dropdown {
+  width: 252px;
+  min-width: 252px;
+  padding: 0;
+  overflow: hidden;
+  border-color: rgba(162,121,236,0.38);
+  background: linear-gradient(145deg, rgba(36,23,67,0.99), rgba(14,9,29,0.995));
+  box-shadow: var(--shadow-popover), 0 16px 42px rgba(0,0,0,0.34), 0 0 28px rgba(124,79,214,0.12);
+}
+.auth-nav-dropdown::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 92% 3%, rgba(224,178,74,0.16), transparent 31%), radial-gradient(circle at 6% 100%, rgba(124,79,214,0.18), transparent 40%);
+}
+.auth-nav-dropdown .auth-profile-summary {
+  position: relative; z-index: 1; display: flex; align-items: center; gap: 12px;
+  padding: 15px 16px 14px; border-bottom: 1px solid rgba(162,121,236,0.2);
+  color: var(--text); text-decoration: none; transition: background var(--transition-base);
+}
+.auth-nav-dropdown .auth-profile-summary:hover, .auth-nav-dropdown .auth-profile-summary:focus-visible { color: var(--text); background: rgba(255,255,255,0.035); }
+.auth-profile-avatar {
+  position: relative; width: 46px; height: 46px; flex: 0 0 46px; overflow: hidden;
+  display: grid; place-items: center; border-radius: 50%; border: 2px solid var(--auth-role-color, var(--purple-bright));
+  background: linear-gradient(145deg, rgba(124,79,214,0.34), rgba(8,5,19,0.9)); box-shadow: 0 0 0 3px rgba(124,79,214,0.09), 0 0 15px rgba(124,79,214,0.28);
+}
+.auth-profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.auth-profile-avatar img[hidden] + .auth-profile-avatar-fallback { display: grid; }
+.auth-profile-avatar-fallback { display: none; width: 100%; height: 100%; place-items: center; color: var(--gold-bright); font: 0.98rem/1 'Cinzel', serif; }
+.auth-profile-summary-copy { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.auth-profile-summary-copy strong { overflow: hidden; color: var(--text); font: 0.91rem/1.2 'Cinzel', serif; text-overflow: ellipsis; white-space: nowrap; }
+.auth-profile-summary-copy > span { display: flex; align-items: center; gap: 5px; color: var(--text-faint); font-size: 0.69rem; letter-spacing: 0.035em; }
+.auth-online-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--status-success, #2cae73); box-shadow: 0 0 8px rgba(62,207,142,0.68); }
+.auth-dropdown-actions { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 3px; padding: 9px 8px; }
+.auth-nav-dropdown .auth-dropdown-actions a,
 .auth-nav-dropdown .auth-logout-btn {
-  display: block;
-  width: 100%;
-  padding: 8px 20px;
-  border: 0;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  font-family: 'Jost', sans-serif;
-  font-size: 0.9rem;
-  line-height: inherit;
-  text-align: left;
-  white-space: nowrap;
+  display: flex; width: 100%; align-items: center; gap: 10px; box-sizing: border-box;
+  padding: 9px 10px; border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-dim); cursor: pointer; font: 0.76rem/1.2 'Jost', sans-serif;
+  letter-spacing: 0.075em; text-align: left; text-decoration: none; text-transform: uppercase;
+  transition: color var(--transition-base), background var(--transition-base), border-color var(--transition-base), transform var(--transition-base);
 }
+.auth-nav-dropdown .auth-dropdown-actions a svg,
+.auth-nav-dropdown .auth-logout-btn svg { width: 15px; height: 15px; flex: 0 0 15px; fill: none; stroke: currentColor; stroke-width: 1.55; stroke-linecap: round; stroke-linejoin: round; }
+.auth-nav-dropdown .auth-dropdown-actions a:hover,
+.auth-nav-dropdown .auth-dropdown-actions a:focus-visible { color: var(--gold-bright); border-color: rgba(224,178,74,0.24); background: rgba(124,79,214,0.13); transform: translateX(2px); }
+.auth-nav-dropdown .auth-logout-btn { position: relative; z-index: 1; margin: 0 8px 9px; width: calc(100% - 16px); color: rgba(227,190,207,0.82); border-color: rgba(197,86,95,0.2); background: rgba(128,42,53,0.075); }
 .auth-nav-dropdown .auth-logout-btn:hover,
-.auth-nav-dropdown .auth-logout-btn:focus-visible {
-  color: var(--purple-bright);
-  background: rgba(124,79,214,0.12);
-}
+.auth-nav-dropdown .auth-logout-btn:focus-visible { color: #ffd0d0; border-color: rgba(222,91,104,0.58); background: rgba(150,48,60,0.18); }
 
 /* Notification bell (nav) + dropdown -- click-toggled via JS (js/notifications.js),
    not the hover-based .nav-dropdown pattern above, since it needs to stay
@@ -601,6 +628,7 @@ nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
   .auth-nav-item { justify-content: flex-start; }
   .auth-profile-chip { width: 100%; justify-content: flex-start; border: 0; padding: 0; background: none; box-shadow: none; }
   .auth-profile-initial { width: 26px; height: 26px; }
+  .auth-nav-dropdown { width: min(100%, 330px); min-width: 0; }
 }
 
 /* ---------------- Hero ---------------- */
