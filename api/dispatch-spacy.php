@@ -56,16 +56,24 @@ function pw_dispatch_spacy_analyze(string $subject, string $body): array
         return [];
     }
 
-    $environment = null;
-    if (defined('SPACY_MODEL') && trim((string)SPACY_MODEL) !== '') {
-        $environment = ['PW_SPACY_MODEL' => trim((string)SPACY_MODEL)];
+    // Passing a one-variable environment to proc_open replaces the entire
+    // LiteSpeed/cPanel process environment on some shared hosts. Preserve it
+    // instead, temporarily setting only the model selector for this child.
+    $model = defined('SPACY_MODEL') ? trim((string)SPACY_MODEL) : '';
+    $previousModel = false;
+    if ($model !== '') {
+        $previousModel = getenv('PW_SPACY_MODEL');
+        putenv('PW_SPACY_MODEL=' . $model);
     }
     $pipes = [];
     $process = @proc_open([$python, $script], [
         0 => ['pipe', 'r'],
         1 => ['pipe', 'w'],
         2 => ['pipe', 'w'],
-    ], $pipes, null, $environment, ['bypass_shell' => true]);
+    ], $pipes, null, null, ['bypass_shell' => true]);
+    if ($model !== '') {
+        putenv($previousModel === false ? 'PW_SPACY_MODEL' : ('PW_SPACY_MODEL=' . $previousModel));
+    }
     if (!is_resource($process)) {
         $unavailable = true;
         return [];
@@ -77,7 +85,10 @@ function pw_dispatch_spacy_analyze(string $subject, string $body): array
     stream_set_blocking($pipes[2], false);
     $output = '';
     $errors = '';
-    $deadline = microtime(true) + 1.5;
+    // Model startup on a shared cPanel account can take longer than a normal
+    // draft request. The worker is still bounded, but 4s avoids a false
+    // disconnected alert while preserving a strict request-time limit.
+    $deadline = microtime(true) + 4.0;
     do {
         $output .= stream_get_contents($pipes[1]);
         $errors .= stream_get_contents($pipes[2]);

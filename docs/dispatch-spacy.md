@@ -4,7 +4,7 @@ The Dispatch translator remains rule-based and deterministic. spaCy is an
 optional local language-analysis step: it extracts verbs, noun phrases, and
 named terms so a vague raw commit can retain its useful reader-facing subject.
 It does not generate prose, call an AI, or send commit text outside the hosting
-account. If the worker is unavailable or exceeds its 1.5 second budget, PHP
+account. If the worker is unavailable or exceeds its 4 second budget, PHP
 uses the existing rule-only translation without changing auto-publication.
 
 ## cPanel setup (one time)

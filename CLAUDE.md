@@ -250,6 +250,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   The System Status Security and Scripts card performs a real model-load check
   and shows **spaCy: Connected/Disconnected**. A disconnected worker is a
   BH-4 critical alert; drafts themselves still fall back safely to PHP rules.
+  The bridge preserves the host process environment for `proc_open` and has a
+  4-second bounded model-start budget; do not pass a replacement environment
+  array on this LiteSpeed/cPanel host.
 
 - **Public Development Dispatches:** expanded entries now present the approved
   end-user translation first. If none is published, they show the notice
