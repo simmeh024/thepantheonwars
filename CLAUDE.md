@@ -166,8 +166,8 @@ also supports a deliberately manual `?full=1` historical rebuild.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=6), `js/members.js?v=N` (current: v=19)
-  and `js/notifications.js?v=N` (current: v=8), across the public pages
+  than once): `js/main.js?v=N` (current: v=6), `js/members.js?v=N` (current: v=20)
+  and `js/notifications.js?v=N` (current: v=9), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
   `js/books.js?v=N` is page-specific (current: v=3) and only needs a version
@@ -629,6 +629,12 @@ also supports a deliberately manual `?full=1` historical rebuild.
   Added a `world_available` notification type, broadcast on a world's status
   transition into `available` (never on every save), with a per-user opt-out
   preference.
+- **News publication notifications:** News Management creates public posts
+  immediately, then broadcasts a `news_published` notification only after the
+  database transaction commits. Each notification deep-links to
+  `news.html#slug`; the publishing administrator is skipped and members can
+  opt out through Profile Settings &rarr; Notification Settings (enabled by
+  default, including for existing accounts).
 - **Forum Control**: `forum_boards`/`forum_board_roles` tables replacing hardcoded
   board arrays in `community.html` and the API layer -- boards are now fully
   admin-managed (name/description/icon/visibility/order), with hidden boards scoped

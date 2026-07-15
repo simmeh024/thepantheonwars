@@ -643,12 +643,13 @@ function pw_log_admin_activity($action, $description, $user = null) {
 
 // --- Notifications -----------------------------------------------------
 // Per-user opt-out flags, one row per user in notification_preferences
-// (columns notif_like/notif_mention/notif_quote/notif_report_resolved).
-// A missing row (the common case -- most users never touch Notification
-// Settings) means "everything enabled", so this only ever needs to read,
-// never backfill, on account creation.
+// (columns notif_like/notif_mention/notif_quote/notif_report_resolved and
+// the announcement types). A missing row (the common case -- most users never
+// touch Notification Settings) means every type remains enabled, including
+// newly introduced ones, so this only ever needs to read, never backfill on
+// account creation.
 function pw_notifications_enabled($userId, $type) {
-    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved', 'world_available' => 'notif_world_available'];
+    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved', 'world_available' => 'notif_world_available', 'news_published' => 'notif_news_published'];
     if (!isset($columns[$type])) {
         return true;
     }
@@ -668,7 +669,7 @@ function pw_notifications_enabled($userId, $type) {
 // Silently no-ops if the recipient is also the actor, so liking/mentioning/
 // quoting your own content never notifies yourself, and also no-ops if the
 // recipient has turned this notification type off in Notification Settings.
-function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commentId = null, $reportId = null, $excerpt = null, $worldId = null) {
+function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commentId = null, $reportId = null, $excerpt = null, $worldId = null, $newsSlug = null) {
     if ($actorUserId !== null && (int)$actorUserId === (int)$userId) {
         return;
     }
@@ -676,8 +677,8 @@ function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commen
         return;
     }
     $stmt = pw_db()->prepare(
-        'INSERT INTO notifications (user_id, type, actor_user_id, topic_id, comment_id, report_id, world_id, excerpt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        'INSERT INTO notifications (user_id, type, actor_user_id, topic_id, comment_id, report_id, world_id, news_slug, excerpt)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $stmt->execute([
         $userId,
@@ -687,6 +688,7 @@ function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commen
         $commentId,
         $reportId,
         $worldId,
+        $newsSlug !== null ? substr($newsSlug, 0, 120) : null,
         $excerpt !== null ? substr($excerpt, 0, 200) : null,
     ]);
 }
@@ -703,6 +705,23 @@ function pw_notify_world_available($worldId) {
     );
     foreach ($stmt->fetchAll() as $row) {
         pw_notify((int)$row['id'], 'world_available', null, null, null, null, null, $worldId);
+    }
+}
+
+// Broadcasts a news-publication notice to eligible members. The article title
+// is kept as the notification excerpt so both the bell and the full history
+// can render the same stable reader-facing message, while the stored slug
+// takes the reader directly to the article on news.html.
+function pw_notify_news_published($actorUserId, $title, $slug) {
+    $db = pw_db();
+    $stmt = $db->prepare(
+        'SELECT id FROM users
+         WHERE (banned_at IS NULL OR (banned_until IS NOT NULL AND banned_until <= NOW()))
+           AND id != ?'
+    );
+    $stmt->execute([(int)$actorUserId]);
+    foreach ($stmt->fetchAll() as $row) {
+        pw_notify((int)$row['id'], 'news_published', (int)$actorUserId, null, null, null, $title, null, $slug);
     }
 }
 

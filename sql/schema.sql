@@ -501,19 +501,21 @@ CREATE TABLE IF NOT EXISTS page_view_daily_transitions (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Public-site notification system: one row per notification, covering all
--- four trigger types (like, mention, quote, report_resolved). See
+-- six trigger types (like, mention, quote, report_resolved, world_available,
+-- news_published). See
 -- api/messages/like.php, api/topics/create.php, api/comments/post.php, and
 -- api/admin/topic-reports/resolve.php for the write sites, and
 -- api/notifications/*.php for reads.
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,
-  type ENUM('like','mention','quote','report_resolved','world_available') NOT NULL,
+  type ENUM('like','mention','quote','report_resolved','world_available','news_published') NOT NULL,
   actor_user_id INT UNSIGNED NULL,
   topic_id INT UNSIGNED NULL,
   comment_id INT UNSIGNED NULL,
   report_id INT UNSIGNED NULL,
   world_id INT UNSIGNED NULL,
+  news_slug VARCHAR(120) NULL,
   excerpt VARCHAR(200) NULL,
   is_read TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -539,6 +541,7 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
   notif_quote TINYINT(1) NOT NULL DEFAULT 1,
   notif_report_resolved TINYINT(1) NOT NULL DEFAULT 1,
   notif_world_available TINYINT(1) NOT NULL DEFAULT 1,
+  notif_news_published TINYINT(1) NOT NULL DEFAULT 1,
   CONSTRAINT fk_notification_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

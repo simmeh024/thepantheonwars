@@ -35,4 +35,10 @@ pw_log_admin_activity(
     $adminUser
 );
 
+// A freshly created entry is published immediately. Notify members only after
+// its transaction has committed, so no bell can ever point at a post that
+// failed to save. The helper skips the publishing administrator and honours
+// each recipient's News Articles notification preference.
+pw_notify_news_published((int)$adminUser['id'], $data['title'], $slug);
+
 pw_json(['ok' => true, 'id' => $id, 'slug' => $slug]);

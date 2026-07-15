@@ -2,7 +2,7 @@
 /**
  * Upserts the logged-in user's notification type preferences from
  * profile.html's Notification Settings tab. Accepts {like, mention, quote,
- * report_resolved, world_available} booleans (missing keys default to
+ * report_resolved, world_available, news_published} booleans (missing keys default to
  * enabled, matching this table's own column defaults) and writes/updates a
  * single row.
  */
@@ -21,14 +21,15 @@ $mention = !empty($input['mention']) ? 1 : 0;
 $quote = !empty($input['quote']) ? 1 : 0;
 $reportResolved = !empty($input['report_resolved']) ? 1 : 0;
 $worldAvailable = !empty($input['world_available']) ? 1 : 0;
+$newsPublished = !empty($input['news_published']) ? 1 : 0;
 
 $stmt = pw_db()->prepare(
-    'INSERT INTO notification_preferences (user_id, notif_like, notif_mention, notif_quote, notif_report_resolved, notif_world_available)
-     VALUES (?, ?, ?, ?, ?, ?)
+    'INSERT INTO notification_preferences (user_id, notif_like, notif_mention, notif_quote, notif_report_resolved, notif_world_available, notif_news_published)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE notif_like = VALUES(notif_like), notif_mention = VALUES(notif_mention),
        notif_quote = VALUES(notif_quote), notif_report_resolved = VALUES(notif_report_resolved),
-       notif_world_available = VALUES(notif_world_available)'
+       notif_world_available = VALUES(notif_world_available), notif_news_published = VALUES(notif_news_published)'
 );
-$stmt->execute([$user['id'], $like, $mention, $quote, $reportResolved, $worldAvailable]);
+$stmt->execute([$user['id'], $like, $mention, $quote, $reportResolved, $worldAvailable, $newsPublished]);
 
 pw_json(['ok' => true]);
