@@ -22,9 +22,10 @@ commit-body copy is exposed in the public draft.
 Confidence is evidence-based and explainable. Recognized subject, commit
 intent, body context, changed-file scope, and semantic context contribute to a
 score; vector context is capped at a small supporting weight and can never make
-an unsupported draft high confidence on its own. High confidence still requires
-multiple independent signals, preserving the existing auto-publication safety
-gate.
+an unsupported draft high confidence on its own. Vector domains resolve only a
+genuinely unclassified commit and never replace an explicit local domain cue.
+High confidence still requires multiple independent signals, preserving the
+existing auto-publication safety gate.
 
 ## cPanel setup (one time)
 

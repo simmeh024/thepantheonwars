@@ -251,7 +251,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   an explainable evidence score (recognized subject, intent, body context,
   path scope, semantic support), with semantic support capped at 5%; it cannot
   make an unsupported draft high confidence or bypass the multi-signal
-  auto-publication gate. spaCy is an optional, entirely local enhancement: `tools/dispatch-nlp.py`
+  auto-publication gate. Vector domains may resolve only an otherwise general
+  record—they must never override an explicit local cue such as a named world,
+  map, member feature, or security term. spaCy is an optional, entirely local enhancement: `tools/dispatch-nlp.py`
   extracts verbs, noun phrases, named terms, and (with `en_core_web_md`)
   conservative vector-based domain hints for vague commits, but never
   writes prose, calls an external service, or changes confidence/auto-publish

@@ -45,7 +45,7 @@ function pw_dispatch_draft_domain(string $text, string $tag, array $diffContext)
 
 function pw_dispatch_draft_action_mode(string $clean): string
 {
-    if (preg_match('/^(?:add|create|introduce|include|enable|allow|expose|support)\b/i', $clean)) {
+    if (preg_match('/^(?:add|create|introduce|include|enable|allow|expose|support|unlock)\b/i', $clean)) {
         return 'addition';
     }
     if (preg_match('/^(?:fix|resolve|repair|restore|prevent|secure|protect|harden|correct)\b/i', $clean)) {
@@ -77,7 +77,10 @@ function pw_dispatch_draft_plan(string $text, string $tag, array $diffContext, a
     $extensions = is_array($diffContext['extensions'] ?? null) ? array_values(array_filter($diffContext['extensions'], 'is_string')) : [];
     $domain = pw_dispatch_draft_domain($text, $tag, $diffContext);
     $semanticDomain = pw_dispatch_spacy_semantic_domain($spacyAnalysis);
-    if ($semanticDomain !== '' && ($domain === 'general' || in_array($tag, ['infrastructure', 'refactor'], true))) {
+    // Vectors may resolve only a genuinely unclassified commit. A clear local
+    // domain match (for example, a named world or map) must never be replaced
+    // merely because the broad Git tag says "refactor" or "infrastructure".
+    if ($semanticDomain !== '' && $domain === 'general') {
         $domain = $semanticDomain;
     }
 
@@ -134,6 +137,10 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         $evidence['recognized_subject'] = true;
         $clean = $scopeMatches[1];
     }
+    // Keep the original action before a reader-safe replacement turns a long
+    // technical title into a concise noun phrase (for example, "Unlock…" to
+    // a named world and map). The plan still needs the real commit intent.
+    $intentSource = $clean;
 
     // These are editorial substitutions, not opaque technical word removal.
     // They retain the commit's meaning while speaking in the language readers
@@ -526,7 +533,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // The title still supplies the object, while the domain determines the
     // reader-facing intent: security work reads differently from community,
     // database, content, interface, or performance work.
-    $plan = pw_dispatch_draft_plan($contextSource . ' ' . $clean . ' ' . $bodyContext, $tag, $diffContext, $spacyAnalysis, $clean);
+    $plan = pw_dispatch_draft_plan($contextSource . ' ' . $clean . ' ' . $bodyContext, $tag, $diffContext, $spacyAnalysis, $intentSource);
     $domain = $plan['domain'];
     $mode = $plan['intent'];
     $evidence['path_scope'] = $plan['has_path_scope'];
@@ -584,7 +591,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
             'refinement' => ['BH-4 has made the community experience around %s easier to follow.', 'BH-4 has refined how members move through %s.'],
         ],
         'content' => [
-            'addition' => ['BH-4 has expanded the reader-facing record for %s.', 'BH-4 has added new reader context around %s.'],
+            'addition' => ['BH-4 has made %s available for readers to explore.', 'BH-4 has opened a new reader route into %s.'],
             'correction' => ['BH-4 has corrected the reader-facing record for %s.', 'BH-4 has restored clearer context around %s.'],
             'refinement' => ['BH-4 has refined the reader-facing presentation of %s.', 'BH-4 has made the record around %s easier to explore.'],
         ],
