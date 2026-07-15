@@ -225,7 +225,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   empty icon slot. Existing queued drafts are deliberately not bulk-published;
   regenerate one to apply this rule.
 
-- **Dispatch Draft Translator (v14 + optional spaCy):** the deterministic formatter recognizes
+- **Dispatch Draft Translator (v15 + optional spaCy vectors):** the deterministic formatter recognizes
   commit domains (security, database, performance, community, content,
   interface, and operations) and uses domain-specific BH-4 templates rather
   than one generic sentence shape. It also uses optional safe diff metadata:
@@ -237,11 +237,12 @@ also supports a deliberately manual `?full=1` historical rebuild.
   25. Draft creation checks the 20 latest
   published translations and deterministically chooses another phrasing when
   a candidate sentence is already present. The draft-format hash is
-  `dispatch-draft-v14`, so regeneration refreshes unapproved local drafts
+  `dispatch-draft-v15`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
   spaCy is an optional, entirely local enhancement: `tools/dispatch-nlp.py`
-  extracts verbs, noun phrases, and named terms for vague commits, but never
+  extracts verbs, noun phrases, named terms, and (with `en_core_web_md`)
+  conservative vector-based domain hints for vague commits, but never
   writes prose, calls an external service, or changes confidence/auto-publish
   thresholds. PHP uses the existing deterministic templates as the source of
   truth and falls back immediately if the configured venv is unavailable.
@@ -251,7 +252,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   and shows **spaCy: Connected/Disconnected**. A disconnected worker is a
   BH-4 critical alert; drafts themselves still fall back safely to PHP rules.
   The bridge preserves the host process environment for `proc_open` and has a
-  4-second bounded model-start budget; do not pass a replacement environment
+  6-second bounded model-start budget; do not pass a replacement environment
   array on this LiteSpeed/cPanel host.
 
 - **Public Development Dispatches:** expanded entries now present the approved

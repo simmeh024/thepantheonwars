@@ -29,7 +29,7 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // the instructions in docs/dispatch-spacy.md, then point at that interpreter.
 // Keep this outside the web root because the exact venv path is host-specific.
 // define('SPACY_PYTHON_BIN', '/home/rdy3i6my40b0/virtualenv/dispatch-nlp/3.11/bin/python');
-// define('SPACY_MODEL', 'en_core_web_sm');
+// define('SPACY_MODEL', 'en_core_web_md');
 
 // Optional. Raises the GitHub REST API rate limit used by the System
 // Status card/page and the language-snapshot sync from 60 requests/hour

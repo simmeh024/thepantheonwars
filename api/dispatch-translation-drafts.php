@@ -346,7 +346,9 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     foreach ($contextLibrary as $pattern => $options) {
         if (preg_match($pattern, $contextSource . ' ' . $clean . ' ' . $bodyContext)) {
             $rulesMatched++;
-            $benefit .= ' ' . $pickVariant($options, 'context');
+            // Context still strengthens confidence, but a second generic
+            // benefit sentence often repeated the title without adding a
+            // reader-facing fact. Keep the published copy concise instead.
             break;
         }
     }
@@ -478,7 +480,45 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // reader-facing intent: security work reads differently from community,
     // database, content, interface, or performance work.
     $domain = pw_dispatch_draft_domain($contextSource . ' ' . $clean . ' ' . $bodyContext, $tag, $diffContext);
+    $semanticDomain = pw_dispatch_spacy_semantic_domain($spacyAnalysis);
+    // Vectors only break a tie for broad maintenance/refactor commits, where
+    // a file or incidental word can otherwise send a generic update into the
+    // wrong reader-facing domain. Specific PHP rules remain authoritative.
+    if ($semanticDomain !== '' && ($domain === 'general' || in_array($tag, ['infrastructure', 'refactor'], true))) {
+        $domain = $semanticDomain;
+    }
     $mode = pw_dispatch_draft_action_mode($clean);
+    $naturalOverrideApplied = false;
+    $naturalOverrides = [
+        '/\b(?:spaCy|spacy)\s+(?:worker|translation).*\b(?:launch|start|hosting|shared host)\b/i' => [
+            'draft' => [
+                'BH-4 improved how the Dispatch translation worker starts on the shared host.',
+                'BH-4 restored the local start-up path for the Dispatch translation worker.',
+            ],
+            'benefit' => [
+                'It can now load the language tools it needs before preparing reader-facing summaries.',
+                'This keeps the translation service ready when new development records arrive.',
+            ],
+        ],
+        '/\b(?:proc_open|virtualenv|Python environment|language model)\b/i' => [
+            'draft' => [
+                'BH-4 repaired a supporting path used by the local Dispatch translation service.',
+                'BH-4 restored the local runtime that prepares Dispatch translation drafts.',
+            ],
+            'benefit' => [
+                'Reader-facing summaries can continue to receive their intended language enrichment.',
+                'The translation service is again ready to support incoming development records.',
+            ],
+        ],
+    ];
+    foreach ($naturalOverrides as $pattern => $copy) {
+        if (preg_match($pattern, $contextSource . ' ' . $clean . ' ' . $bodyContext)) {
+            $draft = $pickVariant($copy['draft'], 'natural-override');
+            $benefit = $pickVariant($copy['benefit'], 'natural-benefit');
+            $naturalOverrideApplied = true;
+            break;
+        }
+    }
     $domainTemplates = [
         'security' => [
             'addition' => ['BH-4 has added an extra safeguard for %s.', 'BH-4 has extended protection around %s.'],
@@ -516,7 +556,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
             'refinement' => ['BH-4 has clarified the operational support for %s.', 'BH-4 has strengthened the routine systems behind %s.'],
         ],
     ];
-    if (isset($domainTemplates[$domain][$mode])) {
+    if (!$naturalOverrideApplied && isset($domainTemplates[$domain][$mode])) {
         $draft = sprintf($pickVariant($domainTemplates[$domain][$mode], 'domain-' . $domain . '-' . $mode), rtrim($object, '.'));
     }
 
@@ -609,7 +649,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v14\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v15\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array

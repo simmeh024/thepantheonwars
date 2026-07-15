@@ -2,9 +2,9 @@
 
 The Dispatch translator remains rule-based and deterministic. spaCy is an
 optional local language-analysis step: it extracts verbs, noun phrases, and
-named terms so a vague raw commit can retain its useful reader-facing subject.
-It does not generate prose, call an AI, or send commit text outside the hosting
-account. If the worker is unavailable or exceeds its 4 second budget, PHP
+named terms, and vector-based domain hints so a vague raw commit can retain its
+useful reader-facing subject. It does not generate prose, call an AI, or send commit text outside the hosting
+account. If the worker is unavailable or exceeds its 6 second budget, PHP
 uses the existing rule-only translation without changing auto-publication.
 
 ## cPanel setup (one time)
@@ -23,10 +23,11 @@ uses the existing rule-only translation without changing auto-publication.
 
    ```php
    define('SPACY_PYTHON_BIN', '/home/rdy3i6my40b0/virtualenv/dispatch-nlp/3.11/bin/python');
-   define('SPACY_MODEL', 'en_core_web_sm');
+   define('SPACY_MODEL', 'en_core_web_md');
    ```
 
-4. Regenerate one medium or low-confidence Dispatch draft. It should retain
-   reader-facing named terms more naturally. If the constants are removed or
+4. Regenerate one medium or low-confidence Dispatch draft. The medium model is
+   larger than `sm`, but gives the local worker word vectors for semantic
+   domain matching. If the constants are removed or
    the virtual environment is unavailable, the site safely returns to the
    original formatter without an error or a changed publication decision.

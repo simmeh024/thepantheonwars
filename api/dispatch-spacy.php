@@ -26,6 +26,22 @@ function pw_dispatch_spacy_reader_object(array $analysis): string
     return '';
 }
 
+function pw_dispatch_spacy_semantic_domain(array $analysis): string
+{
+    $allowed = ['security', 'database', 'performance', 'community', 'content', 'interface', 'operations'];
+    $matches = is_array($analysis['semantic_domains'] ?? null) ? $analysis['semantic_domains'] : [];
+    foreach ($matches as $match) {
+        if (!is_array($match) || !isset($match['name'], $match['score'])) {
+            continue;
+        }
+        $name = (string)$match['name'];
+        if (in_array($name, $allowed, true) && (float)$match['score'] >= 0.58) {
+            return $name;
+        }
+    }
+    return '';
+}
+
 function pw_dispatch_spacy_analyze(string $subject, string $body): array
 {
     static $unavailable = false;
@@ -86,9 +102,9 @@ function pw_dispatch_spacy_analyze(string $subject, string $body): array
     $output = '';
     $errors = '';
     // Model startup on a shared cPanel account can take longer than a normal
-    // draft request. The worker is still bounded, but 4s avoids a false
+    // draft request. The worker is still bounded, but 6s avoids a false
     // disconnected alert while preserving a strict request-time limit.
-    $deadline = microtime(true) + 4.0;
+    $deadline = microtime(true) + 6.0;
     do {
         $output .= stream_get_contents($pipes[1]);
         $errors .= stream_get_contents($pipes[2]);
@@ -120,6 +136,7 @@ function pw_dispatch_spacy_analyze(string $subject, string $body): array
         'actions' => is_array($analysis['actions'] ?? null) ? $analysis['actions'] : [],
         'phrases' => is_array($analysis['phrases'] ?? null) ? $analysis['phrases'] : [],
         'entities' => is_array($analysis['entities'] ?? null) ? $analysis['entities'] : [],
+        'semantic_domains' => is_array($analysis['semantic_domains'] ?? null) ? $analysis['semantic_domains'] : [],
     ];
 }
 

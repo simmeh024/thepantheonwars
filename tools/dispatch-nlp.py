@@ -21,6 +21,15 @@ GENERIC_TERMS = {
     "change", "changes", "update", "updates", "work", "project", "site",
     "system", "feature", "features", "thing", "things", "way", "area",
 }
+DOMAIN_PROFILES = {
+    "security": "sign in account privacy permissions authentication protection browser security",
+    "database": "database query index migration storage data performance",
+    "performance": "speed loading cache bandwidth page response efficient delivery",
+    "community": "forum member profile notification discussion moderation community",
+    "content": "book world lore story character map reader translation dispatch",
+    "interface": "interface navigation layout card button modal image responsive accessibility",
+    "operations": "hosting deployment monitoring backup webhook cron system administration",
+}
 
 
 def clean_phrase(value: str) -> str:
@@ -47,6 +56,21 @@ def unique(values: list[str]) -> list[str]:
     return result
 
 
+def semantic_domains(doc: Any, nlp: Any) -> list[dict[str, Any]]:
+    """Return only strong vector matches; rules remain PHP's source of truth."""
+    if nlp.vocab.vectors_length == 0 or not doc.has_vector or doc.vector_norm == 0:
+        return []
+    scores: list[dict[str, Any]] = []
+    for name, profile in DOMAIN_PROFILES.items():
+        profile_doc = nlp.make_doc(profile)
+        if not profile_doc.has_vector or profile_doc.vector_norm == 0:
+            continue
+        score = float(doc.similarity(profile_doc))
+        if score >= 0.58:
+            scores.append({"name": name, "score": round(score, 3)})
+    return sorted(scores, key=lambda item: item["score"], reverse=True)[:2]
+
+
 def main() -> int:
     try:
         payload = json.loads(sys.stdin.read(MAX_INPUT_CHARS + 1))
@@ -61,7 +85,7 @@ def main() -> int:
 
         import spacy
 
-        model_name = os.environ.get("PW_SPACY_MODEL", "en_core_web_sm")
+        model_name = os.environ.get("PW_SPACY_MODEL", "en_core_web_md")
         nlp = spacy.load(model_name, disable=["textcat"])
         if health_check:
             print(json.dumps({"ok": True, "model": model_name, "health": True}))
@@ -95,6 +119,7 @@ def main() -> int:
             "actions": actions,
             "phrases": phrases,
             "entities": unique(entities + acronyms),
+            "semantic_domains": semantic_domains(doc, nlp),
         }
         print(json.dumps(result, ensure_ascii=False))
         return 0
