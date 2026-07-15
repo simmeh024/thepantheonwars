@@ -5,10 +5,16 @@
 
   var container = document.getElementById('news-posts');
   var filters = document.getElementById('news-tag-filters');
+  var monthFilter = document.getElementById('news-month-filter');
+  var yearFilter = document.getElementById('news-year-filter');
+  var dateReset = document.getElementById('news-date-reset');
   if (!container) return;
   var allPosts = [];
   var activeTag = '';
+  var activeMonth = '';
+  var activeYear = '';
   var moreTagsOpen = false;
+  var MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   function ordinal(day) {
     var remainder = day % 100;
@@ -20,10 +26,51 @@
     var date = new Date(String(value || '').replace(' ', 'T') + 'Z');
     if (isNaN(date.getTime())) return '';
     var weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     var hours = String(date.getUTCHours()).padStart(2, '0');
     var minutes = String(date.getUTCMinutes()).padStart(2, '0');
-    return hours + ':' + minutes + ' UTC - ' + weekdays[date.getUTCDay()] + ' ' + ordinal(date.getUTCDate()) + ' - ' + months[date.getUTCMonth()] + ' ' + date.getUTCFullYear();
+    return hours + ':' + minutes + ' UTC - ' + weekdays[date.getUTCDay()] + ' ' + ordinal(date.getUTCDate()) + ' - ' + MONTH_NAMES[date.getUTCMonth()] + ' ' + date.getUTCFullYear();
+  }
+
+  function publishedDate(post) {
+    var date = new Date(String(post.published_at || '').replace(' ', 'T') + 'Z');
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  function addOption(select, value, label) {
+    var option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    select.appendChild(option);
+  }
+
+  function syncDateReset() {
+    if (dateReset) dateReset.disabled = !activeMonth && !activeYear;
+  }
+
+  function populateDateFilters() {
+    if (!monthFilter || !yearFilter) return;
+    var years = {};
+    var months = {};
+    allPosts.forEach(function (post) {
+      var date = publishedDate(post);
+      if (!date) return;
+      years[date.getUTCFullYear()] = true;
+      months[date.getUTCMonth() + 1] = true;
+    });
+
+    monthFilter.textContent = '';
+    yearFilter.textContent = '';
+    addOption(monthFilter, '', 'All months');
+    addOption(yearFilter, '', 'All years');
+    Object.keys(months).map(Number).sort(function (a, b) { return a - b; }).forEach(function (month) {
+      addOption(monthFilter, String(month), MONTH_NAMES[month - 1]);
+    });
+    Object.keys(years).map(Number).sort(function (a, b) { return b - a; }).forEach(function (year) {
+      addOption(yearFilter, String(year), String(year));
+    });
+    monthFilter.value = activeMonth;
+    yearFilter.value = activeYear;
+    syncDateReset();
   }
 
   function makeParagraphs(body, article) {
@@ -153,13 +200,18 @@
 
   function renderPosts() {
     container.textContent = '';
-    var posts = activeTag ? allPosts.filter(function (post) {
-      return (post.tags || []).some(function (tag) { return tag.slug === activeTag; });
-    }) : allPosts;
+    var posts = allPosts.filter(function (post) {
+      if (activeTag && !(post.tags || []).some(function (tag) { return tag.slug === activeTag; })) return false;
+      if (!activeMonth && !activeYear) return true;
+      var date = publishedDate(post);
+      if (!date) return false;
+      if (activeMonth && String(date.getUTCMonth() + 1) !== activeMonth) return false;
+      return !activeYear || String(date.getUTCFullYear()) === activeYear;
+    });
     if (!posts.length) {
       var empty = document.createElement('p');
       empty.className = 'lore-status';
-      empty.textContent = activeTag ? 'No updates use this tag yet.' : 'No public updates have been transmitted yet.';
+      empty.textContent = activeTag || activeMonth || activeYear ? 'No updates match the selected filters yet.' : 'No public updates have been transmitted yet.';
       container.appendChild(empty);
       return;
     }
@@ -171,6 +223,7 @@
     .then(function (data) {
       if (!data.ok) throw new Error(data.error || 'News could not be loaded.');
       allPosts = data.entries || [];
+      populateDateFilters();
       renderTagFilters();
       renderPosts();
     })
@@ -181,4 +234,29 @@
       error.textContent = 'News could not be loaded right now. Please try again shortly.';
       container.appendChild(error);
     });
+
+  if (monthFilter) {
+    monthFilter.addEventListener('change', function () {
+      activeMonth = monthFilter.value;
+      syncDateReset();
+      renderPosts();
+    });
+  }
+  if (yearFilter) {
+    yearFilter.addEventListener('change', function () {
+      activeYear = yearFilter.value;
+      syncDateReset();
+      renderPosts();
+    });
+  }
+  if (dateReset) {
+    dateReset.addEventListener('click', function () {
+      activeMonth = '';
+      activeYear = '';
+      if (monthFilter) monthFilter.value = '';
+      if (yearFilter) yearFilter.value = '';
+      syncDateReset();
+      renderPosts();
+    });
+  }
 })();

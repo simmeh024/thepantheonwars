@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=188">
+<link rel="stylesheet" href="css/public.css?v=189">
 </head>
 <body>
 
@@ -111,6 +111,28 @@
             </div>
             <div class="news-public-filter-options" id="news-tag-filters"></div>
           </div>
+          <div class="news-date-filter">
+            <div class="news-date-filter-heading">
+              <span class="news-public-filter-label">Transmission archive</span>
+              <h2>Filter by month and year</h2>
+              <p>Find updates from a specific point in time.</p>
+            </div>
+            <div class="news-date-filter-controls">
+              <label class="news-date-field" for="news-month-filter">
+                <span>Month</span>
+                <select id="news-month-filter">
+                  <option value="">All months</option>
+                </select>
+              </label>
+              <label class="news-date-field" for="news-year-filter">
+                <span>Year</span>
+                <select id="news-year-filter">
+                  <option value="">All years</option>
+                </select>
+              </label>
+            </div>
+            <button type="button" class="news-date-reset" id="news-date-reset" disabled>Clear date filters</button>
+          </div>
         </aside>
       </div>
 
@@ -174,6 +196,6 @@
 
 <script src="js/main.js?v=6"></script>
 <script src="js/members.js?v=20"></script>
-<script src="js/news.js?v=4"></script>
+<script src="js/news.js?v=5"></script>
 </body>
 </html>

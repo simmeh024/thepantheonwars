@@ -314,12 +314,12 @@
 .post p { font-size: 1rem; }
 .news-layout { display: flex; align-items: flex-start; gap: 42px; }
 .news-feed { flex: 1; min-width: 0; max-width: 760px; }
-.news-sidebar { width: 286px; flex-shrink: 0; position: sticky; top: 100px; }
-.news-public-filter { padding: 19px; border: 1px solid var(--border); background: linear-gradient(145deg, rgba(124,79,214,0.12), rgba(16,10,34,0.58)); box-shadow: 0 16px 32px rgba(0,0,0,0.16); }
-.news-public-filter-heading { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-soft); }
+.news-sidebar { width: 286px; flex-shrink: 0; position: sticky; top: 100px; display: flex; flex-direction: column; gap: 14px; }
+.news-public-filter, .news-date-filter { padding: 19px; border: 1px solid var(--border); background: linear-gradient(145deg, rgba(124,79,214,0.12), rgba(16,10,34,0.58)); box-shadow: 0 16px 32px rgba(0,0,0,0.16); }
+.news-public-filter-heading, .news-date-filter-heading { padding-bottom: 14px; margin-bottom: 14px; border-bottom: 1px solid var(--border-soft); }
 .news-public-filter-label { color: var(--text-faint); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; }
-.news-public-filter h2 { margin: 5px 0 4px; font-size: 1.14rem; }
-.news-public-filter p { margin: 0; color: var(--text-dim); font-size: 0.8rem; line-height: 1.45; }
+.news-public-filter h2, .news-date-filter h2 { margin: 5px 0 4px; font-size: 1.14rem; }
+.news-public-filter p, .news-date-filter p { margin: 0; color: var(--text-dim); font-size: 0.8rem; line-height: 1.45; }
 .news-public-filter-options, .post-tags { display: flex; flex-wrap: wrap; gap: 7px; }
 .news-tag-filter { padding: 5px 9px; border: 1px solid rgba(162,121,236,0.3); border-radius: 999px; background: rgba(162,121,236,0.07); color: var(--text-dim); cursor: pointer; font: 600 0.66rem 'Jost', sans-serif; letter-spacing: 0.05em; text-transform: uppercase; transition: color 160ms ease, border-color 160ms ease, background-color 160ms ease; }
 .news-tag-filter:hover, .news-tag-filter.is-active { border-color: var(--gold); background: rgba(224,163,74,0.1); color: var(--gold-bright); }
@@ -328,10 +328,16 @@
 .news-more-tags-toggle::after { content: '⌄'; font-size: 0.9rem; transition: transform 160ms ease; }
 .news-more-tags-toggle[aria-expanded="true"]::after { transform: rotate(180deg); }
 .news-more-tags-list { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 9px; }
+.news-date-filter-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.news-date-field { display: grid; gap: 5px; color: var(--text-faint); font-size: 0.61rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
+.news-date-field select { width: 100%; min-width: 0; padding: 8px 7px; border: 1px solid rgba(162,121,236,0.32); background: rgba(10,7,21,0.68); color: var(--text); font: 500 0.76rem 'Jost', sans-serif; }
+.news-date-field select:focus-visible { border-color: var(--gold); }
+.news-date-reset { width: 100%; padding: 7px 0 0; margin-top: 9px; border: 0; border-top: 1px solid var(--border-soft); background: transparent; color: var(--purple-bright); cursor: pointer; font: 600 0.63rem 'Jost', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }
+.news-date-reset:disabled { color: var(--text-faint); cursor: default; }
 .post-tags { margin: 1.4em 0 0; padding-top: 1em; border-top: 1px solid var(--border-soft); }
 .post-tag { padding: 4px 8px; border: 1px solid rgba(80,201,191,0.35); border-radius: 999px; background: rgba(80,201,191,0.07); color: #76d8d0; font-size: 0.65rem; letter-spacing: 0.05em; text-transform: uppercase; }
 @media (max-width: 900px) { .news-layout { flex-direction: column; } .news-feed { max-width: none; width: 100%; } .news-sidebar { width: 100%; position: static; order: -1; } }
-@media (max-width: 560px) { .news-layout { gap: 28px; } .news-public-filter { padding: 16px; } }
+@media (max-width: 560px) { .news-layout { gap: 28px; } .news-public-filter, .news-date-filter { padding: 16px; } }
 
 .dispatch-intro {
   display: flex; gap: 24px; align-items: center; position: relative; overflow: hidden;
