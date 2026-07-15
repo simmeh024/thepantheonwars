@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=201">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=202">
 </head>
 <body>
 
@@ -1449,7 +1449,7 @@
     <p class="admin-modal-status" id="admin-modal-status"></p>
     <div class="admin-modal-actions">
       <button type="button" class="btn btn-solid" id="admin-save-btn">Approve &amp; Publish</button>
-      <button type="button" class="btn" id="admin-generate-draft-btn">Generate Draft</button>
+      <button type="button" class="btn" id="admin-generate-draft-btn" aria-busy="false"><span class="admin-button-label">Generate Draft</span><span class="admin-button-spinner" aria-hidden="true"></span></button>
       <button type="button" class="btn" id="admin-cancel-btn">Cancel</button>
       <button type="button" class="admin-delete-btn" id="admin-delete-btn" hidden>Delete Translation</button>
     </div>
@@ -5398,6 +5398,14 @@
     draftConfidenceEl.querySelector('.dispatch-confidence-label').textContent = displayLabel;
   }
 
+  function setGenerateDraftButton(label, isLoading) {
+    var labelEl = generateDraftBtn.querySelector('.admin-button-label');
+    if (labelEl) labelEl.textContent = label;
+    generateDraftBtn.disabled = !!isLoading;
+    generateDraftBtn.classList.toggle('is-loading', !!isLoading);
+    generateDraftBtn.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+  }
+
   function openModal(entry) {
     currentEntry = entry;
     modalTitle.textContent = entry.has_translation ? 'Edit Published Translation' : (entry.has_draft ? 'Review Rule-Based Draft' : 'Create Translation Draft');
@@ -5409,7 +5417,7 @@
     modalStatus.classList.remove('show');
     deleteBtn.hidden = !entry.has_translation;
     generateDraftBtn.hidden = entry.has_translation;
-    generateDraftBtn.textContent = entry.has_draft ? 'Regenerate Draft' : 'Generate Draft';
+    setGenerateDraftButton(entry.has_draft ? 'Regenerate Draft' : 'Generate Draft', false);
     saveBtn.textContent = entry.has_translation ? 'Save Changes' : 'Approve & Publish';
     if (entry.has_draft) {
       modalStatus.textContent = 'Rule-based draft ready. Review it before publishing.';
@@ -5512,14 +5520,17 @@
 
   generateDraftBtn.addEventListener('click', function () {
     if (!currentEntry) return;
-    generateDraftBtn.disabled = true;
+    var idleLabel = currentEntry.has_draft ? 'Regenerate Draft' : 'Generate Draft';
+    setGenerateDraftButton('Generating Draft', true);
+    modalError.classList.remove('show');
+    modalStatus.textContent = 'BH-4 is preparing a reader-friendly draft…';
+    modalStatus.classList.add('show');
     fetch('/api/admin/dispatch-translations/generate-draft.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ dispatch_id: currentEntry.id, csrf: window.PW_AUTH.csrf }),
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        generateDraftBtn.disabled = false;
         if (!data.ok) throw new Error(data.error || 'Could not generate draft.');
         textarea.value = data.translation || data.draft || '';
         currentEntry.confidence = data.confidence || currentEntry.confidence;
@@ -5529,6 +5540,7 @@
           currentEntry.has_draft = false;
           currentEntry.has_translation = true;
           modalTitle.textContent = 'Edit Published Translation';
+          setGenerateDraftButton(idleLabel, false);
           generateDraftBtn.hidden = true;
           deleteBtn.hidden = false;
           saveBtn.textContent = 'Save Changes';
@@ -5536,7 +5548,7 @@
           currentEntry.generated_draft = data.draft || '';
           currentEntry.has_draft = true;
           currentEntry.has_translation = false;
-          generateDraftBtn.textContent = 'Regenerate Draft';
+          setGenerateDraftButton('Regenerate Draft', false);
           saveBtn.textContent = 'Approve & Publish';
         }
         modalError.classList.remove('show');
@@ -5548,7 +5560,7 @@
         loadList();
       })
       .catch(function (error) {
-        generateDraftBtn.disabled = false;
+        setGenerateDraftButton(idleLabel, false);
         modalError.textContent = error.message || 'Could not generate draft.';
         modalError.classList.add('show');
       });

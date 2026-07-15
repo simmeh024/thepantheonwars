@@ -1902,6 +1902,16 @@
 .admin-pager button:disabled { opacity: 0.4; cursor: default; }
 .admin-modal-actions { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
 .admin-modal-actions .btn { padding: 11px 22px; font-size: 0.74rem; }
+.admin-modal-actions .btn:disabled { cursor: wait; opacity: 0.76; }
+#admin-generate-draft-btn { min-width: 145px; }
+#admin-generate-draft-btn.is-loading { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
+.admin-button-spinner {
+  display: none; width: 13px; height: 13px; flex: 0 0 13px; border: 2px solid rgba(244, 218, 152, 0.28);
+  border-top-color: var(--gold-bright); border-radius: 50%; animation: admin-button-spinner 0.72s linear infinite;
+}
+#admin-generate-draft-btn.is-loading .admin-button-spinner { display: inline-block; }
+@keyframes admin-button-spinner { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .admin-button-spinner { animation: none; border-right-color: var(--gold-bright); } }
 .admin-delete-btn {
   margin-left: auto; background: none; border: 1px solid #6b2e2a; color: #e05a4a;
   padding: 11px 18px; font-family: 'Jost', sans-serif; font-size: 0.74rem; text-transform: uppercase;

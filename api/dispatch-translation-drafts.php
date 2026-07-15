@@ -70,7 +70,7 @@ function pw_dispatch_draft_diff_sentence(array $diffContext): string
         return '';
     }
     $scope = $areas ? implode(' and ', array_slice($areas, 0, 2)) : ($extensions ? implode(' and ', array_slice($extensions, 0, 2)) : 'supporting site files');
-    return 'The work spans ' . $files . ($files === 1 ? ' file in ' : ' files across ') . $scope . '.';
+    return 'Total files edited: ' . $files . ' in ' . $scope . '.';
 }
 
 /**
@@ -311,10 +311,11 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         $technicalCue = preg_match('/\b(?:API|SQL|MySQL|MariaDB|database|session|cache|query|performance|security|header|cron|webhook|deployment|GitHub|font|image|asset|stylesheet)\b/i', $contextSource . ' ' . $bodyContext);
         if ($technicalCue) {
             $rulesMatched++;
+            $diffSentence = pw_dispatch_draft_diff_sentence($diffContext);
             return [
                 'draft' => 'BH-4 has completed a focused maintenance update to a supporting site service. '
-                    . pw_dispatch_draft_diff_sentence($diffContext)
-                    . ' It reduces avoidable friction behind the scenes while keeping the reader-facing experience steady.',
+                    . 'It reduces avoidable friction behind the scenes while keeping the reader-facing experience steady.'
+                    . ($diffSentence !== '' ? "\n\n" . $diffSentence : ''),
                 'confidence' => pw_dispatch_draft_confidence($rulesMatched, ['recognized_subject' => true, 'path_scope' => !empty($diffContext)]),
                 'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
             ];
@@ -762,7 +763,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     }
 
     return [
-        'draft' => $draft . ($diffSentence !== '' ? ' ' . $diffSentence : '') . ' ' . $benefit,
+        'draft' => $draft . ' ' . $benefit . ($diffSentence !== '' ? "\n\n" . $diffSentence : ''),
         'confidence' => pw_dispatch_draft_confidence($rulesMatched, $evidence),
         'plan' => $plan,
         'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
@@ -891,7 +892,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v22\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v23\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array

@@ -54,6 +54,11 @@ previously observed awkward phrase. A matched entry is also worth 10 points of
 explicit confidence evidence. It raises the score only for reviewed project
 vocabulary and does not replace the existing two-signal high-confidence gate.
 
+When a safe changed-file aggregate is available, the formatter adds it as a
+separate final paragraph: `Total files edited: N in <allow-listed scope>.`
+This keeps the main BH-4 explanation readable while retaining a concise,
+privacy-safe sense of the work's scope.
+
 ## cPanel setup (one time)
 
 1. In cPanel, open **Setup Python App** and create a Python **3.11 or 3.12**

@@ -153,7 +153,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=185, community v=188, and admin v=201. Public pages use
+  versions: public v=185, community v=188, and admin v=202. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -225,7 +225,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   empty icon slot. Existing queued drafts are deliberately not bulk-published;
   regenerate one to apply this rule.
 
-- **Dispatch Draft Translator (v22 + optional spaCy enrichment):** the deterministic formatter recognizes
+- **Dispatch Draft Translator (v23 + optional spaCy enrichment):** the deterministic formatter recognizes
   commit domains (security, database, performance, community, content,
   interface, and operations) and uses domain-specific BH-4 templates rather
   than one generic sentence shape. It also uses optional safe diff metadata:
@@ -241,7 +241,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   recent translations, and uses that score to begin with a different stable
   wording variant for near-duplicate updates. Raw prior translations never
   leave the PHP/Python process boundary. The draft-format hash is
-  `dispatch-draft-v22`, so regeneration refreshes unapproved local drafts
+  `dispatch-draft-v23`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
   Before rendering prose, PHP builds a reader-safe plan from recognized commit
@@ -286,6 +286,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   commit pattern produces jargon; do not add broad substitutions that could
   silently change unrelated records. The regression script includes a
   dictionary case as well as action-intent and world-release coverage.
+  When safe diff context is available, it is presented as a separate final
+  paragraph: `Total files edited: N in <allow-listed scope>.` It must never
+  expose raw file paths or appear in the middle of the reader-facing summary.
 
 - **Public Development Dispatches:** expanded entries now present the approved
   end-user translation first. If none is published, they show the notice

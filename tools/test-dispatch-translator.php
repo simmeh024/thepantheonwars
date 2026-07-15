@@ -36,10 +36,17 @@ $cases = [
         'evidence' => ['reader safe dictionary'],
         'forbidden' => ['record around action intent', 'made action intent'],
     ],
+    [
+        'subject' => 'Add a reader-safe development summary',
+        'body' => '',
+        'tag' => 'feature',
+        'options' => ['diff_context' => ['files_changed' => 4, 'areas' => ['site services', 'local site tooling']]],
+        'contains' => ["\n\nTotal files edited: 4 in site services and local site tooling."],
+    ],
 ];
 
 foreach ($cases as $case) {
-    $result = pw_dispatch_end_user_draft($case['subject'], $case['body'], $case['tag']);
+    $result = pw_dispatch_end_user_draft($case['subject'], $case['body'], $case['tag'], $case['options'] ?? []);
     $draft = $result['draft'];
     if (isset($case['expected']) && $draft !== $case['expected']) {
         fwrite(STDERR, "Unexpected world-release draft:\n" . $draft . "\n");
