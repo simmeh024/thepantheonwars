@@ -457,6 +457,22 @@
 .news-comment-form .btn { padding: 10px 17px; font-size: 0.68rem; }
 @media (max-width: 620px) { .news-detail-article, .news-comments-section { padding: 25px 20px; } .news-detail-article::after { font-size: 2.4rem; } .news-detail-actions { justify-content: flex-start; } .news-comment-form-foot { align-items: flex-end; flex-direction: column; } }
 
+/* Public notification controls must not depend on the Admin-only stylesheet. */
+.notif-page-toolbar { display: flex; align-items: center; gap: 12px; margin: 0 0 16px; }
+.notif-page-refresh-btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 15px; border: 1px solid var(--border); border-radius: 3px; background: var(--panel-2); color: var(--text-dim); cursor: pointer; font: 600 0.74rem 'Jost', sans-serif; letter-spacing: 0.07em; text-transform: uppercase; transition: border-color 0.2s ease, color 0.2s ease, background-color 0.2s ease; }
+.notif-page-refresh-btn svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.notif-page-refresh-btn:hover { border-color: var(--purple-bright); background: rgba(124,79,214,0.12); color: var(--gold-bright); }
+.notif-page-refresh-btn.is-spinning svg { animation: notif-page-spin 0.6s linear; }
+.notif-page-mark-all-btn { padding: 10px 17px; font-size: 0.68rem; }
+.notif-page-pagination { display: flex; justify-content: center; gap: 7px; margin-top: 18px; }
+.notif-page-pager { display: flex; align-items: center; gap: 8px; }
+.notif-page-pagination button { min-width: 34px; padding: 7px 9px; border: 1px solid var(--border); background: var(--panel); color: var(--text-dim); cursor: pointer; font: 600 0.72rem 'Jost', sans-serif; }
+.notif-page-pagination button:hover, .notif-page-pagination button.is-active { border-color: var(--gold); color: var(--gold-bright); }
+.notif-page-pagination button:disabled { opacity: 0.45; cursor: default; }
+.notif-page-pager span { color: var(--text-faint); font-size: 0.73rem; }
+@keyframes notif-page-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@media (max-width: 480px) { .notif-page-toolbar { align-items: stretch; flex-direction: column; } .notif-page-toolbar > * { justify-content: center; } }
+
 /* ---------------- Neoh: vertical city cross-section ---------------- */
 .city-cross-wrap { display: flex; gap: 40px; align-items: flex-start; }
 .city-cross-wrap .city-cross-section { flex: 1; min-width: 0; }

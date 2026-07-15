@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=191">
+<link rel="stylesheet" href="css/public.css?v=192">
 </head>
 <body>
 
@@ -158,8 +158,8 @@
           </label>
         </div>
 
-        <div class="admin-toolbar notif-page-toolbar">
-          <button type="button" class="activity-refresh-btn" id="notif-page-refresh-btn" title="Refresh" aria-label="Refresh notifications">
+        <div class="notif-page-toolbar">
+          <button type="button" class="notif-page-refresh-btn" id="notif-page-refresh-btn" title="Refresh" aria-label="Refresh notifications">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
             <span>Refresh</span>
           </button>
@@ -168,7 +168,7 @@
         <div id="notif-page-list" class="notif-page-list">
           <p class="notif-empty">Loading&hellip;</p>
         </div>
-        <div class="admin-pagination" id="notif-page-pagination"></div>
+        <div class="notif-page-pagination" id="notif-page-pagination"></div>
       </div>
 
     </div>
@@ -357,7 +357,7 @@
     paginationEl.innerHTML = '';
     if (state.totalPages <= 1) return;
     var wrap = document.createElement('div');
-    wrap.className = 'admin-pager';
+    wrap.className = 'notif-page-pager';
 
     var prev = document.createElement('button');
     prev.type = 'button';
