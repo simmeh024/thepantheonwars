@@ -153,7 +153,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=185, community v=188, and admin v=202. Public pages use
+  versions: public v=185, community v=189, and admin v=202. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -305,7 +305,17 @@ also supports a deliberately manual `?full=1` historical rebuild.
   can advance it even when the unique commit SHA is already present. Use the
   short Git SHA for a developer-facing commit identifier; do not describe a
   Developer Record number as “the Nth Dispatch.” The current page cache link is
-  `community-bundle.css?v=188`, which imports `community.css?v=177`.
+  `community-bundle.css?v=189`, which imports `community.css?v=178`.
+
+- **Admin runtime cache:** `admin_runtime_cache` is an optional, database-backed
+  shared cache for expensive but non-user-specific Admin Console diagnostics.
+  `pw_build_system_signals()` caches GitHub, spaCy, storage, and related System
+  Status probes for 60 seconds; `?fresh=1` on `home-summary.php` bypasses that
+  cache for a manual Home refresh. Dispatch translation confidence statistics
+  are cached for five minutes in the same table. Run
+  `sql/migration_admin_runtime_cache.sql` in phpMyAdmin after deployment. Cache
+  reads and writes deliberately fail open while the migration is pending, so
+  permissions and live functionality are never blocked by the optimization.
 
 - **Notification bell polish:** `js/notifications.js` is dynamically appended only
   once an authenticated session is known (through `js/members.js`). It now manages

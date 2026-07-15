@@ -1345,6 +1345,7 @@
 .dispatch-public-update-text, .dispatch-public-update-notice {
   margin: 0; color: var(--text); font-size: 0.94rem; line-height: 1.72;
 }
+.dispatch-public-update-text { white-space: pre-line; }
 .dispatch-public-update-notice { color: var(--text-dim); }
 .dispatch-public-record-link {
   display: inline-flex; align-items: center; gap: 7px; margin-top: 16px; color: var(--gold-bright);

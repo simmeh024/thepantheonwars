@@ -8,6 +8,7 @@
  * navigation. Callers may use ?fresh=1 after a manual dashboard action.
  */
 require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/runtime-cache.php';
 require_once __DIR__ . '/loc-stats-helpers.php';
 require_once __DIR__ . '/system-status/status-helpers.php';
 require_once __DIR__ . '/task-advisor-helpers.php';
@@ -150,7 +151,14 @@ $siteStats = [
     'today_dispatches' => (int)$siteRow['today_dispatches'],
     'most_active_category' => $siteRow['most_active_category'],
 ];
-$translationConfidence = pw_get_dispatch_translation_confidence_statistics($db);
+$translationConfidence = pw_admin_runtime_cache_remember(
+    $db,
+    'dispatch-translation-confidence-v24',
+    300,
+    static function () use ($db): array {
+        return pw_get_dispatch_translation_confidence_statistics($db);
+    }
+);
 
 $loginRows = $db->prepare(
     "SELECT id, created_at
@@ -173,7 +181,7 @@ $bh4Row = $db->prepare(
 $bh4Row->execute([$since]);
 $bh4Counts = $bh4Row->fetch();
 // The old page queried this once for System Status and again for the advisor.
-$systemSignals = pw_build_system_signals($db);
+$systemSignals = pw_build_system_signals($db, $forceFresh);
 $security['spacy'] = $systemSignals['spacy'];
 $systemStatus = ['ok' => false];
 if (pw_has_permission($adminUser, 'dashboards.view_system_status')) {

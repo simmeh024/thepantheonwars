@@ -642,3 +642,14 @@ CREATE TABLE IF NOT EXISTS user_sessions (
   KEY idx_user_last_active (user_id, last_active_at),
   CONSTRAINT fk_user_sessions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Short-lived, shared values for expensive Admin Console probes. These are
+-- non-user-specific status/summary payloads only; permission checks still run
+-- before the cached values are returned by their endpoints.
+CREATE TABLE IF NOT EXISTS admin_runtime_cache (
+  cache_key VARCHAR(100) NOT NULL PRIMARY KEY,
+  payload MEDIUMTEXT NOT NULL,
+  expires_at DATETIME NOT NULL,
+  updated_at DATETIME NOT NULL,
+  KEY idx_expires_at (expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

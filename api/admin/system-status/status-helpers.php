@@ -13,6 +13,7 @@
  */
 
 require_once __DIR__ . '/../../dispatch-spacy.php';
+require_once __DIR__ . '/../runtime-cache.php';
 
 // --- The System Status card signals -----------------------------------------
 // Extracted out of system-status/summary.php so api/admin/task-advisor.php can
@@ -20,7 +21,14 @@ require_once __DIR__ . '/../../dispatch-spacy.php';
 // re-implementing (and potentially drifting from) this logic. See
 // system-status/summary.php's own doc comment for what each signal means;
 // this function's body is verbatim what used to live inline there.
-function pw_build_system_signals($db) {
+function pw_build_system_signals(PDO $db, bool $forceFresh = false): array {
+    $cacheKey = 'admin-system-signals-v1';
+    if (!$forceFresh) {
+        $cached = pw_admin_runtime_cache_read($db, $cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+    }
     // --- GitHub Repository ---------------------------------------------------
     $githubStatus = 'bad';
     $githubLabel = 'Unreachable';
@@ -104,7 +112,7 @@ function pw_build_system_signals($db) {
     // state to admins because spaCy enrichment is now enabled in production.
     $spacy = pw_dispatch_spacy_status();
 
-    return [
+    $signals = [
         'github' => ['status' => $githubStatus, 'label' => $githubLabel],
         'database' => ['status' => $dbStatus, 'label' => $dbLabel],
         'db_load' => $dbLoad,
@@ -114,6 +122,11 @@ function pw_build_system_signals($db) {
         'backup' => $backup,
         'spacy' => $spacy,
     ];
+    // GitHub, avatar storage, and the real spaCy model-load probe are the
+    // expensive parts of this collection. One shared minute keeps BH-4 and
+    // System Status responsive while still surfacing a failure promptly.
+    pw_admin_runtime_cache_write($db, $cacheKey, $signals, 60);
+    return $signals;
 }
 
 // --- Small relative-time formatter ------------------------------------------------
