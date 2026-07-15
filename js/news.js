@@ -83,21 +83,74 @@
     });
   }
 
-  function createPost(post) {
+  function signalFor(post) {
+    var labels = (post.tags || []).map(function (tag) { return String(tag.label || '').toLowerCase(); }).join(' ');
+    if (labels.indexOf('soundtrack') !== -1 || labels.indexOf('music') !== -1) {
+      return { type: 'soundtrack', label: 'Audio signal' };
+    }
+    if (labels.indexOf('lore') !== -1 || labels.indexOf('world') !== -1) {
+      return { type: 'lore', label: 'Lore signal' };
+    }
+    return { type: 'standard', label: 'Stable signal' };
+  }
+
+  function createPost(post, isFeatured) {
     var article = document.createElement('article');
-    article.className = 'post';
+    article.className = 'post news-card ' + (post.author_type === 'bh4' ? 'is-bh4' : 'is-member') + (isFeatured ? ' is-featured' : '');
     article.id = post.slug;
 
+    var rail = document.createElement('aside');
+    rail.className = 'post-meta-rail';
+    rail.setAttribute('aria-label', 'Article metadata');
+
     var date = document.createElement('span');
-    date.className = 'date';
+    date.className = 'date post-rail-time';
     date.textContent = dateLabel(post.published_at);
-    article.appendChild(date);
+    rail.appendChild(date);
+
+    var author = document.createElement('span');
+    author.className = 'post-rail-author';
+    author.textContent = post.author_type === 'bh4' ? 'BH-4 relay' : 'Member transmission';
+    rail.appendChild(author);
+
+    var tagCount = document.createElement('span');
+    tagCount.className = 'post-rail-tags';
+    var count = (post.tags || []).length;
+    tagCount.textContent = count + ' tag' + (count === 1 ? '' : 's');
+    rail.appendChild(tagCount);
+    article.appendChild(rail);
+
+    var content = document.createElement('div');
+    content.className = 'post-card-content';
+
+    if (isFeatured) {
+      var featured = document.createElement('span');
+      featured.className = 'post-featured-pill';
+      featured.textContent = 'Latest transmission';
+      content.appendChild(featured);
+    }
+
+    var signalInfo = signalFor(post);
+    var signal = document.createElement('span');
+    signal.className = 'post-signal is-' + signalInfo.type;
+    signal.setAttribute('aria-label', signalInfo.label);
+    signal.title = signalInfo.label;
+    for (var barIndex = 0; barIndex < 3; barIndex++) {
+      var bar = document.createElement('i');
+      bar.setAttribute('aria-hidden', 'true');
+      signal.appendChild(bar);
+    }
+    var signalLabel = document.createElement('span');
+    signalLabel.className = 'post-signal-label';
+    signalLabel.textContent = signalInfo.label;
+    signal.appendChild(signalLabel);
+    content.appendChild(signal);
 
     var title = document.createElement('h2');
     title.textContent = post.title;
-    article.appendChild(title);
+    content.appendChild(title);
 
-    makeParagraphs(post.body, article);
+    makeParagraphs(post.body, content);
 
     if (post.tags && post.tags.length) {
       var tags = document.createElement('div');
@@ -109,7 +162,7 @@
         chip.textContent = tag.label;
         tags.appendChild(chip);
       });
-      article.appendChild(tags);
+      content.appendChild(tags);
     }
 
     var stamp = document.createElement('div');
@@ -123,7 +176,13 @@
     } else {
       stamp.textContent = 'Published by ' + (post.author_display_name || 'The Pantheon Wars Editorial');
     }
-    article.appendChild(stamp);
+    content.appendChild(stamp);
+
+    var readCue = document.createElement('span');
+    readCue.className = 'post-read-cue';
+    readCue.setAttribute('aria-hidden', 'true');
+    readCue.textContent = 'Read transmission →';
+    content.appendChild(readCue);
 
     var share = document.createElement('div');
     share.className = 'post-share';
@@ -134,8 +193,29 @@
     link.textContent = 'Share on Reddit ↗';
     link.href = 'https://www.reddit.com/submit?url=' + encodeURIComponent(window.location.origin + window.location.pathname + '#' + post.slug) + '&title=' + encodeURIComponent(post.title);
     share.appendChild(link);
-    article.appendChild(share);
+    content.appendChild(share);
+    article.appendChild(content);
     return article;
+  }
+
+  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var cardObserver = null;
+
+  function prepareCardReveals(cards) {
+    if (cardObserver) cardObserver.disconnect();
+    if (reducedMotion || !('IntersectionObserver' in window)) return;
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-revealed');
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.08 });
+    cardObserver = observer;
+    cards.forEach(function (card) {
+      card.classList.add('is-animated');
+      observer.observe(card);
+    });
   }
 
   function renderTagFilters() {
@@ -215,7 +295,11 @@
       container.appendChild(empty);
       return;
     }
-    posts.forEach(function (post) { container.appendChild(createPost(post)); });
+    var cards = posts.map(function (post, index) {
+      return createPost(post, index === 0);
+    });
+    cards.forEach(function (card) { container.appendChild(card); });
+    prepareCardReveals(cards);
   }
 
   fetch('/api/news/list.php', { credentials: 'same-origin' })
