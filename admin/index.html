@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=202">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=203">
 </head>
 <body>
 
@@ -1231,6 +1231,16 @@
         <span class="admin-count" id="admin-count"></span>
       </div>
 
+      <div class="dispatch-translation-columns">
+        <span>Commit title</span>
+        <span>Status</span>
+        <span class="dispatch-translation-confidence-heading">Confidence score
+          <span class="confidence-rules-help">
+            <button type="button" class="confidence-rules-help-btn" aria-label="How translation confidence is calculated" aria-describedby="dispatch-confidence-rules">?</button>
+            <span class="confidence-rules-tooltip" id="dispatch-confidence-rules" role="tooltip">Confidence is explainable evidence, not a writing-quality grade: recognised subject (25), reviewed dictionary (10), commit intent (30), body context (10), safe changed-file scope (20), and optional local semantic support (5). High confidence needs at least 65% and two independent signals; two independent formatter rules can establish the 65% floor. A RapidFuzz concept match always requires editorial review.</span>
+          </span>
+        </span>
+      </div>
       <div class="admin-list" id="admin-list">
         <div class="admin-list-empty">Loading dispatches&hellip;</div>
       </div>
@@ -4740,7 +4750,7 @@
     }
     entries.forEach(function (entry) {
       var row = document.createElement('div');
-      row.className = 'admin-row';
+      row.className = 'admin-row dispatch-translation-row';
       var tag = entry.is_member
         ? '<span class="vstats-visit-tag vstats-visit-tag-member">' + escapeHtml(entry.member_name || 'Member') + '</span>'
         : entry.is_crawler
@@ -5363,6 +5373,8 @@
           '<span class="admin-status-badge' + (entry.has_translation ? ' is-translated' : (entry.has_draft ? ' is-draft' : '')) + '">' +
             (entry.has_translation ? 'Published' : (entry.has_draft ? 'Draft ready' : 'Needs draft')) +
           '</span>' +
+        '</div>' +
+        '<div class="dispatch-translation-row-confidence">' +
           confidenceMarkup(entry.confidence) +
         '</div>';
       row.addEventListener('click', function () { openModal(entry); });
