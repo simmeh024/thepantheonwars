@@ -1,0 +1,82 @@
+[
+  {
+    "id": "profile_navigation",
+    "aliases": ["profile navigation", "profile menu", "signed in profile navigation", "account navigation"],
+    "reader_object": "the profile menu for signed-in members"
+  },
+  {
+    "id": "google_sign_in",
+    "aliases": ["google oauth", "google sign in", "sign in with google", "register with google"],
+    "reader_object": "the option for members to sign in with Google"
+  },
+  {
+    "id": "user_sessions",
+    "aliases": ["user sessions", "active sessions", "session management", "revoke active sessions"],
+    "reader_object": "the tools members use to review active sessions"
+  },
+  {
+    "id": "visitor_analytics",
+    "aliases": ["visitor statistics", "visitor analytics", "page view analytics", "crawler statistics"],
+    "reader_object": "visitor activity reporting"
+  },
+  {
+    "id": "dispatch_translations",
+    "aliases": ["dispatch translations", "dispatch translator", "translation drafts", "end user dispatch summaries"],
+    "reader_object": "reader-friendly Development Dispatch summaries"
+  },
+  {
+    "id": "translation_confidence",
+    "aliases": ["translation confidence", "confidence statistics", "dispatch confidence", "draft confidence"],
+    "reader_object": "the confidence checks behind Development Dispatch summaries"
+  },
+  {
+    "id": "admin_system_status",
+    "aliases": ["system status", "security and scripts", "admin system status", "system health card"],
+    "reader_object": "the System Status overview in the Admin Console"
+  },
+  {
+    "id": "audit_log",
+    "aliases": ["audit log", "recent admin activity", "activity log", "admin activity"],
+    "reader_object": "the Admin Console activity record"
+  },
+  {
+    "id": "privacy_requests",
+    "aliases": ["privacy requests", "privacy request queue", "gdpr requests", "data privacy requests"],
+    "reader_object": "the privacy-request process for members"
+  },
+  {
+    "id": "backup_monitoring",
+    "aliases": ["backup monitoring", "backup review", "backup warning", "last backup"],
+    "reader_object": "the backup review process"
+  },
+  {
+    "id": "security_headers",
+    "aliases": ["security headers", "content security policy", "csp headers", "http security headers"],
+    "reader_object": "browser protections for the site"
+  },
+  {
+    "id": "community_navigation",
+    "aliases": ["community navigation", "forum navigation", "nexus veil navigation", "community menu"],
+    "reader_object": "ways for members to explore the community"
+  },
+  {
+    "id": "notifications",
+    "aliases": ["notification bell", "notification menu", "notifications navigation", "notification panel"],
+    "reader_object": "the member notification experience"
+  },
+  {
+    "id": "admin_sidebar",
+    "aliases": ["admin sidebar", "admin navigation sidebar", "admin menu", "sidebar categories"],
+    "reader_object": "navigation in the Admin Console"
+  },
+  {
+    "id": "page_performance",
+    "aliases": ["page performance", "core web vitals", "lcp improvement", "lazy image loading"],
+    "reader_object": "page loading performance for visitors"
+  },
+  {
+    "id": "runtime_cache",
+    "aliases": ["runtime cache", "admin runtime cache", "dashboard cache", "system signal cache"],
+    "reader_object": "the faster delivery of Admin Console status information"
+  }
+]

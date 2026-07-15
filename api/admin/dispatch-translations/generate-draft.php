@@ -32,6 +32,7 @@ if (!empty($result['auto_published'])) {
         'auto_published' => true,
         'translation' => $result['translation'],
         'confidence' => $result['confidence'],
+        'requires_editor_review' => false,
     ]);
 }
 
@@ -53,4 +54,5 @@ pw_json([
     'updated_at' => $draft['updated_at'],
     'confidence' => $result['confidence'],
     'auto_published' => false,
+    'requires_editor_review' => !empty($result['requires_editor_review']),
 ]);

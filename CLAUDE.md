@@ -225,7 +225,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   empty icon slot. Existing queued drafts are deliberately not bulk-published;
   regenerate one to apply this rule.
 
-- **Dispatch Draft Translator (v24 + optional spaCy enrichment):** the deterministic formatter recognizes
+- **Dispatch Draft Translator (v25 + optional local language enrichment):** the deterministic formatter recognizes
   commit domains (security, database, performance, community, content,
   interface, and operations) and uses domain-specific BH-4 templates rather
   than one generic sentence shape. It also uses optional safe diff metadata:
@@ -236,12 +236,12 @@ also supports a deliberately manual `?full=1` historical rebuild.
   it only for newly inserted commits and caps those supplemental lookups at
   25. Draft creation checks the 20 latest
   published translations and deterministically chooses another phrasing when
-  a candidate sentence is already present. With the local medium spaCy model,
-  it also receives only the closest vector-similarity score across at most eight
-  recent translations, and uses that score to begin with a different stable
-  wording variant for near-duplicate updates. Raw prior translations never
+  a candidate sentence is already present. When a vector-enabled spaCy model is
+  configured, it also receives only the closest vector-similarity score across
+  at most eight recent translations, and uses that score to begin with a
+  different stable wording variant for near-duplicate updates. Raw prior translations never
   leave the PHP/Python process boundary. The draft-format hash is
-  `dispatch-draft-v24`, so regeneration refreshes unapproved local drafts
+  `dispatch-draft-v25`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
   Before rendering prose, PHP builds a reader-safe plan from recognized commit
@@ -262,7 +262,13 @@ also supports a deliberately manual `?full=1` historical rebuild.
   engine-wide invariant: when a reader-safe replacement turns an action-led
   source title into a noun phrase, the formatter retains the original action
   but uses the safer phrase as its object. `tools/test-dispatch-translator.php`
-  is a database-free PHP CLI regression check for this behavior. spaCy is an optional, entirely local enhancement: `tools/dispatch-nlp.py`
+  is a database-free PHP CLI regression check for this behavior. spaCy and
+  RapidFuzz are optional, entirely local enhancements in `tools/dispatch-nlp.py`.
+  RapidFuzz checks only the current commit against the reviewed aliases in
+  `tools/dispatch-fuzzy-concepts.json` and returns a concept id/score to PHP.
+  PHP validates that id and owns all reader-facing wording. A strong fuzzy
+  match can rescue a private draft from a minor wording variation or typo, but
+  it always sets `requires_editor_review` and can never auto-publish by itself.
   extracts verbs, noun phrases, named terms, and (with `en_core_web_md`)
   conservative vector-based domain hints for vague commits, but never
   writes prose, calls an external service, or changes confidence/auto-publish

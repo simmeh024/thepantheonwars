@@ -6,6 +6,7 @@
  * for an editor to approve or edit.
  */
 require_once __DIR__ . '/dispatch-diff-context.php';
+require_once __DIR__ . '/dispatch-fuzzy-concepts.php';
 require_once __DIR__ . '/dispatch-spacy.php';
 
 function pw_dispatch_draft_phrase_is_recent(string $candidate, array $recentTranslations): bool
@@ -103,8 +104,13 @@ function pw_dispatch_draft_plan(string $text, string $tag, array $diffContext, a
 
 function pw_dispatch_draft_nearest_similarity(array $spacyAnalysis): float
 {
-    $similarity = isset($spacyAnalysis['nearest_similarity']) ? (float)$spacyAnalysis['nearest_similarity'] : 0.0;
-    return $similarity >= 0.0 && $similarity <= 1.0 ? $similarity : 0.0;
+    $semanticSimilarity = isset($spacyAnalysis['nearest_similarity']) ? (float)$spacyAnalysis['nearest_similarity'] : 0.0;
+    $semanticSimilarity = $semanticSimilarity >= 0.0 && $semanticSimilarity <= 1.0 ? $semanticSimilarity : 0.0;
+    $fuzzySimilarity = isset($spacyAnalysis['nearest_fuzzy_similarity']) ? (float)$spacyAnalysis['nearest_fuzzy_similarity'] : 0.0;
+    $fuzzySimilarity = $fuzzySimilarity >= 0.0 && $fuzzySimilarity <= 100.0 ? ($fuzzySimilarity / 100) : 0.0;
+    // Both values only select another already-approved wording variant; they
+    // are never confidence evidence and never alter publication eligibility.
+    return max($semanticSimilarity, $fuzzySimilarity);
 }
 
 function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, array $options = []): array
@@ -128,11 +134,13 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     $evidence = [
         'recognized_subject' => false,
         'reader_safe_dictionary' => false,
+        'reviewed_fuzzy_concept' => false,
         'commit_intent' => false,
         'body_context' => false,
         'path_scope' => false,
         'semantic_context' => false,
     ];
+    $fuzzyConceptUsed = false;
 
     // Many legacy commits use a human-readable area before the description,
     // such as "Admin Home: add…" or "Language history: 24h refresh…".
@@ -343,6 +351,18 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
             break;
         }
     }
+    // A very close alias match can rescue a minor typo or a differently
+    // ordered version of a reviewed project concept. The output remains a
+    // PHP-owned, allow-listed phrase. Unlike an exact dictionary rule, this
+    // result always requires an editor before publication.
+    $fuzzyConcept = pw_dispatch_fuzzy_concept_from_analysis($spacyAnalysis);
+    if (!$evidence['reader_safe_dictionary'] && $fuzzyConcept !== null) {
+        $rulesMatched++;
+        $evidence['recognized_subject'] = true;
+        $evidence['reviewed_fuzzy_concept'] = true;
+        $clean = $fuzzyConcept['reader_object'];
+        $fuzzyConceptUsed = true;
+    }
     $clean = preg_replace('/\s+/', ' ', trim($clean));
     $clean = trim($clean, " .:-");
 
@@ -365,12 +385,14 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
                     . ($diffSentence !== '' ? "\n\n" . $diffSentence : ''),
                 'confidence' => pw_dispatch_draft_confidence($rulesMatched, ['recognized_subject' => true, 'path_scope' => !empty($diffContext)]),
                 'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
+                'requires_editor_review' => false,
             ];
         }
         return [
             'draft' => 'This update contains internal maintenance and reliability improvements. It helps keep the site stable and ready for future changes.',
             'confidence' => pw_dispatch_draft_confidence(0),
             'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
+            'requires_editor_review' => false,
         ];
     }
 
@@ -814,6 +836,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         'confidence' => pw_dispatch_draft_confidence($rulesMatched, $evidence),
         'plan' => $plan,
         'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
+        'requires_editor_review' => $fuzzyConceptUsed,
     ];
 }
 
@@ -853,6 +876,11 @@ function pw_dispatch_draft_confidence(int $rulesMatched, array $evidence = []): 
         $matchedEvidence[] = 'recognized formatter rule';
     }
     $independentSignals = count($matchedEvidence);
+    if (!empty($evidence['reviewed_fuzzy_concept'])) {
+        // This remains visible to the reviewer, but must not be counted as an
+        // independent signal for high-confidence automatic publication.
+        $matchedEvidence[] = 'reviewed fuzzy concept match';
+    }
     $level = $score >= 65 && ($independentSignals >= 2 || $rulesMatched >= 2) ? 'high' : ($score >= 30 ? 'medium' : 'low');
     $labels = [
         'high' => 'High confidence',
@@ -939,7 +967,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v24\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v25\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array
@@ -962,7 +990,9 @@ function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string
         'recent_translations' => $recentTranslations,
         // The caller already loaded this Dispatch. Passing its text here avoids
         // introducing an extra database query just for optional NLP analysis.
-        'spacy_analysis' => ($subject !== '' || $body !== '') ? pw_dispatch_spacy_analyze($subject, $body, $recentTranslations) : [],
+        'spacy_analysis' => ($subject !== '' || $body !== '')
+            ? pw_dispatch_spacy_analyze($subject, $body, $recentTranslations, pw_dispatch_fuzzy_worker_concepts())
+            : [],
     ];
 }
 
@@ -1005,7 +1035,7 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
         $entry['tag'],
         $draftOptions
     );
-    if ($result['confidence']['level'] === 'high') {
+    if ($result['confidence']['level'] === 'high' && empty($result['requires_editor_review'])) {
         // INSERT IGNORE deliberately avoids replacing an editor's approval if
         // one is written concurrently between the check above and this insert.
         $publishStmt = $db->prepare(

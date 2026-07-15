@@ -51,6 +51,15 @@ $cases = [
         'evidence' => ['reader safe dictionary'],
         'level' => 'high',
     ],
+    [
+        'subject' => 'Polish the signed in profil navigation',
+        'body' => '',
+        'tag' => 'ui_ux',
+        'options' => ['spacy_analysis' => ['fuzzy_concept' => ['id' => 'profile_navigation', 'score' => 96]]],
+        'contains' => ['profile menu for signed-in members'],
+        'evidence' => ['reviewed fuzzy concept match'],
+        'requires_editor_review' => true,
+    ],
 ];
 
 foreach ($cases as $case) {
@@ -80,6 +89,11 @@ foreach ($cases as $case) {
     }
     if (isset($case['level']) && ($result['confidence']['level'] ?? '') !== $case['level']) {
         fwrite(STDERR, "Unexpected confidence level: " . ($result['confidence']['level'] ?? 'missing') . "\n");
+        exit(1);
+    }
+    if (isset($case['requires_editor_review'])
+        && (bool)($result['requires_editor_review'] ?? false) !== $case['requires_editor_review']) {
+        fwrite(STDERR, "Unexpected fuzzy-match review requirement.\n");
         exit(1);
     }
 }

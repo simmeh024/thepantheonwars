@@ -1,5 +1,6 @@
-# Keep the NLP worker deterministic and local to the hosting account.
+# Keep local language analysis deterministic and private to the hosting account.
 # en_core_web_md adds English word vectors to the parser/tagger/entity data.
 # It remains local and deterministic; vectors only support semantic matching.
 spacy>=3.8.0,<3.9.0
+rapidfuzz>=3.14.0,<4.0.0
 https://github.com/explosion/spacy-models/releases/download/en_core_web_md-3.8.0/en_core_web_md-3.8.0-py3-none-any.whl

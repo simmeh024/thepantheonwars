@@ -42,7 +42,7 @@ function pw_dispatch_spacy_semantic_domain(array $analysis): string
     return '';
 }
 
-function pw_dispatch_spacy_analyze(string $subject, string $body, array $recentTranslations = []): array
+function pw_dispatch_spacy_analyze(string $subject, string $body, array $recentTranslations = [], array $reviewedConcepts = []): array
 {
     static $unavailable = false;
     if ($unavailable || !function_exists('proc_open') || !defined('SPACY_PYTHON_BIN')) {
@@ -72,6 +72,10 @@ function pw_dispatch_spacy_analyze(string $subject, string $body, array $recentT
                 // The worker returns only a similarity score, never the recent
                 // text. This makes repetition avoidance local and private.
                 'recent_translations' => $recentTranslations,
+                // RapidFuzz receives only reviewed concept identifiers and
+                // aliases. It reports an id/score; PHP remains the sole owner
+                // of the reader-safe wording attached to that concept.
+                'reviewed_concepts' => array_slice($reviewedConcepts, 0, 80),
             ],
         JSON_UNESCAPED_UNICODE
     );
@@ -145,6 +149,8 @@ function pw_dispatch_spacy_analyze(string $subject, string $body, array $recentT
         'entities' => is_array($analysis['entities'] ?? null) ? $analysis['entities'] : [],
         'semantic_domains' => is_array($analysis['semantic_domains'] ?? null) ? $analysis['semantic_domains'] : [],
         'nearest_similarity' => isset($analysis['nearest_similarity']) ? (float)$analysis['nearest_similarity'] : 0.0,
+        'fuzzy_concept' => is_array($analysis['fuzzy_concept'] ?? null) ? $analysis['fuzzy_concept'] : [],
+        'nearest_fuzzy_similarity' => isset($analysis['nearest_fuzzy_similarity']) ? (float)$analysis['nearest_fuzzy_similarity'] : 0.0,
     ];
 }
 

@@ -24,7 +24,7 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // define('GOOGLE_OAUTH_CLIENT_SECRET', 'REPLACE_WITH_GOOGLE_CLIENT_SECRET');
 // define('GOOGLE_OAUTH_REDIRECT_URI', 'https://thepantheonwars.com/api/oauth/callback.php?provider=google');
 
-// Optional local spaCy enrichment for Dispatch translations. The rule-based
+// Optional local spaCy/RapidFuzz enrichment for Dispatch translations. The rule-based
 // formatter remains fully functional without it. Create the Python venv with
 // the instructions in docs/dispatch-spacy.md, then point at that interpreter.
 // Keep this outside the web root because the exact venv path is host-specific.

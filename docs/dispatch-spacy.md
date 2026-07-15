@@ -1,15 +1,21 @@
-# Optional spaCy enrichment for Dispatch drafts
+# Optional local language enrichment for Dispatch drafts
 
 The Dispatch translator remains rule-based and deterministic. spaCy is an
 optional local language-analysis step: it extracts verbs, noun phrases, and
 named terms, plus conservative vector-based domain hints so a vague raw commit
-can retain its useful reader-facing subject. For repetition avoidance it may
-compare a new commit against a maximum of eight recent approved translations,
-but returns only the strongest similarity score to PHP, never another
-translation's text. It does not generate prose, call an AI, or send commit text
-outside the hosting account. If the worker is unavailable or exceeds its 6
-second budget, PHP uses the existing rule-only translation without changing
-auto-publication.
+can retain its useful reader-facing subject. RapidFuzz is an optional local
+lexical-matching step in the same worker. It compares a commit against a small,
+reviewed concept library and detects close wording against recent approved
+translations.
+
+The worker returns only a concept id and bounded scores to PHP; it never returns
+another translation's text or writes reader-facing prose. PHP validates the
+concept id against its own allow-list before using the corresponding approved
+reader-safe object. A fuzzy concept match can shape a private draft, but it
+always requires editorial review and cannot cause auto-publication. spaCy and
+RapidFuzz do not call an AI or send commit text outside the hosting account. If
+the worker is unavailable or exceeds its 6-second budget, PHP uses the existing
+rule-only translation without changing auto-publication.
 
 ## Draft planning and confidence
 
@@ -39,6 +45,13 @@ phrases such as “made unlock…” or “fixed fix…” across the engine. Ru
 `php tools/test-dispatch-translator.php` on the server after translator changes.
 High confidence still requires multiple independent signals, preserving the
 existing auto-publication safety gate.
+
+The reviewed RapidFuzz concept library is stored in
+`tools/dispatch-fuzzy-concepts.json`. It contains ids, aliases, and PHP-owned
+reader-safe objects for narrow, recurring project concepts. Add an alias only
+when it is a genuine synonym or likely typo variation of a reviewed concept;
+do not use it as a broad keyword list. Run `php tools/test-dispatch-translator.php`
+after changing this library or the matching threshold.
 
 ## Reader-safe terminology dictionary
 

@@ -5554,7 +5554,9 @@
         modalError.classList.remove('show');
         modalStatus.textContent = data.auto_published
           ? 'High-confidence draft automatically published. You can still edit the published text here.'
-          : 'New rule-based draft generated. Review or edit it here before publishing.';
+          : (data.requires_editor_review
+            ? 'A close match to reviewed project vocabulary shaped this draft. Review it before publishing.'
+            : 'New rule-based draft generated. Review or edit it here before publishing.');
         modalStatus.classList.add('show');
         updateDraftConfidence(currentEntry.confidence);
         loadList();
