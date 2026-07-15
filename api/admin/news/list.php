@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
+require_once __DIR__ . '/news-helpers.php';
 
 pw_require_permission('news.view');
 $db = pw_db();
