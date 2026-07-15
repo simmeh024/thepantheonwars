@@ -127,6 +127,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     $rulesMatched = 0;
     $evidence = [
         'recognized_subject' => false,
+        'reader_safe_dictionary' => false,
         'commit_intent' => false,
         'body_context' => false,
         'path_scope' => false,
@@ -288,6 +289,10 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         if (preg_match($pattern, $clean)) {
             $rulesMatched++;
             $evidence['recognized_subject'] = true;
+            // A narrow, reviewed dictionary entry is separate evidence from a
+            // generic subject match: it confirms that this exact technical
+            // phrase has a stable, reader-safe meaning in this project.
+            $evidence['reader_safe_dictionary'] = true;
             $clean = preg_replace($pattern, $replacement, $clean);
         }
     }
@@ -775,6 +780,7 @@ function pw_dispatch_draft_confidence(int $rulesMatched, array $evidence = []): 
 {
     $weights = [
         'recognized_subject' => 25,
+        'reader_safe_dictionary' => 10,
         'commit_intent' => 30,
         'body_context' => 10,
         'path_scope' => 20,
@@ -885,7 +891,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v21\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v22\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array
