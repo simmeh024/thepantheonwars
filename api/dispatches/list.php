@@ -16,6 +16,7 @@ $q = isset($_GET['q']) ? trim($_GET['q']) : '';
 if (strlen($q) > 200) {
     $q = substr($q, 0, 200);
 }
+$dispatchId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 $validTags = ['feature', 'improvement', 'fix', 'performance', 'ui_ux', 'lore', 'infrastructure', 'refactor', 'experimental'];
 $tags = [];
@@ -30,6 +31,10 @@ if ($q !== '') {
     $where[] = '(d.subject LIKE :q1 OR d.body LIKE :q2)';
     $params[':q1'] = '%' . $q . '%';
     $params[':q2'] = '%' . $q . '%';
+}
+if ($dispatchId > 0) {
+    $where[] = 'd.id = :dispatch_id';
+    $params[':dispatch_id'] = $dispatchId;
 }
 if ($tags) {
     $tagPlaceholders = [];

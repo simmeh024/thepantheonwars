@@ -153,7 +153,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=184, community v=187, and admin v=198. Public pages use
+  versions: public v=184, community v=187, and admin v=199. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.

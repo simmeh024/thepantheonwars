@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=198">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=199">
 </head>
 <body>
 
@@ -4198,6 +4198,10 @@
 
     entries.forEach(function (entry) {
       var category = activityCategory(entry.action);
+      var dispatchMatch = entry.action === 'translation_auto_published' && /dispatch #(\d+)/i.exec(entry.description || '');
+      var publicDispatchLink = dispatchMatch
+        ? '<a class="activity-card-public-link" href="../dev-dispatches.html?dispatch=' + encodeURIComponent(dispatchMatch[1]) + '" target="_blank" rel="noopener">View public dispatch <span aria-hidden="true">&nearr;</span></a>'
+        : '';
       var card = document.createElement('div');
       card.className = 'activity-card activity-' + escapeHtml(entry.action) + ' activity-category-' + category.key;
       card.innerHTML =
@@ -4208,7 +4212,7 @@
             '<span class="activity-card-pill">' + category.icon + escapeHtml(category.label) + '</span></span>' +
             '<span class="activity-card-time">' + escapeHtml(fmtRelativeTime(entry.created_at)) + '</span>' +
           '</div>' +
-          '<p class="activity-card-desc">' + escapeHtml(entry.description) + '</p>' +
+          '<p class="activity-card-desc">' + escapeHtml(entry.description) + publicDispatchLink + '</p>' +
           '<div class="activity-card-meta">' +
             '<span class="activity-card-user">' + escapeHtml(entry.username) + '</span>' +
             '<span class="activity-card-ip">' + escapeHtml(entry.ip_address || (pwHasPermission('dashboards.view_ip_addresses') ? '' : 'IP hidden')) + '</span>' +

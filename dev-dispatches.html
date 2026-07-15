@@ -216,7 +216,8 @@
   var tagFilterCount = document.getElementById('dispatch-tag-filter-count');
   var tagFilterWrap = document.getElementById('dispatch-tag-filter');
 
-  var state = { page: 1, perPage: 10, totalPages: 1, total: 0, q: '', tags: [] };
+  var requestedDispatchId = parseInt(new URLSearchParams(location.search).get('dispatch'), 10);
+  var state = { page: 1, perPage: 10, totalPages: 1, total: 0, q: '', tags: [], dispatchId: requestedDispatchId > 0 ? requestedDispatchId : null };
 
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
   var TAG_ORDER = ['feature', 'improvement', 'fix', 'performance', 'ui_ux', 'lore', 'infrastructure', 'refactor', 'experimental'];
@@ -408,6 +409,7 @@
   function buildEntry(entry) {
     var row = document.createElement('div');
     row.className = 'dispatch-entry';
+    row.id = 'dispatch-' + entry.id;
 
     var bar = document.createElement('div');
     bar.className = 'dispatch-entry-bar tag-' + entry.tag;
@@ -587,6 +589,7 @@
     var params = ['page=' + state.page, 'per_page=' + perPageParam];
     if (state.q) params.push('q=' + encodeURIComponent(state.q));
     if (state.tags.length) params.push('tags=' + encodeURIComponent(state.tags.join(',')));
+    if (state.dispatchId) params.push('id=' + encodeURIComponent(state.dispatchId));
     fetch('/api/dispatches/list.php?' + params.join('&'), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
@@ -606,7 +609,17 @@
         } else {
           logEl.innerHTML = '';
           data.entries.forEach(function (entry) {
-            logEl.appendChild(buildEntry(entry));
+            var entryEl = buildEntry(entry);
+            logEl.appendChild(entryEl);
+            if (state.dispatchId === entry.id) {
+              entryEl.querySelector('.dispatch-entry-main').click();
+              setTimeout(function () {
+                entryEl.scrollIntoView({
+                  behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                  block: 'start'
+                });
+              }, 0);
+            }
           });
         }
 
