@@ -152,6 +152,12 @@ on a new table, that's a real bug to fix, not a display artifact.
 - `api/world-weather.php?slug=...` is public but only returns forecast details when
   both the World Control record is `available` and its weather profile is enabled.
   It is independent of `api/worlds.php`, preserving that endpoint's response shape.
+- **Rollout order matters:** deploy the PHP/CSS/JS first, then run
+  `sql/migration_world_weather.sql` in phpMyAdmin, then hard-refresh the admin
+  console. The World Record treats a missing or unavailable weather endpoint as
+  optional and remains usable; Weather Control itself correctly reports the missing
+  profile data until the migration has run. Never fold weather data into
+  `api/worlds.php` just to avoid this graceful, separate request.
 
 ## Server introspection notes (this specific host)
 
@@ -826,7 +832,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   renders an AccuWeather-style atmospheric sidecard with current metrics and five
   days of deterministic UTC output. Keep the public card absent for disabled or
   lore-locked profiles. Extend the same UI to other worlds only after the Neoh copy,
-  visual hierarchy, and ranges have been approved.
+  visual hierarchy, and ranges have been approved. The current Neoh profile is
+  deliberately seeded as acid rain, 19&deg;C, dense smog, with a colder smog forecast
+  on the next day; these are content defaults, not a live real-world weather feed.
 - **News publication notifications:** News Management creates public posts
   immediately, then broadcasts a `news_published` notification only after the
   database transaction commits. Each notification deep-links to
