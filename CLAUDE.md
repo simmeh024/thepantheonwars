@@ -84,6 +84,11 @@ select `config.php` -> Edit (opens cPanel's code editor in a new tab).
   pipe. Keep `MAIL_INBOUND_WEBHOOK_SECRET` only in the outside-webroot config;
   callers sign the exact JSON body in `X-PW-Mail-Signature` (`sha256=<hex>`).
   Inbound rows stay empty until such a sender is configured, which is expected.
+- System Status exposes the underlying PHP mail transport as Connected or
+  Disconnected. Delivery being deliberately off, or a missing sender identity,
+  remains a non-critical configuration state; only a missing transport is a
+  critical BH-4 alert because password recovery and transactional delivery
+  cannot be sent at all in that state.
 - Delivery is **off by default**. The Admin Console's pink-dot **Mail** category
   contains Mail Settings, Mail Templates, and Mail Log. Configure a verified
   sender there, then enable delivery deliberately. Optional `MAIL_FROM_NAME`,

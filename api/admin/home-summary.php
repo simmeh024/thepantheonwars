@@ -195,6 +195,9 @@ if (pw_has_permission($adminUser, 'dashboards.view_system_status')) {
 
 $advisorData = pw_collect_task_advisor($db, $systemSignals);
 $criticalEvents = $advisorData['critical_events'];
+$criticalSummary = (!empty($advisorData['primary']) && ($advisorData['primary']['priority'] ?? '') === 'critical')
+    ? ($advisorData['primary']['title'] ?? null)
+    : null;
 unset($advisorData['critical_events']);
 $advisor = array_merge(['ok' => true], $advisorData);
 $bh4 = [
@@ -205,6 +208,7 @@ $bh4 = [
     'translations_completed' => (int)$bh4Counts['translations_completed'],
     'admin_logins' => (int)$bh4Counts['admin_logins'],
     'critical_events' => $criticalEvents,
+    'critical_summary' => $criticalSummary,
 ];
 $locStats = pw_get_loc_stats($db);
 $loc = $locStats === null ? ['ok' => false] : array_merge(['ok' => true], $locStats);

@@ -13,6 +13,7 @@
  */
 
 require_once __DIR__ . '/../../dispatch-spacy.php';
+require_once __DIR__ . '/../../mail.php';
 require_once __DIR__ . '/../runtime-cache.php';
 
 // --- The System Status card signals -----------------------------------------
@@ -22,7 +23,7 @@ require_once __DIR__ . '/../runtime-cache.php';
 // system-status/summary.php's own doc comment for what each signal means;
 // this function's body is verbatim what used to live inline there.
 function pw_build_system_signals(PDO $db, bool $forceFresh = false): array {
-    $cacheKey = 'admin-system-signals-v1';
+    $cacheKey = 'admin-system-signals-v2';
     if (!$forceFresh) {
         $cached = pw_admin_runtime_cache_read($db, $cacheKey);
         if ($cached !== null) {
@@ -112,6 +113,11 @@ function pw_build_system_signals(PDO $db, bool $forceFresh = false): array {
     // state to admins because spaCy enrichment is now enabled in production.
     $spacy = pw_dispatch_spacy_status();
 
+    // Native PHP mail has no safe no-send health probe. The presence of its
+    // transport is therefore the connected/disconnected boundary; sender
+    // setup and the deliberate delivery switch remain non-critical states.
+    $mail = pw_check_mail_transport();
+
     $signals = [
         'github' => ['status' => $githubStatus, 'label' => $githubLabel],
         'database' => ['status' => $dbStatus, 'label' => $dbLabel],
@@ -121,12 +127,27 @@ function pw_build_system_signals(PDO $db, bool $forceFresh = false): array {
         'avatar_storage' => $avatarStorage,
         'backup' => $backup,
         'spacy' => $spacy,
+        'mail' => $mail,
     ];
     // GitHub, avatar storage, and the real spaCy model-load probe are the
     // expensive parts of this collection. One shared minute keeps BH-4 and
     // System Status responsive while still surfacing a failure promptly.
     pw_admin_runtime_cache_write($db, $cacheKey, $signals, 60);
     return $signals;
+}
+
+function pw_check_mail_transport() {
+    $settings = pw_mail_public_settings();
+    if (empty($settings['transport_available'])) {
+        return ['status' => 'bad', 'label' => 'Disconnected'];
+    }
+    if (empty($settings['enabled'])) {
+        return ['status' => 'ok', 'label' => 'Connected · delivery off'];
+    }
+    if (empty($settings['ready'])) {
+        return ['status' => 'warn', 'label' => 'Connected · setup incomplete'];
+    }
+    return ['status' => 'ok', 'label' => 'Connected'];
 }
 
 // --- Small relative-time formatter ------------------------------------------------

@@ -11,13 +11,14 @@
  * single login row we do have so the counts land near zero rather than
  * showing the account's entire history on day one.
  *
- * "Critical events" is intentionally simple for now, per spec: any admin or
- * moderator account currently sitting at 3+ failed login attempts (the same
- * counter api/login.php increments and resets -- see users.failed_login_attempts).
- * That's a live snapshot, not a time-windowed count, since the counter itself
- * resets to 0 on the next successful login.
+ * Critical events are shared with the Home summary through the task advisor:
+ * account-security alerts and critical infrastructure signals (including the
+ * Dispatch worker and transactional mail transport) use one prioritised
+ * source, so BH-4 shows the same condition everywhere in the console.
  */
 require_once __DIR__ . '/../../helpers.php';
+require_once __DIR__ . '/../system-status/status-helpers.php';
+require_once __DIR__ . '/../task-advisor-helpers.php';
 
 $user = pw_require_permission('dashboards.view_home');
 $db = pw_db();
@@ -62,10 +63,11 @@ $loginsStmt = $db->prepare(
 $loginsStmt->execute([$since]);
 $adminLogins = (int)$loginsStmt->fetch()['c'];
 
-$criticalStmt = $db->query(
-    "SELECT COUNT(*) AS c FROM users WHERE role IN ('admin','moderator') AND failed_login_attempts >= 3"
-);
-$criticalEvents = (int)$criticalStmt->fetch()['c'];
+$advisor = pw_collect_task_advisor($db, pw_build_system_signals($db));
+$criticalEvents = (int)$advisor['critical_events'];
+$criticalSummary = (!empty($advisor['primary']) && ($advisor['primary']['priority'] ?? '') === 'critical')
+    ? ($advisor['primary']['title'] ?? null)
+    : null;
 
 pw_json([
     'ok' => true,
@@ -75,4 +77,5 @@ pw_json([
     'translations_completed' => $translationsCompleted,
     'admin_logins' => $adminLogins,
     'critical_events' => $criticalEvents,
+    'critical_summary' => $criticalSummary,
 ]);

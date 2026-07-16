@@ -110,6 +110,7 @@ try {
 // --- Database Load + Size ----------------------------------------------------------
 $dbLoad = pw_check_database_load($db);
 $dbSize = pw_check_database_size($db);
+$mail = pw_check_mail_transport();
 
 // --- Database: connections, throughput, cache efficiency, table sizes -----------
 $dbExtra = pw_check_database_extra($db);
@@ -133,6 +134,7 @@ pw_json([
     'next_sync' => ['label' => $nextSyncLabel],
     'ssl' => ['status' => $ssl['status'], 'label' => $ssl['label']],
     'spacy' => $spacy,
+    'mail' => $mail,
     'db_load' => $dbLoad,
     'database_size' => $dbSize,
     'db_connections' => $dbExtra['connections'],
