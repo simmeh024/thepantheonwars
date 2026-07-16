@@ -504,23 +504,60 @@
   function drawSed(ctx, image, entry, time, strength, particles) {
     var point = entry.point;
     var surge = eventPulse(time, 5.6, 1.85, 2.2);
-    drawSoftGlow(ctx, point, [225, 46, 38], (0.13 + surge * 0.085) * strength, 1, point.r * 0.52);
-    particles.slice(0, 7).forEach(function (particle, index) {
-      var flicker = 0.72 + Math.sin(time * (2.1 + particle.speed) + particle.phase) * 0.28;
-      var baseX = point.x + (particle.x * 2 - 1) * point.r * 0.62;
-      var baseY = point.y + point.r * (0.66 + (index % 2) * 0.08);
-      var flameHeight = (13 + particle.size * 7 + surge * 7) * flicker;
-      var flameWidth = 3.5 + particle.size * 1.35;
-      ctx.fillStyle = index % 3 === 0
-        ? 'rgba(255,211,92,' + ((0.33 + surge * 0.2) * particle.alpha * strength).toFixed(3) + ')'
-        : 'rgba(255,82,37,' + ((0.38 + surge * 0.18) * particle.alpha * strength).toFixed(3) + ')';
+    var baseGlow = ctx.createRadialGradient(point.x, point.y + point.r * 0.72, 2, point.x, point.y + point.r * 0.72, point.r * 0.92);
+    baseGlow.addColorStop(0, 'rgba(255,190,72,' + ((0.32 + surge * 0.15) * strength).toFixed(3) + ')');
+    baseGlow.addColorStop(0.38, 'rgba(231,58,28,' + ((0.2 + surge * 0.1) * strength).toFixed(3) + ')');
+    baseGlow.addColorStop(1, 'rgba(111,12,10,0)');
+    ctx.fillStyle = baseGlow;
+    ctx.fillRect(point.x - point.r, point.y, point.r * 2, point.r);
+    drawSoftGlow(ctx, point, [225, 46, 38], (0.15 + surge * 0.105) * strength, 1, point.r * 0.52);
+
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.filter = 'blur(1.35px)';
+    particles.forEach(function (particle, index) {
+      var rise = wrap(particle.y + time * (0.19 + particle.speed * 0.11));
+      var life = Math.sin(rise * Math.PI);
+      var flameX = point.x + (particle.x * 2 - 1) * point.r * 0.67
+        + Math.sin(time * (2.1 + particle.speed) + particle.phase) * (2.4 + rise * 7);
+      var flameY = point.y + point.r * 0.86 - rise * point.r * 0.82;
+      var flameWidth = (8.5 + particle.size * 2.5) * (1 - rise * 0.42);
+      var flameHeight = (15 + particle.size * 4.6 + surge * 4) * (1 - rise * 0.22);
+      var flameAlpha = Math.min(0.9, (0.34 + particle.alpha * 0.27 + surge * 0.13) * strength * life);
+      var hotCore = Math.max(0, 1 - rise * 1.5);
+      ctx.save();
+      ctx.translate(flameX, flameY);
+      ctx.rotate(Math.sin(time * 1.7 + particle.phase) * 0.13);
+      ctx.scale(flameWidth, flameHeight);
+      var plume = ctx.createRadialGradient(0, 0.24, 0.02, 0, 0, 1);
+      plume.addColorStop(0, 'rgba(255,246,184,' + (flameAlpha * (0.45 + hotCore * 0.5)).toFixed(3) + ')');
+      plume.addColorStop(0.25, 'rgba(255,171,43,' + (flameAlpha * 0.92).toFixed(3) + ')');
+      plume.addColorStop(0.6, 'rgba(255,57,15,' + (flameAlpha * 0.72).toFixed(3) + ')');
+      plume.addColorStop(0.84, 'rgba(154,18,10,' + (flameAlpha * 0.28).toFixed(3) + ')');
+      plume.addColorStop(1, 'rgba(93,8,8,0)');
+      ctx.fillStyle = plume;
       ctx.beginPath();
-      ctx.moveTo(baseX - flameWidth, baseY);
-      ctx.quadraticCurveTo(baseX - flameWidth * 0.45, baseY - flameHeight * 0.55, baseX + Math.sin(time * 2.4 + particle.phase) * 3, baseY - flameHeight);
-      ctx.quadraticCurveTo(baseX + flameWidth * 0.72, baseY - flameHeight * 0.45, baseX + flameWidth, baseY);
-      ctx.closePath();
+      ctx.arc(0, 0, 1, 0, TAU);
       ctx.fill();
+      ctx.restore();
+
+      if (index % 3 !== 0 || rise > 0.48) return;
+      var coreAlpha = Math.min(0.88, flameAlpha * 1.18);
+      ctx.save();
+      ctx.translate(flameX, flameY + flameHeight * 0.22);
+      ctx.scale(flameWidth * 0.38, flameHeight * 0.62);
+      var core = ctx.createRadialGradient(0, 0.18, 0.02, 0, 0, 1);
+      core.addColorStop(0, 'rgba(255,255,229,' + coreAlpha.toFixed(3) + ')');
+      core.addColorStop(0.4, 'rgba(255,224,105,' + (coreAlpha * 0.82).toFixed(3) + ')');
+      core.addColorStop(1, 'rgba(255,108,24,0)');
+      ctx.fillStyle = core;
+      ctx.beginPath();
+      ctx.arc(0, 0, 1, 0, TAU);
+      ctx.fill();
+      ctx.restore();
     });
+    ctx.filter = 'none';
+    ctx.restore();
     particles.slice(0, 15).forEach(function (particle, index) {
       var fall = wrap(particle.y + time * (0.022 + particle.speed * 0.026));
       var ashX = point.x + (particle.x * 2 - 1) * point.r * 0.82 + Math.sin(time * 0.45 + particle.phase) * 7;
@@ -560,13 +597,13 @@
     var point = entry.point;
     var frost = eventPulse(time, 7.2, 1.5, 3.7);
     if (image && image.naturalWidth) {
-      var search = 0.5 - Math.cos(time * 0.28) * 0.5;
-      var scale = 1.008 + search * 0.052 + entry.activity * 0.012;
+      var search = 0.5 - Math.cos(time * 0.18) * 0.5;
+      var scale = 1.025 + search * 0.09 + entry.activity * 0.015;
       var sourceRadius = point.r / scale;
-      var lookX = Math.sin(time * 0.16) * point.r * 0.035;
-      var lookY = Math.cos(time * 0.13) * point.r * 0.025;
+      var lookX = Math.sin(time * 0.13) * point.r * 0.055;
+      var lookY = Math.cos(time * 0.105) * point.r * 0.038;
       ctx.save();
-      ctx.globalAlpha = 0.74;
+      ctx.globalAlpha = 0.98;
       ctx.drawImage(
         image,
         point.x - sourceRadius + lookX,
@@ -626,29 +663,21 @@
     drawSoftGlow(ctx, point, [156, 29, 44], (0.09 + alert * 0.11) * strength, 1, 0);
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
-    particles.slice(0, 7).forEach(function (particle, index) {
-      var cycle = wrap(time * (0.24 + particle.speed * 0.12) + particle.phase / TAU);
-      if (cycle > 0.16) return;
-      var flash = Math.sin((cycle / 0.16) * Math.PI);
-      var direction = index % 2 === 0 ? -0.18 : 0.24;
-      var startX = point.x - point.r * 0.72 + particle.x * point.r * 0.68;
-      var startY = point.y + (particle.y * 2 - 1) * point.r * 0.7;
-      var length = 32 + particle.size * 12;
-      var endX = startX + Math.cos(direction) * length;
-      var endY = startY + Math.sin(direction) * length;
-      var laserRgb = index % 3 === 0 ? '137,205,255' : '255,55,68';
-      ctx.strokeStyle = 'rgba(' + laserRgb + ',' + (0.72 * flash * particle.alpha * strength).toFixed(3) + ')';
-      ctx.shadowColor = 'rgba(' + laserRgb + ',0.9)';
-      ctx.shadowBlur = 7;
-      ctx.lineWidth = 0.85 + particle.size * 0.3;
-      ctx.beginPath();
-      ctx.moveTo(startX, startY);
-      ctx.lineTo(endX, endY);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(255,226,194,' + (0.62 * flash * strength).toFixed(3) + ')';
-      ctx.beginPath();
-      ctx.arc(endX, endY, 1.2 + flash * 1.8, 0, TAU);
-      ctx.fill();
+    particles.slice(0, 8).forEach(function (particle, index) {
+      var cycle = wrap(time * (0.18 + particle.speed * 0.1) + particle.phase / TAU);
+      if (cycle > 0.11) return;
+      var flash = Math.sin((cycle / 0.11) * Math.PI);
+      var flashX = point.x + (particle.x * 2 - 1) * point.r * 0.68;
+      var flashY = point.y + (particle.y * 2 - 1) * point.r * 0.68;
+      var flashRadius = 7 + particle.size * 4.5 + flash * 5;
+      var flashRgb = index % 3 === 0 ? '121,187,255' : '255,45,54';
+      var burst = ctx.createRadialGradient(flashX, flashY, 0, flashX, flashY, flashRadius);
+      burst.addColorStop(0, 'rgba(255,245,222,' + (0.92 * flash * strength).toFixed(3) + ')');
+      burst.addColorStop(0.16, 'rgba(' + flashRgb + ',' + (0.78 * flash * particle.alpha * strength).toFixed(3) + ')');
+      burst.addColorStop(0.48, 'rgba(' + flashRgb + ',' + (0.28 * flash * particle.alpha * strength).toFixed(3) + ')');
+      burst.addColorStop(1, 'rgba(' + flashRgb + ',0)');
+      ctx.fillStyle = burst;
+      ctx.fillRect(flashX - flashRadius, flashY - flashRadius, flashRadius * 2, flashRadius * 2);
     });
     ctx.restore();
     particles.slice(0, 8).forEach(function (particle) {
