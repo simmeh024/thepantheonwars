@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function () {
           '<h3 class="auth-modal-title">Welcome back</h3>' +
           '<p class="auth-modal-intro">Return to the worlds beyond the Veil.</p>' +
           '<p class="auth-error"></p>' +
+          '<p class="auth-recovery-link" hidden>Forgot your password? <a href="/password-reset.html">Reset it here.</a></p>' +
           '<div class="auth-field"><label for="login-identifier">Username or email</label><input id="login-identifier" name="identifier" type="text" autocomplete="username" required>' + fieldStateHtml() + '</div>' +
           '<div class="auth-field"><label for="login-password">Password</label>' + passwordFieldHtml('login-password', 'password', 'current-password') + fieldStateHtml() + '</div>' +
           '<div class="auth-oauth-divider"><span>or continue through Google</span></div>' +
@@ -103,6 +104,8 @@ document.addEventListener('DOMContentLoaded', function () {
       var match = f.getAttribute('data-form') === name;
       f.hidden = !match;
       f.querySelector('.auth-error').classList.remove('show');
+      var recovery = f.querySelector('.auth-recovery-link');
+      if (recovery) recovery.hidden = true;
     });
   }
 
@@ -129,6 +132,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var err = form.querySelector('.auth-error');
     err.textContent = message;
     err.classList.add('show');
+  }
+
+  function setRecoveryLink(form, visible) {
+    var recovery = form.querySelector('.auth-recovery-link');
+    if (recovery) recovery.hidden = !visible;
   }
 
   function setFieldState(input, state) {
@@ -165,6 +173,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var identifier = form.querySelector('#login-identifier').value.trim();
     var password = form.querySelector('#login-password').value;
     var submitBtn = form.querySelector('.auth-submit');
+    setRecoveryLink(form, false);
     submitBtn.disabled = true;
     ensureCsrfToken().then(function () {
       return postJson('/api/login.php', { identifier: identifier, password: password, csrf: window.PW_AUTH.csrf });
@@ -174,6 +183,10 @@ document.addEventListener('DOMContentLoaded', function () {
         refreshAuthNav();
       } else {
         showFormError(form, (r.data && r.data.error) || 'Something went wrong.');
+        // The generic 401 intentionally covers both an unknown identifier
+        // and a wrong password. Showing the recovery route in both cases
+        // avoids revealing whether an account exists.
+        setRecoveryLink(form, r.status === 401);
       }
     }).catch(function (error) {
       showFormError(form, (error && error.message) || 'Could not reach the server. Try again in a moment.');

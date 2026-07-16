@@ -75,6 +75,9 @@
 .auth-submit:disabled { opacity: 0.5; cursor: default; }
 .auth-error { color: #e05a4a; font-size: 0.85rem; margin: 0; display: none; }
 .auth-error.show { display: block; }
+.auth-recovery-link { margin: -3px 0 1px; color: var(--text-faint); font-size: 0.78rem; line-height: 1.4; }
+.auth-recovery-link a { color: var(--gold-bright); text-decoration: underline; text-underline-offset: 3px; }
+.auth-recovery-link[hidden] { display: none; }
 .auth-modal-title { font-family: 'Cinzel', serif; font-size: 1.2rem; margin: 0 0 0.55em; }
 .auth-modal-intro { margin: 0 0 0.45em; color: var(--text-faint); font-size: 0.86rem; line-height: 1.5; }
 .auth-field-hint, .auth-caps-warning { display: block; margin-top: 6px; color: var(--text-faint); font-size: 0.72rem; line-height: 1.35; }
@@ -103,6 +106,30 @@
 .auth-google-mark { display: inline-flex; align-items: center; justify-content: center; width: 25px; height: 25px; margin-right: 9px; border: 1px solid rgba(224,178,74,0.72); border-radius: 50%; background: linear-gradient(135deg, var(--purple-bright), var(--gold-dim)); color: #fff8df; font: 700 1rem/1 'Cinzel', serif; letter-spacing: -0.05em; vertical-align: -6px; }
 .auth-oauth-option { display: flex; align-items: flex-start; gap: 8px; color: var(--text-faint); font-size: 0.78rem; line-height: 1.35; cursor: pointer; }
 .auth-oauth-option input { margin: 2px 0 0; accent-color: var(--purple-bright); }
+
+/* Password recovery lives on a dedicated, noindex page rather than inside
+   the login modal. Keeping the card compact makes the security guidance and
+   one-time-link state easy to scan on desktop and mobile alike. */
+.password-reset-page { padding: 142px 0 88px; min-height: calc(100vh - 150px); }
+.password-reset-shell { max-width: 530px; margin: 0 auto; }
+.password-reset-card { position: relative; overflow: hidden; padding: 34px; background: linear-gradient(145deg, rgba(37,24,67,0.96), rgba(15,10,31,0.98)); border: 1px solid var(--border); box-shadow: var(--shadow-modal), 0 20px 46px rgba(0,0,0,0.32); }
+.password-reset-card::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 86% 0%, rgba(224,178,74,0.13), transparent 33%), radial-gradient(circle at 0% 100%, rgba(130,76,214,0.17), transparent 42%); }
+.password-reset-card > * { position: relative; z-index: 1; }
+.password-reset-kicker { display: block; margin-bottom: 11px; color: var(--gold-dim); font: 600 0.66rem/1 'Jost', sans-serif; letter-spacing: 0.17em; text-transform: uppercase; }
+.password-reset-card h1 { font-size: clamp(1.55rem, 4vw, 2.15rem); }
+.password-reset-copy { max-width: 440px; color: var(--text-dim); font-size: 0.92rem; line-height: 1.6; }
+.password-reset-form { display: grid; gap: 16px; margin-top: 24px; }
+.password-reset-form .auth-field { margin: 0; }
+.password-reset-note { margin: 2px 0 0; color: var(--text-faint); font-size: 0.75rem; line-height: 1.5; }
+.password-reset-status { margin: 18px 0 0; padding: 13px 15px; border: 1px solid rgba(62,207,142,0.42); border-left: 3px solid var(--status-success); background: rgba(62,207,142,0.08); color: #a8efd0; font-size: 0.86rem; line-height: 1.5; }
+.password-reset-error { margin: 0; color: #f08478; font-size: 0.84rem; line-height: 1.45; }
+.password-reset-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 6px; }
+.password-reset-back { color: var(--text-faint); font-size: 0.8rem; }
+.password-reset-back:hover { color: var(--gold-bright); }
+@media (max-width: 600px) {
+  .password-reset-page { padding: 112px 0 56px; }
+  .password-reset-card { padding: 27px 22px; }
+}
 
 header.site-header {
   position: fixed;

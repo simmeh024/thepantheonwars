@@ -80,7 +80,10 @@ function pw_mail_variables() {
         'year' => gmdate('Y'),
         'recipient_name' => 'Reader',
         'recipient_email' => '',
-        'reset_url' => 'https://thepantheonwars.com',
+        // Reset tokens are deliberately placed in the URL fragment by the
+        // password-reset flow. Fragments are never sent in HTTP requests, so
+        // the credential cannot end up in web-server logs or Referer headers.
+        'reset_url' => 'https://thepantheonwars.com/password-reset.html',
         'verify_url' => 'https://thepantheonwars.com',
         'ban_reason' => 'Please contact support if you believe this is a mistake.',
     ];

@@ -353,6 +353,25 @@ CREATE TABLE IF NOT EXISTS mail_templates (
   CONSTRAINT fk_mail_templates_updated_by FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Short-lived, single-use password-reset credentials. The raw 256-bit token
+-- is emailed in a URL fragment and is never stored here; token_hash is a
+-- SHA-256 hash used for lookup. Request rate-limit queries use the two
+-- composite indexes below, while one active token per user is enforced in
+-- application logic by marking the previous record used.
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  token_hash CHAR(64) NOT NULL,
+  requested_ip VARCHAR(64) NOT NULL,
+  expires_at DATETIME NOT NULL,
+  used_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_password_reset_token_hash (token_hash),
+  KEY idx_password_reset_user_active (user_id, used_at, expires_at),
+  KEY idx_password_reset_ip_created (requested_ip, created_at),
+  CONSTRAINT fk_password_reset_tokens_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS cpu_load_history (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   load1 DECIMAL(6,2) NOT NULL,

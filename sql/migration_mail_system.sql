@@ -34,7 +34,7 @@ INSERT INTO mail_templates (template_key, label, description, subject, html_body
 (
   'password_reset',
   'Password reset',
-  'Prepared for the secure password-reset flow. Never send a generated password by email.',
+  'Sent after a self-service request. The secure link is single-use, expires after 30 minutes, and never contains a password.',
   'Reset your {{site_name}} password',
   '<p>Hello {{recipient_name}},</p><p>We received a request to reset your {{site_name}} password. Use the secure link below to continue:</p><p><a href="{{reset_url}}">Reset your password</a></p><p>If you did not request this, you can safely ignore this email.</p>',
   'Hello {{recipient_name}},\n\nWe received a request to reset your {{site_name}} password.\n\nReset your password: {{reset_url}}\n\nIf you did not request this, you can safely ignore this email.',

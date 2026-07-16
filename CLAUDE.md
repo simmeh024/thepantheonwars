@@ -79,8 +79,16 @@ select `config.php` -> Edit (opens cPanel's code editor in a new tab).
   outside-webroot config (documented in `api/config.sample.php`).
 - Welcome delivery is hooked into password registration, Google registration, and
   administrator-created accounts; account-suspension delivery is hooked into new
-  bans. Never email an administrator-generated password. Password-reset and
-  verification templates are present for their future token-based flows.
+  bans. Never email an administrator-generated password.
+- Self-service password recovery is live through `password-reset.html`,
+  `api/password-reset/request.php`, and `api/password-reset/reset.php`. It always
+  returns the same confirmation for every email address, stores only a SHA-256
+  hash of a 256-bit token, puts the raw token in the URL fragment (never in a
+  request/Referer), expires it after 30 minutes, makes it single-use, rate-limits
+  requests, checks reset passwords against the HIBP k-anonymity API, and revokes
+  all remembered sessions once the password changes. Run
+  `sql/migration_password_reset.sql` after the mail migration before deploying
+  the flow. Verification templates remain prepared for their future token flow.
 
 ## Database
 

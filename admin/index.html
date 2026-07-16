@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=212">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=213">
 </head>
 <body>
 
@@ -2597,7 +2597,7 @@
   </div>
 </div>
 
-<script src="../js/members.js?v=21"></script>
+<script src="../js/members.js?v=22"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -4261,6 +4261,8 @@
     google_link_required: 'Google link required',
     google_oauth_cancelled: 'Google sign-in cancelled',
     google_oauth_failed: 'Google sign-in failed',
+    password_reset_requested: 'Password reset requested',
+    password_reset_completed: 'Password reset completed',
     book_created: 'Book created',
     book_updated: 'Book updated',
     book_deleted: 'Book deleted',
@@ -4332,6 +4334,8 @@
     google_login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
     google_linked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1"/></svg>',
     google_unlinked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1"/><line x1="3" y1="3" x2="21" y2="21"/></svg>',
+    password_reset_requested: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><path d="M12 15v2M12 19h.01"/></svg>',
+    password_reset_completed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><path d="m9 15 2 2 4-4"/></svg>',
     book_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>',
     book_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><path d="M9.5 12.5l1.8 1.8L15.5 10"/></svg>',
     book_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="9.5" y1="10" x2="14.5" y2="15"/><line x1="14.5" y1="10" x2="9.5" y2="15"/></svg>',
@@ -4405,6 +4409,7 @@
   function activityCategory(action) {
     if (action.indexOf('login') === 0) return { key: 'login', label: 'Login', icon: ACTIVITY_ICONS.login };
     if (action.indexOf('google_') === 0) return { key: 'login', label: 'Google', icon: ACTIVITY_ICONS.google_login };
+    if (action.indexOf('password_reset_') === 0) return { key: 'login', label: 'Account security', icon: ACTIVITY_ICONS.password_reset_completed };
     if (action.indexOf('book_') === 0) return { key: 'books', label: 'Books', icon: ACTIVITY_ICONS.book_created };
     if (action.indexOf('news_') === 0) return { key: 'content', label: 'News', icon: ACTIVITY_ICONS.news_post_created };
     if (action.indexOf('mail_') === 0) return { key: 'mail', label: 'Mail', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="m3 7 9 6 9-6"/></svg>' };
