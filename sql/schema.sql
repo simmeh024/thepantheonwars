@@ -493,6 +493,18 @@ CREATE TABLE IF NOT EXISTS oauth_identities (
   CONSTRAINT fk_oauth_identities_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Authenticator-app TOTP for local password sign-ins. The secret is encrypted
+-- before storage using TWO_FACTOR_ENCRYPTION_KEY from outside-webroot config.
+-- Google OAuth uses the provider's own account protection and does not use it.
+CREATE TABLE IF NOT EXISTS user_two_factor (
+  user_id INT UNSIGNED PRIMARY KEY,
+  secret_ciphertext VARCHAR(255) NOT NULL,
+  enabled_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  last_used_counter BIGINT UNSIGNED NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_user_two_factor_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Safe aggregate metadata derived from GitHub commit diffs. It deliberately
 -- excludes source code and file paths; the Dispatch Draft Translator uses it
 -- only for reader-facing context such as affected product areas and file types.

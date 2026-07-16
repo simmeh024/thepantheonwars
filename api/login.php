@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/two-factor-helpers.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
@@ -80,6 +81,21 @@ if (pw_is_banned($user)) {
 if ($user['password_hash'] !== null && $user['password_hash'] !== '' && password_needs_rehash($user['password_hash'], PASSWORD_DEFAULT)) {
     $newHash = password_hash($password, PASSWORD_DEFAULT);
     $db->prepare('UPDATE users SET password_hash = ? WHERE id = ?')->execute([$newHash, $user['id']]);
+}
+
+// A password is only the first factor for members who enabled an authenticator
+// app. Keep the account unauthenticated until api/two-factor/verify.php has
+// accepted a short-lived, one-time code. Google OAuth does not visit this
+// endpoint and therefore retains Google's own sign-in assurance.
+if (pw_two_factor_is_enabled($db, (int)$user['id'])) {
+    session_regenerate_id(true);
+    pw_two_factor_clear_pending_login();
+    $_SESSION['pw_two_factor_pending_user_id'] = (int)$user['id'];
+    $_SESSION['pw_two_factor_pending_identifier'] = $identifier;
+    $_SESSION['pw_two_factor_pending_at'] = time();
+    $_SESSION['pw_two_factor_pending_attempts'] = 0;
+    pw_log_activity('two_factor_challenge_issued', 'Password accepted; awaiting authenticator verification.', (int)$user['id'], $user['username']);
+    pw_json(['ok' => true, 'two_factor_required' => true, 'expires_in' => PW_TWO_FACTOR_PENDING_TTL]);
 }
 
 $stmt = $db->prepare('UPDATE users SET failed_login_attempts = 0, locked_until = NULL, last_login_at = NOW(), last_login_ip = ? WHERE id = ?');

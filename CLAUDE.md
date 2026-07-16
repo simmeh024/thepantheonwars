@@ -227,14 +227,14 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=196, community v=196, and admin v=211. Public pages use
+  versions: public v=196, community v=198, and admin v=211. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=6), `js/members.js?v=N` (current: v=21)
+  than once): `js/main.js?v=N` (current: v=6), `js/members.js?v=N` (current: v=23)
   and `js/notifications.js?v=N` (current: v=10), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
@@ -626,7 +626,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   refresh when the tab becomes visible. `api/session-check.php` additionally
   throttles `users.last_active_at` writes to once per user per minute; the online
   window remains five minutes, so multi-tab activity stays accurate without
-  redundant row locks. The current members-script cache version is v=16 across
+  redundant row locks. The current members-script cache version is v=23 across
   every public page and the admin console.
 
 - **Static asset caching:** `.htaccess` now gives versioned CSS, JavaScript,
@@ -772,6 +772,15 @@ also supports a deliberately manual `?full=1` historical rebuild.
 - Book Control: image upload + library picker (reuses server-generated filenames,
   per-directory `.htaccess` denying PHP execution, same pattern as
   `api/upload-avatar.php`).
+- Two-factor authentication is opt-in TOTP for password sign-ins only; Google
+  OAuth keeps using Google's provider protection. `user_two_factor` holds an
+  AES-256-GCM ciphertext, never a plaintext authenticator secret. Add a base64
+  32-byte `TWO_FACTOR_ENCRYPTION_KEY` in external config and run
+  `sql/migration_two_factor_authentication.sql` after deployment. Password
+  acceptance creates a five-minute unauthenticated challenge; a code permits
+  one adjacent clock window and cannot be replayed within the same counter.
+  Staff recovery is `members.reset_two_factor`, revokes the target's sessions,
+  and produces an audit record.
 
 ## Known non-blocking loose ends
 

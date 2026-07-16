@@ -24,6 +24,13 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // define('GOOGLE_OAUTH_CLIENT_SECRET', 'REPLACE_WITH_GOOGLE_CLIENT_SECRET');
 // define('GOOGLE_OAUTH_REDIRECT_URI', 'https://thepantheonwars.com/api/oauth/callback.php?provider=google');
 
+// Authenticator-app two-factor authentication for password sign-ins. Generate
+// this once with `php -r "echo base64_encode(random_bytes(32));"` and keep it
+// in the outside-webroot config.php file. It encrypts TOTP secrets before they
+// are stored in MariaDB; changing it without a planned rotation invalidates
+// existing authenticator enrolments.
+// define('TWO_FACTOR_ENCRYPTION_KEY', 'REPLACE_WITH_BASE64_32_BYTE_RANDOM_KEY');
+
 // Optional local spaCy/RapidFuzz enrichment for Dispatch translations. The rule-based
 // formatter remains fully functional without it. Create the Python venv with
 // the instructions in docs/dispatch-spacy.md, then point at that interpreter.

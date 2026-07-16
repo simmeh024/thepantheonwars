@@ -58,6 +58,14 @@ document.addEventListener('DOMContentLoaded', function () {
           '<button type="button" class="btn auth-google-btn" data-google-oauth="login"><span class="auth-google-mark" aria-hidden="true">G</span>Continue with Google</button>' +
           '<button type="submit" class="btn btn-solid auth-submit">Log In</button>' +
         '</form>' +
+        '<form class="auth-form" data-form="two-factor" hidden>' +
+          '<h3 class="auth-modal-title">Verify your sign-in</h3>' +
+          '<p class="auth-modal-intro">Enter the six-digit code from your authenticator app to finish signing in.</p>' +
+          '<p class="auth-error"></p>' +
+          '<div class="auth-field auth-two-factor-code"><label for="login-two-factor-code">Authenticator Code</label><input id="login-two-factor-code" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required></div>' +
+          '<button type="submit" class="btn btn-solid auth-submit">Verify and Sign In</button>' +
+          '<button type="button" class="btn auth-two-factor-back">Use a different account</button>' +
+        '</form>' +
         '<form class="auth-form" data-form="register" hidden>' +
           '<h3 class="auth-modal-title">Join the Pantheon</h3>' +
           '<p class="auth-modal-intro">Create your place in the Pantheon.</p>' +
@@ -85,6 +93,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var tabs = modal.querySelectorAll('.auth-tab');
   var forms = modal.querySelectorAll('.auth-form');
   var authSuccess = modal.querySelector('.auth-success');
+  var twoFactorForm = modal.querySelector('[data-form="two-factor"]');
 
   function openModal(tab) {
     startInitialAuthRefresh();
@@ -134,6 +143,15 @@ document.addEventListener('DOMContentLoaded', function () {
     err.classList.add('show');
   }
 
+  function showTwoFactorChallenge() {
+    authSuccess.hidden = true;
+    forms.forEach(function (form) { form.hidden = form !== twoFactorForm; });
+    tabs.forEach(function (tab) { tab.classList.remove('active'); });
+    twoFactorForm.querySelector('.auth-error').classList.remove('show');
+    twoFactorForm.querySelector('#login-two-factor-code').value = '';
+    setTimeout(function () { twoFactorForm.querySelector('#login-two-factor-code').focus(); }, 30);
+  }
+
   function setRecoveryLink(form, visible) {
     var recovery = form.querySelector('.auth-recovery-link');
     if (recovery) recovery.hidden = !visible;
@@ -179,8 +197,12 @@ document.addEventListener('DOMContentLoaded', function () {
       return postJson('/api/login.php', { identifier: identifier, password: password, csrf: window.PW_AUTH.csrf });
     }).then(function (r) {
       if (r.data && r.data.ok) {
-        closeModal();
-        refreshAuthNav();
+        if (r.data.two_factor_required) {
+          showTwoFactorChallenge();
+        } else {
+          closeModal();
+          refreshAuthNav();
+        }
       } else {
         showFormError(form, (r.data && r.data.error) || 'Something went wrong.');
         // The generic 401 intentionally covers both an unknown identifier
@@ -192,6 +214,32 @@ document.addEventListener('DOMContentLoaded', function () {
       showFormError(form, (error && error.message) || 'Could not reach the server. Try again in a moment.');
     })
       .finally(function () { submitBtn.disabled = false; });
+  });
+
+  twoFactorForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var code = twoFactorForm.querySelector('#login-two-factor-code').value.replace(/\D/g, '');
+    var submitBtn = twoFactorForm.querySelector('.auth-submit');
+    submitBtn.disabled = true;
+    twoFactorForm.querySelector('.auth-error').classList.remove('show');
+    ensureCsrfToken().then(function () {
+      return postJson('/api/two-factor/verify.php', { code: code, csrf: window.PW_AUTH.csrf });
+    }).then(function (r) {
+      if (r.data && r.data.ok) {
+        closeModal();
+        refreshAuthNav();
+        return;
+      }
+      showFormError(twoFactorForm, (r.data && r.data.error) || 'Could not verify that code.');
+    }).catch(function (error) {
+      showFormError(twoFactorForm, (error && error.message) || 'Could not reach the server. Try again in a moment.');
+    }).finally(function () { submitBtn.disabled = false; });
+  });
+
+  modal.querySelector('.auth-two-factor-back').addEventListener('click', function () {
+    setTab('login');
+    modal.querySelector('#login-password').value = '';
+    modal.querySelector('#login-identifier').focus();
   });
 
   modal.querySelector('[data-form="register"]').addEventListener('submit', function (e) {

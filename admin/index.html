@@ -1700,6 +1700,7 @@
 
     <div class="member-password-reset-row" id="member-password-reset-row" hidden>
       <button type="button" class="btn" id="member-generate-password-btn">Generate Password</button>
+      <button type="button" class="btn btn-danger" id="member-reset-two-factor-btn" hidden>Reset Two-Factor</button>
       <div class="member-generated-password-box" id="member-generated-password-box" hidden>
         <input type="text" id="member-generated-password-input" readonly aria-label="Generated password">
         <button type="button" class="btn" id="member-copy-password-btn">Copy</button>
@@ -2650,7 +2651,7 @@
   </div>
 </div>
 
-<script src="../js/members.js?v=22"></script>
+<script src="../js/members.js?v=23"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -6334,6 +6335,7 @@
   var memberResetAvatarBtn = document.getElementById('member-reset-avatar-btn');
   var memberPasswordResetRow = document.getElementById('member-password-reset-row');
   var memberGeneratePasswordBtn = document.getElementById('member-generate-password-btn');
+  var memberResetTwoFactorBtn = document.getElementById('member-reset-two-factor-btn');
   var memberGeneratedPasswordBox = document.getElementById('member-generated-password-box');
   var memberGeneratedPasswordInput = document.getElementById('member-generated-password-input');
   var memberCopyPasswordBtn = document.getElementById('member-copy-password-btn');
@@ -6577,6 +6579,7 @@
     loadMemberAvatarPreview(entry.id, entry.display_name, entry.role);
 
     memberPasswordResetRow.hidden = false;
+    memberResetTwoFactorBtn.hidden = !entry.two_factor_enabled || !pwHasPermission('members.reset_two_factor');
     memberGeneratedPasswordBox.hidden = true;
     memberGeneratedPasswordHint.hidden = true;
     memberGeneratedPasswordInput.value = '';
@@ -7278,6 +7281,34 @@
       .catch(function () {
         memberGeneratePasswordBtn.disabled = false;
         memberModalError.textContent = 'Could not generate a new password. Please try again.';
+        memberModalError.classList.add('show');
+      });
+  });
+
+  memberResetTwoFactorBtn.addEventListener('click', function () {
+    if (!currentMember || !currentMember.two_factor_enabled) return;
+    if (!window.confirm('Reset two-factor authentication for ' + currentMember.display_name + '? This also signs them out on every device.')) return;
+    memberResetTwoFactorBtn.disabled = true;
+    memberModalError.classList.remove('show');
+    fetch('/api/admin/members/reset-two-factor.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentMember.id, csrf: window.PW_AUTH.csrf }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        memberResetTwoFactorBtn.disabled = false;
+        if (!data.ok) throw new Error(data.error || 'Could not reset two-factor authentication.');
+        currentMember.two_factor_enabled = false;
+        memberResetTwoFactorBtn.hidden = true;
+        memberModalStatus.textContent = data.reset ? 'Two-factor authentication reset and active sessions revoked.' : 'This member does not have two-factor authentication enabled.';
+        memberModalStatus.classList.add('show');
+        loadMembers();
+      })
+      .catch(function (error) {
+        memberResetTwoFactorBtn.disabled = false;
+        memberModalError.textContent = error.message || 'Could not reset two-factor authentication. Please try again.';
         memberModalError.classList.add('show');
       });
   });

@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=197">
+<link rel="stylesheet" href="css/community-bundle.css?v=198">
 </head>
 <body>
 
@@ -117,6 +117,7 @@
 
         <div class="profile-menu" id="profile-menu">
           <button type="button" class="profile-menu-tab active" data-panel="settings">Profile Settings</button>
+          <button type="button" class="profile-menu-tab" data-panel="two-factor">Two-Factor Authentication</button>
           <button type="button" class="profile-menu-tab" data-panel="notifications">Notification Settings</button>
           <button type="button" class="profile-menu-tab" data-panel="sessions">User Sessions</button>
           <button type="button" class="profile-menu-tab" data-panel="posts">My Posts</button>
@@ -171,6 +172,63 @@
             <input type="text" id="profile-email-locked" disabled>
             <p class="profile-field-note">To change your email, please contact an admin.</p>
           </div>
+        </div>
+
+        <div id="profile-panel-two-factor" class="profile-panel" hidden>
+          <h3>Two-Factor Authentication</h3>
+          <p class="profile-field-note">Add a six-digit code from an authenticator app to password sign-ins. It is optional and does not affect Google sign-in.</p>
+
+          <div id="two-factor-status-card" class="two-factor-status-card" aria-live="polite">
+            <strong id="two-factor-status-title">Checking protection&hellip;</strong>
+            <p id="two-factor-status-copy">Loading your two-factor authentication status.</p>
+          </div>
+
+          <form id="two-factor-setup-form" class="auth-form" hidden>
+            <h4>Set up an authenticator app</h4>
+            <p class="profile-field-note">Confirm your current password before we create a new setup key.</p>
+            <div class="auth-field">
+              <label for="two-factor-current-password">Current Password</label>
+              <input id="two-factor-current-password" type="password" autocomplete="current-password" required>
+            </div>
+            <p id="two-factor-setup-error" class="auth-error"></p>
+            <button type="submit" class="btn btn-solid">Continue Setup</button>
+          </form>
+
+          <form id="two-factor-confirm-form" class="auth-form" hidden>
+            <h4>Save your authenticator key</h4>
+            <p class="profile-field-note">Add this key to an authenticator app such as Google Authenticator, Microsoft Authenticator, Authy, or 1Password. Then enter the six-digit code it shows.</p>
+            <div class="two-factor-secret-row">
+              <div>
+                <strong>Manual setup key</strong>
+                <small>Keep this key private. It will disappear after setup is complete.</small>
+              </div>
+              <div class="two-factor-secret-actions">
+                <code id="two-factor-secret"></code>
+                <button type="button" class="btn" id="two-factor-copy-secret">Copy Key</button>
+              </div>
+            </div>
+            <div class="auth-field">
+              <label for="two-factor-confirm-code">Authenticator Code</label>
+              <input id="two-factor-confirm-code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required>
+            </div>
+            <p id="two-factor-confirm-error" class="auth-error"></p>
+            <button type="submit" class="btn btn-solid">Enable Two-Factor Authentication</button>
+          </form>
+
+          <form id="two-factor-disable-form" class="auth-form" hidden>
+            <h4>Turn off two-factor authentication</h4>
+            <p class="profile-field-note">Confirm both your password and your current authenticator code before removing this protection.</p>
+            <div class="auth-field">
+              <label for="two-factor-disable-password">Current Password</label>
+              <input id="two-factor-disable-password" type="password" autocomplete="current-password" required>
+            </div>
+            <div class="auth-field">
+              <label for="two-factor-disable-code">Authenticator Code</label>
+              <input id="two-factor-disable-code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required>
+            </div>
+            <p id="two-factor-disable-error" class="auth-error"></p>
+            <button type="submit" class="btn btn-danger">Turn Off Two-Factor Authentication</button>
+          </form>
         </div>
 
         <div id="profile-panel-notifications" class="profile-panel" hidden>
@@ -310,7 +368,7 @@
 </div>
 
 <script src="js/main.js?v=6"></script>
-<script src="js/members.js?v=22"></script>
+<script src="js/members.js?v=23"></script>
 <script>
 (function () {
   var gate = document.getElementById('profile-gate');
@@ -549,6 +607,7 @@
 
   var profileMenu = document.getElementById('profile-menu');
   var panelSettings = document.getElementById('profile-panel-settings');
+  var panelTwoFactor = document.getElementById('profile-panel-two-factor');
   var panelSessions = document.getElementById('profile-panel-sessions');
   var panelNotifications = document.getElementById('profile-panel-notifications');
   var panelPosts = document.getElementById('profile-panel-posts');
@@ -568,6 +627,15 @@
   var profileHasPassword = true;
   var notifPrefsLoaded = false;
   var userSessionsLoaded = false;
+  var twoFactorLoaded = false;
+  var twoFactorStatusCard = document.getElementById('two-factor-status-card');
+  var twoFactorStatusTitle = document.getElementById('two-factor-status-title');
+  var twoFactorStatusCopy = document.getElementById('two-factor-status-copy');
+  var twoFactorSetupForm = document.getElementById('two-factor-setup-form');
+  var twoFactorConfirmForm = document.getElementById('two-factor-confirm-form');
+  var twoFactorDisableForm = document.getElementById('two-factor-disable-form');
+  var twoFactorSecret = document.getElementById('two-factor-secret');
+  var twoFactorCopySecret = document.getElementById('two-factor-copy-secret');
 
   function setPasswordMode(hasPassword) {
     profileHasPassword = !!hasPassword;
@@ -619,11 +687,142 @@
       .catch(function (error) { setOauthStatus(error.message, true); });
   });
 
+  function setTwoFactorError(id, message) {
+    var el = document.getElementById(id);
+    el.textContent = message || '';
+    el.classList.toggle('show', !!message);
+  }
+
+  function setTwoFactorStatus(title, copy, kind) {
+    twoFactorStatusTitle.textContent = title;
+    twoFactorStatusCopy.textContent = copy;
+    twoFactorStatusCard.classList.toggle('is-enabled', kind === 'enabled');
+    twoFactorStatusCard.classList.toggle('is-unavailable', kind === 'unavailable');
+  }
+
+  function hideTwoFactorForms() {
+    twoFactorSetupForm.hidden = true;
+    twoFactorConfirmForm.hidden = true;
+    twoFactorDisableForm.hidden = true;
+    setTwoFactorError('two-factor-setup-error', '');
+    setTwoFactorError('two-factor-confirm-error', '');
+    setTwoFactorError('two-factor-disable-error', '');
+  }
+
+  function loadTwoFactorStatus() {
+    hideTwoFactorForms();
+    setTwoFactorStatus('Checking protection\u2026', 'Loading your two-factor authentication status.', '');
+    fetch('/api/two-factor/status.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load two-factor authentication.');
+        if (!data.migration_ready || !data.available) {
+          setTwoFactorStatus('Two-factor authentication is not available yet', 'This account cannot use authenticator protection until the service configuration is complete.', 'unavailable');
+          return;
+        }
+        if (!data.has_password) {
+          setTwoFactorStatus('Protected through Google sign-in', 'Two-factor authentication here is for password sign-ins. Your Google account keeps managing its own sign-in protection.', 'enabled');
+          return;
+        }
+        if (data.enabled) {
+          setTwoFactorStatus('Two-factor authentication is on', 'Password sign-ins require your authenticator code. An administrator can reset this protection if you lose access to your app.', 'enabled');
+          twoFactorDisableForm.hidden = false;
+          return;
+        }
+        setTwoFactorStatus('Two-factor authentication is off', 'Add an authenticator app for an extra layer of protection on password sign-ins.', '');
+        twoFactorSetupForm.hidden = false;
+      })
+      .catch(function (error) {
+        setTwoFactorStatus('Status unavailable', error.message || 'Could not load two-factor authentication.', 'unavailable');
+      });
+  }
+
+  function postTwoFactor(url, body) {
+    body.csrf = window.PW_AUTH.csrf;
+    return fetch(url, {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+    }).then(function (response) { return response.json(); });
+  }
+
+  twoFactorSetupForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    var button = twoFactorSetupForm.querySelector('button[type="submit"]');
+    button.disabled = true;
+    setTwoFactorError('two-factor-setup-error', '');
+    postTwoFactor('/api/two-factor/setup.php', {
+      current_password: document.getElementById('two-factor-current-password').value
+    }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Could not start two-factor setup.');
+      twoFactorSecret.textContent = data.secret;
+      document.getElementById('two-factor-current-password').value = '';
+      twoFactorSetupForm.hidden = true;
+      twoFactorConfirmForm.hidden = false;
+      setTimeout(function () { document.getElementById('two-factor-confirm-code').focus(); }, 20);
+    }).catch(function (error) {
+      setTwoFactorError('two-factor-setup-error', error.message);
+    }).finally(function () { button.disabled = false; });
+  });
+
+  twoFactorConfirmForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    var button = twoFactorConfirmForm.querySelector('button[type="submit"]');
+    button.disabled = true;
+    setTwoFactorError('two-factor-confirm-error', '');
+    postTwoFactor('/api/two-factor/enable.php', {
+      code: document.getElementById('two-factor-confirm-code').value.replace(/\D/g, '')
+    }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Could not enable two-factor authentication.');
+      twoFactorLoaded = false;
+      loadTwoFactorStatus();
+    }).catch(function (error) {
+      setTwoFactorError('two-factor-confirm-error', error.message);
+    }).finally(function () { button.disabled = false; });
+  });
+
+  twoFactorDisableForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    var button = twoFactorDisableForm.querySelector('button[type="submit"]');
+    button.disabled = true;
+    setTwoFactorError('two-factor-disable-error', '');
+    postTwoFactor('/api/two-factor/disable.php', {
+      current_password: document.getElementById('two-factor-disable-password').value,
+      code: document.getElementById('two-factor-disable-code').value.replace(/\D/g, '')
+    }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Could not turn off two-factor authentication.');
+      document.getElementById('two-factor-disable-password').value = '';
+      document.getElementById('two-factor-disable-code').value = '';
+      twoFactorLoaded = false;
+      loadTwoFactorStatus();
+    }).catch(function (error) {
+      setTwoFactorError('two-factor-disable-error', error.message);
+    }).finally(function () { button.disabled = false; });
+  });
+
+  twoFactorCopySecret.addEventListener('click', function () {
+    var secret = twoFactorSecret.textContent;
+    if (!secret) return;
+    var copied = function () {
+      twoFactorCopySecret.textContent = 'Copied';
+      setTimeout(function () { twoFactorCopySecret.textContent = 'Copy Key'; }, 1400);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(secret).then(copied).catch(function () {});
+    } else {
+      var selection = window.getSelection();
+      var range = document.createRange();
+      range.selectNodeContents(twoFactorSecret);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      copied();
+    }
+  });
+
   function activateProfilePanel(panel) {
     Array.prototype.forEach.call(profileMenu.querySelectorAll('.profile-menu-tab'), function (tab) {
       tab.classList.toggle('active', tab.getAttribute('data-panel') === panel);
     });
     panelSettings.hidden = panel !== 'settings';
+    panelTwoFactor.hidden = panel !== 'two-factor';
     panelSessions.hidden = panel !== 'sessions';
     panelNotifications.hidden = panel !== 'notifications';
     panelPosts.hidden = panel !== 'posts';
@@ -634,6 +833,10 @@
     if (panel === 'notifications' && !notifPrefsLoaded) {
       notifPrefsLoaded = true;
       loadNotificationPrefs();
+    }
+    if (panel === 'two-factor' && !twoFactorLoaded) {
+      twoFactorLoaded = true;
+      loadTwoFactorStatus();
     }
   }
 
@@ -857,10 +1060,10 @@
     gate.hidden = true;
     content.hidden = false;
 
-    // Deep link from the nav bell dropdown's settings icon (profile.html?tab=notifications).
+    // Deep links from notification settings and profile protection shortcuts.
     var requestedTab = new URLSearchParams(location.search).get('tab');
-    if (requestedTab === 'notifications') {
-      activateProfilePanel('notifications');
+    if (requestedTab === 'notifications' || requestedTab === 'two-factor') {
+      activateProfilePanel(requestedTab);
     }
 
     fetch('/api/get-profile.php', { credentials: 'same-origin' })

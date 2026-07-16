@@ -468,6 +468,33 @@
 .profile-oauth-actions > [hidden] { display: none; }
 @media (max-width: 520px) { .profile-oauth-row { align-items: flex-start; flex-direction: column; } }
 
+.two-factor-status-card {
+  margin: 1em 0 1.2em; padding: 15px 17px; border: 1px solid var(--border-soft);
+  background: rgba(124,79,214,0.055); border-left: 3px solid var(--purple-bright);
+}
+.two-factor-status-card strong { display: block; font-family: 'Cinzel', serif; font-size: 0.88rem; color: var(--text); }
+.two-factor-status-card p { margin: 0.42em 0 0; color: var(--text-dim); font-size: 0.86rem; }
+.two-factor-status-card.is-enabled { border-left-color: #52d998; background: rgba(62,207,142,0.06); }
+.two-factor-status-card.is-enabled strong { color: #52d998; }
+.two-factor-status-card.is-unavailable { border-left-color: var(--gold-bright); background: rgba(224,178,74,0.055); }
+.two-factor-status-card.is-unavailable strong { color: var(--gold-bright); }
+.two-factor-secret-row {
+  display: flex; justify-content: space-between; gap: 16px; align-items: center; margin: 1em 0;
+  padding: 14px 16px; border: 1px solid var(--border-soft); background: rgba(124,79,214,0.05);
+}
+.two-factor-secret-row strong, .two-factor-secret-row small { display: block; }
+.two-factor-secret-row strong { font-family: 'Cinzel', serif; font-size: 0.82rem; color: var(--gold-bright); }
+.two-factor-secret-row small { margin-top: 4px; max-width: 350px; color: var(--text-faint); font-size: 0.75rem; }
+.two-factor-secret-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; flex-shrink: 0; }
+.two-factor-secret-actions code { color: #52d998; font: 600 0.78rem/1.2 monospace; letter-spacing: 0.08em; word-break: break-all; text-align: right; }
+@media (max-width: 620px) {
+  .profile-menu { flex-wrap: wrap; }
+  .profile-menu-tab { margin-right: 12px; }
+  .two-factor-secret-row { align-items: flex-start; flex-direction: column; }
+  .two-factor-secret-actions { align-items: flex-start; }
+  .two-factor-secret-actions code { text-align: left; }
+}
+
 .profile-session-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 1.15em; }
 .profile-session-heading h3 { margin-bottom: 0.35em; }
 .profile-session-heading .profile-field-note { margin: 0; max-width: 520px; }
