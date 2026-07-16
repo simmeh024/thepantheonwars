@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=217">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=218">
 </head>
 <body>
 
@@ -1412,6 +1412,7 @@
         <span>Last login</span>
         <span>Account source</span>
         <span>Verification</span>
+        <span>2FA</span>
         <span>Role</span>
       </div>
       <div class="admin-list" id="member-list">
@@ -6495,6 +6496,15 @@
           (entry.email_verified ? 'Verified' : 'Not verified') +
         '</span>';
       row.appendChild(verification);
+
+      var twoFactor = document.createElement('div');
+      twoFactor.className = 'member-two-factor-column';
+      twoFactor.innerHTML = entry.has_google_identity
+        ? '<span class="member-two-factor-na" aria-label="Managed by Google">&mdash;</span>'
+        : '<span class="member-two-factor-badge ' + (entry.two_factor_enabled ? 'member-two-factor-badge-enabled' : 'member-two-factor-badge-disabled') + '">' +
+            (entry.two_factor_enabled ? 'Enabled' : 'Not enabled') +
+          '</span>';
+      row.appendChild(twoFactor);
 
       var role = document.createElement('div');
       role.className = 'member-role-column';
