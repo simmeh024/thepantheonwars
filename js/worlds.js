@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', function () {
   var atlasInfoKickerEl = document.querySelector('.world-atlas-info-kicker');
   var atlasInfoTitleEl = document.getElementById('world-atlas-info-title');
   var atlasInfoCopyEl = document.getElementById('world-atlas-info-copy');
-  var atlasInfoLinkEl = document.getElementById('world-atlas-info-link');
 
   // Coordinates use the atlas artwork's native 1672 × 941 viewBox and the
   // World Control sort order, so content staff only need to manage a world's
@@ -32,7 +31,7 @@ document.addEventListener('DOMContentLoaded', function () {
     7: { x: 808, y: 794, r: 77 },
     8: { x: 553, y: 740, r: 77 },
     9: { x: 392, y: 637, r: 77 },
-    10: { x: 280, y: 493, r: 77 },
+    10: { x: 291, y: 496, r: 77 },
     11: { x: 375, y: 344, r: 77 },
     12: { x: 530, y: 232, r: 77 }
   };
@@ -224,36 +223,45 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function setAtlasInfo(world) {
-    if (!atlasInfoTitleEl || !atlasInfoCopyEl || !atlasInfoLinkEl) return;
+    if (!atlasInfoTitleEl || !atlasInfoCopyEl) return;
     if (!world) {
       if (atlasInfoEl) {
         atlasInfoEl.classList.remove('is-active');
+        atlasInfoEl.setAttribute('aria-hidden', 'true');
         atlasInfoEl.removeAttribute('data-atlas-tone');
+        atlasInfoEl.removeAttribute('data-side');
         atlasInfoEl.style.removeProperty('--atlas-tone-rgb');
+        atlasInfoEl.style.removeProperty('--atlas-info-x');
+        atlasInfoEl.style.removeProperty('--atlas-info-y');
       }
       if (atlasInfoKickerEl) atlasInfoKickerEl.textContent = 'Hover a world';
       atlasInfoTitleEl.textContent = 'Select a world';
       atlasInfoCopyEl.textContent = 'Hover or focus a medallion to inspect its record. Available worlds can be opened in their own field file.';
-      atlasInfoLinkEl.hidden = true;
       return;
     }
     var tone = ATLAS_TONES[world.sort_order];
+    var point = ATLAS_POINTS[world.sort_order];
     if (atlasInfoEl && tone) {
       atlasInfoEl.classList.add('is-active');
+      atlasInfoEl.setAttribute('aria-hidden', 'false');
       atlasInfoEl.setAttribute('data-atlas-tone', tone.key);
       atlasInfoEl.style.setProperty('--atlas-tone-rgb', tone.rgb);
+    }
+    if (atlasInfoEl && point) {
+      var placeLeft = point.x > 1080;
+      var anchorX = placeLeft ? point.x - point.r - 20 : point.x + point.r + 20;
+      atlasInfoEl.setAttribute('data-side', placeLeft ? 'left' : 'right');
+      atlasInfoEl.style.setProperty('--atlas-info-x', (anchorX / 1672 * 100).toFixed(3) + '%');
+      atlasInfoEl.style.setProperty('--atlas-info-y', (point.y / 941 * 100).toFixed(3) + '%');
     }
     if (atlasInfoKickerEl) atlasInfoKickerEl.textContent = tone ? tone.label : 'World signal';
     if (world.status === 'available') {
       atlasInfoTitleEl.textContent = world.name;
       atlasInfoCopyEl.textContent = world.card_blurb || world.tagline || 'This world record is available to explore.';
-      atlasInfoLinkEl.href = worldRecordUrl(world);
-      atlasInfoLinkEl.hidden = false;
       return;
     }
     atlasInfoTitleEl.textContent = 'ERROR: LORE LOCK';
     atlasInfoCopyEl.textContent = 'MISSING INFORMATION — ' + world.name + ' remains sealed in the lore archive. Its world record will unlock when the archive is cleared.';
-    atlasInfoLinkEl.hidden = true;
   }
 
   // SVG blend/filter compositing differs between browser engines. Paint the
@@ -337,7 +345,9 @@ document.addEventListener('DOMContentLoaded', function () {
     Array.prototype.forEach.call(atlasHotspotsEl.querySelectorAll('[data-world-slug]'), function (hotspot) {
       var world = bySlug[hotspot.getAttribute('data-world-slug')];
       hotspot.addEventListener('mouseenter', function () { setAtlasInfo(world); });
+      hotspot.addEventListener('mouseleave', function () { setAtlasInfo(null); });
       hotspot.addEventListener('focus', function () { setAtlasInfo(world); });
+      hotspot.addEventListener('blur', function () { setAtlasInfo(null); });
     });
     atlasEl.addEventListener('mouseleave', function () { setAtlasInfo(null); });
     setAtlasInfo(null);

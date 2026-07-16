@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=202">
+<link rel="stylesheet" href="css/public.css?v=203">
 </head>
 <body>
 
@@ -90,13 +90,12 @@
             <canvas class="world-atlas-lock-canvas" id="world-atlas-lock-canvas" width="1672" height="941" aria-hidden="true"></canvas>
             <svg class="world-atlas-hotspots" id="world-atlas-hotspots" viewBox="0 0 1672 941" preserveAspectRatio="none" role="group" aria-label="Interactive world atlas"></svg>
           </div>
+          <aside class="world-atlas-info" id="world-atlas-info" aria-live="polite" aria-hidden="true">
+            <span class="world-atlas-info-kicker">Atlas signal</span>
+            <h3 id="world-atlas-info-title">Select a world</h3>
+            <p id="world-atlas-info-copy">Hover or focus a medallion to inspect its record.</p>
+          </aside>
         </div>
-        <aside class="world-atlas-info" id="world-atlas-info" aria-live="polite">
-          <span class="world-atlas-info-kicker">Atlas signal</span>
-          <h3 id="world-atlas-info-title">Select a world</h3>
-          <p id="world-atlas-info-copy">Hover or focus a medallion to inspect its record. Available worlds can be opened in their own field file.</p>
-          <a class="world-atlas-info-link" id="world-atlas-info-link" href="#world-grid" hidden>Open world record <span aria-hidden="true">&rarr;</span></a>
-        </aside>
       </div>
 
       <div class="world-atlas-grid-divider" aria-hidden="true"><span></span></div>
@@ -163,6 +162,6 @@
 
 <script src="js/main.js?v=6"></script>
 <script src="js/members.js?v=23"></script>
-<script src="js/worlds.js?v=9"></script>
+<script src="js/worlds.js?v=10"></script>
 </body>
 </html>
