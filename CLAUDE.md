@@ -94,6 +94,11 @@ select `config.php` -> Edit (opens cPanel's code editor in a new tab).
   saved template and current Mail Settings sender/transport, permits a paused
   template to be previewed, and supplies only harmless example reset/verify
   links rather than creating real account credentials.
+- The default Welcome template is a self-contained Pantheon Wars email design
+  with inline client-safe styles (deep purple panel, gold hierarchy, and CTA).
+  Existing production copy can be refreshed with
+  `sql/migration_mail_welcome_template_refresh.sql`; it only replaces the exact
+  original default so any editorial customisation is preserved.
 - Welcome delivery is hooked into password registration, Google registration, and
   administrator-created accounts; account-suspension delivery is hooked into new
   bans. Never email an administrator-generated password.
