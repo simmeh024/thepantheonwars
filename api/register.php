@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/mail.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
@@ -46,6 +47,10 @@ session_regenerate_id(true);
 $_SESSION['user_id'] = $userId;
 pw_issue_user_session($userId, 'password');
 pw_log_activity('session_created', 'Created a password-authenticated session.', $userId, $username);
+// Mail delivery is explicitly opt-in in Admin > Mail Settings. A transport
+// failure is intentionally ignored here so a new account can never be blocked
+// by an email-provider issue.
+pw_send_template_email('welcome', $email, ['recipient_name' => $username, 'recipient_email' => $email]);
 
 pw_json(['ok' => true, 'user' => [
     'id' => $userId,

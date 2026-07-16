@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
+require_once __DIR__ . '/../../mail.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
@@ -221,6 +222,13 @@ if ($banned && !$wasBanned) {
         $adminUser
     );
     pw_log_admin_activity('member_sessions_revoked', 'Revoked ' . ($revokedSessions ?? 0) . ' session(s) for banned account ' . $targetLabel . '.', $adminUser);
+    // Delivery is optional and never blocks the ban or its immediate session
+    // revocation. The template supplies the member-facing explanation.
+    pw_send_template_email('account_banned', $email, [
+        'recipient_name' => $displayName,
+        'recipient_email' => $email,
+        'ban_reason' => pw_ban_description($bannedUntil) === 'permanently' ? 'Your account has been suspended permanently.' : 'Your account has been suspended ' . pw_ban_description($bannedUntil) . '.',
+    ]);
 } elseif ($banned && $wasBanned && $bannedUntil !== $existing['banned_until']) {
     pw_log_admin_activity(
         'member_banned',

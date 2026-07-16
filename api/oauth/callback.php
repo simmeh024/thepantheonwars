@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../oauth.php';
+require_once __DIR__ . '/../mail.php';
 
 $provider = isset($_GET['provider']) ? (string)$_GET['provider'] : '';
 $state = isset($_GET['state']) ? (string)$_GET['state'] : '';
@@ -92,6 +93,7 @@ if ($identity) {
         pw_oauth_import_google_avatar($userId, $profile['picture']);
     }
     pw_log_activity('google_registered', 'Created an account through Google sign-in.', $userId, $username);
+    pw_send_template_email('welcome', $profile['email'], ['recipient_name' => $displayName, 'recipient_email' => $profile['email']]);
     $result = 'google-registered';
 }
 

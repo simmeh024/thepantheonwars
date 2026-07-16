@@ -333,6 +333,26 @@ CREATE TABLE IF NOT EXISTS app_settings (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Editorial content for transactional mail. Transport credentials are never
+-- stored here: shared hosting uses PHP mail(), while sender identity and the
+-- explicit enabled switch live in app_settings. The four seeded keys are a
+-- closed allowlist in api/mail.php, so templates cannot become arbitrary mail
+-- relays through a crafted request.
+CREATE TABLE IF NOT EXISTS mail_templates (
+  id TINYINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  template_key VARCHAR(40) NOT NULL,
+  label VARCHAR(100) NOT NULL,
+  description VARCHAR(255) NOT NULL,
+  subject VARCHAR(180) NOT NULL,
+  html_body MEDIUMTEXT NOT NULL,
+  text_body MEDIUMTEXT NOT NULL,
+  is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  updated_by INT UNSIGNED NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_mail_template_key (template_key),
+  CONSTRAINT fk_mail_templates_updated_by FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS cpu_load_history (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   load1 DECIMAL(6,2) NOT NULL,

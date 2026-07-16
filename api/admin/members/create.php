@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
+require_once __DIR__ . '/../../mail.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
@@ -60,6 +61,10 @@ pw_log_admin_activity(
     'Created a new ' . $roleRow['label'] . ' account: ' . $username . '.',
     $adminUser
 );
+
+// New accounts still succeed if delivery is off or rejected. The standard
+// welcome template never contains the administrator-provided password.
+pw_send_template_email('welcome', $email, ['recipient_name' => $displayName, 'recipient_email' => $email]);
 
 pw_json([
     'ok' => true,

@@ -31,6 +31,15 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // define('SPACY_PYTHON_BIN', '/home/rdy3i6my40b0/virtualenv/dispatch-nlp/3.11/bin/python');
 // define('SPACY_MODEL', 'en_core_web_md');
 
+// Transactional mail is deliberately off until Mail Settings has a sender
+// identity and its delivery toggle is enabled. Shared hosting uses PHP's native
+// mail() transport, so no SMTP password is stored in the admin database. These
+// optional defaults live outside public_html and are used until an admin saves
+// Mail Settings (the saved values take precedence).
+// define('MAIL_FROM_NAME', 'The Pantheon Wars');
+// define('MAIL_FROM_EMAIL', 'noreply@thepantheonwars.com');
+// define('MAIL_REPLY_TO', 'privacy@thepantheonwars.com');
+
 // Optional. Raises the GitHub REST API rate limit used by the System
 // Status card/page and the language-snapshot sync from 60 requests/hour
 // (unauthenticated) to 5,000 requests/hour (authenticated) -- see

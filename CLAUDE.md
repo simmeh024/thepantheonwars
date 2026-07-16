@@ -62,6 +62,26 @@ limit), `GITHUB_WEBHOOK_SECRET`, `CRON_SAMPLE_KEY` (gates `api/cron/sample-load.
 To edit the real file: cPanel File Manager -> navigate to `/pantheonwars-secrets` ->
 select `config.php` -> Edit (opens cPanel's code editor in a new tab).
 
+### Transactional mail
+
+- `api/mail.php` is the only mail-sending path. It uses PHP's native `mail()` on
+  this shared host, reads its enabled flag and sender identity from `app_settings`,
+  and returns a result instead of throwing so email outages cannot block a sign-in,
+  account creation, or ban.
+- `mail_templates` holds the closed allowlist of `password_reset`, `welcome`,
+  `account_banned`, and `verify_account`. The template editor is gated by
+  `mail.view` / `mail.manage`; variable expansion is limited to the keys defined
+  in `pw_mail_variables()`.
+- Delivery is **off by default**. The Admin Console's pink-dot **Mail** category
+  contains Mail Settings and Mail Templates. Configure a verified sender there,
+  then enable delivery deliberately. Optional `MAIL_FROM_NAME`,
+  `MAIL_FROM_EMAIL`, and `MAIL_REPLY_TO` defaults belong only in the real
+  outside-webroot config (documented in `api/config.sample.php`).
+- Welcome delivery is hooked into password registration, Google registration, and
+  administrator-created accounts; account-suspension delivery is hooked into new
+  bans. Never email an administrator-generated password. Password-reset and
+  verification templates are present for their future token-based flows.
+
 ## Database
 
 `sql/schema.sql` is the source-of-truth accumulator for every table (append new
@@ -224,6 +244,12 @@ also supports a deliberately manual `?full=1` historical rebuild.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- Added the transactional Mail foundation: permissioned Mail Settings + Mail
+  Templates pages, native shared-host mail transport behind an explicit off-by-
+  default switch, default HTML/plain-text templates, and the welcome/ban hooks.
+  Production requires `sql/migration_mail_system.sql` to be run manually before
+  the template editor can load.
 
 - **News Management**: the static `news.html` articles are now served from the
   `news_posts` table via `api/news/list.php`. Admin Console > Content > News Management provides

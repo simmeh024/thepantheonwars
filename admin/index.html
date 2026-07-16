@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=211">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=212">
 </head>
 <body>
 
@@ -58,6 +58,17 @@
       </button>
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li data-requires-permission="news.view"><button type="button" class="admin-nav-link" data-section="news-management"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>News Management</button></li>
+      </ul>
+    </div>
+
+    <div class="admin-nav-category is-collapsed" data-category="mail" data-requires-permission="mail.view,mail.manage">
+      <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
+        <span>Mail</span>
+        <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <ul class="admin-nav-list admin-nav-list-collapsible">
+        <li data-requires-permission="mail.view"><button type="button" class="admin-nav-link" data-section="mail-settings"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z"/><path d="m4 7 8 6 8-6"/></svg>Mail Settings</button></li>
+        <li data-requires-permission="mail.view"><button type="button" class="admin-nav-link" data-section="mail-templates"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Mail Templates</button></li>
       </ul>
     </div>
 
@@ -819,6 +830,47 @@
         <button type="button" class="admin-settings-reset" id="admin-sidebar-order-reset">Restore default</button>
       </div>
       <div class="admin-sidebar-order-grid" id="admin-sidebar-order-controls" aria-live="polite"></div>
+    </section>
+
+    <section class="admin-section" id="section-mail-settings" hidden>
+      <div class="admin-section-head">
+        <h1>Mail Settings</h1>
+        <p>Configure the sender identity for transactional emails. Delivery remains off until you explicitly enable it.</p>
+      </div>
+      <div class="mail-settings-layout">
+        <form class="mail-settings-card" id="mail-settings-form">
+          <div class="mail-settings-card-head">
+            <div><h2>Delivery control</h2><p>Uses the hosting account&rsquo;s PHP mail transport. No credentials are stored here.</p></div>
+            <span class="mail-transport-pill" id="mail-transport-pill">Checking&hellip;</span>
+          </div>
+          <label class="mail-enabled-toggle"><input type="checkbox" id="mail-enabled-input"><span><strong>Enable transactional email</strong><small>When off, account and moderation flows continue without sending email.</small></span></label>
+          <div class="admin-field-row">
+            <div class="admin-field"><label for="mail-from-name-input">Sender name</label><input type="text" id="mail-from-name-input" maxlength="100" placeholder="The Pantheon Wars"></div>
+            <div class="admin-field"><label for="mail-from-email-input">Sender email</label><input type="email" id="mail-from-email-input" maxlength="255" placeholder="noreply@thepantheonwars.com"></div>
+          </div>
+          <div class="admin-field"><label for="mail-reply-to-input">Reply-to email <span>(optional)</span></label><input type="email" id="mail-reply-to-input" maxlength="255" placeholder="privacy@thepantheonwars.com"></div>
+          <p class="mail-settings-note" id="mail-settings-note">Loading mail configuration&hellip;</p>
+          <p class="admin-modal-error" id="mail-settings-error"></p>
+          <p class="admin-modal-status" id="mail-settings-status"></p>
+          <div class="admin-modal-actions"><button type="submit" class="btn btn-solid" id="mail-settings-save-btn">Save Mail Settings</button></div>
+          <div class="mail-test-row"><input type="email" id="mail-test-recipient-input" maxlength="255" placeholder="Send a test to&hellip;"><button type="button" class="btn" id="mail-send-test-btn">Send Test</button></div>
+        </form>
+        <aside class="mail-settings-guide">
+          <span class="mail-guide-icon">✦</span>
+          <h2>Safe delivery</h2>
+          <p>Templates are edited separately and use a fixed set of variables. Password-reset and verification templates are prepared now, but will not be sent until their secure token flows are enabled.</p>
+          <p>Never email a password. The existing administrator password reset stays a one-time, in-console action.</p>
+        </aside>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-mail-templates" hidden>
+      <div class="admin-section-head">
+        <h1>Mail Templates</h1>
+        <p>Shape the emails sent by account and moderation flows. Every template includes a plain-text alternative for compatible inboxes.</p>
+      </div>
+      <div class="mail-template-variables" id="mail-template-variables">Available variables are loading&hellip;</div>
+      <div class="mail-template-list" id="mail-template-list"><div class="admin-list-empty">Loading mail templates&hellip;</div></div>
     </section>
 
     <section class="admin-section" id="section-system-status" hidden>
@@ -2494,6 +2546,34 @@
   </div>
 </div>
 
+<div class="admin-modal" id="mail-template-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="mail-template-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="mail-template-modal-title">Edit Mail Template</h3>
+    <p class="admin-modal-sub" id="mail-template-modal-sub"></p>
+    <div class="admin-field">
+      <label for="mail-template-subject-input">Subject</label>
+      <input type="text" id="mail-template-subject-input" maxlength="180">
+    </div>
+    <div class="admin-field">
+      <label for="mail-template-html-input">HTML message</label>
+      <textarea id="mail-template-html-input" maxlength="20000"></textarea>
+    </div>
+    <div class="admin-field">
+      <label for="mail-template-text-input">Plain-text alternative</label>
+      <textarea id="mail-template-text-input" maxlength="20000"></textarea>
+    </div>
+    <label class="mail-template-enabled"><input type="checkbox" id="mail-template-enabled-input"> <span>Template is active and available to its matching flow.</span></label>
+    <p class="admin-modal-error" id="mail-template-modal-error"></p>
+    <p class="admin-modal-status" id="mail-template-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="mail-template-save-btn">Save Template</button>
+      <button type="button" class="btn" id="mail-template-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-modal admin-modal-over" id="image-library-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner admin-modal-inner-wide">
@@ -2676,6 +2756,8 @@
       if (name === 'system-status') { loadSystemStatusDetail(); loadCpuHistory(); }
       if (name === 'dispatch-control') loadControlList();
       if (name === 'news-management') loadNewsList();
+      if (name === 'mail-settings') loadMailSettings();
+      if (name === 'mail-templates') loadMailTemplates();
       if (name === 'dispatch-translations') loadList();
       if (name === 'members') loadMembers();
       if (name === 'topic-reports') loadTopicReports();
@@ -2703,7 +2785,7 @@
   // Standard/default state: every category collapsed except Home. This only
   // applies until the user's first click on a toggle, at which point their
   // explicit preference (saved below) takes over permanently.
-  var DEFAULT_COLLAPSED = ['lore', 'content', 'community', 'dispatches', 'system'];
+  var DEFAULT_COLLAPSED = ['lore', 'content', 'mail', 'community', 'dispatches', 'system'];
 
   function getCollapsedSet() {
     try {
@@ -4185,6 +4267,9 @@
     news_post_created: 'News post published',
     news_post_updated: 'News post updated',
     news_post_deleted: 'News post deleted',
+    mail_settings_updated: 'Mail settings updated',
+    mail_template_updated: 'Mail template updated',
+    mail_test_sent: 'Mail test sent',
     translation_added: 'Translation added',
     translation_updated: 'Translation updated',
     translation_auto_published: 'Translation auto-published',
@@ -4322,6 +4407,7 @@
     if (action.indexOf('google_') === 0) return { key: 'login', label: 'Google', icon: ACTIVITY_ICONS.google_login };
     if (action.indexOf('book_') === 0) return { key: 'books', label: 'Books', icon: ACTIVITY_ICONS.book_created };
     if (action.indexOf('news_') === 0) return { key: 'content', label: 'News', icon: ACTIVITY_ICONS.news_post_created };
+    if (action.indexOf('mail_') === 0) return { key: 'mail', label: 'Mail', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="m3 7 9 6 9-6"/></svg>' };
     if (action.indexOf('translation_') === 0 || action === 'category_edited' || action.indexOf('dispatch') === 0 || action.indexOf('development_') === 0) return { key: 'development', label: 'Development', icon: ACTIVITY_ICONS.dispatches_resynced };
     if (action.indexOf('member_') === 0) return { key: 'members', label: 'Members', icon: ACTIVITY_ICONS.member_updated };
     if (action.indexOf('topic_') === 0 || action.indexOf('comment_') === 0 || action.indexOf('content_') === 0 || action.indexOf('user_') === 0 || action.indexOf('report_') === 0) return { key: 'community', label: 'Community', icon: ACTIVITY_ICONS.forum_board_created };
@@ -9403,6 +9489,181 @@
         overlordModalError.textContent = 'Could not delete this overlord. Please try again.';
         overlordModalError.classList.add('show');
       });
+  });
+
+  // ===== Mail settings and templates =========================================
+  // The console manages sender identity and copy only. The common mail helper
+  // keeps delivery opt-in and never stores transport credentials in this UI.
+  var mailSettingsForm = document.getElementById('mail-settings-form');
+  var mailEnabledInput = document.getElementById('mail-enabled-input');
+  var mailFromNameInput = document.getElementById('mail-from-name-input');
+  var mailFromEmailInput = document.getElementById('mail-from-email-input');
+  var mailReplyToInput = document.getElementById('mail-reply-to-input');
+  var mailTransportPill = document.getElementById('mail-transport-pill');
+  var mailSettingsNote = document.getElementById('mail-settings-note');
+  var mailSettingsError = document.getElementById('mail-settings-error');
+  var mailSettingsStatus = document.getElementById('mail-settings-status');
+  var mailSettingsSaveBtn = document.getElementById('mail-settings-save-btn');
+  var mailTestRecipientInput = document.getElementById('mail-test-recipient-input');
+  var mailSendTestBtn = document.getElementById('mail-send-test-btn');
+  var mailTemplateList = document.getElementById('mail-template-list');
+  var mailTemplateVariables = document.getElementById('mail-template-variables');
+  var mailTemplateModal = document.getElementById('mail-template-modal');
+  var mailTemplateModalClose = document.getElementById('mail-template-modal-close');
+  var mailTemplateModalTitle = document.getElementById('mail-template-modal-title');
+  var mailTemplateModalSub = document.getElementById('mail-template-modal-sub');
+  var mailTemplateSubjectInput = document.getElementById('mail-template-subject-input');
+  var mailTemplateHtmlInput = document.getElementById('mail-template-html-input');
+  var mailTemplateTextInput = document.getElementById('mail-template-text-input');
+  var mailTemplateEnabledInput = document.getElementById('mail-template-enabled-input');
+  var mailTemplateModalError = document.getElementById('mail-template-modal-error');
+  var mailTemplateModalStatus = document.getElementById('mail-template-modal-status');
+  var mailTemplateSaveBtn = document.getElementById('mail-template-save-btn');
+  var mailTemplateCancelBtn = document.getElementById('mail-template-cancel-btn');
+  var mailTemplates = [];
+  var mailTemplateCurrent = null;
+
+  function setMailMessage(errorEl, statusEl, message, isError) {
+    errorEl.classList.remove('show'); statusEl.classList.remove('show');
+    errorEl.textContent = ''; statusEl.textContent = '';
+    if (!message) return;
+    (isError ? errorEl : statusEl).textContent = message;
+    (isError ? errorEl : statusEl).classList.add('show');
+  }
+
+  function loadMailSettings() {
+    if (!mailSettingsForm) return;
+    setMailMessage(mailSettingsError, mailSettingsStatus, '', false);
+    fetch('/api/admin/mail/settings.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load Mail Settings.');
+        var settings = data.settings || {};
+        mailEnabledInput.checked = !!settings.enabled;
+        mailFromNameInput.value = settings.from_name || '';
+        mailFromEmailInput.value = settings.from_email || '';
+        mailReplyToInput.value = settings.reply_to || '';
+        mailTransportPill.textContent = settings.ready ? 'Ready to send' : (settings.enabled ? 'Needs attention' : 'Delivery off');
+        mailTransportPill.className = 'mail-transport-pill ' + (settings.ready ? 'is-ready' : (settings.enabled ? 'is-warning' : ''));
+        mailSettingsNote.textContent = settings.transport_available
+          ? ('Transport: ' + (settings.transport || 'PHP mail') + '. ' + (settings.ready ? 'Transactional delivery is enabled.' : 'Add a verified sender, then enable delivery when you are ready.'))
+          : 'The server does not currently expose a mail transport. Delivery stays disabled.';
+        mailSettingsSaveBtn.disabled = !pwHasPermission('mail.manage');
+        mailSendTestBtn.disabled = !settings.ready || !pwHasPermission('mail.manage');
+      })
+      .catch(function (error) {
+        mailSettingsNote.textContent = 'Mail storage has not been configured yet.';
+        setMailMessage(mailSettingsError, mailSettingsStatus, error.message || 'Could not load Mail Settings.', true);
+      });
+  }
+
+  if (mailSettingsForm) mailSettingsForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    if (!pwHasPermission('mail.manage')) return;
+    setMailMessage(mailSettingsError, mailSettingsStatus, '', false);
+    mailSettingsSaveBtn.disabled = true;
+    fetch('/api/admin/mail/save-settings.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csrf: window.PW_AUTH.csrf, enabled: mailEnabledInput.checked, from_name: mailFromNameInput.value.trim(), from_email: mailFromEmailInput.value.trim(), reply_to: mailReplyToInput.value.trim() })
+    }).then(function (response) { return response.json(); }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Could not save Mail Settings.');
+      setMailMessage(mailSettingsError, mailSettingsStatus, 'Mail Settings saved. Delivery changes take effect immediately.', false);
+      loadMailSettings();
+    }).catch(function (error) {
+      setMailMessage(mailSettingsError, mailSettingsStatus, error.message || 'Could not save Mail Settings.', true);
+      mailSettingsSaveBtn.disabled = false;
+    });
+  });
+
+  if (mailSendTestBtn) mailSendTestBtn.addEventListener('click', function () {
+    if (!pwHasPermission('mail.manage')) return;
+    var recipient = mailTestRecipientInput.value.trim();
+    if (!recipient) {
+      setMailMessage(mailSettingsError, mailSettingsStatus, 'Enter a recipient for the test email.', true);
+      return;
+    }
+    mailSendTestBtn.disabled = true;
+    setMailMessage(mailSettingsError, mailSettingsStatus, '', false);
+    fetch('/api/admin/mail/send-test.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csrf: window.PW_AUTH.csrf, recipient_email: recipient })
+    }).then(function (response) { return response.json(); }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'The test email could not be sent.');
+      setMailMessage(mailSettingsError, mailSettingsStatus, 'Test email accepted by the server. Check the recipient inbox and spam folder.', false);
+    }).catch(function (error) {
+      setMailMessage(mailSettingsError, mailSettingsStatus, error.message || 'The test email could not be sent.', true);
+    }).finally(function () { loadMailSettings(); });
+  });
+
+  function renderMailTemplates() {
+    if (!mailTemplateList) return;
+    mailTemplateList.textContent = '';
+    if (!mailTemplates.length) {
+      mailTemplateList.innerHTML = '<div class="admin-list-empty">No mail templates are configured. Run the mail-system migration first.</div>';
+      return;
+    }
+    mailTemplates.forEach(function (template) {
+      var card = document.createElement('button');
+      card.type = 'button'; card.className = 'mail-template-card';
+      card.innerHTML = '<span class="mail-template-card-icon">✉</span><span class="mail-template-card-main"><strong>' + escapeHtml(template.label) + '</strong><small>' + escapeHtml(template.description) + '</small><em>' + escapeHtml(template.subject) + '</em></span><span class="mail-template-state' + (template.is_enabled ? ' is-active' : '') + '">' + (template.is_enabled ? 'Active' : 'Paused') + '</span><span class="mail-template-arrow">›</span>';
+      card.addEventListener('click', function () { openMailTemplateModal(template); });
+      mailTemplateList.appendChild(card);
+    });
+  }
+
+  function loadMailTemplates() {
+    if (!mailTemplateList) return;
+    mailTemplateList.innerHTML = '<div class="admin-list-empty">Loading mail templates&hellip;</div>';
+    fetch('/api/admin/mail/templates.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load mail templates.');
+        mailTemplates = data.templates || [];
+        var variables = (data.variables || []).map(function (key) { return '<code>{{' + escapeHtml(key) + '}}</code>'; }).join('');
+        mailTemplateVariables.innerHTML = '<strong>Available variables</strong>' + variables;
+        renderMailTemplates();
+      })
+      .catch(function (error) {
+        mailTemplateList.innerHTML = '<div class="admin-list-empty">' + escapeHtml(error.message || 'Could not load mail templates.') + '</div>';
+      });
+  }
+
+  function closeMailTemplateModal() {
+    mailTemplateModal.hidden = true; mailTemplateCurrent = null;
+  }
+  function openMailTemplateModal(template) {
+    if (!pwHasPermission('mail.manage')) return;
+    mailTemplateCurrent = template;
+    mailTemplateModalTitle.textContent = 'Edit ' + template.label;
+    mailTemplateModalSub.textContent = template.description;
+    mailTemplateSubjectInput.value = template.subject || '';
+    mailTemplateHtmlInput.value = template.html_body || '';
+    mailTemplateTextInput.value = template.text_body || '';
+    mailTemplateEnabledInput.checked = !!template.is_enabled;
+    setMailMessage(mailTemplateModalError, mailTemplateModalStatus, '', false);
+    mailTemplateSaveBtn.disabled = false;
+    mailTemplateModal.hidden = false;
+    setTimeout(function () { mailTemplateSubjectInput.focus(); }, 25);
+  }
+  if (mailTemplateModalClose) mailTemplateModalClose.addEventListener('click', closeMailTemplateModal);
+  if (mailTemplateCancelBtn) mailTemplateCancelBtn.addEventListener('click', closeMailTemplateModal);
+  if (mailTemplateModal) mailTemplateModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeMailTemplateModal);
+  if (mailTemplateSaveBtn) mailTemplateSaveBtn.addEventListener('click', function () {
+    if (!mailTemplateCurrent || !pwHasPermission('mail.manage')) return;
+    mailTemplateSaveBtn.disabled = true;
+    setMailMessage(mailTemplateModalError, mailTemplateModalStatus, '', false);
+    fetch('/api/admin/mail/save-template.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csrf: window.PW_AUTH.csrf, template_key: mailTemplateCurrent.template_key, subject: mailTemplateSubjectInput.value.trim(), html_body: mailTemplateHtmlInput.value.trim(), text_body: mailTemplateTextInput.value.trim(), is_enabled: mailTemplateEnabledInput.checked })
+    }).then(function (response) { return response.json(); }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Could not save this template.');
+      setMailMessage(mailTemplateModalError, mailTemplateModalStatus, 'Template saved.', false);
+      loadMailTemplates();
+      setTimeout(closeMailTemplateModal, 450);
+    }).catch(function (error) {
+      mailTemplateSaveBtn.disabled = false;
+      setMailMessage(mailTemplateModalError, mailTemplateModalStatus, error.message || 'Could not save this template.', true);
+    });
   });
 
   // ===== News Management ======================================================
