@@ -21,6 +21,8 @@ $totalForumPosts =
 
 $totalDispatches = (int)$db->query('SELECT COUNT(*) AS c FROM dispatch_entries')->fetch()['c'];
 
+$totalNewsposts = (int)$db->query('SELECT COUNT(*) AS c FROM news_posts')->fetch()['c'];
+
 $todayDispatches = (int)$db->query(
     "SELECT COUNT(*) AS c FROM dispatch_entries WHERE DATE(committed_at) = CURDATE()"
 )->fetch()['c'];
@@ -38,6 +40,7 @@ pw_json([
     'total_members' => $totalMembers,
     'total_forum_posts' => $totalForumPosts,
     'total_dispatches' => $totalDispatches,
+    'total_newsposts' => $totalNewsposts,
     'active_worlds' => PW_ACTIVE_WORLDS,
     'active_overlords' => PW_ACTIVE_OVERLORDS,
     'today_dispatches' => $todayDispatches,
