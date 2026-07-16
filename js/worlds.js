@@ -7,6 +7,41 @@ document.addEventListener('DOMContentLoaded', function () {
   var gridEl = document.getElementById('world-grid');
   var detailEl = document.getElementById('world-detail-sections');
   if (!gridEl || !detailEl) return;
+  var atlasEl = document.getElementById('world-atlas');
+  var atlasStageEl = document.getElementById('world-atlas-stage');
+  var atlasPanEl = document.getElementById('world-atlas-pan');
+  var atlasHotspotsEl = document.getElementById('world-atlas-hotspots');
+  var atlasInfoTitleEl = document.getElementById('world-atlas-info-title');
+  var atlasInfoCopyEl = document.getElementById('world-atlas-info-copy');
+  var atlasInfoLinkEl = document.getElementById('world-atlas-info-link');
+
+  // Coordinates use the atlas artwork's native 1672 × 941 viewBox and the
+  // World Control sort order, so content staff only need to manage a world's
+  // normal status. Unlocking a world automatically activates its medallion.
+  var ATLAS_POINTS = {
+    1: { x: 773, y: 140, r: 77 },
+    2: { x: 1044, y: 164, r: 76 },
+    3: { x: 1272, y: 278, r: 76 },
+    4: { x: 1351, y: 451, r: 76 },
+    5: { x: 1283, y: 630, r: 76 },
+    6: { x: 1094, y: 735, r: 76 },
+    7: { x: 796, y: 778, r: 76 },
+    8: { x: 531, y: 714, r: 76 },
+    9: { x: 380, y: 639, r: 76 },
+    10: { x: 280, y: 500, r: 76 },
+    11: { x: 368, y: 350, r: 76 },
+    12: { x: 530, y: 232, r: 76 }
+  };
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, function (char) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[char];
+    });
+  }
+
+  function worldRecordUrl(world) {
+    return 'world.html?slug=' + encodeURIComponent(world.slug);
+  }
 
   function pad2(n) {
     return n < 10 ? '0' + n : String(n);
@@ -31,12 +66,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (world.status === 'available') {
       return (
         '<div class="world-card card available" id="' + cardId + '">' +
-          '<a class="thumb" href="#' + world.slug + '">' +
+          '<a class="thumb" href="' + worldRecordUrl(world) + '">' +
             '<img src="' + (world.thumb_image_url || '') + '" alt="' + world.name + '" loading="lazy" decoding="async"></a>' +
           '<span class="world-tag">' + overlordTagText(world) + '</span>' +
           '<h3>' + world.tagline + '</h3>' +
           '<p>' + world.card_blurb + '</p>' +
-          '<a href="#' + world.slug + '" class="learn-more">Explore Below &darr;</a>' +
+          '<a href="' + worldRecordUrl(world) + '" class="learn-more">Open World Record &rarr;</a>' +
         '</div>'
       );
     }
@@ -167,12 +202,98 @@ document.addEventListener('DOMContentLoaded', function () {
     );
   }
 
+  function setAtlasInfo(world) {
+    if (!atlasInfoTitleEl || !atlasInfoCopyEl || !atlasInfoLinkEl) return;
+    if (!world) {
+      atlasInfoTitleEl.textContent = 'Select a world';
+      atlasInfoCopyEl.textContent = 'Hover or focus a medallion to inspect its record. Available worlds can be opened in their own field file.';
+      atlasInfoLinkEl.hidden = true;
+      return;
+    }
+    if (world.status === 'available') {
+      atlasInfoTitleEl.textContent = world.name;
+      atlasInfoCopyEl.textContent = world.card_blurb || world.tagline || 'This world record is available to explore.';
+      atlasInfoLinkEl.href = worldRecordUrl(world);
+      atlasInfoLinkEl.hidden = false;
+      return;
+    }
+    atlasInfoTitleEl.textContent = 'ERROR: LORE LOCK';
+    atlasInfoCopyEl.textContent = 'MISSING INFORMATION — ' + world.name + ' remains sealed in the lore archive. Its world record will unlock when the archive is cleared.';
+    atlasInfoLinkEl.hidden = true;
+  }
+
+  function renderAtlas(worlds) {
+    if (!atlasEl || !atlasHotspotsEl) return;
+    var mappedWorlds = worlds.filter(function (world) { return !!ATLAS_POINTS[world.sort_order]; });
+    var locked = mappedWorlds.filter(function (world) { return world.status !== 'available'; });
+    var defs =
+      '<defs>' +
+        '<filter id="world-atlas-lock-filter"><feColorMatrix type="saturate" values="0"></feColorMatrix><feComponentTransfer><feFuncR type="linear" slope="0.33"></feFuncR><feFuncG type="linear" slope="0.33"></feFuncG><feFuncB type="linear" slope="0.38"></feFuncB></feComponentTransfer></filter>' +
+        locked.map(function (world) {
+          var point = ATLAS_POINTS[world.sort_order];
+          return '<clipPath id="world-atlas-clip-' + escapeHtml(world.slug) + '"><circle cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 3) + '"></circle></clipPath>';
+        }).join('') +
+      '</defs>';
+    var lockedArtwork = locked.map(function (world) {
+      return '<image href="images/twelve-worlds-atlas.png" x="0" y="0" width="1672" height="941" preserveAspectRatio="none" clip-path="url(#world-atlas-clip-' + escapeHtml(world.slug) + ')" filter="url(#world-atlas-lock-filter)"></image>';
+    }).join('');
+    var hotspots = mappedWorlds.map(function (world) {
+      var point = ATLAS_POINTS[world.sort_order];
+      var label = world.status === 'available' ? 'Open world record for ' + world.name : 'Lore locked: ' + world.name;
+      var circles =
+        '<circle class="world-atlas-hit" cx="' + point.x + '" cy="' + point.y + '" r="' + point.r + '"></circle>' +
+        '<circle class="world-atlas-ring" cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 4) + '"></circle>' +
+        (world.status === 'available' ? '<circle class="world-atlas-signal" cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 10) + '"></circle>' : '<circle class="world-atlas-lock-shade" cx="' + point.x + '" cy="' + point.y + '" r="' + point.r + '"></circle>');
+      if (world.status === 'available') {
+        return '<a class="world-atlas-hotspot is-available" href="' + worldRecordUrl(world) + '" data-world-slug="' + escapeHtml(world.slug) + '" aria-label="' + escapeHtml(label) + '">' + circles + '</a>';
+      }
+      return '<g class="world-atlas-hotspot is-locked" data-world-slug="' + escapeHtml(world.slug) + '" tabindex="0" role="img" aria-label="' + escapeHtml(label) + '">' + circles + '</g>';
+    }).join('');
+
+    atlasHotspotsEl.innerHTML = defs + lockedArtwork + hotspots;
+    var bySlug = {};
+    mappedWorlds.forEach(function (world) { bySlug[world.slug] = world; });
+    Array.prototype.forEach.call(atlasHotspotsEl.querySelectorAll('[data-world-slug]'), function (hotspot) {
+      var world = bySlug[hotspot.getAttribute('data-world-slug')];
+      hotspot.addEventListener('mouseenter', function () { setAtlasInfo(world); });
+      hotspot.addEventListener('focus', function () { setAtlasInfo(world); });
+    });
+    atlasEl.addEventListener('mouseleave', function () { setAtlasInfo(null); });
+    setAtlasInfo(null);
+  }
+
+  function wireAtlasParallax() {
+    if (!atlasStageEl || !atlasPanEl || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var frame = 0;
+    var targetX = 0;
+    var targetY = 0;
+    function paint() {
+      frame = 0;
+      atlasPanEl.style.setProperty('--atlas-x', targetX.toFixed(2) + 'px');
+      atlasPanEl.style.setProperty('--atlas-y', targetY.toFixed(2) + 'px');
+    }
+    atlasStageEl.addEventListener('pointermove', function (event) {
+      if (event.pointerType === 'touch') return;
+      var rect = atlasStageEl.getBoundingClientRect();
+      targetX = ((event.clientX - rect.left) / rect.width - 0.5) * 7;
+      targetY = ((event.clientY - rect.top) / rect.height - 0.5) * 7;
+      if (!frame) frame = window.requestAnimationFrame(paint);
+    });
+    atlasStageEl.addEventListener('pointerleave', function () {
+      targetX = 0;
+      targetY = 0;
+      if (!frame) frame = window.requestAnimationFrame(paint);
+    });
+  }
+
   fetch('/api/worlds.php', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (data) {
       if (!data.ok || !data.worlds) return;
       var worlds = data.worlds.slice().sort(function (a, b) { return a.sort_order - b.sort_order; });
 
+      renderAtlas(worlds);
+      wireAtlasParallax();
       gridEl.innerHTML = worlds.map(renderCard).join('');
 
       var available = worlds.filter(function (w) { return w.status === 'available'; });

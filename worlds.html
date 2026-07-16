@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=197">
+<link rel="stylesheet" href="css/public.css?v=198">
 </head>
 <body>
 
@@ -78,6 +78,27 @@
 
   <section>
     <div class="container">
+      <div class="world-atlas-head">
+        <span class="eyebrow">Atlas Interface</span>
+        <h2 id="world-atlas-title">The Twelve Worlds</h2>
+        <p>Trace the worlds bound to the Nexus Veil. Available records open their own field file; sealed records remain under lore lock.</p>
+      </div>
+      <div class="world-atlas-shell" id="world-atlas" aria-labelledby="world-atlas-title">
+        <div class="world-atlas-stage" id="world-atlas-stage">
+          <div class="world-atlas-pan" id="world-atlas-pan">
+            <img src="images/twelve-worlds-atlas.png" alt="Atlas of the twelve worlds surrounding the Nexus Veil" width="1672" height="941" loading="lazy" decoding="async" fetchpriority="low">
+            <svg class="world-atlas-hotspots" id="world-atlas-hotspots" viewBox="0 0 1672 941" role="group" aria-label="Interactive world atlas"></svg>
+          </div>
+        </div>
+        <aside class="world-atlas-info" id="world-atlas-info" aria-live="polite">
+          <span class="world-atlas-info-kicker">Atlas signal</span>
+          <h3 id="world-atlas-info-title">Select a world</h3>
+          <p id="world-atlas-info-copy">Hover or focus a medallion to inspect its record. Available worlds can be opened in their own field file.</p>
+          <a class="world-atlas-info-link" id="world-atlas-info-link" href="#world-grid" hidden>Open world record <span aria-hidden="true">&rarr;</span></a>
+        </aside>
+      </div>
+
+      <div class="world-atlas-grid-divider" aria-hidden="true"><span></span></div>
       <div class="grid grid-3" id="world-grid"></div>
     </div>
   </section>
@@ -141,6 +162,6 @@
 
 <script src="js/main.js?v=6"></script>
 <script src="js/members.js?v=23"></script>
-<script src="js/worlds.js?v=3"></script>
+<script src="js/worlds.js?v=4"></script>
 </body>
 </html>
