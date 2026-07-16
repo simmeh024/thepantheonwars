@@ -727,7 +727,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   preference.
 - **Interactive Worlds atlas:** `worlds.html` now presents the supplied
   `images/twelve-worlds-atlas.png` as a wide 1672×941 interactive SVG overlay.
-  `js/worlds.js?v=8` maps the existing `worlds.sort_order` values 1–12 to the
+  `js/worlds.js?v=9` maps the existing `worlds.sort_order` values 1–12 to the
   artwork's medallions, so World Control's ordinary `available`/`locked` status
   automatically controls each destination. Available medallions open the stable
   dynamic record route `world.html?slug=<slug>`; locked medallions stay visually
@@ -743,7 +743,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   box. Locked medallions are painted once into a transparent native-resolution canvas
   from that already-loaded atlas image, then displayed in the identical CSS box. This
   avoids every secondary-image/SVG transform and is the authoritative lock treatment;
-  do not reintroduce SVG blend modes or clipped image copies. Each focus/hover signal
+  do not reintroduce SVG blend modes or clipped image copies. Medallion centers are
+  individually calibrated against the native 1672×941 artwork; do not replace them
+  with an evenly spaced orbit. Each focus/hover signal
   also applies a world-specific, restrained gradient to the info panel. There is no
   new table or migration.
 - **News publication notifications:** News Management creates public posts
