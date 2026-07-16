@@ -856,9 +856,14 @@
   transition: stroke 180ms ease, r 180ms ease;
 }
 .world-atlas-lock-shade {
-  fill: rgba(4, 5, 11, 0.48);
+  fill: rgba(4, 5, 11, 0.58);
   stroke: rgba(142, 130, 161, 0.46);
   stroke-width: 1;
+}
+.world-atlas-lock-desaturate {
+  fill: #9c98a3;
+  opacity: 0.96;
+  mix-blend-mode: saturation;
 }
 .world-atlas-hotspot.is-available:hover .world-atlas-ring,
 .world-atlas-hotspot.is-available:focus .world-atlas-ring {
@@ -878,6 +883,7 @@
   100% { opacity: 0.1; }
 }
 .world-atlas-info {
+  --atlas-tone-rgb: 124, 79, 214;
   position: relative;
   max-width: 770px;
   margin: 14px auto 0;
@@ -885,6 +891,12 @@
   border: 1px solid rgba(132, 88, 209, 0.46);
   background: linear-gradient(115deg, rgba(25, 15, 51, 0.96), rgba(11, 10, 29, 0.96));
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
+  transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+.world-atlas-info.is-active {
+  border-color: rgba(var(--atlas-tone-rgb), 0.68);
+  background: linear-gradient(118deg, rgba(var(--atlas-tone-rgb), 0.22), rgba(25, 15, 51, 0.96) 48%, rgba(11, 10, 29, 0.98));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.26), 0 0 24px rgba(var(--atlas-tone-rgb), 0.12);
 }
 .world-atlas-info::before {
   content: '';
@@ -902,6 +914,7 @@
   letter-spacing: 0.13em;
   text-transform: uppercase;
 }
+.world-atlas-info.is-active .world-atlas-info-kicker { color: rgb(var(--atlas-tone-rgb)); }
 .world-atlas-info h3 { margin: 0; font-size: 1.2rem; }
 .world-atlas-info p { margin: 0.35rem 0 0; color: var(--text-muted); }
 .world-atlas-info-link {

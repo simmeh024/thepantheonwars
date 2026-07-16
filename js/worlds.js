@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var atlasStageEl = document.getElementById('world-atlas-stage');
   var atlasPanEl = document.getElementById('world-atlas-pan');
   var atlasHotspotsEl = document.getElementById('world-atlas-hotspots');
+  var atlasInfoEl = document.getElementById('world-atlas-info');
+  var atlasInfoKickerEl = document.querySelector('.world-atlas-info-kicker');
   var atlasInfoTitleEl = document.getElementById('world-atlas-info-title');
   var atlasInfoCopyEl = document.getElementById('world-atlas-info-copy');
   var atlasInfoLinkEl = document.getElementById('world-atlas-info-link');
@@ -31,6 +33,23 @@ document.addEventListener('DOMContentLoaded', function () {
     10: { x: 280, y: 493, r: 77 },
     11: { x: 368, y: 345, r: 77 },
     12: { x: 530, y: 232, r: 77 }
+  };
+
+  // The color is visual metadata for the atlas only. World Control still owns
+  // the actual availability state and the public record content.
+  var ATLAS_TONES = {
+    1: { key: 'neoh', label: 'Neoh signal', rgb: '154, 96, 238' },
+    2: { key: 'high-hammer', label: 'High Hammer signal', rgb: '184, 111, 66' },
+    3: { key: 'cerius', label: 'Cerius signal', rgb: '204, 72, 80' },
+    4: { key: 'reanium', label: 'Reanium signal', rgb: '159, 224, 65' },
+    5: { key: 'asmecu', label: 'Asmecu signal', rgb: '68, 150, 237' },
+    6: { key: 'babki-prime', label: 'Babki Prime signal', rgb: '59, 148, 83' },
+    7: { key: 'sed', label: 'Sed signal', rgb: '166, 36, 57' },
+    8: { key: 'geof-v', label: 'Geof V signal', rgb: '158, 175, 193' },
+    9: { key: 'beoctica', label: 'Beoctica signal', rgb: '225, 232, 241' },
+    10: { key: 'terek-ii', label: 'Terek II signal', rgb: '121, 29, 40' },
+    11: { key: 'valerium-prime', label: 'Valerium Prime signal', rgb: '218, 176, 76' },
+    12: { key: 'vermillia-xi', label: 'Vermillia XI signal', rgb: '210, 142, 72' }
   };
 
   function escapeHtml(value) {
@@ -205,11 +224,24 @@ document.addEventListener('DOMContentLoaded', function () {
   function setAtlasInfo(world) {
     if (!atlasInfoTitleEl || !atlasInfoCopyEl || !atlasInfoLinkEl) return;
     if (!world) {
+      if (atlasInfoEl) {
+        atlasInfoEl.classList.remove('is-active');
+        atlasInfoEl.removeAttribute('data-atlas-tone');
+        atlasInfoEl.style.removeProperty('--atlas-tone-rgb');
+      }
+      if (atlasInfoKickerEl) atlasInfoKickerEl.textContent = 'Hover a world';
       atlasInfoTitleEl.textContent = 'Select a world';
       atlasInfoCopyEl.textContent = 'Hover or focus a medallion to inspect its record. Available worlds can be opened in their own field file.';
       atlasInfoLinkEl.hidden = true;
       return;
     }
+    var tone = ATLAS_TONES[world.sort_order];
+    if (atlasInfoEl && tone) {
+      atlasInfoEl.classList.add('is-active');
+      atlasInfoEl.setAttribute('data-atlas-tone', tone.key);
+      atlasInfoEl.style.setProperty('--atlas-tone-rgb', tone.rgb);
+    }
+    if (atlasInfoKickerEl) atlasInfoKickerEl.textContent = tone ? tone.label : 'World signal';
     if (world.status === 'available') {
       atlasInfoTitleEl.textContent = world.name;
       atlasInfoCopyEl.textContent = world.card_blurb || world.tagline || 'This world record is available to explore.';
@@ -225,32 +257,20 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderAtlas(worlds) {
     if (!atlasEl || !atlasHotspotsEl) return;
     var mappedWorlds = worlds.filter(function (world) { return !!ATLAS_POINTS[world.sort_order]; });
-    var locked = mappedWorlds.filter(function (world) { return world.status !== 'available'; });
-    var defs =
-      '<defs>' +
-        '<filter id="world-atlas-lock-filter"><feColorMatrix type="saturate" values="0"></feColorMatrix><feComponentTransfer><feFuncR type="linear" slope="0.33"></feFuncR><feFuncG type="linear" slope="0.33"></feFuncG><feFuncB type="linear" slope="0.38"></feFuncB></feComponentTransfer></filter>' +
-        locked.map(function (world) {
-          var point = ATLAS_POINTS[world.sort_order];
-          return '<clipPath id="world-atlas-clip-' + escapeHtml(world.slug) + '"><circle cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 3) + '"></circle></clipPath>';
-        }).join('') +
-      '</defs>';
-    var lockedArtwork = locked.map(function (world) {
-      return '<image href="images/twelve-worlds-atlas.png?v=2" x="0" y="0" width="1672" height="941" preserveAspectRatio="none" clip-path="url(#world-atlas-clip-' + escapeHtml(world.slug) + ')" filter="url(#world-atlas-lock-filter)"></image>';
-    }).join('');
     var hotspots = mappedWorlds.map(function (world) {
       var point = ATLAS_POINTS[world.sort_order];
       var label = world.status === 'available' ? 'Open world record for ' + world.name : 'Lore locked: ' + world.name;
       var circles =
         '<circle class="world-atlas-hit" cx="' + point.x + '" cy="' + point.y + '" r="' + point.r + '"></circle>' +
         '<circle class="world-atlas-ring" cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 4) + '"></circle>' +
-        (world.status === 'available' ? '<circle class="world-atlas-signal" cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 10) + '"></circle>' : '<circle class="world-atlas-lock-shade" cx="' + point.x + '" cy="' + point.y + '" r="' + point.r + '"></circle>');
+        (world.status === 'available' ? '<circle class="world-atlas-signal" cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 10) + '"></circle>' : '<circle class="world-atlas-lock-desaturate" cx="' + point.x + '" cy="' + point.y + '" r="' + point.r + '"></circle><circle class="world-atlas-lock-shade" cx="' + point.x + '" cy="' + point.y + '" r="' + point.r + '"></circle>');
       if (world.status === 'available') {
         return '<a class="world-atlas-hotspot is-available" href="' + worldRecordUrl(world) + '" data-world-slug="' + escapeHtml(world.slug) + '" aria-label="' + escapeHtml(label) + '">' + circles + '</a>';
       }
       return '<g class="world-atlas-hotspot is-locked" data-world-slug="' + escapeHtml(world.slug) + '" tabindex="0" role="img" aria-label="' + escapeHtml(label) + '">' + circles + '</g>';
     }).join('');
 
-    atlasHotspotsEl.innerHTML = defs + lockedArtwork + hotspots;
+    atlasHotspotsEl.innerHTML = hotspots;
     var bySlug = {};
     mappedWorlds.forEach(function (world) { bySlug[world.slug] = world; });
     Array.prototype.forEach.call(atlasHotspotsEl.querySelectorAll('[data-world-slug]'), function (hotspot) {
