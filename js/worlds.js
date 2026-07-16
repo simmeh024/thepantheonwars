@@ -11,6 +11,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var atlasStageEl = document.getElementById('world-atlas-stage');
   var atlasPanEl = document.getElementById('world-atlas-pan');
   var atlasHotspotsEl = document.getElementById('world-atlas-hotspots');
+  var atlasImageEl = atlasPanEl ? atlasPanEl.querySelector('img') : null;
+  var atlasLockCanvasEl = document.getElementById('world-atlas-lock-canvas');
   var atlasInfoEl = document.getElementById('world-atlas-info');
   var atlasInfoKickerEl = document.querySelector('.world-atlas-info-kicker');
   var atlasInfoTitleEl = document.getElementById('world-atlas-info-title');
@@ -254,21 +256,68 @@ document.addEventListener('DOMContentLoaded', function () {
     atlasInfoLinkEl.hidden = true;
   }
 
+  // SVG blend/filter compositing differs between browser engines. Paint the
+  // locked regions from the exact same 1672 × 941 raster instead: the canvas
+  // and visible image have identical CSS boxes, so there is no separate image
+  // transform that can cause a lock state to drift away from its medallion.
+  function renderLockedWorldCanvas(lockedWorlds) {
+    if (!atlasLockCanvasEl || !atlasImageEl) return;
+    var paint = function () {
+      if (!atlasImageEl.naturalWidth) return;
+      var ctx = atlasLockCanvasEl.getContext('2d');
+      atlasLockCanvasEl.width = 1672;
+      atlasLockCanvasEl.height = 941;
+      ctx.clearRect(0, 0, 1672, 941);
+      if (!lockedWorlds.length) return;
+      ctx.drawImage(atlasImageEl, 0, 0, 1672, 941);
+      var pixels;
+      try {
+        pixels = ctx.getImageData(0, 0, 1672, 941);
+      } catch (error) {
+        // Same-origin artwork is required for the canvas path. If a future
+        // asset host makes this unavailable, leave the original map intact.
+        ctx.clearRect(0, 0, 1672, 941);
+        return;
+      }
+      var data = pixels.data;
+      var i;
+      for (i = 3; i < data.length; i += 4) data[i] = 0;
+      lockedWorlds.forEach(function (world) {
+        var point = ATLAS_POINTS[world.sort_order];
+        var radius = point.r + 2;
+        var radiusSquared = radius * radius;
+        var minX = Math.max(0, Math.floor(point.x - radius));
+        var maxX = Math.min(1671, Math.ceil(point.x + radius));
+        var minY = Math.max(0, Math.floor(point.y - radius));
+        var maxY = Math.min(940, Math.ceil(point.y + radius));
+        for (var y = minY; y <= maxY; y += 1) {
+          for (var x = minX; x <= maxX; x += 1) {
+            var dx = x - point.x;
+            var dy = y - point.y;
+            if (dx * dx + dy * dy > radiusSquared) continue;
+            var offset = (y * 1672 + x) * 4;
+            var luminance = (data[offset] * 0.299 + data[offset + 1] * 0.587 + data[offset + 2] * 0.114) * 0.74;
+            data[offset] = luminance;
+            data[offset + 1] = luminance;
+            data[offset + 2] = luminance;
+            data[offset + 3] = 255;
+          }
+        }
+      });
+      ctx.putImageData(pixels, 0, 0);
+    };
+    if (atlasImageEl.complete && atlasImageEl.naturalWidth) {
+      paint();
+    } else {
+      atlasImageEl.addEventListener('load', paint, { once: true });
+    }
+  }
+
   function renderAtlas(worlds) {
     if (!atlasEl || !atlasHotspotsEl) return;
     var mappedWorlds = worlds.filter(function (world) { return !!ATLAS_POINTS[world.sort_order]; });
     var locked = mappedWorlds.filter(function (world) { return world.status !== 'available'; });
-    // The filtered copy shares the root SVG's exact viewBox and aspect-ratio
-    // rules with the visible atlas. Unlike blend modes, this remains reliable
-    // on browsers that isolate the SVG from the image beneath it.
-    var defs = '<defs><filter id="world-atlas-lock-filter"><feColorMatrix type="saturate" values="0"></feColorMatrix></filter>' +
-      locked.map(function (world) {
-        var point = ATLAS_POINTS[world.sort_order];
-        return '<clipPath id="world-atlas-clip-' + escapeHtml(world.slug) + '"><circle cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 2) + '"></circle></clipPath>';
-      }).join('') + '</defs>';
-    var lockedArtwork = locked.map(function (world) {
-      return '<image href="images/twelve-worlds-atlas.png?v=2" x="0" y="0" width="1672" height="941" preserveAspectRatio="none" clip-path="url(#world-atlas-clip-' + escapeHtml(world.slug) + ')" filter="url(#world-atlas-lock-filter)"></image>';
-    }).join('');
+    renderLockedWorldCanvas(locked);
     var hotspots = mappedWorlds.map(function (world) {
       var point = ATLAS_POINTS[world.sort_order];
       var label = world.status === 'available' ? 'Open world record for ' + world.name : 'Lore locked: ' + world.name;
@@ -282,7 +331,7 @@ document.addEventListener('DOMContentLoaded', function () {
       return '<g class="world-atlas-hotspot is-locked" data-world-slug="' + escapeHtml(world.slug) + '" tabindex="0" role="img" aria-label="' + escapeHtml(label) + '">' + circles + '</g>';
     }).join('');
 
-    atlasHotspotsEl.innerHTML = defs + lockedArtwork + hotspots;
+    atlasHotspotsEl.innerHTML = hotspots;
     var bySlug = {};
     mappedWorlds.forEach(function (world) { bySlug[world.slug] = world; });
     Array.prototype.forEach.call(atlasHotspotsEl.querySelectorAll('[data-world-slug]'), function (hotspot) {

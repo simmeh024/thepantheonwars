@@ -827,12 +827,19 @@
   will-change: transform;
 }
 .world-atlas-pan > img,
+.world-atlas-lock-canvas,
 .world-atlas-hotspots {
   display: block;
   width: 100%;
   height: 100%;
 }
 .world-atlas-pan > img { object-fit: fill; }
+.world-atlas-lock-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
 .world-atlas-hotspots {
   position: absolute;
   inset: 0;

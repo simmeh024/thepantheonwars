@@ -227,7 +227,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=201, community v=198, and admin v=211. Public pages use
+  versions: public v=202, community v=198, and admin v=211. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -727,7 +727,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   preference.
 - **Interactive Worlds atlas:** `worlds.html` now presents the supplied
   `images/twelve-worlds-atlas.png` as a wide 1672×941 interactive SVG overlay.
-  `js/worlds.js?v=7` maps the existing `worlds.sort_order` values 1–12 to the
+  `js/worlds.js?v=8` maps the existing `worlds.sort_order` values 1–12 to the
   artwork's medallions, so World Control's ordinary `available`/`locked` status
   automatically controls each destination. Available medallions open the stable
   dynamic record route `world.html?slug=<slug>`; locked medallions stay visually
@@ -740,11 +740,12 @@ also supports a deliberately manual `?full=1` historical rebuild.
   `images/twelve-worlds-atlas.png?v=2`; increment that query whenever the source
   image changes because image assets are immutable in browser caches. The SVG root
   uses `preserveAspectRatio="none"` and the matching image fills the same coordinate
-  box. Locked medallions use a clipped, grayscale copy of that exact atlas URL plus a
-  light darkening circle; do not substitute CSS blend modes because they become a flat
-  fill on some browsers. Each focus/hover signal also applies a world-specific,
-  restrained gradient to the info panel. Retain those rules when revising the atlas.
-  There is no new table or migration.
+  box. Locked medallions are painted once into a transparent native-resolution canvas
+  from that already-loaded atlas image, then displayed in the identical CSS box. This
+  avoids every secondary-image/SVG transform and is the authoritative lock treatment;
+  do not reintroduce SVG blend modes or clipped image copies. Each focus/hover signal
+  also applies a world-specific, restrained gradient to the info panel. There is no
+  new table or migration.
 - **News publication notifications:** News Management creates public posts
   immediately, then broadcasts a `news_published` notification only after the
   database transaction commits. Each notification deep-links to
