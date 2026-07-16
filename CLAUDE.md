@@ -736,7 +736,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   automatically controls each destination. Available medallions open the stable
   dynamic record route `world.html?slug=<slug>`; locked medallions stay visually
   dimmed and expose `ERROR: LORE LOCK / MISSING INFORMATION` without leaking a
-  record. `js/world-atlas-effects.js?v=3` adds the cinematic layer: GSAP owns one
+  record. `js/world-atlas-effects.js?v=4` adds the cinematic layer: GSAP owns one
   restrained scene transform and ScrollTrigger depth pass, while one transparent
   native-resolution canvas clips all ambient effects to their calibrated medallion
   circles. The twelve stable slugs select distinct motifs (glitch, copper sparks,
@@ -745,17 +745,18 @@ also supports a deliberately manual `?full=1` historical rebuild.
   Effects are built only for API records whose status is exactly `available`; a
   locked world must never receive either its effect or destination behavior.
   Rendering is throttled to a cinematic 24 fps, uses deterministic particle pools,
-  clears only the small active regions between frames, and pauses when the atlas
+  clears the transparent overlay completely between frames (this prevents blurred
+  world rims and sparks from leaving trails), and pauses when the atlas
   leaves the viewport or the tab is hidden. Available worlds render at a visible
   idle strength, ease to roughly double intensity on hover/focus, receive a local
   2.8% image zoom, and use their own tone for the illuminated rim and signal. Each
   motif also has a staggered 6–9 second signature flare so the orbit never pulses in
-  unison. The Nexus clouds are an independent always-on storm made from two
-  counter-rotating spiral layers, inward-moving dust, a breathing core, and
-  deterministic but irregular energy channels that travel slowly around the outer
-  cloud bands without crossing the central city. The canvas clear region around each
-  medallion includes its full shadow blur; shrinking that padding reintroduces stale
-  hover-ring fragments after pointer leave. The Nexus remains active even if every
+  unison. The Nexus clouds are an independent always-on storm made from soft drifting
+  cloud wisps, inward-moving dust, a breathing core, and short freeform lightning
+  bolts at deterministic irregular positions. The bolts reveal and fade locally with
+  only a few pixels of drift; they never follow an orbit or cross the central city.
+  High Hammer uses compact copper motes instead of line-shaped sparks so its idle and
+  hover states cannot leave vertical streaks. The Nexus remains active even if every
   world is lore-locked.
   Fine-pointer desktop devices get less than one
   degree of pointer tilt through `gsap.quickTo`; touch devices keep the atlas flat.

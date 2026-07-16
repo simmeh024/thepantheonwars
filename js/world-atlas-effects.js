@@ -12,8 +12,7 @@
   var HEIGHT = 941;
   var TAU = Math.PI * 2;
   var FRAME_INTERVAL = 1000 / 24;
-  var WORLD_CLEAR_PADDING = 30;
-  var NEXUS = { x: 836, y: 472, rx: 292, ry: 218 };
+  var NEXUS = { x: 836, y: 472 };
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -67,24 +66,37 @@
     return particles;
   }
 
-  function buildNexusEnergyChannels(count) {
-    var random = seededRandom(hashString('nexus-cloud-energy'));
-    var channels = [];
+  function buildNexusEnergyBolts(count) {
+    var random = seededRandom(hashString('nexus-cloud-lightning'));
+    var bolts = [];
     for (var i = 0; i < count; i += 1) {
-      channels.push({
-        angle: random() * TAU,
-        radius: 142 + random() * 118,
-        span: 0.58 + random() * 0.62,
-        trail: 0.2 + random() * 0.16,
-        jitter: 4 + random() * 8,
-        period: 6.8 + random() * 6.4,
-        duration: 2.6 + random() * 1.7,
-        offset: random() * 11,
-        drift: (random() > 0.5 ? 1 : -1) * (0.006 + random() * 0.01),
+      var cloudAngle = random() * TAU;
+      var cloudRadius = 158 + random() * 104;
+      var originX = NEXUS.x + Math.cos(cloudAngle) * cloudRadius;
+      var originY = NEXUS.y + Math.sin(cloudAngle) * cloudRadius * 0.68;
+      var direction = cloudAngle + Math.PI * 0.5 + (random() - 0.5) * 1.55;
+      var length = 54 + random() * 74;
+      var points = [];
+      for (var step = 0; step <= 12; step += 1) {
+        var progress = step / 12 - 0.5;
+        var deviation = (random() - 0.5) * (7 + Math.sin(step * 1.7) * 3);
+        points.push({
+          x: originX + Math.cos(direction) * length * progress + Math.cos(direction + Math.PI * 0.5) * deviation,
+          y: originY + Math.sin(direction) * length * progress + Math.sin(direction + Math.PI * 0.5) * deviation
+        });
+      }
+      bolts.push({
+        points: points,
+        period: 7.2 + random() * 7.8,
+        duration: 1.8 + random() * 1.5,
+        offset: random() * 13,
+        driftX: (random() - 0.5) * 5,
+        driftY: (random() - 0.5) * 4,
+        phase: random() * TAU,
         cyan: random() > 0.48
       });
     }
-    return channels;
+    return bolts;
   }
 
   function withWorldClip(ctx, entry, draw) {
@@ -163,46 +175,63 @@
     ctx.restore();
   }
 
-  function drawNexusEnergy(ctx, time, channels) {
+  function drawNexusWisps(ctx, time, pulse) {
     ctx.save();
-    ctx.translate(NEXUS.x, NEXUS.y);
-    ctx.scale(1, 0.68);
     ctx.globalCompositeOperation = 'lighter';
-    channels.forEach(function (channel, channelIndex) {
-      var progress = eventProgress(time, channel.period, channel.duration, channel.offset);
+    for (var i = 0; i < 10; i += 1) {
+      var ring = 78 + (i % 4) * 43;
+      var direction = i % 2 ? -1 : 1;
+      var angle = i / 10 * TAU + time * (0.012 + (i % 3) * 0.004) * direction;
+      var x = NEXUS.x + Math.cos(angle) * ring;
+      var y = NEXUS.y + Math.sin(angle) * ring * 0.68;
+      var radius = 28 + (i % 3) * 11;
+      var color = i % 3 === 1 ? '73,183,255' : '179,79,255';
+      var alpha = 0.032 + pulse * 0.018 + (i % 2) * 0.008;
+      var wisp = ctx.createRadialGradient(x, y, 1, x, y, radius);
+      wisp.addColorStop(0, 'rgba(' + color + ',' + alpha.toFixed(3) + ')');
+      wisp.addColorStop(0.45, 'rgba(' + color + ',' + (alpha * 0.42).toFixed(3) + ')');
+      wisp.addColorStop(1, 'rgba(' + color + ',0)');
+      ctx.fillStyle = wisp;
+      ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+    }
+    ctx.restore();
+  }
+
+  function drawNexusLightning(ctx, time, bolts) {
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    bolts.forEach(function (bolt) {
+      var progress = eventProgress(time, bolt.period, bolt.duration, bolt.offset);
       if (progress < 0) return;
       var envelope = Math.sin(progress * Math.PI);
-      var travelStart = -channel.span * 0.5 - channel.trail + progress * (channel.span + channel.trail * 2);
-      var travelEnd = Math.min(travelStart + channel.trail, channel.span * 0.5);
-      travelStart = Math.max(travelStart, -channel.span * 0.5);
-      if (travelEnd <= travelStart) return;
-      ctx.save();
-      ctx.rotate(channel.angle + time * channel.drift);
+      var head = Math.min(1, progress * 1.25);
+      var tail = Math.max(0, head - 0.32);
+      var pointCount = bolt.points.length - 1;
+      var startIndex = Math.floor(tail * pointCount);
+      var endIndex = Math.max(startIndex + 1, Math.ceil(head * pointCount));
+      var driftX = Math.sin(time * 0.11 + bolt.phase) * bolt.driftX;
+      var driftY = Math.cos(time * 0.09 + bolt.phase) * bolt.driftY;
       ctx.beginPath();
-      for (var step = 0; step <= 15; step += 1) {
-        var ratio = step / 15;
-        var angle = travelStart + (travelEnd - travelStart) * ratio;
-        var radius = channel.radius + Math.sin(step * 2.35 + channelIndex * 1.9) * channel.jitter;
-        var x = Math.cos(angle) * radius;
-        var y = Math.sin(angle) * radius;
-        if (step === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      for (var step = startIndex; step <= endIndex; step += 1) {
+        var point = bolt.points[step];
+        if (step === startIndex) ctx.moveTo(point.x + driftX, point.y + driftY);
+        else ctx.lineTo(point.x + driftX, point.y + driftY);
       }
-      var glowColor = channel.cyan ? '91,196,255' : '185,101,255';
-      ctx.strokeStyle = 'rgba(' + glowColor + ',' + (0.15 * envelope).toFixed(3) + ')';
-      ctx.lineWidth = 6;
+      var glowColor = bolt.cyan ? '91,196,255' : '185,101,255';
+      ctx.strokeStyle = 'rgba(' + glowColor + ',' + (0.11 * envelope).toFixed(3) + ')';
+      ctx.lineWidth = 5;
       ctx.shadowColor = 'rgba(' + glowColor + ',0.7)';
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = 12;
       ctx.stroke();
-      ctx.strokeStyle = 'rgba(218,229,255,' + (0.5 * envelope).toFixed(3) + ')';
-      ctx.lineWidth = 1.15;
-      ctx.shadowBlur = 5;
+      ctx.strokeStyle = 'rgba(218,229,255,' + (0.42 * envelope).toFixed(3) + ')';
+      ctx.lineWidth = 0.95;
+      ctx.shadowBlur = 4;
       ctx.stroke();
-      ctx.restore();
     });
     ctx.restore();
   }
 
-  function drawNexusStorm(ctx, time, particles, energyChannels) {
+  function drawNexusStorm(ctx, time, particles, lightningBolts) {
     var pulse = 0.5 + Math.sin(time * 0.42) * 0.5;
     var core = ctx.createRadialGradient(NEXUS.x, NEXUS.y, 4, NEXUS.x, NEXUS.y, 118);
     core.addColorStop(0, 'rgba(255,205,104,' + (0.10 + pulse * 0.055).toFixed(3) + ')');
@@ -212,34 +241,7 @@
     ctx.fillStyle = core;
     ctx.fillRect(NEXUS.x - 120, NEXUS.y - 120, 240, 240);
 
-    ctx.save();
-    ctx.translate(NEXUS.x, NEXUS.y);
-    ctx.scale(1, 0.68);
-    ctx.globalCompositeOperation = 'lighter';
-    for (var layer = 0; layer < 3; layer += 1) {
-      var direction = layer % 2 ? -1 : 1;
-      ctx.save();
-      ctx.rotate(time * (0.018 + layer * 0.007) * direction + layer * 1.35);
-      ctx.strokeStyle = layer === 1
-        ? 'rgba(73,183,255,' + (0.055 + pulse * 0.018).toFixed(3) + ')'
-        : 'rgba(179,79,255,' + (0.045 + pulse * 0.018).toFixed(3) + ')';
-      ctx.lineWidth = 7 - layer * 1.4;
-      ctx.shadowColor = layer === 1 ? 'rgba(61,152,255,0.3)' : 'rgba(174,62,255,0.28)';
-      ctx.shadowBlur = 12;
-      for (var arm = 0; arm < 3; arm += 1) {
-        ctx.beginPath();
-        for (var step = 0; step <= 30; step += 1) {
-          var radius = 28 + step * (7.5 + layer * 0.55);
-          var angle = arm * TAU / 3 + step * (0.105 + layer * 0.008);
-          var x = Math.cos(angle) * radius;
-          var y = Math.sin(angle) * radius;
-          if (step === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-        }
-        ctx.stroke();
-      }
-      ctx.restore();
-    }
-    ctx.restore();
+    drawNexusWisps(ctx, time, pulse);
 
     particles.forEach(function (particle, index) {
       var travel = wrap(particle.x - time * (0.008 + particle.speed * 0.007));
@@ -255,7 +257,7 @@
       ctx.arc(x, y, 0.8 + particle.size * 0.62, 0, TAU);
       ctx.fill();
     });
-    drawNexusEnergy(ctx, time, energyChannels);
+    drawNexusLightning(ctx, time, lightningBolts);
   }
 
   function drawNeoh(ctx, image, entry, time, strength, particles) {
@@ -316,12 +318,10 @@
       var progress = wrap(particle.y + time * particle.speed * 0.055);
       var x = point.x + (particle.x * 2 - 1) * point.r * 0.72 + Math.sin(time + particle.phase) * 3;
       var y = point.y + point.r * 0.78 - progress * point.r * 1.55;
-      ctx.strokeStyle = 'rgba(255,160,66,' + ((0.24 + flare * 0.14) * particle.alpha * strength * (1 - progress)).toFixed(3) + ')';
-      ctx.lineWidth = particle.size * 0.75;
+      ctx.fillStyle = 'rgba(255,160,66,' + ((0.21 + flare * 0.12) * particle.alpha * strength * (1 - progress)).toFixed(3) + ')';
       ctx.beginPath();
-      ctx.moveTo(x, y + 5 + particle.size * 2);
-      ctx.lineTo(x + particle.drift * 2, y);
-      ctx.stroke();
+      ctx.ellipse(x, y, 0.7 + particle.size * 0.42, 1.1 + particle.size * 0.75, particle.drift * 0.2, 0, TAU);
+      ctx.fill();
     });
     ctx.strokeStyle = 'rgba(218,205,186,' + ((0.052 + flare * 0.035) * strength).toFixed(3) + ')';
     ctx.lineWidth = 3;
@@ -333,13 +333,13 @@
       ctx.stroke();
     }
     if (flare > 0) {
-      ctx.strokeStyle = 'rgba(255,209,116,' + (0.52 * flare * strength).toFixed(3) + ')';
-      ctx.lineWidth = 1.4;
       for (var spark = 0; spark < 4; spark += 1) {
+        var sparkX = point.x - 24 + spark * 16;
+        var sparkY = point.y + 27 - spark * 4;
+        ctx.fillStyle = 'rgba(255,209,116,' + (0.42 * flare * strength).toFixed(3) + ')';
         ctx.beginPath();
-        ctx.moveTo(point.x - 24 + spark * 16, point.y + 45);
-        ctx.lineTo(point.x - 31 + spark * 18, point.y + 20 - spark * 4);
-        ctx.stroke();
+        ctx.arc(sparkX, sparkY, 1 + (spark % 2) * 0.7, 0, TAU);
+        ctx.fill();
       }
     }
   }
@@ -727,25 +727,7 @@
       particleCache[entry.slug] = buildParticles(entry.slug, 18);
     });
     var nexusParticles = buildParticles('nexus-storm', 24);
-    var nexusEnergyChannels = buildNexusEnergyChannels(7);
-
-    function clearCanvas() {
-      ctx.clearRect(
-        NEXUS.x - NEXUS.rx - 16,
-        NEXUS.y - NEXUS.ry - 16,
-        NEXUS.rx * 2 + 32,
-        NEXUS.ry * 2 + 32
-      );
-      available.forEach(function (entry) {
-        var point = entry.point;
-        ctx.clearRect(
-          point.x - point.r - WORLD_CLEAR_PADDING,
-          point.y - point.r - WORLD_CLEAR_PADDING,
-          point.r * 2 + WORLD_CLEAR_PADDING * 2,
-          point.r * 2 + WORLD_CLEAR_PADDING * 2
-        );
-      });
-    }
+    var nexusLightningBolts = buildNexusEnergyBolts(8);
 
     function clearAllCanvas() {
       ctx.clearRect(0, 0, WIDTH, HEIGHT);
@@ -756,8 +738,8 @@
       if (now - lastPaint < FRAME_INTERVAL) return;
       lastPaint = now;
       var time = now / 1000;
-      clearCanvas();
-      drawNexusStorm(ctx, time, nexusParticles, nexusEnergyChannels);
+      clearAllCanvas();
+      drawNexusStorm(ctx, time, nexusParticles, nexusLightningBolts);
       available.forEach(function (entry) {
         var drawer = DRAWERS[entry.slug];
         var target = entry.slug === hoveredSlug ? 1 : 0;
