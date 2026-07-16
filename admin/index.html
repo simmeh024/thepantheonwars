@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=219">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=220">
 </head>
 <body>
 
@@ -39,7 +39,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="lore" data-requires-permission="books.view,worlds.view,overlords.view">
+    <div class="admin-nav-category is-collapsed" data-category="lore" data-requires-permission="books.view,worlds.view,weather.view,overlords.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>Lore Management</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -47,6 +47,7 @@
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li data-requires-permission="books.view"><button type="button" class="admin-nav-link" data-section="book-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>Book Control</button></li>
         <li data-requires-permission="worlds.view"><button type="button" class="admin-nav-link" data-section="world-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>World Control</button></li>
+        <li data-requires-permission="weather.view"><button type="button" class="admin-nav-link" data-section="weather-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M7 17a4 4 0 1 1 1-7.87A6 6 0 0 1 19 12a3 3 0 0 1-1 5H7z"/><path d="M8 20l-1 2M12 20l-1 2M16 20l-1 2"/></svg>Weather Control</button></li>
         <li data-requires-permission="overlords.view"><button type="button" class="admin-nav-link" data-section="overlord-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><circle cx="12" cy="10" r="2.5"/></svg>Overlord Control</button></li>
       </ul>
     </div>
@@ -1507,6 +1508,95 @@
       </div>
     </section>
 
+    <section class="admin-section" id="section-weather-control" hidden>
+      <div class="admin-section-head">
+        <h1>Weather Control</h1>
+        <p>Shape fictional atmospheric conditions and the stable five-day forecast shown on each World Record.</p>
+      </div>
+
+      <div class="weather-pilot-banner">
+        <span class="weather-pilot-orbit" aria-hidden="true"></span>
+        <div>
+          <span class="weather-pilot-kicker">Atmospheric pilot 01</span>
+          <h2>Neoh climate uplink</h2>
+          <p>Neoh is the first calibration world. Once its presentation and forecast rhythm are approved, this system can be extended to the remaining worlds without changing the forecast engine.</p>
+        </div>
+        <span class="weather-pilot-status" id="weather-pilot-status">Loading profile</span>
+      </div>
+
+      <div class="weather-control-layout">
+        <aside class="weather-control-preview" aria-label="Neoh weather preview">
+          <div class="weather-control-preview-scan" aria-hidden="true"></div>
+          <span class="weather-control-preview-kicker">Neoh Atmospheric Service</span>
+          <h2 id="weather-preview-location">Neoh Central Archive</h2>
+          <p id="weather-preview-climate">Industrial acid-rain basin</p>
+          <div class="weather-control-preview-current">
+            <span class="weather-control-preview-icon" aria-hidden="true">
+              <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 39h31a9 9 0 0 0 1-18 15 15 0 0 0-28-3 11 11 0 0 0-4 21z"/><path d="m22 46-3 7m13-7-3 7m13-7-3 7"/></svg>
+            </span>
+            <strong><span id="weather-preview-temperature">19</span>&deg;</strong>
+            <span><b id="weather-preview-condition">Acid rain</b><small id="weather-preview-secondary">Dense smog</small></span>
+          </div>
+          <div class="weather-control-preview-days">
+            <div><span>Today</span><strong id="weather-preview-today">19&deg;</strong></div>
+            <div><span>Tomorrow</span><strong id="weather-preview-tomorrow">16&deg;</strong></div>
+            <div><span>Forecast range</span><strong id="weather-preview-range">10&deg; / 21&deg;</strong></div>
+          </div>
+          <p class="weather-control-preview-hazard" id="weather-preview-hazard">Corrosive rainfall. Unfiltered exposure is not advised.</p>
+        </aside>
+
+        <div class="weather-control-editor">
+          <label class="weather-profile-toggle" for="weather-enabled-input">
+            <span><strong>Publish Neoh forecast</strong><small>Show the atmospheric sidecard on Neoh&rsquo;s public World Record.</small></span>
+            <input type="checkbox" id="weather-enabled-input" checked>
+          </label>
+
+          <div class="admin-field-row">
+            <div class="admin-field"><label for="weather-location-input">Forecast location</label><input type="text" id="weather-location-input" maxlength="120"></div>
+            <div class="admin-field"><label for="weather-climate-input">Climate classification</label><input type="text" id="weather-climate-input" maxlength="160"></div>
+          </div>
+          <div class="admin-field-row">
+            <div class="admin-field"><label for="weather-current-condition-input">Current condition</label><input type="text" id="weather-current-condition-input" maxlength="80"></div>
+            <div class="admin-field"><label for="weather-current-secondary-input">Atmospheric detail</label><input type="text" id="weather-current-secondary-input" maxlength="120"></div>
+            <div class="admin-field admin-field-compact"><label for="weather-current-temp-input">Current &deg;C</label><input type="number" id="weather-current-temp-input" min="-100" max="100"></div>
+          </div>
+          <div class="admin-field-row weather-tomorrow-row">
+            <div class="admin-field"><label for="weather-tomorrow-condition-input">Tomorrow&rsquo;s condition</label><input type="text" id="weather-tomorrow-condition-input" maxlength="80"></div>
+            <div class="admin-field admin-field-compact"><label for="weather-tomorrow-temp-input">Tomorrow &deg;C</label><input type="number" id="weather-tomorrow-temp-input" min="-100" max="100"></div>
+          </div>
+
+          <span class="admin-field-group-label">Generation boundaries</span>
+          <div class="weather-boundary-grid">
+            <div class="admin-field"><label for="weather-forecast-min-input">Temperature min &deg;C</label><input type="number" id="weather-forecast-min-input" min="-100" max="100"></div>
+            <div class="admin-field"><label for="weather-forecast-max-input">Temperature max &deg;C</label><input type="number" id="weather-forecast-max-input" min="-100" max="100"></div>
+            <div class="admin-field"><label for="weather-humidity-min-input">Humidity min %</label><input type="number" id="weather-humidity-min-input" min="0" max="100"></div>
+            <div class="admin-field"><label for="weather-humidity-max-input">Humidity max %</label><input type="number" id="weather-humidity-max-input" min="0" max="100"></div>
+            <div class="admin-field"><label for="weather-precipitation-min-input">Precipitation min %</label><input type="number" id="weather-precipitation-min-input" min="0" max="100"></div>
+            <div class="admin-field"><label for="weather-precipitation-max-input">Precipitation max %</label><input type="number" id="weather-precipitation-max-input" min="0" max="100"></div>
+            <div class="admin-field"><label for="weather-wind-min-input">Wind min km/h</label><input type="number" id="weather-wind-min-input" min="0" max="500"></div>
+            <div class="admin-field"><label for="weather-wind-max-input">Wind max km/h</label><input type="number" id="weather-wind-max-input" min="0" max="500"></div>
+          </div>
+
+          <div class="admin-field">
+            <label for="weather-conditions-input">Forecast condition library</label>
+            <p class="admin-field-hint">One condition per line. The engine selects from these entries for days three through five.</p>
+            <textarea id="weather-conditions-input" rows="6" maxlength="1000"></textarea>
+          </div>
+          <div class="admin-field">
+            <label for="weather-hazard-input">Public hazard advisory</label>
+            <textarea id="weather-hazard-input" rows="3" maxlength="255"></textarea>
+          </div>
+
+          <p class="admin-modal-error" id="weather-control-error"></p>
+          <p class="admin-modal-status" id="weather-control-status" aria-live="polite"></p>
+          <div class="weather-control-actions">
+            <button type="button" class="btn btn-solid" id="weather-save-btn">Save Neoh Weather</button>
+            <span>Saving advances the forecast revision, producing a new but still day-stable sequence.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section class="admin-section" id="section-overlord-control" hidden>
       <div class="admin-section-head">
         <h1>Overlord Control</h1>
@@ -2822,6 +2912,7 @@
       if (name === 'forum-control') loadForumBoards();
       if (name === 'book-control') loadBookList();
       if (name === 'world-control') loadWorldList();
+      if (name === 'weather-control') loadWeatherControl();
       if (name === 'overlord-control') loadOverlordList();
       if (name === 'roles-permissions') loadRoles();
       if (name === 'visitor-stats') loadVisitorStats();
@@ -4385,6 +4476,7 @@
     world_deleted: 'World deleted',
     world_reordered: 'Worlds reordered',
     world_layer_updated: 'World lore updated',
+    weather_profile_updated: 'Weather profile updated',
     overlord_created: 'Overlord created',
     overlord_updated: 'Overlord updated',
     overlord_deleted: 'Overlord deleted',
@@ -4455,6 +4547,7 @@
     world_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><line x1="9.5" y1="10" x2="14.5" y2="15"/><line x1="14.5" y1="10" x2="9.5" y2="15"/></svg>',
     world_reordered: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/></svg>',
     world_layer_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/><path d="M9.5 12.5l1.8 1.8L15.5 10"/></svg>',
+    weather_profile_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M7 16a4 4 0 1 1 1-7.8A6 6 0 0 1 19 11a3 3 0 0 1-1 5H7z"/><path d="m8 19-1 2m5-2-1 2m5-2-1 2"/></svg>',
     overlord_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><circle cx="12" cy="10" r="2.5"/></svg>',
     overlord_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12.5l1.8 1.8L15.5 10"/></svg>',
     overlord_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><line x1="9.5" y1="9.5" x2="14.5" y2="14.5"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/></svg>',
@@ -4490,6 +4583,7 @@
     if (action.indexOf('privacy_') === 0) return { key: 'community', label: 'Privacy', icon: ACTIVITY_ICONS.privacy_request_updated };
     if (action.indexOf('role_') === 0) return { key: 'roles', label: 'Roles', icon: ACTIVITY_ICONS.role_updated };
     if (action.indexOf('forum_board_') === 0) return { key: 'forum', label: 'Forum Boards', icon: ACTIVITY_ICONS.forum_board_created };
+    if (action.indexOf('weather_') === 0) return { key: 'worlds', label: 'World Weather', icon: ACTIVITY_ICONS.weather_profile_updated };
     if (action.indexOf('world_') === 0) return { key: 'worlds', label: 'Worlds', icon: ACTIVITY_ICONS.world_updated };
     if (action.indexOf('overlord_') === 0) return { key: 'overlords', label: 'Overlords', icon: ACTIVITY_ICONS.overlord_updated };
     return { key: 'system', label: 'System', icon: ACTIVITY_ICONS.backup_logged };
@@ -8505,6 +8599,169 @@
         bookModalError.classList.add('show');
       });
   });
+
+  // ===== Weather Control (Lore Management) =====================================
+  // Neoh is deliberately the first visible calibration profile. The API and
+  // schema are world-generic, so the remaining profiles can be exposed after
+  // the pilot's wording, boundaries, and public card have been refined.
+  var weatherProfile = null;
+  var weatherPilotStatus = document.getElementById('weather-pilot-status');
+  var weatherEnabledInput = document.getElementById('weather-enabled-input');
+  var weatherLocationInput = document.getElementById('weather-location-input');
+  var weatherClimateInput = document.getElementById('weather-climate-input');
+  var weatherCurrentConditionInput = document.getElementById('weather-current-condition-input');
+  var weatherCurrentSecondaryInput = document.getElementById('weather-current-secondary-input');
+  var weatherCurrentTempInput = document.getElementById('weather-current-temp-input');
+  var weatherTomorrowConditionInput = document.getElementById('weather-tomorrow-condition-input');
+  var weatherTomorrowTempInput = document.getElementById('weather-tomorrow-temp-input');
+  var weatherForecastMinInput = document.getElementById('weather-forecast-min-input');
+  var weatherForecastMaxInput = document.getElementById('weather-forecast-max-input');
+  var weatherHumidityMinInput = document.getElementById('weather-humidity-min-input');
+  var weatherHumidityMaxInput = document.getElementById('weather-humidity-max-input');
+  var weatherPrecipitationMinInput = document.getElementById('weather-precipitation-min-input');
+  var weatherPrecipitationMaxInput = document.getElementById('weather-precipitation-max-input');
+  var weatherWindMinInput = document.getElementById('weather-wind-min-input');
+  var weatherWindMaxInput = document.getElementById('weather-wind-max-input');
+  var weatherConditionsInput = document.getElementById('weather-conditions-input');
+  var weatherHazardInput = document.getElementById('weather-hazard-input');
+  var weatherSaveBtn = document.getElementById('weather-save-btn');
+  var weatherControlError = document.getElementById('weather-control-error');
+  var weatherControlStatus = document.getElementById('weather-control-status');
+  var weatherControlEditor = document.querySelector('.weather-control-editor');
+
+  var weatherPreviewLocation = document.getElementById('weather-preview-location');
+  var weatherPreviewClimate = document.getElementById('weather-preview-climate');
+  var weatherPreviewTemperature = document.getElementById('weather-preview-temperature');
+  var weatherPreviewCondition = document.getElementById('weather-preview-condition');
+  var weatherPreviewSecondary = document.getElementById('weather-preview-secondary');
+  var weatherPreviewToday = document.getElementById('weather-preview-today');
+  var weatherPreviewTomorrow = document.getElementById('weather-preview-tomorrow');
+  var weatherPreviewRange = document.getElementById('weather-preview-range');
+  var weatherPreviewHazard = document.getElementById('weather-preview-hazard');
+
+  function weatherValue(input, fallback) {
+    var value = parseInt(input.value, 10);
+    return Number.isFinite(value) ? value : fallback;
+  }
+
+  function updateWeatherPreview() {
+    weatherPreviewLocation.textContent = weatherLocationInput.value.trim() || 'Neoh Central Archive';
+    weatherPreviewClimate.textContent = weatherClimateInput.value.trim() || 'Industrial acid-rain basin';
+    weatherPreviewTemperature.textContent = weatherValue(weatherCurrentTempInput, 19);
+    weatherPreviewCondition.textContent = weatherCurrentConditionInput.value.trim() || 'Acid rain';
+    weatherPreviewSecondary.textContent = weatherCurrentSecondaryInput.value.trim() || 'Dense smog';
+    weatherPreviewToday.innerHTML = weatherValue(weatherCurrentTempInput, 19) + '&deg;';
+    weatherPreviewTomorrow.innerHTML = weatherValue(weatherTomorrowTempInput, 16) + '&deg;';
+    weatherPreviewRange.innerHTML = weatherValue(weatherForecastMinInput, 10) + '&deg; / ' + weatherValue(weatherForecastMaxInput, 21) + '&deg;';
+    weatherPreviewHazard.textContent = weatherHazardInput.value.trim() || 'No atmospheric advisory is currently active.';
+    weatherPilotStatus.textContent = weatherEnabledInput.checked ? 'Public forecast active' : 'Forecast offline';
+    weatherPilotStatus.classList.toggle('is-offline', !weatherEnabledInput.checked);
+  }
+
+  function populateWeatherControl(profile) {
+    weatherProfile = profile;
+    weatherEnabledInput.checked = profile.enabled !== 0;
+    weatherLocationInput.value = profile.location_label || 'Neoh Central Archive';
+    weatherClimateInput.value = profile.climate_label || 'Industrial acid-rain basin';
+    weatherCurrentConditionInput.value = profile.current_condition || 'Acid rain';
+    weatherCurrentSecondaryInput.value = profile.current_secondary || 'Dense smog';
+    weatherCurrentTempInput.value = profile.current_temp_c === null ? 19 : profile.current_temp_c;
+    weatherTomorrowConditionInput.value = profile.tomorrow_condition || 'Smog';
+    weatherTomorrowTempInput.value = profile.tomorrow_temp_c === null ? 16 : profile.tomorrow_temp_c;
+    weatherForecastMinInput.value = profile.forecast_min_c === null ? 10 : profile.forecast_min_c;
+    weatherForecastMaxInput.value = profile.forecast_max_c === null ? 21 : profile.forecast_max_c;
+    weatherHumidityMinInput.value = profile.humidity_min === null ? 72 : profile.humidity_min;
+    weatherHumidityMaxInput.value = profile.humidity_max === null ? 96 : profile.humidity_max;
+    weatherPrecipitationMinInput.value = profile.precipitation_min === null ? 35 : profile.precipitation_min;
+    weatherPrecipitationMaxInput.value = profile.precipitation_max === null ? 95 : profile.precipitation_max;
+    weatherWindMinInput.value = profile.wind_min_kph === null ? 8 : profile.wind_min_kph;
+    weatherWindMaxInput.value = profile.wind_max_kph === null ? 34 : profile.wind_max_kph;
+    weatherConditionsInput.value = (profile.conditions && profile.conditions.length ? profile.conditions : ['Acid rain', 'Corrosive drizzle', 'Dense smog', 'Overcast haze', 'Static storm']).join('\n');
+    weatherHazardInput.value = profile.hazard_note || 'Corrosive rainfall. Unfiltered exposure is not advised.';
+    updateWeatherPreview();
+  }
+
+  function loadWeatherControl() {
+    weatherPilotStatus.textContent = 'Loading profile';
+    weatherControlError.classList.remove('show');
+    weatherSaveBtn.disabled = !pwHasPermission('weather.edit');
+    weatherSaveBtn.title = weatherSaveBtn.disabled ? 'Your role can view Weather Control but cannot edit it.' : '';
+    return fetch('/api/admin/weather/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load Weather Control.');
+        var neoh = (data.profiles || []).filter(function (profile) { return profile.slug === 'neoh'; })[0];
+        if (!neoh) throw new Error('Neoh is not present in World Control.');
+        populateWeatherControl(neoh);
+      })
+      .catch(function (error) {
+        weatherPilotStatus.textContent = 'Profile unavailable';
+        weatherPilotStatus.classList.add('is-offline');
+        weatherControlError.textContent = error.message || 'Could not load Weather Control.';
+        weatherControlError.classList.add('show');
+      });
+  }
+
+  if (weatherControlEditor) {
+    Array.prototype.forEach.call(weatherControlEditor.querySelectorAll('input, textarea'), function (field) {
+      field.addEventListener('input', updateWeatherPreview);
+      field.addEventListener('change', updateWeatherPreview);
+    });
+  }
+
+  if (weatherSaveBtn) {
+    weatherSaveBtn.addEventListener('click', function () {
+      if (!weatherProfile || !pwHasPermission('weather.edit')) return;
+      var conditions = weatherConditionsInput.value.split(/[\n,]+/).map(function (value) { return value.trim(); }).filter(Boolean);
+      var payload = {
+        world_id: weatherProfile.world_id,
+        enabled: weatherEnabledInput.checked,
+        location_label: weatherLocationInput.value.trim(),
+        climate_label: weatherClimateInput.value.trim(),
+        current_condition: weatherCurrentConditionInput.value.trim(),
+        current_secondary: weatherCurrentSecondaryInput.value.trim(),
+        current_temp_c: weatherValue(weatherCurrentTempInput, 19),
+        tomorrow_condition: weatherTomorrowConditionInput.value.trim(),
+        tomorrow_temp_c: weatherValue(weatherTomorrowTempInput, 16),
+        forecast_min_c: weatherValue(weatherForecastMinInput, 10),
+        forecast_max_c: weatherValue(weatherForecastMaxInput, 21),
+        humidity_min: weatherValue(weatherHumidityMinInput, 72),
+        humidity_max: weatherValue(weatherHumidityMaxInput, 96),
+        precipitation_min: weatherValue(weatherPrecipitationMinInput, 35),
+        precipitation_max: weatherValue(weatherPrecipitationMaxInput, 95),
+        wind_min_kph: weatherValue(weatherWindMinInput, 8),
+        wind_max_kph: weatherValue(weatherWindMaxInput, 34),
+        conditions: conditions,
+        hazard_note: weatherHazardInput.value.trim(),
+        csrf: window.PW_AUTH.csrf
+      };
+
+      weatherControlError.classList.remove('show');
+      weatherControlStatus.classList.remove('show');
+      weatherSaveBtn.disabled = true;
+      weatherSaveBtn.textContent = 'Saving Weather...';
+      fetch('/api/admin/weather/update.php', {
+        method: 'POST', credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          weatherSaveBtn.disabled = false;
+          weatherSaveBtn.textContent = 'Save Neoh Weather';
+          if (!data.ok) throw new Error(data.error || 'Could not save Neoh weather.');
+          weatherControlStatus.textContent = 'Neoh weather saved. The public forecast now uses the new revision.';
+          weatherControlStatus.classList.add('show');
+          return loadWeatherControl();
+        })
+        .catch(function (error) {
+          weatherSaveBtn.disabled = false;
+          weatherSaveBtn.textContent = 'Save Neoh Weather';
+          weatherControlError.textContent = error.message || 'Could not save Neoh weather.';
+          weatherControlError.classList.add('show');
+        });
+    });
+  }
 
   // ===== World Control (Lore Management) =======================================
   // worlds is the source of truth for the interactive atlas and each dedicated

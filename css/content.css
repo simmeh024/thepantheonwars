@@ -1159,7 +1159,7 @@
   text-transform: uppercase;
 }
 .world-record-status.is-locked { border-color: rgba(203, 80, 91, 0.78); color: #ef8c98; }
-.world-record-shell { max-width: 1040px; }
+.world-record-shell { max-width: 1180px; }
 .world-record-intro { max-width: 780px; font-size: 1.05rem; }
 .world-record-backlink { display: inline-block; margin-bottom: 1.6rem; color: var(--gold); text-decoration: none; }
 .world-record-backlink:hover { color: var(--purple-bright); }
@@ -1168,6 +1168,98 @@
   border: 1px solid var(--border);
   background: var(--panel);
   color: var(--text-muted);
+}
+.world-record-overview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(390px, 0.72fr); gap: 34px; align-items: start; }
+.world-record-overview-copy { min-width: 0; }
+.world-record-overview-copy .world-record-intro { max-width: 720px; }
+.world-weather-card[hidden] { display: none; }
+.world-weather-card {
+  position: relative;
+  min-width: 0;
+  padding: 22px;
+  overflow: hidden;
+  border: 1px solid rgba(91, 188, 219, 0.42);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(84, 103, 209, 0.3), transparent 36%),
+    radial-gradient(circle at 7% 92%, rgba(105, 39, 162, 0.22), transparent 38%),
+    linear-gradient(155deg, rgba(10, 24, 41, 0.98), rgba(20, 10, 38, 0.98));
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.32), inset 0 0 38px rgba(75, 55, 142, 0.09);
+}
+.world-weather-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(145, 216, 235, 0.022) 4px 5px);
+}
+.world-weather-card > *:not(.world-weather-card-scan) { position: relative; z-index: 1; }
+.world-weather-card-scan {
+  position: absolute;
+  z-index: 0;
+  top: -35%;
+  left: 0;
+  right: 0;
+  height: 32%;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(93, 211, 232, 0.055), transparent);
+  animation: world-weather-scan 9s linear infinite;
+}
+@keyframes world-weather-scan { to { transform: translateY(450%); } }
+.world-weather-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.world-weather-head > div > span {
+  color: #61d4e7;
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.world-weather-head h2 { margin: 5px 0 0; color: var(--gold-bright); font-family: 'Cinzel', serif; font-size: 1rem; }
+.world-weather-live { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid rgba(66, 206, 151, 0.3); border-radius: 999px; background: rgba(66, 206, 151, 0.08); color: #5cdca8; font-size: 0.54rem; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
+.world-weather-live i { width: 5px; height: 5px; border-radius: 50%; background: #42ce97; box-shadow: 0 0 7px #42ce97; }
+.world-weather-climate { margin: 3px 0 0; color: var(--text-faint); font-size: 0.68rem; }
+.world-weather-current { display: flex; align-items: center; gap: 13px; margin: 21px 0 18px; }
+.world-weather-current-icon { display: grid; width: 58px; height: 58px; flex: 0 0 58px; place-items: center; color: #78d8ee; filter: drop-shadow(0 0 10px rgba(91, 208, 232, 0.3)); }
+.world-weather-current-icon svg { width: 58px; height: 58px; }
+.world-weather-current > strong { color: #fff; font-family: 'Cinzel', serif; font-size: 3.25rem; font-weight: 500; line-height: 1; }
+.world-weather-current > span:last-child { display: flex; min-width: 0; flex-direction: column; }
+.world-weather-current b { color: var(--text); font-size: 0.88rem; font-weight: 600; }
+.world-weather-current small { margin-top: 4px; color: var(--text-faint); font-size: 0.69rem; }
+.world-weather-metrics { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid rgba(108, 150, 191, 0.16); background: rgba(79, 116, 158, 0.1); }
+.world-weather-metrics div { padding: 9px 5px; border-right: 1px solid rgba(108, 150, 191, 0.12); background: rgba(7, 8, 20, 0.42); text-align: center; }
+.world-weather-metrics div:last-child { border-right: 0; }
+.world-weather-metrics span { display: block; color: var(--text-faint); font-size: 0.52rem; line-height: 1.25; text-transform: uppercase; }
+.world-weather-metrics strong { display: block; margin-top: 3px; color: var(--text); font-size: 0.67rem; font-weight: 600; }
+.world-weather-divider { display: flex; align-items: center; gap: 9px; margin: 20px 0 11px; color: #8fd4e2; font-size: 0.57rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.world-weather-divider::before,
+.world-weather-divider::after { content: ''; height: 1px; flex: 1; background: linear-gradient(90deg, transparent, rgba(113, 196, 215, 0.3)); }
+.world-weather-divider::after { background: linear-gradient(90deg, rgba(113, 196, 215, 0.3), transparent); }
+.world-weather-forecast { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.world-weather-day { min-width: 0; padding: 8px 3px 9px; border: 1px solid transparent; background: rgba(10, 8, 24, 0.48); text-align: center; }
+.world-weather-day.is-today { border-color: rgba(210, 169, 84, 0.28); background: linear-gradient(180deg, rgba(210, 169, 84, 0.08), rgba(88, 45, 155, 0.08)); }
+.world-weather-day-name { display: block; overflow: hidden; color: var(--text-dim); font-size: 0.56rem; text-overflow: ellipsis; white-space: nowrap; }
+.world-weather-day-icon { display: grid; width: 28px; height: 28px; margin: 5px auto 3px; place-items: center; color: #70ccdf; }
+.world-weather-day-icon svg { width: 28px; height: 28px; }
+.world-weather-day strong { color: var(--text); font-family: 'Cinzel', serif; font-size: 0.78rem; }
+.world-weather-day small { margin-left: 2px; color: var(--text-faint); font-size: 0.63rem; }
+.world-weather-day-condition { display: block; min-height: 22px; margin-top: 4px; overflow: hidden; color: var(--text-faint); font-size: 0.49rem; line-height: 1.25; }
+.world-weather-hazard { display: flex; align-items: flex-start; gap: 9px; margin: 16px 0 0; padding: 10px 11px; border-left: 2px solid var(--gold); background: rgba(209, 169, 85, 0.07); color: #c9bddb; font-size: 0.66rem; line-height: 1.45; }
+.world-weather-hazard > span { display: grid; width: 16px; height: 16px; flex: 0 0 16px; place-items: center; border: 1px solid rgba(209, 169, 85, 0.55); border-radius: 50%; color: var(--gold-bright); font-size: 0.58rem; font-weight: 700; }
+.world-weather-card footer { margin-top: 12px; color: rgba(164, 148, 188, 0.55); font-size: 0.54rem; letter-spacing: 0.05em; text-align: right; text-transform: uppercase; }
+
+@media (max-width: 960px) {
+  .world-record-overview { grid-template-columns: 1fr; }
+  .world-weather-card { max-width: 560px; }
+}
+@media (max-width: 520px) {
+  .world-weather-card { padding: 17px 13px; }
+  .world-weather-current > strong { font-size: 2.75rem; }
+  .world-weather-live { display: none; }
+  .world-weather-metrics { grid-template-columns: repeat(2, 1fr); }
+  .world-weather-metrics div:nth-child(2) { border-right: 0; }
+  .world-weather-metrics div:nth-child(-n+2) { border-bottom: 1px solid rgba(108, 150, 191, 0.12); }
+  .world-weather-forecast { gap: 2px; }
+  .world-weather-day { padding-inline: 1px; }
+  .world-weather-day-condition { display: none; }
 }
 
 @media (max-width: 680px) {
@@ -1198,6 +1290,7 @@
   .world-atlas-progress-fill { will-change: auto; }
   .world-atlas-progress-sweep,
   .world-atlas-progress-sparks { display: none; }
+  .world-weather-card-scan { display: none; animation: none; }
 }
 
 /* ---------------- High Hammer: planetary two-scene view ---------------- */

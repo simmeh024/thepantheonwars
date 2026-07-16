@@ -139,6 +139,20 @@ non-`utf8mb4_unicode_ci` table in red) and fixed via `ALTER TABLE ... CONVERT TO
 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`. If that flag ever lights up again
 on a new table, that's a real bug to fix, not a display artifact.
 
+### World weather pilot
+
+- `world_weather_profiles` stores fictional atmospheric controls separately from
+  World Control's lore record. Run `sql/migration_world_weather.sql` after the
+  corresponding deploy; it creates the table, adds `weather.view` / `weather.edit`,
+  and seeds the first profile for Neoh.
+- `api/weather-forecast.php` is the deterministic generator. Its seed combines the
+  world slug, current UTC date, and `forecast_revision`, so the five-day forecast
+  stays identical across refreshes for a full UTC day. Saving Weather Control
+  advances the revision and deliberately produces a new stable sequence.
+- `api/world-weather.php?slug=...` is public but only returns forecast details when
+  both the World Control record is `available` and its weather profile is enabled.
+  It is independent of `api/worlds.php`, preserving that endpoint's response shape.
+
 ## Server introspection notes (this specific host)
 
 Confirmed empirically (useful if extending System Status further):
@@ -186,8 +200,8 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Admin console conventions (`admin/index.html` -- single large file)
 
-- Sidebar categories: **Lore Management** (Book Control, World Control, Overlord
-  Control), **Community** (Forum Control, Members, Topic Reports), **Development
+- Sidebar categories: **Lore Management** (Book Control, World Control, Weather
+  Control, Overlord Control), **Community** (Forum Control, Members, Topic Reports), **Development
   Dispatches** (Dispatch Control, Dispatch Translations), **System** (System Status,
   Audit Log). Home is the default landing section.
 - `showSection(name)` toggles `.admin-section` visibility; `loadedSections[name]`
@@ -230,7 +244,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=206, community v=202, and admin v=211. Public pages use
+  versions: public v=208, community v=202, and admin v=220. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -785,7 +799,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   static atlas with the video, canvas, and decorative depth layers disabled. Keep the
   tooltip outside the transformed scene so its text stays crisp and preserve the
   native coordinate system for every overlay.
-  `world.html` plus `js/world-detail.js?v=1` is the dedicated,
+  `world.html` plus `js/world-detail.js?v=2` is the dedicated,
   expandable World Record surface; it uses the existing single-world API response,
   renders the current map/layer detail for available worlds, and safely keeps direct
   links to locked records sealed. The artwork is cache-versioned as
@@ -799,12 +813,20 @@ also supports a deliberately manual `?full=1` historical rebuild.
   individually calibrated against the native 1672×941 artwork; do not replace them
   with an evenly spaced orbit. Each focus/hover signal opens a compact tooltip beside
   that medallion with a world-specific, restrained gradient; there is no persistent
-  atlas information card below the artwork. There is no
-  new table or migration.
+  atlas information card below the artwork. The atlas itself still has no
+  separate positioning table or migration.
 - **World Control save access:** the World edit modal keeps its existing Save API
   path, but its Save World / Cancel / Delete action bar is sticky at the bottom of
   the modal. Status changes therefore remain saveable while the long layer and
   landmark editor is scrolled.
+- **Weather Control / Neoh pilot:** the permissioned Lore Management page currently
+  exposes Neoh only, even though its API and table are world-generic. Administrators
+  can set the public location, current and next-day conditions/temperatures,
+  generation ranges, condition library, and hazard advisory. The Neoh World Record
+  renders an AccuWeather-style atmospheric sidecard with current metrics and five
+  days of deterministic UTC output. Keep the public card absent for disabled or
+  lore-locked profiles. Extend the same UI to other worlds only after the Neoh copy,
+  visual hierarchy, and ranges have been approved.
 - **News publication notifications:** News Management creates public posts
   immediately, then broadcasts a `news_published` notification only after the
   database transaction commits. Each notification deep-links to

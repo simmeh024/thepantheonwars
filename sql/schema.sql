@@ -681,6 +681,40 @@ CREATE TABLE IF NOT EXISTS worlds (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Fictional, admin-controlled atmospheric profiles for the dedicated World
+-- Record pages. Forecast values are derived deterministically from this
+-- profile, the UTC date, and forecast_revision; no third-party weather API is
+-- involved. The first production profile is the Neoh pilot.
+CREATE TABLE IF NOT EXISTS world_weather_profiles (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  world_id INT UNSIGNED NOT NULL,
+  enabled TINYINT(1) NOT NULL DEFAULT 0,
+  location_label VARCHAR(120) NOT NULL DEFAULT '',
+  climate_label VARCHAR(160) NOT NULL DEFAULT '',
+  current_condition VARCHAR(80) NOT NULL DEFAULT '',
+  current_secondary VARCHAR(120) NOT NULL DEFAULT '',
+  current_temp_c SMALLINT NOT NULL DEFAULT 0,
+  tomorrow_condition VARCHAR(80) NOT NULL DEFAULT '',
+  tomorrow_temp_c SMALLINT NOT NULL DEFAULT 0,
+  forecast_min_c SMALLINT NOT NULL DEFAULT -10,
+  forecast_max_c SMALLINT NOT NULL DEFAULT 30,
+  humidity_min TINYINT UNSIGNED NOT NULL DEFAULT 40,
+  humidity_max TINYINT UNSIGNED NOT NULL DEFAULT 90,
+  precipitation_min TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  precipitation_max TINYINT UNSIGNED NOT NULL DEFAULT 100,
+  wind_min_kph SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  wind_max_kph SMALLINT UNSIGNED NOT NULL DEFAULT 80,
+  condition_pool_json TEXT NOT NULL,
+  hazard_note VARCHAR(255) NOT NULL DEFAULT '',
+  forecast_revision INT UNSIGNED NOT NULL DEFAULT 1,
+  updated_by INT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_world_weather_world (world_id),
+  CONSTRAINT fk_world_weather_world FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE,
+  CONSTRAINT fk_world_weather_user FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS world_layers (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   world_id INT UNSIGNED NOT NULL,
