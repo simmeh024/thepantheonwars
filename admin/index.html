@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=218">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=219">
 </head>
 <body>
 
@@ -2276,7 +2276,6 @@
           <div class="admin-list-empty">No layers yet.</div>
         </div>
       </section>
-      </div>
 
       <hr class="admin-modal-divider">
 
@@ -2289,12 +2288,14 @@
       </div>
     </div>
 
-    <p class="admin-modal-error" id="world-modal-error"></p>
-    <p class="admin-modal-status" id="world-modal-status"></p>
-    <div class="admin-modal-actions">
-      <button type="button" class="btn btn-solid" id="world-save-btn">Save</button>
-      <button type="button" class="btn" id="world-cancel-btn">Cancel</button>
-      <button type="button" class="admin-delete-btn" id="world-delete-btn" hidden>Delete World</button>
+    <div class="world-modal-footer">
+      <p class="admin-modal-error" id="world-modal-error"></p>
+      <p class="admin-modal-status" id="world-modal-status"></p>
+      <div class="admin-modal-actions">
+        <button type="button" class="btn btn-solid" id="world-save-btn">Save World</button>
+        <button type="button" class="btn" id="world-cancel-btn">Cancel</button>
+        <button type="button" class="admin-delete-btn" id="world-delete-btn" hidden>Delete World</button>
+      </div>
     </div>
   </div>
 </div>
@@ -8506,9 +8507,9 @@
   });
 
   // ===== World Control (Lore Management) =======================================
-  // worlds is the source of truth for worlds.html's card grid + cross-section
-  // detail pages (js/worlds.js), replacing what used to be hand-authored
-  // markup. Three levels of nesting: a world has Layers (districts) and
+  // worlds is the source of truth for the interactive atlas and each dedicated
+  // world record page, replacing what used to be hand-authored inline markup.
+  // Three levels of nesting: a world has Layers (districts) and
   // Distant Landmarks; a Layer has its own Sublocations (plain tag list,
   // parsed from a textarea) and Landmarks. The Layer and Landmark modals
   // stack on top of the World modal (admin-modal-over), same z-index

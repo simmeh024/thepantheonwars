@@ -730,13 +730,16 @@ also supports a deliberately manual `?full=1` historical rebuild.
   preference.
 - **Interactive Worlds atlas:** `worlds.html` now presents the supplied
   `images/twelve-worlds-atlas.png` as a wide 1672×941 interactive SVG overlay.
-  `js/worlds.js?v=14` maps stable world slugs to the artwork's medallions (never
+  `js/worlds.js?v=15` maps stable world slugs to the artwork's medallions (never
   use `worlds.sort_order`: Asmecu and Reanium are deliberately ordered differently
   in the database and artwork), so World Control's ordinary `available`/`locked` status
   automatically controls each destination. Available medallions open the stable
   dynamic record route `world.html?slug=<slug>`; locked medallions stay visually
   dimmed and expose `ERROR: LORE LOCK / MISSING INFORMATION` without leaking a
-  record. `js/world-atlas-effects.js?v=5` adds the cinematic layer: GSAP owns one
+  record. The atlas is now the only public world index: the former card grid and
+  inline world-detail sections were removed from `worlds.html`; full lore lives on
+  each dedicated `world.html?slug=...` record. `js/world-atlas-effects.js?v=5` adds
+  the cinematic layer: GSAP owns one
   restrained scene transform and ScrollTrigger depth pass, while one transparent
   native-resolution canvas clips all ambient effects to their calibrated medallion
   circles. The twelve stable slugs select distinct motifs (glitch, copper sparks,
@@ -785,6 +788,10 @@ also supports a deliberately manual `?full=1` historical rebuild.
   that medallion with a world-specific, restrained gradient; there is no persistent
   atlas information card below the artwork. There is no
   new table or migration.
+- **World Control save access:** the World edit modal keeps its existing Save API
+  path, but its Save World / Cancel / Delete action bar is sticky at the bottom of
+  the modal. Status changes therefore remain saveable while the long layer and
+  landmark editor is scrolled.
 - **News publication notifications:** News Management creates public posts
   immediately, then broadcasts a `news_published` notification only after the
   database transaction commits. Each notification deep-links to

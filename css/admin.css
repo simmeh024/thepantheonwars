@@ -2108,6 +2108,16 @@
 .admin-modal-actions { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
 .admin-modal-actions .btn { padding: 11px 22px; font-size: 0.74rem; }
 .admin-modal-actions .btn:disabled { cursor: wait; opacity: 0.76; }
+.world-modal-footer {
+  position: sticky; z-index: 6; bottom: -30px;
+  margin: 18px -30px -30px; padding: 15px 30px 30px;
+  border-top: 1px solid rgba(162,121,236,0.28);
+  background: linear-gradient(180deg, rgba(22,13,41,0.94), #160d29 22%);
+  box-shadow: 0 -14px 30px rgba(5,3,10,0.34);
+}
+.world-modal-footer .admin-modal-error,
+.world-modal-footer .admin-modal-status { margin-top: 0; margin-bottom: 10px; }
+.world-modal-footer .admin-modal-actions { margin-top: 0; }
 #admin-generate-draft-btn { min-width: 145px; position: relative; overflow: hidden; isolation: isolate; }
 #admin-generate-draft-btn.is-loading { display: inline-flex; align-items: center; justify-content: center; gap: 8px; }
 #admin-generate-draft-btn .admin-button-label,
