@@ -329,6 +329,17 @@
             <span>Quick Actions</span>
           </div>
           <ul class="quick-actions-list">
+            <li data-requires-permission="news.edit">
+              <button type="button" class="quick-action-btn" id="quick-action-newspost">
+                <span class="quick-action-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/><path d="m15 3 2 2"/></svg>
+                </span>
+                <span class="quick-action-label">Write Newspost</span>
+                <span class="quick-action-chevron">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+                </span>
+              </button>
+            </li>
             <li>
               <button type="button" class="quick-action-btn" id="quick-action-new-member">
                 <span class="quick-action-icon">
@@ -3549,9 +3560,8 @@
   }
 
   // ===== Home / Quick Actions ===================================================
-  // Only "Add New Member" for now -- more actions (new dispatch, new
-  // announcement, etc.) get added here incrementally as those features
-  // exist. Reuses openCreateMemberModal() from the Members section below
+  // The actions reuse their existing section modals rather than creating a
+  // second implementation. Reuses openCreateMemberModal() from the Members section below
   // (function declarations in this IIFE are hoisted, and the modal itself
   // is a position:fixed overlay outside any .admin-section, so it opens
   // correctly no matter which section is currently visible).
@@ -3559,6 +3569,17 @@
   if (quickActionNewMemberBtn) {
     quickActionNewMemberBtn.addEventListener('click', function () {
       openCreateMemberModal();
+    });
+  }
+
+  var quickActionNewspostBtn = document.getElementById('quick-action-newspost');
+  if (quickActionNewspostBtn) {
+    quickActionNewspostBtn.addEventListener('click', function () {
+      if (!pwHasPermission('news.edit')) return;
+      showSection('news-management');
+      // The News list and tag catalogue load in the background; the editor
+      // itself can open immediately because it owns the create-state defaults.
+      openNewsModal(null);
     });
   }
 
