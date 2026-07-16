@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=215">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=216">
 </head>
 <body>
 
@@ -881,10 +881,10 @@
       </div>
       <div class="mail-log-notice"><strong>Inbound is ready when you are.</strong> PHP mail can send but cannot read a mailbox. Connect a signed provider webhook or mail pipe to record incoming mail; message bodies are never stored.</div>
       <div class="admin-toolbar mail-log-toolbar" aria-label="Mail log filters">
-        <div class="dispatch-filter-tabs" id="mail-log-filters">
-          <button type="button" class="dispatch-filter-tab active" data-mail-log-direction="all">All activity</button>
-          <button type="button" class="dispatch-filter-tab" data-mail-log-direction="outbound">Outbound</button>
-          <button type="button" class="dispatch-filter-tab" data-mail-log-direction="inbound">Inbound</button>
+        <div class="mail-log-filter-tabs" id="mail-log-filters">
+          <button type="button" class="mail-log-filter active" data-mail-log-direction="all"><span class="mail-log-filter-icon">&#10022;</span>All activity</button>
+          <button type="button" class="mail-log-filter" data-mail-log-direction="outbound"><span class="mail-log-filter-icon">&#8599;</span>Outbound</button>
+          <button type="button" class="mail-log-filter" data-mail-log-direction="inbound"><span class="mail-log-filter-icon">&#8601;</span>Inbound</button>
         </div>
         <button type="button" class="btn" id="mail-log-refresh-btn">Refresh log</button>
       </div>
