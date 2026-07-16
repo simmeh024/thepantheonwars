@@ -362,15 +362,17 @@ document.addEventListener('DOMContentLoaded', function () {
     renderLockedWorldCanvas(locked);
     var hotspots = mappedWorlds.map(function (world) {
       var point = atlasPoint(world);
+      var tone = atlasTone(world);
+      var toneStyle = tone ? ' style="--atlas-tone-rgb:' + tone.rgb + '"' : '';
       var label = world.status === 'available' ? 'Open world record for ' + world.name : 'Lore locked: ' + world.name;
       var circles =
         '<circle class="world-atlas-hit" cx="' + point.x + '" cy="' + point.y + '" r="' + point.r + '"></circle>' +
         '<circle class="world-atlas-ring" cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 4) + '"></circle>' +
         (world.status === 'available' ? '<circle class="world-atlas-signal" cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 10) + '"></circle>' : '<circle class="world-atlas-lock-shade" cx="' + point.x + '" cy="' + point.y + '" r="' + point.r + '"></circle>');
       if (world.status === 'available') {
-        return '<a class="world-atlas-hotspot is-available" href="' + worldRecordUrl(world) + '" data-world-slug="' + escapeHtml(world.slug) + '" aria-label="' + escapeHtml(label) + '">' + circles + '</a>';
+        return '<a class="world-atlas-hotspot is-available" href="' + worldRecordUrl(world) + '" data-world-slug="' + escapeHtml(world.slug) + '" aria-label="' + escapeHtml(label) + '"' + toneStyle + '>' + circles + '</a>';
       }
-      return '<g class="world-atlas-hotspot is-locked" data-world-slug="' + escapeHtml(world.slug) + '" tabindex="0" role="img" aria-label="' + escapeHtml(label) + '">' + circles + '</g>';
+      return '<g class="world-atlas-hotspot is-locked" data-world-slug="' + escapeHtml(world.slug) + '" tabindex="0" role="img" aria-label="' + escapeHtml(label) + '"' + toneStyle + '>' + circles + '</g>';
     }).join('');
 
     atlasHotspotsEl.innerHTML = hotspots;
