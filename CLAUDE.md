@@ -730,7 +730,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   preference.
 - **Interactive Worlds atlas:** `worlds.html` now presents the supplied
   `images/twelve-worlds-atlas.png` as a wide 1672×941 interactive SVG overlay.
-  `js/worlds.js?v=15` maps stable world slugs to the artwork's medallions (never
+  `js/worlds.js?v=16` maps stable world slugs to the artwork's medallions (never
   use `worlds.sort_order`: Asmecu and Reanium are deliberately ordered differently
   in the database and artwork), so World Control's ordinary `available`/`locked` status
   automatically controls each destination. Available medallions open the stable
@@ -738,16 +738,22 @@ also supports a deliberately manual `?full=1` historical rebuild.
   dimmed and expose `ERROR: LORE LOCK / MISSING INFORMATION` without leaking a
   record. The atlas is now the only public world index: the former card grid and
   inline world-detail sections were removed from `worlds.html`; full lore lives on
-  each dedicated `world.html?slug=...` record. `js/world-atlas-effects.js?v=7` adds
+  each dedicated `world.html?slug=...` record. Beneath the atlas, the same API data
+  drives a fixed 13-stage lore progress bar: the current numerator counts records
+  whose World Control status is exactly `available`, while the thirteenth marker is
+  deliberately reserved for the later world. GSAP fills the bar with `power3.out`,
+  advances the integer counter and markers, runs one energy sweep and spark pass,
+  then stops; reduced-motion users receive the final state immediately.
+  `js/world-atlas-effects.js?v=8` adds
   the cinematic layer: GSAP owns one
   restrained scene transform and ScrollTrigger depth pass, while one transparent
   native-resolution canvas clips all ambient effects to their calibrated medallion
   circles. The twelve stable slugs select distinct motifs. The current late-orbit
   treatments deliberately avoid broad rectangular light shafts: Babki Prime has
-  wind-driven falling leaves, Sed combines a procedural overlapping flame field
-  with falling ash, Beoctica performs a pronounced slow searching camera pan and
-  zoom, Terek II uses
-  local red/blue battle flashes and adds a medallion-only hover shake, Valerium
+  wind-driven falling leaves, Sed carries a hard solar glare with progressively
+  revealed glowing medallion cracks, Beoctica performs a pronounced slow searching
+  camera pan and zoom, Terek II stages small background explosions with expanding
+  smoke and adds a medallion-only hover shake, Valerium
   Prime radiates fine holy revelation rays, and Vermillia XI rains inside its dome.
   Earlier-world motifs
   remain glitch, copper sparks, ash/embers, radioactive spores, water caustics, and

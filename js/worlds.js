@@ -17,6 +17,13 @@ document.addEventListener('DOMContentLoaded', function () {
   var atlasInfoKickerEl = document.querySelector('.world-atlas-info-kicker');
   var atlasInfoTitleEl = document.getElementById('world-atlas-info-title');
   var atlasInfoCopyEl = document.getElementById('world-atlas-info-copy');
+  var atlasProgressEl = document.getElementById('world-atlas-progress');
+  var atlasProgressTrackEl = document.getElementById('world-atlas-progress-track');
+  var atlasProgressFillEl = document.getElementById('world-atlas-progress-fill');
+  var atlasProgressSweepEl = document.getElementById('world-atlas-progress-sweep');
+  var atlasProgressMarkersEl = document.getElementById('world-atlas-progress-markers');
+  var atlasProgressSparksEl = document.getElementById('world-atlas-progress-sparks');
+  var atlasProgressCurrentEl = document.getElementById('world-atlas-progress-current');
   var atlasExperienceController = null;
   if (!atlasEl || !atlasHotspotsEl) return;
 
@@ -288,6 +295,166 @@ document.addEventListener('DOMContentLoaded', function () {
     wireAtlasParallax();
   }
 
+  function renderAtlasProgress(worlds) {
+    var totalWorlds = 13;
+    if (!atlasProgressEl || !atlasProgressTrackEl || !atlasProgressFillEl || !atlasProgressCurrentEl) return;
+    var unlockedWorlds = Math.min(totalWorlds, worlds.filter(function (world) {
+      return world.status === 'available';
+    }).length);
+    var progress = unlockedWorlds / totalWorlds;
+    var progressPercent = progress * 100;
+
+    function updateCount(value) {
+      var rounded = Math.min(unlockedWorlds, Math.max(0, Math.round(value)));
+      atlasProgressCurrentEl.textContent = String(rounded);
+      atlasProgressTrackEl.setAttribute('aria-valuenow', String(rounded));
+      atlasProgressTrackEl.setAttribute('aria-valuetext', rounded + ' of ' + totalWorlds + ' worlds unlocked');
+    }
+
+    if (atlasProgressMarkersEl) {
+      atlasProgressMarkersEl.innerHTML = Array.from({ length: totalWorlds }, function (_, index) {
+        var position = (index + 1) / totalWorlds * 100;
+        return '<span class="world-atlas-progress-marker" style="--world-marker-position:' + position.toFixed(4) + '%"></span>';
+      }).join('');
+    }
+
+    var markers = atlasProgressMarkersEl
+      ? Array.prototype.slice.call(atlasProgressMarkersEl.querySelectorAll('.world-atlas-progress-marker'))
+      : [];
+    var sparks = atlasProgressSparksEl
+      ? Array.prototype.slice.call(atlasProgressSparksEl.querySelectorAll('i'))
+      : [];
+    var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var gsap = window.gsap;
+
+    function applyFinalState() {
+      atlasProgressFillEl.style.transform = 'scaleX(' + progress.toFixed(5) + ')';
+      markers.forEach(function (marker, index) {
+        marker.classList.toggle('is-unlocked', index < unlockedWorlds);
+      });
+      updateCount(unlockedWorlds);
+      if (atlasProgressSparksEl) atlasProgressSparksEl.style.left = progressPercent.toFixed(4) + '%';
+    }
+
+    if (!gsap || reducedMotion || unlockedWorlds === 0) {
+      applyFinalState();
+      return;
+    }
+
+    gsap.set(atlasProgressFillEl, { scaleX: 0, transformOrigin: 'left center' });
+    if (atlasProgressSweepEl) gsap.set(atlasProgressSweepEl, { xPercent: -80, opacity: 0 });
+    if (atlasProgressSparksEl) gsap.set(atlasProgressSparksEl, { left: '0%' });
+    gsap.set(sparks, { opacity: 0, x: 0, y: 0, scale: 0.6 });
+    updateCount(0);
+
+    var hasAnimated = false;
+    function animateProgress() {
+      if (hasAnimated) return;
+      hasAnimated = true;
+      var counter = { value: 0 };
+      var timeline = gsap.timeline({
+        defaults: { overwrite: 'auto' },
+        onComplete: function () {
+          applyFinalState();
+        }
+      });
+      timeline.to(atlasProgressFillEl, {
+        scaleX: progress,
+        duration: 1.65,
+        ease: 'power3.out'
+      }, 0);
+      timeline.to(counter, {
+        value: unlockedWorlds,
+        duration: 1.65,
+        ease: 'power3.out',
+        onUpdate: function () { updateCount(counter.value); }
+      }, 0);
+      if (atlasProgressSparksEl) {
+        timeline.to(atlasProgressSparksEl, {
+          left: progressPercent + '%',
+          duration: 1.65,
+          ease: 'power3.out'
+        }, 0);
+      }
+      if (atlasProgressSweepEl) {
+        timeline.fromTo(atlasProgressSweepEl, {
+          xPercent: -80,
+          opacity: 0
+        }, {
+          xPercent: 520,
+          opacity: 0.9,
+          duration: 1.05,
+          ease: 'power2.inOut'
+        }, 0.28);
+        timeline.to(atlasProgressSweepEl, { opacity: 0, duration: 0.2 }, 1.28);
+      }
+      markers.slice(0, unlockedWorlds).forEach(function (marker, index) {
+        var markerTime = 0.2 + 1.2 * ((index + 1) / totalWorlds);
+        timeline.call(function () { marker.classList.add('is-unlocked'); }, null, markerTime);
+        timeline.fromTo(marker, {
+          scale: 0.65
+        }, {
+          scale: 1.75,
+          duration: 0.16,
+          ease: 'back.out(2.4)'
+        }, markerTime);
+        timeline.to(marker, { scale: 1, duration: 0.24, ease: 'power2.out' }, markerTime + 0.16);
+      });
+      sparks.forEach(function (spark, index) {
+        var sparkTime = 0.38 + index * 0.11;
+        var direction = index % 2 === 0 ? -1 : 1;
+        timeline.fromTo(spark, {
+          opacity: 0,
+          x: -3,
+          y: 0,
+          scale: 0.55
+        }, {
+          opacity: 0.95,
+          x: direction * (4 + index),
+          y: -4 - (index % 3) * 4,
+          scale: 1,
+          duration: 0.16,
+          ease: 'power2.out'
+        }, sparkTime);
+        timeline.to(spark, {
+          opacity: 0,
+          x: direction * (10 + index * 2),
+          y: 8 + (index % 2) * 5,
+          scale: 0.2,
+          duration: 0.52,
+          ease: 'power2.in'
+        }, sparkTime + 0.16);
+      });
+      timeline.to(atlasProgressEl, {
+        scale: 1.006,
+        boxShadow: '0 16px 38px rgba(0,0,0,0.3), 0 0 28px rgba(153,84,224,0.2)',
+        duration: 0.2,
+        ease: 'power2.out',
+        yoyo: true,
+        repeat: 1
+      }, 1.63);
+    }
+
+    if (window.ScrollTrigger) {
+      gsap.registerPlugin(window.ScrollTrigger);
+      window.ScrollTrigger.create({
+        trigger: atlasProgressEl,
+        start: 'top 92%',
+        once: true,
+        onEnter: animateProgress
+      });
+    } else if ('IntersectionObserver' in window) {
+      var observer = new IntersectionObserver(function (entries) {
+        if (!entries[0].isIntersecting) return;
+        observer.disconnect();
+        animateProgress();
+      }, { threshold: 0.15 });
+      observer.observe(atlasProgressEl);
+    } else {
+      animateProgress();
+    }
+  }
+
   fetch('/api/worlds.php', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -296,6 +463,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
       renderAtlas(worlds);
       wireAtlasExperience(worlds);
+      renderAtlasProgress(worlds);
     })
     .catch(function () {
       // Keep the static atlas artwork visible if live status data is unavailable.

@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=206">
+<link rel="stylesheet" href="css/public.css?v=207">
 </head>
 <body>
 
@@ -107,6 +107,35 @@
         </div>
       </div>
 
+      <section class="world-atlas-progress" id="world-atlas-progress" aria-labelledby="world-atlas-progress-title">
+        <div class="world-atlas-progress-head">
+          <div>
+            <span class="eyebrow">Lore Archive</span>
+            <h3 id="world-atlas-progress-title">Worlds unlocked</h3>
+          </div>
+          <strong class="world-atlas-progress-count"><span id="world-atlas-progress-current">0</span> of 13</strong>
+        </div>
+        <div
+          class="world-atlas-progress-track"
+          id="world-atlas-progress-track"
+          role="progressbar"
+          aria-label="Worlds unlocked"
+          aria-valuemin="0"
+          aria-valuemax="13"
+          aria-valuenow="0"
+          aria-valuetext="0 of 13 worlds unlocked"
+        >
+          <div class="world-atlas-progress-fill" id="world-atlas-progress-fill">
+            <span class="world-atlas-progress-sweep" id="world-atlas-progress-sweep" aria-hidden="true"></span>
+          </div>
+          <div class="world-atlas-progress-markers" id="world-atlas-progress-markers" aria-hidden="true"></div>
+          <div class="world-atlas-progress-sparks" id="world-atlas-progress-sparks" aria-hidden="true">
+            <i></i><i></i><i></i><i></i><i></i><i></i>
+          </div>
+        </div>
+        <p>World Control synchronizes every cleared lore record with this archive.</p>
+      </section>
+
     </div>
   </section>
 
@@ -169,7 +198,7 @@
 <script src="js/members.js?v=23"></script>
 <script src="js/vendor/gsap-3.15.0.min.js"></script>
 <script src="js/vendor/ScrollTrigger-3.15.0.min.js"></script>
-<script src="js/world-atlas-effects.js?v=7"></script>
-<script src="js/worlds.js?v=15"></script>
+<script src="js/world-atlas-effects.js?v=8"></script>
+<script src="js/worlds.js?v=16"></script>
 </body>
 </html>
