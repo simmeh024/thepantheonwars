@@ -751,8 +751,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   idle strength, ease to roughly double intensity on hover/focus, receive a local
   2.8% image zoom, and use their own tone for the illuminated rim and signal. Each
   motif also has a staggered 6–9 second signature flare so the orbit never pulses in
-  unison. The Nexus clouds combine the 16-second, 24 fps, 746 KB VP9 loop at
-  `images/nexus-clouds-loop.webm?v=1` with soft canvas wisps, inward-moving dust, a
+  unison. The Nexus clouds combine the author-supplied 8-second, 1280x720,
+  234 KB VP9 WebM loop at `images/nexus-clouds-loop.webm?v=2` with soft canvas
+  wisps, inward-moving dust, a
   breathing core, and deterministic lightning. CSS exposes the video only through a
   feathered central cloud mask; static atlas-image shields cover the orbit, labels,
   medallions, and central city so those pixels never move. Lightning bolts now appear
