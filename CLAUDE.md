@@ -736,7 +736,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   automatically controls each destination. Available medallions open the stable
   dynamic record route `world.html?slug=<slug>`; locked medallions stay visually
   dimmed and expose `ERROR: LORE LOCK / MISSING INFORMATION` without leaking a
-  record. `js/world-atlas-effects.js?v=2` adds the cinematic layer: GSAP owns one
+  record. `js/world-atlas-effects.js?v=3` adds the cinematic layer: GSAP owns one
   restrained scene transform and ScrollTrigger depth pass, while one transparent
   native-resolution canvas clips all ambient effects to their calibrated medallion
   circles. The twelve stable slugs select distinct motifs (glitch, copper sparks,
@@ -751,8 +751,12 @@ also supports a deliberately manual `?full=1` historical rebuild.
   2.8% image zoom, and use their own tone for the illuminated rim and signal. Each
   motif also has a staggered 6–9 second signature flare so the orbit never pulses in
   unison. The Nexus clouds are an independent always-on storm made from two
-  counter-rotating spiral layers, inward-moving dust, a breathing core, and an
-  occasional energy arc; it remains active even if every world is lore-locked.
+  counter-rotating spiral layers, inward-moving dust, a breathing core, and
+  deterministic but irregular energy channels that travel slowly around the outer
+  cloud bands without crossing the central city. The canvas clear region around each
+  medallion includes its full shadow blur; shrinking that padding reintroduces stale
+  hover-ring fragments after pointer leave. The Nexus remains active even if every
+  world is lore-locked.
   Fine-pointer desktop devices get less than one
   degree of pointer tilt through `gsap.quickTo`; touch devices keep the atlas flat.
   Reduced-motion users receive the static atlas with the canvas and decorative depth
