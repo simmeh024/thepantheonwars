@@ -19,18 +19,18 @@ document.addEventListener('DOMContentLoaded', function () {
   // World Control sort order, so content staff only need to manage a world's
   // normal status. Unlocking a world automatically activates its medallion.
   var ATLAS_POINTS = {
-    1: { x: 773, y: 140, r: 77 },
-    2: { x: 1044, y: 164, r: 76 },
-    3: { x: 1272, y: 278, r: 76 },
-    4: { x: 1351, y: 451, r: 76 },
-    5: { x: 1283, y: 630, r: 76 },
-    6: { x: 1094, y: 735, r: 76 },
-    7: { x: 796, y: 778, r: 76 },
-    8: { x: 531, y: 714, r: 76 },
-    9: { x: 380, y: 639, r: 76 },
-    10: { x: 280, y: 500, r: 76 },
-    11: { x: 368, y: 350, r: 76 },
-    12: { x: 530, y: 232, r: 76 }
+    1: { x: 773, y: 130, r: 77 },
+    2: { x: 1044, y: 156, r: 77 },
+    3: { x: 1272, y: 270, r: 77 },
+    4: { x: 1351, y: 451, r: 77 },
+    5: { x: 1283, y: 632, r: 77 },
+    6: { x: 1094, y: 735, r: 77 },
+    7: { x: 796, y: 783, r: 77 },
+    8: { x: 531, y: 712, r: 77 },
+    9: { x: 380, y: 635, r: 77 },
+    10: { x: 280, y: 493, r: 77 },
+    11: { x: 368, y: 345, r: 77 },
+    12: { x: 530, y: 232, r: 77 }
   };
 
   function escapeHtml(value) {
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }).join('') +
       '</defs>';
     var lockedArtwork = locked.map(function (world) {
-      return '<image href="images/twelve-worlds-atlas.png" x="0" y="0" width="1672" height="941" preserveAspectRatio="none" clip-path="url(#world-atlas-clip-' + escapeHtml(world.slug) + ')" filter="url(#world-atlas-lock-filter)"></image>';
+      return '<image href="images/twelve-worlds-atlas.png?v=2" x="0" y="0" width="1672" height="941" preserveAspectRatio="none" clip-path="url(#world-atlas-clip-' + escapeHtml(world.slug) + ')" filter="url(#world-atlas-lock-filter)"></image>';
     }).join('');
     var hotspots = mappedWorlds.map(function (world) {
       var point = ATLAS_POINTS[world.sort_order];

@@ -227,7 +227,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   load it after the initial render, and preserve `prefers-reduced-motion` behavior.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=198, community v=198, and admin v=211. Public pages use
+  versions: public v=199, community v=198, and admin v=211. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -727,7 +727,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   preference.
 - **Interactive Worlds atlas:** `worlds.html` now presents the supplied
   `images/twelve-worlds-atlas.png` as a wide 1672×941 interactive SVG overlay.
-  `js/worlds.js?v=4` maps the existing `worlds.sort_order` values 1–12 to the
+  `js/worlds.js?v=5` maps the existing `worlds.sort_order` values 1–12 to the
   artwork's medallions, so World Control's ordinary `available`/`locked` status
   automatically controls each destination. Available medallions open the stable
   dynamic record route `world.html?slug=<slug>`; locked medallions stay visually
@@ -736,7 +736,12 @@ also supports a deliberately manual `?full=1` historical rebuild.
   parallax otherwise. `world.html` plus `js/world-detail.js?v=1` is the dedicated,
   expandable World Record surface; it uses the existing single-world API response,
   renders the current map/layer detail for available worlds, and safely keeps direct
-  links to locked records sealed. There is no new table or migration.
+  links to locked records sealed. The artwork is cache-versioned as
+  `images/twelve-worlds-atlas.png?v=2`; increment that query whenever the source
+  image changes because image assets are immutable in browser caches. The SVG root
+  uses `preserveAspectRatio="none"` and the matching image fills the same coordinate
+  box: retain both rules so grayscale masks and hit areas stay aligned. There is no
+  new table or migration.
 - **News publication notifications:** News Management creates public posts
   immediately, then broadcasts a `news_published` notification only after the
   database transaction commits. Each notification deep-links to
