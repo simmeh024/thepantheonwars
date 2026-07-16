@@ -1723,7 +1723,7 @@
 .member-list-columns,
 .admin-row.member-row {
   display: grid;
-  grid-template-columns: 40px minmax(220px, 1.5fr) minmax(185px, 1fr) 132px 120px;
+  grid-template-columns: 40px minmax(210px, 1.45fr) minmax(165px, 1fr) 126px 118px 120px;
   align-items: center;
   column-gap: 16px;
 }
@@ -1740,7 +1740,7 @@
 .admin-row.member-row { gap: 0 16px; }
 .member-row .member-avatar-wrap { grid-column: 1; }
 .member-last-login-column { color: var(--text-faint); font-size: 0.72rem; line-height: 1.4; }
-.member-source-column, .member-role-column { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.member-source-column, .member-verification-column, .member-role-column { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .member-role-column { flex-wrap: wrap; }
 .member-row-badges { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
 .member-role-badge {
@@ -1755,6 +1755,13 @@
 }
 .member-auth-badge-pantheon { color: #d2b4ff; background: rgba(137,87,229,0.16); border: 1px solid rgba(162,121,236,0.52); }
 .member-auth-badge-google { color: #9ed9ff; background: rgba(65,150,235,0.15); border: 1px solid rgba(99,180,255,0.5); }
+.member-verification-badge {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  padding: 3px 9px; border-radius: 999px; font-size: 0.62rem; font-weight: 600;
+  letter-spacing: 0.07em; text-transform: uppercase; white-space: nowrap;
+}
+.member-verification-badge-verified { color: #9af0c6; background: rgba(62,207,142,0.14); border: 1px solid rgba(62,207,142,0.5); }
+.member-verification-badge-unverified { color: #b0a6c8; background: rgba(170,161,190,0.1); border: 1px solid rgba(170,161,190,0.32); }
 .member-banned-badge {
   flex-shrink: 0; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.06em;
   padding: 3px 10px; border-radius: 3px; border: 1px solid #e05a4a; color: #e05a4a; white-space: nowrap;
@@ -1766,12 +1773,14 @@
     grid-template-columns: 40px minmax(0, 1fr) auto;
     grid-template-areas:
       'avatar account source'
+      'avatar login verification'
       'avatar login role';
   }
   .member-row .member-avatar-wrap { grid-area: avatar; }
   .member-account-column { grid-area: account; }
   .member-last-login-column { grid-area: login; }
   .member-source-column { grid-area: source; justify-content: flex-end; }
+  .member-verification-column { grid-area: verification; justify-content: flex-end; }
   .member-role-column { grid-area: role; justify-content: flex-end; }
 }
 @media (max-width: 720px) {
@@ -1786,9 +1795,10 @@
       'avatar account'
       'avatar login'
       'avatar source'
+      'avatar verification'
       'avatar role';
   }
-  .member-source-column, .member-role-column { justify-content: flex-start; }
+  .member-source-column, .member-verification-column, .member-role-column { justify-content: flex-start; }
 }
 
 .admin-field-hint { font-size: 0.76rem; color: var(--text-faint); margin: -0.3em 0 0.6em; }

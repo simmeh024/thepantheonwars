@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=213">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=214">
 </head>
 <body>
 
@@ -1363,6 +1363,7 @@
         <span>Account name</span>
         <span>Last login</span>
         <span>Account source</span>
+        <span>Verification</span>
         <span>Role</span>
       </div>
       <div class="admin-list" id="member-list">
@@ -6415,6 +6416,14 @@
       source.innerHTML =
         '<span class="member-auth-badge ' + (entry.has_google_identity ? 'member-auth-badge-google' : 'member-auth-badge-pantheon') + '">' + (entry.has_google_identity ? 'Google' : 'Pantheon Wars') + '</span>';
       row.appendChild(source);
+
+      var verification = document.createElement('div');
+      verification.className = 'member-verification-column';
+      verification.innerHTML =
+        '<span class="member-verification-badge ' + (entry.email_verified ? 'member-verification-badge-verified' : 'member-verification-badge-unverified') + '">' +
+          (entry.email_verified ? 'Verified' : 'Not verified') +
+        '</span>';
+      row.appendChild(verification);
 
       var role = document.createElement('div');
       role.className = 'member-role-column';

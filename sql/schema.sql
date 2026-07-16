@@ -48,6 +48,10 @@ CREATE TABLE IF NOT EXISTS users (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(30) NOT NULL,
   email VARCHAR(255) NOT NULL,
+  -- NULL until the address has been confirmed through a trusted provider or
+  -- a future first-party verification link. The timestamp doubles as a
+  -- compact audit reference without exposing it on public member pages.
+  email_verified_at DATETIME DEFAULT NULL,
   -- NULL is intentional for OAuth-only accounts. A member can add a local
   -- password later from Profile Settings.
   password_hash VARCHAR(255) NULL,

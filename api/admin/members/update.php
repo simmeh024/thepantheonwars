@@ -136,8 +136,21 @@ $wasBanned = pw_is_banned($existing);
 $bannedAt = $banned ? ($wasBanned ? $existing['banned_at'] : date('Y-m-d H:i:s')) : null;
 $bannedUntil = $banned ? $newBannedUntil : null;
 
-$stmt = $db->prepare('UPDATE users SET display_name = ?, email = ?, role = ?, banned_at = ?, banned_until = ? WHERE id = ?');
-$stmt->execute([$displayName, $email, $role, $bannedAt, $bannedUntil, $id]);
+// MySQL evaluates SET assignments from left to right. Evaluate the original
+// email before replacing it so an administrator changing the address always
+// clears verification, while ordinary profile/role edits retain it.
+try {
+    $stmt = $db->prepare('UPDATE users SET display_name = ?, email_verified_at = CASE WHEN email = ? THEN email_verified_at ELSE NULL END, email = ?, role = ?, banned_at = ?, banned_until = ? WHERE id = ?');
+    $stmt->execute([$displayName, $email, $email, $role, $bannedAt, $bannedUntil, $id]);
+} catch (PDOException $e) {
+    // Keep existing member management available until the manual migration
+    // adds email_verified_at. Do not mask unrelated database errors.
+    if ($e->getCode() !== '42S22') {
+        throw $e;
+    }
+    $stmt = $db->prepare('UPDATE users SET display_name = ?, email = ?, role = ?, banned_at = ?, banned_until = ? WHERE id = ?');
+    $stmt->execute([$displayName, $email, $role, $bannedAt, $bannedUntil, $id]);
+}
 
 if ($banned && !$wasBanned) {
     $revokedSessions = pw_revoke_user_sessions($id, null, 'account_banned');

@@ -64,8 +64,18 @@ if ($page > $totalPages) {
 }
 $offset = ($page - 1) * $perPage;
 
+// The deployment step copies PHP before the user runs the hand-applied SQL
+// migration. Keep the Members list usable during that short window, showing
+// every account as not verified until email_verified_at exists.
+$verificationSelect = 'u.email_verified_at';
+try {
+    $db->query('SELECT email_verified_at FROM users LIMIT 1');
+} catch (Throwable $e) {
+    $verificationSelect = 'NULL';
+}
+
 $stmt = $db->prepare(
-    "SELECT u.id, u.username, u.email, u.display_name, u.role, u.created_at, u.last_login_at, u.last_login_ip, u.banned_at, u.banned_until,
+    "SELECT u.id, u.username, u.email, $verificationSelect AS email_verified_at, u.display_name, u.role, u.created_at, u.last_login_at, u.last_login_ip, u.banned_at, u.banned_until,
             EXISTS(
                 SELECT 1
                 FROM oauth_identities oi
@@ -99,6 +109,7 @@ $out = array_map(function ($r) use ($otherRolesByUser, $canViewIp) {
         'id' => (int)$r['id'],
         'username' => $r['username'],
         'email' => $r['email'],
+        'email_verified' => $r['email_verified_at'] !== null,
         'display_name' => $r['display_name'],
         'role' => $r['role'],
         'has_google_identity' => (bool)$r['has_google_identity'],

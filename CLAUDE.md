@@ -89,6 +89,13 @@ select `config.php` -> Edit (opens cPanel's code editor in a new tab).
   all remembered sessions once the password changes. Run
   `sql/migration_password_reset.sql` after the mail migration before deploying
   the flow. Verification templates remain prepared for their future token flow.
+- Members admin includes a primary-email verification pill. Its source is
+  `users.email_verified_at`: Google registrations are marked verified because
+  the OAuth profile helper requires Google's `email_verified` claim, while
+  password-created accounts stay unverified until a first-party verification
+  flow is added. An administrator changing an email clears the timestamp.
+  Run `sql/migration_account_verification_status.sql` for this column and the
+  safe backfill of matching Google identities.
 
 ## Database
 

@@ -44,6 +44,17 @@ if ($flow['intent'] === 'link') {
     if (!$identity) {
         $stmt = $db->prepare('INSERT INTO oauth_identities (user_id, provider, provider_subject, provider_email, last_used_at) VALUES (?, ?, ?, ?, UTC_TIMESTAMP())');
         $stmt->execute([(int)$currentUser['id'], $provider, $profile['subject'], $profile['email']]);
+        // Google profiles only reach this point after email_verified=true has
+        // been checked in pw_oauth_google_profile(). A linked address verifies
+        // the member's primary email only when both addresses actually match.
+        if (strcasecmp($profile['email'], $currentUser['email']) === 0) {
+            try {
+                $db->prepare('UPDATE users SET email_verified_at = COALESCE(email_verified_at, UTC_TIMESTAMP()) WHERE id = ?')->execute([(int)$currentUser['id']]);
+            } catch (Throwable $e) {
+                // Keep Google linking available if this deployment is briefly
+                // ahead of the manual schema migration.
+            }
+        }
         pw_log_activity('google_linked', 'Linked a Google account for passwordless sign-in.', (int)$currentUser['id'], $currentUser['username']);
     } else {
         $db->prepare('UPDATE oauth_identities SET provider_email = ?, last_used_at = UTC_TIMESTAMP() WHERE id = ?')->execute([$profile['email'], $identity['id']]);
@@ -75,8 +86,19 @@ if ($identity) {
     $displayName = $profile['name'] !== '' ? $profile['name'] : $username;
     try {
         $db->beginTransaction();
-        $stmt = $db->prepare('INSERT INTO users (username, email, password_hash, display_name) VALUES (?, ?, NULL, ?)');
-        $stmt->execute([$username, $profile['email'], $displayName]);
+        try {
+            $stmt = $db->prepare('INSERT INTO users (username, email, email_verified_at, password_hash, display_name) VALUES (?, ?, UTC_TIMESTAMP(), NULL, ?)');
+            $stmt->execute([$username, $profile['email'], $displayName]);
+        } catch (PDOException $e) {
+            // Graceful compatibility while the code deployment is waiting for
+            // its manual column migration; the user can still join through
+            // Google and the backfill will mark their matching email later.
+            if ($e->getCode() !== '42S22') {
+                throw $e;
+            }
+            $stmt = $db->prepare('INSERT INTO users (username, email, password_hash, display_name) VALUES (?, ?, NULL, ?)');
+            $stmt->execute([$username, $profile['email'], $displayName]);
+        }
         $userId = (int)$db->lastInsertId();
         $stmt = $db->prepare('INSERT INTO oauth_identities (user_id, provider, provider_subject, provider_email, last_used_at) VALUES (?, ?, ?, ?, UTC_TIMESTAMP())');
         $stmt->execute([$userId, $provider, $profile['subject'], $profile['email']]);
