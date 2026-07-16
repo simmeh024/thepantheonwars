@@ -230,7 +230,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=205, community v=202, and admin v=211. Public pages use
+  versions: public v=206, community v=202, and admin v=211. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -246,7 +246,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   and only needs a version bump in `news.html`. `js/news-post.js?v=N` powers the
   dedicated public transmission page (current: v=3); it is only loaded by
   `news-post.html`.
-- Static CSS, JavaScript, font, and image assets have a one-year
+- Static CSS, JavaScript, font, image, and WebM video assets have a one-year
   `public, immutable` cache policy in `.htaccess`; HTML remains no-cache so
   changed version URLs reach visitors immediately. Never replace an asset at
   the same URL without changing its filename or version query string.
@@ -730,13 +730,13 @@ also supports a deliberately manual `?full=1` historical rebuild.
   preference.
 - **Interactive Worlds atlas:** `worlds.html` now presents the supplied
   `images/twelve-worlds-atlas.png` as a wide 1672×941 interactive SVG overlay.
-  `js/worlds.js?v=13` maps stable world slugs to the artwork's medallions (never
+  `js/worlds.js?v=14` maps stable world slugs to the artwork's medallions (never
   use `worlds.sort_order`: Asmecu and Reanium are deliberately ordered differently
   in the database and artwork), so World Control's ordinary `available`/`locked` status
   automatically controls each destination. Available medallions open the stable
   dynamic record route `world.html?slug=<slug>`; locked medallions stay visually
   dimmed and expose `ERROR: LORE LOCK / MISSING INFORMATION` without leaking a
-  record. `js/world-atlas-effects.js?v=4` adds the cinematic layer: GSAP owns one
+  record. `js/world-atlas-effects.js?v=5` adds the cinematic layer: GSAP owns one
   restrained scene transform and ScrollTrigger depth pass, while one transparent
   native-resolution canvas clips all ambient effects to their calibrated medallion
   circles. The twelve stable slugs select distinct motifs (glitch, copper sparks,
@@ -751,18 +751,23 @@ also supports a deliberately manual `?full=1` historical rebuild.
   idle strength, ease to roughly double intensity on hover/focus, receive a local
   2.8% image zoom, and use their own tone for the illuminated rim and signal. Each
   motif also has a staggered 6–9 second signature flare so the orbit never pulses in
-  unison. The Nexus clouds are an independent always-on storm made from soft drifting
-  cloud wisps, inward-moving dust, a breathing core, and short freeform lightning
-  bolts at deterministic irregular positions. The bolts reveal and fade locally with
-  only a few pixels of drift; they never follow an orbit or cross the central city.
+  unison. The Nexus clouds combine the 16-second, 24 fps, 746 KB VP9 loop at
+  `images/nexus-clouds-loop.webm?v=1` with soft canvas wisps, inward-moving dust, a
+  breathing core, and deterministic lightning. CSS exposes the video only through a
+  feathered central cloud mask; static atlas-image shields cover the orbit, labels,
+  medallions, and central city so those pixels never move. Lightning bolts now appear
+  as complete branched paths in a roughly half-second double flash instead of moving
+  along a line. Their spawn band stays above the city and never follows an orbit.
   High Hammer uses compact copper motes instead of line-shaped sparks so its idle and
   hover states cannot leave vertical streaks. The Nexus remains active even if every
   world is lore-locked.
   Fine-pointer desktop devices get less than one
   degree of pointer tilt through `gsap.quickTo`; touch devices keep the atlas flat.
-  Reduced-motion users receive the static atlas with the canvas and decorative depth
-  layers disabled. Keep the tooltip outside the transformed scene so its text stays
-  crisp and preserve the native coordinate system for every overlay.
+  The WebM and canvas ticker start and pause together through the atlas intersection,
+  tab-visibility, and motion-preference controller. Reduced-motion users receive the
+  static atlas with the video, canvas, and decorative depth layers disabled. Keep the
+  tooltip outside the transformed scene so its text stays crisp and preserve the
+  native coordinate system for every overlay.
   `world.html` plus `js/world-detail.js?v=1` is the dedicated,
   expandable World Record surface; it uses the existing single-world API response,
   renders the current map/layer detail for available worlds, and safely keeps direct

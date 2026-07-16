@@ -66,33 +66,59 @@
     return particles;
   }
 
-  function buildNexusEnergyBolts(count) {
+  function buildLightningPath(random, startX, startY, direction, length, segments, jitter) {
+    var points = [];
+    var normal = direction + Math.PI * 0.5;
+    for (var step = 0; step <= segments; step += 1) {
+      var progress = step / segments;
+      var taper = 0.4 + Math.sin(progress * Math.PI) * 0.85;
+      var deviation = step === 0 ? 0 : (random() - 0.5) * jitter * taper;
+      points.push({
+        x: startX + Math.cos(direction) * length * progress + Math.cos(normal) * deviation,
+        y: startY + Math.sin(direction) * length * progress + Math.sin(normal) * deviation
+      });
+    }
+    return points;
+  }
+
+  function buildNexusLightningBolts(count) {
     var random = seededRandom(hashString('nexus-cloud-lightning'));
     var bolts = [];
     for (var i = 0; i < count; i += 1) {
-      var cloudAngle = random() * TAU;
-      var cloudRadius = 158 + random() * 104;
+      var cloudAngle = Math.PI * (1.08 + random() * 0.84);
+      var cloudRadius = 172 + random() * 92;
       var originX = NEXUS.x + Math.cos(cloudAngle) * cloudRadius;
       var originY = NEXUS.y + Math.sin(cloudAngle) * cloudRadius * 0.68;
-      var direction = cloudAngle + Math.PI * 0.5 + (random() - 0.5) * 1.55;
-      var length = 54 + random() * 74;
-      var points = [];
-      for (var step = 0; step <= 12; step += 1) {
-        var progress = step / 12 - 0.5;
-        var deviation = (random() - 0.5) * (7 + Math.sin(step * 1.7) * 3);
-        points.push({
-          x: originX + Math.cos(direction) * length * progress + Math.cos(direction + Math.PI * 0.5) * deviation,
-          y: originY + Math.sin(direction) * length * progress + Math.sin(direction + Math.PI * 0.5) * deviation
-        });
+      var direction = cloudAngle + Math.PI * 0.5 + (random() - 0.5) * 1.2;
+      var length = 88 + random() * 74;
+      var startX = originX - Math.cos(direction) * length * 0.5;
+      var startY = originY - Math.sin(direction) * length * 0.5;
+      var points = buildLightningPath(random, startX, startY, direction, length, 14, 27);
+      var branches = [];
+      var branchCount = 4 + Math.floor(random() * 3);
+      for (var branchIndex = 0; branchIndex < branchCount; branchIndex += 1) {
+        var forkIndex = 2 + Math.floor(random() * (points.length - 5));
+        var fork = points[forkIndex];
+        var side = random() > 0.5 ? 1 : -1;
+        var branchDirection = direction + side * (0.52 + random() * 0.72);
+        branches.push(buildLightningPath(
+          random,
+          fork.x,
+          fork.y,
+          branchDirection,
+          30 + random() * 42,
+          6 + Math.floor(random() * 3),
+          18
+        ));
       }
       bolts.push({
         points: points,
-        period: 7.2 + random() * 7.8,
-        duration: 1.8 + random() * 1.5,
-        offset: random() * 13,
-        driftX: (random() - 0.5) * 5,
-        driftY: (random() - 0.5) * 4,
-        phase: random() * TAU,
+        branches: branches,
+        originX: originX,
+        originY: originY,
+        period: 5.2 + random() * 7.8,
+        duration: 0.48 + random() * 0.14,
+        offset: random() * 12,
         cyan: random() > 0.48
       });
     }
@@ -200,33 +226,62 @@
   function drawNexusLightning(ctx, time, bolts) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
     bolts.forEach(function (bolt) {
       var progress = eventProgress(time, bolt.period, bolt.duration, bolt.offset);
       if (progress < 0) return;
-      var envelope = Math.sin(progress * Math.PI);
-      var head = Math.min(1, progress * 1.25);
-      var tail = Math.max(0, head - 0.32);
-      var pointCount = bolt.points.length - 1;
-      var startIndex = Math.floor(tail * pointCount);
-      var endIndex = Math.max(startIndex + 1, Math.ceil(head * pointCount));
-      var driftX = Math.sin(time * 0.11 + bolt.phase) * bolt.driftX;
-      var driftY = Math.cos(time * 0.09 + bolt.phase) * bolt.driftY;
-      ctx.beginPath();
-      for (var step = startIndex; step <= endIndex; step += 1) {
-        var point = bolt.points[step];
-        if (step === startIndex) ctx.moveTo(point.x + driftX, point.y + driftY);
-        else ctx.lineTo(point.x + driftX, point.y + driftY);
-      }
+      var firstFlash = Math.exp(-Math.pow((progress - 0.11) / 0.08, 2));
+      var secondFlash = 0.88 * Math.exp(-Math.pow((progress - 0.49) / 0.105, 2));
+      var afterGlow = progress > 0.55 ? 0.2 * (1 - progress) / 0.45 : 0;
+      var intensity = clamp(firstFlash + secondFlash + afterGlow, 0, 1);
+      if (intensity < 0.025) return;
       var glowColor = bolt.cyan ? '91,196,255' : '185,101,255';
-      ctx.strokeStyle = 'rgba(' + glowColor + ',' + (0.11 * envelope).toFixed(3) + ')';
-      ctx.lineWidth = 5;
+      var cloudGlow = ctx.createRadialGradient(
+        bolt.originX,
+        bolt.originY,
+        2,
+        bolt.originX,
+        bolt.originY,
+        96
+      );
+      cloudGlow.addColorStop(0, 'rgba(' + glowColor + ',' + (0.28 * intensity).toFixed(3) + ')');
+      cloudGlow.addColorStop(0.42, 'rgba(' + glowColor + ',' + (0.11 * intensity).toFixed(3) + ')');
+      cloudGlow.addColorStop(1, 'rgba(' + glowColor + ',0)');
+      ctx.fillStyle = cloudGlow;
+      ctx.fillRect(bolt.originX - 96, bolt.originY - 96, 192, 192);
+
+      function trace(points) {
+        ctx.beginPath();
+        points.forEach(function (point, index) {
+          if (index === 0) ctx.moveTo(point.x, point.y);
+          else ctx.lineTo(point.x, point.y);
+        });
+      }
+
+      trace(bolt.points);
+      ctx.strokeStyle = 'rgba(' + glowColor + ',' + (0.44 * intensity).toFixed(3) + ')';
+      ctx.lineWidth = 8;
       ctx.shadowColor = 'rgba(' + glowColor + ',0.7)';
-      ctx.shadowBlur = 12;
+      ctx.shadowBlur = 22;
       ctx.stroke();
-      ctx.strokeStyle = 'rgba(218,229,255,' + (0.42 * envelope).toFixed(3) + ')';
-      ctx.lineWidth = 0.95;
-      ctx.shadowBlur = 4;
+      trace(bolt.points);
+      ctx.strokeStyle = 'rgba(238,247,255,' + (0.98 * intensity).toFixed(3) + ')';
+      ctx.lineWidth = 1.45;
+      ctx.shadowBlur = 5;
       ctx.stroke();
+      bolt.branches.forEach(function (branch) {
+        trace(branch);
+        ctx.strokeStyle = 'rgba(' + glowColor + ',' + (0.34 * intensity).toFixed(3) + ')';
+        ctx.lineWidth = 4;
+        ctx.shadowBlur = 12;
+        ctx.stroke();
+        trace(branch);
+        ctx.strokeStyle = 'rgba(232,243,255,' + (0.84 * intensity).toFixed(3) + ')';
+        ctx.lineWidth = 0.82;
+        ctx.shadowBlur = 5;
+        ctx.stroke();
+      });
     });
     ctx.restore();
   }
@@ -696,6 +751,7 @@
     var stage = options.stage;
     var canvas = options.canvas;
     var image = options.image;
+    var cloudVideo = options.cloudVideo;
     var gsap = global.gsap;
     if (!stage || !canvas || !canvas.getContext || !gsap) return null;
 
@@ -727,7 +783,7 @@
       particleCache[entry.slug] = buildParticles(entry.slug, 18);
     });
     var nexusParticles = buildParticles('nexus-storm', 24);
-    var nexusLightningBolts = buildNexusEnergyBolts(8);
+    var nexusLightningBolts = buildNexusLightningBolts(8);
 
     function clearAllCanvas() {
       ctx.clearRect(0, 0, WIDTH, HEIGHT);
@@ -759,13 +815,27 @@
       return !destroyed && inViewport && tabVisible && !reducedQuery.matches;
     }
 
+    function syncCloudVideo(active) {
+      if (!cloudVideo) return;
+      if (!active) {
+        if (!cloudVideo.paused) cloudVideo.pause();
+        return;
+      }
+      if (cloudVideo.paused) {
+        var playRequest = cloudVideo.play();
+        if (playRequest && playRequest.catch) playRequest.catch(function () {});
+      }
+    }
+
     function syncTicker() {
-      if (shouldRun() && !ticking) {
+      var active = shouldRun();
+      syncCloudVideo(active);
+      if (active && !ticking) {
         gsap.ticker.add(render);
         ticking = true;
         return;
       }
-      if (!shouldRun() && ticking) {
+      if (!active && ticking) {
         gsap.ticker.remove(render);
         ticking = false;
         clearAllCanvas();
@@ -819,6 +889,7 @@
         else reducedQuery.removeListener(handleMotionPreference);
         if (ticking) gsap.ticker.remove(render);
         ticking = false;
+        if (cloudVideo && !cloudVideo.paused) cloudVideo.pause();
         clearAllCanvas();
         destroyDepth();
       }

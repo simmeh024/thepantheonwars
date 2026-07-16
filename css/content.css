@@ -849,6 +849,9 @@
 }
 .world-atlas-stage.has-gsap-depth .world-atlas-pan { transition: none; }
 .world-atlas-pan > img,
+.world-atlas-cloud-loop,
+.world-atlas-static-orbit-shield,
+.world-atlas-nexus-city-shield,
 .world-atlas-lock-canvas,
 .world-atlas-effects-canvas,
 .world-atlas-hotspots {
@@ -861,6 +864,37 @@
   inset: 0;
   z-index: 0;
   object-fit: fill;
+}
+.world-atlas-cloud-loop,
+.world-atlas-static-orbit-shield,
+.world-atlas-nexus-city-shield {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.world-atlas-cloud-loop {
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  opacity: 0.82;
+  clip-path: ellipse(30% 37% at 50% 50%);
+  -webkit-mask-image: radial-gradient(ellipse 30% 37% at 50% 50%, #000 0 76%, rgba(0, 0, 0, 0.82) 87%, transparent 100%);
+  mask-image: radial-gradient(ellipse 30% 37% at 50% 50%, #000 0 76%, rgba(0, 0, 0, 0.82) 87%, transparent 100%);
+  filter: saturate(1.08) brightness(1.025);
+}
+.world-atlas-static-orbit-shield,
+.world-atlas-nexus-city-shield {
+  background: url('../images/twelve-worlds-atlas.png?v=2') center / 100% 100% no-repeat;
+}
+.world-atlas-static-orbit-shield {
+  -webkit-mask-image: radial-gradient(ellipse 29% 36% at 50% 50%, transparent 0 77%, rgba(0, 0, 0, 0.94) 91%, #000 100%);
+  mask-image: radial-gradient(ellipse 29% 36% at 50% 50%, transparent 0 77%, rgba(0, 0, 0, 0.94) 91%, #000 100%);
+}
+.world-atlas-nexus-city-shield {
+  clip-path: ellipse(16% 14% at 50% 55%);
+  -webkit-mask-image: radial-gradient(ellipse 16% 14% at 50% 55%, #000 0 70%, rgba(0, 0, 0, 0.92) 84%, transparent 100%);
+  mask-image: radial-gradient(ellipse 16% 14% at 50% 55%, #000 0 70%, rgba(0, 0, 0, 0.92) 84%, transparent 100%);
 }
 .world-atlas-lock-canvas {
   position: absolute;
@@ -1036,6 +1070,9 @@
   .world-atlas-depth-back,
   .world-atlas-depth-front,
   .world-atlas-nexus-glow,
+  .world-atlas-cloud-loop,
+  .world-atlas-static-orbit-shield,
+  .world-atlas-nexus-city-shield,
   .world-atlas-effects-canvas { display: none; }
   .world-atlas-info { transition: none; }
   .world-atlas-hotspot.is-available:hover .world-atlas-signal,

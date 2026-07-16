@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var atlasPanEl = document.getElementById('world-atlas-pan');
   var atlasHotspotsEl = document.getElementById('world-atlas-hotspots');
   var atlasImageEl = atlasPanEl ? atlasPanEl.querySelector('img') : null;
+  var atlasCloudVideoEl = document.getElementById('world-atlas-cloud-loop');
   var atlasLockCanvasEl = document.getElementById('world-atlas-lock-canvas');
   var atlasEffectsCanvasEl = document.getElementById('world-atlas-effects-canvas');
   var atlasDepthBackEl = document.getElementById('world-atlas-depth-back');
@@ -435,11 +436,16 @@ document.addEventListener('DOMContentLoaded', function () {
         front: atlasDepthFrontEl,
         canvas: atlasEffectsCanvasEl,
         image: atlasImageEl,
+        cloudVideo: atlasCloudVideoEl,
         worlds: worlds,
         getPoint: atlasPoint,
         getTone: atlasTone
       });
       if (atlasExperienceController) return;
+    }
+    if (atlasCloudVideoEl && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      var cloudPlayback = atlasCloudVideoEl.play();
+      if (cloudPlayback && cloudPlayback.catch) cloudPlayback.catch(function () {});
     }
     wireAtlasParallax();
   }
