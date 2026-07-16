@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=198">
+<link rel="stylesheet" href="css/community-bundle.css?v=199">
 </head>
 <body>
 
@@ -196,7 +196,14 @@
 
           <form id="two-factor-confirm-form" class="auth-form" hidden>
             <h4>Save your authenticator key</h4>
-            <p class="profile-field-note">Add this key to an authenticator app such as Google Authenticator, Microsoft Authenticator, Authy, or 1Password. Then enter the six-digit code it shows.</p>
+            <p class="profile-field-note">Scan this code with an authenticator app such as Google Authenticator, Microsoft Authenticator, Authy, or 1Password. Then enter the six-digit code it shows.</p>
+            <div class="two-factor-qr-row">
+              <div id="two-factor-qr-code" class="two-factor-qr-code" aria-live="polite" aria-label="Authenticator setup QR code"></div>
+              <div>
+                <strong>Scan with your authenticator app</strong>
+                <p class="profile-field-note">Prefer entering it manually? The setup key remains available below.</p>
+              </div>
+            </div>
             <div class="two-factor-secret-row">
               <div>
                 <strong>Manual setup key</strong>
@@ -369,6 +376,7 @@
 
 <script src="js/main.js?v=6"></script>
 <script src="js/members.js?v=23"></script>
+<script src="js/qrcode-generator.min.js?v=1"></script>
 <script>
 (function () {
   var gate = document.getElementById('profile-gate');
@@ -636,6 +644,7 @@
   var twoFactorDisableForm = document.getElementById('two-factor-disable-form');
   var twoFactorSecret = document.getElementById('two-factor-secret');
   var twoFactorCopySecret = document.getElementById('two-factor-copy-secret');
+  var twoFactorQrCode = document.getElementById('two-factor-qr-code');
 
   function setPasswordMode(hasPassword) {
     profileHasPassword = !!hasPassword;
@@ -704,6 +713,7 @@
     twoFactorSetupForm.hidden = true;
     twoFactorConfirmForm.hidden = true;
     twoFactorDisableForm.hidden = true;
+    twoFactorQrCode.innerHTML = '';
     setTwoFactorError('two-factor-setup-error', '');
     setTwoFactorError('two-factor-confirm-error', '');
     setTwoFactorError('two-factor-disable-error', '');
@@ -744,6 +754,27 @@
     }).then(function (response) { return response.json(); });
   }
 
+  function renderTwoFactorQr(provisioningUri) {
+    if (typeof window.qrcode !== 'function') {
+      twoFactorQrCode.textContent = 'QR unavailable';
+      return;
+    }
+    try {
+      var qr = window.qrcode(0, 'M');
+      qr.addData(provisioningUri, 'Byte');
+      qr.make();
+      twoFactorQrCode.innerHTML = qr.createSvgTag({
+        cellSize: 4,
+        margin: 8,
+        scalable: true,
+        title: { text: 'Authenticator setup QR code', id: 'two-factor-qr-title' },
+        alt: { text: 'Scan this code with your authenticator app to configure The Pantheon Wars.', id: 'two-factor-qr-description' }
+      });
+    } catch (error) {
+      twoFactorQrCode.textContent = 'QR unavailable';
+    }
+  }
+
   twoFactorSetupForm.addEventListener('submit', function (event) {
     event.preventDefault();
     var button = twoFactorSetupForm.querySelector('button[type="submit"]');
@@ -754,6 +785,7 @@
     }).then(function (data) {
       if (!data.ok) throw new Error(data.error || 'Could not start two-factor setup.');
       twoFactorSecret.textContent = data.secret;
+      renderTwoFactorQr(data.provisioning_uri);
       document.getElementById('two-factor-current-password').value = '';
       twoFactorSetupForm.hidden = true;
       twoFactorConfirmForm.hidden = false;

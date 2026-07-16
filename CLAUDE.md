@@ -780,7 +780,10 @@ also supports a deliberately manual `?full=1` historical rebuild.
   acceptance creates a five-minute unauthenticated challenge; a code permits
   one adjacent clock window and cannot be replayed within the same counter.
   Staff recovery is `members.reset_two_factor`, revokes the target's sessions,
-  and produces an audit record.
+  and produces an audit record. Profile setup renders the provisioning QR code
+  locally with the vendored MIT `js/qrcode-generator.min.js` library; never use
+  a remote QR service because the URI contains the temporary authenticator
+  secret. The manual key remains the accessibility and failure fallback.
 
 ## Known non-blocking loose ends
 
