@@ -221,13 +221,16 @@ also supports a deliberately manual `?full=1` historical rebuild.
   Status's CPU chart -- computes its own x/y pixel scale from real data ranges, builds
   the whole `<svg>...</svg>` as a template string, sets `.innerHTML` once per refresh).
   Match whichever pattern fits if you add another chart.
-- **No GSAP or Alpine dependency is installed.** Prefer CSS transitions and native
-  browser APIs (for example the Books page's `IntersectionObserver`) for modest
-  motion and local UI state. Add either library only for a clearly measured feature,
-  load it after the initial render, and preserve `prefers-reduced-motion` behavior.
+- **GSAP 3.15.0 and ScrollTrigger are locally vendored for the Worlds atlas only.**
+  The pinned browser files live in `js/vendor/`, load after the initial page markup,
+  and are documented with their package source and Standard License link in
+  `js/vendor/README.md`. Do not replace them with a CDN dependency. No Alpine
+  dependency is installed; continue to prefer CSS transitions and native browser
+  APIs for modest motion and local UI state. Any new continuous motion must preserve
+  the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=203, community v=200, and admin v=211. Public pages use
+  versions: public v=204, community v=201, and admin v=211. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -727,14 +730,29 @@ also supports a deliberately manual `?full=1` historical rebuild.
   preference.
 - **Interactive Worlds atlas:** `worlds.html` now presents the supplied
   `images/twelve-worlds-atlas.png` as a wide 1672×941 interactive SVG overlay.
-  `js/worlds.js?v=11` maps stable world slugs to the artwork's medallions (never
+  `js/worlds.js?v=12` maps stable world slugs to the artwork's medallions (never
   use `worlds.sort_order`: Asmecu and Reanium are deliberately ordered differently
   in the database and artwork), so World Control's ordinary `available`/`locked` status
   automatically controls each destination. Available medallions open the stable
   dynamic record route `world.html?slug=<slug>`; locked medallions stay visually
   dimmed and expose `ERROR: LORE LOCK / MISSING INFORMATION` without leaking a
-  record. The atlas respects reduced motion and only applies lightweight pointer
-  parallax otherwise. `world.html` plus `js/world-detail.js?v=1` is the dedicated,
+  record. `js/world-atlas-effects.js?v=1` adds the cinematic layer: GSAP owns one
+  restrained scene transform and ScrollTrigger depth pass, while one transparent
+  native-resolution canvas clips all ambient effects to their calibrated medallion
+  circles. The twelve stable slugs select distinct motifs (glitch, copper sparks,
+  ash/embers, radioactive spores, water caustics, jungle pollen, crimson heat,
+  steel rain/fog, frost motes, black/red smoke, gold motes, and sand streaks).
+  Effects are built only for API records whose status is exactly `available`; a
+  locked world must never receive either its effect or destination behavior.
+  Rendering is throttled to a cinematic 24 fps, uses deterministic particle pools,
+  clears only the small active medallion regions between frames, pauses when
+  the atlas leaves the viewport or the tab is hidden, and intensifies only the
+  hovered/focused available world. Fine-pointer desktop devices get less than one
+  degree of pointer tilt through `gsap.quickTo`; touch devices keep the atlas flat.
+  Reduced-motion users receive the static atlas with the canvas and decorative depth
+  layers disabled. Keep the tooltip outside the transformed scene so its text stays
+  crisp and preserve the native coordinate system for every overlay.
+  `world.html` plus `js/world-detail.js?v=1` is the dedicated,
   expandable World Record surface; it uses the existing single-world API response,
   renders the current map/layer detail for available worlds, and safely keeps direct
   links to locked records sealed. The artwork is cache-versioned as

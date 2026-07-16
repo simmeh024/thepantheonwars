@@ -13,10 +13,15 @@ document.addEventListener('DOMContentLoaded', function () {
   var atlasHotspotsEl = document.getElementById('world-atlas-hotspots');
   var atlasImageEl = atlasPanEl ? atlasPanEl.querySelector('img') : null;
   var atlasLockCanvasEl = document.getElementById('world-atlas-lock-canvas');
+  var atlasEffectsCanvasEl = document.getElementById('world-atlas-effects-canvas');
+  var atlasDepthBackEl = document.getElementById('world-atlas-depth-back');
+  var atlasNexusGlowEl = document.getElementById('world-atlas-nexus-glow');
+  var atlasDepthFrontEl = document.getElementById('world-atlas-depth-front');
   var atlasInfoEl = document.getElementById('world-atlas-info');
   var atlasInfoKickerEl = document.querySelector('.world-atlas-info-kicker');
   var atlasInfoTitleEl = document.getElementById('world-atlas-info-title');
   var atlasInfoCopyEl = document.getElementById('world-atlas-info-copy');
+  var atlasExperienceController = null;
 
   // Coordinates use the atlas artwork's native 1672 × 941 viewBox. Artwork
   // numbers are deliberately separate from World Control sort order: Asmecu
@@ -373,10 +378,22 @@ document.addEventListener('DOMContentLoaded', function () {
     mappedWorlds.forEach(function (world) { bySlug[world.slug] = world; });
     Array.prototype.forEach.call(atlasHotspotsEl.querySelectorAll('[data-world-slug]'), function (hotspot) {
       var world = bySlug[hotspot.getAttribute('data-world-slug')];
-      hotspot.addEventListener('mouseenter', function () { setAtlasInfo(world); });
-      hotspot.addEventListener('mouseleave', function () { setAtlasInfo(null); });
-      hotspot.addEventListener('focus', function () { setAtlasInfo(world); });
-      hotspot.addEventListener('blur', function () { setAtlasInfo(null); });
+      hotspot.addEventListener('mouseenter', function () {
+        setAtlasInfo(world);
+        if (atlasExperienceController) atlasExperienceController.setHovered(world.slug);
+      });
+      hotspot.addEventListener('mouseleave', function () {
+        setAtlasInfo(null);
+        if (atlasExperienceController) atlasExperienceController.setHovered(null);
+      });
+      hotspot.addEventListener('focus', function () {
+        setAtlasInfo(world);
+        if (atlasExperienceController) atlasExperienceController.setHovered(world.slug);
+      });
+      hotspot.addEventListener('blur', function () {
+        setAtlasInfo(null);
+        if (atlasExperienceController) atlasExperienceController.setHovered(null);
+      });
     });
     atlasEl.addEventListener('mouseleave', function () { setAtlasInfo(null); });
     setAtlasInfo(null);
@@ -406,6 +423,25 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  function wireAtlasExperience(worlds) {
+    if (window.WorldAtlasEffects && window.gsap && atlasEffectsCanvasEl) {
+      atlasExperienceController = window.WorldAtlasEffects.create({
+        stage: atlasStageEl,
+        scene: atlasPanEl,
+        back: atlasDepthBackEl,
+        glow: atlasNexusGlowEl,
+        front: atlasDepthFrontEl,
+        canvas: atlasEffectsCanvasEl,
+        image: atlasImageEl,
+        worlds: worlds,
+        getPoint: atlasPoint,
+        getTone: atlasTone
+      });
+      if (atlasExperienceController) return;
+    }
+    wireAtlasParallax();
+  }
+
   fetch('/api/worlds.php', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -413,7 +449,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var worlds = data.worlds.slice().sort(function (a, b) { return a.sort_order - b.sort_order; });
 
       renderAtlas(worlds);
-      wireAtlasParallax();
+      wireAtlasExperience(worlds);
       gridEl.innerHTML = worlds.map(renderCard).join('');
 
       var available = worlds.filter(function (w) { return w.status === 'available'; });

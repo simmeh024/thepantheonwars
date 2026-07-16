@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=203">
+<link rel="stylesheet" href="css/public.css?v=204">
 </head>
 <body>
 
@@ -85,9 +85,13 @@
       </div>
       <div class="world-atlas-shell" id="world-atlas" aria-labelledby="world-atlas-title">
         <div class="world-atlas-stage" id="world-atlas-stage">
+          <div class="world-atlas-depth-back" id="world-atlas-depth-back" aria-hidden="true"></div>
           <div class="world-atlas-pan" id="world-atlas-pan">
             <img src="images/twelve-worlds-atlas.png?v=2" alt="Atlas of the twelve worlds surrounding the Nexus Veil" width="1672" height="941" loading="lazy" decoding="async" fetchpriority="low">
             <canvas class="world-atlas-lock-canvas" id="world-atlas-lock-canvas" width="1672" height="941" aria-hidden="true"></canvas>
+            <div class="world-atlas-nexus-glow" id="world-atlas-nexus-glow" aria-hidden="true"></div>
+            <canvas class="world-atlas-effects-canvas" id="world-atlas-effects-canvas" width="1672" height="941" aria-hidden="true"></canvas>
+            <div class="world-atlas-depth-front" id="world-atlas-depth-front" aria-hidden="true"></div>
             <svg class="world-atlas-hotspots" id="world-atlas-hotspots" viewBox="0 0 1672 941" preserveAspectRatio="none" role="group" aria-label="Interactive world atlas"></svg>
           </div>
           <aside class="world-atlas-info" id="world-atlas-info" aria-live="polite" aria-hidden="true">
@@ -162,6 +166,9 @@
 
 <script src="js/main.js?v=6"></script>
 <script src="js/members.js?v=23"></script>
-<script src="js/worlds.js?v=11"></script>
+<script src="js/vendor/gsap-3.15.0.min.js"></script>
+<script src="js/vendor/ScrollTrigger-3.15.0.min.js"></script>
+<script src="js/world-atlas-effects.js?v=1"></script>
+<script src="js/worlds.js?v=12"></script>
 </body>
 </html>

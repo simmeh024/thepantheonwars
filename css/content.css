@@ -803,6 +803,7 @@
   position: relative;
   overflow: hidden;
   isolation: isolate;
+  perspective: 1200px;
   aspect-ratio: 1672 / 941;
   border: 1px solid rgba(198, 154, 63, 0.68);
   background: #060810;
@@ -812,39 +813,95 @@
   content: '';
   position: absolute;
   inset: 0;
-  z-index: 3;
+  z-index: 9;
   pointer-events: none;
   border: 1px solid rgba(235, 195, 104, 0.18);
   box-shadow: inset 0 0 52px rgba(4, 3, 11, 0.72);
 }
+.world-atlas-depth-back,
+.world-atlas-depth-front,
+.world-atlas-nexus-glow {
+  position: absolute;
+  pointer-events: none;
+}
+.world-atlas-depth-back {
+  z-index: 0;
+  inset: -5%;
+  opacity: 0.48;
+  background:
+    radial-gradient(circle at 19% 30%, rgba(94, 61, 162, 0.18) 0 1px, transparent 2px),
+    radial-gradient(circle at 76% 18%, rgba(224, 176, 74, 0.14) 0 1px, transparent 2px),
+    radial-gradient(circle at 56% 74%, rgba(64, 141, 188, 0.12) 0 1px, transparent 2px),
+    radial-gradient(ellipse at center, rgba(75, 39, 118, 0.18), transparent 64%);
+  background-size: 83px 71px, 127px 113px, 151px 137px, 100% 100%;
+}
 .world-atlas-pan {
   position: absolute;
   inset: 0;
+  z-index: 1;
   --atlas-x: 0px;
   --atlas-y: 0px;
   transform: translate3d(var(--atlas-x), var(--atlas-y), 0);
+  transform-style: preserve-3d;
+  transform-origin: 50% 50%;
   transition: transform 280ms ease-out;
   will-change: transform;
 }
+.world-atlas-stage.has-gsap-depth .world-atlas-pan { transition: none; }
 .world-atlas-pan > img,
 .world-atlas-lock-canvas,
+.world-atlas-effects-canvas,
 .world-atlas-hotspots {
   display: block;
   width: 100%;
   height: 100%;
 }
-.world-atlas-pan > img { object-fit: fill; }
+.world-atlas-pan > img {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  object-fit: fill;
+}
 .world-atlas-lock-canvas {
   position: absolute;
   inset: 0;
   z-index: 1;
   pointer-events: none;
 }
+.world-atlas-nexus-glow {
+  z-index: 2;
+  left: 50%;
+  top: 51.5%;
+  width: 35%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: 0.42;
+  transform: translate(-50%, -50%);
+  background:
+    radial-gradient(circle, rgba(246, 172, 74, 0.16) 0 4%, rgba(103, 94, 239, 0.12) 22%, rgba(138, 51, 202, 0.08) 42%, transparent 70%);
+  box-shadow: 0 0 54px rgba(109, 63, 206, 0.12);
+}
+.world-atlas-effects-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+.world-atlas-depth-front {
+  z-index: 4;
+  inset: -3%;
+  opacity: 0.34;
+  background:
+    radial-gradient(circle at 24% 72%, rgba(226, 184, 88, 0.34) 0 1px, transparent 2px),
+    radial-gradient(circle at 69% 27%, rgba(175, 124, 236, 0.28) 0 1px, transparent 2px),
+    radial-gradient(circle at 84% 66%, rgba(101, 190, 208, 0.2) 0 1px, transparent 2px);
+  background-size: 181px 163px, 223px 197px, 269px 241px;
+}
 .world-atlas-hotspots {
   position: absolute;
   inset: 0;
   overflow: visible;
-  z-index: 2;
+  z-index: 5;
 }
 .world-atlas-hotspot { outline: none; }
 .world-atlas-hotspot.is-available { cursor: pointer; }
@@ -887,7 +944,7 @@
 .world-atlas-info {
   --atlas-tone-rgb: 124, 79, 214;
   position: absolute;
-  z-index: 4;
+  z-index: 10;
   left: var(--atlas-info-x, 50%);
   top: var(--atlas-info-y, 50%);
   width: min(320px, 26%);
@@ -974,6 +1031,10 @@
 
 @media (prefers-reduced-motion: reduce) {
   .world-atlas-pan { transition: none; transform: none; }
+  .world-atlas-depth-back,
+  .world-atlas-depth-front,
+  .world-atlas-nexus-glow,
+  .world-atlas-effects-canvas { display: none; }
   .world-atlas-info { transition: none; }
   .world-atlas-hotspot.is-available:hover .world-atlas-signal,
   .world-atlas-hotspot.is-available:focus .world-atlas-signal { animation: none; }
