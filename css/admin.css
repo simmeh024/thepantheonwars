@@ -363,7 +363,30 @@
 .mail-template-card-main em { overflow: hidden; margin-top: 9px; color: var(--text-dim); font-size: 0.75rem; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
 .mail-template-arrow { align-self: center; color: #f6b8d1; font-size: 1.35rem; line-height: 1; }
 .mail-template-enabled { margin-top: -2px; color: var(--text-dim); font-size: 0.82rem; }
-@media (max-width: 900px) { .mail-settings-layout, .mail-template-list { grid-template-columns: 1fr; } }
+.mail-log-notice { max-width: 880px; margin: -6px 0 18px; padding: 12px 14px; border: 1px solid rgba(240,107,164,0.28); border-left: 3px solid #f06ba4; border-radius: var(--radius-sm); background: rgba(240,107,164,0.055); color: var(--text-dim); font-size: 0.79rem; line-height: 1.5; }
+.mail-log-notice strong { color: #ffd2e4; }
+.mail-log-toolbar { align-items: center; margin-bottom: 13px; }
+.mail-log-toolbar .btn { margin-left: auto; }
+.mail-log-columns, .mail-log-entry { display: grid; grid-template-columns: minmax(125px, 0.8fr) minmax(250px, 2fr) minmax(130px, 0.85fr) minmax(145px, 0.9fr); gap: 14px; align-items: center; }
+.mail-log-columns { padding: 0 16px 9px; color: var(--text-faint); font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.mail-log-list { border: 1px solid var(--border-soft); border-radius: var(--radius-lg); overflow: hidden; background: rgba(20,13,39,0.55); }
+.mail-log-list .admin-list-empty { border: 0; border-radius: 0; }
+.mail-log-entry { padding: 14px 16px; border-bottom: 1px solid rgba(67,47,114,0.55); }
+.mail-log-entry:last-child { border-bottom: 0; }
+.mail-log-entry:hover { background: rgba(124,79,214,0.055); }
+.mail-log-direction strong, .mail-log-direction small, .mail-log-detail strong, .mail-log-detail small, .mail-log-detail em { display: block; }
+.mail-log-direction strong { color: #f6b8d1; font-size: 0.76rem; letter-spacing: 0.05em; text-transform: uppercase; }
+.mail-log-direction.is-inbound strong { color: #88dff2; }
+.mail-log-direction small, .mail-log-detail small { overflow: hidden; margin-top: 4px; color: var(--text-faint); font-size: 0.72rem; text-overflow: ellipsis; white-space: nowrap; }
+.mail-log-detail strong { overflow: hidden; color: var(--text); font-size: 0.82rem; text-transform: capitalize; text-overflow: ellipsis; white-space: nowrap; }
+.mail-log-detail em { overflow: hidden; margin-top: 5px; color: var(--text-dim); font-size: 0.72rem; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+.mail-log-status { justify-self: start; display: inline-flex; align-items: center; border: 1px solid var(--border-soft); border-radius: 999px; padding: 4px 9px; color: var(--text-faint); font-size: 0.66rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; }
+.mail-log-status.is-accepted, .mail-log-status.is-received { border-color: rgba(62,207,142,0.5); color: var(--status-success); background: rgba(62,207,142,0.09); }
+.mail-log-status.is-skipped { border-color: rgba(209,169,85,0.48); color: var(--gold-bright); background: rgba(209,169,85,0.08); }
+.mail-log-status.is-failed, .mail-log-status.is-rejected { border-color: rgba(240,100,100,0.5); color: var(--status-danger); background: rgba(240,100,100,0.08); }
+.mail-log-entry time { color: var(--text-faint); font-size: 0.72rem; }
+@media (max-width: 900px) { .mail-settings-layout, .mail-template-list { grid-template-columns: 1fr; } .mail-log-columns { display: none; } .mail-log-entry { grid-template-columns: minmax(0, 1fr) auto; } .mail-log-detail { grid-column: 1; } .mail-log-status { grid-column: 2; grid-row: 1; } .mail-log-entry time { grid-column: 2; grid-row: 2; align-self: end; } }
+@media (max-width: 560px) { .mail-log-toolbar { align-items: flex-start; } .mail-log-toolbar .btn { margin-left: 0; } .mail-log-entry { gap: 10px; padding: 13px; } }
 
 /* The bare `section` selector above is meant for the public site's hero
    sections (padding: 90px 0) -- .admin-section reuses the <section> tag for

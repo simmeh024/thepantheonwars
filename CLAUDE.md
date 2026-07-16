@@ -72,11 +72,24 @@ select `config.php` -> Edit (opens cPanel's code editor in a new tab).
   `account_banned`, and `verify_account`. The template editor is gated by
   `mail.view` / `mail.manage`; variable expansion is limited to the keys defined
   in `pw_mail_variables()`.
+- `mail_delivery_logs` is a bounded, metadata-only troubleshooting trail for
+  outbound attempts and signed inbound events. It records addresses, template /
+  subject, transport status, timestamp and body length; it **never stores a mail
+  body**. Outbound `accepted` means the local PHP transport accepted the hand-off,
+  not that a receiving inbox confirmed delivery. The separate **Mail Log** page
+  is gated by `mail.logs`; run `sql/migration_mail_logs.sql` after the earlier
+  mail migration to create it and add that permission.
+- Native PHP `mail()` cannot read an inbox. `api/mail/inbound.php` is therefore
+  a ready-to-connect HMAC-SHA256 receiver for a provider webhook or cPanel mail
+  pipe. Keep `MAIL_INBOUND_WEBHOOK_SECRET` only in the outside-webroot config;
+  callers sign the exact JSON body in `X-PW-Mail-Signature` (`sha256=<hex>`).
+  Inbound rows stay empty until such a sender is configured, which is expected.
 - Delivery is **off by default**. The Admin Console's pink-dot **Mail** category
-  contains Mail Settings and Mail Templates. Configure a verified sender there,
-  then enable delivery deliberately. Optional `MAIL_FROM_NAME`,
-  `MAIL_FROM_EMAIL`, and `MAIL_REPLY_TO` defaults belong only in the real
-  outside-webroot config (documented in `api/config.sample.php`).
+  contains Mail Settings, Mail Templates, and Mail Log. Configure a verified
+  sender there, then enable delivery deliberately. Optional `MAIL_FROM_NAME`,
+  `MAIL_FROM_EMAIL`, `MAIL_REPLY_TO`, and `MAIL_INBOUND_WEBHOOK_SECRET` defaults
+  belong only in the real outside-webroot config (documented in
+  `api/config.sample.php`).
 - Welcome delivery is hooked into password registration, Google registration, and
   administrator-created accounts; account-suspension delivery is hooked into new
   bans. Never email an administrator-generated password.
@@ -259,6 +272,12 @@ also supports a deliberately manual `?full=1` historical rebuild.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- Added permissioned Mail Log observability: best-effort outbound attempt
+  logging (including skipped/failed delivery states) and a signed inbound
+  webhook receiver that retains no body content. Production requires
+  `sql/migration_mail_logs.sql`; inbound activity additionally needs a provider
+  webhook or cPanel mail pipe configured with `MAIL_INBOUND_WEBHOOK_SECRET`.
 
 - Added the transactional Mail foundation: permissioned Mail Settings + Mail
   Templates pages, native shared-host mail transport behind an explicit off-by-

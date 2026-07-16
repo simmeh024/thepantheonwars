@@ -110,18 +110,84 @@ function pw_mail_template($key) {
     }
 }
 
+/**
+ * Store troubleshooting metadata for mail attempts without retaining message
+ * content. Logging is intentionally best-effort: an unavailable log table or
+ * a transient database error must never prevent an account flow from working.
+ */
+function pw_mail_log_event($direction, $status, $fields = []) {
+    $direction = $direction === 'inbound' ? 'inbound' : 'outbound';
+    $status = substr(trim((string)$status), 0, 32);
+    if ($status === '') $status = 'unknown';
+
+    $clip = function ($value, $length) {
+        return substr(trim((string)$value), 0, $length);
+    };
+
+    try {
+        $stmt = pw_db()->prepare(
+            'INSERT INTO mail_delivery_logs
+                (direction, status, template_key, sender_email, recipient_email, subject, provider_message_id, detail, body_bytes)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            $direction,
+            $status,
+            $clip($fields['template_key'] ?? '', 40) ?: null,
+            $clip($fields['sender_email'] ?? '', 255) ?: null,
+            $clip($fields['recipient_email'] ?? '', 255) ?: null,
+            $clip($fields['subject'] ?? '', 255) ?: null,
+            $clip($fields['provider_message_id'] ?? '', 255) ?: null,
+            $clip($fields['detail'] ?? '', 255) ?: null,
+            max(0, (int)($fields['body_bytes'] ?? 0)),
+        ]);
+
+        // Keep this troubleshooting trail bounded without making every send
+        // pay for a cleanup query. One in one hundred events prunes old rows.
+        if (random_int(1, 100) === 1) {
+            pw_db()->exec('DELETE FROM mail_delivery_logs WHERE created_at < UTC_TIMESTAMP() - INTERVAL 90 DAY');
+        }
+    } catch (Throwable $e) {
+        // The log migration may not be installed yet, or logging may be
+        // temporarily unavailable. Mail itself remains non-blocking by design.
+    }
+}
+
+function pw_mail_log_outbound($status, $key, $recipientEmail, $settings, $subject = '', $detail = '', $bodyBytes = 0) {
+    pw_mail_log_event('outbound', $status, [
+        'template_key' => $key,
+        'sender_email' => $settings['from_email'] ?? '',
+        'recipient_email' => $recipientEmail,
+        'subject' => $subject,
+        'detail' => $detail,
+        'body_bytes' => $bodyBytes,
+    ]);
+}
+
 function pw_send_template_email($key, $recipientEmail, $variables = []) {
     $recipientEmail = trim((string)$recipientEmail);
     if (!filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
         return ['sent' => false, 'reason' => 'invalid_recipient'];
     }
     $settings = pw_mail_settings();
-    if (!$settings['enabled']) return ['sent' => false, 'reason' => 'disabled'];
-    if (!$settings['transport_available']) return ['sent' => false, 'reason' => 'transport_unavailable'];
-    if (!filter_var($settings['from_email'], FILTER_VALIDATE_EMAIL)) return ['sent' => false, 'reason' => 'sender_not_configured'];
+    if (!$settings['enabled']) {
+        pw_mail_log_outbound('skipped', $key, $recipientEmail, $settings, '', 'Transactional delivery is disabled.');
+        return ['sent' => false, 'reason' => 'disabled'];
+    }
+    if (!$settings['transport_available']) {
+        pw_mail_log_outbound('skipped', $key, $recipientEmail, $settings, '', 'The PHP mail transport is unavailable.');
+        return ['sent' => false, 'reason' => 'transport_unavailable'];
+    }
+    if (!filter_var($settings['from_email'], FILTER_VALIDATE_EMAIL)) {
+        pw_mail_log_outbound('skipped', $key, $recipientEmail, $settings, '', 'A valid sender address is not configured.');
+        return ['sent' => false, 'reason' => 'sender_not_configured'];
+    }
 
     $template = pw_mail_template($key);
-    if (!$template || !$template['is_enabled']) return ['sent' => false, 'reason' => 'template_unavailable'];
+    if (!$template || !$template['is_enabled']) {
+        pw_mail_log_outbound('skipped', $key, $recipientEmail, $settings, '', 'The selected template is unavailable or paused.');
+        return ['sent' => false, 'reason' => 'template_unavailable'];
+    }
 
     $subject = str_replace(["\r", "\n"], '', pw_mail_render($template['subject'], $variables));
     $html = pw_mail_render($template['html_body'], $variables, true);
@@ -140,5 +206,14 @@ function pw_send_template_email($key, $recipientEmail, $variables = []) {
         "Content-Type: text/html; charset=UTF-8\r\nContent-Transfer-Encoding: 8bit\r\n\r\n" . $html . "\r\n" .
         '--' . $boundary . '--';
     $sent = @mail($recipientEmail, $subject, $body, implode("\r\n", $headers));
+    pw_mail_log_outbound(
+        $sent ? 'accepted' : 'failed',
+        $key,
+        $recipientEmail,
+        $settings,
+        $subject,
+        $sent ? 'Accepted by the PHP mail transport; inbox delivery is not yet confirmed.' : 'The PHP mail transport rejected the message.',
+        strlen($body)
+    );
     return ['sent' => (bool)$sent, 'reason' => $sent ? 'sent' : 'transport_rejected'];
 }

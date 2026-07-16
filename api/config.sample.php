@@ -40,6 +40,12 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // define('MAIL_FROM_EMAIL', 'noreply@thepantheonwars.com');
 // define('MAIL_REPLY_TO', 'privacy@thepantheonwars.com');
 
+// Optional signed inbound-mail webhook. PHP mail() can send email but cannot
+// read a mailbox. Configure a provider or mail pipe to POST parsed inbound
+// metadata to /api/mail/inbound.php with an X-PW-Mail-Signature HMAC-SHA256
+// header. The endpoint records only metadata and body length, never content.
+// define('MAIL_INBOUND_WEBHOOK_SECRET', 'REPLACE_WITH_A_LONG_RANDOM_SECRET');
+
 // Optional. Raises the GitHub REST API rate limit used by the System
 // Status card/page and the language-snapshot sync from 60 requests/hour
 // (unauthenticated) to 5,000 requests/hour (authenticated) -- see

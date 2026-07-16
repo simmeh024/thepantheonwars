@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=214">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=215">
 </head>
 <body>
 
@@ -61,7 +61,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="mail" data-requires-permission="mail.view,mail.manage">
+    <div class="admin-nav-category is-collapsed" data-category="mail" data-requires-permission="mail.view,mail.manage,mail.logs">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>Mail</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -69,6 +69,7 @@
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li data-requires-permission="mail.view"><button type="button" class="admin-nav-link" data-section="mail-settings"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z"/><path d="m4 7 8 6 8-6"/></svg>Mail Settings</button></li>
         <li data-requires-permission="mail.view"><button type="button" class="admin-nav-link" data-section="mail-templates"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Mail Templates</button></li>
+        <li data-requires-permission="mail.logs"><button type="button" class="admin-nav-link" data-section="mail-log"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Mail Log</button></li>
       </ul>
     </div>
 
@@ -871,6 +872,24 @@
       </div>
       <div class="mail-template-variables" id="mail-template-variables">Available variables are loading&hellip;</div>
       <div class="mail-template-list" id="mail-template-list"><div class="admin-list-empty">Loading mail templates&hellip;</div></div>
+    </section>
+
+    <section class="admin-section" id="section-mail-log" hidden>
+      <div class="admin-section-head">
+        <h1>Mail Log</h1>
+        <p>Inbound and outbound mail troubleshooting metadata. “Accepted” means PHP accepted the hand-off; it does not confirm inbox delivery.</p>
+      </div>
+      <div class="mail-log-notice"><strong>Inbound is ready when you are.</strong> PHP mail can send but cannot read a mailbox. Connect a signed provider webhook or mail pipe to record incoming mail; message bodies are never stored.</div>
+      <div class="admin-toolbar mail-log-toolbar" aria-label="Mail log filters">
+        <div class="dispatch-filter-tabs" id="mail-log-filters">
+          <button type="button" class="dispatch-filter-tab active" data-mail-log-direction="all">All activity</button>
+          <button type="button" class="dispatch-filter-tab" data-mail-log-direction="outbound">Outbound</button>
+          <button type="button" class="dispatch-filter-tab" data-mail-log-direction="inbound">Inbound</button>
+        </div>
+        <button type="button" class="btn" id="mail-log-refresh-btn">Refresh log</button>
+      </div>
+      <div class="mail-log-columns" aria-hidden="true"><span>Direction</span><span>Address / template</span><span>Status</span><span>Recorded</span></div>
+      <div class="mail-log-list" id="mail-log-list"><div class="admin-list-empty">Loading mail activity&hellip;</div></div>
     </section>
 
     <section class="admin-section" id="section-system-status" hidden>
@@ -2759,6 +2778,7 @@
       if (name === 'news-management') loadNewsList();
       if (name === 'mail-settings') loadMailSettings();
       if (name === 'mail-templates') loadMailTemplates();
+      if (name === 'mail-log') loadMailLog();
       if (name === 'dispatch-translations') loadList();
       if (name === 'members') loadMembers();
       if (name === 'topic-reports') loadTopicReports();
@@ -9534,8 +9554,12 @@
   var mailTemplateModalStatus = document.getElementById('mail-template-modal-status');
   var mailTemplateSaveBtn = document.getElementById('mail-template-save-btn');
   var mailTemplateCancelBtn = document.getElementById('mail-template-cancel-btn');
+  var mailLogList = document.getElementById('mail-log-list');
+  var mailLogFilters = document.getElementById('mail-log-filters');
+  var mailLogRefreshBtn = document.getElementById('mail-log-refresh-btn');
   var mailTemplates = [];
   var mailTemplateCurrent = null;
+  var mailLogDirection = 'all';
 
   function setMailMessage(errorEl, statusEl, message, isError) {
     errorEl.classList.remove('show'); statusEl.classList.remove('show');
@@ -9641,6 +9665,61 @@
         mailTemplateList.innerHTML = '<div class="admin-list-empty">' + escapeHtml(error.message || 'Could not load mail templates.') + '</div>';
       });
   }
+
+  function mailLogStatusLabel(status) {
+    var labels = {
+      accepted: 'Accepted by PHP', failed: 'Failed', skipped: 'Skipped',
+      received: 'Received', rejected: 'Rejected'
+    };
+    return labels[status] || String(status || 'Unknown');
+  }
+
+  function renderMailLog(entries) {
+    if (!mailLogList) return;
+    if (!entries.length) {
+      mailLogList.innerHTML = '<div class="admin-list-empty">No ' + (mailLogDirection === 'all' ? '' : escapeHtml(mailLogDirection) + ' ') + 'mail activity has been recorded yet.</div>';
+      return;
+    }
+    mailLogList.innerHTML = entries.map(function (entry) {
+      var outgoing = entry.direction === 'outbound';
+      var address = outgoing ? (entry.recipient_email || 'No recipient recorded') : (entry.sender_email || 'No sender recorded');
+      var counterpart = outgoing ? (entry.sender_email || 'No sender recorded') : (entry.recipient_email || 'No recipient recorded');
+      var template = entry.template_key ? entry.template_key.replace(/_/g, ' ') : (entry.subject || 'Inbound message');
+      var status = String(entry.status || 'unknown').toLowerCase();
+      var detail = entry.detail || (entry.body_bytes ? (entry.body_bytes + ' body bytes retained as metadata only.') : 'No additional metadata.');
+      return '<article class="mail-log-entry">' +
+        '<div class="mail-log-direction ' + (outgoing ? 'is-outbound' : 'is-inbound') + '"><strong>' + (outgoing ? 'Outbound' : 'Inbound') + '</strong><small>' + (outgoing ? 'To ' : 'From ') + escapeHtml(address) + '</small></div>' +
+        '<div class="mail-log-detail"><strong>' + escapeHtml(template) + '</strong><small>' + escapeHtml(counterpart) + '</small><em>' + escapeHtml(detail) + '</em></div>' +
+        '<span class="mail-log-status is-' + escapeHtml(status) + '">' + escapeHtml(mailLogStatusLabel(status)) + '</span>' +
+        '<time datetime="' + escapeHtml(entry.created_at || '') + '">' + escapeHtml(fmtDateTime(entry.created_at)) + '</time>' +
+      '</article>';
+    }).join('');
+  }
+
+  function loadMailLog() {
+    if (!mailLogList || !pwHasPermission('mail.logs')) return;
+    mailLogList.innerHTML = '<div class="admin-list-empty">Loading mail activity&hellip;</div>';
+    fetch('/api/admin/mail/logs.php?direction=' + encodeURIComponent(mailLogDirection), { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load mail activity.');
+        renderMailLog(data.entries || []);
+      })
+      .catch(function (error) {
+        mailLogList.innerHTML = '<div class="admin-list-empty">' + escapeHtml(error.message || 'Could not load mail activity.') + '</div>';
+      });
+  }
+
+  if (mailLogFilters) mailLogFilters.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-mail-log-direction]');
+    if (!button) return;
+    mailLogDirection = button.getAttribute('data-mail-log-direction') || 'all';
+    mailLogFilters.querySelectorAll('[data-mail-log-direction]').forEach(function (tab) {
+      tab.classList.toggle('active', tab === button);
+    });
+    loadMailLog();
+  });
+  if (mailLogRefreshBtn) mailLogRefreshBtn.addEventListener('click', loadMailLog);
 
   function closeMailTemplateModal() {
     mailTemplateModal.hidden = true; mailTemplateCurrent = null;

@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS mail_templates (
 
 INSERT INTO permissions (`key`, label, category) VALUES
   ('mail.view', 'View Mail settings and templates', 'Mail'),
-  ('mail.manage', 'Configure mail delivery and edit templates', 'Mail')
+  ('mail.manage', 'Configure mail delivery and edit templates', 'Mail'),
+  ('mail.logs', 'View inbound and outbound mail troubleshooting logs', 'Mail')
 ON DUPLICATE KEY UPDATE label = VALUES(label), category = VALUES(category);
 
 INSERT INTO app_settings (`key`, value) VALUES

@@ -357,6 +357,26 @@ CREATE TABLE IF NOT EXISTS mail_templates (
   CONSTRAINT fk_mail_templates_updated_by FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Troubleshooting metadata for transactional delivery and authenticated
+-- inbound-mail webhooks. Message bodies are deliberately never stored.
+CREATE TABLE IF NOT EXISTS mail_delivery_logs (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  direction ENUM('inbound', 'outbound') NOT NULL,
+  status VARCHAR(32) NOT NULL,
+  template_key VARCHAR(40) NULL,
+  sender_email VARCHAR(255) NULL,
+  recipient_email VARCHAR(255) NULL,
+  subject VARCHAR(255) NULL,
+  provider_message_id VARCHAR(255) NULL,
+  detail VARCHAR(255) NULL,
+  body_bytes INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_mail_log_direction_created (direction, created_at),
+  KEY idx_mail_log_status_created (status, created_at),
+  KEY idx_mail_log_recipient_created (recipient_email, created_at),
+  KEY idx_mail_log_provider_message (provider_message_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Short-lived, single-use password-reset credentials. The raw 256-bit token
 -- is emailed in a URL fragment and is never stored here; token_hash is a
 -- SHA-256 hash used for lookup. Request rate-limit queries use the two
