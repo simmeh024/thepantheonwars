@@ -257,20 +257,32 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderAtlas(worlds) {
     if (!atlasEl || !atlasHotspotsEl) return;
     var mappedWorlds = worlds.filter(function (world) { return !!ATLAS_POINTS[world.sort_order]; });
+    var locked = mappedWorlds.filter(function (world) { return world.status !== 'available'; });
+    // The filtered copy shares the root SVG's exact viewBox and aspect-ratio
+    // rules with the visible atlas. Unlike blend modes, this remains reliable
+    // on browsers that isolate the SVG from the image beneath it.
+    var defs = '<defs><filter id="world-atlas-lock-filter"><feColorMatrix type="saturate" values="0"></feColorMatrix></filter>' +
+      locked.map(function (world) {
+        var point = ATLAS_POINTS[world.sort_order];
+        return '<clipPath id="world-atlas-clip-' + escapeHtml(world.slug) + '"><circle cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 2) + '"></circle></clipPath>';
+      }).join('') + '</defs>';
+    var lockedArtwork = locked.map(function (world) {
+      return '<image href="images/twelve-worlds-atlas.png?v=2" x="0" y="0" width="1672" height="941" preserveAspectRatio="none" clip-path="url(#world-atlas-clip-' + escapeHtml(world.slug) + ')" filter="url(#world-atlas-lock-filter)"></image>';
+    }).join('');
     var hotspots = mappedWorlds.map(function (world) {
       var point = ATLAS_POINTS[world.sort_order];
       var label = world.status === 'available' ? 'Open world record for ' + world.name : 'Lore locked: ' + world.name;
       var circles =
         '<circle class="world-atlas-hit" cx="' + point.x + '" cy="' + point.y + '" r="' + point.r + '"></circle>' +
         '<circle class="world-atlas-ring" cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 4) + '"></circle>' +
-        (world.status === 'available' ? '<circle class="world-atlas-signal" cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 10) + '"></circle>' : '<circle class="world-atlas-lock-desaturate" cx="' + point.x + '" cy="' + point.y + '" r="' + point.r + '"></circle><circle class="world-atlas-lock-shade" cx="' + point.x + '" cy="' + point.y + '" r="' + point.r + '"></circle>');
+        (world.status === 'available' ? '<circle class="world-atlas-signal" cx="' + point.x + '" cy="' + point.y + '" r="' + (point.r + 10) + '"></circle>' : '<circle class="world-atlas-lock-shade" cx="' + point.x + '" cy="' + point.y + '" r="' + point.r + '"></circle>');
       if (world.status === 'available') {
         return '<a class="world-atlas-hotspot is-available" href="' + worldRecordUrl(world) + '" data-world-slug="' + escapeHtml(world.slug) + '" aria-label="' + escapeHtml(label) + '">' + circles + '</a>';
       }
       return '<g class="world-atlas-hotspot is-locked" data-world-slug="' + escapeHtml(world.slug) + '" tabindex="0" role="img" aria-label="' + escapeHtml(label) + '">' + circles + '</g>';
     }).join('');
 
-    atlasHotspotsEl.innerHTML = hotspots;
+    atlasHotspotsEl.innerHTML = defs + lockedArtwork + hotspots;
     var bySlug = {};
     mappedWorlds.forEach(function (world) { bySlug[world.slug] = world; });
     Array.prototype.forEach.call(atlasHotspotsEl.querySelectorAll('[data-world-slug]'), function (hotspot) {

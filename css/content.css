@@ -856,14 +856,9 @@
   transition: stroke 180ms ease, r 180ms ease;
 }
 .world-atlas-lock-shade {
-  fill: rgba(4, 5, 11, 0.58);
+  fill: rgba(4, 5, 11, 0.30);
   stroke: rgba(142, 130, 161, 0.46);
   stroke-width: 1;
-}
-.world-atlas-lock-desaturate {
-  fill: #9c98a3;
-  opacity: 0.96;
-  mix-blend-mode: saturation;
 }
 .world-atlas-hotspot.is-available:hover .world-atlas-ring,
 .world-atlas-hotspot.is-available:focus .world-atlas-ring {
