@@ -363,6 +363,14 @@
 .mail-template-card-main em { overflow: hidden; margin-top: 9px; color: var(--text-dim); font-size: 0.75rem; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
 .mail-template-arrow { align-self: center; color: #f6b8d1; font-size: 1.35rem; line-height: 1; }
 .mail-template-enabled { margin-top: -2px; color: var(--text-dim); font-size: 0.82rem; }
+.mail-template-test-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin: 18px 0; padding: 14px; border: 1px solid rgba(240,107,164,0.25); border-radius: var(--radius-sm); background: linear-gradient(100deg, rgba(240,107,164,0.07), rgba(124,79,214,0.06)); }
+.mail-template-test-row strong, .mail-template-test-row small { display: block; }
+.mail-template-test-row strong { color: #ffd2e4; font-size: 0.81rem; letter-spacing: 0.055em; text-transform: uppercase; }
+.mail-template-test-row small { max-width: 440px; margin-top: 4px; color: var(--text-faint); font-size: 0.73rem; line-height: 1.42; }
+.mail-template-test-controls { display: flex; flex: 0 1 390px; gap: 8px; }
+.mail-template-test-controls input { width: 100%; min-width: 150px; border: 1px solid var(--border); background: rgba(12,8,24,0.72); color: var(--text); padding: 9px 10px; font: 0.78rem 'Jost', sans-serif; }
+.mail-template-test-controls input:focus { outline: none; border-color: #f06ba4; box-shadow: 0 0 0 2px rgba(240,107,164,0.12); }
+.mail-template-test-controls .btn { flex: 0 0 auto; white-space: nowrap; }
 .mail-log-notice { max-width: 880px; margin: -6px 0 18px; padding: 12px 14px; border: 1px solid rgba(240,107,164,0.28); border-left: 3px solid #f06ba4; border-radius: var(--radius-sm); background: rgba(240,107,164,0.055); color: var(--text-dim); font-size: 0.79rem; line-height: 1.5; }
 .mail-log-notice strong { color: #ffd2e4; }
 .mail-log-toolbar { align-items: center; margin-bottom: 13px; }
@@ -394,8 +402,8 @@
 .mail-log-status.is-skipped { border-color: rgba(209,169,85,0.48); color: var(--gold-bright); background: rgba(209,169,85,0.08); }
 .mail-log-status.is-failed, .mail-log-status.is-rejected { border-color: rgba(240,100,100,0.5); color: var(--status-danger); background: rgba(240,100,100,0.08); }
 .mail-log-entry time { color: var(--text-faint); font-size: 0.72rem; }
-@media (max-width: 900px) { .mail-settings-layout, .mail-template-list { grid-template-columns: 1fr; } .mail-log-columns { display: none; } .mail-log-entry { grid-template-columns: minmax(0, 1fr) auto; } .mail-log-detail { grid-column: 1; } .mail-log-status { grid-column: 2; grid-row: 1; } .mail-log-entry time { grid-column: 2; grid-row: 2; align-self: end; } }
-@media (max-width: 560px) { .mail-log-toolbar { align-items: flex-start; } .mail-log-toolbar .btn { margin-left: 0; } .mail-log-filter-tabs { border-radius: var(--radius-md); } .mail-log-filter { padding: 0 11px; } .mail-log-entry { gap: 10px; padding: 13px; } }
+@media (max-width: 900px) { .mail-settings-layout, .mail-template-list { grid-template-columns: 1fr; } .mail-template-test-row { align-items: stretch; flex-direction: column; } .mail-template-test-controls { flex-basis: auto; } .mail-log-columns { display: none; } .mail-log-entry { grid-template-columns: minmax(0, 1fr) auto; } .mail-log-detail { grid-column: 1; } .mail-log-status { grid-column: 2; grid-row: 1; } .mail-log-entry time { grid-column: 2; grid-row: 2; align-self: end; } }
+@media (max-width: 560px) { .mail-log-toolbar { align-items: flex-start; } .mail-log-toolbar .btn { margin-left: 0; } .mail-log-filter-tabs { border-radius: var(--radius-md); } .mail-log-filter { padding: 0 11px; } .mail-template-test-controls { flex-direction: column; } .mail-template-test-controls .btn { width: 100%; } .mail-log-entry { gap: 10px; padding: 13px; } }
 
 /* The bare `section` selector above is meant for the public site's hero
    sections (padding: 90px 0) -- .admin-section reuses the <section> tag for

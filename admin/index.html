@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=216">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=217">
 </head>
 <body>
 
@@ -2585,6 +2585,10 @@
       <textarea id="mail-template-text-input" maxlength="20000"></textarea>
     </div>
     <label class="mail-template-enabled"><input type="checkbox" id="mail-template-enabled-input"> <span>Template is active and available to its matching flow.</span></label>
+    <div class="mail-template-test-row">
+      <div><strong>Test this template</strong><small>Sends the currently saved version through your Mail Settings. Save edits first; preview messages never contain live account tokens.</small></div>
+      <div class="mail-template-test-controls"><input type="email" id="mail-template-test-recipient-input" maxlength="255" placeholder="recipient@example.com"><button type="button" class="btn" id="mail-template-send-test-btn">Send Test Email</button></div>
+    </div>
     <p class="admin-modal-error" id="mail-template-modal-error"></p>
     <p class="admin-modal-status" id="mail-template-modal-status"></p>
     <div class="admin-modal-actions">
@@ -9554,6 +9558,8 @@
   var mailTemplateModalStatus = document.getElementById('mail-template-modal-status');
   var mailTemplateSaveBtn = document.getElementById('mail-template-save-btn');
   var mailTemplateCancelBtn = document.getElementById('mail-template-cancel-btn');
+  var mailTemplateTestRecipientInput = document.getElementById('mail-template-test-recipient-input');
+  var mailTemplateSendTestBtn = document.getElementById('mail-template-send-test-btn');
   var mailLogList = document.getElementById('mail-log-list');
   var mailLogFilters = document.getElementById('mail-log-filters');
   var mailLogRefreshBtn = document.getElementById('mail-log-refresh-btn');
@@ -9735,12 +9741,32 @@
     mailTemplateEnabledInput.checked = !!template.is_enabled;
     setMailMessage(mailTemplateModalError, mailTemplateModalStatus, '', false);
     mailTemplateSaveBtn.disabled = false;
+    mailTemplateSendTestBtn.disabled = !pwHasPermission('mail.manage');
     mailTemplateModal.hidden = false;
     setTimeout(function () { mailTemplateSubjectInput.focus(); }, 25);
   }
   if (mailTemplateModalClose) mailTemplateModalClose.addEventListener('click', closeMailTemplateModal);
   if (mailTemplateCancelBtn) mailTemplateCancelBtn.addEventListener('click', closeMailTemplateModal);
   if (mailTemplateModal) mailTemplateModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeMailTemplateModal);
+  if (mailTemplateSendTestBtn) mailTemplateSendTestBtn.addEventListener('click', function () {
+    if (!mailTemplateCurrent || !pwHasPermission('mail.manage')) return;
+    var recipient = mailTemplateTestRecipientInput.value.trim();
+    if (!recipient) {
+      setMailMessage(mailTemplateModalError, mailTemplateModalStatus, 'Enter a recipient for the template test.', true);
+      return;
+    }
+    mailTemplateSendTestBtn.disabled = true;
+    setMailMessage(mailTemplateModalError, mailTemplateModalStatus, '', false);
+    fetch('/api/admin/mail/send-test.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csrf: window.PW_AUTH.csrf, recipient_email: recipient, template_key: mailTemplateCurrent.template_key })
+    }).then(function (response) { return response.json(); }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'The template test could not be sent.');
+      setMailMessage(mailTemplateModalError, mailTemplateModalStatus, 'Template test accepted by the server. Check the inbox and spam folder.', false);
+    }).catch(function (error) {
+      setMailMessage(mailTemplateModalError, mailTemplateModalStatus, error.message || 'The template test could not be sent.', true);
+    }).finally(function () { mailTemplateSendTestBtn.disabled = !pwHasPermission('mail.manage'); });
+  });
   if (mailTemplateSaveBtn) mailTemplateSaveBtn.addEventListener('click', function () {
     if (!mailTemplateCurrent || !pwHasPermission('mail.manage')) return;
     mailTemplateSaveBtn.disabled = true;

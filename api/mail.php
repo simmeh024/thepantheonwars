@@ -164,7 +164,7 @@ function pw_mail_log_outbound($status, $key, $recipientEmail, $settings, $subjec
     ]);
 }
 
-function pw_send_template_email($key, $recipientEmail, $variables = []) {
+function pw_send_template_email($key, $recipientEmail, $variables = [], $options = []) {
     $recipientEmail = trim((string)$recipientEmail);
     if (!filter_var($recipientEmail, FILTER_VALIDATE_EMAIL)) {
         return ['sent' => false, 'reason' => 'invalid_recipient'];
@@ -184,7 +184,8 @@ function pw_send_template_email($key, $recipientEmail, $variables = []) {
     }
 
     $template = pw_mail_template($key);
-    if (!$template || !$template['is_enabled']) {
+    $allowPausedTemplate = !empty($options['allow_paused_template']);
+    if (!$template || (!$template['is_enabled'] && !$allowPausedTemplate)) {
         pw_mail_log_outbound('skipped', $key, $recipientEmail, $settings, '', 'The selected template is unavailable or paused.');
         return ['sent' => false, 'reason' => 'template_unavailable'];
     }

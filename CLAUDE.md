@@ -90,6 +90,10 @@ select `config.php` -> Edit (opens cPanel's code editor in a new tab).
   `MAIL_FROM_EMAIL`, `MAIL_REPLY_TO`, and `MAIL_INBOUND_WEBHOOK_SECRET` defaults
   belong only in the real outside-webroot config (documented in
   `api/config.sample.php`).
+- Each Mail Template has a permissioned test action in its editor. It uses the
+  saved template and current Mail Settings sender/transport, permits a paused
+  template to be previewed, and supplies only harmless example reset/verify
+  links rather than creating real account credentials.
 - Welcome delivery is hooked into password registration, Google registration, and
   administrator-created accounts; account-suspension delivery is hooked into new
   bans. Never email an administrator-generated password.
