@@ -18,9 +18,9 @@ document.addEventListener('DOMContentLoaded', function () {
   var atlasInfoTitleEl = document.getElementById('world-atlas-info-title');
   var atlasInfoCopyEl = document.getElementById('world-atlas-info-copy');
 
-  // Coordinates use the atlas artwork's native 1672 × 941 viewBox and the
-  // World Control sort order, so content staff only need to manage a world's
-  // normal status. Unlocking a world automatically activates its medallion.
+  // Coordinates use the atlas artwork's native 1672 × 941 viewBox. Artwork
+  // numbers are deliberately separate from World Control sort order: Asmecu
+  // and Reanium are ordered differently in the database than on this atlas.
   var ATLAS_POINTS = {
     1: { x: 773, y: 130, r: 77 },
     2: { x: 1044, y: 156, r: 77 },
@@ -34,6 +34,23 @@ document.addEventListener('DOMContentLoaded', function () {
     10: { x: 291, y: 496, r: 77 },
     11: { x: 375, y: 344, r: 77 },
     12: { x: 530, y: 232, r: 77 }
+  };
+
+  // Stable slugs own atlas placement. Admins may reorder the public world list
+  // without moving lock states, hover copy, or hit targets to another planet.
+  var ATLAS_SLOT_BY_SLUG = {
+    'neoh': 1,
+    'high-hammer': 2,
+    'cerius': 3,
+    'reanium': 4,
+    'asmecu': 5,
+    'babki-prime': 6,
+    'sed': 7,
+    'geof-v': 8,
+    'beoctica': 9,
+    'terek-ii': 10,
+    'valerium-prime': 11,
+    'vermillia-xi': 12
   };
 
   // The color is visual metadata for the atlas only. World Control still owns
@@ -52,6 +69,18 @@ document.addEventListener('DOMContentLoaded', function () {
     11: { key: 'valerium-prime', label: 'Valerium Prime signal', rgb: '218, 176, 76' },
     12: { key: 'vermillia-xi', label: 'Vermillia XI signal', rgb: '210, 142, 72' }
   };
+
+  function atlasSlot(world) {
+    return world ? ATLAS_SLOT_BY_SLUG[world.slug] : null;
+  }
+
+  function atlasPoint(world) {
+    return ATLAS_POINTS[atlasSlot(world)] || null;
+  }
+
+  function atlasTone(world) {
+    return ATLAS_TONES[atlasSlot(world)] || null;
+  }
 
   function escapeHtml(value) {
     return String(value || '').replace(/[&<>"']/g, function (char) {
@@ -239,8 +268,8 @@ document.addEventListener('DOMContentLoaded', function () {
       atlasInfoCopyEl.textContent = 'Hover or focus a medallion to inspect its record. Available worlds can be opened in their own field file.';
       return;
     }
-    var tone = ATLAS_TONES[world.sort_order];
-    var point = ATLAS_POINTS[world.sort_order];
+    var tone = atlasTone(world);
+    var point = atlasPoint(world);
     if (atlasInfoEl && tone) {
       atlasInfoEl.classList.add('is-active');
       atlasInfoEl.setAttribute('aria-hidden', 'false');
@@ -291,7 +320,7 @@ document.addEventListener('DOMContentLoaded', function () {
       var i;
       for (i = 3; i < data.length; i += 4) data[i] = 0;
       lockedWorlds.forEach(function (world) {
-        var point = ATLAS_POINTS[world.sort_order];
+        var point = atlasPoint(world);
         var radius = point.r + 2;
         var radiusSquared = radius * radius;
         var minX = Math.max(0, Math.floor(point.x - radius));
@@ -323,11 +352,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderAtlas(worlds) {
     if (!atlasEl || !atlasHotspotsEl) return;
-    var mappedWorlds = worlds.filter(function (world) { return !!ATLAS_POINTS[world.sort_order]; });
+    var mappedWorlds = worlds.filter(function (world) { return !!atlasPoint(world); });
     var locked = mappedWorlds.filter(function (world) { return world.status !== 'available'; });
     renderLockedWorldCanvas(locked);
     var hotspots = mappedWorlds.map(function (world) {
-      var point = ATLAS_POINTS[world.sort_order];
+      var point = atlasPoint(world);
       var label = world.status === 'available' ? 'Open world record for ' + world.name : 'Lore locked: ' + world.name;
       var circles =
         '<circle class="world-atlas-hit" cx="' + point.x + '" cy="' + point.y + '" r="' + point.r + '"></circle>' +

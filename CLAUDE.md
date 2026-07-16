@@ -727,8 +727,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   preference.
 - **Interactive Worlds atlas:** `worlds.html` now presents the supplied
   `images/twelve-worlds-atlas.png` as a wide 1672×941 interactive SVG overlay.
-  `js/worlds.js?v=10` maps the existing `worlds.sort_order` values 1–12 to the
-  artwork's medallions, so World Control's ordinary `available`/`locked` status
+  `js/worlds.js?v=11` maps stable world slugs to the artwork's medallions (never
+  use `worlds.sort_order`: Asmecu and Reanium are deliberately ordered differently
+  in the database and artwork), so World Control's ordinary `available`/`locked` status
   automatically controls each destination. Available medallions open the stable
   dynamic record route `world.html?slug=<slug>`; locked medallions stay visually
   dimmed and expose `ERROR: LORE LOCK / MISSING INFORMATION` without leaking a
