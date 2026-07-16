@@ -738,13 +738,18 @@ also supports a deliberately manual `?full=1` historical rebuild.
   dimmed and expose `ERROR: LORE LOCK / MISSING INFORMATION` without leaking a
   record. The atlas is now the only public world index: the former card grid and
   inline world-detail sections were removed from `worlds.html`; full lore lives on
-  each dedicated `world.html?slug=...` record. `js/world-atlas-effects.js?v=5` adds
+  each dedicated `world.html?slug=...` record. `js/world-atlas-effects.js?v=6` adds
   the cinematic layer: GSAP owns one
   restrained scene transform and ScrollTrigger depth pass, while one transparent
   native-resolution canvas clips all ambient effects to their calibrated medallion
-  circles. The twelve stable slugs select distinct motifs (glitch, copper sparks,
-  ash/embers, radioactive spores, water caustics, jungle pollen, crimson heat,
-  steel rain/fog, frost motes, black/red smoke, gold motes, and sand streaks).
+  circles. The twelve stable slugs select distinct motifs. The current late-orbit
+  treatments deliberately avoid broad rectangular light shafts: Babki Prime has
+  wind-driven falling leaves, Sed combines visible fire with falling ash, Beoctica
+  performs a slow searching camera zoom, Terek II fires short background laser
+  pulses and adds a medallion-only hover shake, Valerium Prime radiates fine holy
+  revelation rays, and Vermillia XI rains inside its dome. Earlier-world motifs
+  remain glitch, copper sparks, ash/embers, radioactive spores, water caustics, and
+  steel rain/fog.
   Effects are built only for API records whose status is exactly `available`; a
   locked world must never receive either its effect or destination behavior.
   Rendering is throttled to a cinematic 24 fps, uses deterministic particle pools,

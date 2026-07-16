@@ -474,50 +474,63 @@
 
   function drawBabki(ctx, image, entry, time, strength, particles) {
     var point = entry.point;
-    var bloom = eventPulse(time, 7.6, 1.75, 4.4);
-    var shaft = ctx.createLinearGradient(point.x - 36, point.y - point.r, point.x + 34, point.y + point.r);
-    shaft.addColorStop(0, 'rgba(205,255,158,' + ((0.11 + bloom * 0.11) * strength).toFixed(3) + ')');
-    shaft.addColorStop(1, 'rgba(87,190,98,0)');
-    ctx.fillStyle = shaft;
-    ctx.beginPath();
-    ctx.moveTo(point.x - 42, point.y - point.r);
-    ctx.lineTo(point.x - 7, point.y - point.r);
-    ctx.lineTo(point.x + 38, point.y + point.r);
-    ctx.lineTo(point.x + 8, point.y + point.r);
-    ctx.closePath();
-    ctx.fill();
-    particles.slice(0, 13).forEach(function (particle) {
-      var x = point.x + (particle.x * 2 - 1) * point.r * 0.82 + Math.sin(time * 0.27 + particle.phase) * 7;
-      var y = point.y + (particle.y * 2 - 1) * point.r * 0.8 + Math.cos(time * 0.22 + particle.phase) * 5;
-      ctx.fillStyle = 'rgba(210,241,143,' + ((0.15 + bloom * 0.1) * particle.alpha * strength).toFixed(3) + ')';
+    var gust = eventPulse(time, 6.1, 2.25, 1.4);
+    var breeze = 0.5 + Math.sin(time * 0.48) * 0.5;
+    drawSoftGlow(ctx, point, [91, 196, 91], (0.075 + gust * 0.055) * strength, 0.98, -8);
+    particles.slice(0, 16).forEach(function (particle, index) {
+      var fall = wrap(particle.y + time * (0.026 + particle.speed * 0.032));
+      var wind = 9 + breeze * 10 + gust * 15;
+      var x = point.x + (particle.x * 2 - 1) * point.r * 0.76 +
+        Math.sin(time * (0.62 + particle.speed * 0.22) + particle.phase) * wind +
+        (fall - 0.5) * (10 + gust * 13);
+      var y = point.y - point.r * 0.92 + fall * point.r * 1.84;
+      var leafLength = 2.8 + particle.size * 1.45;
+      var leafWidth = 1.15 + particle.size * 0.5;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(particle.phase + time * (0.72 + particle.speed * 0.52) + Math.sin(time + particle.phase) * 0.3);
+      ctx.fillStyle = index % 3 === 0
+        ? 'rgba(226,198,91,' + ((0.27 + gust * 0.13) * particle.alpha * strength).toFixed(3) + ')'
+        : 'rgba(139,222,105,' + ((0.25 + gust * 0.12) * particle.alpha * strength).toFixed(3) + ')';
       ctx.beginPath();
-      ctx.ellipse(x, y, 0.7 + particle.size, 0.4 + particle.size * 0.45, particle.phase + time * 0.08, 0, TAU);
+      ctx.moveTo(0, -leafLength);
+      ctx.bezierCurveTo(leafWidth, -leafLength * 0.42, leafWidth, leafLength * 0.42, 0, leafLength);
+      ctx.bezierCurveTo(-leafWidth, leafLength * 0.42, -leafWidth, -leafLength * 0.42, 0, -leafLength);
       ctx.fill();
+      ctx.restore();
     });
-    if (bloom > 0) drawSoftGlow(ctx, point, [132, 236, 111], 0.08 * bloom * strength, 0.8, -16);
   }
 
   function drawSed(ctx, image, entry, time, strength, particles) {
     var point = entry.point;
-    var surge = eventPulse(time, 6.3, 1.4, 2.6);
-    drawSoftGlow(ctx, point, [188, 38, 55], (0.105 + surge * 0.06) * strength, 1, point.r * 0.5);
-    ctx.lineWidth = 1;
-    for (var row = 0; row < 4; row += 1) {
-      var y = point.y - 24 + row * 16;
-      ctx.strokeStyle = 'rgba(255,91,76,' + ((0.048 + surge * 0.075) * strength).toFixed(3) + ')';
+    var surge = eventPulse(time, 5.6, 1.85, 2.2);
+    drawSoftGlow(ctx, point, [225, 46, 38], (0.13 + surge * 0.085) * strength, 1, point.r * 0.52);
+    particles.slice(0, 7).forEach(function (particle, index) {
+      var flicker = 0.72 + Math.sin(time * (2.1 + particle.speed) + particle.phase) * 0.28;
+      var baseX = point.x + (particle.x * 2 - 1) * point.r * 0.62;
+      var baseY = point.y + point.r * (0.66 + (index % 2) * 0.08);
+      var flameHeight = (13 + particle.size * 7 + surge * 7) * flicker;
+      var flameWidth = 3.5 + particle.size * 1.35;
+      ctx.fillStyle = index % 3 === 0
+        ? 'rgba(255,211,92,' + ((0.33 + surge * 0.2) * particle.alpha * strength).toFixed(3) + ')'
+        : 'rgba(255,82,37,' + ((0.38 + surge * 0.18) * particle.alpha * strength).toFixed(3) + ')';
       ctx.beginPath();
-      for (var x = point.x - 60; x <= point.x + 60; x += 4) {
-        var hazeY = y + Math.sin(x * 0.06 + time * 0.7 + row) * 2.5;
-        if (x === point.x - 60) ctx.moveTo(x, hazeY); else ctx.lineTo(x, hazeY);
-      }
-      ctx.stroke();
-    }
-    particles.slice(0, 10).forEach(function (particle) {
-      var travel = wrap(particle.x + time * (0.012 + particle.speed * 0.018));
-      var x = point.x - point.r + travel * point.r * 2;
-      var y = point.y + (particle.y * 2 - 1) * point.r * 0.72 + Math.sin(time * 0.25 + particle.phase) * 4;
-      ctx.fillStyle = 'rgba(184,91,72,' + ((0.125 + surge * 0.08) * particle.alpha * strength).toFixed(3) + ')';
-      ctx.fillRect(x, y, 1 + particle.size, 0.8 + particle.size * 0.5);
+      ctx.moveTo(baseX - flameWidth, baseY);
+      ctx.quadraticCurveTo(baseX - flameWidth * 0.45, baseY - flameHeight * 0.55, baseX + Math.sin(time * 2.4 + particle.phase) * 3, baseY - flameHeight);
+      ctx.quadraticCurveTo(baseX + flameWidth * 0.72, baseY - flameHeight * 0.45, baseX + flameWidth, baseY);
+      ctx.closePath();
+      ctx.fill();
+    });
+    particles.slice(0, 15).forEach(function (particle, index) {
+      var fall = wrap(particle.y + time * (0.022 + particle.speed * 0.026));
+      var ashX = point.x + (particle.x * 2 - 1) * point.r * 0.82 + Math.sin(time * 0.45 + particle.phase) * 7;
+      var ashY = point.y - point.r * 0.94 + fall * point.r * 1.88;
+      ctx.fillStyle = index % 4 === 0
+        ? 'rgba(255,117,51,' + ((0.3 + surge * 0.16) * particle.alpha * strength * (1 - fall * 0.45)).toFixed(3) + ')'
+        : 'rgba(203,191,184,' + ((0.21 + surge * 0.08) * particle.alpha * strength).toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.ellipse(ashX, ashY, 0.7 + particle.size * 0.48, 0.45 + particle.size * 0.28, particle.phase + time * 0.24, 0, TAU);
+      ctx.fill();
     });
   }
 
@@ -546,6 +559,27 @@
   function drawBeoctica(ctx, image, entry, time, strength, particles) {
     var point = entry.point;
     var frost = eventPulse(time, 7.2, 1.5, 3.7);
+    if (image && image.naturalWidth) {
+      var search = 0.5 - Math.cos(time * 0.28) * 0.5;
+      var scale = 1.008 + search * 0.052 + entry.activity * 0.012;
+      var sourceRadius = point.r / scale;
+      var lookX = Math.sin(time * 0.16) * point.r * 0.035;
+      var lookY = Math.cos(time * 0.13) * point.r * 0.025;
+      ctx.save();
+      ctx.globalAlpha = 0.74;
+      ctx.drawImage(
+        image,
+        point.x - sourceRadius + lookX,
+        point.y - sourceRadius + lookY,
+        sourceRadius * 2,
+        sourceRadius * 2,
+        point.x - point.r,
+        point.y - point.r,
+        point.r * 2,
+        point.r * 2
+      );
+      ctx.restore();
+    }
     drawSoftGlow(ctx, point, [222, 237, 255], (0.082 + frost * 0.055) * strength, 0.96, 0);
     particles.slice(0, 13).forEach(function (particle, index) {
       var fall = wrap(particle.y + time * (0.008 + particle.speed * 0.014));
@@ -569,61 +603,129 @@
 
   function drawTerek(ctx, image, entry, time, strength, particles) {
     var point = entry.point;
-    var pulse = 0.5 + Math.sin(time * 0.52) * 0.5;
-    var alert = eventPulse(time, 6.6, 1.1, 0.5);
-    drawSoftGlow(ctx, point, [156, 29, 44], (0.055 + pulse * 0.052 + alert * 0.085) * strength, 1, 0);
-    ctx.strokeStyle = 'rgba(226,52,62,' + ((0.12 * pulse + alert * 0.22) * strength).toFixed(3) + ')';
-    ctx.lineWidth = 1.3 + alert * 1.6;
-    ctx.beginPath();
-    ctx.arc(point.x, point.y, 52 + pulse * 10, 0, TAU);
-    ctx.stroke();
+    var alert = eventPulse(time, 4.8, 0.9, 0.5);
+    if (image && image.naturalWidth && entry.activity > 0.01) {
+      var shake = entry.activity * (1.25 + alert * 1.4);
+      var offsetX = (Math.sin(time * 31) + Math.sin(time * 17.7)) * shake;
+      var offsetY = (Math.cos(time * 27.2) + Math.sin(time * 14.5)) * shake * 0.58;
+      ctx.save();
+      ctx.globalAlpha = 0.72 * entry.activity;
+      ctx.drawImage(
+        image,
+        point.x - point.r,
+        point.y - point.r,
+        point.r * 2,
+        point.r * 2,
+        point.x - point.r + offsetX,
+        point.y - point.r + offsetY,
+        point.r * 2,
+        point.r * 2
+      );
+      ctx.restore();
+    }
+    drawSoftGlow(ctx, point, [156, 29, 44], (0.09 + alert * 0.11) * strength, 1, 0);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    particles.slice(0, 7).forEach(function (particle, index) {
+      var cycle = wrap(time * (0.24 + particle.speed * 0.12) + particle.phase / TAU);
+      if (cycle > 0.16) return;
+      var flash = Math.sin((cycle / 0.16) * Math.PI);
+      var direction = index % 2 === 0 ? -0.18 : 0.24;
+      var startX = point.x - point.r * 0.72 + particle.x * point.r * 0.68;
+      var startY = point.y + (particle.y * 2 - 1) * point.r * 0.7;
+      var length = 32 + particle.size * 12;
+      var endX = startX + Math.cos(direction) * length;
+      var endY = startY + Math.sin(direction) * length;
+      var laserRgb = index % 3 === 0 ? '137,205,255' : '255,55,68';
+      ctx.strokeStyle = 'rgba(' + laserRgb + ',' + (0.72 * flash * particle.alpha * strength).toFixed(3) + ')';
+      ctx.shadowColor = 'rgba(' + laserRgb + ',0.9)';
+      ctx.shadowBlur = 7;
+      ctx.lineWidth = 0.85 + particle.size * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(startX, startY);
+      ctx.lineTo(endX, endY);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(255,226,194,' + (0.62 * flash * strength).toFixed(3) + ')';
+      ctx.beginPath();
+      ctx.arc(endX, endY, 1.2 + flash * 1.8, 0, TAU);
+      ctx.fill();
+    });
+    ctx.restore();
     particles.slice(0, 8).forEach(function (particle) {
-      var rise = wrap(particle.y + time * (0.012 + particle.speed * 0.012));
+      var rise = wrap(particle.y + time * (0.014 + particle.speed * 0.014));
       var x = point.x + (particle.x * 2 - 1) * point.r * 0.68 + Math.sin(time * 0.16 + particle.phase) * 8;
       var y = point.y + point.r * 0.75 - rise * point.r * 1.4;
-      ctx.fillStyle = 'rgba(25,20,28,' + ((0.12 + alert * 0.06) * particle.alpha * strength * (1 - rise)).toFixed(3) + ')';
+      ctx.fillStyle = 'rgba(25,20,28,' + ((0.15 + alert * 0.08) * particle.alpha * strength * (1 - rise)).toFixed(3) + ')';
       ctx.beginPath();
-      ctx.arc(x, y, 5 + particle.size * 3, 0, TAU);
+      ctx.arc(x, y, 4 + particle.size * 2.5, 0, TAU);
       ctx.fill();
     });
   }
 
   function drawValerium(ctx, image, entry, time, strength, particles) {
     var point = entry.point;
-    var flare = eventPulse(time, 7.9, 1.7, 4.9);
-    drawSoftGlow(ctx, point, [255, 204, 88], (0.095 + flare * 0.07) * strength, 1, -8);
+    var revelation = eventPulse(time, 7.9, 2.65, 4.9);
+    var breath = 0.5 + Math.sin(time * 0.46) * 0.5;
+    drawSoftGlow(ctx, point, [255, 216, 118], (0.12 + breath * 0.035 + revelation * 0.105) * strength, 1, -8);
     ctx.save();
-    ctx.translate(point.x, point.y);
-    ctx.rotate(-0.22 + Math.sin(time * 0.12) * 0.02);
-    var ray = ctx.createLinearGradient(0, -point.r, 0, point.r);
-    ray.addColorStop(0, 'rgba(255,224,142,' + ((0.14 + flare * 0.18) * strength).toFixed(3) + ')');
-    ray.addColorStop(1, 'rgba(255,224,142,0)');
-    ctx.fillStyle = ray;
-    ctx.fillRect(-17, -point.r, 34, point.r * 2);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.translate(point.x, point.y - 6);
+    ctx.lineCap = 'round';
+    for (var rayIndex = 0; rayIndex < 12; rayIndex += 1) {
+      var angle = rayIndex / 12 * TAU + time * 0.018;
+      var rayLength = point.r * (0.48 + (rayIndex % 3) * 0.12 + revelation * 0.1);
+      var startRadius = 9 + (rayIndex % 2) * 4;
+      var rayAlpha = (0.055 + breath * 0.028 + revelation * 0.13) * strength * (rayIndex % 2 ? 0.72 : 1);
+      ctx.strokeStyle = 'rgba(255,226,151,' + rayAlpha.toFixed(3) + ')';
+      ctx.shadowColor = 'rgba(255,208,92,0.82)';
+      ctx.shadowBlur = 6 + revelation * 8;
+      ctx.lineWidth = 0.7 + (rayIndex % 3) * 0.28;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(angle) * startRadius, Math.sin(angle) * startRadius);
+      ctx.lineTo(Math.cos(angle) * rayLength, Math.sin(angle) * rayLength);
+      ctx.stroke();
+    }
+    var halo = ctx.createRadialGradient(0, 0, 1, 0, 0, 29 + revelation * 9);
+    halo.addColorStop(0, 'rgba(255,248,211,' + ((0.31 + revelation * 0.25) * strength).toFixed(3) + ')');
+    halo.addColorStop(0.18, 'rgba(255,215,117,' + ((0.18 + revelation * 0.18) * strength).toFixed(3) + ')');
+    halo.addColorStop(1, 'rgba(255,196,79,0)');
+    ctx.fillStyle = halo;
+    ctx.fillRect(-42, -42, 84, 84);
     ctx.restore();
     particles.slice(0, 12).forEach(function (particle) {
-      var x = point.x + (particle.x * 2 - 1) * point.r * 0.78 + Math.sin(time * 0.24 + particle.phase) * 3;
-      var y = point.y + (particle.y * 2 - 1) * point.r * 0.75 - Math.cos(time * 0.2 + particle.phase) * 3;
-      ctx.fillStyle = 'rgba(255,218,118,' + ((0.18 + flare * 0.12) * particle.alpha * strength).toFixed(3) + ')';
+      var rise = wrap(particle.y + time * (0.012 + particle.speed * 0.018));
+      var x = point.x + (particle.x * 2 - 1) * point.r * 0.76 + Math.sin(time * 0.24 + particle.phase) * 4;
+      var y = point.y + point.r * 0.72 - rise * point.r * 1.42;
+      ctx.fillStyle = 'rgba(255,218,118,' + ((0.22 + revelation * 0.16) * particle.alpha * strength * (1 - rise * 0.4)).toFixed(3) + ')';
       ctx.beginPath();
-      ctx.arc(x, y, 0.7 + particle.size * 0.6, 0, TAU);
+      ctx.arc(x, y, 0.8 + particle.size * 0.65, 0, TAU);
       ctx.fill();
     });
   }
 
   function drawVermillia(ctx, image, entry, time, strength, particles) {
     var point = entry.point;
-    var gust = eventPulse(time, 6.9, 1.65, 2.8);
-    drawSoftGlow(ctx, point, [221, 139, 61], (0.078 + gust * 0.052) * strength, 1, point.r * 0.22);
-    particles.slice(0, 15).forEach(function (particle) {
-      var travel = wrap(particle.x + time * (0.018 + particle.speed * 0.025));
-      var x = point.x - point.r + travel * point.r * 2;
-      var y = point.y + (particle.y * 2 - 1) * point.r * 0.78 + Math.sin(time * 0.28 + particle.phase) * 5;
-      ctx.strokeStyle = 'rgba(235,164,91,' + ((0.135 + gust * 0.13) * particle.alpha * strength).toFixed(3) + ')';
-      ctx.lineWidth = 0.6 + particle.size * 0.4;
+    var downpour = eventPulse(time, 6.9, 2.25, 2.8);
+    drawSoftGlow(ctx, point, [154, 190, 218], (0.085 + downpour * 0.055) * strength, 1, point.r * 0.18);
+    particles.slice(0, 18).forEach(function (particle, index) {
+      var fall = wrap(particle.y + time * (0.075 + particle.speed * 0.068));
+      var x = point.x + (particle.x * 2 - 1) * point.r * 0.88 + Math.sin(time * 0.42 + particle.phase) * 3;
+      var y = point.y - point.r * 0.94 + fall * point.r * 1.88;
+      var length = 5 + particle.size * 3.5 + downpour * 3;
+      ctx.strokeStyle = index % 4 === 0
+        ? 'rgba(239,187,117,' + ((0.22 + downpour * 0.16) * particle.alpha * strength).toFixed(3) + ')'
+        : 'rgba(191,220,239,' + ((0.24 + downpour * 0.17) * particle.alpha * strength).toFixed(3) + ')';
+      ctx.lineWidth = 0.55 + particle.size * 0.22;
       ctx.beginPath();
-      ctx.moveTo(x - 5 - particle.size * 2, y + 2);
-      ctx.lineTo(x, y);
+      ctx.moveTo(x - 1.8, y - length);
+      ctx.lineTo(x + 1.2, y);
+      ctx.stroke();
+      if (fall < 0.84) return;
+      var ripple = (fall - 0.84) / 0.16;
+      ctx.strokeStyle = 'rgba(198,222,237,' + ((1 - ripple) * 0.16 * strength).toFixed(3) + ')';
+      ctx.lineWidth = 0.55;
+      ctx.beginPath();
+      ctx.ellipse(x, point.y + point.r * 0.72, 2 + ripple * 7, 0.8 + ripple * 2.1, 0, 0, TAU);
       ctx.stroke();
     });
   }
