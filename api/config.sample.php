@@ -47,6 +47,15 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // define('MAIL_FROM_EMAIL', 'noreply@thepantheonwars.com');
 // define('MAIL_REPLY_TO', 'privacy@thepantheonwars.com');
 
+// Optional. When set, outbound mail is sent through the MailerSend HTTP API
+// instead of the shared host's local PHP mail() transport -- MailerSend
+// signs and relays through its own verified-domain infrastructure, which is
+// far more reliable than a shared hosting IP for SPF/DKIM alignment. Create
+// a token at https://app.mailersend.com (Domains -> your verified domain ->
+// API tokens) and make sure Mail Settings' sender email uses that verified
+// domain. Leave commented out and delivery falls back to PHP mail().
+// define('MAILERSEND_API_TOKEN', 'REPLACE_WITH_REAL_MAILERSEND_TOKEN');
+
 // Optional signed inbound-mail webhook. PHP mail() can send email but cannot
 // read a mailbox. Configure a provider or mail pipe to POST parsed inbound
 // metadata to /api/mail/inbound.php with an X-PW-Mail-Signature HMAC-SHA256

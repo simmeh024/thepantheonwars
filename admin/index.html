@@ -876,7 +876,7 @@
       <div class="mail-settings-layout">
         <form class="mail-settings-card" id="mail-settings-form">
           <div class="mail-settings-card-head">
-            <div><h2>Delivery control</h2><p>Uses the hosting account&rsquo;s PHP mail transport. No credentials are stored here.</p></div>
+            <div><h2>Delivery control</h2><p>Uses this server&rsquo;s configured mail transport. No credentials are stored here.</p></div>
             <span class="mail-transport-pill" id="mail-transport-pill">Checking&hellip;</span>
           </div>
           <label class="mail-enabled-toggle"><input type="checkbox" id="mail-enabled-input"><span><strong>Enable transactional email</strong><small>When off, account and moderation flows continue without sending email.</small></span></label>
@@ -914,7 +914,7 @@
         <h1>Mail Log</h1>
         <p>Inbound and outbound mail troubleshooting metadata. “Accepted” means PHP accepted the hand-off; it does not confirm inbox delivery.</p>
       </div>
-      <div class="mail-log-notice"><strong>Inbound is ready when you are.</strong> PHP mail can send but cannot read a mailbox. Connect a signed provider webhook or mail pipe to record incoming mail; message bodies are never stored.</div>
+      <div class="mail-log-notice"><strong>Inbound is ready when you are.</strong> Outbound mail can send but cannot read a mailbox. Connect a signed provider webhook or mail pipe to record incoming mail; message bodies are never stored.</div>
       <div class="admin-toolbar mail-log-toolbar" aria-label="Mail log filters">
         <div class="mail-log-filter-tabs" id="mail-log-filters">
           <button type="button" class="mail-log-filter active" data-mail-log-direction="all"><span class="mail-log-filter-icon">&#10022;</span>All activity</button>

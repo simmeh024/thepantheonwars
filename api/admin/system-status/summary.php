@@ -29,10 +29,10 @@
  *    days and critical at seven days (or immediately critical when missing).
  *  - spaCy: performs a real local model-load probe for the Dispatch
  *    translation enrichment worker, so a missing venv or model is visible.
- *  - Transactional Mail: checks whether the hosting PHP mail transport is
- *    available. A deliberately disabled delivery switch or incomplete sender
- *    setup stays non-critical; without a transport, recovery and transactional
- *    mail cannot be sent at all.
+ *  - Transactional Mail: checks whether the configured mail transport
+ *    (MailerSend API, or PHP mail as fallback) is available. A deliberately
+ *    disabled delivery switch or incomplete sender setup stays non-critical;
+ *    without a transport, recovery and transactional mail cannot be sent at all.
  *
  * (A "Site Errors" check was tried here too, but this host's PHP error log
  * isn't readable from application code -- see status-helpers.php's removed

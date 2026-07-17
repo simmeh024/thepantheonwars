@@ -113,9 +113,10 @@ function pw_build_system_signals(PDO $db, bool $forceFresh = false): array {
     // state to admins because spaCy enrichment is now enabled in production.
     $spacy = pw_dispatch_spacy_status();
 
-    // Native PHP mail has no safe no-send health probe. The presence of its
-    // transport is therefore the connected/disconnected boundary; sender
-    // setup and the deliberate delivery switch remain non-critical states.
+    // Neither the MailerSend API nor native PHP mail has a safe no-send
+    // health probe. The presence of whichever transport is configured is
+    // therefore the connected/disconnected boundary; sender setup and the
+    // deliberate delivery switch remain non-critical states.
     $mail = pw_check_mail_transport();
 
     $signals = [

@@ -2,12 +2,15 @@
 /**
  * Transactional email foundation.
  *
- * Transport credentials never live in the database or admin UI. On this
- * shared-hosting deployment PHP's native mail() transport is used; the sender
- * identity and the deliberate enabled/disabled switch are stored in
- * app_settings. Templates are database records managed through the permissioned
- * admin console. Calling code receives a result object rather than an exception
- * so mail delivery can never make account, moderation, or sign-in flows fail.
+ * Transport credentials never live in the database or admin UI. When
+ * MAILERSEND_API_TOKEN is configured in the outside-webroot secrets config,
+ * outbound mail is sent through the MailerSend HTTP API (see
+ * pw_mail_send_via_mailersend()); otherwise it falls back to this shared
+ * host's native PHP mail() transport. The sender identity and the deliberate
+ * enabled/disabled switch are stored in app_settings either way. Templates
+ * are database records managed through the permissioned admin console.
+ * Calling code receives a result object rather than an exception so mail
+ * delivery can never make account, moderation, or sign-in flows fail.
  */
 
 const PW_MAIL_SETTING_KEYS = [
@@ -24,14 +27,20 @@ const PW_MAIL_TEMPLATE_KEYS = [
     'verify_account',
 ];
 
+function pw_mail_uses_mailersend() {
+    return defined('MAILERSEND_API_TOKEN') && MAILERSEND_API_TOKEN !== '' && function_exists('curl_init');
+}
+
 function pw_mail_default_settings() {
+    $phpMailAvailable = function_exists('mail');
+    $mailersendAvailable = pw_mail_uses_mailersend();
     return [
         'enabled' => false,
         'from_name' => defined('MAIL_FROM_NAME') ? (string)MAIL_FROM_NAME : 'The Pantheon Wars',
         'from_email' => defined('MAIL_FROM_EMAIL') ? (string)MAIL_FROM_EMAIL : '',
         'reply_to' => defined('MAIL_REPLY_TO') ? (string)MAIL_REPLY_TO : '',
-        'transport' => function_exists('mail') ? 'PHP mail' : 'Unavailable',
-        'transport_available' => function_exists('mail'),
+        'transport' => $mailersendAvailable ? 'MailerSend API' : ($phpMailAvailable ? 'PHP mail' : 'Unavailable'),
+        'transport_available' => $mailersendAvailable || $phpMailAvailable,
     ];
 }
 
@@ -153,7 +162,7 @@ function pw_mail_log_event($direction, $status, $fields = []) {
     }
 }
 
-function pw_mail_log_outbound($status, $key, $recipientEmail, $settings, $subject = '', $detail = '', $bodyBytes = 0) {
+function pw_mail_log_outbound($status, $key, $recipientEmail, $settings, $subject = '', $detail = '', $bodyBytes = 0, $providerMessageId = null) {
     pw_mail_log_event('outbound', $status, [
         'template_key' => $key,
         'sender_email' => $settings['from_email'] ?? '',
@@ -161,7 +170,73 @@ function pw_mail_log_outbound($status, $key, $recipientEmail, $settings, $subjec
         'subject' => $subject,
         'detail' => $detail,
         'body_bytes' => $bodyBytes,
+        'provider_message_id' => $providerMessageId,
     ]);
+}
+
+/**
+ * Sends one message through the MailerSend HTTP API. Used automatically by
+ * pw_send_template_email() whenever MAILERSEND_API_TOKEN is configured (see
+ * api/config.sample.php). A short connect/total timeout keeps a MailerSend
+ * outage from ever hanging the sign-in/registration/ban flow that triggered
+ * the send -- the caller always gets a result object back, never a fatal.
+ */
+function pw_mail_send_via_mailersend($recipientEmail, $subject, $html, $text, $settings) {
+    $fromName = str_replace(["\r", "\n", '"'], '', $settings['from_name']);
+    $payload = [
+        'from' => array_filter([
+            'email' => $settings['from_email'],
+            'name' => $fromName !== '' ? $fromName : null,
+        ]),
+        'to' => [['email' => $recipientEmail]],
+        'subject' => $subject,
+        'html' => $html,
+        'text' => $text,
+    ];
+    $replyTo = filter_var($settings['reply_to'], FILTER_VALIDATE_EMAIL) ? $settings['reply_to'] : $settings['from_email'];
+    if (filter_var($replyTo, FILTER_VALIDATE_EMAIL)) {
+        $payload['reply_to'] = ['email' => $replyTo];
+    }
+
+    $ch = curl_init('https://api.mailersend.com/v1/email');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HEADER => true,
+        CURLOPT_POST => true,
+        CURLOPT_POSTFIELDS => json_encode($payload),
+        CURLOPT_HTTPHEADER => [
+            'Authorization: Bearer ' . MAILERSEND_API_TOKEN,
+            'Content-Type: application/json',
+            'Accept: application/json',
+        ],
+        CURLOPT_CONNECTTIMEOUT => 5,
+        CURLOPT_TIMEOUT => 10,
+    ]);
+    $raw = curl_exec($ch);
+    $status = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $curlError = curl_error($ch);
+
+    if ($raw === false) {
+        curl_close($ch);
+        return ['sent' => false, 'provider_message_id' => null, 'detail' => 'MailerSend request failed: ' . $curlError];
+    }
+
+    $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+    curl_close($ch);
+    $headerText = substr($raw, 0, $headerSize);
+    $body = substr($raw, $headerSize);
+    $messageId = null;
+    if (preg_match('/^x-message-id:\s*(.+)$/mi', $headerText, $m)) {
+        $messageId = trim($m[1]);
+    }
+
+    if ($status >= 200 && $status < 300) {
+        return ['sent' => true, 'provider_message_id' => $messageId, 'detail' => 'Accepted by the MailerSend API (HTTP ' . $status . ').'];
+    }
+
+    $decoded = json_decode($body, true);
+    $message = is_array($decoded) && isset($decoded['message']) ? $decoded['message'] : ('HTTP ' . $status);
+    return ['sent' => false, 'provider_message_id' => null, 'detail' => 'MailerSend rejected the message: ' . $message];
 }
 
 function pw_send_template_email($key, $recipientEmail, $variables = [], $options = []) {
@@ -175,7 +250,7 @@ function pw_send_template_email($key, $recipientEmail, $variables = [], $options
         return ['sent' => false, 'reason' => 'disabled'];
     }
     if (!$settings['transport_available']) {
-        pw_mail_log_outbound('skipped', $key, $recipientEmail, $settings, '', 'The PHP mail transport is unavailable.');
+        pw_mail_log_outbound('skipped', $key, $recipientEmail, $settings, '', 'No mail transport is configured.');
         return ['sent' => false, 'reason' => 'transport_unavailable'];
     }
     if (!filter_var($settings['from_email'], FILTER_VALIDATE_EMAIL)) {
@@ -193,6 +268,17 @@ function pw_send_template_email($key, $recipientEmail, $variables = [], $options
     $subject = str_replace(["\r", "\n"], '', pw_mail_render($template['subject'], $variables));
     $html = pw_mail_render($template['html_body'], $variables, true);
     $text = pw_mail_render($template['text_body'], $variables);
+
+    if (pw_mail_uses_mailersend()) {
+        $result = pw_mail_send_via_mailersend($recipientEmail, $subject, $html, $text, $settings);
+        pw_mail_log_outbound(
+            $result['sent'] ? 'accepted' : 'failed',
+            $key, $recipientEmail, $settings, $subject, $result['detail'],
+            strlen($html) + strlen($text), $result['provider_message_id']
+        );
+        return ['sent' => $result['sent'], 'reason' => $result['sent'] ? 'sent' : 'transport_rejected'];
+    }
+
     $boundary = 'pw-' . bin2hex(random_bytes(12));
     $fromName = str_replace(["\r", "\n", '"'], '', $settings['from_name']);
     $headers = [

@@ -64,10 +64,26 @@ select `config.php` -> Edit (opens cPanel's code editor in a new tab).
 
 ### Transactional mail
 
-- `api/mail.php` is the only mail-sending path. It uses PHP's native `mail()` on
-  this shared host, reads its enabled flag and sender identity from `app_settings`,
-  and returns a result instead of throwing so email outages cannot block a sign-in,
-  account creation, or ban.
+- `api/mail.php` is the only mail-sending path. It reads its enabled flag and
+  sender identity from `app_settings`, and returns a result instead of throwing
+  so email outages cannot block a sign-in, account creation, or ban.
+- **Transport: MailerSend API, with PHP `mail()` as fallback.** Diagnosed via a
+  live investigation (Jul 2026): this cPanel/GoDaddy reseller plan sends
+  outbound mail through a shared, pooled relay with no self-service DKIM tool
+  (`Email Deliverability` 404s, the local Zone Editor is inactive -- real DNS
+  lives at GoDaddy's `pdns13/14.domaincontrol.com`) -- delivery worked for some
+  sends and silently vanished for others (confirmed via Gmail's "Show
+  original": one send passed SPF/DKIM/DMARC cleanly, a same-day burst of
+  near-identical test sends vanished with no trace anywhere, not even Spam).
+  MailerSend's HTTP API (`pw_mail_send_via_mailersend()`, used automatically
+  when `MAILERSEND_API_TOKEN` is set) relays through its own verified-domain
+  infrastructure instead, which is what actually fixes this rather than
+  papering over it with fewer test sends. `MAILERSEND_API_TOKEN` lives only in
+  the outside-webroot secrets config (see `api/config.sample.php`); when unset,
+  `pw_mail_uses_mailersend()` is false and every send path falls back to PHP
+  `mail()` exactly as before. Mail Settings' sender email must use MailerSend's
+  verified domain or sending will be rejected. `mail_delivery_logs.
+  provider_message_id` now gets MailerSend's real `X-Message-Id` on success.
 - `mail_templates` holds the closed allowlist of `password_reset`, `welcome`,
   `account_banned`, and `verify_account`. The template editor is gated by
   `mail.view` / `mail.manage`; variable expansion is limited to the keys defined
@@ -84,17 +100,17 @@ select `config.php` -> Edit (opens cPanel's code editor in a new tab).
   pipe. Keep `MAIL_INBOUND_WEBHOOK_SECRET` only in the outside-webroot config;
   callers sign the exact JSON body in `X-PW-Mail-Signature` (`sha256=<hex>`).
   Inbound rows stay empty until such a sender is configured, which is expected.
-- System Status exposes the underlying PHP mail transport as Connected or
-  Disconnected. Delivery being deliberately off, or a missing sender identity,
-  remains a non-critical configuration state; only a missing transport is a
-  critical BH-4 alert because password recovery and transactional delivery
-  cannot be sent at all in that state.
+- System Status exposes the active mail transport (MailerSend API or PHP mail)
+  as Connected or Disconnected. Delivery being deliberately off, or a missing
+  sender identity, remains a non-critical configuration state; only a missing
+  transport is a critical BH-4 alert because password recovery and
+  transactional delivery cannot be sent at all in that state.
 - Delivery is **off by default**. The Admin Console's pink-dot **Mail** category
   contains Mail Settings, Mail Templates, and Mail Log. Configure a verified
   sender there, then enable delivery deliberately. Optional `MAIL_FROM_NAME`,
-  `MAIL_FROM_EMAIL`, `MAIL_REPLY_TO`, and `MAIL_INBOUND_WEBHOOK_SECRET` defaults
-  belong only in the real outside-webroot config (documented in
-  `api/config.sample.php`).
+  `MAIL_FROM_EMAIL`, `MAIL_REPLY_TO`, `MAIL_INBOUND_WEBHOOK_SECRET`, and
+  `MAILERSEND_API_TOKEN` defaults belong only in the real outside-webroot
+  config (documented in `api/config.sample.php`).
 - Each Mail Template has a permissioned test action in its editor. It uses the
   saved template and current Mail Settings sender/transport, permits a paused
   template to be previewed, and supplies only harmless example reset/verify
