@@ -15,9 +15,14 @@ document.addEventListener('DOMContentLoaded', function () {
   if (hasGsap && window.ScrollTrigger) gsap.registerPlugin(window.ScrollTrigger);
 
   if (!reducedMotion && hasGsap && window.ScrollTrigger) {
-    var bg = scene.querySelector('.prophecy-bg');
-    if (bg) {
-      gsap.fromTo(bg, { scale: 1.02, yPercent: -2 }, {
+    // .prophecy-cracks is traced against the source photo's exact pixels,
+    // so it must scale/pan in lockstep with .prophecy-bg or the glowing
+    // lines drift off the real cracks as the page scrolls -- driving both
+    // elements from one tween (rather than two separate identical ones)
+    // guarantees they can never fall out of sync.
+    var bgLayers = scene.querySelectorAll('.prophecy-bg, .prophecy-cracks');
+    if (bgLayers.length) {
+      gsap.fromTo(bgLayers, { scale: 1.02, yPercent: -2 }, {
         scale: 1.16, yPercent: 2, ease: 'none',
         scrollTrigger: { trigger: scene, start: 'top bottom', end: 'bottom top', scrub: 0.6 }
       });
