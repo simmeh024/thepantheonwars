@@ -1000,7 +1000,12 @@ blockquote.myth cite {
    alpha-channel art needed. A negative z-index on the ::after keeps it
    behind the card's own text content (::before/h3/p all default to
    z-index:auto, which paints above negative-z-index descendants). */
-.card--watermark { overflow: hidden; }
+/* isolation:isolate forces .card to establish its own stacking context
+   unconditionally -- without it, .card only gets one on :hover (via its
+   transform), so in the resting state the ::after's negative z-index
+   escaped past .card's own opaque background instead of sitting just
+   behind it, and the watermark was invisible except while hovered. */
+.card--watermark { overflow: hidden; isolation: isolate; }
 .card--watermark::after {
   content: '';
   position: absolute; inset: 0;
