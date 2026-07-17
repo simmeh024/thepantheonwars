@@ -1946,6 +1946,44 @@
 .quiz-teaser > * { position: relative; z-index: 1; }
 .quiz-teaser p { max-width: 560px; margin: 0 auto 1.6em; }
 
+/* Rogues-gallery collage of existing Overlord character portraits,
+   scattered around the panel's edges (the ~560px-wide text column leaves
+   a wide gutter on desktop). Placed first in the DOM so it paints behind
+   the eyebrow/h2/p/button under the shared ".quiz-teaser > *" stacking
+   rule above. Dimmed by default and lifted on hover -- --r carries each
+   image's own tilt so :hover can add scale() without clobbering it. */
+.quiz-portrait-collage { position: absolute; inset: 0; pointer-events: none; }
+.quiz-portrait-collage img {
+  --r: 0deg;
+  position: absolute;
+  width: 92px; height: 92px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+  filter: grayscale(0.7) brightness(0.55);
+  opacity: 0.55;
+  transform: rotate(var(--r));
+  pointer-events: auto;
+  transition: filter 0.4s ease, opacity 0.4s ease, transform 0.4s ease;
+}
+.quiz-portrait-collage img:hover {
+  filter: grayscale(0) brightness(1);
+  opacity: 1;
+  transform: rotate(var(--r)) scale(1.12);
+}
+.quiz-portrait-collage img:nth-child(1) { --r: -8deg; top: 6%; left: 3%; }
+.quiz-portrait-collage img:nth-child(2) { --r: 6deg; top: 42%; left: 1%; }
+.quiz-portrait-collage img:nth-child(3) { --r: 5deg; bottom: 5%; left: 6%; }
+.quiz-portrait-collage img:nth-child(4) { --r: 7deg; top: 8%; right: 4%; }
+.quiz-portrait-collage img:nth-child(5) { --r: -6deg; top: 44%; right: 1%; }
+.quiz-portrait-collage img:nth-child(6) { --r: -9deg; bottom: 6%; right: 5%; }
+.quiz-portrait-collage img:nth-child(7) { --r: 4deg; top: -4%; left: 24%; }
+.quiz-portrait-collage img:nth-child(8) { --r: -5deg; bottom: -4%; right: 26%; }
+@media (max-width: 900px) {
+  .quiz-portrait-collage { display: none; }
+}
+
 /* Known Figures -- cinematic vertical chronicle (js/known-figures.js drives
    the GSAP/ScrollTrigger reveal-on-scroll + per-figure idle "signature
    detail" loop; both are skipped entirely under prefers-reduced-motion, at
