@@ -315,7 +315,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=212, community v=202, and admin v=221. Public pages use
+  versions: public v=213, community v=203, and admin v=222. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -353,6 +353,33 @@ also supports a deliberately manual `?full=1` historical rebuild.
   text, but replaces `[spoiler]...[/spoiler]` with a `"(spoiler hidden)"` placeholder
   rather than un-hiding it). Any new BBCode tag must be added to all of these in
   lockstep or it'll show as literal bracket text somewhere.
+- **Header markup is still hand-duplicated across all 22 public pages**, same as
+  everything above -- a DB-backed nav (admin-editable, following the Forum
+  Control/World Control precedent of a table + admin CRUD + public API) was
+  considered but deliberately deferred; static HTML stays the serving model for
+  now. Any header change (new link, layout tweak, icon change) must currently be
+  applied to all 22 files in lockstep; `main.js`'s `enhancePublicNavigation()`
+  is fully generic and re-derives every `.active`/`.nav-current` class from
+  `location.pathname` at runtime, so none of that needs to be hardcoded
+  per-page -- confirmed empirically before this fix by diffing the header block
+  across six different pages, which showed *zero* real content differences.
+  **Mobile header layout:** `.nav-toggle` (hamburger) is the first child of
+  `.nav-inner`, before `.logo`, and `.auth-nav-item`/`.notif-nav-item` are
+  wrapped in a `.nav-utility` span that is a *sibling* of `nav.main-nav`, not a
+  child of it -- this is deliberate. `nav.main-nav` collapses into a
+  slide-down panel behind the hamburger on mobile (`display:none` unless
+  `.open`), so anything nested inside it disappears/reappears with that
+  panel. Profile and notifications must stay reachable at every width, so
+  they live outside that panel entirely, always visible next to the logo.
+  (This is also what fixed a real bug: auth/notif used to be the *last*
+  children inside the collapsing panel, which had no `max-height`/
+  `overflow-y`, so on a small screen with several dropdown sections expanded
+  the "Login" link could render entirely below the visible viewport with no
+  way to scroll to it. `nav.main-nav` now also has
+  `max-height: calc(100vh - 64px); overflow-y: auto` as a second, independent
+  safety net in case a future addition ever makes the plain link list itself
+  too tall again.) On narrow screens the profile chip shows only the avatar
+  initial (name label and caret hidden) to stay compact next to the bell.
 
 ## Verification checklist before every commit
 

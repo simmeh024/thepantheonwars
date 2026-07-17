@@ -145,8 +145,12 @@ header.site-header {
   padding: 16px 28px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 30px;
 }
+/* logo's auto right-margin does the "push everything after it to the right
+   edge" job that justify-content: space-between used to, but without also
+   spreading nav.main-nav and .nav-utility apart from each other. */
+.logo { margin-right: auto; }
 .logo {
   font-family: 'Cinzel', serif;
   font-size: 1.05rem;
@@ -635,6 +639,11 @@ nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
 }
 .nav-toggle span { width: 24px; height: 2px; background: var(--text); display: block; }
 
+/* Profile chip + notification bell live outside nav.main-nav so they stay
+   reachable in the top bar at every width -- on mobile that panel collapses
+   behind the hamburger, but these two never do. */
+.nav-utility { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
+
 @media (max-width: 780px) {
   nav.main-nav {
     position: absolute;
@@ -646,6 +655,14 @@ nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
     padding: 20px 28px 26px;
     gap: 18px;
     display: none;
+    /* The panel used to be able to grow taller than the viewport with no way
+       to reach whatever fell below the fold (this is what made "Login"
+       unreachable when it lived in here). Login/notifications no longer live
+       in this panel at all, but bounding + scrolling it is still the correct
+       fix in case a future addition makes the plain link list itself grow
+       past one screen. */
+    max-height: calc(100vh - 64px);
+    overflow-y: auto;
   }
   nav.main-nav.open { display: flex; }
   .nav-toggle { display: flex; }
@@ -667,7 +684,7 @@ nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
     background: linear-gradient(160deg, rgba(24,15,45,0.98), rgba(11,7,23,0.99));
     gap: 10px;
   }
-  nav.main-nav > a, nav.main-nav > .nav-item, nav.main-nav > .auth-nav-item {
+  nav.main-nav > a, nav.main-nav > .nav-item {
     box-sizing: border-box; width: 100%; min-height: 46px; padding: 12px 14px;
     border: 1px solid rgba(162,121,236,0.18); border-radius: var(--radius-sm);
     background: rgba(255,255,255,0.018);
@@ -679,10 +696,18 @@ nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
   .nav-dropdown-rich { display: flex; gap: 10px; }
   .nav-dropdown-rich .nav-dropdown-links a { padding: 8px 10px; border: 1px solid rgba(162,121,236,0.14); background: rgba(255,255,255,0.018); }
   .nav-dropdown-aside { margin-top: 2px; }
-  .auth-nav-item { justify-content: flex-start; }
-  .auth-profile-chip { width: 100%; justify-content: flex-start; border: 0; padding: 0; background: none; box-shadow: none; }
-  .auth-profile-initial { width: 26px; height: 26px; }
+  /* Compact top-bar treatment: just the avatar initial (name/caret hidden)
+     when signed in, or the plain "Login" link when signed out -- either way
+     .nav-utility stays small enough to sit beside the bell next to the logo. */
+  .nav-utility { gap: 10px; }
+  .auth-profile-chip { gap: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+  .auth-profile-name, .auth-nav-item .nav-caret { display: none; }
+  .auth-profile-initial { width: 28px; height: 28px; }
   .auth-nav-dropdown { width: min(100%, 330px); min-width: 0; }
+}
+@media (max-width: 700px) {
+  .auth-nav-item { position: static; }
+  .auth-nav-dropdown { position: fixed; top: 64px; right: 12px; left: 12px; width: auto; max-width: none; max-height: calc(100vh - 80px); overflow-y: auto; }
 }
 
 /* ---------------- Hero ---------------- */
