@@ -17,13 +17,21 @@
  *   Body:   { "type": "activity.delivered", "created_at": "...", "data": {
  *               "message_id": "...", "email_id": "...", "email": "recipient@...",
  *               ... } }
+ *
+ * MailerSend checks a webhook URL is reachable when you first add it in
+ * their dashboard -- before the signing secret it's about to show you has
+ * been saved anywhere on this end, and possibly via a plain GET rather than
+ * a signed POST. This endpoint must therefore answer 200 to that bootstrap
+ * check even with no secret configured yet and nothing to verify; it only
+ * enforces the signature strictly once MAILERSEND_WEBHOOK_SIGNING_SECRET is
+ * actually set, which is also when there's anything worth logging.
  */
 require_once __DIR__ . '/../helpers.php';
 require_once __DIR__ . '/../mail.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') pw_error('Method not allowed.', 405);
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') pw_json(['ok' => true]);
 if (!defined('MAILERSEND_WEBHOOK_SIGNING_SECRET') || MAILERSEND_WEBHOOK_SIGNING_SECRET === '') {
-    pw_error('Not found.', 404);
+    pw_json(['ok' => true]);
 }
 
 $raw = file_get_contents('php://input');
