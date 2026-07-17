@@ -149,6 +149,19 @@ on a new table, that's a real bug to fix, not a display artifact.
   world slug, current UTC date, and `forecast_revision`, so the five-day forecast
   stays identical across refreshes for a full UTC day. Saving Weather Control
   advances the revision and deliberately produces a new stable sequence.
+- **Seasonal drift:** `pw_weather_seasonal_bias()` nudges the randomized day
+  3-5 temperature (never the admin-authored day 0/1 values) with a smooth
+  sine wave across the calendar year, shifted by a per-world phase offset
+  (hashed from the slug) so worlds don't all warm/cool on the same date. It
+  is deliberately independent of `forecast_revision` -- season is a stable
+  climate pattern, not part of the "reroll the dice" action a Weather Control
+  save triggers -- and stays within the existing `forecast_min_c`/`max_c`
+  bounds, so no schema or admin UI change was needed. Condition *selection*
+  for those days remains uniform-random across the pool rather than
+  season-weighted: the seeded condition pools (e.g. Asmecu's `["Salt
+  fog","Clear tide","Tidal storm",...]`) were authored with no season
+  ordering, so biasing by array position would misrepresent already-live
+  content.
 - `api/world-weather.php?slug=...` is public but only returns forecast details when
   both the World Control record is `available` and its weather profile is enabled.
   It is independent of `api/worlds.php`, preserving that endpoint's response shape.

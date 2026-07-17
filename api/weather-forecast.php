@@ -46,6 +46,17 @@ function pw_weather_conditions($profile) {
     return $conditions;
 }
 
+function pw_weather_seasonal_bias($worldSlug, DateTimeImmutable $date) {
+    // A smooth, deterministic -1..1 wave across the calendar year, independent
+    // of forecast_revision (season is a climate pattern, not part of the
+    // "reroll the dice" admin action). The per-world phase offset keeps every
+    // world from warming/cooling on the same calendar day.
+    $dayOfYear = (int)$date->format('z');
+    $phaseOffsetDays = pw_weather_hash_int($worldSlug . '|season-phase') % 365;
+    $phase = (($dayOfYear + $phaseOffsetDays) / 365) * 2 * M_PI;
+    return sin($phase);
+}
+
 function pw_weather_precipitation($condition, $seed, $minimum, $maximum) {
     $conditionKey = strtolower((string)$condition);
     $value = pw_weather_range($seed, $minimum, $maximum);
@@ -83,7 +94,10 @@ function pw_build_weather_forecast($profile, $worldSlug, $today = null) {
             $temperature = (int)$profile['tomorrow_temp_c'];
         } else {
             $condition = $conditions[pw_weather_range($seed . '|condition', 0, count($conditions) - 1)];
-            $temperature = pw_weather_range($seed . '|temperature', $profile['forecast_min_c'], $profile['forecast_max_c']);
+            $rawTemperature = pw_weather_range($seed . '|temperature', $profile['forecast_min_c'], $profile['forecast_max_c']);
+            $seasonalBias = pw_weather_seasonal_bias($worldSlug, $date);
+            $seasonalShift = (int)round($seasonalBias * ($profile['forecast_max_c'] - $profile['forecast_min_c']) * 0.15);
+            $temperature = max($profile['forecast_min_c'], min($profile['forecast_max_c'], $rawTemperature + $seasonalShift));
         }
 
         $forecast[] = [
