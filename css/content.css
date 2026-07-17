@@ -1816,6 +1816,118 @@
   background: rgba(209,169,85,0.08);
 }
 
+/* ---------------- Homepage "Prophecy" scene (Nexus Veil teaser) ----------------
+   Replaces the old static "Explore the Worlds" card grid -- the atlas already
+   owns that job on worlds.html. This is a single cinematic moment built
+   around the site's own central mystery hook (the empty thirteenth seat /
+   "Twelve thrones will fall. One will rise.", both already-established copy
+   reused verbatim from the Nexus Veil world card and the footer tagline)
+   rather than a content index, so first-time visitors get a "wow" beat
+   instead of another card grid. js/home-prophecy.js drives the GSAP push-in
+   zoom, the fragmented "shard-crack" heading reveal, and the deterministic
+   canvas ember particles; the CSS-only rotating sigil ring needs no JS since
+   it's a cheap compositor-driven loop. Everything JS-driven is skipped
+   under prefers-reduced-motion, matching every other animated section on
+   this site; the sigil ring and embers are separately silenced by the
+   media query at the bottom of this block. */
+.prophecy-scene {
+  position: relative;
+  min-height: 88vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: #07051190;
+}
+.prophecy-bg {
+  position: absolute; inset: 0; z-index: 0;
+  background-size: cover;
+  background-position: center 30%;
+  transform: scale(1.05);
+  will-change: transform;
+}
+.prophecy-veil {
+  position: absolute; inset: 0; z-index: 1;
+  background:
+    radial-gradient(circle at 50% 55%, rgba(10,7,21,0.1) 0%, rgba(10,7,21,0.5) 60%, rgba(10,7,21,0.88) 100%),
+    linear-gradient(to top, rgba(10,7,21,0.92) 0%, rgba(10,7,21,0.12) 42%, rgba(10,7,21,0.4) 100%);
+}
+.prophecy-embers {
+  position: absolute; inset: 0; z-index: 2;
+  pointer-events: none;
+}
+.prophecy-crystal-glow {
+  position: absolute;
+  left: 64%; top: 23%;
+  width: 30%; aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(162,121,236,0.55), transparent 70%);
+  z-index: 2;
+  opacity: 0.3;
+  filter: blur(10px);
+  pointer-events: none;
+}
+.prophecy-sigil-ring {
+  position: absolute;
+  left: 64%; top: 23%;
+  width: 42%; aspect-ratio: 1 / 1;
+  transform: translate(-50%, -50%) scaleY(0.5) rotate(-6deg);
+  z-index: 2;
+  pointer-events: none;
+}
+.prophecy-sigil-ring-spin {
+  position: absolute; inset: 0;
+  animation: prophecy-ring-spin 70s linear infinite;
+}
+.prophecy-sigil-ring-spin span {
+  position: absolute; top: 50%; left: 50%;
+  width: 5px; height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--gold-bright);
+  box-shadow: 0 0 8px 2px rgba(236,201,135,0.65);
+  opacity: 0.7;
+  transform-origin: 0 0;
+}
+.prophecy-sigil-ring-spin span:nth-child(1) { transform: rotate(0deg) translate(clamp(70px, 9vw, 150px)); }
+.prophecy-sigil-ring-spin span:nth-child(2) { transform: rotate(45deg) translate(clamp(70px, 9vw, 150px)); }
+.prophecy-sigil-ring-spin span:nth-child(3) { transform: rotate(90deg) translate(clamp(70px, 9vw, 150px)); }
+.prophecy-sigil-ring-spin span:nth-child(4) { transform: rotate(135deg) translate(clamp(70px, 9vw, 150px)); }
+.prophecy-sigil-ring-spin span:nth-child(5) { transform: rotate(180deg) translate(clamp(70px, 9vw, 150px)); }
+.prophecy-sigil-ring-spin span:nth-child(6) { transform: rotate(225deg) translate(clamp(70px, 9vw, 150px)); }
+.prophecy-sigil-ring-spin span:nth-child(7) { transform: rotate(270deg) translate(clamp(70px, 9vw, 150px)); }
+.prophecy-sigil-ring-spin span:nth-child(8) { transform: rotate(315deg) translate(clamp(70px, 9vw, 150px)); }
+@keyframes prophecy-ring-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+.prophecy-inner {
+  position: relative; z-index: 3;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 120px 28px;
+  text-align: center;
+}
+.prophecy-heading {
+  text-shadow: 0 0 50px rgba(157,111,232,0.55), 0 4px 30px rgba(0,0,0,0.8);
+  margin-bottom: 0.6em;
+}
+.prophecy-heading .prophecy-word { display: inline-block; white-space: pre; }
+.prophecy-lede {
+  max-width: 560px;
+  margin: 0 auto 2em;
+  color: var(--text-dim);
+  font-size: 1.05rem;
+}
+@media (max-width: 700px) {
+  .prophecy-scene { min-height: 70vh; }
+  .prophecy-inner { padding: 90px 24px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .prophecy-sigil-ring-spin { animation: none; }
+  .prophecy-embers { display: none; }
+}
+
 .quiz-teaser {
   background: linear-gradient(160deg, var(--panel) 0%, var(--panel-2) 100%);
   border: 1px solid var(--border);

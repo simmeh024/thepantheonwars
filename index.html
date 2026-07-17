@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=218">
+<link rel="stylesheet" href="css/public.css?v=219">
 </head>
 <body>
 
@@ -126,57 +126,22 @@
     </div>
   </section>
 
-  <section class="section-alt">
-    <div class="container">
-      <div class="section-head">
-        <span class="eyebrow">The Pantheon</span>
-        <h2>Explore the Worlds</h2>
-        <p>Each world bends to its Overlord's nature and nothing else. Here are six of the twelve — <a href="worlds.html">see the full atlas</a>.</p>
+  <section class="prophecy-scene" id="prophecy-scene">
+    <div class="prophecy-bg" style="background-image: url('images/home-prophecy.jpg');"></div>
+    <div class="prophecy-veil" aria-hidden="true"></div>
+    <canvas class="prophecy-embers" aria-hidden="true"></canvas>
+    <div class="prophecy-crystal-glow" aria-hidden="true"></div>
+    <div class="prophecy-sigil-ring" aria-hidden="true">
+      <div class="prophecy-sigil-ring-spin">
+        <span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span>
       </div>
-      <div class="grid grid-3">
-        <div class="world-card card" id="neoh-card">
-          <a class="thumb" href="overlord-syn-dravus.html"><img src="images/world-neoh.jpg" alt="Neoh" width="250" height="250" loading="lazy" decoding="async"></a>
-          <span class="world-tag">Neoh — Overlord: Syn Dravus</span>
-          <h3>The City That Never Forgets</h3>
-          <p>A rain-drowned metropolis built on the information black market — because Syn owns every memory inside it, including the ones you didn't know you'd lost.</p>
-          <a href="overlord-syn-dravus.html" class="learn-more">Learn more about Syn Dravus →</a>
-        </div>
-        <div class="world-card card" id="cerius">
-          <a class="thumb" href="overlord-malric-thorne.html"><img src="images/world-cerius.jpg" alt="Cerius" width="250" height="250" loading="lazy" decoding="async"></a>
-          <span class="world-tag">Cerius — Overlord: Malric Thorne</span>
-          <h3>The Throne Built on Smoke</h3>
-          <p>Once a democracy. Seized thirty-five years ago in a coup that still hasn't been avenged. Iron, fire, and red banners over a people who remember what they lost.</p>
-          <a href="overlord-malric-thorne.html" class="learn-more">Learn more about Malric Thorne →</a>
-        </div>
-        <div class="world-card card" id="reanium">
-          <a class="thumb" href="overlord-korrus-vale.html"><img src="images/world-reanium.jpg" alt="Reanium" width="250" height="250" loading="lazy" decoding="async"></a>
-          <span class="world-tag">Reanium — Overlord: Korrus Vale</span>
-          <h3>The Wasteland That Remembers</h3>
-          <p>Glassed by the first war between gods and never rebuilt. Its survivors live underground — and its ruler is nursing a gambit only the dead should attempt.</p>
-          <a href="overlord-korrus-vale.html" class="learn-more">Learn more about Korrus Vale →</a>
-        </div>
-        <div class="world-card card" id="asmecu">
-          <a class="thumb" href="overlord-lysara-venthe.html"><img src="images/world-asmecu.jpg" alt="Asmecu" width="250" height="250" loading="lazy" decoding="async"></a>
-          <span class="world-tag">Asmecu — Overlord: Lysara Venthe</span>
-          <h3>The Palace Above the Abyss</h3>
-          <p>A city afloat on the eye of something vast and unseen, ruled by a queen whose crown is carved from the bones of the Overlord before her.</p>
-          <a href="overlord-lysara-venthe.html" class="learn-more">Learn more about Lysara Venthe →</a>
-        </div>
-        <div class="world-card card" id="babki-prime">
-          <a class="thumb" href="overlord-zura-kaleth.html"><img src="images/world-babki.jpg" alt="Babki Prime" width="250" height="250" loading="lazy" decoding="async"></a>
-          <span class="world-tag">Babki Prime — Overlord: Zura Kaleth</span>
-          <h3>The Jungle That Feels Pain</h3>
-          <p>Living weapons that remember their victims. Prisons grown from trees that used to be people. Nothing in Babki forgets, either — it just stops speaking.</p>
-          <a href="overlord-zura-kaleth.html" class="learn-more">Learn more about Zura Kaleth →</a>
-        </div>
-        <div class="world-card card" id="nexus-veil">
-          <a class="thumb" href="worlds.html#nexus-veil"><img src="images/world-nexusveil.jpg" alt="The Nexus Veil" width="250" height="250" loading="lazy" decoding="async"></a>
-          <span class="world-tag">The Nexus Veil — Neutral Ground</span>
-          <h3>The Table With Thirteen Seats</h3>
-          <p>Where the twelve Overlords convene in uneasy alliance — around a thirteenth seat that has stood empty for ten thousand years, as a warning nobody explains.</p>
-          <a href="worlds.html#nexus-veil" class="learn-more">Learn more about the Nexus Veil →</a>
-        </div>
-      </div>
+    </div>
+    <div class="container prophecy-inner">
+      <span class="eyebrow">The Nexus Veil</span>
+      <h2 class="prophecy-heading">Twelve thrones will fall. One will rise.</h2>
+      <p class="prophecy-lede">Where the twelve Overlords convene in uneasy alliance — around a thirteenth seat that has stood empty for ten thousand years, as a warning nobody explains.</p>
+      <a href="worlds.html#nexus-veil" class="btn btn-solid">Enter the Nexus Veil</a>
     </div>
   </section>
 
@@ -322,7 +287,10 @@
   </div>
 </footer>
 
+<script src="js/vendor/gsap-3.15.0.min.js"></script>
+<script src="js/vendor/ScrollTrigger-3.15.0.min.js"></script>
 <script src="js/main.js?v=7"></script>
 <script src="js/members.js?v=23"></script>
+<script src="js/home-prophecy.js?v=2"></script>
 </body>
 </html>
