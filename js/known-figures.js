@@ -78,6 +78,24 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
 
+    if (!reducedMotion && hasGsap && window.ScrollTrigger) {
+      // Scroll-scrubbed parallax: the sharp foreground portrait travels the
+      // most (the strong effect that was asked for), the blurred background
+      // travels less and in a slightly different rhythm, so the two read as
+      // separate depth planes rather than the whole photo just sliding as
+      // one flat image. Both CSS layers are oversized (content.css) to give
+      // this room to move without ever exposing an edge.
+      var portraitImg = sceneEl.querySelector('.figure-portrait-frame img');
+      var bgLayer = sceneEl.querySelector('.figure-scene-bg');
+      var parallaxScroll = { trigger: sceneEl, start: 'top bottom', end: 'bottom top', scrub: 0.6 };
+      if (portraitImg) {
+        gsap.fromTo(portraitImg, { yPercent: -14 }, { yPercent: 14, ease: 'none', scrollTrigger: parallaxScroll });
+      }
+      if (bgLayer) {
+        gsap.fromTo(bgLayer, { yPercent: -6 }, { yPercent: 6, ease: 'none', scrollTrigger: parallaxScroll });
+      }
+    }
+
     var idle = buildIdleLoop(sceneEl);
     if (idle) idleTimelines.push({ el: sceneEl, tl: idle });
   });

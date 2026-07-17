@@ -317,7 +317,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=214, community v=203, and admin v=222. Public pages use
+  versions: public v=215, community v=203, and admin v=222. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -435,6 +435,24 @@ also supports a deliberately manual `?full=1` historical rebuild.
   begin with, and `news-post.html`'s already-inconsistent minimal footer
   (missing several other Explore links too, pre-existing) was left as-is
   rather than scope-creeping into an unrelated fix.
+- **Known Figures scroll-scrubbed parallax:** each `.figure-portrait-frame img`
+  and `.figure-scene-bg` layer has its own `scrub`-tied GSAP tween (separate
+  from the once-only reveal animation on different elements, so the two never
+  conflict), giving each figure's sharp foreground portrait a strong vertical
+  pan and its blurred background a subtler, differently-ranged one -- two
+  distinct depth planes rather than the whole photo sliding as one flat image.
+  Both layers are deliberately oversized in CSS (`transform: scale(1.22)` on
+  the background, `height: 132%` with a `-16%` top offset on the portrait
+  `<img>`) so the pan range never exposes an edge. Skipped entirely under
+  `prefers-reduced-motion`, same as the rest of this page's motion. Also fixed
+  a real bug found via live verification after the first deploy: a section
+  already inside its ScrollTrigger zone at setup/refresh time (true for Kael,
+  which sits right below the hero) never experiences the inactive->active
+  transition its default "onEnter" toggle action needs, so it stayed
+  permanently hidden. `onRefresh: function (self) { if (self.progress > 0)
+  self.animation.progress(1); }` on the reveal ScrollTrigger closes that gap
+  without affecting the normal scroll-triggered reveal for sections that
+  start below the fold.
 
 - Added permissioned Mail Log observability: best-effort outbound attempt
   logging (including skipped/failed delivery states) and a signed inbound
