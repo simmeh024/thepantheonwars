@@ -39,7 +39,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="lore" data-requires-permission="books.view,worlds.view,weather.view,overlords.view">
+    <div class="admin-nav-category is-collapsed" data-category="lore" data-requires-permission="books.view,worlds.view,weather.view,overlords.view,known_figures.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>Lore Management</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -49,6 +49,7 @@
         <li data-requires-permission="worlds.view"><button type="button" class="admin-nav-link" data-section="world-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>World Control</button></li>
         <li data-requires-permission="weather.view"><button type="button" class="admin-nav-link" data-section="weather-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M7 17a4 4 0 1 1 1-7.87A6 6 0 0 1 19 12a3 3 0 0 1-1 5H7z"/><path d="M8 20l-1 2M12 20l-1 2M16 20l-1 2"/></svg>Weather Control</button></li>
         <li data-requires-permission="overlords.view"><button type="button" class="admin-nav-link" data-section="overlord-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><circle cx="12" cy="10" r="2.5"/></svg>Overlord Control</button></li>
+        <li data-requires-permission="known_figures.view"><button type="button" class="admin-nav-link" data-section="known-figures-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Known Figures Control</button></li>
       </ul>
     </div>
 
@@ -1197,6 +1198,12 @@
             <option value="overlord_deleted">Overlord deleted</option>
             <option value="overlord_reordered">Overlords reordered</option>
           </optgroup>
+          <optgroup label="Known Figures Control">
+            <option value="known_figure_created">Known figure created</option>
+            <option value="known_figure_updated">Known figure updated</option>
+            <option value="known_figure_deleted">Known figure deleted</option>
+            <option value="known_figure_reordered">Known figures reordered</option>
+          </optgroup>
           <optgroup label="Dispatches">
             <option value="translation_added">Translation added</option>
             <option value="translation_updated">Translation updated</option>
@@ -1534,6 +1541,22 @@
 
       <div class="admin-list" id="overlord-list">
         <div class="admin-list-empty">Loading overlords&hellip;</div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-known-figures-control" hidden>
+      <div class="admin-section-head">
+        <h1>Known Figures Control</h1>
+        <p>Manage the cinematic Known Figures chronicle &mdash; portrait, bio, quote, and signature motion motif for each figure.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button type="button" class="btn btn-solid" id="known-figure-create-btn">+ Add Known Figure</button>
+        <span class="admin-count" id="known-figure-count"></span>
+      </div>
+
+      <div class="admin-list" id="known-figure-list">
+        <div class="admin-list-empty">Loading known figures&hellip;</div>
       </div>
     </section>
 
@@ -2460,6 +2483,114 @@
   </div>
 </div>
 
+<div class="admin-modal" id="known-figure-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="known-figure-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="known-figure-modal-title">Edit Known Figure</h3>
+    <p class="admin-modal-sub" id="known-figure-modal-sub"></p>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="known-figure-name-input">Name</label>
+        <input type="text" id="known-figure-name-input" maxlength="100">
+      </div>
+      <div class="admin-field" id="known-figure-slug-field">
+        <label for="known-figure-slug-input">Slug</label>
+        <p class="admin-field-hint">Lowercase letters, numbers, and hyphens only. Can&rsquo;t be changed after the figure is created.</p>
+        <input type="text" id="known-figure-slug-input" maxlength="100" placeholder="e.g. kael">
+      </div>
+    </div>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="known-figure-eyebrow-input">Eyebrow line</label>
+        <input type="text" id="known-figure-eyebrow-input" maxlength="150" placeholder="e.g. Neoh &middot; The Mindweaver&rsquo;s Lie">
+      </div>
+      <div class="admin-field">
+        <label for="known-figure-status-line-input">Status line</label>
+        <input type="text" id="known-figure-status-line-input" maxlength="200" placeholder="e.g. Status: at large, undercity of Neoh">
+      </div>
+    </div>
+
+    <div class="admin-field admin-image-field">
+      <label for="known-figure-portrait-image-input">Portrait image</label>
+      <div class="admin-image-field-row">
+        <div class="admin-image-thumb" id="known-figure-portrait-image-thumb">
+          <img id="known-figure-portrait-image-preview" alt="" hidden>
+          <span class="admin-image-thumb-empty">No image</span>
+        </div>
+        <div class="admin-image-field-controls">
+          <input type="text" id="known-figure-portrait-image-input" maxlength="255" placeholder="images/char-kael.jpg">
+          <div class="admin-image-field-btns">
+            <button type="button" class="btn admin-image-upload-btn" data-image-type="known_figure_portrait">Upload</button>
+            <button type="button" class="btn admin-image-browse-btn" data-image-type="known_figure_portrait">Choose from Library</button>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="known-figure-portrait-image-file" accept="image/png,image/jpeg,image/webp" hidden>
+    </div>
+
+    <div class="admin-field">
+      <label for="known-figure-body-1-input">Body paragraph 1</label>
+      <textarea id="known-figure-body-1-input" maxlength="2000"></textarea>
+    </div>
+    <div class="admin-field">
+      <label for="known-figure-body-2-input">Body paragraph 2</label>
+      <textarea id="known-figure-body-2-input" maxlength="2000"></textarea>
+    </div>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="known-figure-quote-text-input">Quote</label>
+        <textarea id="known-figure-quote-text-input" maxlength="400"></textarea>
+      </div>
+      <div class="admin-field">
+        <label for="known-figure-quote-cite-input">Quote attribution</label>
+        <input type="text" id="known-figure-quote-cite-input" maxlength="150" placeholder="e.g. &mdash; Kael Veyr">
+      </div>
+    </div>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="known-figure-accent-color-input">Accent color</label>
+        <p class="admin-field-hint">Drives the eyebrow, signature glyph, and portrait border color.</p>
+        <input type="color" id="known-figure-accent-color-input" value="#c7ccd6">
+      </div>
+      <div class="admin-field">
+        <label for="known-figure-motif-select">Signature motif</label>
+        <p class="admin-field-hint">Picks one of the hand-authored idle animation + veil texture presets for this figure&rsquo;s portrait scene.</p>
+        <select id="known-figure-motif-select">
+          <option value="none">None (no veil texture, no idle loop)</option>
+          <option value="pulse">Pulse &mdash; steady heartbeat glow</option>
+          <option value="glitch">Glitch &mdash; broken, intrusive flicker</option>
+          <option value="twirl">Twirl &mdash; restless, uneven rotation</option>
+          <option value="glint">Glint &mdash; quiet stillness with an occasional glint</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="admin-field">
+      <label for="known-figure-signature-label-input">Signature label</label>
+      <p class="admin-field-hint">Short caption shown beside the animated glyph, e.g. &ldquo;A shard, kept close, kept warm&rdquo;. Only shown when the motif above isn&rsquo;t &ldquo;None&rdquo;.</p>
+      <input type="text" id="known-figure-signature-label-input" maxlength="150">
+    </div>
+
+    <label class="admin-field news-comments-toggle" for="known-figure-published-input">
+      <span><strong>Published</strong><small>Visible on the public Known Figures page. Unpublish to keep a figure in progress without deleting it.</small></span>
+      <input type="checkbox" id="known-figure-published-input" checked>
+    </label>
+
+    <p class="admin-modal-error" id="known-figure-modal-error"></p>
+    <p class="admin-modal-status" id="known-figure-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="known-figure-save-btn">Save</button>
+      <button type="button" class="btn" id="known-figure-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="known-figure-delete-btn" hidden>Delete Known Figure</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-modal admin-modal-over" id="world-layer-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner admin-modal-inner-wide">
@@ -2857,6 +2988,7 @@
       if (name === 'world-control') loadWorldList();
       if (name === 'weather-control') loadWeatherControl();
       if (name === 'overlord-control') loadOverlordList();
+      if (name === 'known-figures-control') loadKnownFigureList();
       if (name === 'roles-permissions') loadRoles();
       if (name === 'visitor-stats') loadVisitorStats();
     }
@@ -9930,6 +10062,282 @@
         overlordDeleteBtn.disabled = false;
         overlordModalError.textContent = 'Could not delete this overlord. Please try again.';
         overlordModalError.classList.add('show');
+      });
+  });
+
+  // ===== Known Figures Control (Lore Management) ================================
+  // known_figures is the source of truth for known-figures.html's cinematic
+  // chronicle (js/known-figures.js), replacing four hand-authored
+  // <section class="figure-scene"> blocks. Flat entity, same list/modal
+  // pattern as Overlord Control -- no relationship field, since this is a
+  // single scrolling list with no per-figure detail page.
+  var knownFigureListEl = document.getElementById('known-figure-list');
+  var knownFigureCountEl = document.getElementById('known-figure-count');
+  var knownFigureCreateBtn = document.getElementById('known-figure-create-btn');
+
+  var knownFigureModal = document.getElementById('known-figure-modal');
+  var knownFigureModalTitle = document.getElementById('known-figure-modal-title');
+  var knownFigureModalSub = document.getElementById('known-figure-modal-sub');
+  var knownFigureModalError = document.getElementById('known-figure-modal-error');
+  var knownFigureModalStatus = document.getElementById('known-figure-modal-status');
+  var knownFigureCloseBtn = document.getElementById('known-figure-modal-close');
+  var knownFigureCancelBtn = document.getElementById('known-figure-cancel-btn');
+  var knownFigureSaveBtn = document.getElementById('known-figure-save-btn');
+  var knownFigureDeleteBtn = document.getElementById('known-figure-delete-btn');
+
+  var knownFigureNameInput = document.getElementById('known-figure-name-input');
+  var knownFigureSlugField = document.getElementById('known-figure-slug-field');
+  var knownFigureSlugInput = document.getElementById('known-figure-slug-input');
+  var knownFigureEyebrowInput = document.getElementById('known-figure-eyebrow-input');
+  var knownFigureStatusLineInput = document.getElementById('known-figure-status-line-input');
+  var knownFigurePortraitImageInput = document.getElementById('known-figure-portrait-image-input');
+  var knownFigureBody1Input = document.getElementById('known-figure-body-1-input');
+  var knownFigureBody2Input = document.getElementById('known-figure-body-2-input');
+  var knownFigureQuoteTextInput = document.getElementById('known-figure-quote-text-input');
+  var knownFigureQuoteCiteInput = document.getElementById('known-figure-quote-cite-input');
+  var knownFigureAccentColorInput = document.getElementById('known-figure-accent-color-input');
+  var knownFigureMotifSelect = document.getElementById('known-figure-motif-select');
+  var knownFigureSignatureLabelInput = document.getElementById('known-figure-signature-label-input');
+  var knownFigurePublishedInput = document.getElementById('known-figure-published-input');
+
+  var lastKnownFigureEntries = [];
+  var knownFigureModalMode = 'create';
+  var currentKnownFigure = null;
+
+  IMAGE_FIELDS.known_figure_portrait = {
+    urlInput: knownFigurePortraitImageInput,
+    thumbImg: document.getElementById('known-figure-portrait-image-preview'),
+    thumbEmpty: document.querySelector('#known-figure-portrait-image-thumb .admin-image-thumb-empty'),
+    fileInput: document.getElementById('known-figure-portrait-image-file'),
+    uploadEndpoint: '/api/admin/known-figures/upload-image.php',
+    listEndpoint: '/api/admin/known-figures/list-images.php',
+    apiType: 'portrait', label: 'portrait image',
+    errorEl: knownFigureModalError, statusEl: knownFigureModalStatus
+  };
+  wireImageField('known_figure_portrait');
+
+  function loadKnownFigureList() {
+    knownFigureListEl.innerHTML = '<div class="admin-list-empty">Loading known figures&hellip;</div>';
+    return fetch('/api/admin/known-figures/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        lastKnownFigureEntries = (data.ok && data.known_figures) || [];
+        knownFigureCountEl.textContent = lastKnownFigureEntries.length + (lastKnownFigureEntries.length === 1 ? ' known figure' : ' known figures');
+        renderKnownFigureList(lastKnownFigureEntries);
+      })
+      .catch(function () {
+        knownFigureListEl.innerHTML = '<div class="admin-list-empty">Could not load known figures.</div>';
+      });
+  }
+
+  var KNOWN_FIGURE_MOTIF_LABELS = { pulse: 'Pulse', glitch: 'Glitch', twirl: 'Twirl', glint: 'Glint', none: 'No motif' };
+
+  function renderKnownFigureList(entries) {
+    if (!entries.length) {
+      knownFigureListEl.innerHTML = '<div class="admin-list-empty">No known figures yet.</div>';
+      return;
+    }
+    knownFigureListEl.innerHTML = '';
+    entries.forEach(function (entry, i) {
+      var row = document.createElement('div');
+      row.className = 'admin-row world-row';
+      row.tabIndex = 0;
+      row.innerHTML =
+        (entry.portrait_image_url ? '<img class="admin-row-cover" src="' + resolveSiteImageUrl(entry.portrait_image_url) + '" alt="">' : '') +
+        '<div class="admin-row-main">' +
+          '<p class="world-row-title">' + escapeHtml(entry.name) + (entry.eyebrow ? ' <span class="admin-row-sep">&bull;</span> ' + escapeHtml(entry.eyebrow) : '') + '</p>' +
+        '</div>' +
+        '<div class="world-row-status">' +
+          '<span class="world-overlord-pill">' + (KNOWN_FIGURE_MOTIF_LABELS[entry.motif] || 'No motif') + '</span>' +
+          '<span class="world-status-pill ' + (entry.is_published ? 'is-available' : 'is-locked') + '">' +
+            (entry.is_published ? 'Published' : 'Unpublished') +
+          '</span>' +
+        '</div>';
+
+      var actions = document.createElement('div');
+      actions.className = 'role-row-actions';
+      actions.innerHTML =
+        '<button type="button" class="permission-mini-btn" data-known-figure-action="up"' + (i === 0 ? ' disabled' : '') + '>Move Up</button>' +
+        '<button type="button" class="permission-mini-btn" data-known-figure-action="down"' + (i === entries.length - 1 ? ' disabled' : '') + '>Move Down</button>' +
+        '<button type="button" class="permission-mini-btn" data-known-figure-action="edit">Edit</button>';
+      row.appendChild(actions);
+
+      actions.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-known-figure-action]');
+        if (!btn || btn.disabled) return;
+        e.stopPropagation();
+        var act = btn.getAttribute('data-known-figure-action');
+        if (act === 'edit') { openKnownFigureModal(entry); return; }
+        reorderKnownFigure(entry, act === 'up' ? i - 1 : i + 1);
+      });
+      row.addEventListener('click', function () { openKnownFigureModal(entry); });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openKnownFigureModal(entry); }
+      });
+      knownFigureListEl.appendChild(row);
+    });
+  }
+
+  function reorderKnownFigure(entry, targetIndex) {
+    if (targetIndex < 0 || targetIndex >= lastKnownFigureEntries.length) return;
+    var ids = lastKnownFigureEntries.map(function (f) { return f.id; });
+    var fromIndex = ids.indexOf(entry.id);
+    ids.splice(fromIndex, 1);
+    ids.splice(targetIndex, 0, entry.id);
+    fetch('/api/admin/known-figures/reorder.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: ids, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function () { loadKnownFigureList(); });
+  }
+
+  function populateKnownFigureForm(f) {
+    knownFigureNameInput.value = f.name || '';
+    knownFigureSlugInput.value = f.slug || '';
+    knownFigureEyebrowInput.value = f.eyebrow || '';
+    knownFigureStatusLineInput.value = f.status_line || '';
+    knownFigurePortraitImageInput.value = f.portrait_image_url || '';
+    knownFigureBody1Input.value = f.body_paragraph_1 || '';
+    knownFigureBody2Input.value = f.body_paragraph_2 || '';
+    knownFigureQuoteTextInput.value = f.quote_text || '';
+    knownFigureQuoteCiteInput.value = f.quote_cite || '';
+    knownFigureAccentColorInput.value = f.accent_color || '#c7ccd6';
+    knownFigureMotifSelect.value = f.motif || 'none';
+    knownFigureSignatureLabelInput.value = f.signature_label || '';
+    knownFigurePublishedInput.checked = f.is_published !== false;
+    refreshImageThumb('known_figure_portrait');
+  }
+
+  function openKnownFigureModal(entry) {
+    knownFigureModalMode = 'edit';
+    currentKnownFigure = entry;
+    knownFigureModalTitle.textContent = 'Edit Known Figure';
+    knownFigureModalSub.textContent = entry.slug;
+    knownFigureSlugInput.disabled = true;
+    knownFigureDeleteBtn.hidden = false;
+    knownFigureModalError.classList.remove('show');
+    knownFigureModalStatus.classList.remove('show');
+    populateKnownFigureForm(entry);
+    knownFigureModal.hidden = false;
+  }
+
+  function openCreateKnownFigureModal() {
+    knownFigureModalMode = 'create';
+    currentKnownFigure = null;
+    knownFigureModalTitle.textContent = 'Add Known Figure';
+    knownFigureModalSub.textContent = '';
+    knownFigureSlugInput.disabled = false;
+    knownFigureDeleteBtn.hidden = true;
+    knownFigureModalError.classList.remove('show');
+    knownFigureModalStatus.classList.remove('show');
+    populateKnownFigureForm({ motif: 'none', is_published: true });
+    knownFigureModal.hidden = false;
+    setTimeout(function () { knownFigureNameInput.focus(); }, 30);
+  }
+
+  function closeKnownFigureModal() {
+    knownFigureModal.hidden = true;
+    currentKnownFigure = null;
+  }
+
+  knownFigureCreateBtn.addEventListener('click', openCreateKnownFigureModal);
+  knownFigureCloseBtn.addEventListener('click', closeKnownFigureModal);
+  knownFigureCancelBtn.addEventListener('click', closeKnownFigureModal);
+  knownFigureModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeKnownFigureModal);
+
+  knownFigureSaveBtn.addEventListener('click', function () {
+    var payload = {
+      name: knownFigureNameInput.value.trim(),
+      eyebrow: knownFigureEyebrowInput.value.trim(),
+      status_line: knownFigureStatusLineInput.value.trim(),
+      portrait_image_url: knownFigurePortraitImageInput.value.trim(),
+      body_paragraph_1: knownFigureBody1Input.value.trim(),
+      body_paragraph_2: knownFigureBody2Input.value.trim(),
+      quote_text: knownFigureQuoteTextInput.value.trim(),
+      quote_cite: knownFigureQuoteCiteInput.value.trim(),
+      accent_color: knownFigureAccentColorInput.value,
+      motif: knownFigureMotifSelect.value,
+      signature_label: knownFigureSignatureLabelInput.value.trim(),
+      is_published: knownFigurePublishedInput.checked,
+      csrf: window.PW_AUTH.csrf
+    };
+
+    if (!payload.name) {
+      knownFigureModalError.textContent = 'Give the known figure a name.';
+      knownFigureModalError.classList.add('show');
+      return;
+    }
+
+    var url = '/api/admin/known-figures/update.php';
+    if (knownFigureModalMode === 'create') {
+      url = '/api/admin/known-figures/create.php';
+      payload.slug = knownFigureSlugInput.value.trim();
+      if (!/^[a-z0-9-]{1,100}$/.test(payload.slug)) {
+        knownFigureModalError.textContent = 'Slug must be lowercase letters, numbers, and hyphens only.';
+        knownFigureModalError.classList.add('show');
+        return;
+      }
+    } else if (currentKnownFigure) {
+      payload.id = currentKnownFigure.id;
+    }
+
+    knownFigureModalError.classList.remove('show');
+    knownFigureSaveBtn.disabled = true;
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        knownFigureSaveBtn.disabled = false;
+        if (!data.ok) {
+          knownFigureModalError.textContent = data.error || 'Could not save this known figure.';
+          knownFigureModalError.classList.add('show');
+          return;
+        }
+        knownFigureModalStatus.textContent = 'Saved.';
+        knownFigureModalStatus.classList.add('show');
+        loadKnownFigureList();
+        setTimeout(closeKnownFigureModal, 700);
+      })
+      .catch(function () {
+        knownFigureSaveBtn.disabled = false;
+        knownFigureModalError.textContent = 'Could not save this known figure. Please try again.';
+        knownFigureModalError.classList.add('show');
+      });
+  });
+
+  knownFigureDeleteBtn.addEventListener('click', function () {
+    if (!currentKnownFigure) return;
+    var confirmMsg = 'Permanently delete the known figure "' + currentKnownFigure.name + '"? This cannot be undone.';
+    if (!window.confirm(confirmMsg)) return;
+    knownFigureDeleteBtn.disabled = true;
+    fetch('/api/admin/known-figures/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentKnownFigure.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        knownFigureDeleteBtn.disabled = false;
+        if (!data.ok) {
+          knownFigureModalError.textContent = data.error || 'Could not delete this known figure.';
+          knownFigureModalError.classList.add('show');
+          return;
+        }
+        loadKnownFigureList();
+        closeKnownFigureModal();
+      })
+      .catch(function () {
+        knownFigureDeleteBtn.disabled = false;
+        knownFigureModalError.textContent = 'Could not delete this known figure. Please try again.';
+        knownFigureModalError.classList.add('show');
       });
   });
 

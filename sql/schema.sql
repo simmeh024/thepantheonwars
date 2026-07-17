@@ -789,6 +789,29 @@ CREATE TABLE IF NOT EXISTS overlords (
 ALTER TABLE worlds
   ADD CONSTRAINT fk_worlds_overlord FOREIGN KEY (overlord_id) REFERENCES overlords(id) ON DELETE SET NULL;
 
+-- Known Figures Control: flat entity powering known-figures.html's cinematic
+-- chronicle. `motif` selects one of a small hand-authored animation/veil
+-- preset library (js/known-figures.js), `accent_color` drives the
+-- eyebrow/glyph/portrait-border color -- see migration_known_figures.sql.
+CREATE TABLE IF NOT EXISTS known_figures (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(100) NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL,
+  eyebrow VARCHAR(150) NOT NULL DEFAULT '',
+  status_line VARCHAR(200) NOT NULL DEFAULT '',
+  portrait_image_url VARCHAR(255) NOT NULL DEFAULT '',
+  body_paragraph_1 TEXT NULL,
+  body_paragraph_2 TEXT NULL,
+  quote_text VARCHAR(400) NOT NULL DEFAULT '',
+  quote_cite VARCHAR(150) NOT NULL DEFAULT '',
+  accent_color VARCHAR(20) NOT NULL DEFAULT '#c7ccd6',
+  motif ENUM('pulse','glitch','twirl','glint','none') NOT NULL DEFAULT 'none',
+  signature_label VARCHAR(150) NOT NULL DEFAULT '',
+  is_published TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Revocable account-session registry. Hashes only: never persist raw PHP
 -- session IDs or opaque browser session tokens.
 CREATE TABLE IF NOT EXISTS user_sessions (

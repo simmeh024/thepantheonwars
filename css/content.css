@@ -2149,21 +2149,14 @@
 .figure-signature-glyph { display: grid; width: 26px; height: 26px; flex: 0 0 26px; place-items: center; }
 .figure-signature-glyph svg { width: 20px; height: 20px; }
 
-.figure-scene--kael .figure-signature-glyph,
-.figure-scene--kael .figure-eyebrow { color: rgb(154, 96, 238); }
-.figure-scene--kael .figure-portrait-frame { border-color: rgba(154, 96, 238, 0.4); }
-
-.figure-scene--brann .figure-eyebrow { color: rgb(154, 96, 238); }
-.figure-scene--brann .figure-signature-glyph { color: rgb(220, 60, 60); }
-.figure-scene--brann .figure-portrait-frame { border-color: rgba(220, 60, 60, 0.4); }
-
-.figure-scene--vb .figure-signature-glyph,
-.figure-scene--vb .figure-eyebrow { color: rgb(70, 190, 190); }
-.figure-scene--vb .figure-portrait-frame { border-color: rgba(70, 190, 190, 0.4); }
-
-.figure-scene--teo .figure-signature-glyph,
-.figure-scene--teo .figure-eyebrow { color: rgb(230, 150, 80); }
-.figure-scene--teo .figure-portrait-frame { border-color: rgba(230, 150, 80, 0.4); }
+/* Each record's accent_color (Known Figures Control) sets --figure-accent /
+   --figure-accent-border inline via js/known-figures.js, replacing what used
+   to be one hardcoded `.figure-scene--kael` etc. rule per hand-authored
+   figure -- this is what lets an admin-created figure get correct coloring
+   without a matching CSS change. */
+.figure-scene .figure-signature-glyph,
+.figure-scene .figure-eyebrow { color: var(--figure-accent, var(--gold-bright)); }
+.figure-scene .figure-portrait-frame { border-color: var(--figure-accent-border, var(--border-soft)); }
 
 @media (max-width: 860px) {
   .figure-scene-inner, .figure-scene-inner--reverse { grid-template-columns: 1fr; gap: 1.6rem; }
