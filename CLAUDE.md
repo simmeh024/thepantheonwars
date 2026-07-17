@@ -171,11 +171,12 @@ on a new table, that's a real bug to fix, not a display artifact.
   worlds. The public World Record weather card gets a per-world class
   (`world-weather-card--<slug>`) and bureau label (`WEATHER_SERVICE_LABELS` in
   `js/world-detail.js`, falling back to `"<World> Atmospheric Service"`); Asmecu's
-  variant recolors the live pill/icons/divider to the tidal blue/cyan already
-  established for Asmecu in `js/world-atlas-effects.js`'s `drawAsmecu()`
-  (`rgb(52,172,255)` / `rgb(91,207,255)`) rather than inventing a new palette.
-  Extending to a third world only requires a new seed migration; no admin UI or
-  public-page code changes are needed unless it wants its own bureau name/color.
+  variant recolors the live pill/icons/divider/background toward warm timber
+  and coral -- the same terracotta already used for the Coral Palace layer
+  (`.world-layer-tint--orange`, `rgba(210,120,50)`) -- rather than inventing an
+  unrelated palette for the same world. Extending to a third world only
+  requires a new seed migration; no admin UI or public-page code changes are
+  needed unless it wants its own bureau name/color.
 
 ## Server introspection notes (this specific host)
 
@@ -268,7 +269,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=209, community v=202, and admin v=221. Public pages use
+  versions: public v=210, community v=202, and admin v=221. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
