@@ -1,20 +1,21 @@
-// Homepage "Prophecy" scene (Nexus Veil teaser). The background is a
-// looping WebM (soft crystal glow); layered on top are a scroll-scrubbed
-// push-in zoom, a fragmented "shard-crack" reveal of the heading synced
-// with a crystal glow pulse (both once-only, ScrollTrigger), and a small
-// deterministic ember particle drift rising from the floor sigil in the
-// artwork. The CSS-only rotating sigil ring needs no JS. Everything here
-// is skipped under prefers-reduced-motion, matching every other animated
-// page on this site -- the scene is then just the poster frame with no
-// motion at all.
+// Homepage GSAP effects: the "Prophecy" scene (Nexus Veil teaser) and a
+// scroll-reveal for the God-Cores/Overlords/Thirteenth Key intro cards.
+// Everything here is skipped under prefers-reduced-motion, matching every
+// other animated page on this site.
 document.addEventListener('DOMContentLoaded', function () {
-  var scene = document.getElementById('prophecy-scene');
-  if (!scene) return;
-
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasGsap = typeof window.gsap !== 'undefined';
   if (hasGsap && window.ScrollTrigger) gsap.registerPlugin(window.ScrollTrigger);
 
+  // "Prophecy" scene: the background is a looping WebM (soft crystal
+  // glow); layered on top are a scroll-scrubbed push-in zoom, a
+  // fragmented "shard-crack" reveal of the heading synced with a crystal
+  // glow pulse (both once-only, ScrollTrigger), and a small deterministic
+  // ember particle drift rising from the floor sigil in the artwork. The
+  // CSS-only rotating sigil ring needs no JS. Under reduced motion the
+  // scene is just the poster frame with no motion at all.
+  var scene = document.getElementById('prophecy-scene');
+  if (scene) {
   if (!reducedMotion && hasGsap && window.ScrollTrigger) {
     var bg = scene.querySelector('.prophecy-bg');
     if (bg) {
@@ -198,6 +199,25 @@ document.addEventListener('DOMContentLoaded', function () {
       } else {
         inView = true;
       }
+    }
+  }
+  } // end scene
+
+  // God-Cores/Overlords/Thirteenth Key intro cards: staggered fade-rise
+  // reveal as the row scrolls into view, same autoAlpha/y/stagger pattern
+  // and onRefresh already-in-view fix as Known Figures' section reveals.
+  if (!reducedMotion && hasGsap && window.ScrollTrigger) {
+    var watermarkCards = document.querySelectorAll('.card--watermark');
+    if (watermarkCards.length) {
+      var cardsRow = watermarkCards[0].parentElement;
+      gsap.set(watermarkCards, { autoAlpha: 0, y: 26 });
+      gsap.to(watermarkCards, {
+        autoAlpha: 1, y: 0, duration: 0.7, ease: 'power2.out', stagger: 0.12,
+        scrollTrigger: {
+          trigger: cardsRow, start: 'top 82%', once: true,
+          onRefresh: function (self) { if (self.progress > 0) self.animation.progress(1); }
+        }
+      });
     }
   }
 });

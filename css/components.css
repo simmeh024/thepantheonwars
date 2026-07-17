@@ -1020,6 +1020,14 @@ blockquote.myth cite {
 .card--overlords::after { background-image: url('../images/watermark-overlords.jpg'); }
 .card--thirteenth-key::after { background-image: url('../images/watermark-thirteenth-key.jpg'); }
 
+/* Signature colors so the three cards read as distinct rather than
+   interchangeable copies of the same template -- fed into .card's
+   existing --tag-color/--tag-dim-driven hover border and top accent line,
+   no changes needed to those shared rules. */
+.card--godcores { --tag-color: #f0b429; --tag-dim: #8a5a1f; }
+.card--overlords { --tag-color: var(--purple-bright); --tag-dim: var(--purple-deep); }
+.card--thirteenth-key { --tag-color: #d8d0f0; --tag-dim: #5c4f8a; }
+
 .world-card { text-align: left; }
 .world-card .thumb {
   width: 100%; aspect-ratio: 1/1; overflow: hidden; margin-bottom: 16px;
