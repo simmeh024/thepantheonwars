@@ -22,7 +22,7 @@ INSERT INTO world_weather_profiles (
   condition_pool_json, hazard_note
 )
 SELECT
-  id, 1, 'High Hammer Forge Watch', 'Marble highland forge belt',
+  id, 1, 'High Hammer Foundry Concourse', 'Marble highland forge belt',
   'Ash haze', 'Forge-warmed updrafts', 14,
   'Clear kiln-light', 17,
   6, 22,
