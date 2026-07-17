@@ -1246,6 +1246,20 @@
 .world-weather-hazard > span { display: grid; width: 16px; height: 16px; flex: 0 0 16px; place-items: center; border: 1px solid rgba(209, 169, 85, 0.55); border-radius: 50%; color: var(--gold-bright); font-size: 0.58rem; font-weight: 700; }
 .world-weather-card footer { margin-top: 12px; color: rgba(164, 148, 188, 0.55); font-size: 0.54rem; letter-spacing: 0.05em; text-align: right; text-transform: uppercase; }
 
+/* Asmecu variant: cools the default archive palette toward the world atlas's
+   own tidal blue/cyan (rgb(52,172,255) / rgb(91,207,255) in
+   js/world-atlas-effects.js's drawAsmecu), replacing the mint-green "Live
+   archive" pill and icon tinting used by every other calibrated world. */
+.world-weather-card--asmecu { border-color: rgba(91, 207, 255, 0.4); }
+.world-weather-card--asmecu .world-weather-live { border-color: rgba(52, 172, 255, 0.35); background: rgba(52, 172, 255, 0.1); color: #7fd4ff; }
+.world-weather-card--asmecu .world-weather-live i { background: #52acff; box-shadow: 0 0 7px #52acff; }
+.world-weather-card--asmecu .world-weather-current-icon,
+.world-weather-card--asmecu .world-weather-day-icon { color: #5bcfff; }
+.world-weather-card--asmecu .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(91, 207, 255, 0.35)); }
+.world-weather-card--asmecu .world-weather-divider { color: #8fe0f2; }
+.world-weather-card--asmecu .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(91, 207, 255, 0.32)); }
+.world-weather-card--asmecu .world-weather-divider::after { background: linear-gradient(90deg, rgba(91, 207, 255, 0.32), transparent); }
+
 @media (max-width: 960px) {
   .world-record-overview { grid-template-columns: 1fr; }
   .world-weather-card { max-width: 560px; }

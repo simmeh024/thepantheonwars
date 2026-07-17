@@ -2478,47 +2478,35 @@
 }
 
 /* Weather Control ----------------------------------------------------------
-   Neoh is the calibration surface, while the data contract is world-generic. */
-.weather-pilot-banner {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  margin-bottom: 22px;
-  padding: 20px 22px;
-  overflow: hidden;
+   Each calibrated world renders as its own collapsible section; the data
+   contract behind them (world_weather_profiles, api/admin/weather/*.php) is
+   fully world-generic. */
+.weather-world-section {
+  margin-bottom: 16px;
   border: 1px solid rgba(112, 211, 255, 0.28);
   border-radius: var(--radius-md);
-  background:
-    radial-gradient(circle at 9% 50%, rgba(103, 53, 189, 0.24), transparent 31%),
-    linear-gradient(120deg, rgba(17, 10, 37, 0.92), rgba(8, 24, 40, 0.72));
+  background: linear-gradient(120deg, rgba(17, 10, 37, 0.92), rgba(8, 24, 40, 0.72));
   box-shadow: var(--shadow-tooltip);
+  overflow: hidden;
 }
-.weather-pilot-orbit {
-  position: relative;
-  width: 50px;
-  height: 50px;
-  flex: 0 0 50px;
-  border: 1px solid rgba(94, 208, 240, 0.55);
-  border-radius: 50%;
-  box-shadow: 0 0 24px rgba(89, 111, 226, 0.28), inset 0 0 17px rgba(86, 37, 159, 0.42);
+.weather-world-toggle {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  gap: 14px;
+  padding: 16px 20px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
 }
-.weather-pilot-orbit::before,
-.weather-pilot-orbit::after { content: ''; position: absolute; border-radius: 50%; }
-.weather-pilot-orbit::before { inset: 8px; background: radial-gradient(circle at 34% 30%, #9b75ef, #30275f 45%, #0b1327 78%); }
-.weather-pilot-orbit::after { inset: -5px 10px; border: 1px solid rgba(217, 174, 86, 0.5); transform: rotate(52deg); }
-.weather-pilot-kicker {
-  display: block;
-  margin-bottom: 4px;
-  color: #6ed7ea;
-  font-size: 0.64rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-.weather-pilot-banner h2 { margin: 0; color: var(--text); font-family: 'Cinzel', serif; font-size: 1.15rem; }
-.weather-pilot-banner p { max-width: 760px; margin: 5px 0 0; color: var(--text-dim); font-size: 0.78rem; line-height: 1.55; }
-.weather-pilot-status {
+.weather-world-toggle-chevron { display: grid; width: 18px; height: 18px; flex: 0 0 18px; place-items: center; color: #6ed7ea; transition: transform 0.2s ease; }
+.weather-world-toggle-chevron svg { width: 16px; height: 16px; }
+.weather-world-section.is-collapsed .weather-world-toggle-chevron { transform: rotate(-90deg); }
+.weather-world-toggle-name { color: var(--text); font-family: 'Cinzel', serif; font-size: 1.02rem; }
+.weather-world-toggle-status {
   margin-left: auto;
   padding: 6px 10px;
   flex: 0 0 auto;
@@ -2531,7 +2519,9 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
-.weather-pilot-status.is-offline { border-color: rgba(203, 80, 91, 0.45); background: rgba(203, 80, 91, 0.1); color: #ed8792; }
+.weather-world-toggle-status.is-offline { border-color: rgba(203, 80, 91, 0.45); background: rgba(203, 80, 91, 0.1); color: #ed8792; }
+.weather-world-section.is-collapsed .weather-world-body { display: none; }
+.weather-world-body { padding: 0 20px 20px; }
 .weather-control-layout { display: grid; grid-template-columns: minmax(280px, 0.72fr) minmax(0, 1.45fr); gap: 22px; align-items: start; }
 .weather-control-preview,
 .weather-control-editor {
@@ -2616,8 +2606,8 @@
   .weather-boundary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 620px) {
-  .weather-pilot-banner { align-items: flex-start; flex-wrap: wrap; }
-  .weather-pilot-status { margin-left: 70px; }
+  .weather-world-toggle { flex-wrap: wrap; }
+  .weather-world-toggle-status { margin-left: 32px; }
   .weather-control-editor .admin-field-row { flex-direction: column; }
   .weather-control-editor .admin-field-compact { flex: 1 1 auto; }
   .weather-boundary-grid { grid-template-columns: 1fr; }

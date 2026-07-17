@@ -42,9 +42,18 @@ document.addEventListener('DOMContentLoaded', function () {
     return '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (paths[icon] || paths.overcast) + '</svg>';
   }
 
-  function weatherCardHtml(weather) {
+  // Distinct evocative bureau names per calibrated world; falls back to a
+  // generic "<World> Atmospheric Service" label for any future world whose
+  // weather profile doesn't have a bespoke entry here yet.
+  var WEATHER_SERVICE_LABELS = {
+    neoh: 'Neoh Atmospheric Service',
+    asmecu: 'Asmecu Tideglass Bureau'
+  };
+
+  function weatherCardHtml(weather, worldSlug, worldName) {
     var current = weather.current || {};
     var forecast = weather.forecast || [];
+    var serviceLabel = WEATHER_SERVICE_LABELS[worldSlug] || (worldName + ' Atmospheric Service');
     var forecastHtml = forecast.map(function (day) {
       return '<div class="world-weather-day' + (day.day === 'Today' ? ' is-today' : '') + '">' +
         '<span class="world-weather-day-name">' + escapeHtml(day.day_short) + '</span>' +
@@ -55,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
       '</div>';
     }).join('');
     return '<div class="world-weather-card-scan" aria-hidden="true"></div>' +
-      '<header class="world-weather-head"><div><span>Neoh Atmospheric Service</span><h2>' + escapeHtml(weather.location) + '</h2></div><span class="world-weather-live"><i></i>Live archive</span></header>' +
+      '<header class="world-weather-head"><div><span>' + escapeHtml(serviceLabel) + '</span><h2>' + escapeHtml(weather.location) + '</h2></div><span class="world-weather-live"><i></i>Live archive</span></header>' +
       '<p class="world-weather-climate">' + escapeHtml(weather.climate) + '</p>' +
       '<div class="world-weather-current">' +
         '<span class="world-weather-current-icon">' + weatherIconHtml(current.icon) + '</span>' +
@@ -74,10 +83,11 @@ document.addEventListener('DOMContentLoaded', function () {
       '<footer>Forecast cycle ' + escapeHtml(weather.generated_for) + ' &middot; UTC archive time</footer>';
   }
 
-  function renderWorldWeather(data) {
+  function renderWorldWeather(data, worldSlug, worldName) {
     var slot = document.getElementById('world-weather-card');
     if (!slot || !data || !data.ok || !data.available || !data.weather) return;
-    slot.innerHTML = weatherCardHtml(data.weather);
+    slot.className = 'world-weather-card world-weather-card--' + worldSlug;
+    slot.innerHTML = weatherCardHtml(data.weather, worldSlug, worldName);
     slot.hidden = false;
   }
 
@@ -194,7 +204,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       if (content) content.innerHTML = detailHtml(world);
       if (window.wireWorldInteractions) window.wireWorldInteractions();
-      weatherRequest.then(renderWorldWeather);
+      weatherRequest.then(function (weatherData) { renderWorldWeather(weatherData, slug, world.name); });
     })
     .catch(function () { showError('The archive could not load this world record right now.'); });
 });
