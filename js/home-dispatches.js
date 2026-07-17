@@ -139,19 +139,6 @@
     readCue.textContent = 'Read transmission →';
     content.appendChild(readCue);
 
-    if (post.tags && post.tags.length) {
-      var tags = document.createElement('div');
-      tags.className = 'post-tags';
-      tags.setAttribute('aria-label', 'Article tags');
-      post.tags.forEach(function (tag) {
-        var chip = document.createElement('span');
-        chip.className = 'post-tag';
-        chip.textContent = tag.label;
-        tags.appendChild(chip);
-      });
-      content.appendChild(tags);
-    }
-
     article.appendChild(content);
     return article;
   }
