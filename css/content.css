@@ -1865,6 +1865,7 @@
   position: relative; z-index: 2;
   display: grid; grid-template-columns: minmax(220px, 0.62fr) minmax(0, 1fr);
   gap: 3rem; align-items: center;
+  perspective: 1300px;
 }
 .figure-scene-inner--reverse { grid-template-columns: minmax(0, 1fr) minmax(220px, 0.62fr); }
 .figure-scene-inner--reverse .figure-portrait-frame { order: 2; }
@@ -1876,6 +1877,7 @@
   border: 1px solid var(--border-soft);
   box-shadow: 0 24px 60px rgba(0,0,0,0.45);
   aspect-ratio: 1 / 1;
+  will-change: transform;
 }
 .figure-portrait-frame img {
   display: block;
@@ -1890,6 +1892,18 @@
   background: linear-gradient(90deg, transparent 40%, rgba(220,60,60,0.35) 50%, transparent 60%);
   opacity: 0;
   mix-blend-mode: screen;
+}
+.figure-portrait-sheen {
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 70%; height: 70%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.42), rgba(255,255,255,0) 68%);
+  opacity: 0;
+  mix-blend-mode: screen;
+  pointer-events: none;
+  z-index: 2;
+  will-change: transform, opacity;
 }
 .figure-eyebrow { display: block; margin-bottom: 0.3rem; color: var(--gold-bright); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
 .figure-name { margin: 0 0 0.35rem; font-family: 'Cinzel', serif; font-size: clamp(1.6rem, 3vw, 2.3rem); color: var(--text); }
@@ -1924,6 +1938,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .figure-portrait-glitch { display: none; }
+  .figure-portrait-sheen { display: none; }
 }
 
 /* utility */

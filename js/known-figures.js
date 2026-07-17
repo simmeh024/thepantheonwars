@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasGsap = typeof window.gsap !== 'undefined';
+  var canHoverTilt = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
   if (hasGsap && window.ScrollTrigger) gsap.registerPlugin(window.ScrollTrigger);
 
   var idleTimelines = [];
@@ -58,8 +59,13 @@ document.addEventListener('DOMContentLoaded', function () {
     return tl;
   }
 
-  scenes.forEach(function (sceneEl) {
+  scenes.forEach(function (sceneEl, sceneIndex) {
     var reveal = sceneEl.querySelectorAll('.figure-portrait-frame, .figure-eyebrow, .figure-name, .figure-status, .figure-body, .figure-quote, .figure-signature');
+    var portraitFrame = sceneEl.querySelector('.figure-portrait-frame');
+
+    if (hasGsap && portraitFrame) {
+      gsap.set(portraitFrame, { transformPerspective: 1200, transformOrigin: '50% 50%' });
+    }
 
     if (!reducedMotion && hasGsap && window.ScrollTrigger) {
       gsap.set(reveal, { autoAlpha: 0, y: 22 });
@@ -104,6 +110,62 @@ document.addEventListener('DOMContentLoaded', function () {
           scrollTrigger: { trigger: sceneEl, start: 'top bottom', end: 'bottom top', scrub: 0.6 }
         });
       }
+
+      // 3D emergence: the frame turns in from an alternating Y-axis tilt as
+      // it enters, rather than only fading/rising like the rest of the
+      // section -- its own scrollTrigger object, same reasoning as above.
+      if (portraitFrame) {
+        var emergeDir = sceneIndex % 2 === 0 ? -1 : 1;
+        gsap.fromTo(portraitFrame, { rotationY: emergeDir * 26, scale: 0.92 }, {
+          rotationY: 0, scale: 1, duration: 0.9, ease: 'power3.out',
+          scrollTrigger: {
+            trigger: sceneEl, start: 'top 78%', once: true,
+            onRefresh: function (self) { if (self.progress > 0) self.animation.progress(1); }
+          }
+        });
+      }
+    }
+
+    if (!reducedMotion && hasGsap && canHoverTilt && portraitFrame) {
+      // Pointer-tilt "holo card": the frame tracks the cursor in 3D, the
+      // sharp foreground image shifts opposite it for extra depth, and a
+      // radial sheen sweeps across to sell the tilt as a lit, physical
+      // surface rather than a flat rotated photo. Fine-pointer/hover only --
+      // touch devices never attach these listeners at all.
+      var tiltImg = portraitFrame.querySelector('img');
+      var sheen = portraitFrame.querySelector('.figure-portrait-sheen');
+      var frameRotY = gsap.quickTo(portraitFrame, 'rotationY', { duration: 0.5, ease: 'power3.out' });
+      var frameRotX = gsap.quickTo(portraitFrame, 'rotationX', { duration: 0.5, ease: 'power3.out' });
+      var imgX = tiltImg ? gsap.quickTo(tiltImg, 'x', { duration: 0.5, ease: 'power3.out' }) : function () {};
+      var sheenX = null, sheenY = null;
+      if (sheen) {
+        gsap.set(sheen, { xPercent: -50, yPercent: -50 });
+        sheenX = gsap.quickTo(sheen, 'x', { duration: 0.4, ease: 'power3.out' });
+        sheenY = gsap.quickTo(sheen, 'y', { duration: 0.4, ease: 'power3.out' });
+      }
+      var tiltRect = null;
+
+      function tiltEnter() {
+        tiltRect = portraitFrame.getBoundingClientRect();
+        if (sheen) gsap.to(sheen, { opacity: 1, duration: 0.25 });
+      }
+      function tiltMove(event) {
+        if (!tiltRect || event.pointerType === 'touch') return;
+        var nx = Math.max(-1, Math.min(1, ((event.clientX - tiltRect.left) / tiltRect.width - 0.5) * 2));
+        var ny = Math.max(-1, Math.min(1, ((event.clientY - tiltRect.top) / tiltRect.height - 0.5) * 2));
+        frameRotY(nx * 11);
+        frameRotX(ny * -9);
+        imgX(nx * -7);
+        if (sheenX) { sheenX(nx * tiltRect.width * 0.35); sheenY(ny * tiltRect.height * 0.35); }
+      }
+      function tiltLeave() {
+        frameRotY(0); frameRotX(0); imgX(0);
+        if (sheen) gsap.to(sheen, { opacity: 0, duration: 0.4 });
+      }
+
+      portraitFrame.addEventListener('pointerenter', tiltEnter);
+      portraitFrame.addEventListener('pointermove', tiltMove);
+      portraitFrame.addEventListener('pointerleave', tiltLeave);
     }
 
     var idle = buildIdleLoop(sceneEl);
