@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=229">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=230">
 </head>
 <body>
 
@@ -929,10 +929,10 @@
           <strong>Suppression lists</strong>
           <p>MailerSend refuses to send to addresses on these lists. If a specific recipient never receives anything, check here before assuming it&rsquo;s a code or DNS problem.</p>
         </div>
-        <div class="mail-suppressions-tabs" id="mail-suppressions-tabs">
-          <button type="button" class="mail-suppressions-tab active" data-suppression-type="hard-bounces">Hard bounces</button>
-          <button type="button" class="mail-suppressions-tab" data-suppression-type="spam-complaints">Spam complaints</button>
-          <button type="button" class="mail-suppressions-tab" data-suppression-type="unsubscribes">Unsubscribes</button>
+        <div class="mail-log-filter-tabs mail-suppressions-tabs" id="mail-suppressions-tabs">
+          <button type="button" class="mail-log-filter active" data-suppression-type="hard-bounces"><span class="mail-log-filter-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a5 5 0 0 1 0 10h-1"/></svg></span>Hard bounces</button>
+          <button type="button" class="mail-log-filter" data-suppression-type="spam-complaints"><span class="mail-log-filter-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 22V4"/><path d="M4 4h14l-3 5 3 5H4"/></svg></span>Spam complaints</button>
+          <button type="button" class="mail-log-filter" data-suppression-type="unsubscribes"><span class="mail-log-filter-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6M15 9l-6 6"/></svg></span>Unsubscribes</button>
         </div>
         <div class="mail-suppressions-list" id="mail-suppressions-list"></div>
       </div>
