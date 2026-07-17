@@ -84,6 +84,35 @@ select `config.php` -> Edit (opens cPanel's code editor in a new tab).
   `mail()` exactly as before. Mail Settings' sender email must use MailerSend's
   verified domain or sending will be rejected. `mail_delivery_logs.
   provider_message_id` now gets MailerSend's real `X-Message-Id` on success.
+- **MailerSend read-only API features** (Jul 2026, needs a token with Email:
+  Send, Domains: Read, and Suppressions: Read scopes): shared client in
+  `api/mail/mailersend-client.php` (`pw_mailersend_api_get()` and friends),
+  every call best-effort/null-on-failure, never fatal.
+  - **Real delivery status**: `api/mail/mailersend-webhook.php` is a signed
+    receiver (header `Signature`, HMAC-SHA256 of the raw body with
+    `MAILERSEND_WEBHOOK_SIGNING_SECRET`) for MailerSend's activity webhooks
+    (sent/delivered/opened/clicked/soft_bounced/hard_bounced/
+    spam_complaint/unsubscribed). Each event is its own new
+    `mail_delivery_logs` row (append-only trail, never mutates the original
+    "accepted" row), matched by `provider_message_id`. The webhook itself
+    must be created by hand in the MailerSend dashboard (Domains -> your
+    domain -> Webhooks) pointed at that URL -- there's no admin-UI "create
+    webhook" action, matching this project's existing secrets convention
+    (signing secret is shown once at creation, pasted into the
+    outside-webroot config, never generated/stored through the admin UI).
+  - **Domain verification status**: `api/admin/mail/domain-status.php`
+    (`mail.view`) shows SPF/DKIM/MX/CNAME/return-path-CNAME pills in Mail
+    Settings, looked up by the sender email's domain via MailerSend's
+    `/v1/domains` + `/v1/domains/{id}/verify`.
+  - **Send-activity stats**: `api/admin/mail/stats.php` (`mail.logs`)
+    aggregates `mail_delivery_logs` itself (last 30 days, grouped by
+    status) for the Mail Log stats row -- deliberately not a live
+    MailerSend Activity API call, since the webhook-fed local log already
+    has everything needed without another external dependency.
+  - **Suppression lists**: `api/admin/mail/suppressions.php` (`mail.view`)
+    live-queries MailerSend's hard-bounces/spam-complaints/unsubscribes
+    lists for the read-only panel on Mail Log -- never cached locally, so
+    it's always current with no sync job.
 - `mail_templates` holds the closed allowlist of `password_reset`, `welcome`,
   `account_banned`, and `verify_account`. The template editor is gated by
   `mail.view` / `mail.manage`; variable expansion is limited to the keys defined

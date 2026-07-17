@@ -886,6 +886,11 @@
           </div>
           <div class="admin-field"><label for="mail-reply-to-input">Reply-to email <span>(optional)</span></label><input type="email" id="mail-reply-to-input" maxlength="255" placeholder="privacy@thepantheonwars.com"></div>
           <p class="mail-settings-note" id="mail-settings-note">Loading mail configuration&hellip;</p>
+          <div class="mail-domain-status" id="mail-domain-status" hidden>
+            <strong id="mail-domain-status-title">Domain verification</strong>
+            <div class="mail-domain-status-pills" id="mail-domain-status-pills"></div>
+            <p class="mail-domain-status-note" id="mail-domain-status-note"></p>
+          </div>
           <p class="admin-modal-error" id="mail-settings-error"></p>
           <p class="admin-modal-status" id="mail-settings-status"></p>
           <div class="admin-modal-actions"><button type="submit" class="btn btn-solid" id="mail-settings-save-btn">Save Mail Settings</button></div>
@@ -915,6 +920,22 @@
         <p>Inbound and outbound mail troubleshooting metadata. “Accepted” means PHP accepted the hand-off; it does not confirm inbox delivery.</p>
       </div>
       <div class="mail-log-notice"><strong>Inbound is ready when you are.</strong> Outbound mail can send but cannot read a mailbox. Connect a signed provider webhook or mail pipe to record incoming mail; message bodies are never stored.</div>
+      <div class="mail-log-stats" id="mail-log-stats" hidden>
+        <strong class="mail-log-stats-title">Outbound activity &middot; last 30 days</strong>
+        <div class="mail-log-stats-row" id="mail-log-stats-row"></div>
+      </div>
+      <div class="mail-suppressions" id="mail-suppressions" hidden>
+        <div class="mail-suppressions-head">
+          <strong>Suppression lists</strong>
+          <p>MailerSend refuses to send to addresses on these lists. If a specific recipient never receives anything, check here before assuming it&rsquo;s a code or DNS problem.</p>
+        </div>
+        <div class="mail-suppressions-tabs" id="mail-suppressions-tabs">
+          <button type="button" class="mail-suppressions-tab active" data-suppression-type="hard-bounces">Hard bounces</button>
+          <button type="button" class="mail-suppressions-tab" data-suppression-type="spam-complaints">Spam complaints</button>
+          <button type="button" class="mail-suppressions-tab" data-suppression-type="unsubscribes">Unsubscribes</button>
+        </div>
+        <div class="mail-suppressions-list" id="mail-suppressions-list"></div>
+      </div>
       <div class="admin-toolbar mail-log-toolbar" aria-label="Mail log filters">
         <div class="mail-log-filter-tabs" id="mail-log-filters">
           <button type="button" class="mail-log-filter active" data-mail-log-direction="all"><span class="mail-log-filter-icon">&#10022;</span>All activity</button>
@@ -2989,7 +3010,7 @@
       if (name === 'news-management') loadNewsList();
       if (name === 'mail-settings') loadMailSettings();
       if (name === 'mail-templates') loadMailTemplates();
-      if (name === 'mail-log') loadMailLog();
+      if (name === 'mail-log') { loadMailLog(); loadMailSuppressions(mailSuppressionType); }
       if (name === 'dispatch-translations') loadList();
       if (name === 'members') loadMembers();
       if (name === 'topic-reports') loadTopicReports();
@@ -10373,6 +10394,9 @@
   var mailReplyToInput = document.getElementById('mail-reply-to-input');
   var mailTransportPill = document.getElementById('mail-transport-pill');
   var mailSettingsNote = document.getElementById('mail-settings-note');
+  var mailDomainStatusEl = document.getElementById('mail-domain-status');
+  var mailDomainStatusPills = document.getElementById('mail-domain-status-pills');
+  var mailDomainStatusNote = document.getElementById('mail-domain-status-note');
   var mailSettingsError = document.getElementById('mail-settings-error');
   var mailSettingsStatus = document.getElementById('mail-settings-status');
   var mailSettingsSaveBtn = document.getElementById('mail-settings-save-btn');
@@ -10409,6 +10433,45 @@
     (isError ? errorEl : statusEl).classList.add('show');
   }
 
+  function renderMailDomainStatus(domain) {
+    if (!mailDomainStatusEl) return;
+    if (!domain) {
+      mailDomainStatusEl.hidden = true;
+      return;
+    }
+    mailDomainStatusEl.hidden = false;
+    var checks = [
+      ['SPF', domain.spf], ['DKIM', domain.dkim], ['MX', domain.mx],
+      ['Tracking CNAME', domain.cname], ['Return-Path CNAME', domain.rp_cname]
+    ];
+    mailDomainStatusPills.innerHTML = checks.map(function (c) {
+      var key = c[1];
+      var cls = key === true ? 'is-verified' : (key === false ? 'is-unverified' : '');
+      var label = key === true ? 'Verified' : (key === false ? 'Not verified' : 'Unknown');
+      return '<span class="mail-domain-pill ' + cls + '">' + escapeHtml(c[0]) + ': ' + label + '</span>';
+    }).join('');
+    mailDomainStatusNote.textContent = domain.name
+      ? ('MailerSend domain: ' + domain.name + (domain.is_verified ? ' (verified)' : ' (not fully verified)'))
+      : '';
+  }
+
+  function loadMailDomainStatus() {
+    if (!mailDomainStatusEl || !pwHasPermission('mail.view')) return;
+    fetch('/api/admin/mail/domain-status.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok || !data.available) { mailDomainStatusEl.hidden = true; return; }
+        if (!data.domain) {
+          mailDomainStatusEl.hidden = false;
+          mailDomainStatusPills.innerHTML = '';
+          mailDomainStatusNote.textContent = data.reason || 'Domain verification status is unavailable.';
+          return;
+        }
+        renderMailDomainStatus(data.domain);
+      })
+      .catch(function () { mailDomainStatusEl.hidden = true; });
+  }
+
   function loadMailSettings() {
     if (!mailSettingsForm) return;
     setMailMessage(mailSettingsError, mailSettingsStatus, '', false);
@@ -10428,6 +10491,7 @@
           : 'The server does not currently expose a mail transport. Delivery stays disabled.';
         mailSettingsSaveBtn.disabled = !pwHasPermission('mail.manage');
         mailSendTestBtn.disabled = !settings.ready || !pwHasPermission('mail.manage');
+        loadMailDomainStatus();
       })
       .catch(function (error) {
         mailSettingsNote.textContent = 'Mail storage has not been configured yet.';
@@ -10509,7 +10573,10 @@
   function mailLogStatusLabel(status) {
     var labels = {
       accepted: 'Accepted by PHP', failed: 'Failed', skipped: 'Skipped',
-      received: 'Received', rejected: 'Rejected'
+      received: 'Received', rejected: 'Rejected',
+      sent: 'Sent', delivered: 'Delivered', opened: 'Opened', clicked: 'Clicked',
+      soft_bounced: 'Soft bounce', hard_bounced: 'Hard bounce',
+      spam_complaint: 'Spam complaint', unsubscribed: 'Unsubscribed'
     };
     return labels[status] || String(status || 'Unknown');
   }
@@ -10530,7 +10597,7 @@
       return '<article class="mail-log-entry">' +
         '<div class="mail-log-direction ' + (outgoing ? 'is-outbound' : 'is-inbound') + '"><strong>' + (outgoing ? 'Outbound' : 'Inbound') + '</strong><small>' + (outgoing ? 'To ' : 'From ') + escapeHtml(address) + '</small></div>' +
         '<div class="mail-log-detail"><strong>' + escapeHtml(template) + '</strong><small>' + escapeHtml(counterpart) + '</small><em>' + escapeHtml(detail) + '</em></div>' +
-        '<span class="mail-log-status is-' + escapeHtml(status) + '">' + escapeHtml(mailLogStatusLabel(status)) + '</span>' +
+        '<span class="mail-log-status is-' + escapeHtml(status.replace(/_/g, '-')) + '">' + escapeHtml(mailLogStatusLabel(status)) + '</span>' +
         '<time datetime="' + escapeHtml(entry.created_at || '') + '">' + escapeHtml(fmtDateTime(entry.created_at)) + '</time>' +
       '</article>';
     }).join('');
@@ -10548,6 +10615,7 @@
       .catch(function (error) {
         mailLogList.innerHTML = '<div class="admin-list-empty">' + escapeHtml(error.message || 'Could not load mail activity.') + '</div>';
       });
+    loadMailLogStats();
   }
 
   if (mailLogFilters) mailLogFilters.addEventListener('click', function (event) {
@@ -10560,6 +10628,70 @@
     loadMailLog();
   });
   if (mailLogRefreshBtn) mailLogRefreshBtn.addEventListener('click', loadMailLog);
+
+  // ===== Mail Log: send-activity stats (own log, no live MailerSend call) ====
+  var mailLogStatsEl = document.getElementById('mail-log-stats');
+  var mailLogStatsRow = document.getElementById('mail-log-stats-row');
+  var MAIL_STAT_ORDER = ['accepted', 'sent', 'delivered', 'opened', 'clicked', 'soft_bounced', 'hard_bounced', 'spam_complaint', 'unsubscribed', 'failed', 'skipped'];
+
+  function loadMailLogStats() {
+    if (!mailLogStatsEl || !pwHasPermission('mail.logs')) return;
+    fetch('/api/admin/mail/stats.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) { mailLogStatsEl.hidden = true; return; }
+        var counts = data.counts || {};
+        var keys = Object.keys(counts);
+        if (!keys.length) { mailLogStatsEl.hidden = true; return; }
+        var ordered = MAIL_STAT_ORDER.filter(function (k) { return counts[k]; })
+          .concat(keys.filter(function (k) { return MAIL_STAT_ORDER.indexOf(k) === -1; }));
+        mailLogStatsRow.innerHTML = ordered.map(function (key) {
+          return '<div class="mail-log-stat"><span class="mail-log-stat-value">' + counts[key] + '</span><span class="mail-log-stat-label">' + escapeHtml(mailLogStatusLabel(key)) + '</span></div>';
+        }).join('');
+        mailLogStatsEl.hidden = false;
+      })
+      .catch(function () { mailLogStatsEl.hidden = true; });
+  }
+
+  // ===== Mail Log: MailerSend suppression lists (live, read-only) ===========
+  var mailSuppressionsEl = document.getElementById('mail-suppressions');
+  var mailSuppressionsTabs = document.getElementById('mail-suppressions-tabs');
+  var mailSuppressionsList = document.getElementById('mail-suppressions-list');
+  var mailSuppressionType = 'hard-bounces';
+
+  function loadMailSuppressions(type) {
+    if (!mailSuppressionsList) return;
+    mailSuppressionsList.innerHTML = '<div class="admin-list-empty">Loading&hellip;</div>';
+    fetch('/api/admin/mail/suppressions.php?type=' + encodeURIComponent(type), { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok || !data.available) { mailSuppressionsEl.hidden = true; return; }
+        mailSuppressionsEl.hidden = false;
+        var entries = data.entries || [];
+        if (!entries.length) {
+          mailSuppressionsList.innerHTML = '<div class="admin-list-empty">' + escapeHtml(data.reason || 'No entries on this list.') + '</div>';
+          return;
+        }
+        mailSuppressionsList.innerHTML = entries.map(function (entry) {
+          return '<div class="mail-suppressions-entry">' +
+            '<strong>' + escapeHtml(entry.email || 'Unknown address') + '</strong>' +
+            '<time datetime="' + escapeHtml(entry.created_at || '') + '">' + escapeHtml(fmtDateTime(entry.created_at)) + '</time>' +
+            (entry.reason ? '<small>' + escapeHtml(entry.reason) + '</small>' : '') +
+          '</div>';
+        }).join('');
+      })
+      .catch(function () { mailSuppressionsEl.hidden = true; });
+  }
+
+  if (mailSuppressionsTabs) mailSuppressionsTabs.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-suppression-type]');
+    if (!button) return;
+    mailSuppressionType = button.getAttribute('data-suppression-type') || 'hard-bounces';
+    mailSuppressionsTabs.querySelectorAll('[data-suppression-type]').forEach(function (tab) {
+      tab.classList.toggle('active', tab === button);
+    });
+    loadMailSuppressions(mailSuppressionType);
+  });
 
   function closeMailTemplateModal() {
     mailTemplateModal.hidden = true; mailTemplateCurrent = null;

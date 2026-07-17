@@ -51,10 +51,20 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // instead of the shared host's local PHP mail() transport -- MailerSend
 // signs and relays through its own verified-domain infrastructure, which is
 // far more reliable than a shared hosting IP for SPF/DKIM alignment. Create
-// a token at https://app.mailersend.com (Domains -> your verified domain ->
-// API tokens) and make sure Mail Settings' sender email uses that verified
-// domain. Leave commented out and delivery falls back to PHP mail().
+// a token at https://app.mailersend.com with Email: Send, Domains: Read, and
+// Suppressions: Read scopes, and make sure Mail Settings' sender email uses
+// that verified domain. Leave commented out and delivery falls back to PHP mail().
 // define('MAILERSEND_API_TOKEN', 'REPLACE_WITH_REAL_MAILERSEND_TOKEN');
+
+// Optional. Lets api/mail/mailersend-webhook.php record real delivery
+// outcomes (delivered/opened/clicked/bounced/spam complaint/unsubscribed)
+// into Mail Log instead of only ever showing "accepted by the API". Create
+// a webhook in the MailerSend dashboard (Domains -> your domain -> Webhooks
+// -> Add webhook) pointing at
+// https://thepantheonwars.com/api/mail/mailersend-webhook.php with the
+// activity events you want, then paste the "Signing secret" it shows you
+// here (that secret is only ever shown once at creation time).
+// define('MAILERSEND_WEBHOOK_SIGNING_SECRET', 'REPLACE_WITH_REAL_SIGNING_SECRET');
 
 // Optional signed inbound-mail webhook. PHP mail() can send email but cannot
 // read a mailbox. Configure a provider or mail pipe to POST parsed inbound
