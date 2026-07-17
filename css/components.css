@@ -1096,6 +1096,7 @@ blockquote.myth cite {
   grid-template-columns: 0.9fr 1.1fr;
   gap: 50px;
   align-items: center;
+  perspective: 1400px;
 }
 @media (max-width: 820px) { .featured-book { grid-template-columns: 1fr; } }
 .featured-portraits { display: flex; gap: 14px; }
@@ -1111,11 +1112,23 @@ blockquote.myth cite {
   font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-dim);
 }
 .cover-feature { display: flex; justify-content: center; }
+.cover-feature-frame { position: relative; width: 100%; max-width: 320px; }
 .cover-feature img {
-  width: 100%; max-width: 320px;
+  width: 100%;
   border: 1px solid var(--border);
   box-shadow: 0 20px 50px rgba(0,0,0,0.6), 0 0 40px rgba(124,79,214,0.12);
 }
+/* A soft diagonal gleam in the cover's top-right corner, like light
+   catching an open page edge -- pure CSS, no extra art. */
+.cover-feature-frame::after {
+  content: '';
+  position: absolute; top: 0; right: 0;
+  width: 46%; height: 32%;
+  background: linear-gradient(225deg, rgba(255,255,255,0.16), transparent 70%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.featured-book-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 1.6em; }
 
 /* News teaser */
 .news-strip { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }

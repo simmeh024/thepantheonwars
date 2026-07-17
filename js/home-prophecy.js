@@ -220,4 +220,33 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     }
   }
+
+  // Featured Book (The Mindweaver's Lie): the cover swings in on a Y-axis
+  // rotation like a book cover opening toward the viewer (same perspective/
+  // rotationY entrance technique as Known Figures' portrait frames, using
+  // .featured-book's own CSS `perspective` instead of a JS transformPerspective
+  // set), while the text column fades/rises in with a stagger alongside it.
+  if (!reducedMotion && hasGsap && window.ScrollTrigger) {
+    var featuredBook = document.querySelector('.featured-book');
+    if (featuredBook) {
+      var featuredCover = featuredBook.querySelector('.cover-feature-frame');
+      var featuredTextEls = featuredBook.querySelectorAll('.featured-book > div:last-child > *');
+      if (featuredCover || featuredTextEls.length) {
+        if (featuredCover) gsap.set(featuredCover, { autoAlpha: 0, y: 24, rotationY: -22 });
+        if (featuredTextEls.length) gsap.set(featuredTextEls, { autoAlpha: 0, y: 18 });
+        var featuredTl = gsap.timeline({
+          scrollTrigger: {
+            trigger: featuredBook, start: 'top 78%', once: true,
+            onRefresh: function (self) { if (self.progress > 0) self.animation.progress(1); }
+          }
+        });
+        if (featuredCover) {
+          featuredTl.to(featuredCover, { autoAlpha: 1, y: 0, rotationY: 0, duration: 0.9, ease: 'power3.out' }, 0);
+        }
+        if (featuredTextEls.length) {
+          featuredTl.to(featuredTextEls, { autoAlpha: 1, y: 0, duration: 0.6, ease: 'power2.out', stagger: 0.08 }, 0.15);
+        }
+      }
+    }
+  }
 });
