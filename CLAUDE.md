@@ -15,8 +15,17 @@ frontend, PHP 8.3/PDO/MariaDB backend, **no build step**. cPanel shared hosting.
 - Admin console: https://thepantheonwars.com/admin/ (login required, role-gated:
   member/moderator/admin)
 - cPanel account: `rdy3i6my40b0`, home dir `/home/rdy3i6my40b0`
-- MySQL/MariaDB database: `rdy3i6my40b0_pantheonwars` (shown as `pantheonwars` in
-  phpMyAdmin's tree)
+- MySQL/MariaDB database: the real schema name is simply `pantheonwars` --
+  **not** `rdy3i6my40b0_pantheonwars`. That prefixed form was a wrong
+  assumption in this file that cost a live debugging session two rounds of
+  false "everything is MISSING" results from an INFORMATION_SCHEMA query
+  (2026-07-18): `TABLE_SCHEMA = 'rdy3i6my40b0_pantheonwars'` silently
+  matched zero rows against every check. Confirmed directly in phpMyAdmin's
+  database tree and by a successful query scoped to `TABLE_SCHEMA =
+  'pantheonwars'`. If writing a raw INFORMATION_SCHEMA/`DATABASE()` query
+  outside the app's normal PDO connection (which selects the database by
+  name at connect time and never needs this), use the bare `pantheonwars`
+  name, not the cPanel account prefix.
 
 ## Deploy workflow (READ THIS FIRST — has a sharp edge)
 
