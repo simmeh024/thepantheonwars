@@ -306,23 +306,25 @@ also supports a deliberately manual `?full=1` historical rebuild.
   Status's CPU chart -- computes its own x/y pixel scale from real data ranges, builds
   the whole `<svg>...</svg>` as a template string, sets `.innerHTML` once per refresh).
   Match whichever pattern fits if you add another chart.
-- **GSAP 3.15.0 and ScrollTrigger are locally vendored for the Worlds atlas only.**
-  The pinned browser files live in `js/vendor/`, load after the initial page markup,
-  and are documented with their package source and Standard License link in
-  `js/vendor/README.md`. Do not replace them with a CDN dependency. No Alpine
+- **GSAP 3.15.0 and ScrollTrigger are locally vendored** in `js/vendor/`, used by
+  the Worlds atlas and, as of Known Figures, one other page -- both deliberate
+  uses of the same pinned files, not separate dependencies. The files load after
+  the initial page markup and are documented with their package source and
+  Standard License link in `js/vendor/README.md`. Do not replace them with a CDN
+  dependency. No Alpine
   dependency is installed; continue to prefer CSS transitions and native browser
   APIs for modest motion and local UI state. Any new continuous motion must preserve
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=213, community v=203, and admin v=222. Public pages use
+  versions: public v=214, community v=203, and admin v=222. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=6), `js/members.js?v=N` (current: v=23)
+  than once): `js/main.js?v=N` (current: v=7), `js/members.js?v=N` (current: v=23)
   and `js/notifications.js?v=N` (current: v=10), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
@@ -401,6 +403,38 @@ also supports a deliberately manual `?full=1` historical rebuild.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Known Figures** (`known-figures.html`, new page under The Universe nav):
+  a static, cinematic vertical chronicle -- not DB/admin-managed, unlike
+  Books/Worlds/Overlords, since this is fixed one-off lore content rather
+  than a structured catalog (same reasoning as `chapter-one.html`/`about.html`
+  staying static). Four full-bleed `.figure-scene` sections (Kael Veyr, Brann
+  Ilex, VB, Teo Carnicus), each GSAP/ScrollTrigger-revealed once on scroll-in
+  via `js/known-figures.js`, plus one small looping "signature detail"
+  animation per figure tied to a physical prop from their character
+  description -- Kael's shard gets a steady heartbeat pulse, Brann's cyborg
+  eye a broken glitch-flicker, VB's tool an uneven restless twirl, Teo's
+  knife a quiet occasional glint -- all paused via `IntersectionObserver`
+  when their section leaves the viewport, and entirely skipped (page loads
+  fully visible, no loops) under `prefers-reduced-motion`. GSAP/ScrollTrigger
+  were previously vendored "for the Worlds atlas only"; this page is a
+  deliberate, documented second use of those same local vendor files, not a
+  new dependency. Kael and Brann reuse Neoh's existing atlas signal color
+  (`rgb(154,96,238)`, from `ATLAS_TONES` in `js/worlds.js`) since both are
+  Neoh-tied in-story; Teo reuses High Hammer's existing weather-card copper
+  accent (`rgb(230,150,80)`) since he's High Hammer-tied; VB intentionally
+  gets a neutral teal/red palette derived only from her own portrait, not
+  from any established world's color identity, because her true world
+  affiliation is a deliberate spoiler not meant to be hinted at visually.
+  Portrait images: `images/char-kael.jpg` (already existing), plus
+  `images/char-brann.jpg`, `images/char-vb.jpg`, and `images/char-teo.jpg`.
+  The nav link and footer "Explore" entry were added across all pages
+  that carry the full mega-menu; the three auth/legal utility pages
+  (`password-reset.html`, `privacy-request.html`, `privacy.html`) were
+  deliberately left alone since they never had The Universe dropdown to
+  begin with, and `news-post.html`'s already-inconsistent minimal footer
+  (missing several other Explore links too, pre-existing) was left as-is
+  rather than scope-creeping into an unrelated fix.
 
 - Added permissioned Mail Log observability: best-effort outbound attempt
   logging (including skipped/failed delivery states) and a signed inbound

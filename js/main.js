@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (group) group.classList.add('nav-current');
     });
     var routeGroups = {
-      'The Universe': ['/books.html', '/chapter-one.html', '/worlds.html', '/overlord.html', '/overlords.html', '/soundtracks.html'],
+      'The Universe': ['/books.html', '/chapter-one.html', '/worlds.html', '/overlord.html', '/overlords.html', '/known-figures.html', '/soundtracks.html'],
       'News': ['/news.html', '/dev-dispatches.html', '/dev-metrics.html'],
       'Community': ['/community.html', '/member.html', '/memberlist.html', '/profile.html', '/notifications.html', '/quiz.html']
     };
@@ -79,6 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
           'The Books': { eyebrow: 'The Books', text: 'Begin with the novels and follow the fractures they leave behind.', watermark: 'BOOKS' },
           'The Worlds': { eyebrow: 'The Worlds', text: 'Trace the realms beyond the Veil and the forces that shape them.', watermark: 'WORLDS' },
           'The Overlords': { eyebrow: 'The Overlords', text: 'Meet the powers whose influence reaches across every world.', watermark: 'OVERLORDS' },
+          'Known Figures': { eyebrow: 'Known Figures', text: 'Field records on the names the Overcode still has trouble accounting for.', watermark: 'FIGURES' },
           'The Soundtracks': { eyebrow: 'The Soundtracks', text: 'Listen to the score and atmosphere behind the Pantheon Wars.', watermark: 'SOUND' }
         }
       },
