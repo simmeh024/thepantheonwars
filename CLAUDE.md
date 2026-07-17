@@ -174,9 +174,25 @@ on a new table, that's a real bug to fix, not a display artifact.
   variant recolors the live pill/icons/divider/background toward warm timber
   and coral -- the same terracotta already used for the Coral Palace layer
   (`.world-layer-tint--orange`, `rgba(210,120,50)`) -- rather than inventing an
-  unrelated palette for the same world. Extending to a third world only
-  requires a new seed migration; no admin UI or public-page code changes are
-  needed unless it wants its own bureau name/color.
+  unrelated palette for the same world.
+- **Full rollout (all worlds except The Nexus Veil):**
+  `sql/migration_world_weather_remaining.sql` seeds one profile row apiece for
+  the other ten calibrated worlds -- High Hammer, Cerius, Reanium, Babki Prime,
+  Sed, Geof V, Beoctica, Terek II, Valerium Prime, and Vermillia XI. The Nexus
+  Veil is deliberately excluded: it's neutral ground with no per-medallion atlas
+  motif (no `DRAWERS` entry in `js/world-atlas-effects.js`), so it has no
+  established color identity to reuse. Locked worlds are seeded exactly like
+  available ones -- `api/world-weather.php` already gates on the World Control
+  record being `available`, so a locked world's profile stays fully editable in
+  Weather Control but invisible on the public site until it unlocks, the same
+  as every other locked world's lore content. Every new `world-weather-card--
+  <slug>` CSS variant and `WEATHER_SERVICE_LABELS` bureau name reuses that
+  world's existing `js/world-atlas-effects.js` glow color rather than inventing
+  a new palette (e.g. Reanium's toxic green, Sed's solar orange, Beoctica's ice
+  white, Vermillia XI's rain blue-grey with a gold-flecked divider for its
+  gold-fleck rain particles) -- the same principle used for Asmecu above. A
+  future thirteenth world only needs a seed migration plus, optionally, its own
+  bureau label/CSS variant; nothing else in the pipeline changes.
 
 ## Server introspection notes (this specific host)
 
@@ -269,7 +285,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=210, community v=202, and admin v=221. Public pages use
+  versions: public v=211, community v=202, and admin v=221. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.

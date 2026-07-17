@@ -1271,6 +1271,206 @@
 .world-weather-card--asmecu .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(224, 141, 92, 0.32)); }
 .world-weather-card--asmecu .world-weather-divider::after { background: linear-gradient(90deg, rgba(224, 141, 92, 0.32), transparent); }
 
+/* Every other calibrated world (except The Nexus Veil, neutral ground with
+   no per-medallion atlas motif) gets the same treatment: reuse that world's
+   existing js/world-atlas-effects.js glow color rather than inventing a new
+   palette per world. High Hammer/Cerius reuse their forge-copper/ember-red
+   glow; Reanium/Babki Prime reuse their toxic-green/jungle-green-gold glow;
+   Sed reuses its blistering solar orange; Geof V/Beoctica reuse their
+   steel-fog/ice-white glow; Terek II reuses its warfront fire-orange;
+   Valerium Prime reuses its holy gold; Vermillia XI reuses its rain
+   blue-grey with a gold-flecked divider. */
+.world-weather-card--high-hammer {
+  border-color: rgba(230, 150, 80, 0.4);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(196, 110, 55, 0.28), transparent 36%),
+    radial-gradient(circle at 7% 92%, rgba(120, 70, 30, 0.22), transparent 38%),
+    linear-gradient(155deg, rgba(32, 20, 12, 0.98), rgba(20, 13, 8, 0.98));
+}
+.world-weather-card--high-hammer::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(230, 150, 80, 0.028) 4px 5px); }
+.world-weather-card--high-hammer .world-weather-live { border-color: rgba(230, 150, 80, 0.4); background: rgba(230, 150, 80, 0.12); color: #f0b080; }
+.world-weather-card--high-hammer .world-weather-live i { background: #e8935a; box-shadow: 0 0 7px #e8935a; }
+.world-weather-card--high-hammer .world-weather-current-icon,
+.world-weather-card--high-hammer .world-weather-day-icon { color: #e89a5f; }
+.world-weather-card--high-hammer .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(230, 150, 80, 0.35)); }
+.world-weather-card--high-hammer .world-weather-metrics { border-color: rgba(120, 70, 30, 0.2); background: rgba(120, 70, 30, 0.1); }
+.world-weather-card--high-hammer .world-weather-metrics div { border-right-color: rgba(120, 70, 30, 0.16); }
+.world-weather-card--high-hammer .world-weather-day.is-today { border-color: rgba(230, 150, 80, 0.32); background: linear-gradient(180deg, rgba(230, 150, 80, 0.12), rgba(120, 70, 30, 0.1)); }
+.world-weather-card--high-hammer .world-weather-divider { color: #d9a878; }
+.world-weather-card--high-hammer .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(230, 150, 80, 0.32)); }
+.world-weather-card--high-hammer .world-weather-divider::after { background: linear-gradient(90deg, rgba(230, 150, 80, 0.32), transparent); }
+.world-weather-card--cerius {
+  border-color: rgba(233, 90, 55, 0.4);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(200, 60, 35, 0.28), transparent 36%),
+    radial-gradient(circle at 7% 92%, rgba(110, 30, 20, 0.22), transparent 38%),
+    linear-gradient(155deg, rgba(32, 12, 10, 0.98), rgba(20, 8, 7, 0.98));
+}
+.world-weather-card--cerius::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(233, 90, 55, 0.028) 4px 5px); }
+.world-weather-card--cerius .world-weather-live { border-color: rgba(233, 90, 55, 0.4); background: rgba(233, 90, 55, 0.12); color: #f2967a; }
+.world-weather-card--cerius .world-weather-live i { background: #e8623a; box-shadow: 0 0 7px #e8623a; }
+.world-weather-card--cerius .world-weather-current-icon,
+.world-weather-card--cerius .world-weather-day-icon { color: #e86b40; }
+.world-weather-card--cerius .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(233, 90, 55, 0.35)); }
+.world-weather-card--cerius .world-weather-metrics { border-color: rgba(110, 30, 20, 0.2); background: rgba(110, 30, 20, 0.1); }
+.world-weather-card--cerius .world-weather-metrics div { border-right-color: rgba(110, 30, 20, 0.16); }
+.world-weather-card--cerius .world-weather-day.is-today { border-color: rgba(233, 90, 55, 0.32); background: linear-gradient(180deg, rgba(233, 90, 55, 0.12), rgba(110, 30, 20, 0.1)); }
+.world-weather-card--cerius .world-weather-divider { color: #d98a68; }
+.world-weather-card--cerius .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(233, 90, 55, 0.32)); }
+.world-weather-card--cerius .world-weather-divider::after { background: linear-gradient(90deg, rgba(233, 90, 55, 0.32), transparent); }
+.world-weather-card--reanium {
+  border-color: rgba(151, 255, 75, 0.4);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(120, 200, 60, 0.28), transparent 36%),
+    radial-gradient(circle at 7% 92%, rgba(50, 90, 30, 0.22), transparent 38%),
+    linear-gradient(155deg, rgba(14, 26, 10, 0.98), rgba(8, 18, 6, 0.98));
+}
+.world-weather-card--reanium::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(151, 255, 75, 0.028) 4px 5px); }
+.world-weather-card--reanium .world-weather-live { border-color: rgba(151, 255, 75, 0.4); background: rgba(151, 255, 75, 0.12); color: #a8f277; }
+.world-weather-card--reanium .world-weather-live i { background: #8cf24a; box-shadow: 0 0 7px #8cf24a; }
+.world-weather-card--reanium .world-weather-current-icon,
+.world-weather-card--reanium .world-weather-day-icon { color: #94f050; }
+.world-weather-card--reanium .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(151, 255, 75, 0.35)); }
+.world-weather-card--reanium .world-weather-metrics { border-color: rgba(50, 90, 30, 0.2); background: rgba(50, 90, 30, 0.1); }
+.world-weather-card--reanium .world-weather-metrics div { border-right-color: rgba(50, 90, 30, 0.16); }
+.world-weather-card--reanium .world-weather-day.is-today { border-color: rgba(151, 255, 75, 0.32); background: linear-gradient(180deg, rgba(151, 255, 75, 0.12), rgba(50, 90, 30, 0.1)); }
+.world-weather-card--reanium .world-weather-divider { color: #b0e888; }
+.world-weather-card--reanium .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(151, 255, 75, 0.32)); }
+.world-weather-card--reanium .world-weather-divider::after { background: linear-gradient(90deg, rgba(151, 255, 75, 0.32), transparent); }
+.world-weather-card--babki-prime {
+  border-color: rgba(150, 210, 100, 0.4);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(110, 180, 80, 0.28), transparent 36%),
+    radial-gradient(circle at 7% 92%, rgba(150, 130, 40, 0.22), transparent 38%),
+    linear-gradient(155deg, rgba(14, 24, 10, 0.98), rgba(10, 16, 6, 0.98));
+}
+.world-weather-card--babki-prime::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(150, 210, 100, 0.028) 4px 5px); }
+.world-weather-card--babki-prime .world-weather-live { border-color: rgba(150, 210, 100, 0.4); background: rgba(150, 210, 100, 0.12); color: #b8e08a; }
+.world-weather-card--babki-prime .world-weather-live i { background: #9ad066; box-shadow: 0 0 7px #9ad066; }
+.world-weather-card--babki-prime .world-weather-current-icon,
+.world-weather-card--babki-prime .world-weather-day-icon { color: #a6d873; }
+.world-weather-card--babki-prime .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(150, 210, 100, 0.35)); }
+.world-weather-card--babki-prime .world-weather-metrics { border-color: rgba(150, 130, 40, 0.2); background: rgba(150, 130, 40, 0.1); }
+.world-weather-card--babki-prime .world-weather-metrics div { border-right-color: rgba(150, 130, 40, 0.16); }
+.world-weather-card--babki-prime .world-weather-day.is-today { border-color: rgba(150, 210, 100, 0.32); background: linear-gradient(180deg, rgba(150, 210, 100, 0.12), rgba(150, 130, 40, 0.1)); }
+.world-weather-card--babki-prime .world-weather-divider { color: #c8dc98; }
+.world-weather-card--babki-prime .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(150, 210, 100, 0.32)); }
+.world-weather-card--babki-prime .world-weather-divider::after { background: linear-gradient(90deg, rgba(150, 210, 100, 0.32), transparent); }
+.world-weather-card--sed {
+  border-color: rgba(255, 150, 60, 0.4);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(220, 110, 30, 0.28), transparent 36%),
+    radial-gradient(circle at 7% 92%, rgba(140, 40, 15, 0.22), transparent 38%),
+    linear-gradient(155deg, rgba(34, 14, 8, 0.98), rgba(22, 9, 6, 0.98));
+}
+.world-weather-card--sed::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(255, 150, 60, 0.028) 4px 5px); }
+.world-weather-card--sed .world-weather-live { border-color: rgba(255, 150, 60, 0.4); background: rgba(255, 150, 60, 0.12); color: #ffb37a; }
+.world-weather-card--sed .world-weather-live i { background: #ff9f52; box-shadow: 0 0 7px #ff9f52; }
+.world-weather-card--sed .world-weather-current-icon,
+.world-weather-card--sed .world-weather-day-icon { color: #ffab5e; }
+.world-weather-card--sed .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(255, 150, 60, 0.35)); }
+.world-weather-card--sed .world-weather-metrics { border-color: rgba(140, 40, 15, 0.2); background: rgba(140, 40, 15, 0.1); }
+.world-weather-card--sed .world-weather-metrics div { border-right-color: rgba(140, 40, 15, 0.16); }
+.world-weather-card--sed .world-weather-day.is-today { border-color: rgba(255, 150, 60, 0.32); background: linear-gradient(180deg, rgba(255, 150, 60, 0.12), rgba(140, 40, 15, 0.1)); }
+.world-weather-card--sed .world-weather-divider { color: #f0c088; }
+.world-weather-card--sed .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(255, 150, 60, 0.32)); }
+.world-weather-card--sed .world-weather-divider::after { background: linear-gradient(90deg, rgba(255, 150, 60, 0.32), transparent); }
+.world-weather-card--geof-v {
+  border-color: rgba(190, 212, 229, 0.4);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(150, 175, 200, 0.28), transparent 36%),
+    radial-gradient(circle at 7% 92%, rgba(70, 90, 110, 0.22), transparent 38%),
+    linear-gradient(155deg, rgba(14, 18, 24, 0.98), rgba(9, 12, 17, 0.98));
+}
+.world-weather-card--geof-v::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(190, 212, 229, 0.028) 4px 5px); }
+.world-weather-card--geof-v .world-weather-live { border-color: rgba(190, 212, 229, 0.4); background: rgba(190, 212, 229, 0.12); color: #c8dcec; }
+.world-weather-card--geof-v .world-weather-live i { background: #a8c4de; box-shadow: 0 0 7px #a8c4de; }
+.world-weather-card--geof-v .world-weather-current-icon,
+.world-weather-card--geof-v .world-weather-day-icon { color: #b4cee4; }
+.world-weather-card--geof-v .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(190, 212, 229, 0.35)); }
+.world-weather-card--geof-v .world-weather-metrics { border-color: rgba(70, 90, 110, 0.2); background: rgba(70, 90, 110, 0.1); }
+.world-weather-card--geof-v .world-weather-metrics div { border-right-color: rgba(70, 90, 110, 0.16); }
+.world-weather-card--geof-v .world-weather-day.is-today { border-color: rgba(190, 212, 229, 0.32); background: linear-gradient(180deg, rgba(190, 212, 229, 0.12), rgba(70, 90, 110, 0.1)); }
+.world-weather-card--geof-v .world-weather-divider { color: #c0d4e4; }
+.world-weather-card--geof-v .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(190, 212, 229, 0.32)); }
+.world-weather-card--geof-v .world-weather-divider::after { background: linear-gradient(90deg, rgba(190, 212, 229, 0.32), transparent); }
+.world-weather-card--beoctica {
+  border-color: rgba(222, 237, 255, 0.4);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(180, 210, 240, 0.28), transparent 36%),
+    radial-gradient(circle at 7% 92%, rgba(90, 120, 160, 0.22), transparent 38%),
+    linear-gradient(155deg, rgba(10, 16, 26, 0.98), rgba(6, 10, 18, 0.98));
+}
+.world-weather-card--beoctica::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(222, 237, 255, 0.028) 4px 5px); }
+.world-weather-card--beoctica .world-weather-live { border-color: rgba(222, 237, 255, 0.4); background: rgba(222, 237, 255, 0.12); color: #e4f0ff; }
+.world-weather-card--beoctica .world-weather-live i { background: #c8e0ff; box-shadow: 0 0 7px #c8e0ff; }
+.world-weather-card--beoctica .world-weather-current-icon,
+.world-weather-card--beoctica .world-weather-day-icon { color: #d4e8ff; }
+.world-weather-card--beoctica .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(222, 237, 255, 0.35)); }
+.world-weather-card--beoctica .world-weather-metrics { border-color: rgba(90, 120, 160, 0.2); background: rgba(90, 120, 160, 0.1); }
+.world-weather-card--beoctica .world-weather-metrics div { border-right-color: rgba(90, 120, 160, 0.16); }
+.world-weather-card--beoctica .world-weather-day.is-today { border-color: rgba(222, 237, 255, 0.32); background: linear-gradient(180deg, rgba(222, 237, 255, 0.12), rgba(90, 120, 160, 0.1)); }
+.world-weather-card--beoctica .world-weather-divider { color: #d8ecff; }
+.world-weather-card--beoctica .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(222, 237, 255, 0.32)); }
+.world-weather-card--beoctica .world-weather-divider::after { background: linear-gradient(90deg, rgba(222, 237, 255, 0.32), transparent); }
+.world-weather-card--terek-ii {
+  border-color: rgba(255, 120, 50, 0.4);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(220, 90, 40, 0.28), transparent 36%),
+    radial-gradient(circle at 7% 92%, rgba(90, 30, 20, 0.22), transparent 38%),
+    linear-gradient(155deg, rgba(28, 14, 10, 0.98), rgba(18, 9, 7, 0.98));
+}
+.world-weather-card--terek-ii::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(255, 120, 50, 0.028) 4px 5px); }
+.world-weather-card--terek-ii .world-weather-live { border-color: rgba(255, 120, 50, 0.4); background: rgba(255, 120, 50, 0.12); color: #ffa073; }
+.world-weather-card--terek-ii .world-weather-live i { background: #ff7a3d; box-shadow: 0 0 7px #ff7a3d; }
+.world-weather-card--terek-ii .world-weather-current-icon,
+.world-weather-card--terek-ii .world-weather-day-icon { color: #ff8548; }
+.world-weather-card--terek-ii .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(255, 120, 50, 0.35)); }
+.world-weather-card--terek-ii .world-weather-metrics { border-color: rgba(90, 30, 20, 0.2); background: rgba(90, 30, 20, 0.1); }
+.world-weather-card--terek-ii .world-weather-metrics div { border-right-color: rgba(90, 30, 20, 0.16); }
+.world-weather-card--terek-ii .world-weather-day.is-today { border-color: rgba(255, 120, 50, 0.32); background: linear-gradient(180deg, rgba(255, 120, 50, 0.12), rgba(90, 30, 20, 0.1)); }
+.world-weather-card--terek-ii .world-weather-divider { color: #f0a070; }
+.world-weather-card--terek-ii .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(255, 120, 50, 0.32)); }
+.world-weather-card--terek-ii .world-weather-divider::after { background: linear-gradient(90deg, rgba(255, 120, 50, 0.32), transparent); }
+.world-weather-card--valerium-prime {
+  border-color: rgba(255, 216, 118, 0.4);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(220, 180, 90, 0.28), transparent 36%),
+    radial-gradient(circle at 7% 92%, rgba(150, 110, 40, 0.22), transparent 38%),
+    linear-gradient(155deg, rgba(30, 22, 10, 0.98), rgba(20, 14, 6, 0.98));
+}
+.world-weather-card--valerium-prime::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(255, 216, 118, 0.028) 4px 5px); }
+.world-weather-card--valerium-prime .world-weather-live { border-color: rgba(255, 216, 118, 0.4); background: rgba(255, 216, 118, 0.12); color: #ffe8a0; }
+.world-weather-card--valerium-prime .world-weather-live i { background: #ffd370; box-shadow: 0 0 7px #ffd370; }
+.world-weather-card--valerium-prime .world-weather-current-icon,
+.world-weather-card--valerium-prime .world-weather-day-icon { color: #ffdc80; }
+.world-weather-card--valerium-prime .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(255, 216, 118, 0.35)); }
+.world-weather-card--valerium-prime .world-weather-metrics { border-color: rgba(150, 110, 40, 0.2); background: rgba(150, 110, 40, 0.1); }
+.world-weather-card--valerium-prime .world-weather-metrics div { border-right-color: rgba(150, 110, 40, 0.16); }
+.world-weather-card--valerium-prime .world-weather-day.is-today { border-color: rgba(255, 216, 118, 0.32); background: linear-gradient(180deg, rgba(255, 216, 118, 0.12), rgba(150, 110, 40, 0.1)); }
+.world-weather-card--valerium-prime .world-weather-divider { color: #f0d090; }
+.world-weather-card--valerium-prime .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(255, 216, 118, 0.32)); }
+.world-weather-card--valerium-prime .world-weather-divider::after { background: linear-gradient(90deg, rgba(255, 216, 118, 0.32), transparent); }
+.world-weather-card--vermillia-xi {
+  border-color: rgba(170, 200, 225, 0.4);
+  background:
+    radial-gradient(circle at 95% 0%, rgba(130, 160, 190, 0.28), transparent 36%),
+    radial-gradient(circle at 7% 92%, rgba(90, 80, 50, 0.22), transparent 38%),
+    linear-gradient(155deg, rgba(12, 16, 22, 0.98), rgba(8, 11, 16, 0.98));
+}
+.world-weather-card--vermillia-xi::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(170, 200, 225, 0.028) 4px 5px); }
+.world-weather-card--vermillia-xi .world-weather-live { border-color: rgba(170, 200, 225, 0.4); background: rgba(170, 200, 225, 0.12); color: #c0d8ec; }
+.world-weather-card--vermillia-xi .world-weather-live i { background: #9ac0e0; box-shadow: 0 0 7px #9ac0e0; }
+.world-weather-card--vermillia-xi .world-weather-current-icon,
+.world-weather-card--vermillia-xi .world-weather-day-icon { color: #a8c8e4; }
+.world-weather-card--vermillia-xi .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(170, 200, 225, 0.35)); }
+.world-weather-card--vermillia-xi .world-weather-metrics { border-color: rgba(90, 80, 50, 0.2); background: rgba(90, 80, 50, 0.1); }
+.world-weather-card--vermillia-xi .world-weather-metrics div { border-right-color: rgba(90, 80, 50, 0.16); }
+.world-weather-card--vermillia-xi .world-weather-day.is-today { border-color: rgba(170, 200, 225, 0.32); background: linear-gradient(180deg, rgba(170, 200, 225, 0.12), rgba(90, 80, 50, 0.1)); }
+.world-weather-card--vermillia-xi .world-weather-divider { color: #c8b088; }
+.world-weather-card--vermillia-xi .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(170, 200, 225, 0.32)); }
+.world-weather-card--vermillia-xi .world-weather-divider::after { background: linear-gradient(90deg, rgba(170, 200, 225, 0.32), transparent); }
+
 @media (max-width: 960px) {
   .world-record-overview { grid-template-columns: 1fr; }
   .world-weather-card { max-width: 560px; }

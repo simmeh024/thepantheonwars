@@ -47,7 +47,17 @@ document.addEventListener('DOMContentLoaded', function () {
   // weather profile doesn't have a bespoke entry here yet.
   var WEATHER_SERVICE_LABELS = {
     neoh: 'Neoh Atmospheric Service',
-    asmecu: 'Asmecu Tideglass Bureau'
+    asmecu: 'Asmecu Tideglass Bureau',
+    'high-hammer': 'High Hammer Forge Watch',
+    cerius: 'Cerius Cinderwatch',
+    reanium: 'Reanium Fallout Watch',
+    'babki-prime': 'Babki Prime Canopy Watch',
+    sed: 'Sed Scorch Bureau',
+    'geof-v': 'Geof V Column Watch',
+    beoctica: 'Beoctica Frostwatch',
+    'terek-ii': 'Terek II Frontline Watch',
+    'valerium-prime': 'Valerium Prime Halo Bureau',
+    'vermillia-xi': 'Vermillia XI Dome Watch'
   };
 
   function weatherCardHtml(weather, worldSlug, worldName) {
