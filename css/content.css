@@ -1851,32 +1851,6 @@
     radial-gradient(circle at 50% 55%, rgba(10,7,21,0.1) 0%, rgba(10,7,21,0.5) 60%, rgba(10,7,21,0.88) 100%),
     linear-gradient(to top, rgba(10,7,21,0.92) 0%, rgba(10,7,21,0.12) 42%, rgba(10,7,21,0.4) 100%);
 }
-/* Traces the crystal's own cracks from the artwork (js/home-prophecy.js
-   comment has the full story). Shares .prophecy-bg's exact background-size/
-   position and base transform so the SVG's traced coordinates -- authored
-   against the source photo's native 1672x941 pixels -- land exactly on the
-   real cracks at every viewport size; js/home-prophecy.js keeps its GSAP
-   scroll-scrub transform locked to .prophecy-bg's for the same reason. It
-   has to stay a sibling rather than a child of .prophecy-bg to paint above
-   .prophecy-veil (a child can never out-rank a higher z-index sibling of
-   its parent, no matter its own z-index). */
-.prophecy-cracks {
-  position: absolute; inset: 0; z-index: 1;
-  background-size: cover;
-  background-position: center 30%;
-  transform: scale(1.05);
-  opacity: 0.85;
-  animation: prophecy-cracks-glow 8s ease-in-out infinite;
-  will-change: opacity, filter, transform;
-}
-@keyframes prophecy-cracks-glow {
-  0%   { opacity: 0.5; filter: brightness(0.85); }
-  50%  { opacity: 1; filter: brightness(1.4); }
-  100% { opacity: 0.5; filter: brightness(0.85); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .prophecy-cracks { animation: none; opacity: 0.85; }
-}
 .prophecy-embers {
   position: absolute; inset: 0; z-index: 2;
   pointer-events: none;
