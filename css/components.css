@@ -1291,15 +1291,37 @@ blockquote.myth cite {
 
 /* ---------------- Footer ---------------- */
 footer.site-footer {
+  position: relative;
   background: var(--bg);
-  border-top: 1px solid var(--border-soft);
-  padding: 60px 0 30px;
+  border-top: none;
+  padding: 64px 0 30px;
+}
+/* A thin top-edge strip sequencing all twelve worlds' established atlas
+   signal colors (js/worlds.js ATLAS_TONES) in atlas order -- ties the
+   footer back into the site's core "twelve worlds" motif on every page
+   without depending on any world's live/locked status, since these are
+   fixed brand colors rather than DB-driven content. */
+footer.site-footer::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg,
+    rgb(154, 96, 238), rgb(184, 111, 66), rgb(204, 72, 80), rgb(159, 224, 65),
+    rgb(68, 150, 237), rgb(59, 148, 83), rgb(166, 36, 57), rgb(158, 175, 193),
+    rgb(225, 232, 241), rgb(121, 29, 40), rgb(218, 176, 76), rgb(210, 142, 72));
+  opacity: 0.6;
 }
 .footer-grid {
-  display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 40px;
+  display: grid; grid-template-columns: 1.3fr 1fr 1fr 1fr; gap: 40px;
   margin-bottom: 40px;
 }
-@media (max-width: 700px) { .footer-grid { grid-template-columns: 1fr; } }
+@media (max-width: 900px) {
+  .footer-grid { grid-template-columns: 1fr 1fr; row-gap: 32px; }
+  .footer-brand { grid-column: 1 / -1; }
+}
+@media (max-width: 700px) {
+  .footer-grid { grid-template-columns: 1fr; }
+  .footer-brand { grid-column: auto; }
+}
 .footer-grid h4 {
   font-family: 'Jost', sans-serif; text-transform: uppercase; letter-spacing: 0.14em;
   font-size: 0.78rem; color: var(--gold); margin-bottom: 1em;
@@ -1307,6 +1329,21 @@ footer.site-footer {
 .footer-grid ul { list-style: none; padding: 0; margin: 0; }
 .footer-grid li { margin-bottom: 0.6em; }
 .footer-grid a { color: var(--text-dim); font-size: 0.92rem; }
+.footer-grid .footer-brand-mark {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: 'Cinzel', serif; font-size: 1.05rem; letter-spacing: 0.1em;
+  color: var(--gold); text-transform: uppercase; margin-bottom: 0.8em;
+  transition: color 0.3s ease;
+}
+.footer-grid .footer-brand-mark:hover { color: var(--purple-bright); }
+.footer-brand p { margin: 0 0 1.1em; }
+.footer-utility-links {
+  display: flex; flex-wrap: wrap; gap: 6px 18px;
+  list-style: none; padding: 0; margin: 0;
+}
+.footer-utility-links li { margin: 0; }
+.footer-utility-links a { color: var(--text-faint); font-size: 0.82rem; }
+.footer-utility-links a:hover { color: var(--gold); }
 .footer-bottom {
   text-align: center; font-size: 0.78rem; color: var(--text-faint);
   border-top: 1px solid var(--border-soft); padding-top: 24px;
