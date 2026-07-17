@@ -454,6 +454,31 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Recent history (most recent first)
 
+- **Soundtrack Control** (Lore Management > Soundtrack Control, new): the
+  single hand-authored `.soundtrack-panel` block on `soundtracks.html` is now
+  a real, admin-managed CRUD -- same flat list/modal/reorder pattern as
+  Known Figures Control / Overlord Control. An admin pastes a normal
+  `open.spotify.com` album/playlist/track share link; `create.php`/
+  `update.php` parse it once via `pw_parse_spotify_url()`
+  (`api/admin/soundtracks/soundtracks-helpers.php`) into
+  `spotify_embed_type`/`spotify_embed_id`, stored alongside the original
+  `spotify_url` (kept verbatim for the "Listen on Spotify" badge link, so any
+  `?si=` tracking param survives). Both the admin modal's live preview and
+  the public page build the iframe `src` from a fixed
+  `https://open.spotify.com/embed/<type>/<id>` template rather than
+  re-parsing the URL, so the regex only has to be correct in one server-side
+  place; the admin JS duplicates a client-side copy only for the instant
+  preview, same "duplicated small parser, single source of truth for the
+  stored value" tradeoff as this codebase's other hand-duplicated helpers.
+  `api/soundtracks.php` is the public unauthenticated read
+  (`is_published = 1`, ordered by `sort_order`); `js/soundtracks.js` renders
+  one repeatable `.soundtrack-panel.ornate` block per record into
+  `soundtracks.html`'s `#soundtrack-list`, reusing the existing
+  `.soundtrack-grid`/`.spotify-badge`/`.spotify-embed` CSS from
+  `components.css` untouched. Run `sql/migration_soundtracks.sql` once in
+  phpMyAdmin after deploy; it seeds the one soundtrack already live
+  (transcribed verbatim) so the cutover is visually identical.
+
 - **Footer redesign** (all public pages): the footer had drifted into a flat,
   unstyled 12-link "Explore" column plus a thin "Stay Connected" column holding
   only a duplicate Soundtracks link and a dead `#newsletter` anchor with no real

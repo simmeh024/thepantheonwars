@@ -812,6 +812,23 @@ CREATE TABLE IF NOT EXISTS known_figures (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Soundtrack Control: flat entity powering soundtracks.html. spotify_embed_type
+-- and spotify_embed_id are parsed once from the admin-pasted spotify_url at
+-- save time, so the public/admin embed iframe is built from a fixed template
+-- rather than re-parsing the URL -- see migration_soundtracks.sql.
+CREATE TABLE IF NOT EXISTS soundtracks (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  eyebrow VARCHAR(150) NOT NULL DEFAULT '',
+  heading VARCHAR(200) NOT NULL DEFAULT '',
+  description TEXT NULL,
+  spotify_url VARCHAR(500) NOT NULL DEFAULT '',
+  spotify_embed_type ENUM('album','playlist','track') NOT NULL DEFAULT 'album',
+  spotify_embed_id VARCHAR(64) NOT NULL DEFAULT '',
+  is_published TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Revocable account-session registry. Hashes only: never persist raw PHP
 -- session IDs or opaque browser session tokens.
 CREATE TABLE IF NOT EXISTS user_sessions (

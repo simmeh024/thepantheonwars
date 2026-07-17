@@ -298,6 +298,7 @@
   background: var(--panel); border: 1px solid var(--border);
   padding: 30px; margin: 2.4em 0; display: flex; gap: 22px; align-items: flex-start;
 }
+#soundtrack-list .soundtrack-panel + .soundtrack-panel { margin-top: 40px; }
 .soundtrack-box .icon { font-size: 1.8rem; color: var(--gold); }
 .soundtrack-box h4 { margin: 0 0 0.4em; font-family: 'Jost', sans-serif; letter-spacing: 0.05em; }
 .soundtrack-box p { margin: 0; font-size: 0.92rem; }

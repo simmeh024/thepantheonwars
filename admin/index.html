@@ -39,7 +39,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="lore" data-requires-permission="books.view,worlds.view,weather.view,overlords.view,known_figures.view">
+    <div class="admin-nav-category is-collapsed" data-category="lore" data-requires-permission="books.view,worlds.view,weather.view,overlords.view,known_figures.view,soundtracks.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>Lore Management</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -50,6 +50,7 @@
         <li data-requires-permission="weather.view"><button type="button" class="admin-nav-link" data-section="weather-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M7 17a4 4 0 1 1 1-7.87A6 6 0 0 1 19 12a3 3 0 0 1-1 5H7z"/><path d="M8 20l-1 2M12 20l-1 2M16 20l-1 2"/></svg>Weather Control</button></li>
         <li data-requires-permission="overlords.view"><button type="button" class="admin-nav-link" data-section="overlord-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><circle cx="12" cy="10" r="2.5"/></svg>Overlord Control</button></li>
         <li data-requires-permission="known_figures.view"><button type="button" class="admin-nav-link" data-section="known-figures-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Known Figures Control</button></li>
+        <li data-requires-permission="soundtracks.view"><button type="button" class="admin-nav-link" data-section="soundtrack-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9 16V8l7-2v8"/><circle cx="8" cy="16" r="1.6"/><circle cx="15" cy="14" r="1.6"/></svg>Soundtrack Control</button></li>
       </ul>
     </div>
 
@@ -1236,6 +1237,12 @@
             <option value="known_figure_deleted">Known figure deleted</option>
             <option value="known_figure_reordered">Known figures reordered</option>
           </optgroup>
+          <optgroup label="Soundtrack Control">
+            <option value="soundtrack_created">Soundtrack created</option>
+            <option value="soundtrack_updated">Soundtrack updated</option>
+            <option value="soundtrack_deleted">Soundtrack deleted</option>
+            <option value="soundtrack_reordered">Soundtracks reordered</option>
+          </optgroup>
           <optgroup label="Dispatches">
             <option value="translation_added">Translation added</option>
             <option value="translation_updated">Translation updated</option>
@@ -1589,6 +1596,22 @@
 
       <div class="admin-list" id="known-figure-list">
         <div class="admin-list-empty">Loading known figures&hellip;</div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-soundtrack-control" hidden>
+      <div class="admin-section-head">
+        <h1>Soundtrack Control</h1>
+        <p>Manage the soundtrack entries on the public Soundtracks page. Paste an open.spotify.com album, playlist, or track link and the embed is generated automatically.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button type="button" class="btn btn-solid" id="soundtrack-create-btn">+ Add Soundtrack</button>
+        <span class="admin-count" id="soundtrack-count"></span>
+      </div>
+
+      <div class="admin-list" id="soundtrack-list">
+        <div class="admin-list-empty">Loading soundtracks&hellip;</div>
       </div>
     </section>
 
@@ -2623,6 +2646,54 @@
   </div>
 </div>
 
+<div class="admin-modal" id="soundtrack-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="soundtrack-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="soundtrack-modal-title">Edit Soundtrack</h3>
+    <p class="admin-modal-sub" id="soundtrack-modal-sub"></p>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="soundtrack-eyebrow-input">Eyebrow line</label>
+        <input type="text" id="soundtrack-eyebrow-input" maxlength="150" placeholder="e.g. &#9834; Book One">
+      </div>
+      <div class="admin-field">
+        <label for="soundtrack-heading-input">Heading</label>
+        <input type="text" id="soundtrack-heading-input" maxlength="200" placeholder="e.g. Thirteen Worlds, Thirteen Songs">
+      </div>
+    </div>
+
+    <div class="admin-field">
+      <label for="soundtrack-description-input">Description</label>
+      <textarea id="soundtrack-description-input" maxlength="2000"></textarea>
+    </div>
+
+    <div class="admin-field">
+      <label for="soundtrack-spotify-url-input">Spotify link</label>
+      <p class="admin-field-hint">Paste any open.spotify.com album, playlist, or track share link &mdash; the embed below is generated automatically.</p>
+      <input type="text" id="soundtrack-spotify-url-input" maxlength="500" placeholder="https://open.spotify.com/album/...">
+      <p class="admin-modal-error" id="soundtrack-spotify-preview-error"></p>
+      <div class="spotify-embed admin-spotify-preview" id="soundtrack-spotify-preview" hidden>
+        <iframe id="soundtrack-spotify-preview-frame" style="border-radius:12px" src="" width="100%" height="152" frameborder="0" allow="encrypted-media" loading="lazy" title="Spotify embed preview"></iframe>
+      </div>
+    </div>
+
+    <label class="admin-field news-comments-toggle" for="soundtrack-published-input">
+      <span><strong>Published</strong><small>Visible on the public Soundtracks page. Unpublish to keep an entry in progress without deleting it.</small></span>
+      <input type="checkbox" id="soundtrack-published-input" checked>
+    </label>
+
+    <p class="admin-modal-error" id="soundtrack-modal-error"></p>
+    <p class="admin-modal-status" id="soundtrack-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="soundtrack-save-btn">Save</button>
+      <button type="button" class="btn" id="soundtrack-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="soundtrack-delete-btn" hidden>Delete Soundtrack</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-modal admin-modal-over" id="world-layer-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner admin-modal-inner-wide">
@@ -3021,6 +3092,7 @@
       if (name === 'weather-control') loadWeatherControl();
       if (name === 'overlord-control') loadOverlordList();
       if (name === 'known-figures-control') loadKnownFigureList();
+      if (name === 'soundtrack-control') loadSoundtrackList();
       if (name === 'roles-permissions') loadRoles();
       if (name === 'visitor-stats') loadVisitorStats();
     }
@@ -10381,6 +10453,266 @@
         knownFigureDeleteBtn.disabled = false;
         knownFigureModalError.textContent = 'Could not delete this known figure. Please try again.';
         knownFigureModalError.classList.add('show');
+      });
+  });
+
+  // soundtracks is the source of truth for soundtracks.html's repeated
+  // Spotify embed panels. Flat entity, same list/modal/reorder pattern as
+  // Known Figures Control above -- no image/slug fields, since an entry is
+  // identified by its heading and has no separate detail page.
+  var soundtrackListEl = document.getElementById('soundtrack-list');
+  var soundtrackCountEl = document.getElementById('soundtrack-count');
+  var soundtrackCreateBtn = document.getElementById('soundtrack-create-btn');
+
+  var soundtrackModal = document.getElementById('soundtrack-modal');
+  var soundtrackModalTitle = document.getElementById('soundtrack-modal-title');
+  var soundtrackModalSub = document.getElementById('soundtrack-modal-sub');
+  var soundtrackModalError = document.getElementById('soundtrack-modal-error');
+  var soundtrackModalStatus = document.getElementById('soundtrack-modal-status');
+  var soundtrackCloseBtn = document.getElementById('soundtrack-modal-close');
+  var soundtrackCancelBtn = document.getElementById('soundtrack-cancel-btn');
+  var soundtrackSaveBtn = document.getElementById('soundtrack-save-btn');
+  var soundtrackDeleteBtn = document.getElementById('soundtrack-delete-btn');
+
+  var soundtrackEyebrowInput = document.getElementById('soundtrack-eyebrow-input');
+  var soundtrackHeadingInput = document.getElementById('soundtrack-heading-input');
+  var soundtrackDescriptionInput = document.getElementById('soundtrack-description-input');
+  var soundtrackSpotifyUrlInput = document.getElementById('soundtrack-spotify-url-input');
+  var soundtrackSpotifyPreviewError = document.getElementById('soundtrack-spotify-preview-error');
+  var soundtrackSpotifyPreview = document.getElementById('soundtrack-spotify-preview');
+  var soundtrackSpotifyPreviewFrame = document.getElementById('soundtrack-spotify-preview-frame');
+  var soundtrackPublishedInput = document.getElementById('soundtrack-published-input');
+
+  var lastSoundtrackEntries = [];
+  var soundtrackModalMode = 'create';
+  var currentSoundtrack = null;
+
+  function parseSpotifyUrlForPreview(url) {
+    var m = /open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(album|playlist|track)\/([A-Za-z0-9]+)/i.exec(url || '');
+    return m ? { type: m[1].toLowerCase(), id: m[2] } : null;
+  }
+
+  function updateSoundtrackSpotifyPreview() {
+    var url = soundtrackSpotifyUrlInput.value.trim();
+    if (!url) {
+      soundtrackSpotifyPreview.hidden = true;
+      soundtrackSpotifyPreviewError.classList.remove('show');
+      return;
+    }
+    var parsed = parseSpotifyUrlForPreview(url);
+    if (!parsed) {
+      soundtrackSpotifyPreview.hidden = true;
+      soundtrackSpotifyPreviewError.textContent = 'Could not recognize that as an open.spotify.com album, playlist, or track link.';
+      soundtrackSpotifyPreviewError.classList.add('show');
+      return;
+    }
+    soundtrackSpotifyPreviewError.classList.remove('show');
+    soundtrackSpotifyPreviewFrame.src = 'https://open.spotify.com/embed/' + parsed.type + '/' + parsed.id + '?utm_source=generator&theme=0';
+    soundtrackSpotifyPreview.hidden = false;
+  }
+  soundtrackSpotifyUrlInput.addEventListener('input', updateSoundtrackSpotifyPreview);
+
+  function loadSoundtrackList() {
+    soundtrackListEl.innerHTML = '<div class="admin-list-empty">Loading soundtracks&hellip;</div>';
+    return fetch('/api/admin/soundtracks/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        lastSoundtrackEntries = (data.ok && data.soundtracks) || [];
+        soundtrackCountEl.textContent = lastSoundtrackEntries.length + (lastSoundtrackEntries.length === 1 ? ' soundtrack' : ' soundtracks');
+        renderSoundtrackList(lastSoundtrackEntries);
+      })
+      .catch(function () {
+        soundtrackListEl.innerHTML = '<div class="admin-list-empty">Could not load soundtracks.</div>';
+      });
+  }
+
+  function renderSoundtrackList(entries) {
+    if (!entries.length) {
+      soundtrackListEl.innerHTML = '<div class="admin-list-empty">No soundtracks yet.</div>';
+      return;
+    }
+    soundtrackListEl.innerHTML = '';
+    entries.forEach(function (entry, i) {
+      var row = document.createElement('div');
+      row.className = 'admin-row world-row';
+      row.tabIndex = 0;
+      row.innerHTML =
+        '<div class="admin-row-main">' +
+          '<p class="world-row-title">' + escapeHtml(entry.heading) + (entry.eyebrow ? ' <span class="admin-row-sep">&bull;</span> ' + escapeHtml(entry.eyebrow) : '') + '</p>' +
+        '</div>' +
+        '<div class="world-row-status">' +
+          '<span class="world-overlord-pill">' + escapeHtml(entry.spotify_embed_type) + '</span>' +
+          '<span class="world-status-pill ' + (entry.is_published ? 'is-available' : 'is-locked') + '">' +
+            (entry.is_published ? 'Published' : 'Unpublished') +
+          '</span>' +
+        '</div>';
+
+      var actions = document.createElement('div');
+      actions.className = 'role-row-actions';
+      actions.innerHTML =
+        '<button type="button" class="permission-mini-btn" data-soundtrack-action="up"' + (i === 0 ? ' disabled' : '') + '>Move Up</button>' +
+        '<button type="button" class="permission-mini-btn" data-soundtrack-action="down"' + (i === entries.length - 1 ? ' disabled' : '') + '>Move Down</button>' +
+        '<button type="button" class="permission-mini-btn" data-soundtrack-action="edit">Edit</button>';
+      row.appendChild(actions);
+
+      actions.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-soundtrack-action]');
+        if (!btn || btn.disabled) return;
+        e.stopPropagation();
+        var act = btn.getAttribute('data-soundtrack-action');
+        if (act === 'edit') { openSoundtrackModal(entry); return; }
+        reorderSoundtrack(entry, act === 'up' ? i - 1 : i + 1);
+      });
+      row.addEventListener('click', function () { openSoundtrackModal(entry); });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSoundtrackModal(entry); }
+      });
+      soundtrackListEl.appendChild(row);
+    });
+  }
+
+  function reorderSoundtrack(entry, targetIndex) {
+    if (targetIndex < 0 || targetIndex >= lastSoundtrackEntries.length) return;
+    var ids = lastSoundtrackEntries.map(function (s) { return s.id; });
+    var fromIndex = ids.indexOf(entry.id);
+    ids.splice(fromIndex, 1);
+    ids.splice(targetIndex, 0, entry.id);
+    fetch('/api/admin/soundtracks/reorder.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: ids, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function () { loadSoundtrackList(); });
+  }
+
+  function populateSoundtrackForm(s) {
+    soundtrackEyebrowInput.value = s.eyebrow || '';
+    soundtrackHeadingInput.value = s.heading || '';
+    soundtrackDescriptionInput.value = s.description || '';
+    soundtrackSpotifyUrlInput.value = s.spotify_url || '';
+    soundtrackPublishedInput.checked = s.is_published !== false;
+    updateSoundtrackSpotifyPreview();
+  }
+
+  function openSoundtrackModal(entry) {
+    soundtrackModalMode = 'edit';
+    currentSoundtrack = entry;
+    soundtrackModalTitle.textContent = 'Edit Soundtrack';
+    soundtrackModalSub.textContent = entry.heading;
+    soundtrackDeleteBtn.hidden = false;
+    soundtrackModalError.classList.remove('show');
+    soundtrackModalStatus.classList.remove('show');
+    populateSoundtrackForm(entry);
+    soundtrackModal.hidden = false;
+  }
+
+  function openCreateSoundtrackModal() {
+    soundtrackModalMode = 'create';
+    currentSoundtrack = null;
+    soundtrackModalTitle.textContent = 'Add Soundtrack';
+    soundtrackModalSub.textContent = '';
+    soundtrackDeleteBtn.hidden = true;
+    soundtrackModalError.classList.remove('show');
+    soundtrackModalStatus.classList.remove('show');
+    populateSoundtrackForm({ is_published: true });
+    soundtrackModal.hidden = false;
+    setTimeout(function () { soundtrackEyebrowInput.focus(); }, 30);
+  }
+
+  function closeSoundtrackModal() {
+    soundtrackModal.hidden = true;
+    currentSoundtrack = null;
+  }
+
+  soundtrackCreateBtn.addEventListener('click', openCreateSoundtrackModal);
+  soundtrackCloseBtn.addEventListener('click', closeSoundtrackModal);
+  soundtrackCancelBtn.addEventListener('click', closeSoundtrackModal);
+  soundtrackModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeSoundtrackModal);
+
+  soundtrackSaveBtn.addEventListener('click', function () {
+    var payload = {
+      eyebrow: soundtrackEyebrowInput.value.trim(),
+      heading: soundtrackHeadingInput.value.trim(),
+      description: soundtrackDescriptionInput.value.trim(),
+      spotify_url: soundtrackSpotifyUrlInput.value.trim(),
+      is_published: soundtrackPublishedInput.checked,
+      csrf: window.PW_AUTH.csrf
+    };
+
+    if (!payload.heading) {
+      soundtrackModalError.textContent = 'Give the soundtrack a heading.';
+      soundtrackModalError.classList.add('show');
+      return;
+    }
+    if (!payload.spotify_url || !parseSpotifyUrlForPreview(payload.spotify_url)) {
+      soundtrackModalError.textContent = 'Paste a valid open.spotify.com album, playlist, or track link.';
+      soundtrackModalError.classList.add('show');
+      return;
+    }
+
+    var url = '/api/admin/soundtracks/update.php';
+    if (soundtrackModalMode === 'create') {
+      url = '/api/admin/soundtracks/create.php';
+    } else if (currentSoundtrack) {
+      payload.id = currentSoundtrack.id;
+    }
+
+    soundtrackModalError.classList.remove('show');
+    soundtrackSaveBtn.disabled = true;
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        soundtrackSaveBtn.disabled = false;
+        if (!data.ok) {
+          soundtrackModalError.textContent = data.error || 'Could not save this soundtrack.';
+          soundtrackModalError.classList.add('show');
+          return;
+        }
+        soundtrackModalStatus.textContent = 'Saved.';
+        soundtrackModalStatus.classList.add('show');
+        loadSoundtrackList();
+        setTimeout(closeSoundtrackModal, 700);
+      })
+      .catch(function () {
+        soundtrackSaveBtn.disabled = false;
+        soundtrackModalError.textContent = 'Could not save this soundtrack. Please try again.';
+        soundtrackModalError.classList.add('show');
+      });
+  });
+
+  soundtrackDeleteBtn.addEventListener('click', function () {
+    if (!currentSoundtrack) return;
+    var confirmMsg = 'Permanently delete the soundtrack "' + currentSoundtrack.heading + '"? This cannot be undone.';
+    if (!window.confirm(confirmMsg)) return;
+    soundtrackDeleteBtn.disabled = true;
+    fetch('/api/admin/soundtracks/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentSoundtrack.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        soundtrackDeleteBtn.disabled = false;
+        if (!data.ok) {
+          soundtrackModalError.textContent = data.error || 'Could not delete this soundtrack.';
+          soundtrackModalError.classList.add('show');
+          return;
+        }
+        loadSoundtrackList();
+        closeSoundtrackModal();
+      })
+      .catch(function () {
+        soundtrackDeleteBtn.disabled = false;
+        soundtrackModalError.textContent = 'Could not delete this soundtrack. Please try again.';
+        soundtrackModalError.classList.add('show');
       });
   });
 
