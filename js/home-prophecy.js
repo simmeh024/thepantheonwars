@@ -1,11 +1,12 @@
-// Homepage "Prophecy" scene (Nexus Veil teaser). Three GSAP/canvas-driven
-// effects layered on the static hero image: a scroll-scrubbed push-in zoom,
-// a fragmented "shard-crack" reveal of the heading synced with a crystal
-// glow pulse (both once-only, ScrollTrigger), and a small deterministic
-// ember particle drift rising from the floor sigil in the artwork. The
-// CSS-only rotating sigil ring needs no JS. Everything here is skipped
-// under prefers-reduced-motion, matching every other animated page on this
-// site -- the scene is then just the static image with no motion at all.
+// Homepage "Prophecy" scene (Nexus Veil teaser). The background is a
+// looping WebM (soft crystal glow); layered on top are a scroll-scrubbed
+// push-in zoom, a fragmented "shard-crack" reveal of the heading synced
+// with a crystal glow pulse (both once-only, ScrollTrigger), and a small
+// deterministic ember particle drift rising from the floor sigil in the
+// artwork. The CSS-only rotating sigil ring needs no JS. Everything here
+// is skipped under prefers-reduced-motion, matching every other animated
+// page on this site -- the scene is then just the poster frame with no
+// motion at all.
 document.addEventListener('DOMContentLoaded', function () {
   var scene = document.getElementById('prophecy-scene');
   if (!scene) return;
@@ -64,6 +65,41 @@ document.addEventListener('DOMContentLoaded', function () {
         tl.to(glow, { opacity: 0.65, scale: 1.15, duration: 0.7, ease: 'sine.out' }, 0.1)
           .to(glow, { opacity: 0.3, scale: 1, duration: 1.1, ease: 'sine.inOut' }, '>-0.2');
       }
+    }
+  }
+
+  if (!reducedMotion) {
+    // The background is a looping WebM (soft crystal glow), same
+    // muted/loop/playsinline/preload=none/poster convention as the Worlds
+    // atlas's nexus-clouds-loop.webm. Only plays while the scene is both
+    // in the viewport and the tab is visible, same reasoning as every
+    // other continuous-motion effect on this site; reduced-motion visitors
+    // never call play() at all, so they just see the poster frame (the
+    // original static photo).
+    var bgVideo = scene.querySelector('.prophecy-bg');
+    if (bgVideo && bgVideo.tagName === 'VIDEO') {
+      var videoInView = false;
+      var syncVideo = function () {
+        if (videoInView && !document.hidden) {
+          if (bgVideo.paused) {
+            var playRequest = bgVideo.play();
+            if (playRequest && playRequest.catch) playRequest.catch(function () {});
+          }
+        } else if (!bgVideo.paused) {
+          bgVideo.pause();
+        }
+      };
+      if ('IntersectionObserver' in window) {
+        var videoObserver = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) { videoInView = entry.isIntersecting; });
+          syncVideo();
+        }, { threshold: 0.1 });
+        videoObserver.observe(scene);
+      } else {
+        videoInView = true;
+      }
+      document.addEventListener('visibilitychange', syncVideo);
+      syncVideo();
     }
   }
 
