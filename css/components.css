@@ -993,6 +993,28 @@ blockquote.myth cite {
   opacity: 1;
 }
 
+/* Background watermark art for the God-Cores/Overlords/Thirteenth Key
+   cards. Source renders are near-black except for a glowing central
+   motif, so mix-blend-mode: screen makes the black areas vanish into the
+   card's own dark background and leaves only the glow visible -- no
+   alpha-channel art needed. A negative z-index on the ::after keeps it
+   behind the card's own text content (::before/h3/p all default to
+   z-index:auto, which paints above negative-z-index descendants). */
+.card--watermark { overflow: hidden; }
+.card--watermark::after {
+  content: '';
+  position: absolute; inset: 0;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
+.card--godcores::after { background-image: url('../images/watermark-godcores.jpg'); }
+.card--overlords::after { background-image: url('../images/watermark-overlords.jpg'); }
+.card--thirteenth-key::after { background-image: url('../images/watermark-thirteenth-key.jpg'); }
+
 .world-card { text-align: left; }
 .world-card .thumb {
   width: 100%; aspect-ratio: 1/1; overflow: hidden; margin-bottom: 16px;
