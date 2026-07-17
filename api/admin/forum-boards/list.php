@@ -31,6 +31,7 @@ $out = array_map(function ($b) use ($db, $rolesByBoard) {
         'name' => $b['name'],
         'description' => $b['description'],
         'icon_key' => $b['icon_key'],
+        'accent_color' => $b['accent_color'],
         'is_protected' => (bool)$b['is_protected'],
         'is_public' => (bool)$b['is_public'],
         'sort_order' => (int)$b['sort_order'],

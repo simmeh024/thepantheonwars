@@ -37,8 +37,8 @@ if (!$stmt->fetch()) {
     pw_error('That message no longer exists.', 404);
 }
 
-$stmt = $db->prepare('UPDATE comments SET body = ?, edited_at = ? WHERE id = ?');
-$stmt->execute([$body, date('Y-m-d H:i:s'), $id]);
+$stmt = $db->prepare('UPDATE comments SET body = ?, edited_at = ?, edited_by = ? WHERE id = ?');
+$stmt->execute([$body, date('Y-m-d H:i:s'), (int)$user['id'], $id]);
 
 pw_log_admin_activity('comment_edited', 'Edited reply #' . $id . ' as moderator.', $user);
 

@@ -20,19 +20,21 @@ $stmt = $db->prepare(
             u.display_name, u.role, ro.color AS role_color,
             COUNT(c.id) AS reply_count,
             COALESCE(MAX(c.created_at), t.created_at) AS last_activity,
-            tb.created_at AS bookmarked_at
+            tb.created_at AS bookmarked_at,
+            fts.seen_at AS seen_at
      FROM topic_bookmarks tb
      JOIN topics t ON t.id = tb.topic_id AND t.is_deleted = 0
      JOIN users u ON u.id = t.user_id
      LEFT JOIN roles ro ON ro.slug = u.role
      LEFT JOIN comments c ON c.topic_id = t.id AND c.is_deleted = 0
+     LEFT JOIN forum_topic_seen fts ON fts.topic_id = t.id AND fts.user_id = ?
      WHERE tb.user_id = ?
      GROUP BY tb.id, tb.created_at, t.id, t.board, t.title, t.created_at, t.is_pinned,
-              t.is_locked, t.user_id, u.display_name, u.role, ro.color
+              t.is_locked, t.user_id, u.display_name, u.role, ro.color, fts.seen_at
      ORDER BY tb.created_at DESC
      LIMIT 100"
 );
-$stmt->execute([$user['id']]);
+$stmt->execute([$user['id'], $user['id']]);
 $rows = $stmt->fetchAll();
 
 $out = [];
@@ -56,6 +58,7 @@ foreach ($rows as $r) {
         'role_color' => $r['role_color'] ?: '#c7ccd6',
         'reply_count' => (int)$r['reply_count'],
         'bookmarked' => true,
+        'seen_at' => $r['seen_at'],
     ];
 }
 

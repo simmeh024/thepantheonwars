@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS forum_boards (
   name VARCHAR(100) NOT NULL,
   description VARCHAR(255) NOT NULL DEFAULT '',
   icon_key VARCHAR(40) NOT NULL DEFAULT 'scroll',
+  accent_color VARCHAR(20) NOT NULL DEFAULT '#a279ec',
   is_protected TINYINT(1) NOT NULL DEFAULT 0,
   is_public TINYINT(1) NOT NULL DEFAULT 1,
   sort_order INT NOT NULL DEFAULT 0,
@@ -133,11 +134,14 @@ CREATE TABLE IF NOT EXISTS topics (
   is_locked TINYINT(1) NOT NULL DEFAULT 0,
   locked_at DATETIME DEFAULT NULL,
   edited_at DATETIME DEFAULT NULL,
+  edited_by INT UNSIGNED NULL,
   is_deleted TINYINT(1) NOT NULL DEFAULT 0,
   KEY idx_board (board),
   KEY idx_board_active_created (board, is_deleted, created_at),
   KEY idx_user_active_created (user_id, is_deleted, created_at),
-  CONSTRAINT fk_topics_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  CONSTRAINT fk_topics_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_topics_edited_by FOREIGN KEY (edited_by) REFERENCES users(id) ON DELETE SET NULL,
+  FULLTEXT INDEX ft_topics_title_body (title, body)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Threaded replies within a topic (max depth 2 -- see api/comments/post.php).
@@ -152,12 +156,36 @@ CREATE TABLE IF NOT EXISTS comments (
   is_deleted TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   edited_at DATETIME DEFAULT NULL,
+  edited_by INT UNSIGNED NULL,
   KEY idx_topic_id (topic_id),
   KEY idx_topic_active_created (topic_id, is_deleted, created_at),
   KEY idx_user_active_created (user_id, is_deleted, created_at),
   KEY idx_parent_id (parent_id),
   CONSTRAINT fk_comments_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-  CONSTRAINT fk_comments_quoted FOREIGN KEY (quoted_comment_id) REFERENCES comments(id) ON DELETE SET NULL
+  CONSTRAINT fk_comments_quoted FOREIGN KEY (quoted_comment_id) REFERENCES comments(id) ON DELETE SET NULL,
+  CONSTRAINT fk_comments_edited_by FOREIGN KEY (edited_by) REFERENCES users(id) ON DELETE SET NULL,
+  FULLTEXT INDEX ft_comments_body (body)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Server-synced unread tracking, mirroring the client's localStorage "last
+-- seen" shape 1:1 so logged-in members get cross-device read state while
+-- guests keep the existing localStorage-only fallback (see community.html).
+CREATE TABLE IF NOT EXISTS forum_board_seen (
+  user_id INT UNSIGNED NOT NULL,
+  board_slug VARCHAR(50) NOT NULL,
+  seen_at DATETIME NOT NULL,
+  PRIMARY KEY (user_id, board_slug),
+  CONSTRAINT fk_forum_board_seen_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_forum_board_seen_board FOREIGN KEY (board_slug) REFERENCES forum_boards(slug) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS forum_topic_seen (
+  user_id INT UNSIGNED NOT NULL,
+  topic_id INT UNSIGNED NOT NULL,
+  seen_at DATETIME NOT NULL,
+  PRIMARY KEY (user_id, topic_id),
+  CONSTRAINT fk_forum_topic_seen_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_forum_topic_seen_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Per-user "save for later" bookmarks on topics (Bookmarks tab + kebab menu).

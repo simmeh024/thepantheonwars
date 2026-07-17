@@ -12,10 +12,12 @@ if ($id <= 0) {
 $db = pw_db();
 $stmt = $db->prepare(
     'SELECT t.id, t.board, t.title, t.body, t.created_at, t.is_pinned, t.is_locked,
-            t.edited_at, t.user_id, u.display_name, u.role, u.last_active_at, u.presence_status, r.color AS role_color
+            t.edited_at, t.edited_by, editor.display_name AS edited_by_name,
+            t.user_id, u.display_name, u.role, u.last_active_at, u.presence_status, r.color AS role_color
      FROM topics t
      JOIN users u ON u.id = t.user_id
      LEFT JOIN roles r ON r.slug = u.role
+     LEFT JOIN users editor ON editor.id = t.edited_by
      WHERE t.id = ? AND t.is_deleted = 0'
 );
 $stmt->execute([$id]);
@@ -72,6 +74,7 @@ pw_json([
         'is_pinned' => (bool)$topic['is_pinned'],
         'is_locked' => (bool)$topic['is_locked'],
         'edited_at' => $topic['edited_at'],
+        'edited_by_name' => $topic['edited_by_name'],
         'user_id' => (int)$topic['user_id'],
         'display_name' => $topic['display_name'],
         'role' => $topic['role'],

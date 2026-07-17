@@ -2824,18 +2824,25 @@
       <label for="forum-board-description-input">Description</label>
       <input type="text" id="forum-board-description-input" maxlength="255">
     </div>
-    <div class="admin-field">
-      <label for="forum-board-icon-select">Icon</label>
-      <div class="forum-board-icon-row">
-        <span class="forum-board-icon-preview" id="forum-board-icon-preview"></span>
-        <select id="forum-board-icon-select">
-          <option value="megaphone">Megaphone</option>
-          <option value="scroll">Scroll</option>
-          <option value="globe">Globe</option>
-          <option value="chat">Chat</option>
-          <option value="flag">Flag</option>
-          <option value="book">Book</option>
-        </select>
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="forum-board-icon-select">Icon</label>
+        <div class="forum-board-icon-row">
+          <span class="forum-board-icon-preview" id="forum-board-icon-preview"></span>
+          <select id="forum-board-icon-select">
+            <option value="megaphone">Megaphone</option>
+            <option value="scroll">Scroll</option>
+            <option value="globe">Globe</option>
+            <option value="chat">Chat</option>
+            <option value="flag">Flag</option>
+            <option value="book">Book</option>
+          </select>
+        </div>
+      </div>
+      <div class="admin-field">
+        <label for="forum-board-accent-color-input">Accent color</label>
+        <p class="admin-field-hint">Drives the board's icon color and left-edge accent on the forum index and topic list.</p>
+        <input type="color" id="forum-board-accent-color-input" value="#a279ec">
       </div>
     </div>
 
@@ -6243,6 +6250,7 @@
   var forumBoardDescriptionInput = document.getElementById('forum-board-description-input');
   var forumBoardIconSelect = document.getElementById('forum-board-icon-select');
   var forumBoardIconPreview = document.getElementById('forum-board-icon-preview');
+  var forumBoardAccentColorInput = document.getElementById('forum-board-accent-color-input');
   var forumBoardVisibilityPublic = document.getElementById('forum-board-visibility-public');
   var forumBoardVisibilityRestricted = document.getElementById('forum-board-visibility-restricted');
   var forumBoardRolesList = document.getElementById('forum-board-roles-list');
@@ -6279,6 +6287,7 @@
 
       var icon = document.createElement('span');
       icon.className = 'forum-board-row-icon';
+      icon.style.color = entry.accent_color || '#a279ec';
       icon.innerHTML = FORUM_BOARD_ICONS[entry.icon_key] || FORUM_BOARD_ICONS.scroll;
       row.appendChild(icon);
 
@@ -6381,6 +6390,7 @@
     forumBoardSlugInput.value = board.slug || '';
     forumBoardDescriptionInput.value = board.description || '';
     forumBoardIconSelect.value = board.icon_key || 'scroll';
+    forumBoardAccentColorInput.value = board.accent_color || '#a279ec';
     updateForumBoardIconPreview();
     forumBoardRolesSelected = {};
     (board.role_slugs || []).forEach(function (slug) { forumBoardRolesSelected[slug] = true; });
@@ -6424,7 +6434,7 @@
     document.getElementById('forum-board-visibility-field').hidden = false;
     forumBoardModalError.classList.remove('show');
     forumBoardModalStatus.classList.remove('show');
-    populateForumBoardForm({ name: '', slug: '', description: '', icon_key: 'scroll', is_public: true, role_slugs: [] });
+    populateForumBoardForm({ name: '', slug: '', description: '', icon_key: 'scroll', accent_color: '#a279ec', is_public: true, role_slugs: [] });
     forumBoardModal.hidden = false;
     setTimeout(function () { forumBoardNameInput.focus(); }, 30);
   }
@@ -6444,6 +6454,7 @@
       name: forumBoardNameInput.value.trim(),
       description: forumBoardDescriptionInput.value.trim(),
       icon_key: forumBoardIconSelect.value,
+      accent_color: forumBoardAccentColorInput.value,
       is_public: forumBoardVisibilityPublic.checked,
       role_slugs: Object.keys(forumBoardRolesSelected),
       csrf: window.PW_AUTH.csrf

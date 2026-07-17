@@ -11,11 +11,13 @@ if ($topicId <= 0) {
 
 $db = pw_db();
 $stmt = $db->prepare(
-    'SELECT c.id, c.parent_id, c.depth, c.body, c.created_at, c.edited_at, c.user_id,
+    'SELECT c.id, c.parent_id, c.depth, c.body, c.created_at, c.edited_at, c.edited_by,
+            editor.display_name AS edited_by_name, c.user_id,
             u.username, u.display_name, u.overlord_affinity, u.role, u.last_active_at, u.presence_status, r.color AS role_color
      FROM comments c
      JOIN users u ON u.id = c.user_id
      LEFT JOIN roles r ON r.slug = u.role
+     LEFT JOIN users editor ON editor.id = c.edited_by
      WHERE c.topic_id = ? AND c.is_deleted = 0
      ORDER BY c.created_at ASC
      LIMIT 500'
@@ -108,6 +110,7 @@ $out = array_map(function ($r) use ($currentId, $canModerate, $canDeleteAny, $po
         'body' => $r['body'],
         'created_at' => $r['created_at'],
         'edited_at' => $r['edited_at'],
+        'edited_by_name' => $r['edited_by_name'],
         'user_id' => $userId,
         'username' => $r['username'],
         'display_name' => $r['display_name'],

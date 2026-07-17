@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=214">
+<link rel="stylesheet" href="css/community-bundle.css?v=215">
 </head>
 <body>
 
@@ -89,6 +89,12 @@
             <button type="button" class="forum-subnav-tab" data-subnav="bookmarks">Bookmarks</button>
             <button type="button" class="forum-subnav-tab" data-subnav="mine">My Topics</button>
             <button type="button" class="forum-subnav-tab" data-subnav="faq">FAQ</button>
+            <form class="forum-search-form" id="forum-search-form" role="search">
+              <input type="search" id="forum-search-input" maxlength="100" placeholder="Search the forum&hellip;" aria-label="Search the forum">
+              <button type="submit" class="forum-search-btn" aria-label="Search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              </button>
+            </form>
           </div>
 
           <!-- Forum index: one row per board, phpBB-style -->
@@ -192,6 +198,15 @@
             </div>
             <div id="mytopics-list"></div>
             <p id="mytopics-empty" class="lore-status" hidden>You haven't started any topics yet.</p>
+          </div>
+
+          <!-- Search: results across topics and replies, board-visibility filtered -->
+          <div id="search-results-view" hidden>
+            <button type="button" class="btn board-back" id="search-results-back">&larr; All Forums</button>
+            <h2 class="board-heading">Search Results</h2>
+            <p class="board-heading-desc" id="search-results-desc"></p>
+            <div id="search-results-list"></div>
+            <p id="search-results-empty" class="lore-status" hidden>No results for that search.</p>
           </div>
 
           <!-- FAQ: static placeholder for now -->
@@ -368,6 +383,7 @@
             name: b.name,
             desc: b.description,
             icon: ICONS[b.icon_key] || ICONS.scroll,
+            accent: b.accent_color || '#a279ec',
           };
         });
         return data;
@@ -421,6 +437,14 @@
   var mytopicsList = document.getElementById('mytopics-list');
   var mytopicsEmpty = document.getElementById('mytopics-empty');
   var faqView = document.getElementById('faq-view');
+
+  var searchForm = document.getElementById('forum-search-form');
+  var searchInput = document.getElementById('forum-search-input');
+  var searchResultsView = document.getElementById('search-results-view');
+  var searchResultsBack = document.getElementById('search-results-back');
+  var searchResultsDesc = document.getElementById('search-results-desc');
+  var searchResultsList = document.getElementById('search-results-list');
+  var searchResultsEmpty = document.getElementById('search-results-empty');
 
   // ---------- Lightweight BBCode-style formatting ----------
   // Users can type [b][/b] [i][/i] [u][/u] [c][/c] [color=#hex][/color]
@@ -884,10 +908,14 @@
     return null;
   }
 
-  // ---------- Unread indicators (client-side only, localStorage) ----------
-  // No server-side read-tracking exists, so "unread" here just means "this
-  // board/topic has activity newer than the last time this browser opened
-  // it" -- purely a visual nicety, not authoritative across devices.
+  // ---------- Unread indicators ----------
+  // Logged-in members get a server-synced "last seen" timestamp per board
+  // and per topic (forum_board_seen / forum_topic_seen), so read state
+  // survives across devices -- see api/forum/mark-seen.php and the
+  // 'seen_at' field bundled into boards-summary.php / topics/{list,active,
+  // mine,bookmarks}.php responses. Guests (no account) keep the original
+  // localStorage-only fallback below, since there's no user id to key a
+  // server row by.
   var SEEN_STORAGE_KEY = 'pw_forum_last_seen';
 
   function loadSeenStore() {
@@ -904,6 +932,12 @@
       store.boards[slug] = Date.now();
       window.localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(store));
     } catch (e) { /* localStorage unavailable (private mode, etc.) -- fine, just skip */ }
+    if (window.PW_AUTH.loggedIn && window.PW_AUTH.csrf) {
+      fetch('/api/forum/mark-seen.php', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'board', board: slug, csrf: window.PW_AUTH.csrf })
+      }).catch(function () { /* best-effort -- localStorage already recorded it locally */ });
+    }
   }
 
   function markTopicSeen(id) {
@@ -912,18 +946,40 @@
       store.topics[id] = Date.now();
       window.localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify(store));
     } catch (e) { /* localStorage unavailable (private mode, etc.) -- fine, just skip */ }
+    if (window.PW_AUTH.loggedIn && window.PW_AUTH.csrf) {
+      fetch('/api/forum/mark-seen.php', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scope: 'topic', topic_id: id, csrf: window.PW_AUTH.csrf })
+      }).catch(function () { /* best-effort -- localStorage already recorded it locally */ });
+    }
   }
 
-  function isBoardUnread(slug, latestIso) {
+  // serverSeenAt: pass the 'seen_at' field from an API response (a
+  // timestamp string, or null meaning "never seen") when logged in and it
+  // was present in the response; omit/pass undefined to fall back to the
+  // localStorage-only guest behavior.
+  function isBoardUnread(slug, latestIso, serverSeenAt) {
     if (!latestIso) return false;
+    if (window.PW_AUTH.loggedIn && serverSeenAt !== undefined) {
+      if (!serverSeenAt) return true;
+      var latestMs2 = new Date(latestIso.replace(' ', 'T') + 'Z').getTime();
+      var seenMs2 = new Date(serverSeenAt.replace(' ', 'T') + 'Z').getTime();
+      return !isNaN(latestMs2) && !isNaN(seenMs2) && latestMs2 > seenMs2;
+    }
     var seen = loadSeenStore().boards[slug];
     if (!seen) return true;
     var latestMs = new Date(latestIso.replace(' ', 'T') + 'Z').getTime();
     return !isNaN(latestMs) && latestMs > seen;
   }
 
-  function isTopicUnread(id, lastActivityIso) {
+  function isTopicUnread(id, lastActivityIso, serverSeenAt) {
     if (!lastActivityIso) return false;
+    if (window.PW_AUTH.loggedIn && serverSeenAt !== undefined) {
+      if (!serverSeenAt) return true;
+      var latestMs2 = new Date(lastActivityIso.replace(' ', 'T') + 'Z').getTime();
+      var seenMs2 = new Date(serverSeenAt.replace(' ', 'T') + 'Z').getTime();
+      return !isNaN(latestMs2) && !isNaN(seenMs2) && latestMs2 > seenMs2;
+    }
     var seen = loadSeenStore().topics[id];
     if (!seen) return true;
     var latestMs = new Date(lastActivityIso.replace(' ', 'T') + 'Z').getTime();
@@ -932,6 +988,21 @@
 
   function unreadDotHtml() {
     return '<span class="unread-dot" aria-hidden="true"></span>';
+  }
+
+  // Every edit currently goes through the moderation-only edit endpoints
+  // (api/topics/edit.php, api/comments/edit.php) -- there is no self-edit
+  // path for regular authors -- so edited_by_name, when present, always
+  // names the staff member who made the change. Showing that name directly
+  // (rather than a bare "(edited)") is the point: readers should not have
+  // to guess whether a correction came from the author or a moderator.
+  function buildEditedMarker(editedAtIso, editedByName) {
+    if (!editedAtIso) return null;
+    var mark = document.createElement('span');
+    mark.className = 'comment-edited-marker' + (editedByName ? ' has-editor' : '');
+    mark.textContent = editedByName ? '(edited by ' + editedByName + ')' : '(edited)';
+    mark.title = 'Last edited ' + fmtTime(editedAtIso) + (editedByName ? ' by ' + editedByName : '');
+    return mark;
   }
 
   function fmtTime(iso) {
@@ -953,14 +1024,72 @@
     bookmarksView.hidden = name !== 'bookmarks';
     mytopicsView.hidden = name !== 'mine';
     faqView.hidden = name !== 'faq';
+    searchResultsView.hidden = name !== 'search';
 
     // Forum List's tab stays highlighted for the whole board-index/topic-list/
     // topic-detail trio (all stem from browsing a board); the other four
-    // views each own their own tab.
-    var subnavName = (name === 'list' || name === 'detail') ? 'index' : name;
+    // views each own their own tab. Search has no tab of its own (it's
+    // triggered by the search form, not a subnav click), so it simply
+    // leaves whichever tab was already active alone.
+    var subnavName = (name === 'list' || name === 'detail') ? 'index' : (name === 'search' ? null : name);
+    if (subnavName === null) return;
     subnavEl.querySelectorAll('.forum-subnav-tab').forEach(function (tab) {
       tab.classList.toggle('active', tab.getAttribute('data-subnav') === subnavName);
     });
+  }
+
+  // ---------- Composer draft auto-save (client-only, localStorage) ----------
+  // A long reply or new-topic post lost to an accidental navigation/refresh
+  // is real lost work with no server-side counterpart, so this is kept
+  // simple and purely local: one draft per board (new-topic composer) and
+  // one per topic (reply composer), restored the next time that same
+  // composer is opened and cleared the moment the post actually succeeds.
+  var DRAFT_STORAGE_KEY = 'pw_forum_drafts';
+
+  function loadDraftStore() {
+    try {
+      return JSON.parse(window.localStorage.getItem(DRAFT_STORAGE_KEY)) || { topics: {}, replies: {} };
+    } catch (e) {
+      return { topics: {}, replies: {} };
+    }
+  }
+
+  function saveDraftStore(store) {
+    try { window.localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(store)); } catch (e) { /* localStorage unavailable -- fine, just skip */ }
+  }
+
+  function saveTopicDraft(board, title, text) {
+    if (!board) return;
+    var store = loadDraftStore();
+    if (!title && !text) { delete store.topics[board]; } else { store.topics[board] = { title: title, body: text }; }
+    saveDraftStore(store);
+  }
+
+  function getTopicDraft(board) {
+    return board ? loadDraftStore().topics[board] : null;
+  }
+
+  function clearTopicDraft(board) {
+    var store = loadDraftStore();
+    delete store.topics[board];
+    saveDraftStore(store);
+  }
+
+  function saveReplyDraft(topicId, text) {
+    if (!topicId) return;
+    var store = loadDraftStore();
+    if (!text) { delete store.replies[topicId]; } else { store.replies[topicId] = text; }
+    saveDraftStore(store);
+  }
+
+  function getReplyDraft(topicId) {
+    return topicId ? loadDraftStore().replies[topicId] : null;
+  }
+
+  function clearReplyDraft(topicId) {
+    var store = loadDraftStore();
+    delete store.replies[topicId];
+    saveDraftStore(store);
   }
 
   // ---------- Board index (forum home) ----------
@@ -1022,10 +1151,11 @@
   function buildBoardRow(b, stat) {
     var row = document.createElement('div');
     row.className = 'board-index-row' + (b.slug === 'announcements' ? ' is-announcement-board' : '');
+    row.style.setProperty('--board-accent', b.accent || '#a279ec');
 
     var forumCell = document.createElement('div');
     forumCell.className = 'board-index-forum';
-    var boardUnread = stat && stat.latest && isBoardUnread(b.slug, stat.latest.created_at);
+    var boardUnread = stat && stat.latest && isBoardUnread(b.slug, stat.latest.created_at, stat.seen_at);
     forumCell.innerHTML =
       '<span class="board-index-icon">' + b.icon + '</span>' +
       '<span class="board-index-text">' +
@@ -1102,6 +1232,7 @@
     currentTopicId = null;
     var meta = boardMeta(slug);
     topicListHeading.textContent = meta ? meta.name : slug;
+    topicListHeading.style.setProperty('--board-accent', (meta && meta.accent) || '#a279ec');
     topicListDesc.textContent = meta ? meta.desc : '';
     topicForm.hidden = true;
     topicTitleInput.value = '';
@@ -1212,6 +1343,91 @@
       });
   }
 
+  // ---------- Forum-wide search ----------
+  function buildSearchResultRow(r) {
+    var row = document.createElement('div');
+    row.className = 'topic-row search-result-row';
+    row.addEventListener('click', function () { goToTopic(r.id, r.board); });
+
+    var topicCell = document.createElement('div');
+    topicCell.className = 'topic-row-topic';
+
+    var boardTag = document.createElement('span');
+    boardTag.className = 'topic-row-board-tag';
+    boardTag.textContent = r.board_name;
+    topicCell.appendChild(boardTag);
+
+    if (r.matched_in === 'reply') {
+      var replyTag = document.createElement('span');
+      replyTag.className = 'search-result-matched-tag';
+      replyTag.textContent = 'Matched in a reply';
+      topicCell.appendChild(replyTag);
+    }
+
+    var title = document.createElement('div');
+    title.className = 'topic-row-title';
+    title.appendChild(document.createTextNode(r.title));
+    topicCell.appendChild(title);
+
+    var excerpt = document.createElement('p');
+    excerpt.className = 'search-result-excerpt';
+    excerpt.textContent = r.excerpt;
+    topicCell.appendChild(excerpt);
+    row.appendChild(topicCell);
+
+    var starterCell = document.createElement('div');
+    starterCell.className = 'topic-row-starter';
+    starterCell.style.setProperty('--role-color', r.role_color || '#c7ccd6');
+    starterCell.textContent = r.display_name;
+    row.appendChild(starterCell);
+
+    var timeCell = document.createElement('div');
+    timeCell.className = 'topic-row-lastreply';
+    timeCell.textContent = fmtTime(r.created_at);
+    row.appendChild(timeCell);
+
+    return row;
+  }
+
+  function loadSearchResults(q) {
+    showView('search');
+    searchResultsDesc.textContent = 'Results for “' + q + '”';
+    searchResultsList.innerHTML = '';
+    for (var i = 0; i < 4; i++) searchResultsList.appendChild(skeletonRow());
+    searchResultsEmpty.hidden = true;
+    fetch('/api/topics/search.php?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        searchResultsList.innerHTML = '';
+        var results = (data.ok && data.results) || [];
+        if (!results.length) {
+          searchResultsEmpty.hidden = false;
+          return;
+        }
+        results.forEach(function (r) { searchResultsList.appendChild(buildSearchResultRow(r)); });
+      })
+      .catch(function () {
+        searchResultsList.innerHTML = '';
+        searchResultsEmpty.textContent = 'The search could not be completed right now.';
+        searchResultsEmpty.hidden = false;
+      });
+  }
+
+  searchForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var q = searchInput.value.trim();
+    if (q.length < 2) return;
+    currentTopicId = null;
+    loadSearchResults(q);
+  });
+
+  searchResultsBack.addEventListener('click', function () {
+    currentBoard = null;
+    currentTopicId = null;
+    showView('index');
+    loadBoardIndex();
+  });
+
   subnavEl.querySelectorAll('.forum-subnav-tab').forEach(function (tab) {
     tab.addEventListener('click', function () {
       var name = tab.getAttribute('data-subnav');
@@ -1258,9 +1474,21 @@
       topicCell.appendChild(boardTag);
     }
 
+    // Only api/topics/active.php computes is_trending (recent reply
+    // velocity, not all-time reply_count) -- it's simply absent/false on
+    // every other list this same row renderer serves, so the badge only
+    // ever appears on Active Topics rows.
+    if (t.is_trending) {
+      var trending = document.createElement('span');
+      trending.className = 'topic-row-trending-tag';
+      trending.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5c1.2 3.6-2.4 5-2.4 8.6a2.4 2.4 0 0 0 4.8 0c0-.8-.3-1.5-.7-1.9.7 2.3-.7 3.3-1.7 3.3-1.2 0-1.8-1.2-1-2.6.9-1.6-.2-3.4-.6-4.9-1 1.7-3.4 3.6-3.4 6.9a4.2 4.2 0 0 0 8.4 0c0-4.3-2.4-5.3-3.4-9.4z"/></svg>Trending';
+      trending.title = 'Several replies in the last few hours';
+      topicCell.appendChild(trending);
+    }
+
     var title = document.createElement('div');
     title.className = 'topic-row-title';
-    if (isTopicUnread(t.id, t.last_activity)) {
+    if (isTopicUnread(t.id, t.last_activity, t.seen_at)) {
       var dot = document.createElement('span');
       dot.className = 'unread-dot';
       dot.setAttribute('aria-hidden', 'true');
@@ -1291,8 +1519,21 @@
 
   newTopicToggle.addEventListener('click', function () {
     topicForm.hidden = !topicForm.hidden;
-    if (!topicForm.hidden) topicTitleInput.focus();
+    if (!topicForm.hidden) {
+      var draft = getTopicDraft(currentBoard);
+      if (draft && !topicTitleInput.value && !topicBodyInput.value) {
+        topicTitleInput.value = draft.title || '';
+        topicBodyInput.value = draft.body || '';
+      }
+      topicTitleInput.focus();
+    }
   });
+
+  function saveCurrentTopicDraft() {
+    saveTopicDraft(currentBoard, topicTitleInput.value, topicBodyInput.value);
+  }
+  topicTitleInput.addEventListener('input', saveCurrentTopicDraft);
+  topicBodyInput.addEventListener('input', saveCurrentTopicDraft);
 
   topicCancelBtn.addEventListener('click', function () {
     topicForm.hidden = true;
@@ -1313,6 +1554,7 @@
       body: JSON.stringify({ board: currentBoard, title: title, body: text, csrf: window.PW_AUTH.csrf }),
     }).then(function (r) { return r.json(); }).then(function (data) {
       if (data.ok) {
+        clearTopicDraft(currentBoard);
         topicForm.hidden = true;
         topicTitleInput.value = '';
         topicBodyInput.value = '';
@@ -1335,11 +1577,13 @@
   // ---------- Topic detail (OP + threaded replies) ----------
 
   function goToTopic(topicId, boardSlug) {
+    if (currentTopicId) saveReplyDraft(currentTopicId, body.value.trim());
     if (boardSlug) currentBoard = boardSlug;
     currentTopicId = topicId;
     showView('detail');
     loadTopicDetail();
     markTopicSeen(topicId);
+    body.value = getReplyDraft(topicId) || '';
   }
 
   function loadTopicDetail() {
@@ -1484,13 +1728,8 @@
     time.className = 'comment-time';
     time.textContent = fmtTime(t.created_at);
     meta.appendChild(time);
-    if (t.edited_at) {
-      var editedMark = document.createElement('span');
-      editedMark.className = 'comment-edited-marker';
-      editedMark.textContent = '(edited)';
-      editedMark.title = 'Last edited ' + fmtTime(t.edited_at);
-      meta.appendChild(editedMark);
-    }
+    var topicEditedMark = buildEditedMarker(t.edited_at, t.edited_by_name);
+    if (topicEditedMark) meta.appendChild(topicEditedMark);
     main.appendChild(meta);
 
     var bodyEl = document.createElement('div');
@@ -1996,13 +2235,8 @@
     time.className = 'comment-time';
     time.textContent = fmtTime(c.created_at);
     meta.appendChild(time);
-    if (c.edited_at) {
-      var editedMark = document.createElement('span');
-      editedMark.className = 'comment-edited-marker';
-      editedMark.textContent = '(edited)';
-      editedMark.title = 'Last edited ' + fmtTime(c.edited_at);
-      meta.appendChild(editedMark);
-    }
+    var commentEditedMark = buildEditedMarker(c.edited_at, c.edited_by_name);
+    if (commentEditedMark) meta.appendChild(commentEditedMark);
     main.appendChild(meta);
 
     var bodyEl = document.createElement('div');
@@ -2226,6 +2460,8 @@
     if (!mytopicsView.hidden) loadMyTopics();
   });
 
+  body.addEventListener('input', function () { saveReplyDraft(currentTopicId, body.value.trim()); });
+
   form.addEventListener('submit', function (e) {
     e.preventDefault();
     errorEl.classList.remove('show');
@@ -2238,6 +2474,7 @@
       body: JSON.stringify({ topic_id: currentTopicId, body: text, quoted_kind: body.dataset.quotedKind || null, quoted_target_id: body.dataset.quotedTargetId || null, csrf: window.PW_AUTH.csrf }),
     }).then(function (r) { return r.json(); }).then(function (data) {
       if (data.ok) {
+        clearReplyDraft(currentTopicId);
         body.value = '';
         delete body.dataset.quotedKind;
         delete body.dataset.quotedTargetId;

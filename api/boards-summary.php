@@ -21,6 +21,7 @@ foreach ($allBoardRows as $boardRow) {
         'name' => $boardRow['name'],
         'description' => $boardRow['description'],
         'icon_key' => $boardRow['icon_key'],
+        'accent_color' => $boardRow['accent_color'],
     ];
 }
 
@@ -92,6 +93,20 @@ foreach ($stmt->fetchAll() as $row) {
     ];
 }
 
+// Server-synced unread tracking: only meaningful when logged in. Guests keep
+// the client's localStorage-only fallback (see community.html), so 'seen_at'
+// is simply omitted from a guest response rather than sent as always-null.
+$seenByBoard = [];
+if ($currentUser) {
+    $stmt = $db->prepare(
+        "SELECT board_slug, seen_at FROM forum_board_seen WHERE user_id = ? AND board_slug IN ($placeholders)"
+    );
+    $stmt->execute(array_merge([(int)$currentUser['id']], $slugs));
+    foreach ($stmt->fetchAll() as $row) {
+        $seenByBoard[$row['board_slug']] = $row['seen_at'];
+    }
+}
+
 $out = [];
 foreach ($boardRows as $boardRow) {
     $slug = $boardRow['slug'];
@@ -100,6 +115,9 @@ foreach ($boardRows as $boardRow) {
         'post_count' => isset($postCounts[$slug]) ? $postCounts[$slug] : 0,
         'latest' => isset($latestByBoard[$slug]) ? $latestByBoard[$slug] : null,
     ];
+    if ($currentUser) {
+        $out[$slug]['seen_at'] = isset($seenByBoard[$slug]) ? $seenByBoard[$slug] : null;
+    }
 }
 
 pw_json(['ok' => true, 'board_list' => $boardList, 'boards' => $out]);

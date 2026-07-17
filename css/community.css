@@ -641,6 +641,7 @@
   padding: 18px 22px; border-bottom: 1px solid var(--border-soft); transition: background 0.2s ease;
 }
 .board-index-row:last-child { border-bottom: none; }
+.board-index-row { border-left: 3px solid var(--board-accent, transparent); }
 .board-index-row.is-announcement-board {
   border-left: 3px solid var(--purple-bright);
   background: rgba(124, 79, 214, 0.05);
@@ -650,7 +651,7 @@
 .board-index-icon {
   flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%;
   border: 1px solid var(--border-soft); background: var(--panel-2);
-  display: flex; align-items: center; justify-content: center; color: var(--purple-bright);
+  display: flex; align-items: center; justify-content: center; color: var(--board-accent, var(--purple-bright));
 }
 .board-index-icon svg { width: 20px; height: 20px; }
 .board-index-text { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
@@ -713,6 +714,39 @@
 .forum-subnav-tab:hover { color: var(--text-dim); }
 .forum-subnav-tab.active { color: var(--gold-bright); border-bottom-color: var(--gold-bright); }
 
+.forum-search-form {
+  display: flex; align-items: center; gap: 0; margin: 0 0 12px auto;
+}
+.forum-search-form input[type="search"] {
+  background: var(--panel-2); border: 1px solid var(--border-soft); border-right: none;
+  color: var(--text); padding: 7px 12px; font-size: 0.85rem; border-radius: 4px 0 0 4px;
+  width: 190px; max-width: 40vw;
+}
+.forum-search-form input[type="search"]:focus { outline: none; border-color: var(--purple-bright); }
+.forum-search-btn {
+  background: var(--panel-2); border: 1px solid var(--border-soft); color: var(--text-faint);
+  cursor: pointer; padding: 7px 10px; border-radius: 0 4px 4px 0; display: flex; align-items: center;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.forum-search-btn:hover { color: var(--gold-bright); border-color: var(--purple-bright); }
+.forum-search-btn svg { width: 16px; height: 16px; }
+@media (max-width: 720px) {
+  .forum-search-form { margin-left: 0; width: 100%; }
+  .forum-search-form input[type="search"] { flex: 1; width: auto; max-width: none; }
+}
+
+/* Search result rows: same topic-row shape, plus an excerpt line and an
+   optional "Matched in a reply" tag when the query matched inside a reply
+   rather than the topic itself. */
+.search-result-matched-tag {
+  display: inline-block; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--purple-bright); margin-left: 8px;
+}
+.search-result-excerpt {
+  margin: 0.3em 0 0; font-size: 0.82rem; color: var(--text-faint); max-width: 60ch;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
 /* Small board-name badge on cross-board topic rows (Active Topics,
    Bookmarks, My Topics) so it's clear where each topic lives. */
 .topic-row-board-tag {
@@ -729,6 +763,10 @@
 }
 .board-back:hover { color: var(--purple-bright); }
 .board-heading { margin-bottom: 0.2em; }
+#topic-list-heading {
+  border-left: 3px solid var(--board-accent, transparent);
+  padding-left: 12px;
+}
 .board-heading-desc { color: var(--text-faint); margin-bottom: 1.4em; }
 
 /* Topic list rows */
@@ -760,6 +798,13 @@
   color: #1b1406; background: linear-gradient(135deg, #f0c96a, var(--gold-dim));
   padding: 2px 8px; border-radius: 3px; margin-bottom: 0.4em;
 }
+.topic-row-trending-tag {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 0.64rem; text-transform: uppercase;
+  letter-spacing: 0.08em; font-weight: 700; color: #ff8a4c;
+  background: rgba(255, 138, 76, 0.12); border: 1px solid rgba(255, 138, 76, 0.35);
+  padding: 2px 8px; border-radius: 3px; margin-bottom: 0.4em; margin-left: 8px;
+}
+.topic-row-trending-tag svg { width: 11px; height: 11px; }
 .topic-row-topic { min-width: 0; }
 .topic-row-title { font-family: 'Cinzel', serif; font-size: 1rem; color: var(--text); }
 .topic-row:hover .topic-row-title { color: var(--gold-bright); }
@@ -879,6 +924,7 @@
 .comment-edited-marker {
   font-size: 0.68rem; color: var(--text-faint); font-style: italic; cursor: help;
 }
+.comment-edited-marker.has-editor { color: var(--text-dim); }
 
 /* Moderation dropdown: kebab trigger, now just a flex item inside
    .msg-header-actions (top-right of each message card, above the date)

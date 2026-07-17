@@ -30,9 +30,9 @@ if (!$existing) {
 $data = pw_validate_forum_board_input($input, false);
 
 $stmt = $db->prepare(
-    'UPDATE forum_boards SET name = ?, description = ?, icon_key = ?, is_public = ? WHERE id = ?'
+    'UPDATE forum_boards SET name = ?, description = ?, icon_key = ?, accent_color = ?, is_public = ? WHERE id = ?'
 );
-$stmt->execute([$data['name'], $data['description'], $data['icon_key'], $data['is_public'], $id]);
+$stmt->execute([$data['name'], $data['description'], $data['icon_key'], $data['accent_color'], $data['is_public'], $id]);
 
 pw_set_forum_board_roles($db, $id, $data['is_public'] ? [] : $data['role_slugs']);
 

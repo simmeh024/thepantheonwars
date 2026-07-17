@@ -454,6 +454,45 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Recent history (most recent first)
 
+- **Forum improvements batch** (Nexus Veil / `community.html`): seven
+  additions, all `migration_forum_enhancements.sql`-backed. **Per-board
+  accent color**: `forum_boards.accent_color` (admin color input in Forum
+  Control) drives a `--board-accent` CSS custom property set inline per row,
+  used by the board index icon/left-border and the topic-list heading's
+  left-border -- default `#a279ec` matches the previous hardcoded
+  `--purple-bright` so existing boards look unchanged until customized.
+  **Edit attribution**: `topics.edited_by` / `comments.edited_by` record the
+  moderator who made the edit (every edit already goes through the
+  moderation-only `community.edit_any` endpoints -- there is no self-edit
+  path for regular authors, so this is never ambiguous); the "(edited)"
+  marker now reads "(edited by `<name>`)" via a shared `buildEditedMarker()`
+  helper, replacing the old anonymous marker. **Server-synced unread
+  tracking**: new `forum_board_seen` / `forum_topic_seen` tables (one row
+  per user per board/topic) mirror the existing client localStorage shape
+  1:1; `api/forum/mark-seen.php` upserts on board/topic visit, and
+  `boards-summary.php` / `topics/{list,active,mine,bookmarks}.php` bundle a
+  `seen_at` field for logged-in requests. `isBoardUnread()`/`isTopicUnread()`
+  in `community.html` prefer that server value when logged in and fall back
+  to the original localStorage-only behavior for guests (no user id to key
+  a server row by) -- this is a graceful upgrade, not a replacement.
+  **Forum-wide search**: `FULLTEXT` indexes on `topics(title, body)` and
+  `comments(body)`; `api/topics/search.php` merges topic-direct matches and
+  reply matches into one board-visibility-filtered, ranked result list (a
+  direct topic match is score-boosted above an equivalent reply match, and
+  only the single best-scoring reply per topic is kept), rendered in a new
+  search-results view reached via a search box added to the forum sub-nav.
+  **Draft auto-save**: both composers (new-topic and reply) save to
+  `localStorage` (`pw_forum_drafts`, one draft per board / per topic) on
+  every keystroke, restore automatically the next time that composer opens,
+  and clear only once the post actually succeeds -- purely client-side, no
+  schema. **Trending badge**: `api/topics/active.php` computes
+  `recent_reply_count` (replies in the last 6 hours, a plain aggregate
+  expression alongside the existing `COUNT(c.id)`) and flags
+  `is_trending` at a fixed `>= 3` threshold (not admin-configurable);
+  `buildTopicRow()` renders a flame badge only when that field is present,
+  so it naturally never appears on the other three list endpoints that
+  don't compute it.
+
 - **Soundtrack Control** (Lore Management > Soundtrack Control, new): the
   single hand-authored `.soundtrack-panel` block on `soundtracks.html` is now
   a real, admin-managed CRUD -- same flat list/modal/reorder pattern as

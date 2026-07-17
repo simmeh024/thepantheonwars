@@ -25,11 +25,11 @@ $maxSort = $db->query('SELECT COALESCE(MAX(sort_order), 0) AS m FROM forum_board
 $sortOrder = (int)$maxSort['m'] + 1;
 
 $stmt = $db->prepare(
-    'INSERT INTO forum_boards (slug, name, description, icon_key, is_public, sort_order)
-     VALUES (?, ?, ?, ?, ?, ?)'
+    'INSERT INTO forum_boards (slug, name, description, icon_key, accent_color, is_public, sort_order)
+     VALUES (?, ?, ?, ?, ?, ?, ?)'
 );
 $stmt->execute([
-    $data['slug'], $data['name'], $data['description'], $data['icon_key'],
+    $data['slug'], $data['name'], $data['description'], $data['icon_key'], $data['accent_color'],
     $data['is_public'], $sortOrder,
 ]);
 $boardId = (int)$db->lastInsertId();

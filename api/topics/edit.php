@@ -49,8 +49,8 @@ if (!$stmt->fetch()) {
     pw_error('That topic no longer exists.', 404);
 }
 
-$stmt = $db->prepare('UPDATE topics SET title = ?, body = ?, edited_at = ? WHERE id = ?');
-$stmt->execute([$title, $body, date('Y-m-d H:i:s'), $id]);
+$stmt = $db->prepare('UPDATE topics SET title = ?, body = ?, edited_at = ?, edited_by = ? WHERE id = ?');
+$stmt->execute([$title, $body, date('Y-m-d H:i:s'), (int)$user['id'], $id]);
 
 pw_log_admin_activity('topic_edited', 'Edited topic #' . $id . ' as moderator.', $user);
 
