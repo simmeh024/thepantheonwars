@@ -87,12 +87,22 @@ document.addEventListener('DOMContentLoaded', function () {
       // this room to move without ever exposing an edge.
       var portraitImg = sceneEl.querySelector('.figure-portrait-frame img');
       var bgLayer = sceneEl.querySelector('.figure-scene-bg');
-      var parallaxScroll = { trigger: sceneEl, start: 'top bottom', end: 'bottom top', scrub: 0.6 };
+      // Each tween needs its own distinct scrollTrigger config object -- GSAP
+      // otherwise treats a shared/reused object as "already claimed" by
+      // whichever tween wired it up second, silently leaving the first
+      // tween's animation unlinked (a real bug caught by checking the
+      // deployed page's computed transform, not just reading the code back).
       if (portraitImg) {
-        gsap.fromTo(portraitImg, { yPercent: -14 }, { yPercent: 14, ease: 'none', scrollTrigger: parallaxScroll });
+        gsap.fromTo(portraitImg, { yPercent: -14 }, {
+          yPercent: 14, ease: 'none',
+          scrollTrigger: { trigger: sceneEl, start: 'top bottom', end: 'bottom top', scrub: 0.6 }
+        });
       }
       if (bgLayer) {
-        gsap.fromTo(bgLayer, { yPercent: -6 }, { yPercent: 6, ease: 'none', scrollTrigger: parallaxScroll });
+        gsap.fromTo(bgLayer, { yPercent: -6 }, {
+          yPercent: 6, ease: 'none',
+          scrollTrigger: { trigger: sceneEl, start: 'top bottom', end: 'bottom top', scrub: 0.6 }
+        });
       }
     }
 
