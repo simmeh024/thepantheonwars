@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=228">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=229">
 </head>
 <body>
 
@@ -370,6 +370,17 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>
                 </span>
                 <span class="quick-action-label">Add New Book</span>
+                <span class="quick-action-chevron">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
+                </span>
+              </button>
+            </li>
+            <li data-requires-permission="known_figures.edit">
+              <button type="button" class="quick-action-btn" id="quick-action-new-known-figure">
+                <span class="quick-action-icon quick-action-icon--teal">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+                </span>
+                <span class="quick-action-label">Add New Known Figure</span>
                 <span class="quick-action-chevron">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"/></svg>
                 </span>
@@ -3789,6 +3800,17 @@
         quickActionNewBookBtn.disabled = false;
         openCreateBookModal();
       });
+    });
+  }
+
+  // "Add New Known Figure" reuses openCreateKnownFigureModal() the same way
+  // as "Add New Member" -- unlike the book quick action above, it has no
+  // dependency on the section's list having loaded first, so it can just
+  // open directly.
+  var quickActionNewKnownFigureBtn = document.getElementById('quick-action-new-known-figure');
+  if (quickActionNewKnownFigureBtn) {
+    quickActionNewKnownFigureBtn.addEventListener('click', function () {
+      openCreateKnownFigureModal();
     });
   }
 
