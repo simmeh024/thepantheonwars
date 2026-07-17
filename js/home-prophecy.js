@@ -249,4 +249,31 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
+
+  // Quiz teaser ("Which Overlord Are You?"): had no scroll reveal at all
+  // before. Fades/rises in like the rest of the page, plus a one-time
+  // holographic foil sweep across the whole card (.quiz-teaser-foil's CSS
+  // has the gradient; skewX/xPercent are set here rather than in CSS since
+  // GSAP would overwrite a stylesheet transform the first time it touches
+  // this element anyway).
+  if (!reducedMotion && hasGsap && window.ScrollTrigger) {
+    var quizTeaser = document.querySelector('.quiz-teaser');
+    if (quizTeaser) {
+      var quizFoil = quizTeaser.querySelector('.quiz-teaser-foil');
+      gsap.set(quizTeaser, { autoAlpha: 0, y: 26 });
+      var quizTl = gsap.timeline({
+        scrollTrigger: {
+          trigger: quizTeaser, start: 'top 80%', once: true,
+          onRefresh: function (self) { if (self.progress > 0) self.animation.progress(1); }
+        }
+      });
+      quizTl.to(quizTeaser, { autoAlpha: 1, y: 0, duration: 0.7, ease: 'power2.out' }, 0);
+      if (quizFoil) {
+        gsap.set(quizFoil, { xPercent: -150, skewX: -20 });
+        quizTl.to(quizFoil, { xPercent: 350, duration: 1.1, ease: 'power1.inOut' }, 0.3)
+          .to(quizFoil, { opacity: 1, duration: 0.25, ease: 'sine.out' }, 0.3)
+          .to(quizFoil, { opacity: 0, duration: 0.35, ease: 'sine.in' }, 1.15);
+      }
+    }
+  }
 });

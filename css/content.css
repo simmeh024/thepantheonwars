@@ -2004,6 +2004,27 @@
 }
 .quiz-teaser > * { position: relative; z-index: 1; }
 .quiz-teaser p { max-width: 560px; margin: 0 auto 1.6em; }
+/* One-time holographic foil sweep, played on scroll entry by
+   js/home-prophecy.js (GSAP animates xPercent/opacity/skewX -- initial
+   skew is set there too, not here, since GSAP would otherwise overwrite a
+   CSS transform the first time it touches this element). Purple/gold/teal
+   trio instead of a literal rainbow, so it reads as "this site's foil"
+   rather than a generic effect. */
+.quiz-teaser-foil {
+  position: absolute; top: -15%; left: 0; width: 40%; height: 130%;
+  background: linear-gradient(115deg,
+    transparent 20%,
+    rgba(162,121,236,0.4) 40%,
+    rgba(236,201,135,0.5) 50%,
+    rgba(80,201,191,0.4) 60%,
+    transparent 80%);
+  mix-blend-mode: screen;
+  pointer-events: none;
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .quiz-teaser-foil { display: none; }
+}
 
 /* Rogues-gallery collage of existing Overlord character portraits,
    scattered around the panel's edges (the ~560px-wide text column leaves
