@@ -6,7 +6,7 @@ pw_require_permission('news.view');
 $db = pw_db();
 
 $rows = $db->query(
-    'SELECT n.id, n.slug, n.title, n.body, n.author_type, n.author_user_id, n.comments_enabled, n.published_at, n.created_at, n.updated_at,
+    'SELECT n.id, n.slug, n.title, n.body, n.header_image_url, n.author_type, n.author_user_id, n.comments_enabled, n.published_at, n.created_at, n.updated_at,
             u.display_name AS author_display_name
      FROM news_posts n
      LEFT JOIN users u ON u.id = n.author_user_id
@@ -32,6 +32,7 @@ $entries = array_map(function ($row) use ($tagsByPost) {
         'title' => $row['title'],
         'body' => $body,
         'body_is_rich' => pw_news_is_rich_body($body),
+        'header_image_url' => $row['header_image_url'],
         'author_type' => $row['author_type'],
         'author_user_id' => $row['author_user_id'] !== null ? (int)$row['author_user_id'] : null,
         'comments_enabled' => (bool)$row['comments_enabled'],

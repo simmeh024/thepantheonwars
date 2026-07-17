@@ -1595,6 +1595,25 @@
       <label for="news-title-input">Title</label>
       <input type="text" id="news-title-input" maxlength="200" placeholder="A clear headline for readers">
     </div>
+    <div class="admin-field admin-image-field">
+      <label for="news-header-image-input">Header image</label>
+      <p class="admin-field-hint">Optional. Used as the large image for this post's featured card on the homepage and News page.</p>
+      <div class="admin-image-field-row">
+        <div class="admin-image-thumb" id="news-header-image-thumb">
+          <img id="news-header-image-preview" alt="" hidden>
+          <span class="admin-image-thumb-empty">No image</span>
+        </div>
+        <div class="admin-image-field-controls">
+          <input type="text" id="news-header-image-input" maxlength="500" placeholder="Chosen from the News image library" readonly>
+          <div class="admin-image-field-btns">
+            <button type="button" class="btn admin-image-upload-btn" data-image-type="news_header">Upload</button>
+            <button type="button" class="btn admin-image-browse-btn" data-image-type="news_header">Choose from Library</button>
+            <button type="button" class="btn" id="news-header-image-clear-btn">Remove</button>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="news-header-image-file" accept="image/jpeg,image/png,image/webp" hidden>
+    </div>
     <div class="admin-field">
       <label for="news-body-input">Public update</label>
       <p class="admin-field-hint">Use the editorial tools for reader-facing structure. Click an inserted caption to describe the image; links and News-library images are safely checked again when you publish.</p>
@@ -10205,6 +10224,8 @@
   var newsTagInput = document.getElementById('news-tag-input');
   var newsTagSelectedEl = document.getElementById('news-tag-selected');
   var newsTagSuggestionsEl = document.getElementById('news-tag-suggestions');
+  var newsHeaderImageInput = document.getElementById('news-header-image-input');
+  var newsHeaderImageClearBtn = document.getElementById('news-header-image-clear-btn');
   var newsEntries = [];
   var newsKnownTags = [];
   var newsSelectedTags = [];
@@ -10212,6 +10233,22 @@
   var newsModalMode = 'create';
   var newsSearchTimer = null;
   var newsEditorSelection = null;
+
+  IMAGE_FIELDS.news_header = {
+    urlInput: newsHeaderImageInput,
+    thumbImg: document.getElementById('news-header-image-preview'),
+    thumbEmpty: document.querySelector('#news-header-image-thumb .admin-image-thumb-empty'),
+    fileInput: document.getElementById('news-header-image-file'),
+    uploadEndpoint: '/api/admin/news/upload-image.php',
+    listEndpoint: '/api/admin/news/list-images.php',
+    apiType: 'header', label: 'header image',
+    errorEl: newsModalError, statusEl: newsModalStatus
+  };
+  wireImageField('news_header');
+  newsHeaderImageClearBtn.addEventListener('click', function () {
+    newsHeaderImageInput.value = '';
+    refreshImageThumb('news_header');
+  });
 
   function newsAuthorType() {
     var selected = newsModal.querySelector('input[name="news-author"]:checked');
@@ -10517,6 +10554,8 @@
     newsBodyInput.innerHTML = entry
       ? (entry.body_is_rich ? entry.body : newsPlainTextToHtml(entry.body))
       : '';
+    newsHeaderImageInput.value = entry && entry.header_image_url ? entry.header_image_url : '';
+    refreshImageThumb('news_header');
     newsCommentsEnabled.checked = entry ? entry.comments_enabled !== false : true;
     newsSelectedTags = entry ? (entry.tags || []).map(function (tag) { return tag.label; }) : [];
     newsTagInput.value = '';
@@ -10604,6 +10643,7 @@
     var payload = {
       title: newsTitleInput.value.trim(),
       body: newsBodyValue(),
+      header_image_url: newsHeaderImageInput.value.trim(),
       author_type: newsAuthorType(),
       comments_enabled: newsCommentsEnabled.checked,
       tags: newsSelectedTags,

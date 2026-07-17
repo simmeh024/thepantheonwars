@@ -25,4 +25,9 @@ if (is_dir($directory)) {
     }
 }
 usort($images, function ($left, $right) { return $right['modified'] <=> $left['modified']; });
-pw_json(['ok' => true, 'images' => $images]);
+// 'images' is the original flat shape the News body-editor's own image
+// library modal reads. 'uploaded'/'site' are added for the shared, generic
+// admin IMAGE_FIELDS picker (used by the header-image field below) -- it
+// always expects those two keys; 'site' stays empty since News has no
+// separate curated bucket the way Book/World covers reuse existing art.
+pw_json(['ok' => true, 'images' => $images, 'uploaded' => $images, 'site' => []]);

@@ -1,11 +1,14 @@
 // Homepage "From the Nexus Veil" dispatches teaser. Was static hand-written
-// HTML that never reflected real posts; now pulls the two most recent from
-// the same /api/news/list.php endpoint news.html uses, and reuses that
-// page's own .post card component (meta rail, featured pill, signal
-// indicator, tags, reveal-on-scroll animation) directly rather than
-// inventing a second card design for this smaller strip. The section stays
-// hidden until real posts render, so a fetch failure or an empty feed never
-// leaves a visible, broken-looking gap on the homepage.
+// HTML that never reflected real posts; now pulls from the same
+// /api/news/list.php endpoint news.html uses. Layout is one large featured
+// card (the latest post) beside a compact list of up to five more, each
+// carrying its optional header_image_url. The featured card reuses News
+// page's own .post component (meta rail, signal indicator, tags, built-in
+// reveal-on-scroll animation) rather than a second design; the compact list
+// items are new, smaller-footprint markup since .post's own layout doesn't
+// fit a thumbnail-and-title row. The section stays hidden until real posts
+// render, so a fetch failure or an empty feed never leaves a visible,
+// broken-looking gap on the homepage.
 (function () {
   'use strict';
 
@@ -43,9 +46,35 @@
     return { type: 'standard', label: 'Stable signal' };
   }
 
-  function createCard(post, isFeatured) {
+  // A post without a header image gets this accent-tinted placeholder
+  // instead of a broken/missing thumbnail -- reuses the same is-bh4/
+  // is-member accent-color convention as .post itself rather than
+  // inventing a new palette, and needs no extra image asset.
+  function thumbEl(post, className) {
+    var wrap = document.createElement('div');
+    wrap.className = className + (post.author_type === 'bh4' ? ' is-bh4' : ' is-member');
+    if (post.header_image_url) {
+      var img = document.createElement('img');
+      img.src = post.header_image_url;
+      img.alt = '';
+      img.loading = 'lazy';
+      img.decoding = 'async';
+      wrap.appendChild(img);
+    } else {
+      wrap.classList.add('is-placeholder');
+      var glyph = document.createElement('span');
+      glyph.className = 'dispatches-thumb-glyph';
+      glyph.setAttribute('aria-hidden', 'true');
+      wrap.appendChild(glyph);
+    }
+    return wrap;
+  }
+
+  function createFeatured(post) {
     var article = document.createElement('article');
-    article.className = 'post news-card ' + (post.author_type === 'bh4' ? 'is-bh4' : 'is-member') + (isFeatured ? ' is-featured' : '');
+    article.className = 'post news-card dispatches-featured is-featured ' + (post.author_type === 'bh4' ? 'is-bh4' : 'is-member');
+
+    article.appendChild(thumbEl(post, 'dispatches-featured-thumb'));
 
     var rail = document.createElement('aside');
     rail.className = 'post-meta-rail';
@@ -61,12 +90,6 @@
     author.textContent = post.author_type === 'bh4' ? 'BH-4 relay' : 'Member transmission';
     rail.appendChild(author);
 
-    var tagCount = document.createElement('span');
-    tagCount.className = 'post-rail-tags';
-    var count = (post.tags || []).length;
-    tagCount.textContent = count + ' tag' + (count === 1 ? '' : 's');
-    rail.appendChild(tagCount);
-
     var commentCount = Number(post.comment_count || 0);
     var comments = document.createElement('a');
     comments.className = 'post-rail-comments';
@@ -78,12 +101,10 @@
     var content = document.createElement('div');
     content.className = 'post-card-content';
 
-    if (isFeatured) {
-      var pill = document.createElement('span');
-      pill.className = 'post-featured-pill';
-      pill.textContent = 'Latest transmission';
-      content.appendChild(pill);
-    }
+    var pill = document.createElement('span');
+    pill.className = 'post-featured-pill';
+    pill.textContent = 'Latest transmission';
+    content.appendChild(pill);
 
     var signalInfo = signalFor(post);
     var signal = document.createElement('span');
@@ -135,6 +156,37 @@
     return article;
   }
 
+  function createMiniItem(post) {
+    var item = document.createElement('a');
+    item.className = 'dispatches-mini-item';
+    item.href = 'news-post.html?slug=' + encodeURIComponent(post.slug);
+
+    item.appendChild(thumbEl(post, 'dispatches-mini-thumb'));
+
+    var body = document.createElement('div');
+    body.className = 'dispatches-mini-body';
+
+    var title = document.createElement('h3');
+    title.textContent = post.title;
+    body.appendChild(title);
+
+    var excerpt = firstParagraph(post);
+    if (excerpt) {
+      var p = document.createElement('p');
+      p.textContent = excerpt;
+      body.appendChild(p);
+    }
+
+    var meta = document.createElement('span');
+    meta.className = 'dispatches-mini-meta';
+    var authorLabel = post.author_type === 'bh4' ? 'BH-4' : (post.author_display_name || 'Member');
+    meta.textContent = authorLabel + ' · ' + dateLabel(post.published_at);
+    body.appendChild(meta);
+
+    item.appendChild(body);
+    return item;
+  }
+
   function revealCards(cards) {
     if (reducedMotion || !('IntersectionObserver' in window)) return;
     var observer = new IntersectionObserver(function (entries) {
@@ -154,11 +206,26 @@
     .then(function (response) { return response.json(); })
     .then(function (data) {
       if (!data.ok || !data.entries || !data.entries.length) return;
-      var latest = data.entries.slice(0, 2);
-      var cards = latest.map(function (post, index) { return createCard(post, index === 0); });
-      cards.forEach(function (card) { container.appendChild(card); });
+      var entries = data.entries;
+      var featuredPost = entries[0];
+      var minorPosts = entries.slice(1, 6);
+
+      var featured = createFeatured(featuredPost);
+      container.appendChild(featured);
+
+      var revealTargets = [featured];
+      if (minorPosts.length) {
+        var list = document.createElement('div');
+        list.className = 'dispatches-mini-list';
+        minorPosts.forEach(function (post) {
+          list.appendChild(createMiniItem(post));
+        });
+        container.appendChild(list);
+        revealTargets.push(list);
+      }
+
       section.hidden = false;
-      revealCards(cards);
+      revealCards(revealTargets);
     })
     .catch(function () {
       // Fail quietly -- this is a decorative homepage teaser, not the real

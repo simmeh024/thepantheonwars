@@ -12,6 +12,7 @@ function pw_news_input($input) {
     $title = isset($input['title']) ? trim((string)$input['title']) : '';
     $rawBody = isset($input['body']) ? trim((string)$input['body']) : '';
     $authorType = isset($input['author_type']) ? trim((string)$input['author_type']) : 'bh4';
+    $rawHeaderImage = isset($input['header_image_url']) ? trim((string)$input['header_image_url']) : '';
 
     if ($title === '') {
         pw_error('Give the news post a title.');
@@ -34,9 +35,21 @@ function pw_news_input($input) {
         pw_error('Write the public update before publishing it.');
     }
 
+    // Optional. Reuses the same News library allowlist as inline body images
+    // (pw_news_safe_image_url), so a header image can only ever point at a
+    // re-encoded upload-image.php file, never an arbitrary external URL.
+    $headerImageUrl = null;
+    if ($rawHeaderImage !== '') {
+        $headerImageUrl = pw_news_safe_image_url($rawHeaderImage);
+        if ($headerImageUrl === null) {
+            pw_error('The header image must be chosen from the News image library.');
+        }
+    }
+
     return [
         'title' => $title,
         'body' => $body,
+        'header_image_url' => $headerImageUrl,
         'author_type' => $authorType,
         'comments_enabled' => !array_key_exists('comments_enabled', $input) || !empty($input['comments_enabled']),
         'tags' => pw_news_normalize_tags(isset($input['tags']) ? $input['tags'] : []),

@@ -17,10 +17,10 @@ $authorUserId = $data['author_type'] === 'member' ? (int)$adminUser['id'] : null
 try {
     $db->beginTransaction();
     $stmt = $db->prepare(
-        'INSERT INTO news_posts (slug, title, body, author_type, author_user_id, comments_enabled)
-         VALUES (?, ?, ?, ?, ?, ?)'
+        'INSERT INTO news_posts (slug, title, body, header_image_url, author_type, author_user_id, comments_enabled)
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
     );
-    $stmt->execute([$slug, $data['title'], $data['body'], $data['author_type'], $authorUserId, $data['comments_enabled'] ? 1 : 0]);
+    $stmt->execute([$slug, $data['title'], $data['body'], $data['header_image_url'], $data['author_type'], $authorUserId, $data['comments_enabled'] ? 1 : 0]);
     $id = (int)$db->lastInsertId();
     pw_news_sync_tags($db, $id, $data['tags']);
     $db->commit();

@@ -196,6 +196,7 @@ CREATE TABLE IF NOT EXISTS news_posts (
   slug VARCHAR(120) NOT NULL,
   title VARCHAR(200) NOT NULL,
   body TEXT NOT NULL,
+  header_image_url VARCHAR(255) NULL,
   author_type ENUM('bh4','member') NOT NULL DEFAULT 'bh4',
   author_user_id INT UNSIGNED NULL,
   comments_enabled TINYINT(1) NOT NULL DEFAULT 1,
