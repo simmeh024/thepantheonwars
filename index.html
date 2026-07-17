@@ -25,7 +25,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=228">
+<link rel="stylesheet" href="css/public.css?v=229">
 </head>
 <body>
 
@@ -69,7 +69,9 @@
 <main>
 
   <section class="hero ornate">
-    <div class="hero-bg effect-neoh" style="background-image: url('images/hero-main-bg-v2.jpg');"></div>
+    <div class="hero-bg-parallax" id="hero-bg-parallax">
+      <div class="hero-bg effect-neoh" style="background-image: url('images/hero-main-bg-v2.jpg');"></div>
+    </div>
     <div class="hero-rain"></div>
     <div class="hero-flicker"></div>
     <div class="hero-veil"></div>
@@ -90,6 +92,10 @@
         <a href="quiz.html" class="btn btn-sm">Which Overlord Are You?</a>
         <a href="#newsletter" class="btn btn-sm">Join the Mailing List</a>
       </div>
+    </div>
+    <div class="hero-scroll-cue" aria-hidden="true">
+      <span class="hero-scroll-cue-label">Scroll</span>
+      <span class="hero-scroll-cue-chevron"></span>
     </div>
   </section>
 
@@ -272,7 +278,7 @@
 <script src="js/vendor/ScrollTrigger-3.15.0.min.js"></script>
 <script src="js/main.js?v=7"></script>
 <script src="js/members.js?v=23"></script>
-<script src="js/home-prophecy.js?v=6"></script>
+<script src="js/home-prophecy.js?v=7"></script>
 <script src="js/home-dispatches.js?v=3"></script>
 </body>
 </html>

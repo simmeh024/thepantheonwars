@@ -1,11 +1,50 @@
-// Homepage GSAP effects: the "Prophecy" scene (Nexus Veil teaser) and a
-// scroll-reveal for the God-Cores/Overlords/Thirteenth Key intro cards.
-// Everything here is skipped under prefers-reduced-motion, matching every
-// other animated page on this site.
+// Homepage GSAP effects: the hero's scroll parallax/pointer-tilt, the
+// "Prophecy" scene (Nexus Veil teaser), and scroll-reveals for the
+// God-Cores/Overlords/Thirteenth Key cards, Featured Book, and quiz
+// teaser. Everything here is skipped under prefers-reduced-motion,
+// matching every other animated page on this site.
 document.addEventListener('DOMContentLoaded', function () {
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasGsap = typeof window.gsap !== 'undefined';
   if (hasGsap && window.ScrollTrigger) gsap.registerPlugin(window.ScrollTrigger);
+
+  // Hero: .hero-bg-parallax wraps the single real .hero-bg image element
+  // (never duplicate that image -- see the LCP hardening note in
+  // components.css) so a scroll-scrubbed parallax and a fine-pointer-only
+  // tilt can drive this wrapper's transform without fighting .hero-bg's
+  // own CSS-only neoh-pan animation, which also animates `transform`.
+  if (!reducedMotion && hasGsap) {
+    var heroEl = document.querySelector('.hero');
+    var heroBgParallax = document.getElementById('hero-bg-parallax');
+    if (heroEl && heroBgParallax) {
+      if (window.ScrollTrigger) {
+        gsap.fromTo(heroBgParallax, { yPercent: -4 }, {
+          yPercent: 4, ease: 'none',
+          scrollTrigger: { trigger: heroEl, start: 'top top', end: 'bottom top', scrub: 0.6 }
+        });
+      }
+      if (window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        var heroTiltX = gsap.quickTo(heroBgParallax, 'x', { duration: 0.9, ease: 'power3.out' });
+        var heroTiltY = gsap.quickTo(heroBgParallax, 'y', { duration: 0.9, ease: 'power3.out' });
+        var heroTiltRX = gsap.quickTo(heroBgParallax, 'rotationX', { duration: 0.9, ease: 'power3.out' });
+        var heroTiltRY = gsap.quickTo(heroBgParallax, 'rotationY', { duration: 0.9, ease: 'power3.out' });
+        var heroRect = null;
+        heroEl.addEventListener('pointerenter', function () { heroRect = heroEl.getBoundingClientRect(); });
+        heroEl.addEventListener('pointermove', function (event) {
+          if (!heroRect || event.pointerType === 'touch') return;
+          var nx = Math.max(-1, Math.min(1, ((event.clientX - heroRect.left) / heroRect.width - 0.5) * 2));
+          var ny = Math.max(-1, Math.min(1, ((event.clientY - heroRect.top) / heroRect.height - 0.5) * 2));
+          heroTiltX(nx * 10);
+          heroTiltY(ny * 6);
+          heroTiltRY(nx * 0.8);
+          heroTiltRX(ny * -0.6);
+        });
+        heroEl.addEventListener('pointerleave', function () {
+          heroTiltX(0); heroTiltY(0); heroTiltRX(0); heroTiltRY(0);
+        });
+      }
+    }
+  }
 
   // "Prophecy" scene: the background is a looping WebM (soft crystal
   // glow); layered on top are a scroll-scrubbed push-in zoom, a

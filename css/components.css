@@ -718,6 +718,19 @@ nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
   align-items: center;
   overflow: hidden;
   background: #07051190;
+  perspective: 1600px;
+}
+/* Wraps .hero-bg (the single real image element -- never duplicate this,
+   see the LCP note below) so js/home-prophecy.js can drive a scroll-scrubbed
+   parallax and a subtle pointer-tilt on this wrapper's own transform without
+   touching .hero-bg's existing CSS-only neoh-pan ambient animation, which
+   also animates `transform` -- two things animating the same CSS property
+   on the same element fight each other, so they need separate layers. */
+.hero-bg-parallax {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  will-change: transform;
 }
 .hero-bg {
   position: absolute;
@@ -845,6 +858,21 @@ nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
 .hero-content h1 {
   text-shadow: 0 0 50px rgba(157,111,232,0.55), 0 4px 30px rgba(0,0,0,0.8);
 }
+/* Title "resolves into focus" on load: starts soft and slightly dim, never
+   opacity:0/hidden, so it doesn't touch this page's already-hardened LCP
+   timing (documented above the .hero rule -- the h1 and hero-bg are LCP
+   candidates and must be visible/painted from the first frame). A filter
+   on already-visible content doesn't delay contentful paint the way
+   hiding it would. */
+@media (prefers-reduced-motion: no-preference) {
+  .hero-content h1 {
+    animation: hero-title-resolve 900ms ease-out both;
+  }
+}
+@keyframes hero-title-resolve {
+  0% { filter: blur(8px) brightness(0.7); opacity: 0.85; }
+  100% { filter: blur(0) brightness(1); opacity: 1; }
+}
 .hero-sub {
   max-width: 620px;
   margin: 0 auto 2.2em;
@@ -865,6 +893,35 @@ nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
   color: var(--gold-bright);
   background: rgba(209,169,85,0.06);
   box-shadow: none;
+}
+
+/* Sits at the bottom of the 100vh hero and scrolls away with it naturally
+   once the visitor actually scrolls -- no JS/scroll-listener needed to
+   hide it again. */
+.hero-scroll-cue {
+  position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+  z-index: 3;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  color: var(--text-faint);
+  opacity: 0.75;
+  pointer-events: none;
+}
+.hero-scroll-cue-label {
+  font-family: 'Jost', sans-serif; font-size: 0.62rem;
+  text-transform: uppercase; letter-spacing: 0.22em;
+}
+.hero-scroll-cue-chevron {
+  display: block; width: 12px; height: 12px;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor;
+  animation: hero-scroll-bounce 1.8s ease-in-out infinite;
+}
+@keyframes hero-scroll-bounce {
+  0%, 100% { transform: rotate(45deg) translateY(0); opacity: 0.5; }
+  50% { transform: rotate(45deg) translateY(6px); opacity: 1; }
+}
+@media (max-width: 700px) { .hero-scroll-cue { bottom: 16px; } }
+@media (prefers-reduced-motion: reduce) {
+  .hero-scroll-cue-chevron { animation: none; transform: rotate(45deg); }
 }
 
 .hero-eyebrow-row {
