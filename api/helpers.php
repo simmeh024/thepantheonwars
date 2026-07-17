@@ -148,9 +148,22 @@ function pw_current_user() {
     if (empty($_SESSION['user_id'])) {
         return null;
     }
-    $stmt = pw_db()->prepare('SELECT id, username, email, display_name, overlord_affinity, role, presence_status, created_at, banned_at, banned_until FROM users WHERE id = ?');
-    $stmt->execute([$_SESSION['user_id']]);
-    $user = $stmt->fetch();
+    try {
+        $stmt = pw_db()->prepare('SELECT id, username, email, newsletter_subscribed, display_name, overlord_affinity, role, presence_status, created_at, banned_at, banned_until FROM users WHERE id = ?');
+        $stmt->execute([$_SESSION['user_id']]);
+        $user = $stmt->fetch();
+    } catch (Throwable $e) {
+        // newsletter_subscribed arrives via a manual migration after deploy
+        // (migration_newsletter_subscription.sql) -- this function runs on
+        // every authenticated request, so it must keep working during that
+        // window rather than fatal on a missing column.
+        $stmt = pw_db()->prepare('SELECT id, username, email, display_name, overlord_affinity, role, presence_status, created_at, banned_at, banned_until FROM users WHERE id = ?');
+        $stmt->execute([$_SESSION['user_id']]);
+        $user = $stmt->fetch();
+        if ($user) {
+            $user['newsletter_subscribed'] = 1;
+        }
+    }
     if (!$user) {
         return null;
     }

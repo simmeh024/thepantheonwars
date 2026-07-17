@@ -1796,7 +1796,7 @@
 .member-list-columns,
 .admin-row.member-row {
   display: grid;
-  grid-template-columns: 40px minmax(190px, 1.35fr) minmax(145px, 1fr) 126px 118px 106px 120px;
+  grid-template-columns: 40px minmax(190px, 1.35fr) minmax(145px, 1fr) 126px 118px 106px 130px 120px;
   align-items: center;
   column-gap: 16px;
 }
@@ -1813,7 +1813,7 @@
 .admin-row.member-row { gap: 0 16px; }
 .member-row .member-avatar-wrap { grid-column: 1; }
 .member-last-login-column { color: var(--text-faint); font-size: 0.72rem; line-height: 1.4; }
-.member-source-column, .member-verification-column, .member-two-factor-column, .member-role-column { display: flex; align-items: center; gap: 7px; min-width: 0; }
+.member-source-column, .member-verification-column, .member-two-factor-column, .member-subscription-column, .member-role-column { display: flex; align-items: center; gap: 7px; min-width: 0; }
 .member-role-column { flex-wrap: wrap; }
 .member-row-badges { flex-shrink: 0; display: flex; align-items: center; gap: 8px; }
 .member-role-badge {
@@ -1844,6 +1844,13 @@
 .member-two-factor-badge-enabled { color: #9af0c6; background: rgba(62,207,142,0.14); border: 1px solid rgba(62,207,142,0.5); }
 .member-two-factor-badge-disabled { color: #b0a6c8; background: rgba(170,161,190,0.1); border: 1px solid rgba(170,161,190,0.32); }
 .member-two-factor-na { color: var(--text-faint); font-size: 0.9rem; padding-left: 8px; }
+.member-subscription-badge {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+  padding: 3px 9px; border-radius: 999px; font-size: 0.62rem; font-weight: 600;
+  letter-spacing: 0.07em; text-transform: uppercase; white-space: nowrap;
+}
+.member-subscription-badge-subscribed { color: #9af0c6; background: rgba(62,207,142,0.14); border: 1px solid rgba(62,207,142,0.5); }
+.member-subscription-badge-not-subscribed { color: #b0a6c8; background: rgba(170,161,190,0.1); border: 1px solid rgba(170,161,190,0.32); }
 .member-banned-badge {
   flex-shrink: 0; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.06em;
   padding: 3px 10px; border-radius: 3px; border: 1px solid #e05a4a; color: #e05a4a; white-space: nowrap;
@@ -1857,6 +1864,7 @@
       'avatar account source'
       'avatar login verification'
       'avatar login twofactor'
+      'avatar login subscription'
       'avatar login role';
   }
   .member-row .member-avatar-wrap { grid-area: avatar; }
@@ -1865,6 +1873,7 @@
   .member-source-column { grid-area: source; justify-content: flex-end; }
   .member-verification-column { grid-area: verification; justify-content: flex-end; }
   .member-two-factor-column { grid-area: twofactor; justify-content: flex-end; }
+  .member-subscription-column { grid-area: subscription; justify-content: flex-end; }
   .member-role-column { grid-area: role; justify-content: flex-end; }
 }
 @media (max-width: 720px) {
@@ -1881,9 +1890,10 @@
       'avatar source'
       'avatar verification'
       'avatar twofactor'
+      'avatar subscription'
       'avatar role';
   }
-  .member-source-column, .member-verification-column, .member-two-factor-column, .member-role-column { justify-content: flex-start; }
+  .member-source-column, .member-verification-column, .member-two-factor-column, .member-subscription-column, .member-role-column { justify-content: flex-start; }
 }
 
 .admin-field-hint { font-size: 0.76rem; color: var(--text-faint); margin: -0.3em 0 0.6em; }

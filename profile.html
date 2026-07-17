@@ -144,6 +144,12 @@
             <button type="submit" class="btn btn-solid auth-submit">Update Password</button>
           </form>
 
+          <label class="auth-oauth-option" id="newsletter-subscribe-row">
+            <input type="checkbox" id="newsletter-subscribe-checkbox" checked>
+            <span>Subscribe to the mailing list &mdash; news on new books, lore drops, and the soundtrack as it's released.</span>
+          </label>
+          <p class="profile-success" id="newsletter-subscribe-status" hidden>Saved.</p>
+
           <div class="profile-divider"><span class="profile-divider-shard"></span></div>
 
           <section class="profile-signin-methods" aria-labelledby="signin-methods-title">
@@ -389,7 +395,7 @@
   </div>
 </div>
 
-<script src="js/main.js?v=7"></script>
+<script src="js/main.js?v=8"></script>
 <script src="js/members.js?v=23"></script>
 <script src="js/qrcode-generator.min.js?v=1"></script>
 <script>
@@ -636,6 +642,8 @@
   var panelPosts = document.getElementById('profile-panel-posts');
   var lockedNameInput = document.getElementById('profile-name-locked');
   var lockedEmailInput = document.getElementById('profile-email-locked');
+  var newsletterCheckbox = document.getElementById('newsletter-subscribe-checkbox');
+  var newsletterStatus = document.getElementById('newsletter-subscribe-status');
   var passwordForm = document.getElementById('password-form');
   var passwordError = document.getElementById('password-error');
   var passwordSuccess = document.getElementById('password-success');
@@ -1051,6 +1059,22 @@
       .catch(function () {});
   });
 
+  newsletterCheckbox.addEventListener('change', function () {
+    newsletterStatus.hidden = true;
+    fetch('/api/newsletter-subscription/update.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscribed: newsletterCheckbox.checked, csrf: window.PW_AUTH.csrf }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        newsletterStatus.hidden = false;
+      })
+      .catch(function () {});
+  });
+
   passwordForm.addEventListener('submit', function (e) {
     e.preventDefault();
     passwordError.classList.remove('show');
@@ -1123,6 +1147,7 @@
         loadAvatar(data.user.id, data.user.display_name);
         lockedNameInput.value = data.user.display_name;
         lockedEmailInput.value = data.user.email;
+        newsletterCheckbox.checked = data.user.newsletter_subscribed !== false;
         setPasswordMode(data.user.has_password);
         loadGoogleIdentity();
 

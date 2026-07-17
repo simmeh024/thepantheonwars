@@ -52,6 +52,10 @@ CREATE TABLE IF NOT EXISTS users (
   -- a future first-party verification link. The timestamp doubles as a
   -- compact audit reference without exposing it on public member pages.
   email_verified_at DATETIME DEFAULT NULL,
+  -- Every registration path (password, Google, admin-created) omits this
+  -- column from its INSERT, so new accounts always land on this default.
+  -- Toggle lives in Profile Settings > Change Password section.
+  newsletter_subscribed TINYINT(1) NOT NULL DEFAULT 1,
   -- NULL is intentional for OAuth-only accounts. A member can add a local
   -- password later from Profile Settings.
   password_hash VARCHAR(255) NULL,

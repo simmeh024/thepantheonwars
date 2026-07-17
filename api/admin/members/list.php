@@ -84,9 +84,22 @@ try {
     // No migration yet: all rows simply present as not enrolled.
 }
 
+// Same manual-migration window as above. Falls back to '1' (not '0') since
+// that's this column's own eventual DEFAULT -- every account reads as
+// subscribed both immediately before and immediately after the migration
+// runs, rather than flipping the moment it's applied.
+$newsletterSelect = '1';
+try {
+    $db->query('SELECT newsletter_subscribed FROM users LIMIT 1');
+    $newsletterSelect = 'u.newsletter_subscribed';
+} catch (Throwable $e) {
+    // No migration yet: every row presents as subscribed (see comment above).
+}
+
 $stmt = $db->prepare(
     "SELECT u.id, u.username, u.email, $verificationSelect AS email_verified_at, u.display_name, u.role, u.created_at, u.last_login_at, u.last_login_ip, u.banned_at, u.banned_until,
             $twoFactorSelect AS two_factor_enabled,
+            $newsletterSelect AS newsletter_subscribed,
             EXISTS(
                 SELECT 1
                 FROM oauth_identities oi
@@ -125,6 +138,7 @@ $out = array_map(function ($r) use ($otherRolesByUser, $canViewIp) {
         'role' => $r['role'],
         'has_google_identity' => (bool)$r['has_google_identity'],
         'two_factor_enabled' => (bool)$r['two_factor_enabled'],
+        'newsletter_subscribed' => (bool)$r['newsletter_subscribed'],
         'other_roles' => isset($otherRolesByUser[$r['id']]) ? $otherRolesByUser[$r['id']] : [],
         'created_at' => $r['created_at'],
         'last_login_at' => $r['last_login_at'],

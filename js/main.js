@@ -248,22 +248,21 @@ document.addEventListener('DOMContentLoaded', function () {
     })();
   }
 
-  // Newsletter forms — client-side only.
-  // NOTE for Pascal: this currently just shows a confirmation message and does not
-  // send the email anywhere. To actually collect subscribers, sign up for an email
-  // service (e.g. Buttondown, ConvertKit, Mailchimp) and point each <form> at the
-  // endpoint it gives you, or wire this fetch call to it.
+  // Newsletter forms — mailing-list subscription is now a real member-account
+  // attribute (users.newsletter_subscribed, default on), not a separate
+  // anonymous-email capture. Submitting sends the visitor straight to Create
+  // Account with their typed email prefilled, rather than showing a fake
+  // confirmation that used to send the address nowhere.
   document.querySelectorAll('.newsletter-form').forEach(function (form) {
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      var email = form.querySelector('input[type="email"]').value.trim();
-      var confirm = form.parentElement.querySelector('.confirm');
-      if (!email) return;
-      if (confirm) {
-        confirm.textContent = 'You are bound to the Pantheon now. Watch your inbox, ' + email + '.';
-        confirm.classList.add('show');
+      var emailInput = form.querySelector('input[type="email"]');
+      var email = emailInput ? emailInput.value.trim() : '';
+      if (window.openAuthModal) {
+        window.openAuthModal('register');
+        var regEmail = document.getElementById('reg-email');
+        if (regEmail && email) regEmail.value = email;
       }
-      form.reset();
     });
   });
 

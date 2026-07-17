@@ -463,6 +463,32 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Recent history (most recent first)
 
+- **Mailing-list subscription is now a real account attribute.** The
+  homepage/site-wide "Join the Pantheon" newsletter form (`.newsletter-form`,
+  present on 14 public pages) used to be pure theater -- `js/main.js` showed a
+  fake confirmation and sent the typed email nowhere (its own comment said
+  so explicitly). It now sends visitors to Create Account instead
+  (`window.openAuthModal('register')`, prefilling `#reg-email` with whatever
+  they typed), since actual subscription is `users.newsletter_subscribed`
+  (`TINYINT(1) NOT NULL DEFAULT 1` -- run `sql/migration_newsletter_
+  subscription.sql`). Every registration path (password `api/register.php`,
+  Google `api/oauth/callback.php`, admin-created `api/admin/members/
+  create.php`) omits this column from its `INSERT`, so new accounts land on
+  the default with zero code changes needed there. Members can opt out from
+  Profile Settings, in a checkbox directly below the Change Password form
+  (`#newsletter-subscribe-checkbox`, auto-saves on change via
+  `api/newsletter-subscription/update.php` -- same "own account, no extra
+  permission" trust level as `api/presence/update.php`). Admin Members list
+  gained a **Subscription** column (green "Subscribed" / grey "Not
+  subscribed" pill, reusing the exact colors already used for the
+  Verification/2FA pills) between 2FA and Role. `pw_current_user()` in
+  `api/helpers.php` runs on every authenticated request site-wide, so its
+  query for this new column is wrapped in try/catch with a safe fallback
+  (`newsletter_subscribed = 1`) exactly like `api/admin/members/list.php`'s
+  existing email-verification/2FA columns -- without that, a request
+  arriving after deploy but before the manual SQL migration runs would have
+  fataled on every single login/session check site-wide.
+
 - **Composer improvements batch** (forum + News comments): five additions.
   **Body limit raised 2000 -> 3500** everywhere a topic/comment/news-comment
   body is accepted or edited (client `maxlength` in `community.html` x5 and

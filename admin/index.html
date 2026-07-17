@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=230">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=231">
 </head>
 <body>
 
@@ -1460,6 +1460,7 @@
         <span>Account source</span>
         <span>Verification</span>
         <span>2FA</span>
+        <span>Subscription</span>
         <span>Role</span>
       </div>
       <div class="admin-list" id="member-list">
@@ -6801,6 +6802,14 @@
             (entry.two_factor_enabled ? 'Enabled' : 'Not enabled') +
           '</span>';
       row.appendChild(twoFactor);
+
+      var subscription = document.createElement('div');
+      subscription.className = 'member-subscription-column';
+      subscription.innerHTML =
+        '<span class="member-subscription-badge ' + (entry.newsletter_subscribed ? 'member-subscription-badge-subscribed' : 'member-subscription-badge-not-subscribed') + '">' +
+          (entry.newsletter_subscribed ? 'Subscribed' : 'Not subscribed') +
+        '</span>';
+      row.appendChild(subscription);
 
       var role = document.createElement('div');
       role.className = 'member-role-column';

@@ -39,6 +39,7 @@ pw_json([
         'username' => $user['username'],
         'display_name' => $user['display_name'],
         'email' => $user['email'],
+        'newsletter_subscribed' => (bool)$user['newsletter_subscribed'],
         'overlord_affinity' => $user['overlord_affinity'],
         'role' => $user['role'],
         'role_color' => $roleColor,
