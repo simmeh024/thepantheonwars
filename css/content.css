@@ -517,7 +517,64 @@
 .news-comment-meta strong { color: var(--text); font-size: 0.86rem; }
 .news-comment-meta span, .news-comment-meta time { color: var(--text-faint); font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase; }
 .news-comment-meta time { margin-left: auto; letter-spacing: 0; text-transform: none; }
-.news-comment-copy p { margin: 8px 0 0; color: var(--text-dim); font-size: 0.91rem; line-height: 1.6; white-space: pre-wrap; }
+.comment-body { font-size: 0.91rem; color: var(--text-dim); line-height: 1.6; white-space: pre-wrap; }
+.comment-body code {
+  background: var(--panel-2); padding: 1px 5px; border-radius: 3px;
+  font-family: monospace; font-size: 0.85em;
+}
+.comment-body a { color: var(--gold-bright); word-break: break-word; }
+.news-comment-copy .comment-body { margin: 8px 0 0; }
+.comment-img { max-width: 100%; border: 1px solid var(--border-soft); margin: 8px 0; display: block; }
+
+/* Quote/spoiler BBCode render targets -- same markup+classes formatBody()
+   in js/news-post.js produces as community.html's own formatBody(), kept
+   in lockstep with community.css's copies of these same rules. */
+.comment-quote {
+  border-left: 3px solid var(--purple-bright); background: rgba(124,79,214,0.08);
+  padding: 10px 14px; margin: 8px 0; font-size: 0.9em;
+}
+.comment-quote-attr { color: var(--gold-bright); font-size: 0.82em; font-weight: 600; margin-bottom: 4px; }
+.comment-spoiler { border: 1px solid var(--border-soft); border-radius: 4px; margin: 8px 0; overflow: hidden; }
+.comment-spoiler-toggle {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: none;
+  background: var(--panel-2); color: var(--text-faint); cursor: pointer; font-size: 0.82rem; text-align: left;
+}
+.comment-spoiler-toggle:hover { color: var(--gold-bright); }
+.comment-spoiler-icon { display: flex; flex-shrink: 0; width: 14px; height: 14px; }
+.comment-spoiler-icon svg { width: 100%; height: 100%; }
+.comment-spoiler-content { display: none; padding: 0 16px 10px; color: var(--text-dim); font-size: 0.9rem; }
+.comment-spoiler.is-revealed .comment-spoiler-content { display: block; }
+
+/* Formatting toolbar -- same classes/markup as community.css's copies. */
+.editor-toolbar { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.editor-btn {
+  min-width: 28px; height: 28px; padding: 0 8px; border: 1px solid var(--border-soft); background: var(--panel-2);
+  color: var(--text-dim); font-family: 'Cinzel', serif; font-size: 0.78rem; cursor: pointer; border-radius: 3px;
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+.editor-btn:hover { color: var(--gold-bright); border-color: var(--gold-dim); }
+.editor-btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+.editor-color-btn {
+  display: inline-flex; align-items: center; justify-content: center; position: relative;
+  width: 28px; height: 28px; border: 1px solid var(--border-soft); background: var(--panel-2);
+  color: var(--text-dim); font-family: 'Cinzel', serif; font-size: 0.78rem; cursor: pointer; border-radius: 3px;
+  overflow: hidden;
+}
+.editor-color-btn:hover { color: var(--gold-bright); border-color: var(--gold-dim); }
+.editor-toolbar-divider { width: 1px; height: 20px; background: var(--border-soft); margin: 0 2px; flex-shrink: 0; }
+.editor-color-btn input[type="color"] {
+  position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: none; padding: 0;
+}
+.editor-char-counter {
+  margin-left: auto; font-size: 0.72rem; color: var(--text-faint); font-variant-numeric: tabular-nums;
+  padding-left: 8px; white-space: nowrap;
+}
+.editor-char-counter.is-near-limit { color: var(--gold-bright); }
+.editor-preview-box {
+  background: var(--panel-2); border: 1px solid var(--border-soft); border-radius: 4px;
+  padding: 12px 14px; margin-bottom: 8px; font-size: 0.92rem; color: var(--text);
+}
+.editor-preview-empty { color: var(--text-faint); font-style: italic; }
 .news-comment:target { margin-inline: -10px; padding-inline: 10px; background: rgba(124,79,214,0.11); box-shadow: inset 2px 0 0 var(--purple-bright); }
 .news-comment-actions { display: flex; justify-content: flex-end; margin-top: 9px; }
 .news-comment-report { padding: 0; border: 0; background: transparent; color: var(--text-faint); cursor: pointer; font: 600 0.63rem 'Jost', sans-serif; letter-spacing: 0.07em; text-transform: uppercase; transition: color 160ms ease; }

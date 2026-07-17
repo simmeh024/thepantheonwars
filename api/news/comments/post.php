@@ -18,8 +18,8 @@ $body = isset($input['body']) ? trim((string)$input['body']) : '';
 if ($body === '') {
     pw_error('Your comment is empty.');
 }
-if ((function_exists('mb_strlen') ? mb_strlen($body) : strlen($body)) > 2000) {
-    pw_error('That comment is too long (2000 characters max).');
+if ((function_exists('mb_strlen') ? mb_strlen($body) : strlen($body)) > 3500) {
+    pw_error('That comment is too long (3500 characters max).');
 }
 
 $db = pw_db();

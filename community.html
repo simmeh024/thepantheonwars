@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=215">
+<link rel="stylesheet" href="css/community-bundle.css?v=216">
 </head>
 <body>
 
@@ -125,7 +125,7 @@
                 </div>
                 <div class="auth-field">
                   <label for="topic-body">Message</label>
-                  <textarea id="topic-body" maxlength="2000" placeholder="What's on your mind, traveler?" required></textarea>
+                  <textarea id="topic-body" maxlength="3500" placeholder="What's on your mind, traveler?" required></textarea>
                 </div>
                 <p class="auth-error" id="topic-error"></p>
                 <div class="reply-form-actions">
@@ -158,7 +158,7 @@
             <form id="community-form" class="community-form" hidden>
               <div class="auth-field">
                 <label for="community-body">Post a reply</label>
-                <textarea id="community-body" maxlength="2000" placeholder="What's on your mind, traveler?" required></textarea>
+                <textarea id="community-body" maxlength="3500" placeholder="What's on your mind, traveler?" required></textarea>
               </div>
               <p class="auth-error" id="community-error"></p>
               <button type="submit" class="btn btn-solid">Reply</button>
@@ -627,7 +627,68 @@
     colorWrap.appendChild(colorInput);
     bar.appendChild(colorWrap);
 
+    addDivider();
+
+    var previewBtn = makeBtn('Preview', 'Preview how this will render', function () { togglePreview(); });
+    var toolbarButtons = Array.prototype.slice.call(bar.querySelectorAll('button')).filter(function (b) { return b !== previewBtn; });
+
+    var counter = document.createElement('span');
+    counter.className = 'editor-char-counter';
+    bar.appendChild(counter);
+
+    function updateCounter() {
+      if (!textarea.maxLength || textarea.maxLength < 0) return;
+      var len = textarea.value.length;
+      counter.textContent = len + ' / ' + textarea.maxLength;
+      counter.classList.toggle('is-near-limit', len > textarea.maxLength * 0.9);
+    }
+    textarea.addEventListener('input', updateCounter);
+    updateCounter();
+
     textarea.parentNode.insertBefore(bar, textarea);
+
+    // ---------- Live preview ----------
+    // Reuses the same formatBody() every rendered post goes through, so the
+    // preview is never a second, drifting implementation of the BBCode
+    // rules -- it shows exactly what posting right now would produce.
+    var previewBox = document.createElement('div');
+    previewBox.className = 'editor-preview-box comment-body';
+    previewBox.hidden = true;
+    textarea.parentNode.insertBefore(previewBox, textarea.nextSibling);
+
+    var inPreview = false;
+    function togglePreview() {
+      inPreview = !inPreview;
+      if (inPreview) {
+        previewBox.innerHTML = textarea.value.trim()
+          ? formatBody(textarea.value)
+          : '<span class="editor-preview-empty">Nothing to preview yet.</span>';
+        previewBox.hidden = false;
+        textarea.hidden = true;
+        previewBtn.textContent = 'Edit';
+        toolbarButtons.forEach(function (b) { b.disabled = true; });
+        colorInput.disabled = true;
+      } else {
+        previewBox.hidden = true;
+        textarea.hidden = false;
+        previewBtn.textContent = 'Preview';
+        toolbarButtons.forEach(function (b) { b.disabled = false; });
+        colorInput.disabled = false;
+        textarea.focus();
+      }
+    }
+
+    // ---------- Ctrl/Cmd+Enter to submit ----------
+    // Only fires for textareas that live inside a real <form> (the two
+    // primary composers) -- textarea.form is simply null for the div-wrapped
+    // inline-edit/reply-form-wrap instances, so this safely no-ops there
+    // rather than needing brittle DOM traversal to find their Save button.
+    textarea.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && textarea.form) {
+        e.preventDefault();
+        textarea.form.requestSubmit();
+      }
+    });
 
     // ---------- @mention autocomplete ----------
     // Positioned absolute against whichever wrapper this textarea happens
@@ -1766,7 +1827,7 @@
       editWrap.appendChild(titleInput);
 
       var ta = document.createElement('textarea');
-      ta.maxLength = 2000;
+      ta.maxLength = 3500;
       ta.value = t.body;
       editWrap.appendChild(ta);
       attachEditorToolbar(ta);
@@ -2143,7 +2204,7 @@
     wrap.hidden = true;
 
     var ta = document.createElement('textarea');
-    ta.maxLength = 2000;
+    ta.maxLength = 3500;
     ta.placeholder = 'Write a reply...';
     wrap.appendChild(ta);
     attachEditorToolbar(ta);
@@ -2269,7 +2330,7 @@
       editWrap.className = 'inline-edit-form';
 
       var ta = document.createElement('textarea');
-      ta.maxLength = 2000;
+      ta.maxLength = 3500;
       ta.value = c.body;
       editWrap.appendChild(ta);
       attachEditorToolbar(ta);

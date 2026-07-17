@@ -463,6 +463,40 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Recent history (most recent first)
 
+- **Composer improvements batch** (forum + News comments): five additions.
+  **Body limit raised 2000 -> 3500** everywhere a topic/comment/news-comment
+  body is accepted or edited (client `maxlength` in `community.html` x5 and
+  `news-post.html`, server-side length checks + error text in
+  `api/topics/{create,edit}.php`, `api/comments/{post,edit}.php`,
+  `api/news/comments/post.php`) -- no schema change needed, `TEXT` columns
+  already hold far more than that. **Live character counter**, **Ctrl/Cmd+
+  Enter to submit**, and a **live BBCode preview toggle** were all added
+  inside `community.html`'s shared `attachEditorToolbar(textarea)` function
+  rather than per call site, so all five places that already call it (new-
+  topic composer, main reply composer, and the three inline topic/comment/
+  reply-form edit instances) picked up all three for free. The counter reads
+  `textarea.maxLength` generically (so it also just works if that number
+  ever changes again); Ctrl/Cmd+Enter only fires when `textarea.form` is set
+  (true for the two real `<form>` composers, harmlessly absent for the
+  div-wrapped inline-edit/reply-form instances); Preview reuses the exact
+  same `formatBody()` every rendered post goes through, so it can never
+  drift from what posting actually produces. **News comments got a trimmed
+  copy of the same toolbar** (`js/news-post.js`, new `attachEditorToolbar()`/
+  `formatBody()`/`escapeHtml()` -- hand-duplicated from `community.html`,
+  same "no shared JS module" convention as the rest of this codebase; no
+  @mention autocomplete and no Quote button, since news comments are flat
+  with no reply-to-a-specific-comment relationship to attach either to).
+  Comment rendering switched from `textContent` to `innerHTML(formatBody())`,
+  matching `community.html`'s own escape-then-whitelist approach exactly.
+  The shared CSS classes (`.editor-toolbar`, `.comment-quote`,
+  `.comment-spoiler`, `.editor-preview-box`, etc.) are duplicated into
+  `content.css` rather than reused from `community.css`, since
+  `news-post.html` is served by the `public.css` bundle and per `css/
+  SOURCES.md` that bundle must never import the community-only source.
+  **Draft auto-save** was added for the News comment composer too
+  (`localStorage`, keyed by article slug), mirroring the forum composers'
+  existing drafts.
+
 - **Forum improvements batch** (Nexus Veil / `community.html`): seven
   additions, all `migration_forum_enhancements.sql`-backed. **Per-board
   accent color**: `forum_boards.accent_color` (admin color input in Forum

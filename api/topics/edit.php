@@ -38,8 +38,8 @@ if ($titleLen > 200) {
 if ($body === '') {
     pw_error('A topic needs a message.');
 }
-if ($bodyLen > 2000) {
-    pw_error('That message is too long (2000 characters max).');
+if ($bodyLen > 3500) {
+    pw_error('That message is too long (3500 characters max).');
 }
 
 $db = pw_db();
