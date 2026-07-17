@@ -317,7 +317,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=215, community v=203, and admin v=222. Public pages use
+  versions: public v=218, community v=205, and admin v=224. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.
@@ -398,11 +398,70 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 - Always write detailed, multi-paragraph commit messages -- never a single-line
   commit. Explain what changed, why, and what was verified.
+- Always commit and push finished, verified changes to `main` without waiting to be
+  asked -- the user handles the cPanel deploy step and any SQL migrations themselves,
+  so git push is the one action that should happen proactively. Still stage only the
+  intended files (never a blanket `git add -A`) and use the inline-PAT push method
+  above, stripping the token back out immediately afterward.
 - Ask before running anything with real production side effects that goes beyond what
   was explicitly requested (e.g., live diagnostic queries, resetting passwords,
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Footer redesign** (all public pages): the footer had drifted into a flat,
+  unstyled 12-link "Explore" column plus a thin "Stay Connected" column holding
+  only a duplicate Soundtracks link and a dead `#newsletter` anchor with no real
+  form behind it. Redesigned to three explicit, front-end-only directions (a
+  fourth -- a real newsletter capture form -- was deliberately deferred since it
+  needs backend work): a proper brand-column wordmark reusing the header's
+  purple shard glyph (`.logo-shard`) via new `.footer-brand-mark`, with
+  Home/About the Author/Privacy folded into a compact inline utility row; the
+  old single "Explore" list split into three columns (**The Universe**,
+  **Community**, **News**) that mirror the header nav's own dropdown grouping,
+  each independently mobile-collapsible through the existing generic
+  `.footer-toggle`/`.footer-collapsible-list` handler in `js/main.js` (already
+  written to iterate every `.footer-toggle` element, so going from one
+  collapsible group to three needed zero JS changes); and a new 3px top-edge
+  gradient strip (`footer.site-footer::before`) sequencing all twelve worlds'
+  established atlas signal colors (`js/worlds.js` `ATLAS_TONES`) in atlas order
+  -- fixed brand colors, not DB-driven, so pure CSS with no JS/API dependency,
+  and it renders even on the three minimal legal-page footers since it lives on
+  `.site-footer` itself rather than inside `.footer-grid`. Applying the new
+  grouped structure surfaced and fixed real drift across the 19 pages carrying
+  the full footer (found by diffing every page's footer block against every
+  other page's before touching anything): a duplicate Soundtracks link, the
+  homepage-only dead newsletter anchor, a missing Development Dispatches link
+  on most pages, and a stray Development Metrics link that had leaked into
+  `soundtracks.html`'s footer despite being unrelated to that page.
+  `about.html`'s page-specific "Shop on Amazon" utility link was preserved
+  after the global replace. The three deliberately-minimal legal-page footers
+  (`password-reset.html`, `privacy-request.html`, `privacy.html`) and the
+  already-documented minimal `news-post.html` footer were left untouched,
+  matching existing precedent -- those four files only received the routine
+  cache-bust version bump. One real bug was caught during verification before
+  shipping: `.footer-brand-mark`'s gold color was silently overridden by the
+  pre-existing, higher-specificity `.footer-grid a` rule (class+type beats
+  class alone); fixed by scoping the new rule as `.footer-grid
+  .footer-brand-mark` and bumping `components.css` a second time.
+
+- **Known Figures 3D portrait effects:** each figure's `.figure-portrait-frame`
+  now gets a pointer-tilt "holo card" treatment on fine-pointer/hover devices
+  only (`(hover: hover) and (pointer: fine)`) -- GSAP `quickTo`-driven
+  `rotationX`/`rotationY` tracking the cursor (same pointer-tracking pattern
+  already proven in `js/world-atlas-effects.js` for the Worlds atlas, at a
+  stronger intensity appropriate for these hero-sized portraits), the sharp
+  foreground image shifting a few pixels opposite the tilt for extra depth,
+  and a new radial `.figure-portrait-sheen` overlay sweeping across on hover.
+  Touch devices never attach the pointer listeners. Separately, each portrait
+  frame now turns in from an alternating +/-26deg Y-axis tilt (scale 0.92 -> 1)
+  as it scrolls into view, on its own dedicated ScrollTrigger object (same
+  established pattern as the other per-tween ScrollTrigger objects on this
+  page) reusing the existing `onRefresh` fix for sections already inside their
+  trigger zone at setup time. Both motion paths are skipped entirely under
+  `prefers-reduced-motion`, matching every other animation already on this
+  page. `perspective` was added to `.figure-scene-inner` so the rotation reads
+  as real 3D depth rather than a flat skew.
 
 - **Known Figures** (`known-figures.html`, new page under The Universe nav):
   a static, cinematic vertical chronicle -- not DB/admin-managed, unlike
