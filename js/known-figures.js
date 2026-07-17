@@ -65,7 +65,16 @@ document.addEventListener('DOMContentLoaded', function () {
       gsap.set(reveal, { autoAlpha: 0, y: 22 });
       gsap.to(reveal, {
         autoAlpha: 1, y: 0, duration: 0.7, ease: 'power2.out', stagger: 0.09,
-        scrollTrigger: { trigger: sceneEl, start: 'top 78%', once: true }
+        scrollTrigger: {
+          trigger: sceneEl, start: 'top 78%', once: true,
+          // A scene already sitting inside its trigger zone at setup time (a
+          // deep link, a mid-page refresh, browser scroll restoration) never
+          // experiences an inactive->active *transition*, so the default
+          // "onEnter" toggle action has nothing to fire on. Without this, a
+          // visitor who never crosses the boundary from below sees a
+          // permanently invisible section instead of a missed animation.
+          onRefresh: function (self) { if (self.progress > 0) self.animation.progress(1); }
+        }
       });
     }
 
