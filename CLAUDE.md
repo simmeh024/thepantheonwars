@@ -162,6 +162,23 @@ on a new table, that's a real bug to fix, not a display artifact.
   fog","Clear tide","Tidal storm",...]`) were authored with no season
   ordering, so biasing by array position would misrepresent already-live
   content.
+- **"Twelve Worlds at a Glance" strip (`worlds.html`):** `api/worlds-weather-
+  glance.php` is a new public, unauthenticated endpoint that joins `worlds` to
+  `world_weather_profiles` in one query (WHERE status = available AND
+  enabled = 1) and calls the same `pw_build_weather_forecast()` used
+  everywhere else, returning only each world's current condition/temp/icon --
+  a single request instead of one `api/world-weather.php` call per available
+  world, matching the same N+1-avoidance principle already used by
+  `api/worlds.php`/`api/boards-summary.php`. `js/worlds.js`'s
+  `renderWeatherGlance()` fetches it independently of the main atlas data
+  fetch (non-blocking, same pattern as `world-detail.js`'s weather request)
+  and renders a horizontally-scrollable card strip below the lore-progress
+  bar; the whole `#worlds-glance` section stays `hidden` if the endpoint
+  returns no worlds (e.g. before any world is both unlocked and has an
+  enabled profile), so it never shows an empty shell. Each card's accent
+  color reuses the existing `ATLAS_TONES` map (the same per-world glow
+  already driving the atlas hover-info panel) via a `--glance-accent` CSS
+  custom property, rather than yet another color list.
 - `api/world-weather.php?slug=...` is public but only returns forecast details when
   both the World Control record is `available` and its weather profile is enabled.
   It is independent of `api/worlds.php`, preserving that endpoint's response shape.
@@ -298,7 +315,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
   the bundle reference and import query that include the changed source. Current
-  versions: public v=211, community v=202, and admin v=221. Public pages use
+  versions: public v=212, community v=202, and admin v=221. Public pages use
   `css/public.css`, community pages use `css/community-bundle.css`, and the console
   uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
   bundle. The ordered source and bundle map is in `css/SOURCES.md`.

@@ -455,6 +455,50 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  // Compact subset of the same icon paths world-detail.js uses for the full
+  // World Record weather card -- duplicated rather than shared per this
+  // site's established no-shared-JS-module convention (see formatBody()/
+  // stripBbcodePreview() elsewhere).
+  function glanceIconHtml(icon) {
+    var paths = {
+      'acid-rain': '<path d="M13 35h34a10 10 0 0 0 1-20 16 16 0 0 0-30-3 12 12 0 0 0-5 23z"/><path d="m20 43-4 9m15-9-4 9m15-9-4 9"/>',
+      storm: '<path d="M13 34h34a10 10 0 0 0 1-20 16 16 0 0 0-30-3 12 12 0 0 0-5 23z"/><path d="m34 38-8 11h7l-4 10 13-15h-8z"/>',
+      smog: '<path d="M13 31h34a10 10 0 0 0 1-20 16 16 0 0 0-30-3 12 12 0 0 0-5 23z"/><path d="M10 40h36M18 47h34M8 54h31"/>',
+      clear: '<circle cx="32" cy="32" r="11"/><path d="M32 8v8m0 32v8M8 32h8m32 0h8M15 15l6 6m22 22 6 6m0-34-6 6M21 43l-6 6"/>',
+      overcast: '<path d="M13 37h34a10 10 0 0 0 1-20 16 16 0 0 0-30-3 12 12 0 0 0-5 23z"/>'
+    };
+    return '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (paths[icon] || paths.overcast) + '</svg>';
+  }
+
+  function glanceCardHtml(entry) {
+    var tone = atlasTone({ slug: entry.slug }) || { rgb: '154, 96, 238' };
+    var current = entry.current || {};
+    return '<a class="worlds-glance-card" href="' + worldRecordUrl(entry) + '" style="--glance-accent: ' + tone.rgb + '">' +
+      '<span class="worlds-glance-card-icon">' + glanceIconHtml(current.icon) + '</span>' +
+      '<span class="worlds-glance-card-body">' +
+        '<strong>' + escapeHtml(entry.name) + '</strong>' +
+        '<span class="worlds-glance-card-condition">' + escapeHtml(current.condition) + '</span>' +
+      '</span>' +
+      '<span class="worlds-glance-card-temp">' + escapeHtml(current.temperature_c) + '&deg;</span>' +
+    '</a>';
+  }
+
+  function renderWeatherGlance() {
+    var section = document.getElementById('worlds-glance');
+    var strip = document.getElementById('worlds-glance-strip');
+    if (!section || !strip) return;
+    fetch('/api/worlds-weather-glance.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok || !data.worlds || !data.worlds.length) return;
+        strip.innerHTML = data.worlds.map(glanceCardHtml).join('');
+        section.hidden = false;
+      })
+      .catch(function () {
+        // The atlas and progress bar above remain fully usable without this.
+      });
+  }
+
   fetch('/api/worlds.php', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -468,4 +512,6 @@ document.addEventListener('DOMContentLoaded', function () {
     .catch(function () {
       // Keep the static atlas artwork visible if live status data is unavailable.
     });
+
+  renderWeatherGlance();
 });
