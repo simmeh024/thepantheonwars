@@ -2657,3 +2657,108 @@
 @media (prefers-reduced-motion: reduce) {
   .weather-control-preview-scan { display: none; animation: none; }
 }
+
+/* ===== Dispatch Composer ===== */
+.composer-dashboard-columns,
+.admin-row.composer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px 100px 130px 120px 120px 90px;
+  align-items: center;
+  column-gap: 16px;
+}
+.composer-row-archive-btn { justify-self: center; padding: 5px 9px; font-size: 0.66rem; }
+.composer-dashboard-columns {
+  margin: 0 18px;
+  padding: 0 0 9px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-faint);
+  font-size: 0.61rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.composer-dashboard-columns > span:not(:first-child) { text-align: center; }
+.composer-row-status-pill {
+  display: inline-flex; align-items: center; justify-self: center; padding: 3px 9px;
+  border: 1px solid var(--border-soft); border-radius: 999px;
+  font-size: 0.6rem; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  color: var(--text-faint);
+}
+.composer-row-status-pill.is-draft { border-color: rgba(162,121,236,0.5); color: var(--purple-bright); }
+.composer-row-status-pill.is-ready { border-color: rgba(224,163,74,0.52); color: var(--gold-bright); }
+.composer-row-status-pill.is-published { border-color: rgba(94,196,132,0.55); color: #5ec484; }
+.composer-row-status-pill.is-archived { border-color: rgba(198,90,90,0.5); color: #c65a5a; }
+.composer-row-news-link { justify-self: center; font-size: 0.72rem; }
+
+.composer-editor-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.composer-editor-status-badge {
+  display: inline-flex; align-items: center; padding: 4px 11px;
+  border: 1px solid var(--border-soft); border-radius: 999px;
+  font-size: 0.64rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint);
+}
+
+.composer-editor-layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 22px; align-items: start; margin-top: 18px; }
+.composer-dispatch-panel {
+  border: 1px solid var(--border-soft); background: var(--panel); padding: 16px;
+  position: sticky; top: 18px; max-height: calc(100vh - 120px); overflow-y: auto;
+}
+.composer-dispatch-panel h2 { margin: 0 0 6px; font-family: 'Cinzel', serif; font-size: 0.86rem; color: var(--text); }
+.composer-dispatch-panel h2:not(:first-child) { margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--border-soft); }
+.composer-dispatch-filters { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.composer-dispatch-filter-checkbox { display: flex; align-items: center; gap: 7px; color: var(--text-faint); font-size: 0.74rem; cursor: pointer; }
+
+.composer-dispatch-cards { display: flex; flex-direction: column; gap: 10px; max-height: 360px; overflow-y: auto; }
+.composer-dispatch-card {
+  border: 1px solid var(--border-soft); background: rgba(162,121,236,0.045); padding: 10px 12px;
+}
+.composer-dispatch-card.is-attached { border-color: rgba(94,196,132,0.5); background: rgba(94,196,132,0.06); }
+.composer-dispatch-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.composer-dispatch-card-tag {
+  display: inline-flex; padding: 2px 7px; border: 1px solid var(--border-soft); border-radius: 999px;
+  font-size: 0.58rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-faint);
+}
+.composer-dispatch-card-title { margin: 6px 0 4px; font-family: 'Cinzel', serif; font-size: 0.78rem; color: var(--text); }
+.composer-dispatch-card-summary {
+  margin: 0 0 8px; color: var(--text-dim); font-size: 0.72rem; line-height: 1.4;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+}
+.composer-dispatch-card-meta { display: flex; flex-wrap: wrap; gap: 6px 10px; margin-bottom: 8px; color: var(--text-faint); font-size: 0.66rem; }
+.composer-dispatch-card-used-elsewhere { color: var(--gold-bright); font-size: 0.64rem; margin: 0 0 8px; }
+.composer-dispatch-card-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.composer-dispatch-card-actions .btn { padding: 5px 9px; font-size: 0.66rem; }
+
+.composer-attached-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.composer-attached-item {
+  border: 1px solid var(--border-soft); background: rgba(255,255,255,0.02); padding: 9px 10px; cursor: grab;
+}
+.composer-attached-item.is-dragging { opacity: 0.5; }
+.composer-attached-item-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.composer-attached-item-title { font-size: 0.74rem; color: var(--text); }
+.composer-attached-item-remove { background: none; border: none; color: var(--text-faint); cursor: pointer; font-size: 0.9rem; line-height: 1; padding: 2px 4px; }
+.composer-attached-item-remove:hover { color: #c65a5a; }
+.composer-attached-item-note {
+  width: 100%; margin-top: 7px; resize: vertical; min-height: 40px;
+  background: rgba(10,6,20,0.4); border: 1px solid var(--border-soft); color: var(--text);
+  padding: 6px 8px; font-family: 'Jost', sans-serif; font-size: 0.7rem;
+}
+
+.composer-main-panel { min-width: 0; }
+.composer-editor-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.composer-published-banner {
+  margin: 14px 0; padding: 12px 14px; border: 1px solid rgba(94,196,132,0.5); background: rgba(94,196,132,0.08);
+  color: var(--text);
+}
+.composer-published-banner a { color: #5ec484; font-weight: 700; }
+
+.composer-dispatch-detail-block { margin-bottom: 16px; }
+.composer-dispatch-detail-block h4 { margin: 0 0 6px; font-family: 'Cinzel', serif; font-size: 0.76rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.composer-dispatch-detail-block pre { white-space: pre-wrap; word-break: break-word; font-family: 'Jost', sans-serif; font-size: 0.78rem; color: var(--text-dim); margin: 4px 0 0; }
+
+@media (max-width: 1120px) {
+  .composer-editor-layout { grid-template-columns: 1fr; }
+  .composer-dispatch-panel { position: relative; top: auto; max-height: none; }
+}
+@media (max-width: 720px) {
+  .composer-dashboard-columns { display: none; }
+  .admin-row.composer-row { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: flex-start; }
+}

@@ -221,6 +221,13 @@
   }
 
   var slug = new URLSearchParams(window.location.search).get('slug') || '';
+  // Admin-only Dispatch Composer preview: renders a draft's current saved
+  // state through this exact same article renderer (api/admin/dispatch-
+  // composer/preview.php returns the identical shape api/news/get.php does)
+  // so preview and publication can never visually drift apart. Requires the
+  // viewer to hold dispatch_composer.view -- the endpoint enforces that, not
+  // this page.
+  var composerPreviewId = new URLSearchParams(window.location.search).get('composer_preview') || '';
   var articleHost = document.getElementById('news-detail');
   var bannerTitle = document.getElementById('news-detail-banner-title');
   var commentsSection = document.getElementById('news-comments-section');
@@ -241,7 +248,7 @@
   var reportTargetId = null;
   var entry = null;
 
-  if (!articleHost || !/^[a-z0-9-]{1,120}$/.test(slug)) {
+  if (!articleHost || (!composerPreviewId && !/^[a-z0-9-]{1,120}$/.test(slug))) {
     showArticleError('This transmission could not be identified.');
     return;
   }
@@ -362,17 +369,26 @@
       article.appendChild(tags);
     }
 
-    var actions = document.createElement('div');
-    actions.className = 'news-detail-actions';
-    var share = document.createElement('a');
-    share.className = 'btn share-reddit';
-    share.target = '_blank';
-    share.rel = 'noopener';
-    share.textContent = 'Share on Reddit ↗';
-    share.href = 'https://www.reddit.com/submit?url=' + encodeURIComponent(window.location.href) + '&title=' + encodeURIComponent(post.title);
-    actions.appendChild(share);
-    article.appendChild(actions);
+    if (!post.is_preview) {
+      var actions = document.createElement('div');
+      actions.className = 'news-detail-actions';
+      var share = document.createElement('a');
+      share.className = 'btn share-reddit';
+      share.target = '_blank';
+      share.rel = 'noopener';
+      share.textContent = 'Share on Reddit ↗';
+      share.href = 'https://www.reddit.com/submit?url=' + encodeURIComponent(window.location.href) + '&title=' + encodeURIComponent(post.title);
+      actions.appendChild(share);
+      article.appendChild(actions);
+    }
     articleHost.appendChild(article);
+
+    if (post.is_preview) {
+      var previewNotice = document.createElement('p');
+      previewNotice.className = 'lore-status';
+      previewNotice.textContent = 'Composer preview — not yet published. Comments and sharing are disabled here.';
+      articleHost.insertBefore(previewNotice, article);
+    }
   }
 
   function setCommentAccess() {
@@ -545,7 +561,10 @@
   });
 
   document.addEventListener('pw-auth-ready', setCommentAccess);
-  fetch('/api/news/get.php?slug=' + encodeURIComponent(slug), { credentials: 'same-origin' })
+  var detailUrl = composerPreviewId
+    ? '/api/admin/dispatch-composer/preview.php?id=' + encodeURIComponent(composerPreviewId)
+    : '/api/news/get.php?slug=' + encodeURIComponent(slug);
+  fetch(detailUrl, { credentials: 'same-origin' })
     .then(function (response) { return response.json(); })
     .then(function (data) {
       if (!data.ok || !data.entry) throw new Error(data.error || 'This transmission could not be loaded.');

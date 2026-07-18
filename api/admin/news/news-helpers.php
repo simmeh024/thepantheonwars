@@ -261,6 +261,22 @@ function pw_news_unique_slug($db, $title, $exceptId = null) {
     }
 }
 
+// The single insertion path for a real news_posts row. Both News
+// Management's own create.php and Dispatch Composer's publish.php call this
+// -- neither duplicates the INSERT/tag-sync logic. Caller owns the
+// transaction (create.php wraps just this; Composer's publish.php wraps
+// this plus its own row lock and status update in one larger transaction).
+function pw_news_create_post($db, $slug, $data, $authorUserId) {
+    $stmt = $db->prepare(
+        'INSERT INTO news_posts (slug, title, body, header_image_url, author_type, author_user_id, comments_enabled)
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
+    $stmt->execute([$slug, $data['title'], $data['body'], $data['header_image_url'], $data['author_type'], $authorUserId, $data['comments_enabled'] ? 1 : 0]);
+    $id = (int)$db->lastInsertId();
+    pw_news_sync_tags($db, $id, isset($data['tags']) ? $data['tags'] : []);
+    return $id;
+}
+
 // Tags are never deleted when a post stops using them. That intentionally
 // preserves the editor's suggestion history, while the join table remains the
 // single source of truth for which tags belong to a particular post.

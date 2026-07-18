@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=233">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=234">
 </head>
 <body>
 
@@ -90,7 +90,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="dispatches" data-requires-permission="dispatches.view,dispatch_translations.view">
+    <div class="admin-nav-category is-collapsed" data-category="dispatches" data-requires-permission="dispatches.view,dispatch_translations.view,dispatch_composer.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>Development Dispatches</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -98,6 +98,7 @@
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li data-requires-permission="dispatches.view"><button type="button" class="admin-nav-link" data-section="dispatch-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>Dispatch Control</button></li>
         <li data-requires-permission="dispatch_translations.view"><button type="button" class="admin-nav-link" data-section="dispatch-translations"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg>Dispatch Translations</button></li>
+        <li data-requires-permission="dispatch_composer.view"><button type="button" class="admin-nav-link" data-section="dispatch-composer"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Dispatch Composer</button></li>
       </ul>
     </div>
 
@@ -1253,6 +1254,15 @@
             <option value="dispatch_title_edited">Title edited</option>
             <option value="dispatches_resynced">Force re-synced from GitHub</option>
           </optgroup>
+          <optgroup label="Dispatch Composer">
+            <option value="dispatch_composer.created">Composer draft created</option>
+            <option value="dispatch_composer.saved">Composer draft saved</option>
+            <option value="dispatch_composer.marked_ready">Composer draft marked ready</option>
+            <option value="dispatch_composer.dispatch_attached">Dispatch attached to Composer draft</option>
+            <option value="dispatch_composer.dispatch_removed">Dispatch removed from Composer draft</option>
+            <option value="dispatch_composer.published">Composer article published</option>
+            <option value="dispatch_composer.archived">Composer draft archived</option>
+          </optgroup>
           <optgroup label="Members">
             <option value="member_created">Member created</option>
             <option value="member_updated">Member updated</option>
@@ -1427,6 +1437,137 @@
       </div>
       <div class="admin-list" id="admin-list">
         <div class="admin-list-empty">Loading dispatches&hellip;</div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-dispatch-composer" hidden>
+      <div class="admin-section-head">
+        <h1>Dispatch Composer</h1>
+        <p>Turn approved Development Dispatches into a manually written blog-style News post. Attached dispatches are reference material and traceability -- you write the actual story.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button type="button" class="btn btn-solid" id="composer-create-btn">+ Create blog post</button>
+        <div class="admin-filter-tabs" id="composer-filter-tabs">
+          <button type="button" class="admin-filter-tab active" data-filter="all">All</button>
+          <button type="button" class="admin-filter-tab" data-filter="draft">Draft</button>
+          <button type="button" class="admin-filter-tab" data-filter="ready">Ready</button>
+          <button type="button" class="admin-filter-tab" data-filter="published">Published</button>
+          <button type="button" class="admin-filter-tab" data-filter="archived">Archived</button>
+        </div>
+        <input type="search" class="admin-search" id="composer-search" placeholder="Search title&hellip;">
+        <span class="admin-count" id="composer-count"></span>
+      </div>
+
+      <div class="composer-dashboard-columns" aria-hidden="true">
+        <span>Title</span><span>Dispatches</span><span>Status</span><span>Updated</span><span>Author</span><span>News post</span><span>Actions</span>
+      </div>
+      <div class="admin-list" id="composer-list">
+        <div class="admin-list-empty">Loading Composer drafts&hellip;</div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-dispatch-composer-editor" hidden>
+      <div class="admin-section-head composer-editor-head">
+        <button type="button" class="btn composer-back-btn" id="composer-back-btn">&larr; Back to Dispatch Composer</button>
+        <span class="composer-editor-status-badge" id="composer-editor-status-badge"></span>
+      </div>
+
+      <div class="composer-editor-layout">
+        <aside class="composer-dispatch-panel">
+          <h2>Development Dispatches</h2>
+          <p class="admin-field-hint">Search approved dispatches and attach the ones this article should reference.</p>
+          <div class="composer-dispatch-filters">
+            <input type="search" class="admin-search" id="composer-dispatch-search" placeholder="Search subject or summary&hellip;">
+            <select class="admin-search admin-tag-select" id="composer-dispatch-tag-filter">
+              <option value="">All categories</option>
+              <option value="feature">Feature</option>
+              <option value="fix">Fix</option>
+              <option value="update">Update</option>
+            </select>
+            <label class="composer-dispatch-filter-checkbox"><input type="checkbox" id="composer-dispatch-unused-only"> Unused only</label>
+          </div>
+          <div class="composer-dispatch-cards" id="composer-dispatch-cards">
+            <div class="admin-list-empty">Loading dispatches&hellip;</div>
+          </div>
+
+          <h2>Attached (<span id="composer-attached-count">0</span>)</h2>
+          <p class="admin-field-hint">Drag to reorder. Notes are private and never published.</p>
+          <ul class="composer-attached-list" id="composer-attached-list">
+            <li class="admin-list-empty">No dispatches attached yet.</li>
+          </ul>
+        </aside>
+
+        <div class="composer-main-panel">
+          <div class="admin-field">
+            <label for="composer-title-input">Title</label>
+            <input type="text" id="composer-title-input" maxlength="200" placeholder="A clear headline for readers">
+          </div>
+          <div class="admin-field">
+            <label for="composer-slug-input">Slug (working preview only)</label>
+            <input type="text" id="composer-slug-input" readonly placeholder="Generated from the title">
+            <p class="admin-field-hint">The final published slug is resolved from the title at publish time, so a later title change is always safe.</p>
+          </div>
+          <div class="admin-field">
+            <label for="composer-excerpt-input">Excerpt</label>
+            <p class="admin-field-hint">Internal only, shown on the Composer dashboard. The public News feed derives its own preview from the article body, same as every other News post.</p>
+            <textarea id="composer-excerpt-input" maxlength="500" rows="2" placeholder="A short internal description of this article"></textarea>
+          </div>
+          <div class="admin-field admin-image-field">
+            <label for="composer-featured-image-input">Featured image</label>
+            <p class="admin-field-hint">Optional. Becomes this post's header image once published, from the same News image library.</p>
+            <div class="admin-image-field-row">
+              <div class="admin-image-thumb" id="composer-featured-image-thumb">
+                <img id="composer-featured-image-preview" alt="" hidden>
+                <span class="admin-image-thumb-empty">No image</span>
+              </div>
+              <div class="admin-image-field-controls">
+                <input type="text" id="composer-featured-image-input" maxlength="500" placeholder="Chosen from the News image library" readonly>
+                <div class="admin-image-field-btns">
+                  <button type="button" class="btn admin-image-upload-btn" data-image-type="composer_featured">Upload</button>
+                  <button type="button" class="btn admin-image-browse-btn" data-image-type="composer_featured">Choose from Library</button>
+                  <button type="button" class="btn" id="composer-featured-image-clear-btn">Remove</button>
+                </div>
+              </div>
+            </div>
+            <input type="file" id="composer-featured-image-file" accept="image/jpeg,image/png,image/webp" hidden>
+          </div>
+
+          <div class="admin-field">
+            <label for="composer-body-input">Article body</label>
+            <p class="admin-field-hint">Write naturally &mdash; there are no required sections. Use "Insert summary" on an attached dispatch to drop in editable starting text.</p>
+            <div class="news-editor" data-editor="composer-body-input">
+              <div class="news-editor-toolbar" role="toolbar" aria-label="Composer writing tools">
+                <button type="button" class="news-editor-tool" data-composer-command="formatBlock" data-composer-value="p" title="Paragraph" aria-label="Paragraph">P</button>
+                <button type="button" class="news-editor-tool" data-composer-command="formatBlock" data-composer-value="h2" title="Section heading" aria-label="Section heading">H2</button>
+                <button type="button" class="news-editor-tool" data-composer-command="bold" title="Bold" aria-label="Bold"><strong>B</strong></button>
+                <button type="button" class="news-editor-tool" data-composer-command="italic" title="Italic" aria-label="Italic"><em>I</em></button>
+                <button type="button" class="news-editor-tool" data-composer-command="insertUnorderedList" title="Bulleted list" aria-label="Bulleted list">&bull; List</button>
+                <button type="button" class="news-editor-tool" data-composer-command="formatBlock" data-composer-value="blockquote" title="Quote" aria-label="Quote">&ldquo; Quote</button>
+                <button type="button" class="news-editor-tool" data-composer-command="link" title="Add link" aria-label="Add link">&#8599; Link</button>
+                <span class="news-editor-toolbar-divider" aria-hidden="true"></span>
+                <button type="button" class="news-editor-tool news-editor-tool-image" id="composer-image-upload-btn">Upload image</button>
+                <button type="button" class="news-editor-tool news-editor-tool-image" id="composer-image-library-btn">Image library</button>
+              </div>
+              <div id="composer-body-input" class="news-editor-canvas" contenteditable="true" role="textbox" aria-multiline="true" aria-label="Article body" data-placeholder="Write the article your readers should see."></div>
+            </div>
+            <input type="file" id="composer-image-file" accept="image/jpeg,image/png,image/webp" hidden>
+          </div>
+
+          <p class="admin-modal-error" id="composer-editor-error"></p>
+          <p class="admin-modal-status" id="composer-editor-status"></p>
+
+          <div class="composer-published-banner" id="composer-published-banner" hidden>
+            <p><strong>Published as news post.</strong> <a href="#" id="composer-view-news-link" target="_blank" rel="noopener">View article &rarr;</a></p>
+          </div>
+
+          <div class="admin-modal-actions composer-editor-actions">
+            <button type="button" class="btn" id="composer-save-draft-btn">Save Draft</button>
+            <button type="button" class="btn" id="composer-mark-ready-btn">Mark Ready</button>
+            <button type="button" class="btn" id="composer-preview-btn">Preview</button>
+            <button type="button" class="btn btn-solid" id="composer-publish-btn">Publish to News</button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -1757,6 +1898,47 @@
     <p class="admin-list-empty" id="news-image-library-empty" hidden>No News images have been uploaded yet.</p>
     <div class="admin-modal-actions">
       <button type="button" class="btn" id="news-image-library-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal admin-modal-over" id="composer-image-library-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="composer-image-library-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title">News Image Library</h3>
+    <p class="admin-modal-sub">Choose an image to place it at the current writing position. New uploads are re-encoded before they enter this library.</p>
+    <div class="news-image-library-actions">
+      <button type="button" class="btn btn-solid" id="composer-image-library-upload-btn">Upload Image</button>
+      <span class="news-image-library-status" id="composer-image-library-status" aria-live="polite"></span>
+    </div>
+    <div class="admin-image-grid news-image-library-grid" id="composer-image-library-grid"></div>
+    <p class="admin-list-empty" id="composer-image-library-empty" hidden>No News images have been uploaded yet.</p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn" id="composer-image-library-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal admin-modal-over" id="composer-dispatch-detail-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="composer-dispatch-detail-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="composer-dispatch-detail-title">Dispatch detail</h3>
+    <p class="admin-modal-sub" id="composer-dispatch-detail-meta"></p>
+    <div class="composer-dispatch-detail-block">
+      <h4>Approved reader-safe translation</h4>
+      <p id="composer-dispatch-detail-translation"></p>
+    </div>
+    <div class="composer-dispatch-detail-block">
+      <h4>Original technical commit</h4>
+      <p id="composer-dispatch-detail-subject"></p>
+      <pre id="composer-dispatch-detail-body"></pre>
+    </div>
+    <div class="admin-modal-actions">
+      <a class="btn" id="composer-dispatch-detail-github" href="#" target="_blank" rel="noopener">Open GitHub</a>
+      <button type="button" class="btn btn-solid" id="composer-dispatch-detail-insert-btn">Insert summary</button>
+      <button type="button" class="btn" id="composer-dispatch-detail-cancel">Close</button>
     </div>
   </div>
 </div>
@@ -3091,6 +3273,7 @@
       if (name === 'mail-templates') loadMailTemplates();
       if (name === 'mail-log') { loadMailLog(); loadMailSuppressions(mailSuppressionType); }
       if (name === 'dispatch-translations') loadList();
+      if (name === 'dispatch-composer') loadComposerDashboard();
       if (name === 'members') loadMembers();
       if (name === 'topic-reports') loadTopicReports();
       if (name === 'privacy-requests') loadPrivacyRequests();
@@ -8430,6 +8613,18 @@
       label: 'preview hero image',
       errorEl: bookModalError,
       statusEl: bookModalStatus
+    },
+    composer_featured: {
+      urlInput: document.getElementById('composer-featured-image-input'),
+      thumbImg: document.getElementById('composer-featured-image-preview'),
+      thumbEmpty: document.querySelector('#composer-featured-image-thumb .admin-image-thumb-empty'),
+      fileInput: document.getElementById('composer-featured-image-file'),
+      uploadEndpoint: '/api/admin/news/upload-image.php',
+      listEndpoint: '/api/admin/news/list-images.php',
+      apiType: 'composer_featured',
+      label: 'featured image',
+      errorEl: document.getElementById('composer-editor-error'),
+      statusEl: document.getElementById('composer-editor-status')
     }
   };
 
@@ -11611,6 +11806,765 @@
         newsModalError.textContent = error.message || 'Could not delete this news post. Please try again.';
         newsModalError.classList.add('show');
       });
+  });
+
+  // ===== Dispatch Composer ====================================================
+  // Approved dispatches are reference/traceability material only -- the
+  // administrator writes the actual article by hand. Publication reuses the
+  // exact same news_posts insertion path as News Management (see
+  // pw_news_create_post() in api/admin/news/news-helpers.php); this page
+  // never talks to news_posts directly, only through publish.php.
+  var composerListEl = document.getElementById('composer-list');
+  var composerCountEl = document.getElementById('composer-count');
+  var composerSearchEl = document.getElementById('composer-search');
+  var composerFilterTabsEl = document.getElementById('composer-filter-tabs');
+  var composerCreateBtn = document.getElementById('composer-create-btn');
+  var composerFilterStatus = 'all';
+  var composerSearchTimer = null;
+
+  var sectionComposerDashboard = document.getElementById('section-dispatch-composer');
+  var sectionComposerEditor = document.getElementById('section-dispatch-composer-editor');
+  var composerBackBtn = document.getElementById('composer-back-btn');
+  var composerEditorStatusBadge = document.getElementById('composer-editor-status-badge');
+
+  var composerTitleInput = document.getElementById('composer-title-input');
+  var composerSlugInput = document.getElementById('composer-slug-input');
+  var composerExcerptInput = document.getElementById('composer-excerpt-input');
+  var composerFeaturedImageInput = document.getElementById('composer-featured-image-input');
+  var composerFeaturedImageClearBtn = document.getElementById('composer-featured-image-clear-btn');
+  var composerBodyInput = document.getElementById('composer-body-input');
+  var composerEditorToolbar = document.querySelector('#section-dispatch-composer-editor .news-editor-toolbar');
+  var composerEditorError = document.getElementById('composer-editor-error');
+  var composerEditorStatus = document.getElementById('composer-editor-status');
+  var composerSaveDraftBtn = document.getElementById('composer-save-draft-btn');
+  var composerMarkReadyBtn = document.getElementById('composer-mark-ready-btn');
+  var composerPreviewBtn = document.getElementById('composer-preview-btn');
+  var composerPublishBtn = document.getElementById('composer-publish-btn');
+  var composerPublishedBanner = document.getElementById('composer-published-banner');
+  var composerViewNewsLink = document.getElementById('composer-view-news-link');
+  var composerImageFileInput = document.getElementById('composer-image-file');
+  var composerImageUploadBtn = document.getElementById('composer-image-upload-btn');
+  var composerImageLibraryBtn = document.getElementById('composer-image-library-btn');
+  var composerImageLibraryModal = document.getElementById('composer-image-library-modal');
+  var composerImageLibraryCloseBtn = document.getElementById('composer-image-library-close');
+  var composerImageLibraryCancelBtn = document.getElementById('composer-image-library-cancel-btn');
+  var composerImageLibraryUploadBtn = document.getElementById('composer-image-library-upload-btn');
+  var composerImageLibraryGrid = document.getElementById('composer-image-library-grid');
+  var composerImageLibraryEmpty = document.getElementById('composer-image-library-empty');
+  var composerImageLibraryStatus = document.getElementById('composer-image-library-status');
+
+  var composerDispatchSearchEl = document.getElementById('composer-dispatch-search');
+  var composerDispatchTagFilterEl = document.getElementById('composer-dispatch-tag-filter');
+  var composerDispatchUnusedOnlyEl = document.getElementById('composer-dispatch-unused-only');
+  var composerDispatchCardsEl = document.getElementById('composer-dispatch-cards');
+  var composerAttachedListEl = document.getElementById('composer-attached-list');
+  var composerAttachedCountEl = document.getElementById('composer-attached-count');
+  var composerDispatchSearchTimer = null;
+
+  var composerDetailModal = document.getElementById('composer-dispatch-detail-modal');
+  var composerDetailClose = document.getElementById('composer-dispatch-detail-close');
+  var composerDetailCancel = document.getElementById('composer-dispatch-detail-cancel');
+  var composerDetailTitle = document.getElementById('composer-dispatch-detail-title');
+  var composerDetailMeta = document.getElementById('composer-dispatch-detail-meta');
+  var composerDetailTranslation = document.getElementById('composer-dispatch-detail-translation');
+  var composerDetailSubject = document.getElementById('composer-dispatch-detail-subject');
+  var composerDetailBody = document.getElementById('composer-dispatch-detail-body');
+  var composerDetailGithub = document.getElementById('composer-dispatch-detail-github');
+  var composerDetailInsertBtn = document.getElementById('composer-dispatch-detail-insert-btn');
+  var composerDetailActiveDispatch = null;
+
+  var composerCurrentId = null;
+  var composerCurrentStatus = 'draft';
+  var composerAttachedItems = [];
+  var composerEditorSelection = null;
+
+  // composer_featured was already wired by the initial
+  // Object.keys(IMAGE_FIELDS).forEach(wireImageField) pass, since it's part
+  // of that same starting object literal (unlike news_header, which is
+  // added afterward and wires itself explicitly).
+  composerFeaturedImageClearBtn.addEventListener('click', function () {
+    composerFeaturedImageInput.value = '';
+    refreshImageThumb('composer_featured');
+  });
+
+  function composerStatusLabel(status) {
+    return { draft: 'Draft', ready: 'Ready', published: 'Published', archived: 'Archived' }[status] || status;
+  }
+
+  // ---------- Dashboard ----------
+  function loadComposerDashboard() {
+    if (!composerListEl) return;
+    composerCreateBtn.hidden = !pwHasPermission('dispatch_composer.create');
+    composerListEl.innerHTML = '<div class="admin-list-empty">Loading Composer drafts&hellip;</div>';
+    var params = new URLSearchParams();
+    if (composerFilterStatus !== 'all') params.set('status', composerFilterStatus);
+    var q = composerSearchEl.value.trim();
+    if (q) params.set('q', q);
+    fetch('/api/admin/dispatch-composer/list.php?' + params.toString(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load Composer drafts.');
+        renderComposerList(data.posts || []);
+      })
+      .catch(function (error) {
+        composerListEl.innerHTML = '<div class="admin-list-empty">' + escapeHtml(error.message || 'Could not load Composer drafts.') + '</div>';
+      });
+  }
+
+  function renderComposerList(posts) {
+    composerCountEl.textContent = posts.length + (posts.length === 1 ? ' draft' : ' drafts');
+    if (!posts.length) {
+      composerListEl.innerHTML = '<div class="admin-list-empty">No Composer drafts yet. Create one to get started.</div>';
+      return;
+    }
+    var canArchive = pwHasPermission('dispatch_composer.archive');
+    composerListEl.innerHTML = posts.map(function (p) {
+      var newsCell = p.news_slug
+        ? '<a class="composer-row-news-link" href="/news-post.html?slug=' + encodeURIComponent(p.news_slug) + '" target="_blank" rel="noopener">View &rarr;</a>'
+        : '<span class="composer-row-news-link">&mdash;</span>';
+      var archiveCell = (canArchive && p.status !== 'archived')
+        ? '<button type="button" class="btn composer-row-archive-btn" data-composer-archive-id="' + p.id + '">Archive</button>'
+        : '<span></span>';
+      return (
+        '<div class="admin-row composer-row" tabindex="0" role="button" data-composer-open-id="' + p.id + '">' +
+          '<span class="admin-row-main">' + escapeHtml(p.title) + '</span>' +
+          '<span style="text-align:center">' + p.dispatch_count + '</span>' +
+          '<span class="composer-row-status-pill is-' + p.status + '">' + composerStatusLabel(p.status) + '</span>' +
+          '<span style="text-align:center">' + escapeHtml(fmtDate(p.updated_at)) + '</span>' +
+          '<span style="text-align:center">' + escapeHtml(p.updater_username || p.creator_username || '—') + '</span>' +
+          newsCell +
+          archiveCell +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  composerListEl.addEventListener('click', function (event) {
+    var archiveBtn = event.target.closest('[data-composer-archive-id]');
+    if (archiveBtn) {
+      event.stopPropagation();
+      if (!window.confirm('Archive this Composer draft? This cannot be undone from here.')) return;
+      fetch('/api/admin/dispatch-composer/archive.php', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: parseInt(archiveBtn.getAttribute('data-composer-archive-id'), 10), csrf: window.PW_AUTH.csrf })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.error || 'Could not archive this draft.');
+          loadComposerDashboard();
+        })
+        .catch(function (error) { window.alert(error.message || 'Could not archive this draft.'); });
+      return;
+    }
+    if (event.target.closest('a')) return;
+    var row = event.target.closest('[data-composer-open-id]');
+    if (row) openComposerEditor(parseInt(row.getAttribute('data-composer-open-id'), 10));
+  });
+  composerListEl.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    var row = event.target.closest('[data-composer-open-id]');
+    if (!row) return;
+    event.preventDefault();
+    openComposerEditor(parseInt(row.getAttribute('data-composer-open-id'), 10));
+  });
+
+  composerCreateBtn.addEventListener('click', function () {
+    composerCreateBtn.disabled = true;
+    fetch('/api/admin/dispatch-composer/create.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not create a new draft.');
+        openComposerEditor(data.id);
+      })
+      .catch(function (error) { window.alert(error.message || 'Could not create a new draft.'); })
+      .finally(function () { composerCreateBtn.disabled = false; });
+  });
+
+  composerFilterTabsEl.addEventListener('click', function (event) {
+    var tab = event.target.closest('.admin-filter-tab');
+    if (!tab) return;
+    composerFilterTabsEl.querySelectorAll('.admin-filter-tab').forEach(function (t) { t.classList.remove('active'); });
+    tab.classList.add('active');
+    composerFilterStatus = tab.getAttribute('data-filter');
+    loadComposerDashboard();
+  });
+
+  composerSearchEl.addEventListener('input', function () {
+    clearTimeout(composerSearchTimer);
+    composerSearchTimer = setTimeout(loadComposerDashboard, 300);
+  });
+
+  composerBackBtn.addEventListener('click', function () {
+    sectionComposerEditor.hidden = true;
+    sectionComposerDashboard.hidden = false;
+    loadComposerDashboard();
+  });
+
+  // ---------- Editor: open/populate/read-only state ----------
+  function composerSetReadOnly(readOnly) {
+    composerTitleInput.disabled = readOnly;
+    composerExcerptInput.disabled = readOnly;
+    composerBodyInput.contentEditable = readOnly ? 'false' : 'true';
+    composerEditorToolbar.querySelectorAll('button').forEach(function (b) { b.disabled = readOnly; });
+    document.querySelectorAll('[data-image-type="composer_featured"]').forEach(function (b) { b.disabled = readOnly; });
+    composerFeaturedImageClearBtn.disabled = readOnly;
+    composerSaveDraftBtn.hidden = readOnly;
+    composerMarkReadyBtn.hidden = readOnly;
+    composerPublishBtn.hidden = readOnly;
+    document.querySelectorAll('.composer-attached-item-remove, .composer-dispatch-card-actions button').forEach(function (b) { b.disabled = readOnly; });
+  }
+
+  function composerUpdateStatusBadge() {
+    composerEditorStatusBadge.textContent = composerStatusLabel(composerCurrentStatus);
+    composerEditorStatusBadge.className = 'composer-editor-status-badge composer-row-status-pill is-' + composerCurrentStatus;
+  }
+
+  function openComposerEditor(id) {
+    composerCurrentId = id;
+    sectionComposerDashboard.hidden = true;
+    sectionComposerEditor.hidden = false;
+    composerEditorError.textContent = '';
+    composerEditorError.classList.remove('show');
+    composerEditorStatus.textContent = '';
+    composerEditorStatus.classList.remove('show');
+    composerPublishedBanner.hidden = true;
+    composerTitleInput.value = '';
+    composerSlugInput.value = '';
+    composerExcerptInput.value = '';
+    composerFeaturedImageInput.value = '';
+    refreshImageThumb('composer_featured');
+    composerBodyInput.innerHTML = '';
+    composerAttachedItems = [];
+    loadComposerPost();
+    loadComposerCandidates();
+  }
+
+  function loadComposerPost() {
+    fetch('/api/admin/dispatch-composer/get.php?id=' + encodeURIComponent(composerCurrentId), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load this Composer draft.');
+        var post = data.post;
+        composerCurrentStatus = post.status;
+        composerTitleInput.value = post.title || '';
+        composerSlugInput.value = post.slug || '';
+        composerExcerptInput.value = post.excerpt || '';
+        composerFeaturedImageInput.value = post.featured_image_url || '';
+        refreshImageThumb('composer_featured');
+        composerBodyInput.innerHTML = post.body || '';
+        composerAttachedItems = data.items || [];
+        renderComposerAttachedList();
+        composerUpdateStatusBadge();
+        if (post.status === 'published') {
+          composerPublishedBanner.hidden = false;
+          composerViewNewsLink.href = '/news-post.html?slug=' + encodeURIComponent(post.news_slug || '');
+        }
+        composerSetReadOnly(post.status === 'published' || post.status === 'archived');
+        if (!pwHasPermission('dispatch_composer.publish')) composerPublishBtn.hidden = true;
+        if (!pwHasPermission('dispatch_composer.edit')) {
+          composerSaveDraftBtn.hidden = true;
+          composerMarkReadyBtn.hidden = true;
+        }
+      })
+      .catch(function (error) {
+        composerEditorError.textContent = error.message || 'Could not load this Composer draft.';
+        composerEditorError.classList.add('show');
+      });
+  }
+
+  // ---------- Editor: title -> slug preview ----------
+  function composerSlugify(title) {
+    return String(title || '').toLowerCase()
+      .normalize('NFKD').replace(/[̀-ͯ]/g, '')
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').substring(0, 100) || '';
+  }
+  composerTitleInput.addEventListener('input', function () {
+    composerSlugInput.value = composerSlugify(composerTitleInput.value);
+  });
+
+  // ---------- Editor: rich text toolbar (own instance, parallel to News's) ----------
+  function rememberComposerEditorSelection() {
+    var selection = window.getSelection && window.getSelection();
+    if (!selection || !selection.rangeCount) return;
+    var range = selection.getRangeAt(0);
+    if (composerBodyInput.contains(range.commonAncestorContainer)) {
+      composerEditorSelection = range.cloneRange();
+    }
+  }
+  function restoreComposerEditorSelection() {
+    composerBodyInput.focus();
+    if (!composerEditorSelection) return;
+    var selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(composerEditorSelection);
+  }
+  function runComposerEditorCommand(command, value) {
+    restoreComposerEditorSelection();
+    if (command === 'link') {
+      var href = window.prompt('Enter a full https:// URL, a mailto: address, or a site-relative /path:');
+      if (!href) return;
+      command = 'createLink';
+      value = href.trim();
+    }
+    if (command === 'formatBlock') value = '<' + value + '>';
+    document.execCommand(command, false, value || null);
+    rememberComposerEditorSelection();
+  }
+  ['input', 'keyup', 'mouseup'].forEach(function (eventName) {
+    composerBodyInput.addEventListener(eventName, rememberComposerEditorSelection);
+  });
+  composerBodyInput.addEventListener('paste', function (event) {
+    event.preventDefault();
+    var text = (event.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, text);
+  });
+  composerEditorToolbar.addEventListener('mousedown', function (event) {
+    if (event.target.closest('.news-editor-tool')) event.preventDefault();
+  });
+  composerEditorToolbar.addEventListener('click', function (event) {
+    var tool = event.target.closest('[data-composer-command]');
+    if (!tool) return;
+    runComposerEditorCommand(tool.getAttribute('data-composer-command'), tool.getAttribute('data-composer-value'));
+  });
+
+  function composerImageAlt(name) {
+    var filename = String(name || '');
+    if (/^img_[a-f0-9]{16}\.jpg$/i.test(filename)) return 'Article image';
+    return filename.replace(/\.[a-z0-9]+$/i, '').replace(/[-_]+/g, ' ').trim() || 'Article image';
+  }
+  function insertComposerImage(url, name, width, height) {
+    restoreComposerEditorSelection();
+    var safeUrl = String(url || '');
+    if (!/^\/uploads\/news-images\/img_[a-f0-9]{16}\.jpg$/.test(safeUrl)) return;
+    var alt = composerImageAlt(name);
+    var dimensions = Number.isInteger(Number(width)) && Number.isInteger(Number(height)) && Number(width) > 0 && Number(height) > 0
+      ? ' width="' + Number(width) + '" height="' + Number(height) + '"' : '';
+    var markup = '<figure class="news-embedded-image"><img src="' + escapeHtml(safeUrl) + '" alt="' + escapeHtml(alt) + '"' + dimensions + '><figcaption>' + escapeHtml(alt) + '</figcaption></figure><p><br></p>';
+    document.execCommand('insertHTML', false, markup);
+    rememberComposerEditorSelection();
+  }
+  function closeComposerImageLibrary() {
+    composerImageLibraryModal.hidden = true;
+    composerImageLibraryStatus.textContent = '';
+  }
+  function renderComposerImageLibrary(images) {
+    composerImageLibraryGrid.textContent = '';
+    composerImageLibraryEmpty.hidden = images.length > 0;
+    images.forEach(function (image) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'admin-image-grid-item';
+      item.title = 'Insert ' + image.name;
+      var preview = document.createElement('img');
+      preview.src = image.url;
+      preview.alt = composerImageAlt(image.name);
+      preview.loading = 'lazy';
+      item.appendChild(preview);
+      item.addEventListener('click', function () {
+        insertComposerImage(image.url, image.name, image.width, image.height);
+        closeComposerImageLibrary();
+      });
+      composerImageLibraryGrid.appendChild(item);
+    });
+  }
+  function loadComposerImageLibrary() {
+    composerImageLibraryGrid.textContent = '';
+    composerImageLibraryEmpty.hidden = true;
+    composerImageLibraryStatus.textContent = 'Loading image library…';
+    fetch('/api/admin/news/list-images.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load the News image library.');
+        renderComposerImageLibrary(data.images || []);
+        composerImageLibraryStatus.textContent = (data.images || []).length ? 'Choose an image to insert it.' : '';
+      })
+      .catch(function (error) {
+        composerImageLibraryEmpty.hidden = false;
+        composerImageLibraryEmpty.textContent = error.message || 'Could not load the News image library.';
+        composerImageLibraryStatus.textContent = '';
+      });
+  }
+  composerImageUploadBtn.addEventListener('click', function () {
+    rememberComposerEditorSelection();
+    composerImageFileInput.click();
+  });
+  composerImageLibraryBtn.addEventListener('click', function () {
+    if (!pwHasPermission('news.view')) return;
+    rememberComposerEditorSelection();
+    composerImageLibraryModal.hidden = false;
+    loadComposerImageLibrary();
+  });
+  composerImageFileInput.addEventListener('change', function () {
+    var file = composerImageFileInput.files && composerImageFileInput.files[0];
+    if (!file) return;
+    var data = new FormData();
+    data.append('image', file);
+    data.append('csrf', window.PW_AUTH.csrf);
+    composerImageUploadBtn.disabled = true;
+    fetch('/api/admin/news/upload-image.php', { method: 'POST', credentials: 'same-origin', body: data })
+      .then(function (response) { return response.json(); })
+      .then(function (result) {
+        if (!result.ok) throw new Error(result.error || 'Could not upload this image.');
+        insertComposerImage(result.url, result.name, result.width, result.height);
+      })
+      .catch(function (error) {
+        composerEditorError.textContent = error.message || 'Could not upload this image.';
+        composerEditorError.classList.add('show');
+      })
+      .finally(function () {
+        composerImageUploadBtn.disabled = false;
+        composerImageFileInput.value = '';
+      });
+  });
+  composerImageLibraryCloseBtn.addEventListener('click', closeComposerImageLibrary);
+  composerImageLibraryCancelBtn.addEventListener('click', closeComposerImageLibrary);
+  composerImageLibraryModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeComposerImageLibrary);
+  composerImageLibraryUploadBtn.addEventListener('click', function () {
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/jpeg,image/png,image/webp';
+    input.addEventListener('change', function () {
+      var file = input.files && input.files[0];
+      if (!file) return;
+      var data = new FormData();
+      data.append('image', file);
+      data.append('csrf', window.PW_AUTH.csrf);
+      composerImageLibraryStatus.textContent = 'Uploading and preparing image…';
+      composerImageLibraryUploadBtn.disabled = true;
+      fetch('/api/admin/news/upload-image.php', { method: 'POST', credentials: 'same-origin', body: data })
+        .then(function (response) { return response.json(); })
+        .then(function (result) {
+          if (!result.ok) throw new Error(result.error || 'Could not upload this image.');
+          insertComposerImage(result.url, result.name, result.width, result.height);
+          closeComposerImageLibrary();
+        })
+        .catch(function (error) {
+          composerImageLibraryStatus.textContent = error.message || 'Could not upload this image.';
+        })
+        .finally(function () { composerImageLibraryUploadBtn.disabled = false; });
+    });
+    input.click();
+  });
+
+  // ---------- Dispatch reference panel ----------
+  function loadComposerCandidates() {
+    composerDispatchCardsEl.innerHTML = '<div class="admin-list-empty">Loading dispatches&hellip;</div>';
+    var params = new URLSearchParams();
+    params.set('composer_post_id', composerCurrentId);
+    var q = composerDispatchSearchEl.value.trim();
+    if (q) params.set('q', q);
+    if (composerDispatchTagFilterEl.value) params.set('tag', composerDispatchTagFilterEl.value);
+    fetch('/api/admin/dispatch-composer/candidates.php?' + params.toString(), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load dispatches.');
+        renderComposerDispatchCards(data.dispatches || []);
+      })
+      .catch(function (error) {
+        composerDispatchCardsEl.innerHTML = '<div class="admin-list-empty">' + escapeHtml(error.message || 'Could not load dispatches.') + '</div>';
+      });
+  }
+
+  function renderComposerDispatchCards(dispatches) {
+    var unusedOnly = composerDispatchUnusedOnlyEl.checked;
+    var filtered = unusedOnly ? dispatches.filter(function (d) { return !d.attached && !d.published_elsewhere.length; }) : dispatches;
+    if (!filtered.length) {
+      composerDispatchCardsEl.innerHTML = '<div class="admin-list-empty">No matching approved dispatches.</div>';
+      return;
+    }
+    var canEdit = pwHasPermission('dispatch_composer.edit') && composerCurrentStatus !== 'published' && composerCurrentStatus !== 'archived';
+    composerDispatchCardsEl.innerHTML = filtered.map(function (d) {
+      var usedNote = d.published_elsewhere.length
+        ? '<p class="composer-dispatch-card-used-elsewhere">Published in: ' + escapeHtml(d.published_elsewhere.map(function (u) { return u.title; }).join(', ')) + '</p>'
+        : '';
+      var actionBtn = d.attached
+        ? '<button type="button" class="btn" data-composer-detach="' + d.id + '"' + (canEdit ? '' : ' disabled') + '>Remove from article</button>'
+        : '<button type="button" class="btn btn-solid" data-composer-attach="' + d.id + '"' + (canEdit ? '' : ' disabled') + '>Add to article</button>';
+      return (
+        '<div class="composer-dispatch-card' + (d.attached ? ' is-attached' : '') + '">' +
+          '<div class="composer-dispatch-card-top">' +
+            '<span class="composer-dispatch-card-tag">' + escapeHtml(d.tag) + '</span>' +
+            '<span>' + Math.round(d.confidence) + '% confidence</span>' +
+          '</div>' +
+          '<h3 class="composer-dispatch-card-title">' + escapeHtml(d.subject) + '</h3>' +
+          '<p class="composer-dispatch-card-summary">' + escapeHtml(d.translation) + '</p>' +
+          '<div class="composer-dispatch-card-meta"><span>' + escapeHtml(fmtDate(d.committed_at)) + '</span><span>#' + escapeHtml(d.sha.substring(0, 7)) + '</span></div>' +
+          usedNote +
+          '<div class="composer-dispatch-card-actions">' +
+            actionBtn +
+            '<button type="button" class="btn" data-composer-view-detail="' + d.id + '">View full dispatch</button>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+    composerDispatchCardsEl.dataset.cache = JSON.stringify(dispatches);
+  }
+
+  function composerCandidateById(id) {
+    try { return JSON.parse(composerDispatchCardsEl.dataset.cache || '[]').filter(function (d) { return d.id === id; })[0]; } catch (e) { return null; }
+  }
+
+  composerDispatchCardsEl.addEventListener('click', function (event) {
+    var attachBtn = event.target.closest('[data-composer-attach]');
+    var detachBtn = event.target.closest('[data-composer-detach]');
+    var detailBtn = event.target.closest('[data-composer-view-detail]');
+    if (attachBtn) {
+      var attachId = parseInt(attachBtn.getAttribute('data-composer-attach'), 10);
+      fetch('/api/admin/dispatch-composer/items/add.php', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ composer_post_id: composerCurrentId, dispatch_id: attachId, csrf: window.PW_AUTH.csrf })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.error || 'Could not attach this dispatch.');
+          loadComposerPost();
+          loadComposerCandidates();
+        })
+        .catch(function (error) { window.alert(error.message || 'Could not attach this dispatch.'); });
+      return;
+    }
+    if (detachBtn) {
+      var detachId = parseInt(detachBtn.getAttribute('data-composer-detach'), 10);
+      fetch('/api/admin/dispatch-composer/items/remove.php', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ composer_post_id: composerCurrentId, dispatch_id: detachId, csrf: window.PW_AUTH.csrf })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.error || 'Could not remove this dispatch.');
+          loadComposerPost();
+          loadComposerCandidates();
+        })
+        .catch(function (error) { window.alert(error.message || 'Could not remove this dispatch.'); });
+      return;
+    }
+    if (detailBtn) {
+      var candidate = composerCandidateById(parseInt(detailBtn.getAttribute('data-composer-view-detail'), 10));
+      if (candidate) openComposerDetailModal(candidate);
+    }
+  });
+
+  composerDispatchSearchEl.addEventListener('input', function () {
+    clearTimeout(composerDispatchSearchTimer);
+    composerDispatchSearchTimer = setTimeout(loadComposerCandidates, 300);
+  });
+  composerDispatchTagFilterEl.addEventListener('change', loadComposerCandidates);
+  composerDispatchUnusedOnlyEl.addEventListener('change', function () {
+    var cached = [];
+    try { cached = JSON.parse(composerDispatchCardsEl.dataset.cache || '[]'); } catch (e) {}
+    renderComposerDispatchCards(cached);
+  });
+
+  // ---------- Attached list: render, reorder (drag), note, remove ----------
+  function renderComposerAttachedList() {
+    composerAttachedCountEl.textContent = composerAttachedItems.length;
+    if (!composerAttachedItems.length) {
+      composerAttachedListEl.innerHTML = '<li class="admin-list-empty">No dispatches attached yet.</li>';
+      return;
+    }
+    var canEdit = pwHasPermission('dispatch_composer.edit') && composerCurrentStatus !== 'published' && composerCurrentStatus !== 'archived';
+    composerAttachedListEl.innerHTML = composerAttachedItems.map(function (item) {
+      return (
+        '<li class="composer-attached-item" draggable="' + (canEdit ? 'true' : 'false') + '" data-composer-attached-dispatch="' + item.dispatch_id + '">' +
+          '<div class="composer-attached-item-top">' +
+            '<span class="composer-attached-item-title">' + escapeHtml(item.subject) + '</span>' +
+            (canEdit ? '<button type="button" class="composer-attached-item-remove" data-composer-detach="' + item.dispatch_id + '" aria-label="Remove">&times;</button>' : '') +
+          '</div>' +
+          '<textarea class="composer-attached-item-note" placeholder="Private note (never published)&hellip;" data-composer-note-dispatch="' + item.dispatch_id + '"' + (canEdit ? '' : ' disabled') + '>' + escapeHtml(item.admin_note || '') + '</textarea>' +
+        '</li>'
+      );
+    }).join('');
+  }
+
+  composerAttachedListEl.addEventListener('click', function (event) {
+    var detachBtn = event.target.closest('[data-composer-detach]');
+    if (!detachBtn) return;
+    var dispatchId = parseInt(detachBtn.getAttribute('data-composer-detach'), 10);
+    fetch('/api/admin/dispatch-composer/items/remove.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ composer_post_id: composerCurrentId, dispatch_id: dispatchId, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not remove this dispatch.');
+        loadComposerPost();
+        loadComposerCandidates();
+      })
+      .catch(function (error) { window.alert(error.message || 'Could not remove this dispatch.'); });
+  });
+
+  var composerNoteTimers = {};
+  composerAttachedListEl.addEventListener('blur', function (event) {
+    var textarea = event.target.closest('[data-composer-note-dispatch]');
+    if (!textarea) return;
+    var dispatchId = parseInt(textarea.getAttribute('data-composer-note-dispatch'), 10);
+    clearTimeout(composerNoteTimers[dispatchId]);
+    fetch('/api/admin/dispatch-composer/items/note.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ composer_post_id: composerCurrentId, dispatch_id: dispatchId, admin_note: textarea.value, csrf: window.PW_AUTH.csrf })
+    }).catch(function () {});
+  }, true);
+
+  var composerDragDispatchId = null;
+  composerAttachedListEl.addEventListener('dragstart', function (event) {
+    var li = event.target.closest('[data-composer-attached-dispatch]');
+    if (!li) return;
+    composerDragDispatchId = li.getAttribute('data-composer-attached-dispatch');
+    li.classList.add('is-dragging');
+  });
+  composerAttachedListEl.addEventListener('dragend', function (event) {
+    var li = event.target.closest('[data-composer-attached-dispatch]');
+    if (li) li.classList.remove('is-dragging');
+  });
+  composerAttachedListEl.addEventListener('dragover', function (event) {
+    event.preventDefault();
+    var afterEl = null;
+    var closestDistance = -Infinity;
+    Array.prototype.forEach.call(composerAttachedListEl.querySelectorAll('[data-composer-attached-dispatch]'), function (li) {
+      if (li.getAttribute('data-composer-attached-dispatch') === composerDragDispatchId) return;
+      var box = li.getBoundingClientRect();
+      var offset = event.clientY - box.top - box.height / 2;
+      if (offset < 0 && offset > closestDistance) {
+        closestDistance = offset;
+        afterEl = li;
+      }
+    });
+    var dragEl = composerAttachedListEl.querySelector('[data-composer-attached-dispatch="' + composerDragDispatchId + '"]');
+    if (!dragEl) return;
+    if (afterEl) composerAttachedListEl.insertBefore(dragEl, afterEl);
+    else composerAttachedListEl.appendChild(dragEl);
+  });
+  composerAttachedListEl.addEventListener('drop', function (event) {
+    event.preventDefault();
+    var orderedIds = Array.prototype.map.call(
+      composerAttachedListEl.querySelectorAll('[data-composer-attached-dispatch]'),
+      function (li) { return parseInt(li.getAttribute('data-composer-attached-dispatch'), 10); }
+    );
+    fetch('/api/admin/dispatch-composer/items/reorder.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ composer_post_id: composerCurrentId, dispatch_ids: orderedIds, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) { if (!data.ok) throw new Error(data.error); })
+      .catch(function () { loadComposerPost(); });
+  });
+
+  // ---------- Dispatch detail modal + Insert summary ----------
+  function openComposerDetailModal(dispatch) {
+    composerDetailActiveDispatch = dispatch;
+    composerDetailTitle.textContent = dispatch.subject;
+    composerDetailMeta.textContent = dispatch.tag + ' — ' + fmtDate(dispatch.committed_at) + ' — #' + dispatch.sha.substring(0, 7);
+    composerDetailTranslation.textContent = dispatch.translation || '(no approved translation)';
+    composerDetailSubject.textContent = dispatch.subject;
+    composerDetailBody.textContent = dispatch.body || '';
+    composerDetailGithub.href = dispatch.url || '#';
+    composerDetailGithub.style.display = dispatch.url ? '' : 'none';
+    composerDetailInsertBtn.disabled = composerCurrentStatus === 'published' || composerCurrentStatus === 'archived';
+    composerDetailModal.hidden = false;
+  }
+  function closeComposerDetailModal() { composerDetailModal.hidden = true; composerDetailActiveDispatch = null; }
+  composerDetailClose.addEventListener('click', closeComposerDetailModal);
+  composerDetailCancel.addEventListener('click', closeComposerDetailModal);
+  composerDetailModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeComposerDetailModal);
+  composerDetailInsertBtn.addEventListener('click', function () {
+    if (!composerDetailActiveDispatch) return;
+    restoreComposerEditorSelection();
+    var text = composerDetailActiveDispatch.translation || '';
+    document.execCommand('insertHTML', false, '<p>' + escapeHtml(text) + '</p>');
+    rememberComposerEditorSelection();
+    closeComposerDetailModal();
+  });
+
+  // ---------- Save / Mark Ready / Preview / Publish ----------
+  function composerGatherFields() {
+    return {
+      id: composerCurrentId,
+      title: composerTitleInput.value.trim(),
+      excerpt: composerExcerptInput.value.trim(),
+      body: composerBodyInput.innerHTML.trim(),
+      featured_image_url: composerFeaturedImageInput.value.trim(),
+      csrf: window.PW_AUTH.csrf,
+    };
+  }
+
+  function composerSave(status, onSuccess) {
+    composerEditorError.textContent = '';
+    composerEditorError.classList.remove('show');
+    var payload = composerGatherFields();
+    payload.status = status;
+    return fetch('/api/admin/dispatch-composer/update.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not save this draft.');
+        composerCurrentStatus = status;
+        composerUpdateStatusBadge();
+        composerEditorStatus.textContent = 'Saved.';
+        composerEditorStatus.classList.add('show');
+        if (onSuccess) onSuccess();
+        return data;
+      })
+      .catch(function (error) {
+        composerEditorError.textContent = error.message || 'Could not save this draft.';
+        composerEditorError.classList.add('show');
+        throw error;
+      });
+  }
+
+  composerSaveDraftBtn.addEventListener('click', function () {
+    composerSaveDraftBtn.disabled = true;
+    composerSave('draft').finally(function () { composerSaveDraftBtn.disabled = false; });
+  });
+  composerMarkReadyBtn.addEventListener('click', function () {
+    composerMarkReadyBtn.disabled = true;
+    composerSave('ready').finally(function () { composerMarkReadyBtn.disabled = false; });
+  });
+
+  composerPreviewBtn.addEventListener('click', function () {
+    composerPreviewBtn.disabled = true;
+    var proceed = composerCurrentStatus === 'published' || composerCurrentStatus === 'archived'
+      ? Promise.resolve()
+      : composerSave(composerCurrentStatus === 'ready' ? 'ready' : 'draft');
+    proceed
+      .then(function () { window.open('/news-post.html?composer_preview=' + encodeURIComponent(composerCurrentId), '_blank'); })
+      .catch(function () {})
+      .finally(function () { composerPreviewBtn.disabled = false; });
+  });
+
+  composerPublishBtn.addEventListener('click', function () {
+    if (!window.confirm('Publish this article to the public News page now? This cannot be undone from here.')) return;
+    composerPublishBtn.disabled = true;
+    composerEditorError.textContent = '';
+    composerEditorError.classList.remove('show');
+    composerSave(composerCurrentStatus === 'draft' ? 'draft' : composerCurrentStatus)
+      .then(function () {
+        return fetch('/api/admin/dispatch-composer/publish.php', {
+          method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: composerCurrentId, csrf: window.PW_AUTH.csrf })
+        });
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          if (data.errors && data.errors.length) throw new Error(data.errors.join(' '));
+          throw new Error(data.error || 'Could not publish this article.');
+        }
+        composerCurrentStatus = 'published';
+        composerUpdateStatusBadge();
+        composerSetReadOnly(true);
+        composerPublishedBanner.hidden = false;
+        composerViewNewsLink.href = '/news-post.html?slug=' + encodeURIComponent(data.news_slug);
+      })
+      .catch(function (error) {
+        composerEditorError.textContent = error.message || 'Could not publish this article.';
+        composerEditorError.classList.add('show');
+      })
+      .finally(function () { composerPublishBtn.disabled = false; });
   });
 
 })();
