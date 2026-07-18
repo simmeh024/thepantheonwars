@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=222">
+<link rel="stylesheet" href="css/community-bundle.css?v=223">
 </head>
 <body>
 
@@ -270,6 +270,7 @@
     var square = document.createElement('span');
     square.className = 'reputation-bar-square';
     square.style.background = rep.level_color || '#c7ccd6';
+    square.textContent = rep.level_number != null ? String(rep.level_number) : '';
     container.appendChild(square);
     var track = document.createElement('span');
     track.className = 'reputation-bar-track';
@@ -283,9 +284,11 @@
     label.className = 'reputation-bar-label';
     label.textContent = (rep.level_name || 'Unranked') + ' · ' + rep.points + ' rep';
     container.appendChild(label);
-    var titleText = (rep.level_name || 'Unranked') + ' — ' + rep.points + ' reputation';
+    var titleText = rep.level_name || 'Unranked';
     if (rep.next_level_name) {
-      titleText += ' (' + Math.max(0, rep.next_level_threshold - rep.points) + ' to ' + rep.next_level_name + ')';
+      titleText += ' · ' + Math.max(0, rep.next_level_threshold - rep.points) + ' rep to ' + rep.next_level_name;
+    } else if (rep.level_name) {
+      titleText += ' · Max level';
     }
     container.title = titleText;
   }

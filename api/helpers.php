@@ -404,10 +404,12 @@ function pw_reputation_levels(): array {
 function pw_reputation_info(int $reputation): array {
     $levels = pw_reputation_levels();
     $current = null;
+    $currentNumber = null;
     $next = null;
-    foreach ($levels as $level) {
+    foreach ($levels as $index => $level) {
         if ((int)$level['threshold'] <= $reputation) {
             $current = $level;
+            $currentNumber = $index + 1;
         } elseif ($next === null) {
             $next = $level;
         }
@@ -425,6 +427,9 @@ function pw_reputation_info(int $reputation): array {
     return [
         'points' => $reputation,
         'level_name' => $current ? $current['name'] : null,
+        // Rank position within the ladder (1 = the lowest level), shown as
+        // the number inside the reputation bar's square.
+        'level_number' => $currentNumber,
         'level_color' => $current ? $current['color'] : '#c7ccd6',
         'next_level_name' => $next ? $next['name'] : null,
         'next_level_threshold' => $next ? (int)$next['threshold'] : null,

@@ -608,9 +608,11 @@
    profile page, the public member card, and next to each forum poster. */
 .reputation-bar { display: flex; align-items: center; gap: 5px; }
 .reputation-bar-square {
-  display: inline-block; flex-shrink: 0; width: 8px; height: 8px; border-radius: 2px;
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; width: 15px; height: 15px; border-radius: 3px;
   background: var(--text-faint); box-shadow: 0 0 4px rgba(0, 0, 0, 0.35);
-  vertical-align: middle;
+  vertical-align: middle; font-size: 0.6rem; font-weight: 700; line-height: 1;
+  color: #fff; text-shadow: 0 1px 1px rgba(0, 0, 0, 0.4);
 }
 .reputation-bar-track {
   flex-shrink: 0; width: 60px; height: 5px; border-radius: 3px;
@@ -622,6 +624,7 @@
   background: var(--purple-bright); transition: width 0.3s ease;
 }
 .reputation-bar-label { font-size: 0.68rem; color: var(--text-dim); white-space: nowrap; }
+.reputation-bar-compact .reputation-bar-square { width: 13px; height: 13px; font-size: 0.56rem; }
 .reputation-bar-compact .reputation-bar-track { width: 44px; }
 
 .profile-head .reputation-bar { margin-top: 6px; }
