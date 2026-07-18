@@ -666,7 +666,18 @@ nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
   }
   nav.main-nav.open { display: flex; }
   .nav-toggle { display: flex; }
-  .nav-item { flex-direction: column; align-items: flex-start; width: 100%; }
+  .nav-item {
+    flex-direction: column; align-items: flex-start; width: 100%;
+    /* nav.main-nav is a column flexbox with a capped max-height + overflow-y:
+       auto (so a too-tall panel scrolls instead of growing past the
+       viewport) -- without this, each .nav-item's default flex-shrink:1
+       let the browser compress every item shorter than its actual content
+       height whenever the rich dropdown panels (links + description aside)
+       made the full list taller than that cap, so content just overflowed
+       and overlapped the next item instead of the panel simply scrolling
+       as intended. */
+    flex-shrink: 0;
+  }
   .nav-caret { display: none; }
   .nav-dropdown {
     position: static;
