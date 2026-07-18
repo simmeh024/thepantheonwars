@@ -39,6 +39,51 @@ if (empty($visibleSlugs)) {
     pw_json(['ok' => true, 'results' => []]);
 }
 
+// Optional filters from the search UI. board is narrowed against the
+// already-computed visible-board list (a hidden board can't be searched
+// into via this param any more than via the base query itself); author is
+// matched by exact username (the same identity search results already
+// display, i.e. the topic's author -- both the topic-match and reply-match
+// queries below join the topic's author, not the individual reply's, so
+// this stays consistent with what's actually shown); the date range applies
+// to the topic's created_at, again matching the only timestamp either
+// query already returns.
+$boardFilter = isset($_GET['board']) ? trim($_GET['board']) : '';
+if ($boardFilter !== '' && !in_array($boardFilter, $visibleSlugs, true)) {
+    $boardFilter = '';
+}
+$authorFilter = isset($_GET['author']) ? trim($_GET['author']) : '';
+if (mb_strlen($authorFilter) > 100) {
+    $authorFilter = mb_substr($authorFilter, 0, 100);
+}
+$dateFrom = isset($_GET['date_from']) ? trim($_GET['date_from']) : '';
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom)) {
+    $dateFrom = '';
+}
+$dateTo = isset($_GET['date_to']) ? trim($_GET['date_to']) : '';
+if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo)) {
+    $dateTo = '';
+}
+
+$extraWhere = '';
+$extraParams = [];
+if ($boardFilter !== '') {
+    $extraWhere .= ' AND t.board = ?';
+    $extraParams[] = $boardFilter;
+}
+if ($authorFilter !== '') {
+    $extraWhere .= ' AND u.username = ?';
+    $extraParams[] = $authorFilter;
+}
+if ($dateFrom !== '') {
+    $extraWhere .= ' AND t.created_at >= ?';
+    $extraParams[] = $dateFrom . ' 00:00:00';
+}
+if ($dateTo !== '') {
+    $extraWhere .= ' AND t.created_at <= ?';
+    $extraParams[] = $dateTo . ' 23:59:59';
+}
+
 $placeholders = implode(',', array_fill(0, count($visibleSlugs), '?'));
 
 function pw_search_excerpt($text, $q) {
@@ -61,10 +106,11 @@ $topicStmt = $db->prepare(
      LEFT JOIN roles ro ON ro.slug = u.role
      WHERE t.board IN ($placeholders) AND t.is_deleted = 0
        AND MATCH(t.title, t.body) AGAINST (? IN NATURAL LANGUAGE MODE)
+       $extraWhere
      ORDER BY score DESC
      LIMIT 50"
 );
-$topicStmt->execute(array_merge([$q], $visibleSlugs, [$q]));
+$topicStmt->execute(array_merge([$q], $visibleSlugs, [$q], $extraParams));
 $topicRows = $topicStmt->fetchAll();
 
 $commentStmt = $db->prepare(
@@ -78,10 +124,11 @@ $commentStmt = $db->prepare(
      LEFT JOIN roles ro ON ro.slug = u.role
      WHERE t.board IN ($placeholders) AND c.is_deleted = 0
        AND MATCH(c.body) AGAINST (? IN NATURAL LANGUAGE MODE)
+       $extraWhere
      ORDER BY score DESC
      LIMIT 50"
 );
-$commentStmt->execute(array_merge([$q], $visibleSlugs, [$q]));
+$commentStmt->execute(array_merge([$q], $visibleSlugs, [$q], $extraParams));
 $commentRows = $commentStmt->fetchAll();
 
 $results = [];

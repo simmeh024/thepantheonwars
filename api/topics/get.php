@@ -53,6 +53,7 @@ $canDeleteAny = $currentUser ? pw_has_permission($currentUser, 'community.delete
 
 $likedByMe = false;
 $bookmarked = false;
+$watched = false;
 if ($currentId !== null) {
     $myLikeStmt = $db->prepare("SELECT id FROM message_likes WHERE target_type = 'topic' AND target_id = ? AND user_id = ?");
     $myLikeStmt->execute([$id, $currentId]);
@@ -61,6 +62,52 @@ if ($currentId !== null) {
     $myBookmarkStmt = $db->prepare('SELECT id FROM topic_bookmarks WHERE topic_id = ? AND user_id = ?');
     $myBookmarkStmt->execute([$id, $currentId]);
     $bookmarked = (bool)$myBookmarkStmt->fetch();
+
+    $myWatchStmt = $db->prepare('SELECT id FROM topic_subscriptions WHERE topic_id = ? AND user_id = ?');
+    $myWatchStmt->execute([$id, $currentId]);
+    $watched = (bool)$myWatchStmt->fetch();
+}
+
+$canEditOwn = $currentId !== null
+    && $currentId === (int)$topic['user_id']
+    && (time() - strtotime($topic['created_at'])) <= 30 * 60;
+
+// A topic may have at most one poll (topic_polls.topic_id is UNIQUE).
+// Options and their live vote counts are read in the same request so the
+// client never has to make a second round trip just to render results.
+$poll = null;
+try {
+    $pollStmt = $db->prepare('SELECT id, question FROM topic_polls WHERE topic_id = ?');
+    $pollStmt->execute([$id]);
+    $pollRow = $pollStmt->fetch();
+    if ($pollRow) {
+        $pollId = (int)$pollRow['id'];
+        $optionsStmt = $db->prepare(
+            'SELECT o.id, o.label, (SELECT COUNT(*) FROM topic_poll_votes v WHERE v.option_id = o.id) AS vote_count
+             FROM topic_poll_options o WHERE o.poll_id = ? ORDER BY o.sort_order ASC, o.id ASC'
+        );
+        $optionsStmt->execute([$pollId]);
+        $options = $optionsStmt->fetchAll();
+        $totalVotes = array_sum(array_map(function ($o) { return (int)$o['vote_count']; }, $options));
+        $myVote = null;
+        if ($currentId !== null) {
+            $myVoteStmt = $db->prepare('SELECT option_id FROM topic_poll_votes WHERE poll_id = ? AND user_id = ?');
+            $myVoteStmt->execute([$pollId, $currentId]);
+            $myVoteRow = $myVoteStmt->fetch();
+            $myVote = $myVoteRow ? (int)$myVoteRow['option_id'] : null;
+        }
+        $poll = [
+            'id' => $pollId,
+            'question' => $pollRow['question'],
+            'options' => array_map(function ($o) {
+                return ['id' => (int)$o['id'], 'label' => $o['label'], 'vote_count' => (int)$o['vote_count']];
+            }, $options),
+            'total_votes' => $totalVotes,
+            'my_vote' => $myVote,
+        ];
+    }
+} catch (PDOException $e) {
+    // migration_forum_features_batch.sql may be run after code deployment.
 }
 
 pw_json([
@@ -83,8 +130,11 @@ pw_json([
         'post_count' => (int)$postCountRow['cnt'],
         'canDelete' => $canDeleteAny || ($currentId !== null && $currentId === (int)$topic['user_id']),
         'canModerate' => $canModerate,
+        'canEditOwn' => $canEditOwn,
         'like_count' => $likeCount,
         'likedByMe' => $likedByMe,
         'bookmarked' => $bookmarked,
+        'watched' => $watched,
+        'poll' => $poll,
     ],
 ]);

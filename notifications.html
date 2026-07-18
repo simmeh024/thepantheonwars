@@ -152,6 +152,7 @@
           <button type="button" class="notif-filter-btn" data-filter="report_resolved">Reports <span class="notif-filter-count" id="notif-filter-count-report_resolved">0</span></button>
           <button type="button" class="notif-filter-btn" data-filter="world_available">New Worlds <span class="notif-filter-count" id="notif-filter-count-world_available">0</span></button>
           <button type="button" class="notif-filter-btn" data-filter="news_published">News <span class="notif-filter-count" id="notif-filter-count-news_published">0</span></button>
+          <button type="button" class="notif-filter-btn" data-filter="topic_reply">Watched Replies <span class="notif-filter-count" id="notif-filter-count-topic_reply">0</span></button>
           <label class="notif-unread-toggle">
             <input type="checkbox" id="notif-unread-toggle-input">
             <span class="notif-unread-toggle-track"><span class="notif-unread-toggle-thumb"></span></span>
@@ -315,6 +316,8 @@
         return 'The following world is now ready to explore: <strong>' + worldName + '</strong>. Explore ' + worldName + ' &rarr;';
       case 'news_published':
         return 'A news article has been published. Check it out: <strong>' + (excerpt || 'Latest news') + '</strong> &rarr;';
+      case 'topic_reply':
+        return '<strong>' + (actor || 'Someone') + '</strong> replied' + (n.topic_title ? ' in a topic you\'re watching: <strong>' + escapeHtml(n.topic_title) + '</strong>' : ' in a topic you\'re watching');
       default:
         return 'You have a new notification.';
     }
@@ -414,6 +417,7 @@
         document.getElementById('notif-filter-count-report_resolved').textContent = data.counts.report_resolved;
         document.getElementById('notif-filter-count-world_available').textContent = data.counts.world_available;
         document.getElementById('notif-filter-count-news_published').textContent = data.counts.news_published;
+        document.getElementById('notif-filter-count-topic_reply').textContent = data.counts.topic_reply;
 
         var topType = null, topCount = 0;
         Object.keys(STAT_LABELS).forEach(function (t) {

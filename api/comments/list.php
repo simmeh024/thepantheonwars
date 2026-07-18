@@ -103,6 +103,8 @@ if ($commentIds) {
 $out = array_map(function ($r) use ($currentId, $canModerate, $canDeleteAny, $postCounts, $reactionCounts, $myReactions, $likeCounts, $myLikes) {
     $userId = (int)$r['user_id'];
     $id = (int)$r['id'];
+    $canEditOwn = $currentId !== null && $currentId === $userId
+        && (time() - strtotime($r['created_at'])) <= 30 * 60;
     return [
         'id' => $id,
         'parent_id' => $r['parent_id'] !== null ? (int)$r['parent_id'] : null,
@@ -121,6 +123,7 @@ $out = array_map(function ($r) use ($currentId, $canModerate, $canDeleteAny, $po
         'post_count' => isset($postCounts[$userId]) ? $postCounts[$userId] : 0,
         'canDelete' => $canDeleteAny || ($currentId !== null && $currentId === $userId),
         'canModerate' => $canModerate,
+        'canEditOwn' => $canEditOwn,
         'reactions' => isset($reactionCounts[$id]) ? $reactionCounts[$id] : ['shard' => 0, 'ward' => 0, 'ember' => 0],
         'myReaction' => isset($myReactions[$id]) ? $myReactions[$id] : null,
         'like_count' => isset($likeCounts[$id]) ? $likeCounts[$id] : 0,

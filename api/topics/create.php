@@ -42,10 +42,67 @@ if ($bodyLen > 3500) {
     pw_error('That message is too long (3500 characters max).');
 }
 
+// Optional poll, only settable at creation time. 2-6 non-empty options;
+// blank/whitespace-only entries are dropped before the count check so a
+// stray empty input field from the builder UI can't slip through.
+$pollQuestion = null;
+$pollOptions = [];
+if (!empty($input['poll']) && is_array($input['poll'])) {
+    $pollQuestion = isset($input['poll']['question']) ? trim((string)$input['poll']['question']) : '';
+    $rawOptions = isset($input['poll']['options']) && is_array($input['poll']['options']) ? $input['poll']['options'] : [];
+    foreach ($rawOptions as $rawOption) {
+        $option = trim((string)$rawOption);
+        if ($option !== '') {
+            $pollOptions[] = $option;
+        }
+    }
+    if ($pollQuestion === '') {
+        pw_error('Give your poll a question, or remove it.');
+    }
+    if (mb_strlen($pollQuestion) > 300) {
+        pw_error('The poll question is too long (300 characters max).');
+    }
+    if (count($pollOptions) < 2 || count($pollOptions) > 6) {
+        pw_error('A poll needs between 2 and 6 options.');
+    }
+    foreach ($pollOptions as $option) {
+        if (mb_strlen($option) > 200) {
+            pw_error('Each poll option is too long (200 characters max).');
+        }
+    }
+}
+
 $db = pw_db();
-$stmt = $db->prepare('INSERT INTO topics (board, user_id, title, body) VALUES (?, ?, ?, ?)');
-$stmt->execute([$board, $user['id'], $title, $body]);
-$topicId = (int)$db->lastInsertId();
+try {
+    $db->beginTransaction();
+    $stmt = $db->prepare('INSERT INTO topics (board, user_id, title, body) VALUES (?, ?, ?, ?)');
+    $stmt->execute([$board, $user['id'], $title, $body]);
+    $topicId = (int)$db->lastInsertId();
+
+    if ($pollQuestion !== null) {
+        $pollStmt = $db->prepare('INSERT INTO topic_polls (topic_id, question) VALUES (?, ?)');
+        $pollStmt->execute([$topicId, $pollQuestion]);
+        $pollId = (int)$db->lastInsertId();
+        $optionStmt = $db->prepare('INSERT INTO topic_poll_options (poll_id, label, sort_order) VALUES (?, ?, ?)');
+        foreach ($pollOptions as $index => $option) {
+            $optionStmt->execute([$pollId, $option, $index]);
+        }
+    }
+    $db->commit();
+} catch (Throwable $e) {
+    if ($db->inTransaction()) {
+        $db->rollBack();
+    }
+    throw $e;
+}
+
+// Auto-watch your own topic so you're notified of replies -- best-effort,
+// never blocks topic creation itself.
+try {
+    $db->prepare('INSERT IGNORE INTO topic_subscriptions (user_id, topic_id) VALUES (?, ?)')->execute([$user['id'], $topicId]);
+} catch (PDOException $e) {
+    // migration_forum_features_batch.sql may be run after code deployment.
+}
 
 $mentionedUserIds = pw_extract_mentions($body, $user['id']);
 foreach ($mentionedUserIds as $mentionedUserId) {

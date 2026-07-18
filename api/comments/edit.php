@@ -1,18 +1,21 @@
 <?php
 require_once __DIR__ . '/../helpers.php';
 
-// Moderation-only edit for a single reply -- same staff-tool scoping as
-// api/topics/edit.php (see that file's comment for why authors don't get
-// their own edit control here).
+// Moderators/admins (community.edit_any) can edit any reply at any time --
+// same staff-tool scoping as api/topics/edit.php. An author who is not a
+// moderator may also edit their own reply within
+// PW_SELF_EDIT_WINDOW_SECONDS of posting it -- see that file's comment for
+// the full reasoning; kept identical here.
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
 }
 
-$user = pw_require_login();
-if (!pw_has_permission($user, 'community.edit_any')) {
-    pw_error('Only moderators can edit messages.', 403);
+if (!defined('PW_SELF_EDIT_WINDOW_SECONDS')) {
+    define('PW_SELF_EDIT_WINDOW_SECONDS', 30 * 60);
 }
+
+$user = pw_require_login();
 
 $input = pw_input();
 pw_require_csrf($input);
@@ -31,15 +34,27 @@ if (function_exists('mb_strlen') ? mb_strlen($body) > 3500 : strlen($body) > 350
 }
 
 $db = pw_db();
-$stmt = $db->prepare('SELECT id FROM comments WHERE id = ? AND is_deleted = 0');
+$stmt = $db->prepare('SELECT id, user_id, created_at FROM comments WHERE id = ? AND is_deleted = 0');
 $stmt->execute([$id]);
-if (!$stmt->fetch()) {
+$comment = $stmt->fetch();
+if (!$comment) {
     pw_error('That message no longer exists.', 404);
+}
+
+$isModerator = pw_has_permission($user, 'community.edit_any');
+$isOwnerWithinWindow = (int)$comment['user_id'] === (int)$user['id']
+    && (time() - strtotime($comment['created_at'])) <= PW_SELF_EDIT_WINDOW_SECONDS;
+if (!$isModerator && !$isOwnerWithinWindow) {
+    pw_error('You can only edit your own reply within 30 minutes of posting it.', 403);
 }
 
 $stmt = $db->prepare('UPDATE comments SET body = ?, edited_at = ?, edited_by = ? WHERE id = ?');
 $stmt->execute([$body, date('Y-m-d H:i:s'), (int)$user['id'], $id]);
 
-pw_log_admin_activity('comment_edited', 'Edited reply #' . $id . ' as moderator.', $user);
+pw_log_admin_activity(
+    'comment_edited',
+    'Edited reply #' . $id . ($isModerator ? ' as moderator.' : ' (self-edit).'),
+    $user
+);
 
 pw_json(['ok' => true]);

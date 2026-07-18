@@ -12,6 +12,7 @@ pw_require_csrf($input);
 $targetType = isset($input['target_type']) ? trim((string)$input['target_type']) : '';
 $targetId = isset($input['target_id']) ? (int)$input['target_id'] : 0;
 $reason = isset($input['reason']) ? trim((string)$input['reason']) : '';
+$category = isset($input['category']) ? trim((string)$input['category']) : 'other';
 
 if (!in_array($targetType, ['topic', 'comment', 'news_comment'], true)) {
     pw_error('Unknown report target.');
@@ -24,6 +25,9 @@ if ($reason === '') {
 }
 if (mb_strlen($reason) > 1000) {
     pw_error('That reason is too long (1000 characters max).');
+}
+if (!in_array($category, ['spam', 'harassment', 'off_topic', 'spoiler_untagged', 'other'], true)) {
+    $category = 'other';
 }
 
 $db = pw_db();
@@ -53,8 +57,8 @@ if ($dupStmt->fetch()) {
 }
 
 $stmt = $db->prepare(
-    'INSERT INTO content_reports (target_type, target_id, reporter_user_id, reason) VALUES (?, ?, ?, ?)'
+    'INSERT INTO content_reports (target_type, target_id, reporter_user_id, reason, category) VALUES (?, ?, ?, ?, ?)'
 );
-$stmt->execute([$targetType, $targetId, $user['id'], $reason]);
+$stmt->execute([$targetType, $targetId, $user['id'], $reason, $category]);
 
 pw_json(['ok' => true]);

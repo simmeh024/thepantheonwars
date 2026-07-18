@@ -11,9 +11,15 @@ if (!in_array($status, ['open', 'resolved', 'all'], true)) {
 }
 $statusSql = $status === 'all' ? '' : 'AND cr.status = :status';
 
-function pw_fetch_reports($db, $targetType, $statusSql, $status) {
+$category = isset($_GET['category']) ? trim($_GET['category']) : '';
+if (!in_array($category, ['spam', 'harassment', 'off_topic', 'spoiler_untagged', 'other'], true)) {
+    $category = '';
+}
+$categorySql = $category !== '' ? 'AND cr.category = :category' : '';
+
+function pw_fetch_reports($db, $targetType, $statusSql, $status, $categorySql, $category) {
     if ($targetType === 'topic') {
-        $sql = "SELECT cr.id, cr.target_type, cr.target_id, cr.reason, cr.status, cr.resolution,
+        $sql = "SELECT cr.id, cr.target_type, cr.target_id, cr.reason, cr.category, cr.status, cr.resolution,
                        cr.resolved_at, cr.created_at,
                        reporter.id AS reporter_id, reporter.username AS reporter_username, reporter.display_name AS reporter_display_name,
                        resolver.username AS resolver_username,
@@ -25,9 +31,9 @@ function pw_fetch_reports($db, $targetType, $statusSql, $status) {
                 LEFT JOIN users resolver ON resolver.id = cr.resolved_by
                 JOIN topics t ON t.id = cr.target_id
                 JOIN users author ON author.id = t.user_id
-                WHERE cr.target_type = 'topic' $statusSql";
+                WHERE cr.target_type = 'topic' $statusSql $categorySql";
     } elseif ($targetType === 'comment') {
-        $sql = "SELECT cr.id, cr.target_type, cr.target_id, cr.reason, cr.status, cr.resolution,
+        $sql = "SELECT cr.id, cr.target_type, cr.target_id, cr.reason, cr.category, cr.status, cr.resolution,
                        cr.resolved_at, cr.created_at,
                        reporter.id AS reporter_id, reporter.username AS reporter_username, reporter.display_name AS reporter_display_name,
                        resolver.username AS resolver_username,
@@ -40,9 +46,9 @@ function pw_fetch_reports($db, $targetType, $statusSql, $status) {
                 JOIN comments c ON c.id = cr.target_id
                 JOIN topics pt ON pt.id = c.topic_id
                 JOIN users author ON author.id = c.user_id
-                WHERE cr.target_type = 'comment' $statusSql";
+                WHERE cr.target_type = 'comment' $statusSql $categorySql";
     } else {
-        $sql = "SELECT cr.id, cr.target_type, cr.target_id, cr.reason, cr.status, cr.resolution,
+        $sql = "SELECT cr.id, cr.target_type, cr.target_id, cr.reason, cr.category, cr.status, cr.resolution,
                        cr.resolved_at, cr.created_at,
                        reporter.id AS reporter_id, reporter.username AS reporter_username, reporter.display_name AS reporter_display_name,
                        resolver.username AS resolver_username,
@@ -55,11 +61,18 @@ function pw_fetch_reports($db, $targetType, $statusSql, $status) {
                 JOIN news_comments nc ON nc.id = cr.target_id
                 JOIN news_posts np ON np.id = nc.news_post_id
                 JOIN users author ON author.id = nc.user_id
-                WHERE cr.target_type = 'news_comment' $statusSql";
+                WHERE cr.target_type = 'news_comment' $statusSql $categorySql";
     }
     $stmt = $db->prepare($sql);
+    $params = [];
     if ($statusSql !== '') {
-        $stmt->execute([':status' => $status]);
+        $params[':status'] = $status;
+    }
+    if ($categorySql !== '') {
+        $params[':category'] = $category;
+    }
+    if ($params) {
+        $stmt->execute($params);
     } else {
         $stmt->execute();
     }
@@ -67,9 +80,9 @@ function pw_fetch_reports($db, $targetType, $statusSql, $status) {
 }
 
 $rows = array_merge(
-    pw_fetch_reports($db, 'topic', $statusSql, $status),
-    pw_fetch_reports($db, 'comment', $statusSql, $status),
-    pw_fetch_reports($db, 'news_comment', $statusSql, $status)
+    pw_fetch_reports($db, 'topic', $statusSql, $status, $categorySql, $category),
+    pw_fetch_reports($db, 'comment', $statusSql, $status, $categorySql, $category),
+    pw_fetch_reports($db, 'news_comment', $statusSql, $status, $categorySql, $category)
 );
 
 usort($rows, function ($a, $b) {
@@ -82,6 +95,7 @@ $out = array_map(function ($r) {
         'target_type' => $r['target_type'],
         'target_id' => (int)$r['target_id'],
         'reason' => $r['reason'],
+        'category' => $r['category'],
         'status' => $r['status'],
         'resolution' => $r['resolution'],
         'resolved_at' => $r['resolved_at'],

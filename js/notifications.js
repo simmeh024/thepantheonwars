@@ -110,6 +110,8 @@ function initNotifications() {
         return 'The following world is now ready to explore: <strong>' + worldName + '</strong>. Explore ' + worldName + ' &rarr;';
       case 'news_published':
         return 'A news article has been published. Check it out: <strong>' + (excerpt || 'Latest news') + '</strong> &rarr;';
+      case 'topic_reply':
+        return '<strong>' + (actor || 'Someone') + '</strong> replied' + (n.topic_title ? ' in a topic you\'re watching: <strong>' + escapeHtml(n.topic_title) + '</strong>' : ' in a topic you\'re watching');
       default:
         return 'You have a new notification.';
     }

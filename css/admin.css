@@ -583,6 +583,15 @@
 .report-status { font-weight: 600; text-transform: uppercase; font-size: 0.68rem; letter-spacing: 0.06em; }
 .report-status-open { color: var(--gold-bright); }
 .report-status-resolved { color: #3ecf8e; }
+.report-category-badge {
+  display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px;
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  border: 1px solid var(--border-soft); color: var(--text-faint);
+}
+.report-category-spam { border-color: rgba(224,178,74,0.5); color: var(--gold-bright); }
+.report-category-harassment { border-color: rgba(225,75,90,0.55); color: #e14b5a; }
+.report-category-off_topic { border-color: rgba(162,121,236,0.5); color: var(--purple-bright); }
+.report-category-spoiler_untagged { border-color: rgba(80,201,191,0.55); color: #45d1c9; }
 .report-reason {
   margin: 8px 0 0; font-size: 0.84rem; color: var(--text-dim); line-height: 1.5;
 }

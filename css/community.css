@@ -1829,3 +1829,51 @@
   .metric-box-count { font-size: 2.1rem; }
   .metrics-divider { margin: 40px 0 32px; }
 }
+
+/* ===== Poll builder (new-topic composer) ===== */
+.poll-builder-toggle { display: flex; align-items: center; gap: 8px; margin: 4px 0 12px; color: var(--text-faint); font-size: 0.82rem; cursor: pointer; }
+.poll-builder { border: 1px solid var(--border-soft); background: rgba(162,121,236,0.04); padding: 14px; margin-bottom: 14px; }
+.poll-builder-options { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.poll-builder-option-row { display: flex; align-items: center; gap: 8px; }
+.poll-builder-option-input {
+  flex: 1; background: var(--panel); border: 1px solid var(--border-soft); color: var(--text);
+  padding: 8px 10px; font-family: 'Jost', sans-serif; font-size: 0.85rem;
+}
+.poll-builder-option-remove {
+  flex-shrink: 0; background: none; border: 1px solid var(--border-soft); color: var(--text-faint);
+  width: 26px; height: 26px; border-radius: 3px; cursor: pointer; font-size: 1rem; line-height: 1;
+}
+.poll-builder-option-remove:hover { color: #e14b5a; border-color: #e14b5a; }
+.poll-builder-actions { display: flex; }
+
+/* ===== Poll display (topic view) ===== */
+.topic-poll { margin: 14px 0; padding: 14px 16px; border: 1px solid var(--border-soft); background: rgba(162,121,236,0.04); }
+.topic-poll-question { margin: 0 0 12px; font-family: 'Cinzel', serif; font-size: 0.92rem; color: var(--text); }
+.topic-poll-options { display: flex; flex-direction: column; gap: 8px; }
+.topic-poll-option-btn {
+  text-align: left; padding: 10px 14px; background: var(--panel); border: 1px solid var(--border-soft);
+  color: var(--text); font-family: 'Jost', sans-serif; font-size: 0.85rem; cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+.topic-poll-option-btn:hover { border-color: var(--purple-bright); background: rgba(162,121,236,0.08); }
+.topic-poll-result-row { display: grid; grid-template-columns: minmax(0,1fr) 2fr 40px; align-items: center; gap: 10px; }
+.topic-poll-result-label { font-size: 0.82rem; color: var(--text-dim); }
+.topic-poll-result-bar-track { height: 10px; background: rgba(255,255,255,0.06); border-radius: 999px; overflow: hidden; }
+.topic-poll-result-bar { height: 100%; background: var(--purple-bright); border-radius: 999px; }
+.topic-poll-result-pct { font-size: 0.78rem; color: var(--text-faint); text-align: right; }
+.topic-poll-result-row.is-my-vote .topic-poll-result-label { color: var(--gold-bright); font-weight: 700; }
+.topic-poll-result-row.is-my-vote .topic-poll-result-bar { background: var(--gold-bright); }
+.topic-poll-total { margin: 10px 0 0; color: var(--text-faint); font-size: 0.74rem; }
+
+/* ===== Forum search filters ===== */
+.search-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 18px; }
+.search-filter-input {
+  background: var(--panel); border: 1px solid var(--border-soft); color: var(--text);
+  padding: 8px 10px; font-family: 'Jost', sans-serif; font-size: 0.82rem;
+}
+@media (max-width: 720px) {
+  .topic-poll-result-row { grid-template-columns: minmax(0,1fr) 30px; grid-template-areas: "label pct" "bar bar"; row-gap: 4px; }
+  .topic-poll-result-label { grid-area: label; }
+  .topic-poll-result-pct { grid-area: pct; }
+  .topic-poll-result-bar-track { grid-area: bar; }
+}

@@ -84,6 +84,21 @@ $stmt = $db->prepare('INSERT INTO comments (user_id, topic_id, parent_id, quoted
 $stmt->execute([$user['id'], $topicId, $parentId, $quotedCommentId, $depth, $body]);
 $commentId = (int)$db->lastInsertId();
 
+// Notify everyone watching this thread (topic creator and past repliers
+// are auto-subscribed elsewhere) about the new reply, then auto-subscribe
+// the replier too so they hear about whatever comes after their own post.
+// Both best-effort: never block posting the reply itself.
+try {
+    $watcherStmt = $db->prepare('SELECT user_id FROM topic_subscriptions WHERE topic_id = ?');
+    $watcherStmt->execute([$topicId]);
+    foreach ($watcherStmt->fetchAll() as $watcherRow) {
+        pw_notify((int)$watcherRow['user_id'], 'topic_reply', $user['id'], $topicId, $commentId, null, $body);
+    }
+    $db->prepare('INSERT IGNORE INTO topic_subscriptions (user_id, topic_id) VALUES (?, ?)')->execute([$user['id'], $topicId]);
+} catch (PDOException $e) {
+    // migration_forum_features_batch.sql may be run after code deployment.
+}
+
 if ($quoteNotifyUserId !== null) {
     pw_notify($quoteNotifyUserId, 'quote', $user['id'], $topicId, $commentId, null, $body);
     pw_log_admin_activity('content_quoted', 'Quoted a post in topic #' . $topicId . ' (reply #' . $commentId . ').', $user);

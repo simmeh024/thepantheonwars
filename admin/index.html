@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=236">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=237">
 </head>
 <body>
 
@@ -1669,6 +1669,14 @@
           <button type="button" class="admin-filter-tab" data-filter="resolved">Resolved</button>
           <button type="button" class="admin-filter-tab" data-filter="all">All</button>
         </div>
+        <select class="admin-search admin-tag-select" id="report-category-filter" aria-label="Filter by category">
+          <option value="">All categories</option>
+          <option value="spam">Spam</option>
+          <option value="harassment">Harassment</option>
+          <option value="off_topic">Off-topic</option>
+          <option value="spoiler_untagged">Untagged spoiler</option>
+          <option value="other">Other</option>
+        </select>
         <span class="admin-count" id="report-count"></span>
       </div>
 
@@ -4434,6 +4442,8 @@
   var reportListEl = document.getElementById('report-list');
   var reportCountEl = document.getElementById('report-count');
   var reportFilterTabs = document.getElementById('report-filter-tabs');
+  var reportCategoryFilterEl = document.getElementById('report-category-filter');
+  var REPORT_CATEGORY_LABELS = { spam: 'Spam', harassment: 'Harassment', off_topic: 'Off-topic', spoiler_untagged: 'Untagged spoiler', other: 'Other' };
   var reportActionModal = document.getElementById('report-action-modal');
   var reportActionModalTitle = document.getElementById('report-action-modal-title');
   var reportActionModalSub = document.getElementById('report-action-modal-sub');
@@ -4463,7 +4473,9 @@
 
   function loadTopicReports() {
     reportListEl.innerHTML = '<div class="admin-list-empty">Loading reports&hellip;</div>';
-    fetch('/api/admin/topic-reports/list.php?status=' + encodeURIComponent(reportFilter), { credentials: 'same-origin' })
+    var reportUrl = '/api/admin/topic-reports/list.php?status=' + encodeURIComponent(reportFilter);
+    if (reportCategoryFilterEl.value) reportUrl += '&category=' + encodeURIComponent(reportCategoryFilterEl.value);
+    fetch(reportUrl, { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) {
@@ -4508,6 +4520,8 @@
           '<span>' + escapeHtml(fmtDate(r.created_at)) + '</span>' +
           '<span class="admin-row-sep">&bull;</span>' +
           '<span class="report-status report-status-' + r.status + '">' + (r.status === 'open' ? 'Open' : 'Resolved') + '</span>' +
+          '<span class="admin-row-sep">&bull;</span>' +
+          '<span class="report-category-badge report-category-' + escapeHtml(r.category || 'other') + '">' + (REPORT_CATEGORY_LABELS[r.category] || 'Other') + '</span>' +
         '</div>' +
         '<p class="report-reason">Reported by <strong>@' + escapeHtml(r.reporter.username) + '</strong>: &ldquo;' + escapeHtml(r.reason) + '&rdquo;</p>' +
         (r.status === 'resolved'
@@ -4574,6 +4588,9 @@
       reportFilter = btn.getAttribute('data-filter');
       loadTopicReports();
     });
+  }
+  if (reportCategoryFilterEl) {
+    reportCategoryFilterEl.addEventListener('change', loadTopicReports);
   }
 
   function openReportActionModal(report, action) {

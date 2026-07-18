@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=220">
+<link rel="stylesheet" href="css/community-bundle.css?v=221">
 </head>
 <body>
 
@@ -127,6 +127,24 @@
                   <label for="topic-body">Message</label>
                   <textarea id="topic-body" maxlength="3500" placeholder="What's on your mind, traveler?" required></textarea>
                 </div>
+                <label class="poll-builder-toggle"><input type="checkbox" id="topic-poll-toggle"> Add a poll</label>
+                <div class="poll-builder" id="topic-poll-builder" hidden>
+                  <div class="auth-field">
+                    <label for="topic-poll-question">Poll question</label>
+                    <input type="text" id="topic-poll-question" maxlength="300" placeholder="Ask something the thread can vote on">
+                  </div>
+                  <div class="poll-builder-options" id="topic-poll-options">
+                    <div class="poll-builder-option-row">
+                      <input type="text" class="poll-builder-option-input" maxlength="200" placeholder="Option 1">
+                    </div>
+                    <div class="poll-builder-option-row">
+                      <input type="text" class="poll-builder-option-input" maxlength="200" placeholder="Option 2">
+                    </div>
+                  </div>
+                  <div class="poll-builder-actions">
+                    <button type="button" class="btn" id="topic-poll-add-option">+ Add option</button>
+                  </div>
+                </div>
                 <p class="auth-error" id="topic-error"></p>
                 <div class="reply-form-actions">
                   <button type="submit" class="btn btn-solid">Post Topic</button>
@@ -205,6 +223,16 @@
             <button type="button" class="btn board-back" id="search-results-back">&larr; All Forums</button>
             <h2 class="board-heading">Search Results</h2>
             <p class="board-heading-desc" id="search-results-desc"></p>
+            <div class="search-filters" id="search-filters">
+              <select class="search-filter-input" id="search-filter-board" aria-label="Filter by board">
+                <option value="">All boards</option>
+              </select>
+              <input type="text" class="search-filter-input" id="search-filter-author" placeholder="Author username" aria-label="Filter by author">
+              <input type="date" class="search-filter-input" id="search-filter-from" aria-label="From date">
+              <input type="date" class="search-filter-input" id="search-filter-to" aria-label="To date">
+              <button type="button" class="btn" id="search-filter-apply">Apply Filters</button>
+              <button type="button" class="btn" id="search-filter-clear">Clear</button>
+            </div>
             <div id="search-results-list"></div>
             <p id="search-results-empty" class="lore-status" hidden>No results for that search.</p>
           </div>
@@ -315,6 +343,16 @@
     <h3 class="auth-modal-title">Report this</h3>
     <p class="report-modal-sub" id="report-modal-sub"></p>
     <div class="auth-field">
+      <label for="report-category-input">What kind of problem is this?</label>
+      <select id="report-category-input">
+        <option value="spam">Spam</option>
+        <option value="harassment">Harassment</option>
+        <option value="off_topic">Off-topic</option>
+        <option value="spoiler_untagged">Untagged spoiler</option>
+        <option value="other" selected>Other</option>
+      </select>
+    </div>
+    <div class="auth-field">
       <label for="report-reason-input">Why are you reporting this?</label>
       <textarea id="report-reason-input" maxlength="1000" placeholder="Tell the moderators what's wrong with this post&hellip;"></textarea>
     </div>
@@ -412,6 +450,62 @@
   var topicListEl = document.getElementById('topic-list');
   var topicListEmptyEl = document.getElementById('topic-list-empty');
 
+  var topicPollToggle = document.getElementById('topic-poll-toggle');
+  var topicPollBuilder = document.getElementById('topic-poll-builder');
+  var topicPollQuestion = document.getElementById('topic-poll-question');
+  var topicPollOptionsEl = document.getElementById('topic-poll-options');
+  var topicPollAddOptionBtn = document.getElementById('topic-poll-add-option');
+  var MAX_POLL_OPTIONS = 6;
+
+  topicPollToggle.addEventListener('change', function () {
+    topicPollBuilder.hidden = !topicPollToggle.checked;
+  });
+
+  function addPollOptionRow() {
+    var rows = topicPollOptionsEl.querySelectorAll('.poll-builder-option-row');
+    if (rows.length >= MAX_POLL_OPTIONS) return;
+    var row = document.createElement('div');
+    row.className = 'poll-builder-option-row';
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'poll-builder-option-input';
+    input.maxLength = 200;
+    input.placeholder = 'Option ' + (rows.length + 1);
+    row.appendChild(input);
+    if (rows.length >= 2) {
+      var removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'poll-builder-option-remove';
+      removeBtn.setAttribute('aria-label', 'Remove option');
+      removeBtn.textContent = '×';
+      removeBtn.addEventListener('click', function () { row.remove(); });
+      row.appendChild(removeBtn);
+    }
+    topicPollOptionsEl.appendChild(row);
+  }
+
+  topicPollAddOptionBtn.addEventListener('click', addPollOptionRow);
+
+  function resetPollBuilder() {
+    topicPollToggle.checked = false;
+    topicPollBuilder.hidden = true;
+    topicPollQuestion.value = '';
+    topicPollOptionsEl.innerHTML =
+      '<div class="poll-builder-option-row"><input type="text" class="poll-builder-option-input" maxlength="200" placeholder="Option 1"></div>' +
+      '<div class="poll-builder-option-row"><input type="text" class="poll-builder-option-input" maxlength="200" placeholder="Option 2"></div>';
+  }
+
+  function collectPollPayload() {
+    if (!topicPollToggle.checked) return null;
+    var question = topicPollQuestion.value.trim();
+    var options = Array.prototype.map.call(
+      topicPollOptionsEl.querySelectorAll('.poll-builder-option-input'),
+      function (input) { return input.value.trim(); }
+    ).filter(function (v) { return v !== ''; });
+    if (!question || options.length < 2) return undefined; // invalid, caller should stop the submit
+    return { question: question, options: options };
+  }
+
   var topicDetailBack = document.getElementById('topic-detail-back');
   var topicOpEl = document.getElementById('topic-op');
   var gate = document.getElementById('community-gate');
@@ -445,6 +539,13 @@
   var searchResultsDesc = document.getElementById('search-results-desc');
   var searchResultsList = document.getElementById('search-results-list');
   var searchResultsEmpty = document.getElementById('search-results-empty');
+  var searchFilterBoard = document.getElementById('search-filter-board');
+  var searchFilterAuthor = document.getElementById('search-filter-author');
+  var searchFilterFrom = document.getElementById('search-filter-from');
+  var searchFilterTo = document.getElementById('search-filter-to');
+  var searchFilterApply = document.getElementById('search-filter-apply');
+  var searchFilterClear = document.getElementById('search-filter-clear');
+  var lastSearchQuery = '';
 
   // ---------- Lightweight BBCode-style formatting ----------
   // Users can type [b][/b] [i][/i] [u][/u] [c][/c] [color=#hex][/color]
@@ -608,6 +709,45 @@
       var url = promptUrl('Image URL');
       if (!url) return;
       insertAtCursor('[img]' + url + '[/img]');
+    });
+
+    var uploadFileInput = document.createElement('input');
+    uploadFileInput.type = 'file';
+    uploadFileInput.accept = 'image/jpeg,image/png,image/webp';
+    uploadFileInput.hidden = true;
+    bar.appendChild(uploadFileInput);
+    var uploadBtn = makeBtn('Upload', 'Upload an image from your device', function () {
+      if (!window.PW_AUTH || !window.PW_AUTH.csrf) return;
+      uploadFileInput.click();
+    });
+    uploadFileInput.addEventListener('change', function () {
+      var file = uploadFileInput.files && uploadFileInput.files[0];
+      if (!file) return;
+      if (file.size > 8 * 1024 * 1024) {
+        window.alert('That image is too large. Please choose a file under 8MB.');
+        uploadFileInput.value = '';
+        return;
+      }
+      var formData = new FormData();
+      formData.append('image', file);
+      formData.append('csrf', window.PW_AUTH.csrf);
+      uploadBtn.disabled = true;
+      uploadBtn.textContent = 'Uploading…';
+      fetch('/api/forum/upload-image.php', { method: 'POST', credentials: 'same-origin', body: formData })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) {
+            window.alert(data.error || 'Could not upload this image.');
+            return;
+          }
+          insertAtCursor('[img]' + window.location.origin + data.url + '[/img]');
+        })
+        .catch(function () { window.alert('Could not reach the server. Try again in a moment.'); })
+        .finally(function () {
+          uploadBtn.disabled = false;
+          uploadBtn.textContent = 'Upload';
+          uploadFileInput.value = '';
+        });
     });
 
     makeBtn('Spoiler', 'Spoiler tag', function () { wrapSelection('[spoiler]', '[/spoiler]', 'spoiler text'); });
@@ -788,12 +928,23 @@
     edit: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>',
     delete: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/></svg>',
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4l-8 8 8 8"/></svg>',
-    bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>'
+    bookmark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1z"/></svg>',
+    watch: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>'
   };
 
   function toggleBookmark(topicId) {
     if (!window.PW_AUTH.csrf) return;
     return fetch('/api/topics/bookmark.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic_id: topicId, csrf: window.PW_AUTH.csrf }),
+    }).then(function (r) { return r.json(); });
+  }
+
+  function toggleWatch(topicId) {
+    if (!window.PW_AUTH.csrf) return;
+    return fetch('/api/topics/watch.php', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
@@ -866,6 +1017,12 @@
         panel.appendChild(modMenuItem(MOD_ICONS.bookmark, ctx.isBookmarked ? 'Remove Bookmark' : 'Bookmark', requireLoginOrRun(function () {
           toggleBookmark(ctx.topicId).then(function (data) {
             if (data && data.ok) ctx.isBookmarked = data.bookmarked;
+          });
+          closeMenu();
+        })));
+        panel.appendChild(modMenuItem(MOD_ICONS.watch, ctx.isWatched ? 'Unwatch Topic' : 'Watch Topic', requireLoginOrRun(function () {
+          toggleWatch(ctx.topicId).then(function (data) {
+            if (data && data.ok) ctx.isWatched = data.watched;
           });
           closeMenu();
         })));
@@ -1450,13 +1607,33 @@
     return row;
   }
 
+  function populateSearchBoardFilter() {
+    if (searchFilterBoard.options.length > 1) return; // already populated
+    loadBoardsMeta().then(function () {
+      BOARDS.forEach(function (b) {
+        var opt = document.createElement('option');
+        opt.value = b.slug;
+        opt.textContent = b.name;
+        searchFilterBoard.appendChild(opt);
+      });
+    }).catch(function () {});
+  }
+
   function loadSearchResults(q) {
     showView('search');
+    lastSearchQuery = q;
+    populateSearchBoardFilter();
     searchResultsDesc.textContent = 'Results for “' + q + '”';
     searchResultsList.innerHTML = '';
     for (var i = 0; i < 4; i++) searchResultsList.appendChild(skeletonRow());
     searchResultsEmpty.hidden = true;
-    fetch('/api/topics/search.php?q=' + encodeURIComponent(q), { credentials: 'same-origin' })
+    var params = new URLSearchParams();
+    params.set('q', q);
+    if (searchFilterBoard.value) params.set('board', searchFilterBoard.value);
+    if (searchFilterAuthor.value.trim()) params.set('author', searchFilterAuthor.value.trim());
+    if (searchFilterFrom.value) params.set('date_from', searchFilterFrom.value);
+    if (searchFilterTo.value) params.set('date_to', searchFilterTo.value);
+    fetch('/api/topics/search.php?' + params.toString(), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         searchResultsList.innerHTML = '';
@@ -1480,6 +1657,17 @@
     if (q.length < 2) return;
     currentTopicId = null;
     loadSearchResults(q);
+  });
+
+  searchFilterApply.addEventListener('click', function () {
+    if (lastSearchQuery) loadSearchResults(lastSearchQuery);
+  });
+  searchFilterClear.addEventListener('click', function () {
+    searchFilterBoard.value = '';
+    searchFilterAuthor.value = '';
+    searchFilterFrom.value = '';
+    searchFilterTo.value = '';
+    if (lastSearchQuery) loadSearchResults(lastSearchQuery);
   });
 
   searchResultsBack.addEventListener('click', function () {
@@ -1601,6 +1789,7 @@
     topicTitleInput.value = '';
     topicBodyInput.value = '';
     topicErrorEl.textContent = '';
+    resetPollBuilder();
   });
 
   topicForm.addEventListener('submit', function (e) {
@@ -1608,11 +1797,19 @@
     var title = topicTitleInput.value.trim();
     var text = topicBodyInput.value.trim();
     if (!title || !text) return;
+    var poll = collectPollPayload();
+    if (poll === undefined) {
+      topicErrorEl.textContent = 'Give your poll a question and at least 2 options, or uncheck "Add a poll".';
+      topicErrorEl.classList.add('show');
+      return;
+    }
+    var payload = { board: currentBoard, title: title, body: text, csrf: window.PW_AUTH.csrf };
+    if (poll) payload.poll = poll;
     fetch('/api/topics/create.php', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ board: currentBoard, title: title, body: text, csrf: window.PW_AUTH.csrf }),
+      body: JSON.stringify(payload),
     }).then(function (r) { return r.json(); }).then(function (data) {
       if (data.ok) {
         clearTopicDraft(currentBoard);
@@ -1620,6 +1817,7 @@
         topicTitleInput.value = '';
         topicBodyInput.value = '';
         topicErrorEl.textContent = '';
+        resetPollBuilder();
         goToTopic(data.id);
       } else {
         topicErrorEl.textContent = data.error || 'Could not post that topic.';
@@ -1747,6 +1945,79 @@
     return profile;
   }
 
+  // A poll is rendered as clickable option buttons until the viewer has
+  // voted (or isn't logged in), then flips to result bars with percentages
+  // -- voting is single-choice and re-voting simply replaces the previous
+  // pick (see api/topics/poll-vote.php), so the UI never needs a separate
+  // "change vote" affordance beyond just clicking a different option again.
+  function buildPollUi(poll) {
+    var wrap = document.createElement('div');
+    wrap.className = 'topic-poll';
+
+    var question = document.createElement('p');
+    question.className = 'topic-poll-question';
+    question.textContent = poll.question;
+    wrap.appendChild(question);
+
+    var optionsWrap = document.createElement('div');
+    optionsWrap.className = 'topic-poll-options';
+    wrap.appendChild(optionsWrap);
+
+    var totalEl = document.createElement('p');
+    totalEl.className = 'topic-poll-total';
+    wrap.appendChild(totalEl);
+
+    function render(pollData) {
+      optionsWrap.innerHTML = '';
+      var total = pollData.total_votes || 0;
+      totalEl.textContent = total + (total === 1 ? ' vote' : ' votes');
+      var showResults = pollData.my_vote !== null && pollData.my_vote !== undefined;
+      pollData.options.forEach(function (option) {
+        if (showResults) {
+          var pct = total > 0 ? Math.round((option.vote_count / total) * 100) : 0;
+          var row = document.createElement('div');
+          row.className = 'topic-poll-result-row' + (option.id === pollData.my_vote ? ' is-my-vote' : '');
+          var label = document.createElement('span');
+          label.className = 'topic-poll-result-label';
+          label.textContent = option.label + (option.id === pollData.my_vote ? ' (your vote)' : '');
+          var barTrack = document.createElement('div');
+          barTrack.className = 'topic-poll-result-bar-track';
+          var bar = document.createElement('div');
+          bar.className = 'topic-poll-result-bar';
+          bar.style.width = pct + '%';
+          barTrack.appendChild(bar);
+          var pctLabel = document.createElement('span');
+          pctLabel.className = 'topic-poll-result-pct';
+          pctLabel.textContent = pct + '%';
+          row.appendChild(label);
+          row.appendChild(barTrack);
+          row.appendChild(pctLabel);
+          optionsWrap.appendChild(row);
+        } else {
+          var btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'topic-poll-option-btn';
+          btn.textContent = option.label;
+          btn.addEventListener('click', requireLoginOrRun(function () {
+            if (!window.PW_AUTH.csrf) return;
+            fetch('/api/topics/poll-vote.php', {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ poll_id: poll.id, option_id: option.id, csrf: window.PW_AUTH.csrf }),
+            }).then(function (r) { return r.json(); }).then(function (data) {
+              if (data.ok) render(data);
+            });
+          }));
+          optionsWrap.appendChild(btn);
+        }
+      });
+    }
+
+    render(poll);
+    return wrap;
+  }
+
   function buildTopicOp(t) {
     var el = document.createElement('div');
     el.className = 'comment-item topic-op' + (t.is_pinned ? ' is-pinned' : '') + (t.is_locked ? ' is-locked' : '');
@@ -1798,6 +2069,8 @@
     bodyEl.innerHTML = formatBody(t.body); // formatBody escapes raw HTML, then whitelists bbcode tags
     main.appendChild(bodyEl);
 
+    if (t.poll) main.appendChild(buildPollUi(t.poll));
+
     main.appendChild(buildMsgHeaderActions({
       kind: 'topic',
       id: t.id,
@@ -1807,6 +2080,7 @@
       likeCount: t.like_count || 0,
       likedByMe: !!t.likedByMe,
       isBookmarked: !!t.bookmarked,
+      isWatched: !!t.watched,
       quoteTarget: function () { return { wrap: form, textarea: body }; },
       canModerate: t.canModerate,
       topicId: t.id,
@@ -1880,6 +2154,15 @@
     var hasAction = false;
     var actions = document.createElement('div');
     actions.className = 'comment-actions';
+
+    if (!t.canModerate && t.canEditOwn) {
+      hasAction = true;
+      var editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.textContent = 'Edit Topic';
+      editBtn.addEventListener('click', function () { startTopicEdit(); });
+      actions.appendChild(editBtn);
+    }
 
     if (!t.canModerate && t.canDelete) {
       hasAction = true;
@@ -2108,6 +2391,7 @@
   // ---------- Report modal ----------
   var reportModal = document.getElementById('report-modal');
   var reportModalSub = document.getElementById('report-modal-sub');
+  var reportCategoryInput = document.getElementById('report-category-input');
   var reportReasonInput = document.getElementById('report-reason-input');
   var reportModalError = document.getElementById('report-modal-error');
   var reportModalStatus = document.getElementById('report-modal-status');
@@ -2122,6 +2406,7 @@
       ? 'Reporting this topic. Moderators will review it shortly.'
       : 'Reporting this reply. Moderators will review it shortly.';
     reportReasonInput.value = '';
+    reportCategoryInput.value = 'other';
     reportModalError.classList.remove('show');
     reportModalStatus.classList.remove('show');
     reportSubmitBtn.hidden = false;
@@ -2163,6 +2448,7 @@
           target_type: reportTarget.kind,
           target_id: reportTarget.id,
           reason: reason,
+          category: reportCategoryInput.value,
           csrf: window.PW_AUTH.csrf,
         }),
       }).then(function (r) { return r.json(); }).then(function (data) {
@@ -2397,6 +2683,15 @@
         if (!replyFormData.wrap.hidden) replyFormData.textarea.focus();
       }));
       actions.appendChild(replyBtn);
+    }
+
+    if (!c.canModerate && c.canEditOwn) {
+      hasAction = true;
+      var editBtn = document.createElement('button');
+      editBtn.type = 'button';
+      editBtn.textContent = 'Edit';
+      editBtn.addEventListener('click', function () { startCommentEdit(); });
+      actions.appendChild(editBtn);
     }
 
     if (!c.canModerate && c.canDelete) {
