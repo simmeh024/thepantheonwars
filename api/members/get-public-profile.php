@@ -16,7 +16,7 @@ if ($id <= 0) {
 $db = pw_db();
 
 $stmt = $db->prepare(
-    'SELECT u.id, u.display_name, u.role, u.overlord_affinity, u.created_at, u.last_login_at, u.last_active_at, u.presence_status, r.color AS role_color,
+    'SELECT u.id, u.display_name, u.role, u.overlord_affinity, u.created_at, u.last_login_at, u.last_active_at, u.presence_status, u.reputation, r.color AS role_color,
        (u.last_active_at IS NOT NULL AND u.last_active_at >= (NOW() - INTERVAL 5 MINUTE)) AS is_online
      FROM users u
      LEFT JOIN roles r ON r.slug = u.role
@@ -67,6 +67,7 @@ pw_json([
         'last_active_at' => $user['last_active_at'],
         'is_online' => (bool)$user['is_online'],
         'presence_status' => pw_public_presence_status($user['presence_status'], $user['last_active_at']),
+        'reputation' => pw_reputation_info((int)$user['reputation']),
         'post_count' => $postCount,
     ],
     'recentPosts' => array_map(function ($r) {

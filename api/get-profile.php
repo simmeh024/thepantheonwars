@@ -81,6 +81,7 @@ pw_json([
         'role_color' => $roleColor,
         'created_at' => $user['created_at'],
         'has_password' => $hasPassword,
+        'reputation' => pw_reputation_info((int)$user['reputation']),
     ],
     'quizHistory' => $quizHistory,
     'posts' => $posts,

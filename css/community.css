@@ -603,6 +603,31 @@
 }
 .comment-postcount { font-size: 0.7rem; color: var(--text-faint); }
 
+/* Reputation bar: a small level-colored square to the left of a thin
+   progress track that fills toward the next reputation level. Used on the
+   profile page, the public member card, and next to each forum poster. */
+.reputation-bar { display: flex; align-items: center; gap: 5px; }
+.reputation-bar-square {
+  display: inline-block; flex-shrink: 0; width: 8px; height: 8px; border-radius: 2px;
+  background: var(--text-faint); box-shadow: 0 0 4px rgba(0, 0, 0, 0.35);
+  vertical-align: middle;
+}
+.reputation-bar-track {
+  flex-shrink: 0; width: 60px; height: 5px; border-radius: 3px;
+  background: rgba(255, 255, 255, 0.08); overflow: hidden;
+  border: 1px solid var(--border-soft);
+}
+.reputation-bar-fill {
+  display: block; height: 100%; border-radius: 3px;
+  background: var(--purple-bright); transition: width 0.3s ease;
+}
+.reputation-bar-label { font-size: 0.68rem; color: var(--text-dim); white-space: nowrap; }
+.reputation-bar-compact .reputation-bar-track { width: 44px; }
+
+.profile-head .reputation-bar { margin-top: 6px; }
+.profile-head .reputation-bar-track { width: 90px; height: 6px; }
+.profile-head .reputation-bar-label { font-size: 0.74rem; }
+
 .comment-divider { flex-shrink: 0; width: 1px; background: var(--border); align-self: stretch; }
 
 .comment-main { flex: 1; min-width: 0; padding-left: 6px; }

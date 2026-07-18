@@ -149,19 +149,21 @@ function pw_current_user() {
         return null;
     }
     try {
-        $stmt = pw_db()->prepare('SELECT id, username, email, newsletter_subscribed, display_name, overlord_affinity, role, presence_status, created_at, banned_at, banned_until FROM users WHERE id = ?');
+        $stmt = pw_db()->prepare('SELECT id, username, email, newsletter_subscribed, display_name, overlord_affinity, role, presence_status, reputation, created_at, banned_at, banned_until FROM users WHERE id = ?');
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch();
     } catch (Throwable $e) {
-        // newsletter_subscribed arrives via a manual migration after deploy
-        // (migration_newsletter_subscription.sql) -- this function runs on
-        // every authenticated request, so it must keep working during that
-        // window rather than fatal on a missing column.
+        // newsletter_subscribed/reputation arrive via manual migrations after
+        // deploy (migration_newsletter_subscription.sql,
+        // migration_reputation.sql) -- this function runs on every
+        // authenticated request, so it must keep working during that window
+        // rather than fatal on a missing column.
         $stmt = pw_db()->prepare('SELECT id, username, email, display_name, overlord_affinity, role, presence_status, created_at, banned_at, banned_until FROM users WHERE id = ?');
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch();
         if ($user) {
             $user['newsletter_subscribed'] = 1;
+            $user['reputation'] = 0;
         }
     }
     if (!$user) {
@@ -372,6 +374,62 @@ function pw_public_presence_status($selectedStatus, $lastActiveAt): string {
     }
     $selectedStatus = strtolower(trim((string)$selectedStatus));
     return in_array($selectedStatus, ['online', 'away', 'inactive'], true) ? $selectedStatus : 'online';
+}
+
+/**
+ * Reputation Levels, ordered by threshold ascending. Memoized per-request
+ * (this can be called once per row in a topic/comment list). Returns an
+ * empty array -- never throws -- if migration_reputation.sql hasn't run yet,
+ * so reputation display fails open exactly like the other post-launch
+ * migrations in this codebase.
+ */
+function pw_reputation_levels(): array {
+    static $levels = null;
+    if ($levels === null) {
+        try {
+            $levels = pw_db()->query('SELECT id, name, threshold, color FROM reputation_levels ORDER BY threshold ASC')->fetchAll();
+        } catch (PDOException $e) {
+            $levels = [];
+        }
+    }
+    return $levels;
+}
+
+/**
+ * Resolves a raw reputation point total into the ready-to-render fields the
+ * front-end's reputation bar needs: current level name/color, the next
+ * level's name/threshold (null once every level is reached), and the fill
+ * percentage of progress toward it.
+ */
+function pw_reputation_info(int $reputation): array {
+    $levels = pw_reputation_levels();
+    $current = null;
+    $next = null;
+    foreach ($levels as $level) {
+        if ((int)$level['threshold'] <= $reputation) {
+            $current = $level;
+        } elseif ($next === null) {
+            $next = $level;
+        }
+    }
+
+    $progress = 100;
+    if ($current && $next) {
+        $span = (int)$next['threshold'] - (int)$current['threshold'];
+        $progress = $span > 0 ? (int)round((($reputation - (int)$current['threshold']) / $span) * 100) : 100;
+        $progress = max(0, min(100, $progress));
+    } elseif (!$current) {
+        $progress = 0;
+    }
+
+    return [
+        'points' => $reputation,
+        'level_name' => $current ? $current['name'] : null,
+        'level_color' => $current ? $current['color'] : '#c7ccd6',
+        'next_level_name' => $next ? $next['name'] : null,
+        'next_level_threshold' => $next ? (int)$next['threshold'] : null,
+        'progress_percent' => $progress,
+    ];
 }
 
 function pw_mark_user_offline_if_no_active_sessions(int $userId): void {

@@ -71,11 +71,27 @@ CREATE TABLE IF NOT EXISTS users (
   -- Offline is derived from inactive/revoked sessions. Signed-in members can
   -- choose one of the three visible states below.
   presence_status ENUM('online','away','inactive') NOT NULL DEFAULT 'online',
+  -- Reputation points: +1 per topic/comment authored, +2 per like received
+  -- (reversed on unlike). Drives the reputation bar against reputation_levels.
+  reputation INT UNSIGNED NOT NULL DEFAULT 0,
   banned_at DATETIME DEFAULT NULL,
   banned_until DATETIME DEFAULT NULL,
   UNIQUE KEY uniq_username (username),
   UNIQUE KEY uniq_email (email),
   CONSTRAINT fk_users_role FOREIGN KEY (role) REFERENCES roles(slug)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Admin-defined reputation ranks (Reputation Levels). Ordered by threshold
+-- ascending; a user's current/next level and progress toward it are computed
+-- from users.reputation against this table, never stored redundantly. See
+-- migration_reputation.sql for the one-time seed data and permissions.
+CREATE TABLE IF NOT EXISTS reputation_levels (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(60) NOT NULL,
+  threshold INT UNSIGNED NOT NULL,
+  color CHAR(7) NOT NULL DEFAULT '#a279ec',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_reputation_levels_threshold (threshold)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS quiz_results (

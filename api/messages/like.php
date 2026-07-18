@@ -42,6 +42,29 @@ if ($existing) {
     $stmt = $db->prepare('DELETE FROM message_likes WHERE id = ?');
     $stmt->execute([$existing['id']]);
     $liked = false;
+
+    // -2 reputation on unlike, mirroring the +2 award below -- clamped with
+    // GREATEST so a reputation column that's UNSIGNED can never underflow.
+    // Never applied to a self-like, matching that award's own skip below.
+    $unlikeOwnerId = null;
+    if ($targetType === 'topic') {
+        $ownerStmt = $db->prepare('SELECT user_id FROM topics WHERE id = ?');
+        $ownerStmt->execute([$targetId]);
+        $owner = $ownerStmt->fetch();
+        $unlikeOwnerId = $owner ? (int)$owner['user_id'] : null;
+    } else {
+        $ownerStmt = $db->prepare('SELECT user_id FROM comments WHERE id = ?');
+        $ownerStmt->execute([$targetId]);
+        $owner = $ownerStmt->fetch();
+        $unlikeOwnerId = $owner ? (int)$owner['user_id'] : null;
+    }
+    if ($unlikeOwnerId !== null && $unlikeOwnerId !== (int)$user['id']) {
+        try {
+            $db->prepare('UPDATE users SET reputation = GREATEST(0, reputation - 2) WHERE id = ?')->execute([$unlikeOwnerId]);
+        } catch (PDOException $e) {
+            // migration_reputation.sql may be run after code deployment.
+        }
+    }
 } else {
     $stmt = $db->prepare('INSERT INTO message_likes (target_type, target_id, user_id) VALUES (?, ?, ?)');
     $stmt->execute([$targetType, $targetId, $user['id']]);
@@ -64,6 +87,16 @@ if ($existing) {
         $owner = $ownerStmt->fetch();
         if ($owner) {
             pw_notify_like((int)$owner['user_id'], $user['id'], (int)$owner['topic_id'], $targetId);
+        }
+    }
+
+    // +2 reputation to the liked content's author, never for a self-like --
+    // best-effort, reversed on unlike above.
+    if ($owner && (int)$owner['user_id'] !== (int)$user['id']) {
+        try {
+            $db->prepare('UPDATE users SET reputation = reputation + 2 WHERE id = ?')->execute([(int)$owner['user_id']]);
+        } catch (PDOException $e) {
+            // migration_reputation.sql may be run after code deployment.
         }
     }
 

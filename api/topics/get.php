@@ -13,7 +13,7 @@ $db = pw_db();
 $stmt = $db->prepare(
     'SELECT t.id, t.board, t.title, t.body, t.created_at, t.is_pinned, t.is_locked,
             t.edited_at, t.edited_by, editor.display_name AS edited_by_name,
-            t.user_id, u.display_name, u.role, u.last_active_at, u.presence_status, r.color AS role_color
+            t.user_id, u.display_name, u.role, u.last_active_at, u.presence_status, u.reputation, r.color AS role_color
      FROM topics t
      JOIN users u ON u.id = t.user_id
      LEFT JOIN roles r ON r.slug = u.role
@@ -127,6 +127,7 @@ pw_json([
         'role' => $topic['role'],
         'role_color' => $topic['role_color'] ?: '#c7ccd6',
         'presence_status' => pw_public_presence_status($topic['presence_status'], $topic['last_active_at']),
+        'reputation' => pw_reputation_info((int)$topic['reputation']),
         'post_count' => (int)$postCountRow['cnt'],
         'canDelete' => $canDeleteAny || ($currentId !== null && $currentId === (int)$topic['user_id']),
         'canModerate' => $canModerate,

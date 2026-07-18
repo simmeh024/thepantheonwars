@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=221">
+<link rel="stylesheet" href="css/community-bundle.css?v=222">
 </head>
 <body>
 
@@ -89,6 +89,7 @@
               <span class="profile-member-since" id="profile-member-since"></span>
               <a class="profile-public-link" id="profile-public-link" href="#">View public profile &rarr;</a>
             </div>
+            <div class="reputation-bar" id="profile-reputation-bar" hidden></div>
           </div>
         </div>
         <p id="profile-avatar-status" class="profile-avatar-status" hidden></p>
@@ -678,6 +679,33 @@
     var badge = document.getElementById('profile-role-badge');
     badge.style.setProperty('--role-color', roleColor || '#c7ccd6');
     badge.textContent = String(role || 'member').replace(/(^|_)([a-z])/g, function (_, gap, letter) { return gap + letter.toUpperCase(); }).replace(/_/g, ' ');
+  }
+
+  function renderReputationBar(container, rep) {
+    if (!rep) { container.hidden = true; return; }
+    container.hidden = false;
+    container.innerHTML = '';
+    var square = document.createElement('span');
+    square.className = 'reputation-bar-square';
+    square.style.background = rep.level_color || '#c7ccd6';
+    container.appendChild(square);
+    var track = document.createElement('span');
+    track.className = 'reputation-bar-track';
+    var fill = document.createElement('span');
+    fill.className = 'reputation-bar-fill';
+    fill.style.width = (rep.progress_percent || 0) + '%';
+    fill.style.background = rep.level_color || '#c7ccd6';
+    track.appendChild(fill);
+    container.appendChild(track);
+    var label = document.createElement('span');
+    label.className = 'reputation-bar-label';
+    label.textContent = (rep.level_name || 'Unranked') + ' · ' + rep.points + ' rep';
+    container.appendChild(label);
+    var titleText = (rep.level_name || 'Unranked') + ' — ' + rep.points + ' reputation';
+    if (rep.next_level_name) {
+      titleText += ' (' + Math.max(0, rep.next_level_threshold - rep.points) + ' to ' + rep.next_level_name + ')';
+    }
+    container.title = titleText;
   }
 
   function loadAvatar(userId, displayName) {
@@ -1287,6 +1315,7 @@
         setRole(data.user.role, data.user.role_color);
         document.getElementById('profile-member-since').textContent = 'Member since ' + fmtDate(data.user.created_at);
         document.getElementById('profile-public-link').href = 'member.html?id=' + encodeURIComponent(data.user.id);
+        renderReputationBar(document.getElementById('profile-reputation-bar'), data.user.reputation);
         loadAvatar(data.user.id, data.user.display_name);
         lockedNameInput.value = data.user.display_name;
         lockedEmailInput.value = data.user.email;

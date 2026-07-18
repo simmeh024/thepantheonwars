@@ -99,6 +99,13 @@ try {
     // migration_forum_features_batch.sql may be run after code deployment.
 }
 
+// +1 reputation for replying -- best-effort, never blocks posting.
+try {
+    $db->prepare('UPDATE users SET reputation = reputation + 1 WHERE id = ?')->execute([$user['id']]);
+} catch (PDOException $e) {
+    // migration_reputation.sql may be run after code deployment.
+}
+
 if ($quoteNotifyUserId !== null) {
     pw_notify($quoteNotifyUserId, 'quote', $user['id'], $topicId, $commentId, null, $body);
     pw_log_admin_activity('content_quoted', 'Quoted a post in topic #' . $topicId . ' (reply #' . $commentId . ').', $user);

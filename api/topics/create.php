@@ -104,6 +104,13 @@ try {
     // migration_forum_features_batch.sql may be run after code deployment.
 }
 
+// +1 reputation for starting a topic -- best-effort, never blocks posting.
+try {
+    $db->prepare('UPDATE users SET reputation = reputation + 1 WHERE id = ?')->execute([$user['id']]);
+} catch (PDOException $e) {
+    // migration_reputation.sql may be run after code deployment.
+}
+
 $mentionedUserIds = pw_extract_mentions($body, $user['id']);
 foreach ($mentionedUserIds as $mentionedUserId) {
     pw_notify($mentionedUserId, 'mention', $user['id'], $topicId, null, null, $title);

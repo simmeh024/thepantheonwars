@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=237">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=238">
 </head>
 <body>
 
@@ -87,6 +87,7 @@
         <li data-requires-permission="topic_reports.view"><button type="button" class="admin-nav-link" data-section="topic-reports"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>Topic Reports</button></li>
         <li data-requires-permission="privacy_requests.view"><button type="button" class="admin-nav-link" data-section="privacy-requests"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>Privacy Requests</button></li>
         <li data-requires-permission="forum_boards.view"><button type="button" class="admin-nav-link" data-section="forum-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Forum Control</button></li>
+        <li data-requires-permission="reputation.view"><button type="button" class="admin-nav-link" data-section="reputation-levels"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/><path d="M8.5 13.5 7 22l5-3 5 3-1.5-8.5"/></svg>Reputation Levels</button></li>
       </ul>
     </div>
 
@@ -1330,6 +1331,11 @@
             <option value="forum_board_deleted">Board deleted</option>
             <option value="forum_board_reordered">Boards reordered</option>
           </optgroup>
+          <optgroup label="Reputation Levels">
+            <option value="reputation_level_created">Reputation level created</option>
+            <option value="reputation_level_updated">Reputation level updated</option>
+            <option value="reputation_level_deleted">Reputation level deleted</option>
+          </optgroup>
           <optgroup label="Roles &amp; Permissions">
             <option value="role_created">Role created</option>
             <option value="role_updated">Role updated</option>
@@ -1714,6 +1720,22 @@
 
       <div class="admin-list" id="forum-board-list">
         <div class="admin-list-empty">Loading boards&hellip;</div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-reputation-levels" hidden>
+      <div class="admin-section-head">
+        <h1>Reputation Levels</h1>
+        <p>Define the reputation ranks members climb by posting and getting liked. The bar shown on a profile and next to each forum poster fills toward whichever level comes next.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button type="button" class="btn btn-solid" id="reputation-level-create-btn">+ Add Level</button>
+        <span class="admin-count" id="reputation-level-count"></span>
+      </div>
+
+      <div class="admin-list" id="reputation-level-list">
+        <div class="admin-list-empty">Loading reputation levels&hellip;</div>
       </div>
     </section>
 
@@ -3110,6 +3132,40 @@
   </div>
 </div>
 
+<div class="admin-modal" id="reputation-level-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner">
+    <button type="button" class="admin-modal-close" id="reputation-level-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="reputation-level-modal-title">Edit Level</h3>
+    <p class="admin-modal-sub" id="reputation-level-modal-sub"></p>
+
+    <div class="admin-field">
+      <label for="reputation-level-name-input">Name</label>
+      <input type="text" id="reputation-level-name-input" maxlength="60" placeholder="e.g. Regular">
+    </div>
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="reputation-level-threshold-input">Reputation required</label>
+        <p class="admin-field-hint">A member reaches this level once their reputation total is at least this amount.</p>
+        <input type="number" id="reputation-level-threshold-input" min="0" step="1" value="0">
+      </div>
+      <div class="admin-field">
+        <label for="reputation-level-color-input">Color</label>
+        <p class="admin-field-hint">Fills the small square on the left of the reputation bar for members at this level.</p>
+        <input type="color" id="reputation-level-color-input" value="#a279ec">
+      </div>
+    </div>
+
+    <p class="admin-modal-error" id="reputation-level-modal-error"></p>
+    <p class="admin-modal-status" id="reputation-level-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="reputation-level-save-btn">Save</button>
+      <button type="button" class="btn" id="reputation-level-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="reputation-level-delete-btn" hidden>Delete Level</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-modal" id="mail-template-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner admin-modal-inner-wide">
@@ -3333,6 +3389,7 @@
       if (name === 'topic-reports') loadTopicReports();
       if (name === 'privacy-requests') loadPrivacyRequests();
       if (name === 'forum-control') loadForumBoards();
+      if (name === 'reputation-levels') loadReputationLevelList();
       if (name === 'book-control') loadBookList();
       if (name === 'world-control') loadWorldList();
       if (name === 'weather-control') loadWeatherControl();
@@ -4921,6 +4978,9 @@
     member_deleted: 'Member deleted',
     member_avatar_reset: 'Avatar reset',
     member_password_reset: 'Password reset',
+    reputation_level_created: 'Reputation level created',
+    reputation_level_updated: 'Reputation level updated',
+    reputation_level_deleted: 'Reputation level deleted',
     topic_locked: 'Topic locked',
     topic_unlocked: 'Topic unlocked',
     topic_moved: 'Topic moved',
@@ -5013,6 +5073,9 @@
     member_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
     member_avatar_reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>',
     member_password_reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+    reputation_level_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/><path d="M8.5 13.5 7 22l5-3 5 3-1.5-8.5"/></svg>',
+    reputation_level_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/><path d="m15.5 15.5 2 2 4-4"/></svg>',
+    reputation_level_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/><path d="M8.5 13.5 7 22l5-3 5 3-1.5-8.5"/><line x1="3" y1="3" x2="21" y2="21"/></svg>',
     topic_locked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
     topic_unlocked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 7-2.6"/></svg>',
     topic_moved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h11a4 4 0 0 1 4 4v1"/><path d="M16 21l4-4-4-4"/><path d="M20 17H9a4 4 0 0 1-4-4v-1"/></svg>',
@@ -5098,6 +5161,7 @@
     if (action.indexOf('privacy_') === 0) return { key: 'community', label: 'Privacy', icon: ACTIVITY_ICONS.privacy_request_updated };
     if (action.indexOf('role_') === 0) return { key: 'roles', label: 'Roles', icon: ACTIVITY_ICONS.role_updated };
     if (action.indexOf('forum_board_') === 0) return { key: 'forum', label: 'Forum Boards', icon: ACTIVITY_ICONS.forum_board_created };
+    if (action.indexOf('reputation_level_') === 0) return { key: 'forum', label: 'Reputation Levels', icon: ACTIVITY_ICONS.reputation_level_created };
     if (action.indexOf('weather_') === 0) return { key: 'worlds', label: 'World Weather', icon: ACTIVITY_ICONS.weather_profile_updated };
     if (action.indexOf('world_') === 0) return { key: 'worlds', label: 'Worlds', icon: ACTIVITY_ICONS.world_updated };
     if (action.indexOf('overlord_') === 0) return { key: 'overlords', label: 'Overlords', icon: ACTIVITY_ICONS.overlord_updated };
@@ -10823,6 +10887,193 @@
         knownFigureDeleteBtn.disabled = false;
         knownFigureModalError.textContent = 'Could not delete this known figure. Please try again.';
         knownFigureModalError.classList.add('show');
+      });
+  });
+
+  // Reputation Levels: a flat, threshold-ordered ladder (no manual sort_order
+  // -- the reputation total itself determines rank order), same list/modal
+  // CRUD pattern as Soundtrack Control minus reordering.
+  var reputationLevelListEl = document.getElementById('reputation-level-list');
+  var reputationLevelCountEl = document.getElementById('reputation-level-count');
+  var reputationLevelCreateBtn = document.getElementById('reputation-level-create-btn');
+
+  var reputationLevelModal = document.getElementById('reputation-level-modal');
+  var reputationLevelModalTitle = document.getElementById('reputation-level-modal-title');
+  var reputationLevelModalSub = document.getElementById('reputation-level-modal-sub');
+  var reputationLevelModalError = document.getElementById('reputation-level-modal-error');
+  var reputationLevelModalStatus = document.getElementById('reputation-level-modal-status');
+  var reputationLevelCloseBtn = document.getElementById('reputation-level-modal-close');
+  var reputationLevelCancelBtn = document.getElementById('reputation-level-cancel-btn');
+  var reputationLevelSaveBtn = document.getElementById('reputation-level-save-btn');
+  var reputationLevelDeleteBtn = document.getElementById('reputation-level-delete-btn');
+
+  var reputationLevelNameInput = document.getElementById('reputation-level-name-input');
+  var reputationLevelThresholdInput = document.getElementById('reputation-level-threshold-input');
+  var reputationLevelColorInput = document.getElementById('reputation-level-color-input');
+
+  var reputationLevelModalMode = 'create';
+  var currentReputationLevel = null;
+
+  function loadReputationLevelList() {
+    reputationLevelListEl.innerHTML = '<div class="admin-list-empty">Loading reputation levels&hellip;</div>';
+    return fetch('/api/admin/reputation-levels/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var levels = (data.ok && data.levels) || [];
+        reputationLevelCountEl.textContent = levels.length + (levels.length === 1 ? ' level' : ' levels');
+        renderReputationLevelList(levels);
+      })
+      .catch(function () {
+        reputationLevelListEl.innerHTML = '<div class="admin-list-empty">Could not load reputation levels.</div>';
+      });
+  }
+
+  function renderReputationLevelList(levels) {
+    if (!levels.length) {
+      reputationLevelListEl.innerHTML = '<div class="admin-list-empty">No reputation levels yet.</div>';
+      return;
+    }
+    reputationLevelListEl.innerHTML = '';
+    levels.forEach(function (level) {
+      var row = document.createElement('div');
+      row.className = 'admin-row world-row';
+      row.tabIndex = 0;
+      row.innerHTML =
+        '<div class="admin-row-main">' +
+          '<p class="world-row-title"><span class="reputation-bar-square" style="background:' + escapeHtml(level.color) + '"></span> ' + escapeHtml(level.name) + '</p>' +
+        '</div>' +
+        '<div class="world-row-status">' +
+          '<span class="world-status-pill is-available">' + level.threshold + ' reputation</span>' +
+        '</div>';
+      row.addEventListener('click', function () { openReputationLevelModal(level); });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openReputationLevelModal(level); }
+      });
+      reputationLevelListEl.appendChild(row);
+    });
+  }
+
+  function populateReputationLevelForm(level) {
+    reputationLevelNameInput.value = level.name || '';
+    reputationLevelThresholdInput.value = level.threshold !== undefined ? level.threshold : 0;
+    reputationLevelColorInput.value = level.color || '#a279ec';
+  }
+
+  function openReputationLevelModal(level) {
+    reputationLevelModalMode = 'edit';
+    currentReputationLevel = level;
+    reputationLevelModalTitle.textContent = 'Edit Level';
+    reputationLevelModalSub.textContent = level.name;
+    reputationLevelDeleteBtn.hidden = false;
+    reputationLevelModalError.classList.remove('show');
+    reputationLevelModalStatus.classList.remove('show');
+    populateReputationLevelForm(level);
+    reputationLevelModal.hidden = false;
+  }
+
+  function openCreateReputationLevelModal() {
+    reputationLevelModalMode = 'create';
+    currentReputationLevel = null;
+    reputationLevelModalTitle.textContent = 'Add Level';
+    reputationLevelModalSub.textContent = '';
+    reputationLevelDeleteBtn.hidden = true;
+    reputationLevelModalError.classList.remove('show');
+    reputationLevelModalStatus.classList.remove('show');
+    populateReputationLevelForm({ name: '', threshold: 0, color: '#a279ec' });
+    reputationLevelModal.hidden = false;
+    setTimeout(function () { reputationLevelNameInput.focus(); }, 30);
+  }
+
+  function closeReputationLevelModal() {
+    reputationLevelModal.hidden = true;
+    currentReputationLevel = null;
+  }
+
+  reputationLevelCreateBtn.addEventListener('click', openCreateReputationLevelModal);
+  reputationLevelCloseBtn.addEventListener('click', closeReputationLevelModal);
+  reputationLevelCancelBtn.addEventListener('click', closeReputationLevelModal);
+  reputationLevelModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeReputationLevelModal);
+
+  reputationLevelSaveBtn.addEventListener('click', function () {
+    var payload = {
+      name: reputationLevelNameInput.value.trim(),
+      threshold: parseInt(reputationLevelThresholdInput.value, 10),
+      color: reputationLevelColorInput.value,
+      csrf: window.PW_AUTH.csrf
+    };
+
+    if (!payload.name) {
+      reputationLevelModalError.textContent = 'Give this level a name.';
+      reputationLevelModalError.classList.add('show');
+      return;
+    }
+    if (isNaN(payload.threshold) || payload.threshold < 0) {
+      reputationLevelModalError.textContent = 'The reputation threshold must be zero or higher.';
+      reputationLevelModalError.classList.add('show');
+      return;
+    }
+
+    var url = '/api/admin/reputation-levels/update.php';
+    if (reputationLevelModalMode === 'create') {
+      url = '/api/admin/reputation-levels/create.php';
+    } else if (currentReputationLevel) {
+      payload.id = currentReputationLevel.id;
+    }
+
+    reputationLevelModalError.classList.remove('show');
+    reputationLevelSaveBtn.disabled = true;
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        reputationLevelSaveBtn.disabled = false;
+        if (!data.ok) {
+          reputationLevelModalError.textContent = data.error || 'Could not save this level.';
+          reputationLevelModalError.classList.add('show');
+          return;
+        }
+        reputationLevelModalStatus.textContent = 'Saved.';
+        reputationLevelModalStatus.classList.add('show');
+        loadReputationLevelList();
+        setTimeout(closeReputationLevelModal, 700);
+      })
+      .catch(function () {
+        reputationLevelSaveBtn.disabled = false;
+        reputationLevelModalError.textContent = 'Could not save this level. Please try again.';
+        reputationLevelModalError.classList.add('show');
+      });
+  });
+
+  reputationLevelDeleteBtn.addEventListener('click', function () {
+    if (!currentReputationLevel) return;
+    var confirmMsg = 'Permanently delete the reputation level "' + currentReputationLevel.name + '"? This cannot be undone.';
+    if (!window.confirm(confirmMsg)) return;
+    reputationLevelDeleteBtn.disabled = true;
+    fetch('/api/admin/reputation-levels/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentReputationLevel.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        reputationLevelDeleteBtn.disabled = false;
+        if (!data.ok) {
+          reputationLevelModalError.textContent = data.error || 'Could not delete this level.';
+          reputationLevelModalError.classList.add('show');
+          return;
+        }
+        loadReputationLevelList();
+        closeReputationLevelModal();
+      })
+      .catch(function () {
+        reputationLevelDeleteBtn.disabled = false;
+        reputationLevelModalError.textContent = 'Could not delete this level. Please try again.';
+        reputationLevelModalError.classList.add('show');
       });
   });
 

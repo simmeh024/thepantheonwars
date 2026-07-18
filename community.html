@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=221">
+<link rel="stylesheet" href="css/community-bundle.css?v=222">
 </head>
 <body>
 
@@ -1890,6 +1890,30 @@
     avatarWrap.appendChild(dot);
   }
 
+  function buildReputationBar(rep) {
+    var wrap = document.createElement('div');
+    wrap.className = 'reputation-bar reputation-bar-compact';
+    if (!rep) return wrap;
+    var square = document.createElement('span');
+    square.className = 'reputation-bar-square';
+    square.style.background = rep.level_color || '#c7ccd6';
+    wrap.appendChild(square);
+    var track = document.createElement('span');
+    track.className = 'reputation-bar-track';
+    var fill = document.createElement('span');
+    fill.className = 'reputation-bar-fill';
+    fill.style.width = (rep.progress_percent || 0) + '%';
+    fill.style.background = rep.level_color || '#c7ccd6';
+    track.appendChild(fill);
+    wrap.appendChild(track);
+    var titleText = (rep.level_name || 'Unranked') + ' — ' + rep.points + ' reputation';
+    if (rep.next_level_name) {
+      titleText += ' (' + Math.max(0, rep.next_level_threshold - rep.points) + ' to ' + rep.next_level_name + ')';
+    }
+    wrap.title = titleText;
+    return wrap;
+  }
+
   function buildTopicProfile(t) {
     var profile = document.createElement('div');
     profile.className = 'comment-profile';
@@ -1940,6 +1964,8 @@
     postCount.className = 'comment-postcount';
     postCount.textContent = t.post_count + (t.post_count === 1 ? ' post' : ' posts');
     info.appendChild(postCount);
+
+    info.appendChild(buildReputationBar(t.reputation));
 
     profile.appendChild(info);
     return profile;
@@ -2255,6 +2281,8 @@
     postCount.className = 'comment-postcount';
     postCount.textContent = c.post_count + (c.post_count === 1 ? ' post' : ' posts');
     info.appendChild(postCount);
+
+    info.appendChild(buildReputationBar(c.reputation));
 
     profile.appendChild(info);
     return profile;

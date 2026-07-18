@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=221">
+<link rel="stylesheet" href="css/community-bundle.css?v=222">
 </head>
 <body>
 
@@ -76,6 +76,7 @@
           </div>
           <h1 id="member-name">—</h1>
           <span class="member-role-badge" id="member-role-badge"></span>
+          <div class="reputation-bar" id="member-reputation-bar" hidden></div>
         </div>
 
         <p class="lore-status" id="member-meta">
@@ -262,6 +263,33 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
+  function renderReputationBar(container, rep) {
+    if (!rep) { container.hidden = true; return; }
+    container.hidden = false;
+    container.innerHTML = '';
+    var square = document.createElement('span');
+    square.className = 'reputation-bar-square';
+    square.style.background = rep.level_color || '#c7ccd6';
+    container.appendChild(square);
+    var track = document.createElement('span');
+    track.className = 'reputation-bar-track';
+    var fill = document.createElement('span');
+    fill.className = 'reputation-bar-fill';
+    fill.style.width = (rep.progress_percent || 0) + '%';
+    fill.style.background = rep.level_color || '#c7ccd6';
+    track.appendChild(fill);
+    container.appendChild(track);
+    var label = document.createElement('span');
+    label.className = 'reputation-bar-label';
+    label.textContent = (rep.level_name || 'Unranked') + ' · ' + rep.points + ' rep';
+    container.appendChild(label);
+    var titleText = (rep.level_name || 'Unranked') + ' — ' + rep.points + ' reputation';
+    if (rep.next_level_name) {
+      titleText += ' (' + Math.max(0, rep.next_level_threshold - rep.points) + ' to ' + rep.next_level_name + ')';
+    }
+    container.title = titleText;
+  }
+
   function getParam(name) {
     var match = new RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
     return match ? decodeURIComponent(match[1].replace(/\+/g, ' ')) : null;
@@ -300,6 +328,8 @@
         roleBadge.textContent = capitalize(m.role || 'member');
         roleBadge.className = 'member-role-badge';
         roleBadge.style.setProperty('--role-color', m.role_color || '#c7ccd6');
+
+        renderReputationBar(document.getElementById('member-reputation-bar'), m.reputation);
 
         avatarFallback.textContent = (m.display_name || '?').charAt(0).toUpperCase();
         var probe = new Image();
