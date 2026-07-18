@@ -1002,7 +1002,7 @@
 }
 .world-atlas-static-orbit-shield,
 .world-atlas-nexus-city-shield {
-  background: url('../images/twelve-worlds-atlas.png?v=2') center / 100% 100% no-repeat;
+  background: url('../images/twelve-worlds-atlas.jpg?v=3') center / 100% 100% no-repeat;
 }
 .world-atlas-static-orbit-shield {
   -webkit-mask-image: radial-gradient(ellipse 29% 36% at 50% 50%, transparent 0 77%, rgba(0, 0, 0, 0.94) 91%, #000 100%);
