@@ -693,7 +693,7 @@ nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
   .nav-item:not(.auth-nav-item) .nav-parent::before { margin-left: 0; }
   .nav-dropdown { width: 100%; padding: 12px 0 0; }
   .nav-dropdown-links { gap: 7px; }
-  .nav-dropdown-rich { display: flex; gap: 10px; }
+  .nav-dropdown-rich { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
   .nav-dropdown-rich .nav-dropdown-links a { padding: 8px 10px; border: 1px solid rgba(162,121,236,0.14); background: rgba(255,255,255,0.018); }
   .nav-dropdown-aside { margin-top: 2px; }
   /* Compact top-bar treatment: just the avatar initial (name/caret hidden)
