@@ -1356,6 +1356,10 @@
   color: var(--quick-action-teal, #46bebe);
   background: rgba(70, 190, 190, 0.15);
 }
+.quick-action-icon--gold {
+  color: var(--gold-bright, #ecc987);
+  background: rgba(236, 201, 135, 0.15);
+}
 .quick-action-label {
   flex: 1;
   font-size: 0.85rem;
