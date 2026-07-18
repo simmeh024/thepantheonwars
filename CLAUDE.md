@@ -327,7 +327,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 - Sidebar categories: **Lore Management** (Book Control, World Control, Weather
   Control, Overlord Control), **Community** (Forum Control, Members, Topic Reports), **Development
-  Dispatches** (Dispatch Control, Dispatch Translations), **System** (System Status,
+  Dispatches** (Dispatch Control, Dispatch Translations, Dispatch Composer), **System** (System Status,
   Audit Log). Home is the default landing section.
 - `showSection(name)` toggles `.admin-section` visibility; `loadedSections[name]`
   guards first-load-only data fetches. Auto-refresh timers (Home: 60s, System Status:
@@ -462,6 +462,103 @@ also supports a deliberately manual `?full=1` historical rebuild.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Dispatch category auto-scoring, confidence, and review queue:**
+  `pw_dispatch_categorize()` (`api/dispatch-helpers.php`) replaced the old
+  if/elif keyword cascade that assigned each Dispatch's category
+  (feature/improvement/fix/performance/ui_ux/lore/infrastructure/refactor/
+  experimental). The cascade had a real, systematic bug: "infrastructure"
+  always won over "performance"/"lore"/etc. purely because that check ran
+  first, and bare-substring keyword matching couldn't tell "character" (a
+  story figure) from "character" (a text-character limit) -- confirmed by
+  running the real last-50-commit history through both the old and new
+  logic locally. The replacement scores all 9 categories independently from
+  four signals -- Conventional Commits prefix (65 pts, now also recognising
+  `perf:`), word-boundary subject keyword hits (50), word-boundary body
+  keyword hits (20), and the diff-context file-scope labels already
+  computed for the Translator (45) -- and the highest score wins (ties keep
+  the old cascade's priority order, since PHP array sorts are stable).
+  A margin-aware confidence score (0-100) comes out of the same tally.
+  `dispatch_entries` gained `category_confidence` and `category_source`
+  (`auto`/`manual`); any explicit category save in Dispatch Control now
+  resets confidence to 100, flips source to `manual`, and is logged to a
+  new `dispatch_category_overrides` table (previous tag/confidence/source,
+  new tag, who) as a permanent evidence trail for future keyword/weight
+  tuning. "Needs review" (`auto` + confidence < 65%, the same high-confidence
+  floor already used for translation confidence) surfaces in three places:
+  a new Home "Dispatches needing category review" queue row, a "Needs
+  review only" toggle in Dispatch Control, and a low-confidence badge with
+  an explanatory hint in the edit modal. The webhook and manual re-sync were
+  both reordered to compute diff-context *before* categorizing (free for the
+  webhook; for re-sync, the existing 25-lookup GitHub API budget is now only
+  spent on commits that aren't already in the table, via an upfront SHA
+  lookup, so no new API cost). Also fixed in passing: `sql/schema.sql` had
+  documented `dispatch_entries.tag` as a 3-value ENUM
+  (`feature`/`fix`/`update`) for a long time, while the real app-wide valid
+  set has been the 9 values above for as long as "category_edited" has been
+  a working, audited feature -- the same documentation-drift class already
+  fixed once for `books`/`comment_reactions`. Run
+  `sql/migration_dispatch_category_confidence.sql` once in phpMyAdmin
+  (defensive/idempotent if the live ENUM already had all 9 values).
+  Dispatch Composer's own category filter had independently inherited the
+  same stale 3-value assumption from when it was built a few days earlier;
+  both its dropdown and `candidates.php`'s validation now use the real
+  `pw_dispatch_valid_tags()` list.
+
+- **Audit Log icon/label gaps** (unrelated to Composer, found while auditing
+  it): `known_figure_*`, `soundtrack_*`, `session_created`/`session_revoked`/
+  `sessions_revoked_all`/`sessions_revoked_others`, and
+  `member_sessions_revoked`/`member_two_factor_reset` had no entry in
+  `ACTIVITY_LABELS` and no branch in `activityCategory()`, so they rendered
+  as a raw uppercased action string falling into the generic "System"/
+  backup-log icon and pill. Added labels, dedicated icons, and category
+  branches (Known Figures/Soundtracks under the existing green Lore
+  Management pill, Sessions under the existing teal Members pill). Also
+  added 12 missing `<option>` entries to the Audit Log's own action filter
+  dropdown (new Mail and Privacy Requests optgroups, plus entries folded
+  into Login Activity/World Control/System) for actions that were already
+  logging and rendering correctly but couldn't be filtered to individually.
+
+- **Dispatch Composer** (Development Dispatches -> Dispatch Composer, new):
+  an admin writing tool where approved Development Dispatches are searchable
+  reference/traceability material only -- never auto-generated article
+  text -- and the administrator writes the actual blog-style article by
+  hand. `dispatch_composer_posts`/`dispatch_composer_items`
+  (`sql/migration_dispatch_composer.sql`) plus five permissions
+  (`dispatch_composer.view/create/edit/publish/archive`, publish kept
+  deliberately separate from edit). The editor is a two-panel layout: left
+  is a searchable/filterable panel of approved dispatches (approved = has a
+  `dispatch_translations` row, the same definition Translation Review
+  already uses) with attach/detach, drag-to-reorder, private per-dispatch
+  notes never published, and an "Insert summary" action that drops the
+  approved translation in as plain editable text at the cursor -- not a
+  live link, so a later dispatch edit can never silently change a drafted
+  or published article; right is a manual title/slug-preview/excerpt/
+  featured-image/rich-text editor, an independent parallel instance of News
+  Management's own contenteditable+toolbar pattern (own ids, own image
+  library modal -- hand-duplicated rather than shared, matching this
+  codebase's existing "no shared JS module" convention, to avoid risking a
+  regression in the already-shipped News editor). Publication
+  (`api/admin/dispatch-composer/publish.php`) reuses News Management's
+  exact insertion path -- `pw_news_create_post()` was extracted out of
+  `api/admin/news/create.php` (pure refactor, identical behaviour) into
+  `news-helpers.php`, and both callers now share it rather than duplicating
+  the INSERT/tag-sync logic. Duplicate-publish protection is layered: the
+  Composer row is `SELECT ... FOR UPDATE` locked for the whole transaction,
+  the already-published check happens inside that lock, `news_post_id`
+  carries a UNIQUE constraint as a last-resort DB guarantee, and the
+  publish button disables itself synchronously on click. Preview
+  (`api/admin/dispatch-composer/preview.php` + a `?composer_preview=<id>`
+  branch in `js/news-post.js`) deliberately reuses the real public article
+  renderer instead of a second template -- the endpoint returns the exact
+  JSON shape `api/news/get.php` does, so preview and the eventual published
+  page can never visually drift apart; it never creates a real News post
+  and is permission-gated. The featured-image field reuses News's own
+  upload/list-image endpoints and the shared `IMAGE_FIELDS` registry
+  outright. Not in this MVP (see the original plan's own scope notes):
+  GitHub milestones, forum/newsletter/social publication, scheduled
+  publication, AI rewriting, and a "Duplicate as new draft" action --
+  archived/published Composer records are read-only with no path back.
 
 - **Profile page polish batch** (`profile.html`): eight additions.
   **"My Posts" now links to real threads.** `api/get-profile.php` merges
