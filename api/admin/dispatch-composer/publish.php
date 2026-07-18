@@ -93,7 +93,7 @@ try {
 }
 
 pw_log_admin_activity(
-    'dispatch_composer.published',
+    'dispatch_composer_published',
     'Published Composer article "' . $post['title'] . '" as News post #' . $newsPostId . '.',
     $adminUser
 );

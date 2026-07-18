@@ -29,7 +29,7 @@ $db->prepare('DELETE FROM dispatch_composer_items WHERE composer_post_id = ? AND
 $db->prepare('UPDATE dispatch_composer_posts SET updated_by = ? WHERE id = ?')->execute([(int)$adminUser['id'], $composerPostId]);
 
 pw_log_admin_activity(
-    'dispatch_composer.dispatch_removed',
+    'dispatch_composer_dispatch_removed',
     'Removed dispatch "' . ($subject !== false ? $subject : ('#' . $dispatchId)) . '" from Composer draft #' . $composerPostId . '.',
     $adminUser
 );

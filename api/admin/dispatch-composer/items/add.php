@@ -46,7 +46,7 @@ $db->prepare('INSERT INTO dispatch_composer_items (composer_post_id, dispatch_id
 $db->prepare('UPDATE dispatch_composer_posts SET updated_by = ? WHERE id = ?')->execute([(int)$adminUser['id'], $composerPostId]);
 
 pw_log_admin_activity(
-    'dispatch_composer.dispatch_attached',
+    'dispatch_composer_dispatch_attached',
     'Attached dispatch "' . $dispatch['subject'] . '" to Composer draft #' . $composerPostId . '.',
     $adminUser
 );

@@ -17,6 +17,6 @@ $stmt = $db->prepare(
 $stmt->execute(['', (int)$adminUser['id'], (int)$adminUser['id']]);
 $id = (int)$db->lastInsertId();
 
-pw_log_admin_activity('dispatch_composer.created', 'Started a new Dispatch Composer draft (#' . $id . ').', $adminUser);
+pw_log_admin_activity('dispatch_composer_created', 'Started a new Dispatch Composer draft (#' . $id . ').', $adminUser);
 
 pw_json(['ok' => true, 'id' => $id]);

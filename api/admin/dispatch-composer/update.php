@@ -47,13 +47,13 @@ $stmt->execute([
 // same status is not, so ordinary autosave/typing cannot flood the log.
 if ($status !== $existing['status']) {
     pw_log_admin_activity(
-        'dispatch_composer.marked_ready',
+        'dispatch_composer_marked_ready',
         'Marked Composer draft "' . ($data['title'] !== '' ? $data['title'] : '(untitled)') . '" as ' . $status . '.',
         $adminUser
     );
 } else {
     pw_log_admin_activity(
-        'dispatch_composer.saved',
+        'dispatch_composer_saved',
         'Saved Composer draft "' . ($data['title'] !== '' ? $data['title'] : '(untitled)') . '".',
         $adminUser
     );

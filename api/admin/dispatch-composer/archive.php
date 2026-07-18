@@ -29,7 +29,7 @@ if ($post['status'] === 'archived') {
 $db->prepare('UPDATE dispatch_composer_posts SET status = ? WHERE id = ?')->execute(['archived', $id]);
 
 pw_log_admin_activity(
-    'dispatch_composer.archived',
+    'dispatch_composer_archived',
     'Archived Composer ' . ($post['status'] === 'published' ? 'article' : 'draft') . ' "' . ($post['title'] !== '' ? $post['title'] : '(untitled)') . '".',
     $adminUser
 );
