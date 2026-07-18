@@ -72,12 +72,21 @@ try {
 } catch (PDOException $e) {
     // Migration may be run after code deployment; keep the dashboard available.
 }
+$dispatchesNeedingCategoryReview = 0;
+try {
+    $dispatchesNeedingCategoryReview = (int)$db->query(
+        "SELECT COUNT(*) AS c FROM dispatch_entries WHERE category_source = 'auto' AND category_confidence < 65"
+    )->fetch()['c'];
+} catch (PDOException $e) {
+    // migration_dispatch_category_confidence.sql may be run after code deployment.
+}
 $pendingWork = [
     'ok' => true,
     'dispatches_awaiting_translation' => (int)$pendingRow['translations'],
     'active_topic_reports' => (int)$pendingRow['topic_reports'],
     'active_news_comment_reports' => (int)$pendingRow['news_comment_reports'],
     'pending_privacy_requests' => $privacyPending,
+    'dispatches_needing_category_review' => $dispatchesNeedingCategoryReview,
 ];
 
 $draftRows = $db->query(

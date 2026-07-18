@@ -220,18 +220,47 @@ CREATE TABLE IF NOT EXISTS topic_bookmarks (
   CONSTRAINT fk_topic_bookmarks_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- tag is auto-assigned by pw_dispatch_categorize() (api/dispatch-helpers.php)
+-- on every webhook push / manual re-sync, then may be corrected by an admin
+-- in Dispatch Control (api/admin/dispatches/update.php, audited as
+-- "category_edited" and recorded in dispatch_category_overrides).
+-- category_confidence is a 0-100 explainable score (conventional-commit
+-- prefix + word-boundary subject/body keyword hits + diff-context file-scope
+-- signal, see pw_dispatch_categorize()); category_source flips to 'manual'
+-- (confidence reset to 100) the moment a human explicitly saves a category,
+-- which is what lets the Home "needs review" queue and Dispatch Control's
+-- low-confidence badge both clear once someone has actually looked.
 CREATE TABLE IF NOT EXISTS dispatch_entries (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   sha VARCHAR(40) NOT NULL,
   subject VARCHAR(500) NOT NULL,
   body TEXT DEFAULT NULL,
-  tag ENUM('feature','fix','update') NOT NULL DEFAULT 'update',
+  tag ENUM('feature','improvement','fix','performance','ui_ux','lore','infrastructure','refactor','experimental') NOT NULL DEFAULT 'feature',
+  category_confidence TINYINT UNSIGNED NOT NULL DEFAULT 0,
+  category_source ENUM('auto','manual') NOT NULL DEFAULT 'auto',
   author VARCHAR(100) NOT NULL,
   committed_at DATETIME NOT NULL,
   url VARCHAR(255) DEFAULT NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_sha (sha),
   KEY idx_committed_at (committed_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- One row per admin category correction -- an evidence trail for future
+-- keyword/weight tuning ("what does the heuristic keep getting wrong, and
+-- to what"), never mutated after insert.
+CREATE TABLE IF NOT EXISTS dispatch_category_overrides (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  dispatch_id INT UNSIGNED NOT NULL,
+  previous_tag VARCHAR(20) NOT NULL,
+  previous_confidence TINYINT UNSIGNED NOT NULL,
+  previous_source ENUM('auto','manual') NOT NULL,
+  new_tag VARCHAR(20) NOT NULL,
+  changed_by INT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_category_overrides_dispatch (dispatch_id),
+  CONSTRAINT fk_category_overrides_dispatch FOREIGN KEY (dispatch_id) REFERENCES dispatch_entries(id) ON DELETE CASCADE,
+  CONSTRAINT fk_category_overrides_user FOREIGN KEY (changed_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Public news updates, managed through Admin Console > Content > News

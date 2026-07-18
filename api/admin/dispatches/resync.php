@@ -25,9 +25,13 @@ $branch = 'main';
 
 $db = pw_db();
 $stmt = $db->prepare(
-    'INSERT IGNORE INTO dispatch_entries (sha, subject, body, tag, author, committed_at, url)
-     VALUES (:sha, :subject, :body, :tag, :author, :committed_at, :url)'
+    'INSERT IGNORE INTO dispatch_entries (sha, subject, body, tag, category_confidence, category_source, author, committed_at, url)
+     VALUES (:sha, :subject, :body, :tag, :category_confidence, :category_source, :author, :committed_at, :url)'
 );
+// Known up front so the bounded diff-context lookup budget below is only
+// ever spent on commits that are actually about to be inserted, not on
+// commits GitHub returns that this table already has.
+$existingShas = array_flip($db->query('SELECT sha FROM dispatch_entries')->fetchAll(PDO::FETCH_COLUMN));
 
 $fetched = 0;
 $inserted = 0;
@@ -76,7 +80,14 @@ while ($page <= $maxPages) {
         $rawSubject = trim($lines[0]);
         $body = isset($lines[1]) ? trim($lines[1]) : '';
         $subject = pw_dispatch_clean_subject($rawSubject);
-        $tag = pw_dispatch_tag($rawSubject, $body);
+
+        // The commits-list API omits changed files. Only spend the bounded
+        // (25-call) diff-context lookup budget on commits not already in
+        // this table -- otherwise a large history would burn the whole
+        // budget re-fetching commits that are just going to be ignored.
+        $diffContext = isset($existingShas[$c['sha']]) ? [] : pw_fetch_github_dispatch_diff_context($c['sha']);
+        $categorized = pw_dispatch_categorize($rawSubject, $body, $diffContext);
+        $tag = $categorized['tag'];
         $author = !empty($c['commit']['author']['name']) ? $c['commit']['author']['name'] : 'Unknown';
         $timestamp = !empty($c['commit']['committer']['date']) ? $c['commit']['committer']['date'] : gmdate('c');
         if (preg_match('/^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}:\d{2})/', $timestamp, $tsMatch)) {
@@ -91,6 +102,8 @@ while ($page <= $maxPages) {
             ':subject' => $subject,
             ':body' => $body !== '' ? $body : null,
             ':tag' => $tag,
+            ':category_confidence' => $categorized['confidence'],
+            ':category_source' => 'auto',
             ':author' => $author,
             ':committed_at' => $committedAt,
             ':url' => $htmlUrl,
@@ -98,10 +111,7 @@ while ($page <= $maxPages) {
         if ($stmt->rowCount() > 0) {
             $inserted++;
             $dispatchId = (int)$db->lastInsertId();
-            // The commits-list API omits changed files. Fetch a bounded
-            // number of newly inserted commits, then retain aggregates rather
-            // than paths or source content. Normal webhooks need no lookup.
-            pw_store_dispatch_diff_context($db, $dispatchId, pw_fetch_github_dispatch_diff_context($c['sha']));
+            pw_store_dispatch_diff_context($db, $dispatchId, $diffContext);
             try {
                 pw_create_dispatch_translation_draft($db, $dispatchId);
             } catch (PDOException $e) {

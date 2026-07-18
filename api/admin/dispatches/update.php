@@ -17,7 +17,7 @@ if ($dispatchId <= 0) {
 }
 
 $db = pw_db();
-$stmt = $db->prepare('SELECT id, subject, tag FROM dispatch_entries WHERE id = ?');
+$stmt = $db->prepare('SELECT id, subject, tag, category_confidence, category_source FROM dispatch_entries WHERE id = ?');
 $stmt->execute([$dispatchId]);
 $existing = $stmt->fetch();
 if (!$existing) {
@@ -35,16 +35,35 @@ if (array_key_exists('subject', $input)) {
     }
 }
 
+// Any explicit category save from this endpoint counts as a deliberate human
+// review, even if the admin ends up choosing the same value the auto-scorer
+// already had -- that's still a person having looked, which is exactly what
+// clears a dispatch off the "needs review" queue. Confidence resets to 100
+// (a human decision) and the previous auto/manual state is preserved in
+// dispatch_category_overrides as a permanent evidence trail for future
+// tuning of the scorer's keyword lists and weights.
 $tag = $existing['tag'];
+$categoryReviewed = false;
 if (array_key_exists('tag', $input)) {
     $tag = trim((string)$input['tag']);
     if (!in_array($tag, pw_dispatch_valid_tags(), true)) {
         pw_error('Not a valid category.');
     }
+    $categoryReviewed = true;
 }
 
-$stmt = $db->prepare('UPDATE dispatch_entries SET subject = ?, tag = ? WHERE id = ?');
-$stmt->execute([$subject, $tag, $dispatchId]);
+if ($categoryReviewed) {
+    $db->prepare(
+        'INSERT INTO dispatch_category_overrides (dispatch_id, previous_tag, previous_confidence, previous_source, new_tag, changed_by)
+         VALUES (?, ?, ?, ?, ?, ?)'
+    )->execute([$dispatchId, $existing['tag'], $existing['category_confidence'], $existing['category_source'], $tag, (int)$adminUser['id']]);
+
+    $stmt = $db->prepare('UPDATE dispatch_entries SET subject = ?, tag = ?, category_confidence = 100, category_source = ? WHERE id = ?');
+    $stmt->execute([$subject, $tag, 'manual', $dispatchId]);
+} else {
+    $stmt = $db->prepare('UPDATE dispatch_entries SET subject = ?, tag = ? WHERE id = ?');
+    $stmt->execute([$subject, $tag, $dispatchId]);
+}
 
 if ($tag !== $existing['tag']) {
     $tagLabels = [

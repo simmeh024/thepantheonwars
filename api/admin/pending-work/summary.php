@@ -31,10 +31,20 @@ try {
     // The feature can be deployed before its one-off database migration.
 }
 
+$dispatchesNeedingCategoryReview = 0;
+try {
+    $dispatchesNeedingCategoryReview = (int)$db->query(
+        "SELECT COUNT(*) AS c FROM dispatch_entries WHERE category_source = 'auto' AND category_confidence < 65"
+    )->fetch()['c'];
+} catch (PDOException $e) {
+    // migration_dispatch_category_confidence.sql may be run after code deployment.
+}
+
 pw_json([
     'ok' => true,
     'dispatches_awaiting_translation' => (int)$row['c'],
     'active_topic_reports' => (int)($reportsRow['topic_reports'] ?? 0),
     'active_news_comment_reports' => (int)($reportsRow['news_comment_reports'] ?? 0),
     'pending_privacy_requests' => $privacyCount,
+    'dispatches_needing_category_review' => $dispatchesNeedingCategoryReview,
 ]);

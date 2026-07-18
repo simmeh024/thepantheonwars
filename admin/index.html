@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=235">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=236">
 </head>
 <body>
 
@@ -549,6 +549,10 @@
             <li class="pending-work-row" id="pending-work-translations-row">
               <span class="pending-work-label">Dispatches awaiting translation</span>
               <span class="pending-work-count" id="pending-work-translations-count">&hellip;</span>
+            </li>
+            <li class="pending-work-row" id="pending-work-category-review-row">
+              <span class="pending-work-label">Dispatches needing category review</span>
+              <span class="pending-work-count pending-work-count-warn" id="pending-work-category-review-count">&hellip;</span>
             </li>
             <li class="pending-work-row" id="pending-work-reports-row">
               <span class="pending-work-label">Active Topic Reports</span>
@@ -1410,6 +1414,7 @@
           <option value="experimental">Experimental</option>
         </select>
         <input type="text" class="admin-search" id="control-search" placeholder="Search subject or SHA&hellip;">
+        <label class="control-needs-review-toggle"><input type="checkbox" id="control-needs-review-toggle"> Needs review only</label>
         <span class="admin-count" id="control-count"></span>
       </div>
 
@@ -1517,8 +1522,14 @@
             <select class="admin-search admin-tag-select" id="composer-dispatch-tag-filter">
               <option value="">All categories</option>
               <option value="feature">Feature</option>
+              <option value="improvement">Improvement</option>
               <option value="fix">Fix</option>
-              <option value="update">Update</option>
+              <option value="performance">Performance</option>
+              <option value="ui_ux">UI / UX</option>
+              <option value="lore">Lore</option>
+              <option value="infrastructure">Infrastructure</option>
+              <option value="refactor">Refactor</option>
+              <option value="experimental">Experimental</option>
             </select>
             <label class="composer-dispatch-filter-checkbox"><input type="checkbox" id="composer-dispatch-unused-only"> Unused only</label>
           </div>
@@ -1819,6 +1830,7 @@
         <option value="refactor">Refactor</option>
         <option value="experimental">Experimental</option>
       </select>
+      <p class="admin-field-hint" id="control-category-confidence-hint"></p>
     </div>
     <div class="admin-field">
       <div class="admin-field-label-row">
@@ -3572,6 +3584,8 @@
   // ===== Home / Pending Work ==================================================
   var pendingTranslationsRow = document.getElementById('pending-work-translations-row');
   var pendingTranslationsCountEl = document.getElementById('pending-work-translations-count');
+  var pendingCategoryReviewRow = document.getElementById('pending-work-category-review-row');
+  var pendingCategoryReviewCountEl = document.getElementById('pending-work-category-review-count');
   var pendingReportsRow = document.getElementById('pending-work-reports-row');
   var pendingReportsCountEl = document.getElementById('pending-work-reports-count');
   var pendingNewsReportsRow = document.getElementById('pending-work-news-reports-row');
@@ -3586,6 +3600,10 @@
         if (!data.ok) return;
         pendingTranslationsCountEl.textContent = data.dispatches_awaiting_translation;
         pendingTranslationsCountEl.classList.toggle('is-zero', data.dispatches_awaiting_translation === 0);
+        if (pendingCategoryReviewCountEl) {
+          pendingCategoryReviewCountEl.textContent = data.dispatches_needing_category_review;
+          pendingCategoryReviewCountEl.classList.toggle('is-zero', data.dispatches_needing_category_review === 0);
+        }
         if (pendingReportsCountEl) {
           pendingReportsCountEl.textContent = data.active_topic_reports;
           pendingReportsCountEl.classList.toggle('is-zero', data.active_topic_reports === 0);
@@ -3614,6 +3632,16 @@
         t.classList.toggle('active', t.getAttribute('data-filter') === 'untranslated');
       });
       loadList();
+    });
+  }
+
+  if (pendingCategoryReviewRow) {
+    pendingCategoryReviewRow.addEventListener('click', function () {
+      showSection('dispatch-control');
+      controlState.needsReview = true;
+      controlState.page = 1;
+      if (controlNeedsReviewToggle) controlNeedsReviewToggle.checked = true;
+      loadControlList();
     });
   }
 
@@ -5965,7 +5993,8 @@
   var controlCancelBtn = document.getElementById('control-cancel-btn');
   var controlCloseBtn = document.getElementById('control-modal-close');
 
-  var controlState = { page: 1, perPage: 25, q: '', tag: '', totalPages: 1 };
+  var controlState = { page: 1, perPage: 25, q: '', tag: '', needsReview: false, totalPages: 1 };
+  var controlNeedsReviewToggle = document.getElementById('control-needs-review-toggle');
   var currentControlEntry = null;
   var controlSearchDebounce = null;
 
@@ -5975,7 +6004,16 @@
     params.set('per_page', controlState.perPage);
     if (controlState.q) params.set('q', controlState.q);
     if (controlState.tag) params.set('tag', controlState.tag);
+    if (controlState.needsReview) params.set('needs_review', '1');
     return '/api/admin/dispatches/list.php?' + params.toString();
+  }
+
+  if (controlNeedsReviewToggle) {
+    controlNeedsReviewToggle.addEventListener('change', function () {
+      controlState.needsReview = controlNeedsReviewToggle.checked;
+      controlState.page = 1;
+      loadControlList();
+    });
   }
 
   function loadControlList() {
@@ -6020,6 +6058,7 @@
             '<span>' + escapeHtml(fmtDate(entry.committed_at)) + '</span>' +
           '</div>' +
         '</div>' +
+        (entry.needs_review ? '<span class="dispatch-needs-review-badge" title="Auto-detected, ' + entry.category_confidence + '% confidence">' + entry.category_confidence + '%?</span>' : '') +
         '<span class="dispatch-entry-tag tag-' + escapeHtml(entry.tag) + '">' + (TAG_ICONS[entry.tag] || '') +
           '<span>' + escapeHtml(TAG_LABELS[entry.tag] || entry.tag) + '</span></span>';
       row.addEventListener('click', function (e) {
@@ -6069,6 +6108,13 @@
       escapeHtml(fmtDate(entry.committed_at)) + ' &mdash; committed by ' + escapeHtml(entry.author);
     controlSubjectInput.value = entry.subject;
     controlTagSelect.value = entry.tag;
+    var confidenceHint = document.getElementById('control-category-confidence-hint');
+    if (confidenceHint) {
+      confidenceHint.textContent = entry.category_source === 'manual'
+        ? 'Manually confirmed by a staff member.'
+        : 'Auto-detected at ' + entry.category_confidence + '% confidence' + (entry.needs_review ? ' -- worth a second look.' : '.');
+      confidenceHint.classList.toggle('admin-field-hint-warn', !!entry.needs_review);
+    }
     controlCommitBodyEl.textContent = entry.body && entry.body.trim() ? entry.body : 'No further commit details.';
     controlModalError.classList.remove('show');
     controlModalStatus.classList.remove('show');

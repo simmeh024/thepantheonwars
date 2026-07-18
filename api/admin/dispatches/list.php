@@ -25,6 +25,7 @@ $tag = isset($_GET['tag']) ? trim($_GET['tag']) : '';
 if (!in_array($tag, $validTags, true)) {
     $tag = '';
 }
+$needsReview = isset($_GET['needs_review']) && $_GET['needs_review'] === '1';
 
 $where = [];
 $params = [];
@@ -36,6 +37,9 @@ if ($q !== '') {
 if ($tag !== '') {
     $where[] = 'd.tag = :tag';
     $params[':tag'] = $tag;
+}
+if ($needsReview) {
+    $where[] = "d.category_source = 'auto' AND d.category_confidence < 65";
 }
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
@@ -52,7 +56,8 @@ if ($page > $totalPages) {
 $offset = ($page - 1) * $perPage;
 
 $stmt = $db->prepare(
-    'SELECT d.id, d.sha, d.subject, d.body, d.tag, d.author, d.committed_at, d.url,
+    'SELECT d.id, d.sha, d.subject, d.body, d.tag, d.category_confidence, d.category_source,
+            d.author, d.committed_at, d.url,
             (dt.id IS NOT NULL) AS has_translation
      FROM dispatch_entries d
      LEFT JOIN dispatch_translations dt ON dt.dispatch_id = d.id
@@ -76,6 +81,9 @@ $out = array_map(function ($r) {
         'subject' => $r['subject'],
         'body' => $r['body'],
         'tag' => $r['tag'],
+        'category_confidence' => (int)$r['category_confidence'],
+        'category_source' => $r['category_source'],
+        'needs_review' => pw_dispatch_category_needs_review($r['category_confidence'], $r['category_source']),
         'author' => $r['author'],
         'committed_at' => $r['committed_at'],
         'url' => $r['url'],

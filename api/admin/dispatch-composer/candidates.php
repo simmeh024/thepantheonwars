@@ -5,6 +5,7 @@
  * Translation Review uses for a dispatch being translated/live.
  */
 require_once __DIR__ . '/../../helpers.php';
+require_once __DIR__ . '/../../dispatch-helpers.php';
 require_once __DIR__ . '/../../dispatch-translation-drafts.php';
 
 pw_require_permission('dispatch_composer.view');
@@ -16,7 +17,7 @@ if (mb_strlen($q) > 200) {
     $q = mb_substr($q, 0, 200);
 }
 $tag = isset($_GET['tag']) ? trim($_GET['tag']) : '';
-if (!in_array($tag, ['feature', 'fix', 'update'], true)) {
+if (!in_array($tag, pw_dispatch_valid_tags(), true)) {
     $tag = '';
 }
 $dateFrom = isset($_GET['date_from']) ? trim($_GET['date_from']) : '';

@@ -76,8 +76,8 @@ if (!is_array($payload) || empty($payload['commits']) || !is_array($payload['com
 
 $db = pw_db();
 $stmt = $db->prepare(
-    'INSERT IGNORE INTO dispatch_entries (sha, subject, body, tag, author, committed_at, url)
-     VALUES (:sha, :subject, :body, :tag, :author, :committed_at, :url)'
+    'INSERT IGNORE INTO dispatch_entries (sha, subject, body, tag, category_confidence, category_source, author, committed_at, url)
+     VALUES (:sha, :subject, :body, :tag, :category_confidence, :category_source, :author, :committed_at, :url)'
 );
 
 $inserted = 0;
@@ -90,7 +90,17 @@ foreach ($payload['commits'] as $commit) {
     $rawSubject = trim($lines[0]);
     $body = isset($lines[1]) ? trim($lines[1]) : '';
     $subject = pw_dispatch_clean_subject($rawSubject);
-    $tag = pw_dispatch_tag($rawSubject, $body);
+    // The push payload already lists changed files for free (no extra GitHub
+    // API call), so this is the one path that can always feed real
+    // diff-context into categorization rather than text signals alone.
+    $paths = array_merge(
+        is_array($commit['added'] ?? null) ? $commit['added'] : [],
+        is_array($commit['modified'] ?? null) ? $commit['modified'] : [],
+        is_array($commit['removed'] ?? null) ? $commit['removed'] : []
+    );
+    $diffContext = pw_dispatch_diff_context_from_paths($paths);
+    $categorized = pw_dispatch_categorize($rawSubject, $body, $diffContext);
+    $tag = $categorized['tag'];
     $author = !empty($commit['author']['name']) ? $commit['author']['name'] : 'Unknown';
     $timestamp = !empty($commit['timestamp']) ? $commit['timestamp'] : gmdate('c');
     // Keep the commit author's literal local wall-clock time (matching the
@@ -109,6 +119,8 @@ foreach ($payload['commits'] as $commit) {
         ':subject' => $subject,
         ':body' => $body !== '' ? $body : null,
         ':tag' => $tag,
+        ':category_confidence' => $categorized['confidence'],
+        ':category_source' => 'auto',
         ':author' => $author,
         ':committed_at' => $committedAt,
         ':url' => $url,
@@ -116,16 +128,7 @@ foreach ($payload['commits'] as $commit) {
     if ($stmt->rowCount() > 0) {
         $inserted++;
         $dispatchId = (int)$db->lastInsertId();
-        $paths = array_merge(
-            is_array($commit['added'] ?? null) ? $commit['added'] : [],
-            is_array($commit['modified'] ?? null) ? $commit['modified'] : [],
-            is_array($commit['removed'] ?? null) ? $commit['removed'] : []
-        );
-        pw_store_dispatch_diff_context(
-            $db,
-            $dispatchId,
-            pw_dispatch_diff_context_from_paths($paths)
-        );
+        pw_store_dispatch_diff_context($db, $dispatchId, $diffContext);
         try {
             pw_create_dispatch_translation_draft($db, $dispatchId);
         } catch (PDOException $e) {
