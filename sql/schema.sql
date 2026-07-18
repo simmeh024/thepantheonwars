@@ -171,6 +171,22 @@ CREATE TABLE IF NOT EXISTS comments (
   FULLTEXT INDEX ft_comments_body (body)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Shard/Ward/Ember reactions on a reply (see REACTIONS in community.html).
+-- One reaction per member per comment -- changing your reaction type
+-- updates this same row rather than adding a second one (see
+-- api/comments/react.php).
+CREATE TABLE IF NOT EXISTS comment_reactions (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  comment_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  reaction_type VARCHAR(16) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uniq_user_comment (comment_id, user_id),
+  KEY idx_comment (comment_id),
+  CONSTRAINT fk_reaction_comment FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
+  CONSTRAINT fk_reaction_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Server-synced unread tracking, mirroring the client's localStorage "last
 -- seen" shape 1:1 so logged-in members get cross-device read state while
 -- guests keep the existing localStorage-only fallback (see community.html).
@@ -682,6 +698,42 @@ CREATE TABLE IF NOT EXISTS backup_log (
   note VARCHAR(255) NULL,
   logged_by INT UNSIGNED NULL,
   CONSTRAINT fk_backup_log_user FOREIGN KEY (logged_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Book Control: powers books.html (replaces the original hand-authored
+-- markup) plus the admin CRUD. saga_phase/writing_stage are small closed
+-- enums stored as plain integers (matched to a label lookup in PHP/JS, not
+-- a SQL ENUM) predating this table's later columns' UNSIGNED convention --
+-- kept signed here to match the live column types exactly rather than
+-- silently changing them during a documentation-only fix. preview_* fields
+-- back the optional "Chapter One" teaser card; buy_*_url are the retailer
+-- links shown on each book's card.
+CREATE TABLE IF NOT EXISTS books (
+  id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  book_number INT NOT NULL UNIQUE,
+  saga_phase TINYINT NOT NULL,
+  writing_stage TINYINT NOT NULL DEFAULT 1,
+  title VARCHAR(255) NOT NULL,
+  status_label VARCHAR(100) NOT NULL,
+  meta_text VARCHAR(500) DEFAULT NULL,
+  description MEDIUMTEXT DEFAULT NULL,
+  cover_image_url VARCHAR(500) DEFAULT NULL,
+  character_image_url VARCHAR(500) DEFAULT NULL,
+  character_alt VARCHAR(255) DEFAULT NULL,
+  preview_enabled TINYINT(1) NOT NULL DEFAULT 0,
+  preview_eyebrow VARCHAR(255) DEFAULT NULL,
+  preview_lede VARCHAR(500) DEFAULT NULL,
+  preview_hero_image_url VARCHAR(500) DEFAULT NULL,
+  preview_body MEDIUMTEXT DEFAULT NULL,
+  preview_quote MEDIUMTEXT DEFAULT NULL,
+  preview_quote_cite VARCHAR(255) DEFAULT NULL,
+  buy_kobo_url VARCHAR(500) DEFAULT NULL,
+  buy_amazon_url VARCHAR(500) DEFAULT NULL,
+  buy_apple_url VARCHAR(500) DEFAULT NULL,
+  buy_bn_url VARCHAR(500) DEFAULT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- World Control: powers the public worlds.html page (replaces what used to
