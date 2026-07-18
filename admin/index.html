@@ -1217,8 +1217,14 @@
             <option value="login_ip_blocked">IP throttled</option>
             <option value="google_registered">Google account created</option>
             <option value="google_login">Google sign-in</option>
+            <option value="google_login_banned">Google sign-in blocked</option>
             <option value="google_linked">Google linked</option>
             <option value="google_unlinked">Google unlinked</option>
+            <option value="google_link_required">Google link required</option>
+            <option value="google_oauth_cancelled">Google sign-in cancelled</option>
+            <option value="google_oauth_failed">Google sign-in failed</option>
+            <option value="password_reset_requested">Password reset requested</option>
+            <option value="password_reset_completed">Password reset completed</option>
           </optgroup>
           <optgroup label="Book Control">
             <option value="book_created">Book created</option>
@@ -1236,6 +1242,7 @@
             <option value="world_deleted">World deleted</option>
             <option value="world_reordered">Worlds reordered</option>
             <option value="world_layer_updated">World lore updated (layers/landmarks)</option>
+            <option value="weather_profile_updated">Weather profile updated</option>
           </optgroup>
           <optgroup label="Overlord Control">
             <option value="overlord_created">Overlord created</option>
@@ -1284,6 +1291,14 @@
             <option value="member_avatar_reset">Avatar reset</option>
             <option value="member_password_reset">Password reset</option>
           </optgroup>
+          <optgroup label="Sessions">
+            <option value="session_created">Session created</option>
+            <option value="session_revoked">Session revoked</option>
+            <option value="sessions_revoked_all">All sessions revoked</option>
+            <option value="sessions_revoked_others">Other sessions revoked</option>
+            <option value="member_sessions_revoked">Member's sessions revoked (staff)</option>
+            <option value="member_two_factor_reset">Two-factor reset (staff)</option>
+          </optgroup>
           <optgroup label="Community Moderation">
             <option value="topic_pinned">Topic pinned</option>
             <option value="topic_unpinned">Topic unpinned</option>
@@ -1316,8 +1331,17 @@
             <option value="role_updated">Role updated</option>
             <option value="role_deleted">Role deleted</option>
           </optgroup>
+          <optgroup label="Mail">
+            <option value="mail_settings_updated">Mail settings updated</option>
+            <option value="mail_template_updated">Mail template updated</option>
+            <option value="mail_test_sent">Mail test sent</option>
+          </optgroup>
+          <optgroup label="Privacy Requests">
+            <option value="privacy_request_updated">Privacy request updated</option>
+          </optgroup>
           <optgroup label="System">
             <option value="backup_logged">Backup logged</option>
+            <option value="development_snapshot_refreshed">Development snapshot refreshed</option>
           </optgroup>
         </select>
         <span class="admin-count" id="audit-count"></span>
@@ -4895,7 +4919,21 @@
     dispatch_composer_dispatch_attached: 'Dispatch attached to Composer draft',
     dispatch_composer_dispatch_removed: 'Dispatch removed from Composer draft',
     dispatch_composer_published: 'Composer article published',
-    dispatch_composer_archived: 'Composer draft archived'
+    dispatch_composer_archived: 'Composer draft archived',
+    known_figure_created: 'Known Figure created',
+    known_figure_updated: 'Known Figure updated',
+    known_figure_deleted: 'Known Figure deleted',
+    known_figure_reordered: 'Known Figures reordered',
+    soundtrack_created: 'Soundtrack created',
+    soundtrack_updated: 'Soundtrack updated',
+    soundtrack_deleted: 'Soundtrack deleted',
+    soundtrack_reordered: 'Soundtracks reordered',
+    session_created: 'Session created',
+    session_revoked: 'Session revoked',
+    sessions_revoked_all: 'All sessions revoked',
+    sessions_revoked_others: 'Other sessions revoked',
+    member_sessions_revoked: "Member's sessions revoked",
+    member_two_factor_reset: 'Two-factor reset'
   };
   var ACTIVITY_ICONS = {
     login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
@@ -4973,7 +5011,21 @@
     dispatch_composer_dispatch_attached: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M21.44 11.05 12.25 20.24a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.2 9.19a1 1 0 0 1-1.41-1.41l8.49-8.48"/></svg>',
     dispatch_composer_dispatch_removed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M21.44 11.05 12.25 20.24a5 5 0 0 1-7.07-7.07l9.19-9.19a3 3 0 0 1 4.24 4.24l-9.2 9.19a1 1 0 0 1-1.41-1.41l8.49-8.48"/><line x1="3" y1="3" x2="21" y2="21"/></svg>',
     dispatch_composer_published: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7z"/></svg>',
-    dispatch_composer_archived: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>'
+    dispatch_composer_archived: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8"/><line x1="10" y1="13" x2="14" y2="13"/></svg>',
+    known_figure_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>',
+    known_figure_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="9.5" cy="7.5" r="3.5"/><path d="M3 20.5c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5"/><path d="m14.5 15 2 2 4-4"/></svg>',
+    known_figure_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/><line x1="4" y1="4" x2="20" y2="20"/></svg>',
+    known_figure_reordered: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>',
+    soundtrack_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+    soundtrack_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M9 15V5l10-2v10"/><circle cx="6" cy="18" r="3"/><path d="m15.5 15.5 2 2 4-4"/></svg>',
+    soundtrack_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><line x1="3" y1="3" x2="21" y2="21"/></svg>',
+    soundtrack_reordered: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+    session_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="2" y="4" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+    session_revoked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="2" y="4" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="5" y1="6" x2="19" y2="16"/></svg>',
+    sessions_revoked_all: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="2" y="4" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="5" y1="6" x2="19" y2="16"/><line x1="5" y1="16" x2="19" y2="6"/></svg>',
+    sessions_revoked_others: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="2" y="4" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="5" y1="6" x2="19" y2="16"/></svg>',
+    member_sessions_revoked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="2" y="4" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="5" y1="6" x2="19" y2="16"/></svg>',
+    member_two_factor_reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><path d="M12 15v2"/></svg>'
   };
 
   var homeActivityListEl = document.getElementById('home-activity-list');
@@ -5004,6 +5056,9 @@
     if (action.indexOf('weather_') === 0) return { key: 'worlds', label: 'World Weather', icon: ACTIVITY_ICONS.weather_profile_updated };
     if (action.indexOf('world_') === 0) return { key: 'worlds', label: 'Worlds', icon: ACTIVITY_ICONS.world_updated };
     if (action.indexOf('overlord_') === 0) return { key: 'overlords', label: 'Overlords', icon: ACTIVITY_ICONS.overlord_updated };
+    if (action.indexOf('known_figure_') === 0) return { key: 'worlds', label: 'Known Figures', icon: ACTIVITY_ICONS.known_figure_created };
+    if (action.indexOf('soundtrack_') === 0) return { key: 'worlds', label: 'Soundtracks', icon: ACTIVITY_ICONS.soundtrack_created };
+    if (action.indexOf('session') === 0 || action === 'member_sessions_revoked' || action === 'member_two_factor_reset') return { key: 'members', label: 'Sessions', icon: ACTIVITY_ICONS.session_created };
     return { key: 'system', label: 'System', icon: ACTIVITY_ICONS.backup_logged };
   }
 
