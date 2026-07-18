@@ -463,6 +463,40 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Recent history (most recent first)
 
+- **Profile page polish batch** (`profile.html`): eight additions.
+  **"My Posts" now links to real threads.** `api/get-profile.php` merges
+  topics you started with replies you posted into one `posts` feed (each
+  carrying `topic_id` + the thread's title), sorted server-side by date;
+  previously it only ever queried `comments`, so topics you started were
+  invisible on your own profile, and every row was unclickable plain text
+  with no way back to the thread. Rows now link straight to
+  `community.html?topic=<id>`, reusing that page's existing deep-link
+  support (originally built for Topic Reports' "View" action). **Real
+  pagination**, mirroring Quiz History's own client-side pattern exactly
+  (`.history-pagination`/`.history-page-num` reused wholesale) instead of a
+  silent `LIMIT 20` hard cutoff. **Profile-head meta row**: role shown as a
+  text badge (previously only an avatar ring color, i.e. less transparent
+  about your own status than the public Members list), "Member since
+  \<date\>" (`users.created_at` was already returned by the API and simply
+  never rendered), and a "View public profile" link to
+  `member.html?id=<own id>` (there was previously no link at all from your
+  own settings page to your own public card). **Every tab is now
+  deep-linkable** (`profile.html?tab=settings|two-factor|notifications|
+  sessions|posts`) -- `activateProfilePanel()` syncs the URL via
+  `history.replaceState` on every switch; previously only `notifications`
+  and `two-factor` were recognized on load, and switching tabs never
+  touched the URL at all, so a refresh always dumped you back to Profile
+  Settings. **Drag-and-drop avatar upload** onto the avatar circle itself,
+  sharing the exact same `uploadAvatarFile()` path as the click-to-browse
+  input (refactored out so both paths validate and upload identically) --
+  added an explicit client-side image-type check specifically because
+  `accept=""` only filters the OS file-picker dialog, never a drop.
+  **Icons on all five profile tabs**, reusing exact existing icon paths
+  where one already established the right meaning elsewhere on the site
+  (gear for Settings, shield-check for Two-Factor, bell for Notifications,
+  chat-bubble for My Posts) rather than inventing new ones; only the
+  Sessions tab's monitor icon is new.
+
 - **Mailing-list subscription is now a real account attribute.** The
   homepage/site-wide "Join the Pantheon" newsletter form (`.newsletter-form`,
   present on 14 public pages) used to be pure theater -- `js/main.js` showed a

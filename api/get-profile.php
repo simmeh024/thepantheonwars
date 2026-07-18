@@ -21,9 +21,45 @@ $quizHistory = array_map(function ($row) {
     ];
 }, $stmt->fetchAll());
 
-$stmt = $db->prepare('SELECT id, body, created_at FROM comments WHERE user_id = ? AND is_deleted = 0 ORDER BY created_at DESC LIMIT 20');
+// "My Posts" merges topics you started with replies you posted into one feed,
+// each linkable back to its thread (community.html?topic=<id>) -- a reply's
+// topic_id links to the thread it lives in; a topic's own id links to itself.
+$stmt = $db->prepare('SELECT id, title, created_at FROM topics WHERE user_id = ? AND is_deleted = 0 ORDER BY created_at DESC LIMIT 20');
 $stmt->execute([$user['id']]);
-$comments = $stmt->fetchAll();
+$topicRows = $stmt->fetchAll();
+
+$stmt = $db->prepare(
+    'SELECT c.id, c.body, c.created_at, c.topic_id, t.title AS topic_title
+     FROM comments c
+     JOIN topics t ON t.id = c.topic_id AND t.is_deleted = 0
+     WHERE c.user_id = ? AND c.is_deleted = 0
+     ORDER BY c.created_at DESC LIMIT 20'
+);
+$stmt->execute([$user['id']]);
+$commentRows = $stmt->fetchAll();
+
+$posts = [];
+foreach ($topicRows as $r) {
+    $posts[] = [
+        'type' => 'topic',
+        'topic_id' => (int)$r['id'],
+        'title' => $r['title'],
+        'body' => null,
+        'created_at' => $r['created_at'],
+    ];
+}
+foreach ($commentRows as $r) {
+    $posts[] = [
+        'type' => 'comment',
+        'topic_id' => (int)$r['topic_id'],
+        'title' => $r['topic_title'],
+        'body' => $r['body'],
+        'created_at' => $r['created_at'],
+    ];
+}
+usort($posts, function ($a, $b) {
+    return strtotime($b['created_at']) <=> strtotime($a['created_at']);
+});
 
 // OAuth-only accounts intentionally have no local password until the member
 // chooses to add one from Profile Settings.
@@ -47,5 +83,5 @@ pw_json([
         'has_password' => $hasPassword,
     ],
     'quizHistory' => $quizHistory,
-    'comments' => $comments,
+    'posts' => $posts,
 ]);

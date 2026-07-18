@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=216">
+<link rel="stylesheet" href="css/community-bundle.css?v=217">
 </head>
 <body>
 
@@ -82,7 +82,14 @@
             </label>
             <input type="file" id="profile-avatar-input" accept="image/png,image/jpeg,image/webp" hidden>
           </div>
-          <h1 id="profile-name">—</h1>
+          <div class="profile-head-text">
+            <h1 id="profile-name">—</h1>
+            <div class="profile-head-meta">
+              <span class="profile-role-badge" id="profile-role-badge"></span>
+              <span class="profile-member-since" id="profile-member-since"></span>
+              <a class="profile-public-link" id="profile-public-link" href="#">View public profile &rarr;</a>
+            </div>
+          </div>
         </div>
         <p id="profile-avatar-status" class="profile-avatar-status" hidden></p>
 
@@ -117,11 +124,11 @@
         <div class="profile-divider"><span class="profile-divider-shard"></span></div>
 
         <div class="profile-menu" id="profile-menu">
-          <button type="button" class="profile-menu-tab active" data-panel="settings">Profile Settings</button>
-          <button type="button" class="profile-menu-tab" data-panel="two-factor">Two-Factor Authentication</button>
-          <button type="button" class="profile-menu-tab" data-panel="notifications">Notification Settings</button>
-          <button type="button" class="profile-menu-tab" data-panel="sessions">User Sessions</button>
-          <button type="button" class="profile-menu-tab" data-panel="posts">My Posts</button>
+          <button type="button" class="profile-menu-tab active" data-panel="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Profile Settings</button>
+          <button type="button" class="profile-menu-tab" data-panel="two-factor"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>Two-Factor Authentication</button>
+          <button type="button" class="profile-menu-tab" data-panel="notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>Notification Settings</button>
+          <button type="button" class="profile-menu-tab" data-panel="sessions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>User Sessions</button>
+          <button type="button" class="profile-menu-tab" data-panel="posts"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>My Posts</button>
         </div>
 
         <div id="profile-panel-settings" class="profile-panel">
@@ -323,6 +330,11 @@
           <h3>My Posts</h3>
           <div id="profile-comments"></div>
           <p id="profile-no-comments" class="lore-status" hidden>You haven't posted in the <a href="community.html">Assembly Floor</a> yet.</p>
+          <div class="history-pagination" id="profile-posts-pagination" hidden>
+            <button type="button" class="history-page-arrow" id="posts-history-prev" aria-label="Previous page">&lsaquo;</button>
+            <div class="history-page-numbers" id="posts-history-pages"></div>
+            <button type="button" class="history-page-arrow" id="posts-history-next" aria-label="Next page">&rsaquo;</button>
+          </div>
         </div>
       </div>
 
@@ -411,6 +423,9 @@
   var QUIZ_HISTORY_PAGE_SIZE = 3;
   var quizHistoryData = [];
   var quizHistoryPage = 1;
+  var PROFILE_POSTS_PAGE_SIZE = 5;
+  var profilePostsData = [];
+  var profilePostsPage = 1;
 
   // Same roster as quiz.html's overlords array -- kept here too since this
   // page needs the portrait/epithet/domain/blurb for whichever result the
@@ -540,6 +555,90 @@
     }
   });
 
+  // "My Posts": topics started + replies posted, merged and sorted server-side
+  // (api/get-profile.php), each row linking straight to its thread via
+  // community.html's existing ?topic=ID deep link. Same client-side
+  // pagination pattern as Quiz History above, reusing its .history-pagination
+  // CSS wholesale.
+  function renderProfilePostsPage() {
+    var postsEl = document.getElementById('profile-comments');
+    var paginationEl = document.getElementById('profile-posts-pagination');
+    var totalPages = Math.max(1, Math.ceil(profilePostsData.length / PROFILE_POSTS_PAGE_SIZE));
+    if (profilePostsPage > totalPages) profilePostsPage = totalPages;
+    if (profilePostsPage < 1) profilePostsPage = 1;
+
+    postsEl.innerHTML = '';
+    var start = (profilePostsPage - 1) * PROFILE_POSTS_PAGE_SIZE;
+    profilePostsData.slice(start, start + PROFILE_POSTS_PAGE_SIZE).forEach(function (p) {
+      var item = document.createElement('a');
+      item.className = 'profile-history-item profile-post-item';
+      item.href = 'community.html?topic=' + encodeURIComponent(p.topic_id);
+
+      var tag = document.createElement('span');
+      tag.className = 'profile-post-tag ' + (p.type === 'topic' ? 'is-topic' : 'is-reply');
+      tag.textContent = p.type === 'topic' ? 'Topic' : 'Reply';
+      item.appendChild(tag);
+
+      var title = document.createElement('span');
+      title.className = 'profile-post-title';
+      title.textContent = p.title;
+      item.appendChild(title);
+
+      if (p.body) {
+        var preview = document.createElement('span');
+        preview.className = 'profile-post-preview';
+        preview.textContent = stripBbcodePreview(p.body);
+        item.appendChild(preview);
+      }
+
+      var date = document.createElement('span');
+      date.className = 'profile-post-date';
+      date.textContent = fmtDate(p.created_at);
+      item.appendChild(date);
+
+      postsEl.appendChild(item);
+    });
+
+    if (profilePostsData.length <= PROFILE_POSTS_PAGE_SIZE) {
+      paginationEl.hidden = true;
+      return;
+    }
+    paginationEl.hidden = false;
+
+    var postPagesEl = document.getElementById('posts-history-pages');
+    postPagesEl.innerHTML = '';
+    for (var pp = 1; pp <= totalPages; pp++) {
+      (function (page) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'history-page-num' + (page === profilePostsPage ? ' active' : '');
+        btn.textContent = String(page);
+        btn.addEventListener('click', function () {
+          profilePostsPage = page;
+          renderProfilePostsPage();
+        });
+        postPagesEl.appendChild(btn);
+      })(pp);
+    }
+
+    document.getElementById('posts-history-prev').disabled = profilePostsPage <= 1;
+    document.getElementById('posts-history-next').disabled = profilePostsPage >= totalPages;
+  }
+
+  document.getElementById('posts-history-prev').addEventListener('click', function () {
+    if (profilePostsPage > 1) {
+      profilePostsPage--;
+      renderProfilePostsPage();
+    }
+  });
+  document.getElementById('posts-history-next').addEventListener('click', function () {
+    var totalPages = Math.max(1, Math.ceil(profilePostsData.length / PROFILE_POSTS_PAGE_SIZE));
+    if (profilePostsPage < totalPages) {
+      profilePostsPage++;
+      renderProfilePostsPage();
+    }
+  });
+
   function fmtDate(iso) {
     var d = new Date(iso.replace(' ', 'T') + 'Z');
     if (isNaN(d.getTime())) return iso;
@@ -569,6 +668,9 @@
 
   function setRole(role, roleColor) {
     avatarWrap.style.setProperty('--role-color', roleColor || '#c7ccd6');
+    var badge = document.getElementById('profile-role-badge');
+    badge.style.setProperty('--role-color', roleColor || '#c7ccd6');
+    badge.textContent = String(role || 'member').replace(/(^|_)([a-z])/g, function (_, gap, letter) { return gap + letter.toUpperCase(); }).replace(/_/g, ' ');
   }
 
   function loadAvatar(userId, displayName) {
@@ -594,13 +696,18 @@
     avatarStatus.classList.toggle('show-ok', !isError && !!message);
   }
 
-  avatarInput.addEventListener('change', function () {
-    var file = avatarInput.files && avatarInput.files[0];
+  function uploadAvatarFile(file) {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
       showAvatarStatus('That image is too large. Please choose a file under 5MB.', true);
-      avatarInput.value = '';
+      return;
+    }
+    // The accept="" attribute only filters the OS file-picker dialog, not a
+    // drag-and-drop -- worth checking here since drop is the only path that
+    // can otherwise bypass it entirely.
+    if (['image/png', 'image/jpeg', 'image/webp'].indexOf(file.type) === -1) {
+      showAvatarStatus('Please choose a PNG, JPEG, or WebP image.', true);
       return;
     }
 
@@ -628,10 +735,31 @@
       })
       .catch(function () {
         showAvatarStatus('Upload failed. Please try again.', true);
-      })
-      .finally(function () {
-        avatarInput.value = '';
       });
+  }
+
+  avatarInput.addEventListener('change', function () {
+    uploadAvatarFile(avatarInput.files && avatarInput.files[0]);
+    avatarInput.value = '';
+  });
+
+  // Drag-and-drop straight onto the avatar circle, same upload path as the
+  // click-to-browse input above.
+  ['dragenter', 'dragover'].forEach(function (evt) {
+    avatarWrap.addEventListener(evt, function (e) {
+      e.preventDefault();
+      avatarWrap.classList.add('is-dragover');
+    });
+  });
+  ['dragleave', 'drop'].forEach(function (evt) {
+    avatarWrap.addEventListener(evt, function (e) {
+      e.preventDefault();
+      avatarWrap.classList.remove('is-dragover');
+    });
+  });
+  avatarWrap.addEventListener('drop', function (e) {
+    var file = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    uploadAvatarFile(file);
   });
 
   var profileMenu = document.getElementById('profile-menu');
@@ -893,6 +1021,11 @@
       twoFactorLoaded = true;
       loadTwoFactorStatus();
     }
+    if (window.history && window.history.replaceState) {
+      var params = new URLSearchParams(location.search);
+      params.set('tab', panel);
+      window.history.replaceState(null, '', location.pathname + '?' + params.toString());
+    }
   }
 
   profileMenu.addEventListener('click', function (e) {
@@ -1131,9 +1264,10 @@
     gate.hidden = true;
     content.hidden = false;
 
-    // Deep links from notification settings and profile protection shortcuts.
+    // Deep links from notification settings, profile protection shortcuts,
+    // or just a shared/bookmarked/refreshed profile.html?tab=... URL.
     var requestedTab = new URLSearchParams(location.search).get('tab');
-    if (requestedTab === 'notifications' || requestedTab === 'two-factor') {
+    if (['settings', 'two-factor', 'notifications', 'sessions', 'posts'].indexOf(requestedTab) !== -1) {
       activateProfilePanel(requestedTab);
     }
 
@@ -1144,6 +1278,8 @@
 
         document.getElementById('profile-name').textContent = data.user.display_name;
         setRole(data.user.role, data.user.role_color);
+        document.getElementById('profile-member-since').textContent = 'Member since ' + fmtDate(data.user.created_at);
+        document.getElementById('profile-public-link').href = 'member.html?id=' + encodeURIComponent(data.user.id);
         loadAvatar(data.user.id, data.user.display_name);
         lockedNameInput.value = data.user.display_name;
         lockedEmailInput.value = data.user.email;
@@ -1269,18 +1405,16 @@
           document.getElementById('profile-quiz-pagination').hidden = true;
         }
 
-        var commentsEl = document.getElementById('profile-comments');
-        commentsEl.innerHTML = '';
-        if (data.comments && data.comments.length) {
+        if (data.posts && data.posts.length) {
           document.getElementById('profile-no-comments').hidden = true;
-          data.comments.forEach(function (c) {
-            var item = document.createElement('div');
-            item.className = 'profile-history-item';
-            item.textContent = stripBbcodePreview(c.body) + ' — ' + fmtDate(c.created_at);
-            commentsEl.appendChild(item);
-          });
+          profilePostsData = data.posts;
+          profilePostsPage = 1;
+          renderProfilePostsPage();
         } else {
           document.getElementById('profile-no-comments').hidden = false;
+          profilePostsData = [];
+          document.getElementById('profile-comments').innerHTML = '';
+          document.getElementById('profile-posts-pagination').hidden = true;
         }
       });
   }

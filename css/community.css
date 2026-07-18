@@ -10,6 +10,17 @@
 
 /* Profile page */
 .profile-head { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 1.6em; }
+.profile-head-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.profile-head-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.profile-role-badge {
+  display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 3px;
+  font-family: 'Cinzel', serif; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.07em;
+  color: var(--role-color, #c7ccd6); border: 1px solid var(--role-color, #c7ccd6);
+  background: rgba(124,79,214,0.055);
+}
+.profile-member-since { font-size: 0.78rem; color: var(--text-faint); }
+.profile-public-link { font-size: 0.78rem; color: var(--purple-bright); text-decoration: none; }
+.profile-public-link:hover { color: var(--gold-bright); }
 
 /* Profile avatar */
 .profile-avatar-wrap {
@@ -29,6 +40,9 @@
 .profile-avatar-fallback[hidden] { display: none; }
 .profile-avatar-wrap { --role-color: #c7ccd6; }
 .profile-avatar-wrap .profile-avatar { border-color: var(--role-color); box-shadow: 0 0 14px color-mix(in srgb, var(--role-color) 40%, transparent); }
+.profile-avatar-wrap.is-dragover .profile-avatar {
+  border-color: var(--gold-bright); box-shadow: 0 0 18px rgba(226,165,92,0.6);
+}
 .profile-avatar-presence {
   position: absolute; z-index: 2; right: -2px; bottom: -2px; width: 13px; height: 13px;
   border: 2px solid var(--panel); border-radius: 50%; background: #778096;
@@ -356,6 +370,23 @@
 .profile-history-item {
   border-bottom: 1px solid var(--border-soft); padding: 10px 0; font-size: 0.9rem; color: var(--text-dim);
 }
+.profile-post-item {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; text-decoration: none;
+  transition: background 0.15s ease;
+}
+.profile-post-item:hover { background: rgba(124,79,214,0.06); }
+.profile-post-tag {
+  flex-shrink: 0; font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600;
+  padding: 2px 8px; border-radius: 999px;
+}
+.profile-post-tag.is-topic { color: var(--gold-bright); background: rgba(226,165,92,0.14); border: 1px solid rgba(226,165,92,0.4); }
+.profile-post-tag.is-reply { color: #9ac8f0; background: rgba(99,180,255,0.12); border: 1px solid rgba(99,180,255,0.4); }
+.profile-post-title { font-family: 'Cinzel', serif; color: var(--text); flex-shrink: 0; }
+.profile-post-preview {
+  flex: 1 1 200px; min-width: 0; color: var(--text-faint); overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.profile-post-date { flex-shrink: 0; margin-left: auto; font-size: 0.78rem; color: var(--text-faint); }
 .quiz-history-row {
   display: flex; align-items: center; gap: 12px;
   padding: 14px 12px; border-bottom: 1px solid var(--border-soft);
@@ -444,10 +475,12 @@
 
 .profile-menu { display: flex; gap: 6px; margin-bottom: 1.6em; border-bottom: 1px solid var(--border-soft); }
 .profile-menu-tab {
+  display: inline-flex; align-items: center; gap: 7px;
   background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-faint);
   padding: 10px 4px; margin-right: 22px; font-family: 'Cinzel', serif; font-size: 0.92rem;
   cursor: pointer; transition: color 0.2s ease, border-color 0.2s ease;
 }
+.profile-menu-tab svg { flex-shrink: 0; width: 15px; height: 15px; }
 .profile-menu-tab:hover { color: var(--text); }
 .profile-menu-tab.active { color: var(--gold-bright); border-bottom-color: var(--gold-dim); }
 .profile-panel[hidden] { display: none; }
