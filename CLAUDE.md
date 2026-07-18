@@ -463,7 +463,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Recent history (most recent first)
 
-- **Dispatch category auto-scoring, confidence, and review queue:**
+- **Dispatch category auto-scoring, confidence, and review queue** (full
+  end-to-end flowchart of this system plus Translation and Composer
+  together: `docs/dispatch-pipeline.md`):
   `pw_dispatch_categorize()` (`api/dispatch-helpers.php`) replaced the old
   if/elif keyword cascade that assigned each Dispatch's category
   (feature/improvement/fix/performance/ui_ux/lore/infrastructure/refactor/
@@ -478,7 +480,13 @@ also supports a deliberately manual `?full=1` historical rebuild.
   keyword hits (20), and the diff-context file-scope labels already
   computed for the Translator (45) -- and the highest score wins (ties keep
   the old cascade's priority order, since PHP array sorts are stable).
-  A margin-aware confidence score (0-100) comes out of the same tally.
+  A margin-aware confidence score (0-100) comes out of the same tally: zero
+  signal at all (pure `feature` default) is reported as a flat 20% rather
+  than implying evidence that doesn't exist; a winning margin under 15
+  points over the runner-up (genuinely contested) gets pulled down to
+  `max(15, score - 25)`; anything else is just the winning score capped at
+  100. `pw_dispatch_category_needs_review()` is the single source of truth
+  for the 65% "worth a human look" line everywhere it's checked.
   `dispatch_entries` gained `category_confidence` and `category_source`
   (`auto`/`manual`); any explicit category save in Dispatch Control now
   resets confidence to 100, flips source to `manual`, and is logged to a
