@@ -339,7 +339,7 @@
 .post-signal.is-lore { color: var(--gold); }
 .post-signal.is-soundtrack { color: #5cc9ff; }
 .post-signal-label { margin-left: 4px; color: var(--text-faint); font: 700 0.59rem 'Jost', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }
-.post-read-cue { display: inline-block; margin: 17px 0 -2px; color: var(--news-accent); font: 700 0.64rem 'Jost', sans-serif; letter-spacing: 0.1em; text-decoration: none; text-transform: uppercase; transition: color 180ms ease, transform 220ms ease; }
+.post-read-cue { display: block; width: fit-content; margin: 17px 0 -2px; color: var(--news-accent); font: 700 0.64rem 'Jost', sans-serif; letter-spacing: 0.1em; text-decoration: none; text-transform: uppercase; transition: color 180ms ease, transform 220ms ease; }
 @media (hover: hover) {
   .post:hover { border-color: var(--news-accent); box-shadow: 0 16px 32px rgba(0,0,0,0.2); background-color: rgba(124,79,214,0.055); transform: translateY(-2px); }
   .post:hover::after { opacity: 0.09; transform: translateX(0); }
