@@ -311,6 +311,14 @@
     return Math.round(seconds / 86400) + 'd ago';
   }
 
+  // Flags a sidecard dispatch as recent if committed within the last 48h,
+  // same fixed-threshold-badge approach as Active Topics' trending flame.
+  function isRecentDispatch(value) {
+    var time = new Date(String(value || '').replace(' ', 'T') + 'Z').getTime();
+    if (isNaN(time)) return false;
+    return (Date.now() - time) < 48 * 3600 * 1000;
+  }
+
   function appendParagraphs(body, target) {
     String(body || '').split(/\n\s*\n+/).forEach(function (raw) {
       var text = raw.trim();
@@ -362,6 +370,10 @@
     card.appendChild(eyebrow);
     var heading = document.createElement('h2');
     heading.textContent = 'Dispatches in this update';
+    var count = document.createElement('span');
+    count.className = 'news-detail-sidecard-count';
+    count.textContent = String(dispatches.length);
+    heading.appendChild(count);
     card.appendChild(heading);
 
     var list = document.createElement('ul');
@@ -418,10 +430,19 @@
       link.appendChild(icon);
       var body = document.createElement('span');
       body.className = 'news-detail-sidecard-item-body';
+      var tagRow = document.createElement('span');
+      tagRow.className = 'news-detail-sidecard-tag-row';
       var tagLabel = document.createElement('span');
       tagLabel.className = 'news-detail-sidecard-tag';
       tagLabel.textContent = TAG_LABELS[tag];
-      body.appendChild(tagLabel);
+      tagRow.appendChild(tagLabel);
+      if (isRecentDispatch(d.committed_at)) {
+        var newBadge = document.createElement('span');
+        newBadge.className = 'news-detail-sidecard-new';
+        newBadge.textContent = 'New';
+        tagRow.appendChild(newBadge);
+      }
+      body.appendChild(tagRow);
       var title = document.createElement('span');
       title.className = 'news-detail-sidecard-title';
       title.textContent = d.subject;

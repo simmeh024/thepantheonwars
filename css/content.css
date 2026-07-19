@@ -490,7 +490,12 @@
   background: linear-gradient(160deg, rgba(48,28,86,0.28), rgba(13,9,28,0.78));
 }
 .news-detail-sidecard .eyebrow { display: block; margin-bottom: 6px; }
-.news-detail-sidecard h2 { margin: 0 0 14px; color: var(--text); font-family: 'Cinzel', serif; font-size: 1.02rem; }
+.news-detail-sidecard h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 14px; color: var(--text); font-family: 'Cinzel', serif; font-size: 1.02rem; }
+.news-detail-sidecard-count {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px;
+  padding: 0 6px; border-radius: 10px; background: color-mix(in srgb, var(--gold-bright) 18%, transparent);
+  color: var(--gold-bright); font: 700 0.68rem 'Jost', sans-serif;
+}
 
 /* Category filter pills -- only rendered when the attached list actually
    spans more than one category. Purely client-side (js/news-post.js
@@ -551,6 +556,15 @@
   background: linear-gradient(90deg, transparent, var(--item-accent), transparent);
   opacity: 0.55; transition: opacity 160ms ease;
 }
+/* Diagonal sheen sweep, same keyframe already used by .book-row:hover .book-art::after. */
+.news-detail-sidecard-item a::after {
+  content: ''; position: absolute; top: -20%; left: -30%; z-index: 1;
+  width: 54%; height: 140%; pointer-events: none; opacity: 0;
+  transform: skewX(-18deg) translateX(-260%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--item-accent) 65%, white 15%), transparent);
+  mix-blend-mode: screen;
+}
+.news-detail-sidecard-item a:hover::after { animation: book-cover-sweep 0.82s cubic-bezier(0.2, 0.72, 0.25, 1) both; }
 .news-detail-sidecard-item a:hover {
   background: color-mix(in srgb, var(--item-accent) 14%, transparent);
   border-color: color-mix(in srgb, var(--item-accent) 55%, var(--border-soft));
@@ -562,13 +576,28 @@
   flex-shrink: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
   padding: 6px; box-sizing: border-box; border-radius: 8px; color: var(--item-accent);
   background: color-mix(in srgb, var(--item-accent) 16%, transparent);
-  transition: background 160ms ease;
+  transition: background 160ms ease, transform 220ms ease;
 }
-.news-detail-sidecard-item a:hover .news-detail-sidecard-icon { background: color-mix(in srgb, var(--item-accent) 26%, transparent); }
+.news-detail-sidecard-item a:hover .news-detail-sidecard-icon { background: color-mix(in srgb, var(--item-accent) 26%, transparent); transform: scale(1.12) rotate(-4deg); }
 .news-detail-sidecard-icon svg { display: block; width: 100%; height: 100%; }
 .news-detail-sidecard-item-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.news-detail-sidecard-tag-row { display: flex; align-items: center; gap: 6px; }
 .news-detail-sidecard-tag {
   color: var(--item-accent); font: 700 0.6rem 'Jost', sans-serif; letter-spacing: 0.08em; text-transform: uppercase;
+}
+/* "New" signal for dispatches committed in the last 48h (js/news-post.js's isRecentDispatch()). */
+.news-detail-sidecard-new {
+  display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; border-radius: 8px;
+  background: color-mix(in srgb, var(--gold-bright) 22%, transparent); color: var(--gold-bright);
+  font: 700 0.56rem 'Jost', sans-serif; letter-spacing: 0.05em; text-transform: uppercase;
+}
+.news-detail-sidecard-new::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--gold-bright);
+  animation: sidecard-new-pulse 1.6s ease-in-out infinite;
+}
+@keyframes sidecard-new-pulse {
+  0%, 100% { opacity: 0.4; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.15); }
 }
 .news-detail-sidecard-title { font-size: 0.85rem; line-height: 1.35; }
 .news-detail-sidecard-item a:hover .news-detail-sidecard-title { color: var(--item-accent); }
@@ -584,6 +613,9 @@
 @media (prefers-reduced-motion: reduce) {
   .news-detail-sidecard-item, .news-detail-sidecard-item.is-visible { opacity: 1; transform: none; transition: none; }
   .news-detail-sidecard-item a:hover { transform: none; }
+  .news-detail-sidecard-item a:hover::after { animation: none; }
+  .news-detail-sidecard-item a:hover .news-detail-sidecard-icon { transform: none; }
+  .news-detail-sidecard-new::before { animation: none; }
 }
 .news-back-link { display: inline-flex; margin: 0 0 21px; color: var(--gold-bright); font: 700 0.68rem 'Jost', sans-serif; letter-spacing: 0.09em; text-decoration: none; text-transform: uppercase; transition: color 160ms ease, transform 160ms ease; }
 .news-back-link:hover { color: var(--purple-bright); transform: translateX(-3px); }
