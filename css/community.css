@@ -10,6 +10,7 @@
 
 /* Profile page */
 .profile-head { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; margin-bottom: 1.6em; }
+.profile-avatar-column { display: flex; flex-direction: column; align-items: center; gap: 8px; flex-shrink: 0; }
 .profile-head-text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .profile-head-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .profile-role-badge {
