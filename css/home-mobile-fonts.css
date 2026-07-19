@@ -4,13 +4,16 @@
   font-family: 'Cinzel';
   font-style: normal;
   font-weight: 500 700;
-  font-display: swap;
+  /* A late font swap moves the full vertically-centred hero. The preload still
+     makes this font available on the first paint in normal conditions; on a
+     very slow connection the system fallback remains in place instead. */
+  font-display: optional;
   src: url('../fonts/cinzel-latin.woff2') format('woff2');
 }
 @font-face {
   font-family: 'Jost';
   font-style: normal;
   font-weight: 400 600;
-  font-display: swap;
+  font-display: optional;
   src: url('../fonts/jost-latin.woff2') format('woff2');
 }

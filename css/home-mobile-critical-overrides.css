@@ -1,6 +1,12 @@
 /* The critical hero needs its mobile art and static treatment before the
    asynchronous homepage stylesheet is applied. */
 @media (max-width: 780px) {
+  /* The parent used to vertically centre an auto-height content block. When
+     a fallback font was replaced by a loaded font, that block changed height
+     and the entire hero moved. Stretching it to the stable viewport height
+     reserves its geometry before any text is painted. */
+  .hero { align-items: stretch; min-height: 100svh; }
+  .hero-content { box-sizing: border-box; min-height: 100svh; }
   .hero-bg-parallax { will-change: auto; }
   .hero-bg.effect-neoh {
     animation: none;
