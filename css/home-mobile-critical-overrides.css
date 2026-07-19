@@ -3,7 +3,6 @@
 @media (max-width: 780px) {
   .hero-bg-parallax { will-change: auto; }
   .hero-bg.effect-neoh {
-    background-image: url('../images/hero-main-bg-mobile.jpg') !important;
     animation: none;
     filter: saturate(1.12) brightness(0.84) contrast(1.04);
     transform: scale(1.08);
