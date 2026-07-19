@@ -3,6 +3,11 @@
 @media (max-width: 780px) {
   .prophecy-bg { display: none; }
   .prophecy-scene {
-    background: #070511 url('../images/home-prophecy-mobile.jpg') center 30% / cover no-repeat;
+    /* The artwork is assigned by the homepage's near-viewport observer. Do
+       not start this below-the-fold image request alongside the hero. */
+    background-color: #070511;
+    background-position: center 30%;
+    background-repeat: no-repeat;
+    background-size: cover;
   }
 }

@@ -41,7 +41,7 @@ function wireWorldInteractions() {
 }
 window.wireWorldInteractions = wireWorldInteractions;
 
-document.addEventListener('DOMContentLoaded', function () {
+function initMain() {
   // Public navigation polish: mark the actual route (including dropdown
   // destinations), and enrich the two discovery-oriented menus without
   // duplicating navigation markup on every page.
@@ -285,4 +285,11 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     });
   });
-});
+}
+
+// Index loads this non-critical enhancement bundle after the first mobile
+// paint. Keep the normal DOM-ready path for every other page, while allowing
+// that delayed homepage load to initialise immediately rather than missing an
+// event that has already fired.
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initMain);
+else initMain();
