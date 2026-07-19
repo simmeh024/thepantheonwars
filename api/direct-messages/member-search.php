@@ -15,7 +15,7 @@ if (mb_strlen($query) > 60) {
 // non-blocked recipients; staff retain the approved send override.
 $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $query) . '%';
 $staff = pw_is_staff_messenger($user);
-$sql = 'SELECT u.id, u.display_name, u.role, r.color AS role_color
+$sql = 'SELECT u.id, u.display_name, u.role, u.presence_status, u.last_active_at, u.created_at, r.color AS role_color
         FROM users u
         LEFT JOIN roles r ON r.slug = u.role
         WHERE u.id != ?
@@ -41,6 +41,8 @@ $members = array_map(function ($row) {
         'display_name' => $row['display_name'],
         'role' => $row['role'],
         'role_color' => $row['role_color'] ?: '#c7ccd6',
+        'presence_status' => pw_public_presence_status($row['presence_status'], $row['last_active_at']),
+        'created_at' => $row['created_at'],
     ];
 }, $stmt->fetchAll());
 

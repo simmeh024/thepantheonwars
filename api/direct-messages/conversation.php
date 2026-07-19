@@ -36,6 +36,12 @@ if (!$counterpart) {
 $canSend = !pw_direct_messages_blocked($user, $counterpartId)
     && (pw_is_staff_messenger($user) || !empty($counterpart['messaging_available']));
 unset($counterpart['messaging_available']);
+$counterpartReadMessageId = (int)$conversation[(int)$conversation['user_low_id'] === (int)$user['id']
+    ? 'user_high_last_read_message_id'
+    : 'user_low_last_read_message_id'];
+$pinStmt = pw_db()->prepare('SELECT is_pinned FROM direct_conversation_preferences WHERE user_id = ? AND conversation_id = ?');
+$pinStmt->execute([(int)$user['id'], $conversationId]);
+$pin = $pinStmt->fetch();
 
 pw_json([
     'ok' => true,
@@ -43,6 +49,8 @@ pw_json([
         'id' => (int)$conversation['id'],
         'counterpart' => $counterpart,
         'can_send' => $canSend,
+        'counterpart_last_read_message_id' => $counterpartReadMessageId,
+        'is_pinned' => $pin ? (bool)$pin['is_pinned'] : false,
     ],
     'messages' => array_map('pw_dm_message_row', $rows),
     'has_older' => count($rows) === 50,

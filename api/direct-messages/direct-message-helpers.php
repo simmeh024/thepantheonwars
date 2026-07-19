@@ -20,7 +20,7 @@ function pw_dm_counterpart_id($conversation, $userId) {
 
 function pw_dm_public_member($userId) {
     $stmt = pw_db()->prepare(
-        'SELECT u.id, u.display_name, u.role, u.banned_at, u.banned_until, r.color AS role_color
+        'SELECT u.id, u.display_name, u.role, u.banned_at, u.banned_until, u.presence_status, u.last_active_at, u.created_at, r.color AS role_color
          FROM users u LEFT JOIN roles r ON r.slug = u.role WHERE u.id = ?'
     );
     $stmt->execute([$userId]);
@@ -33,6 +33,8 @@ function pw_dm_public_member($userId) {
         'display_name' => $row['display_name'],
         'role' => $row['role'],
         'role_color' => $row['role_color'] ?: '#c7ccd6',
+        'presence_status' => pw_public_presence_status($row['presence_status'], $row['last_active_at']),
+        'created_at' => $row['created_at'],
         'messaging_available' => !pw_is_banned($row),
     ];
 }

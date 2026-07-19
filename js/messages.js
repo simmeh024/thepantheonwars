@@ -18,17 +18,30 @@
   var sendButton = document.getElementById('messages-send-btn');
   var sendDisabled = document.getElementById('messages-send-disabled');
   var blockButton = document.getElementById('messages-block-btn');
+  var pinButton = document.getElementById('messages-pin-btn');
   var olderButton = document.getElementById('messages-load-older');
   var countEl = document.getElementById('messages-count');
   var writeButton = document.getElementById('messages-write-btn');
   var recipientPicker = document.getElementById('messages-recipient-picker');
   var recipientInput = document.getElementById('messages-recipient-input');
   var recipientResults = document.getElementById('messages-recipient-results');
+  var typingEl = document.getElementById('messages-typing');
+  var typingNameEl = document.getElementById('messages-typing-name');
+  var threadProfileLink = document.getElementById('messages-thread-profile-link');
+  var profilePopover = document.getElementById('messages-profile-popover');
+  var profilePopoverName = document.getElementById('messages-profile-popover-name');
+  var profilePopoverRole = document.getElementById('messages-profile-popover-role');
+  var profilePopoverPresence = document.getElementById('messages-profile-popover-presence');
+  var profilePopoverJoined = document.getElementById('messages-profile-popover-joined');
+  var profilePopoverLink = document.getElementById('messages-profile-popover-link');
   var activeConversation = null;
   var activeMember = null;
   var oldestMessageId = 0;
   var polling = null;
+  var typingPolling = null;
   var recipientSearchTimer = null;
+  var lastTypingSentAt = 0;
+  var readReceiptMessageId = 0;
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -44,9 +57,20 @@
     return role.replace(/(^|_)([a-z])/g, function (match, prefix, letter) { return (prefix ? ' ' : '') + letter.toUpperCase(); });
   }
 
+  function presenceLabel(status) {
+    return { online: 'Online', away: 'Away', inactive: 'Inactive', offline: 'Offline' }[status] || 'Offline';
+  }
+
+  function profileUrl(member) { return 'member.html?id=' + encodeURIComponent(member.id); }
+
+  function joinedLabel(value) {
+    var date = new Date(String(value || '').replace(' ', 'T') + 'Z');
+    return isNaN(date.getTime()) ? 'Member' : 'Member since ' + date.toLocaleDateString([], { month: 'short', year: 'numeric' });
+  }
+
   function avatarHtml(member) {
     var initial = escapeHtml((member.display_name || '?').charAt(0).toUpperCase());
-    return '<span class="messages-avatar" style="--member-role-color:' + escapeHtml(member.role_color || '#c7ccd6') + '"><img src="/uploads/avatars/' + encodeURIComponent(member.id) + '.jpg" alt="" onerror="this.remove()"><span>' + initial + '</span></span>';
+    return '<span class="messages-avatar is-' + escapeHtml(member.presence_status || 'offline') + '" style="--member-role-color:' + escapeHtml(member.role_color || '#c7ccd6') + '"><img src="/uploads/avatars/' + encodeURIComponent(member.id) + '.jpg" alt="" onerror="this.remove()"><span>' + initial + '</span></span>';
   }
 
   function wireAvatarFallback(container) {
@@ -60,7 +84,17 @@
     roleEl.textContent = roleLabel(member.role) + (copy ? ' · ' + copy : '');
     roleEl.style.color = member.role_color || '#c7ccd6';
     threadAvatar.innerHTML = '<img src="/uploads/avatars/' + encodeURIComponent(member.id) + '.jpg" alt="" onerror="this.remove()"><span>' + escapeHtml((member.display_name || '?').charAt(0).toUpperCase()) + '</span>';
+    threadAvatar.href = profileUrl(member);
+    threadAvatar.className = 'messages-avatar is-' + (member.presence_status || 'offline');
     threadAvatar.style.setProperty('--member-role-color', member.role_color || '#c7ccd6');
+    threadProfileLink.href = profileUrl(member);
+    profilePopoverName.textContent = member.display_name;
+    profilePopoverRole.textContent = roleLabel(member.role);
+    profilePopoverRole.style.color = member.role_color || '#c7ccd6';
+    profilePopoverPresence.textContent = presenceLabel(member.presence_status);
+    profilePopoverJoined.textContent = joinedLabel(member.created_at);
+    profilePopoverLink.href = profileUrl(member);
+    profilePopover.hidden = false;
     wireAvatarFallback(threadAvatar);
   }
 
@@ -105,7 +139,8 @@
     conversations.forEach(function (conversation) {
       var item = document.createElement('button');
       item.type = 'button';
-      item.className = 'messages-conversation' + (activeConversation && activeConversation.id === conversation.id ? ' is-active' : '');
+      item.className = 'messages-conversation' + (activeConversation && activeConversation.id === conversation.id ? ' is-active' : '') +
+        (conversation.unread_count ? ' is-unread' : '') + (conversation.is_pinned ? ' is-pinned' : '');
       item.innerHTML =
         avatarHtml(conversation.counterpart) +
         '<span class="messages-conversation-copy"><strong>' + escapeHtml(conversation.counterpart.display_name) + '</strong>' +
@@ -137,12 +172,35 @@
       '<span class="private-message-role" style="color:' + escapeHtml(message.sender.role_color || '#c7ccd6') + '">' + escapeHtml(roleLabel(message.sender.role)) + '</span>' +
       '<time>' + escapeHtml(formatDate(message.created_at)) + '</time></div>' +
       '<div class="private-message-body"></div>' +
+      (own && Number(message.id) === Number(readReceiptMessageId) ? '<i class="private-message-read">Seen</i>' : '') +
       (!own ? '<button type="button" class="private-message-report">Report</button>' : '');
     row.querySelector('.private-message-body').textContent = message.body;
     var report = row.querySelector('.private-message-report');
     if (report) report.addEventListener('click', function () { showReportForm(row, message.id); });
     if (prepend) threadEl.insertBefore(row, threadEl.firstChild);
     else threadEl.appendChild(row);
+  }
+
+  function dateKey(value) {
+    var date = new Date(String(value).replace(' ', 'T') + 'Z');
+    return isNaN(date.getTime()) ? String(value).slice(0, 10) : date.toLocaleDateString([], { year: 'numeric', month: '2-digit', day: '2-digit' });
+  }
+
+  function dateLabel(value) {
+    var date = new Date(String(value).replace(' ', 'T') + 'Z');
+    if (isNaN(date.getTime())) return 'Earlier';
+    var today = new Date();
+    var yesterday = new Date(); yesterday.setDate(today.getDate() - 1);
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+    return date.toLocaleDateString([], { month: 'long', day: 'numeric', year: date.getFullYear() === today.getFullYear() ? undefined : 'numeric' });
+  }
+
+  function renderDateSeparator(value) {
+    var separator = document.createElement('div');
+    separator.className = 'messages-date-separator';
+    separator.textContent = dateLabel(value);
+    threadEl.appendChild(separator);
   }
 
   function showReportForm(row, messageId) {
@@ -170,8 +228,21 @@
     contentEl.hidden = false;
     recipientPicker.hidden = true;
     setThreadIdentity(conversation.counterpart, 'Private conversation');
+    readReceiptMessageId = 0;
+    for (var i = messages.length - 1; i >= 0; i--) {
+      if (Number(messages[i].sender_id) === Number(window.PW_AUTH.user.id) && Number(messages[i].id) <= Number(conversation.counterpart_last_read_message_id || 0)) {
+        readReceiptMessageId = Number(messages[i].id);
+        break;
+      }
+    }
     if (replace) threadEl.innerHTML = '';
-    messages.forEach(function (message) { renderMessage(message, false); });
+    var previousDate = null;
+    messages.forEach(function (message) {
+      var currentDate = dateKey(message.created_at);
+      if (currentDate !== previousDate) renderDateSeparator(message.created_at);
+      renderMessage(message, false);
+      previousDate = currentDate;
+    });
     if (messages.length) oldestMessageId = Number(messages[0].id);
     composeForm.hidden = !conversation.can_send;
     sendDisabled.hidden = !!conversation.can_send;
@@ -179,6 +250,11 @@
     blockButton.textContent = 'Block member';
     blockButton.dataset.targetId = conversation.counterpart.id;
     blockButton.dataset.blocked = '0';
+    pinButton.hidden = false;
+    pinButton.dataset.conversationId = conversation.id;
+    pinButton.dataset.pinned = conversation.is_pinned ? '1' : '0';
+    pinButton.setAttribute('aria-pressed', conversation.is_pinned ? 'true' : 'false');
+    pinButton.textContent = conversation.is_pinned ? 'Pinned' : 'Pin';
     threadEl.scrollTop = threadEl.scrollHeight;
   }
 
@@ -186,21 +262,43 @@
     return post('/api/direct-messages/mark-read.php', { conversation_id: id }).catch(function () {});
   }
 
+  function updateTypingIndicator(isTyping) {
+    if (!activeConversation || !typingEl) return;
+    typingEl.hidden = !isTyping;
+    if (isTyping) typingNameEl.textContent = activeConversation.counterpart.display_name;
+  }
+
+  function refreshTyping() {
+    if (!activeConversation || document.hidden) return;
+    fetchJson('/api/direct-messages/typing.php?conversation_id=' + encodeURIComponent(activeConversation.id))
+      .then(function (data) { updateTypingIndicator(!!data.is_typing); })
+      .catch(function () { updateTypingIndicator(false); });
+  }
+
+  function publishTyping(isTyping, immediate) {
+    if (!activeConversation) return;
+    var now = Date.now();
+    if (!immediate && isTyping && now - lastTypingSentAt < 3000) return;
+    lastTypingSentAt = now;
+    post('/api/direct-messages/typing.php', { conversation_id: activeConversation.id, is_typing: !!isTyping }).catch(function () {});
+  }
+
   function selectConversation(id, beforeId) {
     var url = '/api/direct-messages/conversation.php?id=' + encodeURIComponent(id);
     if (beforeId) url += '&before_id=' + encodeURIComponent(beforeId);
     return fetchJson(url).then(function (data) {
-      if (beforeId) {
+    if (beforeId) {
         var priorHeight = threadEl.scrollHeight;
         data.messages.forEach(function (message) { renderMessage(message, true); });
         if (data.messages.length) oldestMessageId = Number(data.messages[0].id);
         threadEl.scrollTop = threadEl.scrollHeight - priorHeight;
         olderButton.hidden = !data.has_older;
-      } else {
-        renderThread(data.conversation, data.messages || [], true);
+    } else {
+      renderThread(data.conversation, data.messages || [], true);
         olderButton.hidden = !data.has_older;
         setConversationUrl(id);
-        markRead(id).then(loadConversations);
+      markRead(id).then(loadConversations);
+      refreshTyping();
       }
     }).catch(function (error) {
       emptyEl.hidden = false;
@@ -224,6 +322,8 @@
       blockButton.textContent = 'Block member';
       blockButton.dataset.targetId = data.member.id;
       blockButton.dataset.blocked = '0';
+      pinButton.hidden = true;
+      profilePopover.hidden = false;
     }).catch(function (error) {
       emptyEl.querySelector('p').textContent = error.message;
     });
@@ -288,7 +388,11 @@
     roleEl.textContent = 'Search for a member to begin a private conversation';
     roleEl.style.color = '';
     threadAvatar.innerHTML = '<span>?</span>';
+    threadAvatar.removeAttribute('href');
+    threadAvatar.className = 'messages-avatar';
     threadAvatar.style.removeProperty('--member-role-color');
+    threadProfileLink.removeAttribute('href');
+    profilePopover.hidden = true;
     recipientPicker.hidden = false;
     recipientInput.value = '';
     recipientInput.setAttribute('aria-label', 'Search message recipient');
@@ -298,18 +402,24 @@
     sendDisabled.hidden = false;
     sendDisabled.textContent = 'Choose a recipient before writing your message.';
     blockButton.hidden = true;
+    pinButton.hidden = true;
     olderButton.hidden = true;
     setConversationUrl(null);
     recipientInput.focus();
   }
 
-  composeBody.addEventListener('input', function () { countEl.textContent = composeBody.value.length + ' / 2000'; });
+  composeBody.addEventListener('input', function () {
+    countEl.textContent = composeBody.value.length + ' / 2000';
+    if (activeConversation && composeBody.value.trim()) publishTyping(true, false);
+  });
+  composeBody.addEventListener('blur', function () { publishTyping(false, true); });
   composeForm.addEventListener('submit', function (event) {
     event.preventDefault();
     var body = composeBody.value.trim();
     var recipientId = activeConversation ? activeConversation.counterpart.id : (activeMember && activeMember.id);
     if (!body || !recipientId) return;
     sendButton.disabled = true;
+    publishTyping(false, true);
     post('/api/direct-messages/send.php', { recipient_id: recipientId, body: body }).then(function (data) {
       composeBody.value = ''; countEl.textContent = '0 / 2000';
       return selectConversation(data.conversation_id).then(loadConversations);
@@ -336,6 +446,19 @@
       loadConversations();
     });
   });
+  pinButton.addEventListener('click', function () {
+    var conversationId = Number(pinButton.dataset.conversationId || 0);
+    if (!conversationId) return;
+    var isPinned = pinButton.dataset.pinned !== '1';
+    pinButton.disabled = true;
+    post('/api/direct-messages/pin.php', { conversation_id: conversationId, is_pinned: isPinned }).then(function (data) {
+      if (activeConversation) activeConversation.is_pinned = !!data.is_pinned;
+      pinButton.dataset.pinned = data.is_pinned ? '1' : '0';
+      pinButton.setAttribute('aria-pressed', data.is_pinned ? 'true' : 'false');
+      pinButton.textContent = data.is_pinned ? 'Pinned' : 'Pin';
+      loadConversations();
+    }).finally(function () { pinButton.disabled = false; });
+  });
   writeButton.addEventListener('click', startNewMessage);
   recipientInput.addEventListener('input', function () {
     if (recipientSearchTimer) clearTimeout(recipientSearchTimer);
@@ -350,8 +473,13 @@
   function startPolling() {
     if (polling || document.hidden) return;
     polling = setInterval(function () { if (!document.hidden) { loadConversations(); if (activeConversation) selectConversation(activeConversation.id); } }, 25000);
+    typingPolling = setInterval(function () { refreshTyping(); }, 5000);
   }
-  function stopPolling() { if (polling) { clearInterval(polling); polling = null; } }
+  function stopPolling() {
+    if (polling) { clearInterval(polling); polling = null; }
+    if (typingPolling) { clearInterval(typingPolling); typingPolling = null; }
+    publishTyping(false, true);
+  }
   document.addEventListener('visibilitychange', function () { if (document.hidden) stopPolling(); else { loadConversations(); if (activeConversation) selectConversation(activeConversation.id); startPolling(); } });
 
   function boot() {
