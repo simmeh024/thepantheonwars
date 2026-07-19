@@ -16,7 +16,8 @@ $row = $stmt->fetch();
 $reportsStmt = $db->query(
     "SELECT
         SUM(target_type IN ('topic', 'comment')) AS topic_reports,
-        SUM(target_type = 'news_comment') AS news_comment_reports
+        SUM(target_type = 'news_comment') AS news_comment_reports,
+        SUM(target_type = 'direct_message') AS direct_message_reports
      FROM content_reports
      WHERE status = 'open'"
 );
@@ -45,6 +46,7 @@ pw_json([
     'dispatches_awaiting_translation' => (int)$row['c'],
     'active_topic_reports' => (int)($reportsRow['topic_reports'] ?? 0),
     'active_news_comment_reports' => (int)($reportsRow['news_comment_reports'] ?? 0),
+    'active_private_message_reports' => (int)($reportsRow['direct_message_reports'] ?? 0),
     'pending_privacy_requests' => $privacyCount,
     'dispatches_needing_category_review' => $dispatchesNeedingCategoryReview,
 ]);

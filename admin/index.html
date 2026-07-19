@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=244">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=245">
 </head>
 <body>
 
@@ -206,6 +206,7 @@
                           <li>Backup reviews</li>
                           <li>Unresolved topic reports</li>
                           <li>Unresolved News comment reports</li>
+                          <li>Active private message reports</li>
                           <li>Pending privacy requests</li>
                           <li>Pending dispatch translations</li>
                         </ol>
@@ -562,6 +563,10 @@
             <li class="pending-work-row" id="pending-work-news-reports-row">
               <span class="pending-work-label">Active News Comment Reports</span>
               <span class="pending-work-count pending-work-count-warn" id="pending-work-news-reports-count">&hellip;</span>
+            </li>
+            <li class="pending-work-row" id="pending-work-private-message-reports-row" data-requires-permission="topic_reports.view">
+              <span class="pending-work-label">Active Private Message Reports</span>
+              <span class="pending-work-count pending-work-count-warn" id="pending-work-private-message-reports-count">&hellip;</span>
             </li>
             <li class="pending-work-row" id="pending-work-privacy-row" data-requires-permission="privacy_requests.view">
               <span class="pending-work-label">Pending Privacy Requests</span>
@@ -3655,6 +3660,8 @@
   var pendingReportsCountEl = document.getElementById('pending-work-reports-count');
   var pendingNewsReportsRow = document.getElementById('pending-work-news-reports-row');
   var pendingNewsReportsCountEl = document.getElementById('pending-work-news-reports-count');
+  var pendingPrivateMessageReportsRow = document.getElementById('pending-work-private-message-reports-row');
+  var pendingPrivateMessageReportsCountEl = document.getElementById('pending-work-private-message-reports-count');
   var pendingPrivacyRow = document.getElementById('pending-work-privacy-row');
   var pendingPrivacyCountEl = document.getElementById('pending-work-privacy-count');
 
@@ -3677,6 +3684,11 @@
           pendingNewsReportsCountEl.textContent = data.active_news_comment_reports;
           pendingNewsReportsCountEl.classList.toggle('is-zero', data.active_news_comment_reports === 0);
         }
+        if (pendingPrivateMessageReportsCountEl) {
+          var privateMessageReports = Number(data.active_private_message_reports || 0);
+          pendingPrivateMessageReportsCountEl.textContent = privateMessageReports;
+          pendingPrivateMessageReportsCountEl.classList.toggle('is-zero', privateMessageReports === 0);
+        }
         if (pendingPrivacyCountEl) {
           pendingPrivacyCountEl.textContent = data.pending_privacy_requests;
           pendingPrivacyCountEl.classList.toggle('is-zero', data.pending_privacy_requests === 0);
@@ -3686,6 +3698,7 @@
         pendingTranslationsCountEl.textContent = '—';
         if (pendingReportsCountEl) pendingReportsCountEl.textContent = '—';
         if (pendingNewsReportsCountEl) pendingNewsReportsCountEl.textContent = '—';
+        if (pendingPrivateMessageReportsCountEl) pendingPrivateMessageReportsCountEl.textContent = '—';
       });
   }
 
@@ -3718,6 +3731,12 @@
   }
   if (pendingNewsReportsRow) {
     pendingNewsReportsRow.addEventListener('click', function () {
+      showSection('topic-reports');
+      loadTopicReports();
+    });
+  }
+  if (pendingPrivateMessageReportsRow) {
+    pendingPrivateMessageReportsRow.addEventListener('click', function () {
       showSection('topic-reports');
       loadTopicReports();
     });
@@ -3916,7 +3935,7 @@
   // Deterministic (rule-based, not AI-generated) "what to work on next"
   // recommendation -- see api/admin/task-advisor.php for the priority logic
   // (critical system issue > backup review > unresolved topic reports > unresolved
-  // News comment reports > pending
+  // News comment reports > active private-message reports > pending
   // privacy requests > pending dispatch translations > clear). This block only renders whatever that endpoint
   // already decided; no priority logic lives here client-side.
   var advisorEl = document.getElementById('bh4-task-advisor');
@@ -3956,7 +3975,7 @@
 
   function setBh4StatusImage(priority) {
     if (!bh4WelcomeAvatarEl) return;
-    var status = priority === 'critical' ? 'critical' : (priority === 'high' ? 'medium' : 'normal');
+    var status = priority === 'critical' ? 'critical' : ((priority === 'high' || priority === 'medium') ? 'medium' : 'normal');
     var image = BH4_STATUS_IMAGES[status];
     if (bh4WelcomeAvatarEl.getAttribute('data-status') === status) {
       bh4ImageRequest++;
@@ -3982,6 +4001,7 @@
     critical: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
     topic_reports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>',
     news_comment_reports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.3A8.5 8.5 0 1 1 20.4 10"/><path d="M8 10h8M8 14h5"/></svg>',
+    direct_message_reports: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 3 13.5v-8Z"/><path d="M8 8h8M8 11.5h5"/></svg>',
     dispatch_translations: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg>',
     privacy_requests: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>',
     backup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>',
@@ -3991,6 +4011,7 @@
   function advisorIconFor(type) {
     if (type === 'topic_reports') return ADVISOR_ICONS.topic_reports;
     if (type === 'news_comment_reports') return ADVISOR_ICONS.news_comment_reports;
+    if (type === 'direct_message_reports') return ADVISOR_ICONS.direct_message_reports;
     if (type === 'dispatch_translations') return ADVISOR_ICONS.dispatch_translations;
     if (type === 'privacy_requests') return ADVISOR_ICONS.privacy_requests;
     if (type === 'backup') return ADVISOR_ICONS.backup;
@@ -4019,19 +4040,22 @@
     advisorPrimaryTitleEl.textContent = task.title;
 
     var reason = task.reason || '';
-    if ((task.type === 'topic_reports' || task.type === 'news_comment_reports') && task.oldest_age_minutes !== null && task.oldest_age_minutes !== undefined) {
+    if ((task.type === 'topic_reports' || task.type === 'news_comment_reports' || task.type === 'direct_message_reports') && task.oldest_age_minutes !== null && task.oldest_age_minutes !== undefined) {
       reason += ' Oldest report received ' + formatAge(task.oldest_age_minutes) + '.';
     }
     advisorPrimaryReasonEl.textContent = reason;
 
     advisorPriorityLabelEl.className = 'bh4-task-advisor__priority-badge' +
-      (task.priority === 'high' || task.priority === 'normal' || task.priority === 'clear'
+      (task.priority === 'high' || task.priority === 'medium' || task.priority === 'normal' || task.priority === 'clear'
         ? ' bh4-task-advisor__priority-badge--' + task.priority : '');
     if (task.priority === 'critical') {
       advisorPriorityLabelEl.textContent = 'Critical Override';
       advisorPriorityLabelEl.hidden = false;
     } else if (task.priority === 'high') {
       advisorPriorityLabelEl.textContent = 'High Priority';
+      advisorPriorityLabelEl.hidden = false;
+    } else if (task.priority === 'medium') {
+      advisorPriorityLabelEl.textContent = 'Medium Priority';
       advisorPriorityLabelEl.hidden = false;
     } else if (task.priority === 'normal') {
       advisorPriorityLabelEl.textContent = 'Recommended';
@@ -4067,18 +4091,19 @@
     if (!overview) return;
     var reports = overview.topic_reports || 0;
     var newsCommentReports = overview.news_comment_reports || 0;
+    var directMessageReports = overview.direct_message_reports || 0;
     var translations = overview.dispatch_translations || 0;
     var privacy = overview.privacy_requests || 0;
     var alerts = overview.system_alerts || 0;
-    advisorOverviewReportsEl.textContent = reports + newsCommentReports;
+    advisorOverviewReportsEl.textContent = reports + newsCommentReports + directMessageReports;
     advisorOverviewTranslationsEl.textContent = translations;
     if (advisorOverviewPrivacyEl) advisorOverviewPrivacyEl.textContent = privacy;
     advisorOverviewAlertsEl.textContent = alerts;
     if (advisorOverviewReportsSubEl) {
-      advisorOverviewReportsSubEl.textContent = reports || newsCommentReports
-        ? reports + ' topic' + (reports === 1 ? '' : 's') + ' · ' + newsCommentReports + ' News comment' + (newsCommentReports === 1 ? '' : 's')
+      advisorOverviewReportsSubEl.textContent = reports || newsCommentReports || directMessageReports
+        ? reports + ' topic' + (reports === 1 ? '' : 's') + ' · ' + newsCommentReports + ' News comment' + (newsCommentReports === 1 ? '' : 's') + ' · ' + directMessageReports + ' private message' + (directMessageReports === 1 ? '' : 's')
         : 'Requires attention';
-      advisorOverviewReportsSubEl.classList.toggle('bh4-task-advisor__overview-sub-warn', (reports + newsCommentReports) > 0);
+      advisorOverviewReportsSubEl.classList.toggle('bh4-task-advisor__overview-sub-warn', (reports + newsCommentReports + directMessageReports) > 0);
     }
     if (advisorOverviewAlertsSubEl) advisorOverviewAlertsSubEl.classList.toggle('bh4-task-advisor__overview-sub-warn', alerts > 0);
     if (advisorOverviewPrivacySubEl) advisorOverviewPrivacySubEl.classList.toggle('bh4-task-advisor__overview-sub-warn', privacy > 0);

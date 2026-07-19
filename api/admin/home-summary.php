@@ -62,7 +62,8 @@ $pendingRow = $db->query(
     "SELECT
         (SELECT COUNT(*) FROM dispatch_entries d LEFT JOIN dispatch_translations dt ON dt.dispatch_id = d.id WHERE dt.id IS NULL) AS translations,
         (SELECT COUNT(*) FROM content_reports WHERE status = 'open' AND target_type IN ('topic', 'comment')) AS topic_reports,
-        (SELECT COUNT(*) FROM content_reports WHERE status = 'open' AND target_type = 'news_comment') AS news_comment_reports"
+        (SELECT COUNT(*) FROM content_reports WHERE status = 'open' AND target_type = 'news_comment') AS news_comment_reports,
+        (SELECT COUNT(*) FROM content_reports WHERE status = 'open' AND target_type = 'direct_message') AS direct_message_reports"
 )->fetch();
 $privacyPending = 0;
 try {
@@ -85,6 +86,7 @@ $pendingWork = [
     'dispatches_awaiting_translation' => (int)$pendingRow['translations'],
     'active_topic_reports' => (int)$pendingRow['topic_reports'],
     'active_news_comment_reports' => (int)$pendingRow['news_comment_reports'],
+    'active_private_message_reports' => (int)$pendingRow['direct_message_reports'],
     'pending_privacy_requests' => $privacyPending,
     'dispatches_needing_category_review' => $dispatchesNeedingCategoryReview,
 ];

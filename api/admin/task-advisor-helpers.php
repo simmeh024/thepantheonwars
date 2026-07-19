@@ -19,6 +19,8 @@ function pw_build_task_advisor(array $signals) {
     $topicReportsAgeMinutes = $signals['topic_reports_age_minutes'];
     $newsCommentReportsCount = $signals['news_comment_reports_count'];
     $newsCommentReportsAgeMinutes = $signals['news_comment_reports_age_minutes'];
+    $directMessageReportsCount = $signals['direct_message_reports_count'];
+    $directMessageReportsAgeMinutes = $signals['direct_message_reports_age_minutes'];
     $privacyCount = $signals['privacy_count'];
     $privacyAgeMinutes = $signals['privacy_age_minutes'];
     $translationsCount = $signals['translations_count'];
@@ -34,6 +36,23 @@ function pw_build_task_advisor(array $signals) {
             'reason' => 'Forum moderation requires attention.',
             'count' => $topicReportsCount,
             'oldest_age_minutes' => $topicReportsAgeMinutes,
+            'action_label' => $actions['topic_reports']['label'],
+            'action_url' => $actions['topic_reports']['section'],
+        ];
+    }
+
+    // Direct-message reports remain staff-visible only through the established
+    // report-review flow. They sit fifth in BH-4's deliberate queue: after
+    // forum and News reports, before privacy and translation work.
+    $directMessageReportsTask = null;
+    if ($directMessageReportsCount > 0) {
+        $directMessageReportsTask = [
+            'type' => 'direct_message_reports',
+            'priority' => 'medium',
+            'title' => $directMessageReportsCount === 1 ? 'Review 1 active private message report' : 'Review ' . $directMessageReportsCount . ' active private message reports',
+            'reason' => 'Private-message moderation requires attention.',
+            'count' => $directMessageReportsCount,
+            'oldest_age_minutes' => $directMessageReportsAgeMinutes,
             'action_label' => $actions['topic_reports']['label'],
             'action_url' => $actions['topic_reports']['section'],
         ];
@@ -98,7 +117,7 @@ function pw_build_task_advisor(array $signals) {
                 ];
                 return [
                     'primary' => $primary,
-                    'secondary' => $topicReportsTask ?: ($newsCommentReportsTask ?: ($privacyTask ?: $translationsTask)),
+                    'secondary' => $topicReportsTask ?: ($newsCommentReportsTask ?: ($directMessageReportsTask ?: ($privacyTask ?: $translationsTask))),
                     'active_alert_count' => count($criticalAlerts),
                 ];
             }
@@ -110,16 +129,19 @@ function pw_build_task_advisor(array $signals) {
     if ($backupTask) {
         return [
             'primary' => $backupTask,
-            'secondary' => $topicReportsTask ?: ($newsCommentReportsTask ?: ($privacyTask ?: $translationsTask)),
+            'secondary' => $topicReportsTask ?: ($newsCommentReportsTask ?: ($directMessageReportsTask ?: ($privacyTask ?: $translationsTask))),
             'active_alert_count' => 0,
         ];
     }
 
     if ($topicReportsTask) {
-        return ['primary' => $topicReportsTask, 'secondary' => $newsCommentReportsTask ?: ($privacyTask ?: $translationsTask), 'active_alert_count' => 0];
+        return ['primary' => $topicReportsTask, 'secondary' => $newsCommentReportsTask ?: ($directMessageReportsTask ?: ($privacyTask ?: $translationsTask)), 'active_alert_count' => 0];
     }
     if ($newsCommentReportsTask) {
-        return ['primary' => $newsCommentReportsTask, 'secondary' => $privacyTask ?: $translationsTask, 'active_alert_count' => 0];
+        return ['primary' => $newsCommentReportsTask, 'secondary' => $directMessageReportsTask ?: ($privacyTask ?: $translationsTask), 'active_alert_count' => 0];
+    }
+    if ($directMessageReportsTask) {
+        return ['primary' => $directMessageReportsTask, 'secondary' => $privacyTask ?: $translationsTask, 'active_alert_count' => 0];
     }
     if ($privacyTask) {
         return ['primary' => $privacyTask, 'secondary' => $translationsTask, 'active_alert_count' => 0];
@@ -251,7 +273,9 @@ function pw_collect_task_advisor($db, array $systemSignals) {
             SUM(target_type IN ('topic', 'comment')) AS topic_reports_count,
             MIN(CASE WHEN target_type IN ('topic', 'comment') THEN created_at END) AS topic_reports_oldest_at,
             SUM(target_type = 'news_comment') AS news_comment_reports_count,
-            MIN(CASE WHEN target_type = 'news_comment' THEN created_at END) AS news_comment_reports_oldest_at
+            MIN(CASE WHEN target_type = 'news_comment' THEN created_at END) AS news_comment_reports_oldest_at,
+            SUM(target_type = 'direct_message') AS direct_message_reports_count,
+            MIN(CASE WHEN target_type = 'direct_message' THEN created_at END) AS direct_message_reports_oldest_at
          FROM content_reports
          WHERE status = 'open'"
     )->fetch();
@@ -262,6 +286,10 @@ function pw_collect_task_advisor($db, array $systemSignals) {
     $newsCommentReportsCount = (int)($reportsRow['news_comment_reports_count'] ?? 0);
     $oldestNewsCommentReportAgeMinutes = !empty($reportsRow['news_comment_reports_oldest_at'])
         ? max(0, (int)floor((time() - strtotime($reportsRow['news_comment_reports_oldest_at'] . ' UTC')) / 60))
+        : null;
+    $directMessageReportsCount = (int)($reportsRow['direct_message_reports_count'] ?? 0);
+    $oldestDirectMessageReportAgeMinutes = !empty($reportsRow['direct_message_reports_oldest_at'])
+        ? max(0, (int)floor((time() - strtotime($reportsRow['direct_message_reports_oldest_at'] . ' UTC')) / 60))
         : null;
 
     $privacyCount = 0;
@@ -290,6 +318,8 @@ function pw_collect_task_advisor($db, array $systemSignals) {
         'topic_reports_age_minutes' => $oldestTopicReportAgeMinutes,
         'news_comment_reports_count' => $newsCommentReportsCount,
         'news_comment_reports_age_minutes' => $oldestNewsCommentReportAgeMinutes,
+        'direct_message_reports_count' => $directMessageReportsCount,
+        'direct_message_reports_age_minutes' => $oldestDirectMessageReportAgeMinutes,
         'privacy_count' => $privacyCount,
         'privacy_age_minutes' => $oldestPrivacyAgeMinutes,
         'translations_count' => $translationsCount,
@@ -307,6 +337,7 @@ function pw_collect_task_advisor($db, array $systemSignals) {
         'overview' => [
             'topic_reports' => $topicReportsCount,
             'news_comment_reports' => $newsCommentReportsCount,
+            'direct_message_reports' => $directMessageReportsCount,
             'dispatch_translations' => $translationsCount,
             'privacy_requests' => $privacyCount,
             'system_alerts' => count($criticalAlerts),

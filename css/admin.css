@@ -1108,7 +1108,7 @@
    above is red (critical); high = orange (medium-importance, e.g.
    unresolved topic reports); normal/clear = green (routine/operational,
    e.g. pending dispatch translations, or nothing to do). */
-.bh4-task-advisor__priority-badge--high { background: rgba(242,153,74,0.14); border-color: rgba(242,153,74,0.5); color: #f2994a; }
+.bh4-task-advisor__priority-badge--high, .bh4-task-advisor__priority-badge--medium { background: rgba(242,153,74,0.14); border-color: rgba(242,153,74,0.5); color: #f2994a; }
 .bh4-task-advisor__priority-badge--normal, .bh4-task-advisor__priority-badge--clear {
   background: rgba(62,207,142,0.14); border-color: rgba(62,207,142,0.5); color: #3ecf8e;
 }
@@ -1188,17 +1188,17 @@
    clear is the same green (nothing needs attention). Border/glow, icon,
    eyebrow, action button AND the priority badge above the card all recolor
    together so the whole banner reads as the current priority level. */
-.bh4-task-advisor[data-state="high"] {
+.bh4-task-advisor[data-state="high"], .bh4-task-advisor[data-state="medium"] {
   border-color: rgba(242,153,74,0.45);
   background: linear-gradient(135deg, rgba(242,153,74,0.09), rgba(20,15,8,0.35));
   box-shadow: 0 0 26px rgba(242,153,74,0.14);
 }
-.bh4-task-advisor[data-state="high"] .bh4-task-advisor__priority-icon { background: rgba(242,153,74,0.14); color: #f2994a; }
-.bh4-task-advisor[data-state="high"] .bh4-task-advisor__eyebrow { color: #f2994a; }
-.bh4-task-advisor[data-state="high"] .bh4-task-advisor__action-btn {
+.bh4-task-advisor[data-state="high"] .bh4-task-advisor__priority-icon, .bh4-task-advisor[data-state="medium"] .bh4-task-advisor__priority-icon { background: rgba(242,153,74,0.14); color: #f2994a; }
+.bh4-task-advisor[data-state="high"] .bh4-task-advisor__eyebrow, .bh4-task-advisor[data-state="medium"] .bh4-task-advisor__eyebrow { color: #f2994a; }
+.bh4-task-advisor[data-state="high"] .bh4-task-advisor__action-btn, .bh4-task-advisor[data-state="medium"] .bh4-task-advisor__action-btn {
   background: rgba(242,153,74,0.1); border-color: #f2994a; color: #f2994a;
 }
-.bh4-task-advisor[data-state="high"] .bh4-task-advisor__action-btn:hover { background: rgba(242,153,74,0.2); }
+.bh4-task-advisor[data-state="high"] .bh4-task-advisor__action-btn:hover, .bh4-task-advisor[data-state="medium"] .bh4-task-advisor__action-btn:hover { background: rgba(242,153,74,0.2); }
 .bh4-task-advisor[data-state="normal"] {
   border-color: rgba(62,207,142,0.4);
   background: linear-gradient(135deg, rgba(62,207,142,0.08), rgba(10,18,14,0.35));
