@@ -6,6 +6,8 @@ CREATE TABLE IF NOT EXISTS user_book_progress (
   user_id INT UNSIGNED NOT NULL,
   book_id INT NOT NULL,
   status ENUM('not_started','reading','finished') NOT NULL DEFAULT 'not_started',
+  started_at DATETIME NULL DEFAULT NULL,
+  finished_at DATETIME NULL DEFAULT NULL,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (user_id, book_id),
   KEY idx_user_book_progress_current (user_id, status, updated_at),

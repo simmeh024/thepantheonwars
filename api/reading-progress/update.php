@@ -40,15 +40,40 @@ if (!$bookStmt->fetch()) {
 
 try {
     $db->beginTransaction();
+    $existingStmt = $db->prepare(
+        'SELECT status, started_at, finished_at FROM user_book_progress WHERE user_id = ? AND book_id = ? FOR UPDATE'
+    );
+    $existingStmt->execute([(int)$user['id'], $bookId]);
+    $existing = $existingStmt->fetch();
+
+    // A book can award each milestone once. The timestamp columns, rather
+    // than the current status, are the source of truth so a member can freely
+    // revisit a completed book without farming reputation by toggling states.
+    $reputationAwarded = 0;
+    if ($status === 'reading' && (!$existing || $existing['started_at'] === null)) {
+        $reputationAwarded = 3;
+    } elseif ($status === 'finished' && (!$existing || $existing['finished_at'] === null)) {
+        $reputationAwarded = 5;
+    }
+
     if ($status === 'reading') {
         $clearStmt = $db->prepare("UPDATE user_book_progress SET status = 'not_started' WHERE user_id = ? AND status = 'reading' AND book_id <> ?");
         $clearStmt->execute([(int)$user['id'], $bookId]);
     }
     $saveStmt = $db->prepare(
-        'INSERT INTO user_book_progress (user_id, book_id, status) VALUES (?, ?, ?)
-         ON DUPLICATE KEY UPDATE status = VALUES(status), updated_at = CURRENT_TIMESTAMP'
+        "INSERT INTO user_book_progress (user_id, book_id, status, started_at, finished_at)
+         VALUES (?, ?, ?, CASE WHEN ? = 'reading' THEN CURRENT_TIMESTAMP ELSE NULL END, CASE WHEN ? = 'finished' THEN CURRENT_TIMESTAMP ELSE NULL END)
+         ON DUPLICATE KEY UPDATE
+           status = VALUES(status),
+           started_at = CASE WHEN VALUES(status) = 'reading' AND started_at IS NULL THEN CURRENT_TIMESTAMP ELSE started_at END,
+           finished_at = CASE WHEN VALUES(status) = 'finished' AND finished_at IS NULL THEN CURRENT_TIMESTAMP ELSE finished_at END,
+           updated_at = CURRENT_TIMESTAMP"
     );
-    $saveStmt->execute([(int)$user['id'], $bookId, $status]);
+    $saveStmt->execute([(int)$user['id'], $bookId, $status, $status, $status]);
+    if ($reputationAwarded > 0) {
+        $repStmt = $db->prepare('UPDATE users SET reputation = reputation + ? WHERE id = ?');
+        $repStmt->execute([$reputationAwarded, (int)$user['id']]);
+    }
     $db->commit();
 } catch (Throwable $e) {
     if ($db->inTransaction()) {
@@ -57,4 +82,8 @@ try {
     pw_error('Could not save your reading progress right now.', 500);
 }
 
-pw_json(['ok' => true, 'current_book_id' => $status === 'reading' ? $bookId : null]);
+pw_json([
+    'ok' => true,
+    'current_book_id' => $status === 'reading' ? $bookId : null,
+    'reputation_awarded' => $reputationAwarded,
+]);
