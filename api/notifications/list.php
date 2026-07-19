@@ -22,7 +22,7 @@ if ($perPage > 100) {
 // comma-separated subset of types (unknown values are silently dropped
 // rather than erroring, since this only narrows an already-own-rows-only
 // query) and an unread-only flag.
-$allowedTypes = ['like', 'mention', 'quote', 'report_resolved', 'world_available', 'news_published', 'topic_reply', 'icon_unlocked'];
+$allowedTypes = ['like', 'mention', 'quote', 'report_resolved', 'world_available', 'news_published', 'topic_reply', 'icon_unlocked', 'direct_message'];
 $types = [];
 if (!empty($_GET['types'])) {
     foreach (explode(',', $_GET['types']) as $t) {
@@ -60,7 +60,7 @@ if ($page > $totalPages) {
 $offset = ($page - 1) * $perPage;
 
 $stmt = $db->prepare(
-    "SELECT n.id, n.type, n.topic_id, n.comment_id, n.report_id, n.world_id, n.news_slug, n.excerpt, n.is_read, n.created_at,
+    "SELECT n.id, n.type, n.topic_id, n.comment_id, n.report_id, n.world_id, n.news_slug, n.conversation_id, n.direct_message_id, n.excerpt, n.is_read, n.created_at,
             a.id AS actor_id, a.display_name AS actor_display_name, r.color AS actor_role_color,
             t.title AS topic_title,
             w.slug AS world_slug, w.name AS world_name,
@@ -99,6 +99,8 @@ $out = array_map(function ($r) {
         'report_id' => $r['report_id'] !== null ? (int)$r['report_id'] : null,
         'world_id' => $r['world_id'] !== null ? (int)$r['world_id'] : null,
         'news_slug' => $r['news_slug'],
+        'conversation_id' => $r['conversation_id'] !== null ? (int)$r['conversation_id'] : null,
+        'direct_message_id' => $r['direct_message_id'] !== null ? (int)$r['direct_message_id'] : null,
         'world_slug' => $r['world_slug'],
         'world_name' => $r['world_name'],
         'topic_title' => $r['topic_title'],

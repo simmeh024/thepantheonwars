@@ -433,15 +433,17 @@ CREATE TABLE IF NOT EXISTS loc_snapshots (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Reports raised by members against forum content or a News reply, reviewed by
--- moderators/admins on the admin console's Topic Reports page. resolution
+-- Reports raised by members against forum content, a News reply, or a specific
+-- private message, reviewed by moderators/admins on the admin console's Topic
+-- Reports page. Staff can see private-message content only through this report
+-- path; it is never exposed as a browseable moderation inbox. resolution
 -- is filled in when a mod closes the report; resolved_by/resolved_at record
 -- who closed it and when. Quick actions taken from that page (lock/move the
 -- topic, delete the topic or comment) are separate operations logged to
 -- admin_activity_log -- they don't automatically close the report.
 CREATE TABLE IF NOT EXISTS content_reports (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-  target_type ENUM('topic','comment','news_comment') NOT NULL,
+  target_type ENUM('topic','comment','news_comment','direct_message') NOT NULL,
   target_id INT UNSIGNED NOT NULL,
   reporter_user_id INT UNSIGNED NOT NULL,
   reason VARCHAR(1000) NOT NULL,
@@ -455,6 +457,50 @@ CREATE TABLE IF NOT EXISTS content_reports (
   KEY idx_target (target_type, target_id),
   CONSTRAINT fk_content_reports_reporter FOREIGN KEY (reporter_user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_content_reports_resolver FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Private one-to-one member conversations. The participant ids are always
+-- stored in ascending order, which makes the unique key the authoritative
+-- guarantee that a pair of members has only one conversation.
+CREATE TABLE IF NOT EXISTS direct_conversations (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_low_id INT UNSIGNED NOT NULL,
+  user_high_id INT UNSIGNED NOT NULL,
+  created_by INT UNSIGNED NOT NULL,
+  last_message_id BIGINT UNSIGNED NULL,
+  last_message_at DATETIME NULL,
+  user_low_last_read_message_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  user_high_last_read_message_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_direct_conversation_pair (user_low_id, user_high_id),
+  KEY idx_direct_conversations_recent (last_message_at, id),
+  CONSTRAINT fk_direct_conversations_low FOREIGN KEY (user_low_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_direct_conversations_high FOREIGN KEY (user_high_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_direct_conversations_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS direct_messages (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  conversation_id BIGINT UNSIGNED NOT NULL,
+  sender_user_id INT UNSIGNED NOT NULL,
+  body TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_direct_messages_conversation (conversation_id, id),
+  KEY idx_direct_messages_sender_created (sender_user_id, created_at),
+  CONSTRAINT fk_direct_messages_conversation FOREIGN KEY (conversation_id) REFERENCES direct_conversations(id) ON DELETE CASCADE,
+  CONSTRAINT fk_direct_messages_sender FOREIGN KEY (sender_user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- A block is directional. The sender-side staff override is enforced in PHP:
+-- moderators and admins can still deliver an essential staff message, while
+-- ordinary member-to-member messaging respects a block in either direction.
+CREATE TABLE IF NOT EXISTS user_blocks (
+  blocker_user_id INT UNSIGNED NOT NULL,
+  blocked_user_id INT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (blocker_user_id, blocked_user_id),
+  CONSTRAINT fk_user_blocks_blocker FOREIGN KEY (blocker_user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user_blocks_blocked FOREIGN KEY (blocked_user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS message_likes (
@@ -798,33 +844,38 @@ CREATE TABLE IF NOT EXISTS page_view_daily_transitions (
   KEY idx_include_date (include_admin, stat_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Public-site notification system: one row per notification, covering all
--- six trigger types (like, mention, quote, report_resolved, world_available,
--- news_published). See
+-- Public-site notification system: one row per notification, including likes,
+-- forum activity, announcements, and collapsed per-conversation direct-message
+-- alerts. See
 -- api/messages/like.php, api/topics/create.php, api/comments/post.php, and
 -- api/admin/topic-reports/resolve.php for the write sites, and
 -- api/notifications/*.php for reads.
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,
-  type ENUM('like','mention','quote','report_resolved','world_available','news_published','topic_reply','icon_unlocked') NOT NULL,
+  type ENUM('like','mention','quote','report_resolved','world_available','news_published','topic_reply','icon_unlocked','direct_message') NOT NULL,
   actor_user_id INT UNSIGNED NULL,
   topic_id INT UNSIGNED NULL,
   comment_id INT UNSIGNED NULL,
   report_id INT UNSIGNED NULL,
   world_id INT UNSIGNED NULL,
   news_slug VARCHAR(120) NULL,
+  conversation_id BIGINT UNSIGNED NULL,
+  direct_message_id BIGINT UNSIGNED NULL,
   excerpt VARCHAR(200) NULL,
   is_read TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_user_created (user_id, created_at),
   KEY idx_user_unread (user_id, is_read),
+  KEY idx_notification_conversation (conversation_id),
   CONSTRAINT fk_notifications_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_notifications_actor FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT fk_notifications_topic FOREIGN KEY (topic_id) REFERENCES topics(id) ON DELETE CASCADE,
   CONSTRAINT fk_notifications_comment FOREIGN KEY (comment_id) REFERENCES comments(id) ON DELETE CASCADE,
   CONSTRAINT fk_notifications_report FOREIGN KEY (report_id) REFERENCES content_reports(id) ON DELETE CASCADE,
-  CONSTRAINT fk_notifications_world FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE
+  CONSTRAINT fk_notifications_world FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE CASCADE,
+  CONSTRAINT fk_notifications_conversation FOREIGN KEY (conversation_id) REFERENCES direct_conversations(id) ON DELETE CASCADE,
+  CONSTRAINT fk_notifications_direct_message FOREIGN KEY (direct_message_id) REFERENCES direct_messages(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Per-user notification type opt-out flags, edited on profile.html's

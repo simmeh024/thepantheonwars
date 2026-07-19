@@ -38,6 +38,7 @@ pw_json([
         'presence_status' => $user['presence_status'] ?? 'online',
         'reputation' => pw_reputation_info((int)($user['reputation'] ?? 0)),
         'selected_icon' => $user['selected_icon'] ?? null,
+        'is_staff_messenger' => pw_is_staff_messenger($user),
     ] : null,
     // Frontend uses this (not the raw role string) to decide what to show --
     // '*' means every permission (superuser role, e.g. admin).

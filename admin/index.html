@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=243">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=244">
 </head>
 <body>
 
@@ -3221,7 +3221,7 @@
   </div>
 </div>
 
-<script src="../js/members.js?v=24"></script>
+<script src="../js/members.js?v=25"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -4520,6 +4520,7 @@
   var pendingReportAction = null; // { report, action: 'lock'|'move'|'delete'|'resolve'|'reopen' }
 
   function reportLink(r) {
+    if (r.source === 'direct') return '';
     if (r.source === 'news') {
       return '../news-post.html?slug=' + encodeURIComponent(r.news_slug) + '#news-comment-' + encodeURIComponent(r.target_id);
     }
@@ -4565,14 +4566,15 @@
           escapeHtml(r.topic_title) +
           (r.target_type === 'comment' ? ' <span class="report-type-badge">Reply</span>' : '') +
           (r.target_type === 'news_comment' ? ' <span class="report-type-badge">News reply</span>' : '') +
-          ' <span class="report-source-badge report-source-' + escapeHtml(r.source || 'forum') + '">' + (r.source === 'news' ? 'News' : 'Forum') + '</span>' +
-          ' <a href="' + reportLink(r) + '" target="_blank" rel="noopener" class="report-view-link">View &rarr;</a>' +
+          (r.target_type === 'direct_message' ? ' <span class="report-type-badge">Private message</span>' : '') +
+          ' <span class="report-source-badge report-source-' + escapeHtml(r.source || 'forum') + '">' + (r.source === 'news' ? 'News' : (r.source === 'direct' ? 'Private' : 'Forum')) + '</span>' +
+          (r.source !== 'direct' ? ' <a href="' + reportLink(r) + '" target="_blank" rel="noopener" class="report-view-link">View &rarr;</a>' : '') +
           (r.target_deleted ? ' <span class="report-deleted-badge">Content deleted</span>' : '') +
         '</p>' +
         '<div class="admin-row-meta">' +
           '<span>by @' + escapeHtml(r.author.username) + '</span>' +
           '<span class="admin-row-sep">&bull;</span>' +
-          '<span>' + (r.source === 'news' ? 'News transmission' : escapeHtml(BOARD_LABELS[r.board] || r.board)) + '</span>' +
+          '<span>' + (r.source === 'news' ? 'News transmission' : (r.source === 'direct' ? 'Reported private content' : escapeHtml(BOARD_LABELS[r.board] || r.board))) + '</span>' +
           '<span class="admin-row-sep">&bull;</span>' +
           '<span>' + escapeHtml(fmtDate(r.created_at)) + '</span>' +
           '<span class="admin-row-sep">&bull;</span>' +
@@ -4581,6 +4583,7 @@
           '<span class="report-category-badge report-category-' + escapeHtml(r.category || 'other') + '">' + (REPORT_CATEGORY_LABELS[r.category] || 'Other') + '</span>' +
         '</div>' +
         '<p class="report-reason">Reported by <strong>@' + escapeHtml(r.reporter.username) + '</strong>: &ldquo;' + escapeHtml(r.reason) + '&rdquo;</p>' +
+        (r.source === 'direct' ? '<p class="report-reason"><strong>Reported message:</strong> &ldquo;' + escapeHtml(r.message_body || '') + '&rdquo;</p>' : '') +
         (r.status === 'resolved'
           ? '<p class="report-resolution"><strong>Resolution</strong> (by ' + escapeHtml(r.resolver_username || 'unknown') + ', ' + escapeHtml(fmtDate(r.resolved_at)) + '): ' + escapeHtml(r.resolution) + '</p>'
           : '');

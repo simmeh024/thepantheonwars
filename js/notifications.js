@@ -62,6 +62,7 @@ function initNotifications() {
   }
 
   function notificationLink(n) {
+    if (n.type === 'direct_message' && n.conversation_id) return 'messages.html?conversation=' + encodeURIComponent(n.conversation_id);
     if (n.type === 'world_available' && n.world_slug) return 'worlds.html#' + encodeURIComponent(n.world_slug);
     if (n.type === 'news_published' && n.news_slug) return 'news-post.html?slug=' + encodeURIComponent(n.news_slug);
     if (n.type === 'icon_unlocked') return 'profile.html?tab=settings';
@@ -95,6 +96,8 @@ function initNotifications() {
     var actor = n.actor ? escapeHtml(n.actor.display_name) : null;
     var excerpt = n.excerpt ? escapeHtml(stripBbcodePreview(n.excerpt).slice(0, 80)) : '';
     switch (n.type) {
+      case 'direct_message':
+        return '<strong>' + (actor || 'Someone') + '</strong> sent you a private message.';
       case 'like':
         var likeCount = n.like_count || 1;
         var likeWho = '<strong>' + (actor || 'Someone') + '</strong>' +

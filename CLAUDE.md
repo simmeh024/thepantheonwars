@@ -463,6 +463,22 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Recent history (most recent first)
 
+- **Private member messaging:** `messages.html` plus `js/messages.js` provides
+  permanent, one-to-one member conversations backed by `direct_conversations`,
+  `direct_messages`, and `user_blocks` (run
+  `sql/migration_direct_messages.sql` after deployment). A member profile can
+  start a conversation; the dynamic signed-in profile menu links to Messages,
+  so no repeated header markup was changed. The inbox uses 25-second,
+  visibility-gated polling rather than a socket, marks messages and their
+  collapsed bell notification read together, and has server-side CSRF, own-row
+  authorization, 2,000-character validation, and a 15-message/minute rate
+  limit. Blocking applies to ordinary members in either direction. A sender
+  with an admin or moderator role (including an additional role) has a
+  server-side override and can always deliver a staff message; that metadata is
+  audited without storing the body in the audit log. Private messages are not
+  end-to-end encrypted. They are only visible to staff when a participant
+  reports a specific message, through the existing Topic Reports queue.
+
 - **News article "Related Development" sidecard + category breakdown bar**
   (`news-post.html`/`js/news-post.js`, CSS in `css/content.css` since that
   page uses `public.css` and never imports `community.css`): when an

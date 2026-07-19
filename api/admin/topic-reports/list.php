@@ -47,7 +47,7 @@ function pw_fetch_reports($db, $targetType, $statusSql, $status, $categorySql, $
                 JOIN topics pt ON pt.id = c.topic_id
                 JOIN users author ON author.id = c.user_id
                 WHERE cr.target_type = 'comment' $statusSql $categorySql";
-    } else {
+    } elseif ($targetType === 'news_comment') {
         $sql = "SELECT cr.id, cr.target_type, cr.target_id, cr.reason, cr.category, cr.status, cr.resolution,
                        cr.resolved_at, cr.created_at,
                        reporter.id AS reporter_id, reporter.username AS reporter_username, reporter.display_name AS reporter_display_name,
@@ -62,6 +62,23 @@ function pw_fetch_reports($db, $targetType, $statusSql, $status, $categorySql, $
                 JOIN news_posts np ON np.id = nc.news_post_id
                 JOIN users author ON author.id = nc.user_id
                 WHERE cr.target_type = 'news_comment' $statusSql $categorySql";
+    } else {
+        // Private messages are deliberately visible to staff only when a
+        // participant reports a specific row. There is no general inbox or
+        // conversation browsing query for moderators.
+        $sql = "SELECT cr.id, cr.target_type, cr.target_id, cr.reason, cr.category, cr.status, cr.resolution,
+                       cr.resolved_at, cr.created_at,
+                       reporter.id AS reporter_id, reporter.username AS reporter_username, reporter.display_name AS reporter_display_name,
+                       resolver.username AS resolver_username,
+                       NULL AS topic_id, 'Private message' AS topic_title, NULL AS board, 0 AS is_locked, 0 AS target_deleted,
+                       author.id AS author_id, author.username AS author_username, author.display_name AS author_display_name,
+                       'direct' AS source, NULL AS news_slug, dm.body AS message_body
+                FROM content_reports cr
+                JOIN users reporter ON reporter.id = cr.reporter_user_id
+                LEFT JOIN users resolver ON resolver.id = cr.resolved_by
+                JOIN direct_messages dm ON dm.id = cr.target_id
+                JOIN users author ON author.id = dm.sender_user_id
+                WHERE cr.target_type = 'direct_message' $statusSql $categorySql";
     }
     $stmt = $db->prepare($sql);
     $params = [];
@@ -82,7 +99,8 @@ function pw_fetch_reports($db, $targetType, $statusSql, $status, $categorySql, $
 $rows = array_merge(
     pw_fetch_reports($db, 'topic', $statusSql, $status, $categorySql, $category),
     pw_fetch_reports($db, 'comment', $statusSql, $status, $categorySql, $category),
-    pw_fetch_reports($db, 'news_comment', $statusSql, $status, $categorySql, $category)
+    pw_fetch_reports($db, 'news_comment', $statusSql, $status, $categorySql, $category),
+    pw_fetch_reports($db, 'direct_message', $statusSql, $status, $categorySql, $category)
 );
 
 usort($rows, function ($a, $b) {
@@ -118,6 +136,7 @@ $out = array_map(function ($r) {
         'target_deleted' => (bool)$r['target_deleted'],
         'source' => $r['source'],
         'news_slug' => $r['news_slug'],
+        'message_body' => isset($r['message_body']) ? $r['message_body'] : null,
     ];
 }, $rows);
 

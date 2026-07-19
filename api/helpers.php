@@ -803,6 +803,58 @@ function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commen
     ]);
 }
 
+// Direct-message alerts are intentionally collapsed per conversation. A busy
+// exchange therefore remains one useful bell item rather than becoming a
+// notification for every individual line. Direct messages are core site
+// functionality, so unlike optional announcement types this helper does not
+// consult a user preference.
+function pw_notify_direct_message($userId, $actorUserId, $conversationId, $messageId, $excerpt) {
+    if ((int)$userId === (int)$actorUserId) {
+        return;
+    }
+    $db = pw_db();
+    $stmt = $db->prepare(
+        'SELECT id FROM notifications WHERE user_id = ? AND type = "direct_message" AND conversation_id = ? LIMIT 1'
+    );
+    $stmt->execute([$userId, $conversationId]);
+    $existing = $stmt->fetch();
+    if ($existing) {
+        $stmt = $db->prepare(
+            'UPDATE notifications
+             SET actor_user_id = ?, direct_message_id = ?, excerpt = ?, is_read = 0, created_at = CURRENT_TIMESTAMP
+             WHERE id = ?'
+        );
+        $stmt->execute([$actorUserId, $messageId, mb_substr($excerpt, 0, 200), $existing['id']]);
+        return;
+    }
+    $stmt = $db->prepare(
+        'INSERT INTO notifications (user_id, type, actor_user_id, conversation_id, direct_message_id, excerpt)
+         VALUES (?, "direct_message", ?, ?, ?, ?)'
+    );
+    $stmt->execute([$userId, $actorUserId, $conversationId, $messageId, mb_substr($excerpt, 0, 200)]);
+}
+
+// A staff sender (main role or additional role) may always contact a member.
+// The override is deliberately one-way: a member's block still prevents that
+// member from sending ordinary follow-up messages to the staff account.
+function pw_is_staff_messenger($user) {
+    return !empty(array_intersect(pw_user_role_slugs($user), ['admin', 'moderator']));
+}
+
+function pw_direct_messages_blocked($senderUser, $recipientId) {
+    if (pw_is_staff_messenger($senderUser)) {
+        return false;
+    }
+    $stmt = pw_db()->prepare(
+        'SELECT 1 FROM user_blocks
+         WHERE (blocker_user_id = ? AND blocked_user_id = ?)
+            OR (blocker_user_id = ? AND blocked_user_id = ?)
+         LIMIT 1'
+    );
+    $stmt->execute([(int)$senderUser['id'], (int)$recipientId, (int)$recipientId, (int)$senderUser['id']]);
+    return (bool)$stmt->fetch();
+}
+
 // Broadcasts a "world_available" notification to every non-banned member
 // (skipping anyone who has turned this type off in Notification Settings,
 // via pw_notify()'s own per-user pw_notifications_enabled() check) --
