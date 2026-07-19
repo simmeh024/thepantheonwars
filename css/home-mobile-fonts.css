@@ -1,0 +1,16 @@
+/* Mobile homepage only: locally hosted variable latin subsets avoid the
+   Google Fonts stylesheet round-trip on the critical path. */
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url('../fonts/cinzel-latin.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Jost';
+  font-style: normal;
+  font-weight: 400 600;
+  font-display: swap;
+  src: url('../fonts/jost-latin.woff2') format('woff2');
+}

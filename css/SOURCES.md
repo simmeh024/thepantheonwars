@@ -24,6 +24,14 @@ Authentication modal and navigation styles live in `components.css`, not
 community pages. Keep the modal rules in the shared bundle so a public-page login
 trigger always opens a fixed, visible dialog.
 
+`index.html` additionally generates a mobile-only homepage delivery path from
+`home-mobile-fonts.css`, `home-mobile-critical-overrides.css`, and
+`home-mobile-overrides.css`: the critical subset is inlined into the document and
+the remaining homepage presentation loads asynchronously from
+`home-mobile-rest.css`. Keep those files in sync when changing a homepage rule;
+this deliberately prevents below-the-fold public-page styles from blocking the
+mobile hero render.
+
 The full Notifications page also uses `components.css`. Its BH-4 status-card avatar
 must remain self-contained there (explicit circle sizing and `object-fit: cover`),
 because the public bundle deliberately does not import the community profile CSS.

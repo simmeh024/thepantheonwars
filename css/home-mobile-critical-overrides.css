@@ -1,0 +1,16 @@
+/* The critical hero needs its mobile art and static treatment before the
+   asynchronous homepage stylesheet is applied. */
+@media (max-width: 780px) {
+  .hero-bg-parallax { will-change: auto; }
+  .hero-bg.effect-neoh {
+    background-image: url('../images/hero-main-bg-mobile.jpg') !important;
+    animation: none;
+    filter: saturate(1.12) brightness(0.84) contrast(1.04);
+    transform: scale(1.08);
+  }
+  .hero-bg.is-glitching, .hero.is-glitching::after { animation: none; }
+  .hero-rain { animation: none; opacity: 0.34; }
+  .hero-flicker { animation: none; opacity: 0.48; }
+  .hero-content h1, .hero-scroll-cue-chevron { animation: none; }
+  .hero-content h1 { filter: none; opacity: 1; }
+}
