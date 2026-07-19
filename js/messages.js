@@ -12,6 +12,7 @@
   var threadEl = document.getElementById('messages-thread-list');
   var nameEl = document.getElementById('messages-thread-name');
   var roleEl = document.getElementById('messages-thread-role');
+  var threadAvatar = document.getElementById('messages-thread-avatar');
   var composeForm = document.getElementById('messages-compose-form');
   var composeBody = document.getElementById('messages-compose-body');
   var sendButton = document.getElementById('messages-send-btn');
@@ -36,6 +37,31 @@
   function shortText(value, limit) {
     var text = String(value || '').replace(/\s+/g, ' ').trim();
     return text.length > limit ? text.slice(0, limit - 1) + '…' : text;
+  }
+
+  function roleLabel(role) {
+    role = String(role || 'member');
+    return role.replace(/(^|_)([a-z])/g, function (match, prefix, letter) { return (prefix ? ' ' : '') + letter.toUpperCase(); });
+  }
+
+  function avatarHtml(member) {
+    var initial = escapeHtml((member.display_name || '?').charAt(0).toUpperCase());
+    return '<span class="messages-avatar" style="--member-role-color:' + escapeHtml(member.role_color || '#c7ccd6') + '"><img src="/uploads/avatars/' + encodeURIComponent(member.id) + '.jpg" alt=""><span>' + initial + '</span></span>';
+  }
+
+  function wireAvatarFallback(container) {
+    if (!container) return;
+    var image = container.querySelector('img');
+    if (image) image.addEventListener('error', function () { image.hidden = true; });
+  }
+
+  function setThreadIdentity(member, copy) {
+    nameEl.textContent = member.display_name;
+    roleEl.textContent = roleLabel(member.role) + (copy ? ' · ' + copy : '');
+    roleEl.style.color = member.role_color || '#c7ccd6';
+    threadAvatar.innerHTML = '<img src="/uploads/avatars/' + encodeURIComponent(member.id) + '.jpg" alt=""><span>' + escapeHtml((member.display_name || '?').charAt(0).toUpperCase()) + '</span>';
+    threadAvatar.style.setProperty('--member-role-color', member.role_color || '#c7ccd6');
+    wireAvatarFallback(threadAvatar);
   }
 
   function formatDate(value) {
@@ -80,13 +106,13 @@
       var item = document.createElement('button');
       item.type = 'button';
       item.className = 'messages-conversation' + (activeConversation && activeConversation.id === conversation.id ? ' is-active' : '');
-      item.style.setProperty('--member-role-color', conversation.counterpart.role_color || '#c7ccd6');
       item.innerHTML =
-        '<span class="messages-avatar">' + escapeHtml((conversation.counterpart.display_name || '?').charAt(0).toUpperCase()) + '</span>' +
+        avatarHtml(conversation.counterpart) +
         '<span class="messages-conversation-copy"><strong>' + escapeHtml(conversation.counterpart.display_name) + '</strong>' +
         '<small>' + escapeHtml(conversation.last_message ? shortText(conversation.last_message.body, 62) : 'No messages yet.') + '</small></span>' +
         (conversation.unread_count ? '<span class="messages-unread">' + Math.min(conversation.unread_count, 99) + '</span>' : '');
       item.addEventListener('click', function () { selectConversation(conversation.id); });
+      wireAvatarFallback(item);
       listEl.appendChild(item);
     });
   }
@@ -108,7 +134,7 @@
     row.dataset.messageId = message.id;
     row.innerHTML =
       '<div class="private-message-meta"><strong>' + escapeHtml(own ? 'You' : message.sender.display_name) + '</strong>' +
-      (message.sender.role === 'admin' || message.sender.role === 'moderator' ? '<span class="private-message-staff">Staff</span>' : '') +
+      '<span class="private-message-role" style="color:' + escapeHtml(message.sender.role_color || '#c7ccd6') + '">' + escapeHtml(roleLabel(message.sender.role)) + '</span>' +
       '<time>' + escapeHtml(formatDate(message.created_at)) + '</time></div>' +
       '<div class="private-message-body"></div>' +
       (!own ? '<button type="button" class="private-message-report">Report</button>' : '');
@@ -143,9 +169,7 @@
     emptyEl.hidden = true;
     contentEl.hidden = false;
     recipientPicker.hidden = true;
-    nameEl.textContent = conversation.counterpart.display_name;
-    roleEl.textContent = conversation.counterpart.role === 'admin' || conversation.counterpart.role === 'moderator' ? 'Staff conversation' : 'Private member conversation';
-    roleEl.style.color = conversation.counterpart.role_color || '#c7ccd6';
+    setThreadIdentity(conversation.counterpart, 'Private conversation');
     if (replace) threadEl.innerHTML = '';
     messages.forEach(function (message) { renderMessage(message, false); });
     if (messages.length) oldestMessageId = Number(messages[0].id);
@@ -193,9 +217,7 @@
       contentEl.hidden = false;
       recipientPicker.hidden = true;
       threadEl.innerHTML = '<div class="messages-new-thread-note">This conversation will begin when you send your first message.</div>';
-      nameEl.textContent = data.member.display_name;
-      roleEl.textContent = 'New private conversation';
-      roleEl.style.color = data.member.role_color || '#c7ccd6';
+      setThreadIdentity(data.member, 'New private conversation');
       composeForm.hidden = false;
       sendDisabled.hidden = true;
       blockButton.hidden = false;
@@ -210,9 +232,7 @@
   function chooseRecipient(member) {
     activeConversation = null;
     activeMember = member;
-    nameEl.textContent = member.display_name;
-    roleEl.textContent = member.role === 'admin' || member.role === 'moderator' ? 'New staff conversation' : 'New private conversation';
-    roleEl.style.color = member.role_color || '#c7ccd6';
+    setThreadIdentity(member, 'New private conversation');
     recipientInput.value = member.display_name;
     recipientInput.setAttribute('aria-label', 'Recipient: ' + member.display_name);
     recipientResults.hidden = true;
@@ -233,9 +253,9 @@
       var result = document.createElement('button');
       result.type = 'button';
       result.setAttribute('role', 'option');
-      result.style.setProperty('--member-role-color', member.role_color || '#c7ccd6');
-      result.innerHTML = '<span>' + escapeHtml((member.display_name || '?').charAt(0).toUpperCase()) + '</span><strong>' + escapeHtml(member.display_name) + '</strong><small>' + escapeHtml(member.role) + '</small>';
+      result.innerHTML = avatarHtml(member) + '<strong>' + escapeHtml(member.display_name) + '</strong><small style="color:' + escapeHtml(member.role_color || '#c7ccd6') + '">' + escapeHtml(roleLabel(member.role)) + '</small>';
       result.addEventListener('click', function () { chooseRecipient(member); });
+      wireAvatarFallback(result);
       recipientResults.appendChild(result);
     });
     recipientResults.hidden = false;
@@ -267,6 +287,8 @@
     nameEl.textContent = 'New message';
     roleEl.textContent = 'Search for a member to begin a private conversation';
     roleEl.style.color = '';
+    threadAvatar.innerHTML = '<span>?</span>';
+    threadAvatar.style.removeProperty('--member-role-color');
     recipientPicker.hidden = false;
     recipientInput.value = '';
     recipientInput.setAttribute('aria-label', 'Search message recipient');
