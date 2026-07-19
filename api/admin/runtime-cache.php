@@ -52,6 +52,21 @@ function pw_admin_runtime_cache_write(PDO $db, string $key, array $payload, int 
     }
 }
 
+/**
+ * Removes one optional runtime cache entry. Callers must still perform their
+ * own permission checks before asking to invalidate a shared diagnostic.
+ */
+function pw_admin_runtime_cache_forget(PDO $db, string $key): void
+{
+    try {
+        $stmt = $db->prepare('DELETE FROM admin_runtime_cache WHERE cache_key = ?');
+        $stmt->execute([$key]);
+    } catch (Throwable $e) {
+        // The cache is an optimization only. A missing migration or failed
+        // invalidation must never block the fresh diagnostic itself.
+    }
+}
+
 function pw_admin_runtime_cache_remember(PDO $db, string $key, int $ttlSeconds, callable $resolver, bool $forceFresh = false): array
 {
     if (!$forceFresh) {

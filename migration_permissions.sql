@@ -46,6 +46,7 @@ INSERT INTO permissions (`key`, label, category) VALUES
   ('dispatch_translations.view', 'View Dispatch Translations', 'Dispatches'),
   ('dispatch_translations.edit', 'Edit Dispatch Translations', 'Dispatches'),
   ('dashboards.view', 'View dashboards (Home, System Status, Audit Log, stats)', 'Dashboards'),
+  ('dashboards.recheck_spacy', 'Recheck the spaCy script', 'Dashboards'),
   ('members.view', 'View Members list', 'Members'),
   ('members.edit', 'Edit member profile fields', 'Members'),
   ('members.change_role', 'Change a member''s role', 'Members'),

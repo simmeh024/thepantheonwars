@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=245">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=246">
 </head>
 <body>
 
@@ -1051,6 +1051,9 @@
               <span class="system-status-value" id="sys-detail-mail">&hellip;</span>
             </li>
           </ul>
+          <div class="system-status-detail-action" data-requires-permission="dashboards.recheck_spacy">
+            <button type="button" class="system-status-recheck-btn" id="sys-detail-recheck-spacy-btn">Recheck spaCy</button>
+          </div>
         </div>
 
         <div class="system-status-detail-card">
@@ -5896,6 +5899,7 @@
   var sysDetailSslEl = document.getElementById('sys-detail-ssl');
   var sysDetailSpacyEl = document.getElementById('sys-detail-spacy');
   var sysDetailMailEl = document.getElementById('sys-detail-mail');
+  var sysDetailRecheckSpacyBtn = document.getElementById('sys-detail-recheck-spacy-btn');
   var sysDetailDbLoadEl = document.getElementById('sys-detail-dbload');
   var sysDetailAvatarValueEl = document.getElementById('sys-detail-avatar-value');
   var sysDetailAvatarBarEl = document.getElementById('sys-detail-avatar-bar');
@@ -6112,6 +6116,32 @@
           if (el) el.textContent = 'Unknown';
         });
       });
+  }
+
+  if (sysDetailRecheckSpacyBtn) {
+    sysDetailRecheckSpacyBtn.addEventListener('click', function () {
+      var originalLabel = sysDetailRecheckSpacyBtn.textContent;
+      sysDetailRecheckSpacyBtn.disabled = true;
+      sysDetailRecheckSpacyBtn.textContent = 'Rechecking\u2026';
+      fetch('/api/admin/system-status/recheck-spacy.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csrf: window.PW_AUTH.csrf })
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.error || 'Could not recheck spaCy.');
+          setPlainStatusValue(sysDetailSpacyEl, data.spacy);
+        })
+        .catch(function () {
+          window.alert('Could not recheck spaCy. Please try again.');
+        })
+        .finally(function () {
+          sysDetailRecheckSpacyBtn.disabled = false;
+          sysDetailRecheckSpacyBtn.textContent = originalLabel;
+        });
+    });
   }
 
 

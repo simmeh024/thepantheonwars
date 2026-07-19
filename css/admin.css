@@ -1499,6 +1499,31 @@
 }
 .system-status-log-backup-btn:hover { border-color: var(--purple-bright); color: var(--purple-bright); }
 
+.system-status-detail-action {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 16px;
+}
+.system-status-recheck-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--border-soft);
+  color: var(--text-dim);
+  padding: 6px 11px;
+  font: inherit;
+  font-size: 0.74rem;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.system-status-recheck-btn:hover:not(:disabled) {
+  border-color: var(--purple-bright);
+  color: var(--purple-bright);
+  background: rgba(162, 121, 236, 0.08);
+}
+.system-status-recheck-btn:disabled { cursor: wait; opacity: 0.62; }
+
 .system-status-groups {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
