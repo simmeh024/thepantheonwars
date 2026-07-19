@@ -466,8 +466,11 @@ also supports a deliberately manual `?full=1` historical rebuild.
 - **Private member messaging:** `messages.html` plus `js/messages.js` provides
   permanent, one-to-one member conversations backed by `direct_conversations`,
   `direct_messages`, and `user_blocks` (run
-  `sql/migration_direct_messages.sql` after deployment). A member profile can
-  start a conversation; the dynamic signed-in profile menu links to Messages,
+  `sql/migration_direct_messages.sql` after deployment). The Messages heading
+  has **Find members** plus **Write message**; the latter opens a compose
+  surface with an Outlook-style live **To:** member search
+  (`api/direct-messages/member-search.php`). A member profile can also start a
+  conversation; the dynamic signed-in profile menu links to Messages,
   so no repeated header markup was changed. The inbox uses 25-second,
   visibility-gated polling rather than a socket, marks messages and their
   collapsed bell notification read together, and has server-side CSRF, own-row

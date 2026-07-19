@@ -12,7 +12,7 @@
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=236">
+<link rel="stylesheet" href="css/community-bundle.css?v=237">
 </head>
 <body>
 <header class="site-header">
@@ -42,7 +42,7 @@
       <div id="messages-app" hidden>
         <div class="messages-heading">
           <div><span class="eyebrow">Nexus Veil</span><h1>Private Messages</h1><p>Private conversations are available to every active member. Block a member to stop ordinary member-to-member messages.</p></div>
-          <a class="btn" href="memberlist.html">Find members</a>
+          <div class="messages-heading-actions"><a class="btn" href="memberlist.html">Find members</a><button type="button" class="btn btn-solid" id="messages-write-btn">Write message</button></div>
         </div>
         <div class="messages-shell">
           <aside class="messages-inbox" aria-label="Conversations">
@@ -53,6 +53,10 @@
             <div id="messages-thread-empty" class="messages-thread-empty"><span>◈</span><h2>Select a conversation</h2><p>Choose a conversation, or visit a member profile to start one.</p></div>
             <div id="messages-thread-content" hidden>
               <header class="messages-thread-head"><div><h2 id="messages-thread-name"></h2><p id="messages-thread-role"></p></div><button type="button" class="messages-block-btn" id="messages-block-btn"></button></header>
+              <div class="messages-recipient-picker" id="messages-recipient-picker" hidden>
+                <label for="messages-recipient-input">To:</label>
+                <div class="messages-recipient-search"><input id="messages-recipient-input" type="search" autocomplete="off" placeholder="Search members by name or handle" aria-autocomplete="list" aria-controls="messages-recipient-results"><div id="messages-recipient-results" class="messages-recipient-results" role="listbox" hidden></div></div>
+              </div>
               <button type="button" id="messages-load-older" class="messages-load-older" hidden>Load earlier messages</button>
               <div id="messages-thread-list" class="messages-thread-list"></div>
               <div id="messages-send-disabled" class="messages-send-disabled" hidden>This conversation is not available for sending.</div>
@@ -71,6 +75,6 @@
 <footer class="site-footer"><div class="container"><div class="footer-bottom">© 2026 Pascal Slettenaar. All rights reserved. &nbsp;•&nbsp; “Twelve thrones will fall. One will rise.”</div></div></footer>
 <script src="js/main.js?v=8"></script>
 <script src="js/members.js?v=25"></script>
-<script src="js/messages.js?v=1"></script>
+<script src="js/messages.js?v=2"></script>
 </body>
 </html>

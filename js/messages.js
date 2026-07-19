@@ -19,10 +19,15 @@
   var blockButton = document.getElementById('messages-block-btn');
   var olderButton = document.getElementById('messages-load-older');
   var countEl = document.getElementById('messages-count');
+  var writeButton = document.getElementById('messages-write-btn');
+  var recipientPicker = document.getElementById('messages-recipient-picker');
+  var recipientInput = document.getElementById('messages-recipient-input');
+  var recipientResults = document.getElementById('messages-recipient-results');
   var activeConversation = null;
   var activeMember = null;
   var oldestMessageId = 0;
   var polling = null;
+  var recipientSearchTimer = null;
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -137,6 +142,7 @@
     activeMember = null;
     emptyEl.hidden = true;
     contentEl.hidden = false;
+    recipientPicker.hidden = true;
     nameEl.textContent = conversation.counterpart.display_name;
     roleEl.textContent = conversation.counterpart.role === 'admin' || conversation.counterpart.role === 'moderator' ? 'Staff conversation' : 'Private member conversation';
     roleEl.style.color = conversation.counterpart.role_color || '#c7ccd6';
@@ -185,6 +191,7 @@
       activeMember = data.member;
       emptyEl.hidden = true;
       contentEl.hidden = false;
+      recipientPicker.hidden = true;
       threadEl.innerHTML = '<div class="messages-new-thread-note">This conversation will begin when you send your first message.</div>';
       nameEl.textContent = data.member.display_name;
       roleEl.textContent = 'New private conversation';
@@ -198,6 +205,80 @@
     }).catch(function (error) {
       emptyEl.querySelector('p').textContent = error.message;
     });
+  }
+
+  function chooseRecipient(member) {
+    activeConversation = null;
+    activeMember = member;
+    nameEl.textContent = member.display_name;
+    roleEl.textContent = member.role === 'admin' || member.role === 'moderator' ? 'New staff conversation' : 'New private conversation';
+    roleEl.style.color = member.role_color || '#c7ccd6';
+    recipientInput.value = member.display_name;
+    recipientInput.setAttribute('aria-label', 'Recipient: ' + member.display_name);
+    recipientResults.hidden = true;
+    recipientResults.innerHTML = '';
+    composeForm.hidden = false;
+    sendDisabled.hidden = true;
+    composeBody.focus();
+  }
+
+  function renderRecipientResults(members) {
+    recipientResults.innerHTML = '';
+    if (!members.length) {
+      recipientResults.innerHTML = '<p>No matching members.</p>';
+      recipientResults.hidden = false;
+      return;
+    }
+    members.forEach(function (member) {
+      var result = document.createElement('button');
+      result.type = 'button';
+      result.setAttribute('role', 'option');
+      result.style.setProperty('--member-role-color', member.role_color || '#c7ccd6');
+      result.innerHTML = '<span>' + escapeHtml((member.display_name || '?').charAt(0).toUpperCase()) + '</span><strong>' + escapeHtml(member.display_name) + '</strong><small>' + escapeHtml(member.role) + '</small>';
+      result.addEventListener('click', function () { chooseRecipient(member); });
+      recipientResults.appendChild(result);
+    });
+    recipientResults.hidden = false;
+  }
+
+  function searchRecipients() {
+    var query = recipientInput.value.trim();
+    activeMember = null;
+    if (!query) {
+      recipientResults.hidden = true;
+      recipientResults.innerHTML = '';
+      return;
+    }
+    fetchJson('/api/direct-messages/member-search.php?q=' + encodeURIComponent(query)).then(function (data) {
+      renderRecipientResults(data.members || []);
+    }).catch(function () {
+      recipientResults.innerHTML = '<p>Could not search members right now.</p>';
+      recipientResults.hidden = false;
+    });
+  }
+
+  function startNewMessage() {
+    activeConversation = null;
+    activeMember = null;
+    oldestMessageId = 0;
+    emptyEl.hidden = true;
+    contentEl.hidden = false;
+    threadEl.innerHTML = '<div class="messages-new-thread-note">Choose a recipient in the <strong>To:</strong> field, then write your message.</div>';
+    nameEl.textContent = 'New message';
+    roleEl.textContent = 'Search for a member to begin a private conversation';
+    roleEl.style.color = '';
+    recipientPicker.hidden = false;
+    recipientInput.value = '';
+    recipientInput.setAttribute('aria-label', 'Search message recipient');
+    recipientResults.hidden = true;
+    recipientResults.innerHTML = '';
+    composeForm.hidden = true;
+    sendDisabled.hidden = false;
+    sendDisabled.textContent = 'Choose a recipient before writing your message.';
+    blockButton.hidden = true;
+    olderButton.hidden = true;
+    setConversationUrl(null);
+    recipientInput.focus();
   }
 
   composeBody.addEventListener('input', function () { countEl.textContent = composeBody.value.length + ' / 2000'; });
@@ -232,6 +313,14 @@
       }
       loadConversations();
     });
+  });
+  writeButton.addEventListener('click', startNewMessage);
+  recipientInput.addEventListener('input', function () {
+    if (recipientSearchTimer) clearTimeout(recipientSearchTimer);
+    recipientSearchTimer = setTimeout(searchRecipients, 180);
+  });
+  recipientInput.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') { recipientResults.hidden = true; recipientResults.innerHTML = ''; }
   });
   olderButton.addEventListener('click', function () { if (activeConversation && oldestMessageId) selectConversation(activeConversation.id, oldestMessageId); });
   document.getElementById('messages-refresh').addEventListener('click', function () { loadConversations(); if (activeConversation) selectConversation(activeConversation.id); });
