@@ -463,6 +463,48 @@ also supports a deliberately manual `?full=1` historical rebuild.
 
 ## Recent history (most recent first)
 
+- **News article "Related Development" sidecard + category breakdown bar**
+  (`news-post.html`/`js/news-post.js`, CSS in `css/content.css` since that
+  page uses `public.css` and never imports `community.css`): when an
+  article was published from a Dispatch Composer draft that had Dispatches
+  attached as source material (`post.attached_dispatches`, from
+  `pw_composer_attached_dispatches()`), a left sidecard now shows them as a
+  2-column grid of cards -- category icon, tag label, title, short SHA +
+  relative time -- each linking straight to `dev-dispatches.html?dispatch=
+  <id>`'s existing deep-link (scrolls to and expands that entry). A
+  category filter pill bar (`All` plus one pill per category actually
+  present) toggles cards client-side via `[hidden]`, no extra request.
+  Cards were then given several rounds of polish: hover elevation
+  (`translateY` + accent-tinted shadow) with a top accent bar replacing a
+  flat left border, an icon badge chip, an accent-tinted gradient card
+  background, a staggered scroll-in reveal (`IntersectionObserver`, same
+  pattern as `js/books.js`'s book-row reveal), an icon scale/rotate on
+  hover, a pulsing "New" chip on dispatches committed in the last 48h, a
+  count pill next to the "Dispatches in this update" heading, and a
+  diagonal sheen sweep on hover reusing the `book-cover-sweep` keyframe
+  verbatim. All motion is skipped under `prefers-reduced-motion`. A real
+  bug was found and fixed along the way: `.post-read-cue` ("Read
+  transmission &rarr;" on News feed cards, `js/news.js`) was
+  `display: inline-block`; the `.post-tags` block between it and the
+  `.stamp` byline is `display: flex` and normally forces a line break, but
+  posts with **no tags** skip that div entirely, so the two inline-level
+  elements collapsed onto the same line and ran together. Fixed by making
+  `.post-read-cue` a block element so it always starts its own line
+  regardless of what's between it and the byline. Finally, a single
+  stacked category-breakdown bar (`js/news-post.js`'s `buildCategoryBar()`)
+  sits at the bottom of the sidecard -- the same flat div-based bar
+  pattern as `dev-metrics.html`'s language-history chart (no chart library
+  anywhere in this codebase), reworked for the fixed 9-category catalog:
+  gradient-filled segments, a scroll-in width-fill animation (segments
+  grow from 0 once the bar enters the viewport), an inline percentage on
+  any segment holding &ge;15% share, thin separators between segments, a
+  hover/focus tooltip per segment (category name, percentage, and a
+  one-line explanation from a new `TAG_DESCRIPTIONS` map), and a compact
+  color-key legend row underneath so the palette reads at a glance without
+  hovering every segment. No SQL migration was needed for any of this --
+  purely CSS/JS on top of the already-shipped Composer/attached-dispatches
+  data.
+
 - **Dispatch category auto-scoring, confidence, and review queue** (full
   end-to-end flowchart of this system plus Translation and Composer
   together: `docs/dispatch-pipeline.md`):
