@@ -257,7 +257,11 @@
           </div>
 
           <div class="leaderboard-panel">
-            <h3 class="leaderboard-title">Top Voices</h3>
+            <h3 class="leaderboard-title">Community Leaders</h3>
+            <div class="profile-menu leaderboard-mode" id="leaderboard-mode">
+              <button type="button" class="profile-menu-tab active" data-leaderboard-metric="posts">Forum Posts</button>
+              <button type="button" class="profile-menu-tab" data-leaderboard-metric="reputation">Reputation</button>
+            </div>
             <div id="leaderboard-list"></div>
             <p id="leaderboard-empty" class="lore-status" hidden>No posts yet.</p>
           </div>
@@ -366,7 +370,7 @@
 </div>
 
 <script src="js/main.js?v=10"></script>
-<script src="js/members.js?v=29"></script>
+<script src="js/members.js?v=30"></script>
 <script>
 (function () {
   // Delegated so spoiler controls created from safe BBCode markup do not need
@@ -2906,8 +2910,9 @@
 
   // ---------- Top Voices sidebar ----------
 
+  var leaderboardMetric = 'posts';
   function loadLeaderboard() {
-    fetch('/api/leaderboard.php', { credentials: 'same-origin' })
+    fetch('/api/leaderboard.php?metric=' + encodeURIComponent(leaderboardMetric), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         leaderboardList.innerHTML = '';
@@ -2947,7 +2952,7 @@
 
           var count = document.createElement('span');
           count.className = 'leaderboard-count';
-          count.textContent = u.post_count + (u.post_count === 1 ? ' post' : ' posts');
+          count.textContent = leaderboardMetric === 'reputation' ? u.reputation + ' rep' : u.post_count + (u.post_count === 1 ? ' post' : ' posts');
           info.appendChild(count);
 
           item.appendChild(info);
@@ -2955,6 +2960,15 @@
         });
       });
   }
+
+  var leaderboardMode = document.getElementById('leaderboard-mode');
+  if (leaderboardMode) leaderboardMode.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-leaderboard-metric]');
+    if (!button || button.classList.contains('active')) return;
+    leaderboardMetric = button.getAttribute('data-leaderboard-metric') === 'reputation' ? 'reputation' : 'posts';
+    leaderboardMode.querySelectorAll('[data-leaderboard-metric]').forEach(function (tab) { tab.classList.toggle('active', tab === button); });
+    loadLeaderboard();
+  });
 
   // ---------- Popular Topics sidebar ----------
 

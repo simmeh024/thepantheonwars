@@ -1,30 +1,21 @@
 <?php
 require_once __DIR__ . '/helpers.php';
 
-// Public read — no login required, matches the forum's read-without-account design.
-// Counts topics started + replies posted, combined, as the activity measure.
+// Public community rankings for both forum activity and all-time reputation.
 $db = pw_db();
+$metric = isset($_GET['metric']) && $_GET['metric'] === 'reputation' ? 'reputation' : 'posts';
+$having = $metric === 'reputation' ? '(u.reputation > 0 OR post_count > 0)' : 'post_count > 0';
+$order = $metric === 'reputation' ? 'u.reputation DESC, post_count DESC, u.display_name ASC' : 'post_count DESC, u.display_name ASC';
 $stmt = $db->prepare(
-    'SELECT u.id, u.display_name, u.role, r.color AS role_color,
+    'SELECT u.id, u.display_name, u.role, r.color AS role_color, u.reputation,
        (SELECT COUNT(*) FROM comments c WHERE c.user_id = u.id AND c.is_deleted = 0) +
        (SELECT COUNT(*) FROM topics t WHERE t.user_id = u.id AND t.is_deleted = 0) AS post_count
-     FROM users u
-     LEFT JOIN roles r ON r.slug = u.role
-     HAVING post_count > 0
-     ORDER BY post_count DESC, u.display_name ASC
-     LIMIT 10'
+     FROM users u LEFT JOIN roles r ON r.slug = u.role
+     HAVING ' . $having . ' ORDER BY ' . $order . ' LIMIT 10'
 );
 $stmt->execute();
-$rows = $stmt->fetchAll();
-
 $out = array_map(function ($r) {
-    return [
-        'id' => (int)$r['id'],
-        'display_name' => $r['display_name'],
-        'role' => $r['role'],
-        'role_color' => $r['role_color'] ?: '#c7ccd6',
-        'post_count' => (int)$r['post_count'],
-    ];
-}, $rows);
-
-pw_json(['ok' => true, 'leaders' => $out]);
+    return ['id' => (int)$r['id'], 'display_name' => $r['display_name'], 'role' => $r['role'],
+        'role_color' => $r['role_color'] ?: '#c7ccd6', 'reputation' => (int)$r['reputation'], 'post_count' => (int)$r['post_count']];
+}, $stmt->fetchAll());
+pw_json(['ok' => true, 'metric' => $metric, 'leaders' => $out]);

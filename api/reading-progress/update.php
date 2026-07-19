@@ -71,7 +71,8 @@ try {
     );
     $saveStmt->execute([(int)$user['id'], $bookId, $status, $status, $status]);
     if ($reputationAwarded > 0) {
-        $reputationAwarded = pw_award_reputation($db, (int)$user['id'], $reputationAwarded);
+        $rewardKey = $status === 'finished' ? 'book_finished' : 'book_started';
+        $reputationAwarded = pw_award_reputation($db, (int)$user['id'], $reputationAwarded, $rewardKey, ['source_type' => 'book', 'source_id' => $bookId]);
     }
     $db->commit();
 } catch (Throwable $e) {

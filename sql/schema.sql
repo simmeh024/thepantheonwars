@@ -459,6 +459,59 @@ CREATE TABLE IF NOT EXISTS content_reports (
   CONSTRAINT fk_content_reports_resolver FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- See migration_reputation_expansion.sql. These tables retain the complete
+-- reputation audit trail, editable reward rules, timed targeted events, and
+-- permanent member achievements.
+CREATE TABLE IF NOT EXISTS reputation_reward_rules (
+  `key` VARCHAR(40) NOT NULL PRIMARY KEY,
+  label VARCHAR(100) NOT NULL,
+  base_points SMALLINT UNSIGNED NOT NULL,
+  is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS reputation_events (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  multiplier TINYINT UNSIGNED NOT NULL,
+  starts_at DATETIME NOT NULL,
+  ends_at DATETIME NOT NULL,
+  reward_keys_json TEXT NOT NULL,
+  is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  created_by INT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_reputation_events_window (is_enabled, starts_at, ends_at),
+  CONSTRAINT fk_reputation_events_creator FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS reputation_ledger (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  actor_user_id INT UNSIGNED NULL,
+  reward_key VARCHAR(50) NOT NULL,
+  label VARCHAR(140) NOT NULL,
+  base_points SMALLINT NOT NULL,
+  multiplier TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  points SMALLINT NOT NULL,
+  source_type VARCHAR(40) NULL,
+  source_id INT UNSIGNED NULL,
+  note VARCHAR(255) NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_reputation_ledger_member (user_id, created_at),
+  INDEX idx_reputation_ledger_created (created_at),
+  CONSTRAINT fk_reputation_ledger_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_reputation_ledger_actor FOREIGN KEY (actor_user_id) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_reputation_achievements (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  achievement_key VARCHAR(40) NOT NULL,
+  unlocked_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_user_reputation_achievement (user_id, achievement_key),
+  CONSTRAINT fk_user_reputation_achievements_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Admin-managed personality quiz content. Each question has exactly six
 -- ordered options: the order maps to the fixed six-Overlord score catalog.
 CREATE TABLE IF NOT EXISTS quiz_questions (

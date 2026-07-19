@@ -69,7 +69,7 @@ if ($existing) {
         try {
             $awardedAtLikeTime = isset($existing['reputation_awarded']) && (int)$existing['reputation_awarded'] > 0
                 ? (int)$existing['reputation_awarded'] : 2;
-            pw_remove_reputation($db, $unlikeOwnerId, $awardedAtLikeTime);
+            pw_remove_reputation($db, $unlikeOwnerId, $awardedAtLikeTime, ['reward_key' => 'content_liked_reversed', 'label' => 'Like removed', 'source_type' => $targetType, 'source_id' => $targetId]);
         } catch (PDOException $e) {
             // migration_reputation.sql may be run after code deployment.
         }
@@ -104,7 +104,7 @@ if ($existing) {
     // Persist the actual (possibly boosted) amount so unlike can reverse it.
     if ($owner && (int)$owner['user_id'] !== (int)$user['id']) {
         try {
-            $likeReputationAwarded = pw_award_reputation($db, (int)$owner['user_id'], 2);
+            $likeReputationAwarded = pw_award_reputation($db, (int)$owner['user_id'], 2, 'content_liked', ['source_type' => $targetType, 'source_id' => $targetId]);
             try {
                 $awardStmt = $db->prepare('UPDATE message_likes SET reputation_awarded = ? WHERE id = ?');
                 $awardStmt->execute([$likeReputationAwarded, $likeId]);

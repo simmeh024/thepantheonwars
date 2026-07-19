@@ -480,6 +480,7 @@ function initMembers() {
       var profileIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.25"/><path d="M5.2 20c.9-3.3 3.15-5 6.8-5s5.9 1.7 6.8 5"/></svg>';
       var settingsIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.05.05-2.1 2.1-.05-.05a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.04 1.56v.08h-3v-.08A1.7 1.7 0 0 0 10.68 18.64a1.7 1.7 0 0 0-1.88.34l-.05.05-2.1-2.1.05-.05A1.7 1.7 0 0 0 7.04 15 1.7 1.7 0 0 0 5.48 14H5.4v-3h.08A1.7 1.7 0 0 0 7.04 9.96 1.7 1.7 0 0 0 6.7 8.08l-.05-.05 2.1-2.1.05.05a1.7 1.7 0 0 0 1.88.34A1.7 1.7 0 0 0 11.72 4.8v-.08h3v.08a1.7 1.7 0 0 0 1.04 1.56 1.7 1.7 0 0 0 1.88-.34l.05-.05 2.1 2.1-.05.05a1.7 1.7 0 0 0-.34 1.88A1.7 1.7 0 0 0 20.96 11H21v3h-.04A1.7 1.7 0 0 0 19.4 15Z"/></svg>';
       var messagesIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3h11A2.5 2.5 0 0 1 20 5.5v8a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 4v-4A2.5 2.5 0 0 1 3 13.5v-8Z"/><path d="M8 8h8M8 11.5h5"/></svg>';
+      var reputationIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 4 7v5c0 4.7 3.1 7.9 8 9 4.9-1.1 8-4.3 8-9V7l-8-4Z"/><path d="m8.5 12 2.1 2.1 4.9-4.9"/></svg>';
       var adminIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3.5 19 6v5.2c0 4.2-2.7 7.6-7 9.3-4.3-1.7-7-5.1-7-9.3V6l7-2.5Z"/><path d="m9.2 12 1.8 1.8 3.9-4"/></svg>';
       var logoutIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 5H5v14h5"/><path d="m14 8 4 4-4 4M8 12h10"/></svg>';
       slot.className = 'nav-item has-dropdown auth-nav-item';
@@ -495,6 +496,7 @@ function initMembers() {
           presencePickerHtml(presenceStatus) +
           '<div class="auth-dropdown-actions">' +
             '<a href="member.html?id=' + encodeURIComponent(window.PW_AUTH.user.id) + '">' + profileIcon + '<span>Profile</span></a>' +
+            '<a href="reputation.html">' + reputationIcon + '<span>Reputation</span></a>' +
             '<a href="messages.html">' + messagesIcon + '<span>Messages</span><span id="auth-messages-badge" class="auth-message-badge" hidden></span></a>' +
             '<a href="profile.html">' + settingsIcon + '<span>Settings</span></a>' +
             (pwHasPermission('admin_console.access') ? '<a class="auth-admin-console-link" href="/admin">' + adminIcon + '<span>Admin Console</span></a>' : '') +

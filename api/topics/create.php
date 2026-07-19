@@ -107,7 +107,7 @@ try {
 // +1 base reputation for starting a topic. The centralized helper applies an
 // active event multiplier server-side; failures never block posting.
 try {
-    pw_award_reputation($db, (int)$user['id'], 1);
+    pw_award_reputation($db, (int)$user['id'], 1, 'topic_created', ['source_type' => 'topic', 'source_id' => $topicId]);
 } catch (PDOException $e) {
     // migration_reputation.sql may be run after code deployment.
 }

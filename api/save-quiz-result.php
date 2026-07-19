@@ -39,7 +39,7 @@ $stmt->execute([$overlord, $user['id']]);
 // (Re-Sync Overlord Resonance) never award it again.
 if ($isFirstQuiz) {
     try {
-        pw_award_reputation($db, (int)$user['id'], 10);
+        pw_award_reputation($db, (int)$user['id'], 10, 'quiz_completed', ['source_type' => 'quiz_result']);
     } catch (PDOException $e) {
         // migration_reputation.sql may be run after code deployment.
     }

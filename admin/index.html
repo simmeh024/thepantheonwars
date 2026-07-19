@@ -1743,6 +1743,8 @@
         <button type="button" class="btn btn-solid" id="reputation-level-create-btn">+ Add Level</button>
         <button type="button" class="btn" id="reputation-rewards-btn">View Reward Rules</button>
         <button type="button" class="btn" id="reputation-multiplier-btn" data-requires-permission="reputation.edit">Multiplier Event</button>
+        <button type="button" class="btn" id="reputation-ledger-btn">View Ledger</button>
+        <button type="button" class="btn" id="reputation-adjust-btn" data-requires-permission="reputation.adjust">Adjust Member</button>
         <span class="reputation-multiplier-status" id="reputation-multiplier-status">Checking event status&hellip;</span>
         <span class="admin-count" id="reputation-level-count"></span>
       </div>
@@ -3198,7 +3200,7 @@
     <h3 class="admin-modal-title">Current Reputation Rewards</h3>
     <p class="admin-modal-sub" id="reputation-rewards-modal-sub">Loading current rewards&hellip;</p>
     <div class="reputation-reward-list" id="reputation-reward-list"></div>
-    <div class="admin-modal-actions"><button type="button" class="btn" id="reputation-rewards-modal-done-btn">Done</button></div>
+    <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="reputation-rewards-save-btn" data-requires-permission="reputation.edit">Save Rules</button><button type="button" class="btn" id="reputation-rewards-modal-done-btn">Done</button></div>
   </div>
 </div>
 
@@ -3208,6 +3210,7 @@
     <button type="button" class="admin-modal-close" id="reputation-multiplier-modal-close" aria-label="Close">&times;</button>
     <h3 class="admin-modal-title">Reputation Multiplier Event</h3>
     <p class="admin-modal-sub">Boost every reputation reward for a limited time. Expiry is enforced automatically by the server.</p>
+    <div class="admin-field"><label for="reputation-event-name-input">Event name</label><input type="text" id="reputation-event-name-input" maxlength="100" placeholder="e.g. Reading Weekend"></div>
     <div class="admin-field">
       <label for="reputation-multiplier-input">Multiplier</label>
       <select id="reputation-multiplier-input">
@@ -3222,6 +3225,8 @@
       <p class="admin-field-hint">Uses your local time. Required for a 2x, 3x, or 4x event; normal rewards ignore this value.</p>
       <input type="datetime-local" id="reputation-multiplier-ends-input">
     </div>
+    <div class="admin-field"><label for="reputation-multiplier-starts-input">Start date and time</label><input type="datetime-local" id="reputation-multiplier-starts-input"></div>
+    <div class="admin-field"><label>Reward types</label><p class="admin-field-hint">Choose which activities this event multiplies.</p><div id="reputation-event-reward-keys"></div></div>
     <p class="admin-modal-error" id="reputation-multiplier-modal-error"></p>
     <p class="admin-modal-status" id="reputation-multiplier-modal-status"></p>
     <div class="admin-modal-actions">
@@ -3230,6 +3235,9 @@
     </div>
   </div>
 </div>
+
+<div class="admin-modal" id="reputation-ledger-modal" hidden><div class="admin-modal-backdrop"></div><div class="admin-modal-card wide"><button type="button" class="admin-modal-close" id="reputation-ledger-modal-close" aria-label="Close">&times;</button><h3 class="admin-modal-title">Reputation Ledger</h3><p class="admin-modal-sub">Every recorded award, reversal, and staff adjustment.</p><div id="reputation-ledger-list" class="admin-list"><div class="admin-list-empty">Loading ledger&hellip;</div></div><div class="admin-modal-actions"><button type="button" class="btn" id="reputation-ledger-modal-done-btn">Done</button></div></div></div>
+<div class="admin-modal" id="reputation-adjust-modal" hidden><div class="admin-modal-backdrop"></div><div class="admin-modal-card"><button type="button" class="admin-modal-close" id="reputation-adjust-modal-close" aria-label="Close">&times;</button><h3 class="admin-modal-title">Adjust Member Reputation</h3><p class="admin-modal-sub">This change is permanently recorded in the reputation ledger.</p><div class="admin-field"><label for="reputation-adjust-member-id">Member ID</label><input id="reputation-adjust-member-id" type="number" min="1" step="1" placeholder="Find this in Members"></div><div class="admin-field"><label for="reputation-adjust-points">Points</label><input id="reputation-adjust-points" type="number" min="-1000" max="1000" step="1" placeholder="e.g. 10 or -5"></div><div class="admin-field"><label for="reputation-adjust-reason">Reason</label><textarea id="reputation-adjust-reason" maxlength="255" placeholder="Explain this staff adjustment"></textarea></div><p class="admin-modal-error" id="reputation-adjust-error"></p><div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="reputation-adjust-save-btn">Save Adjustment</button><button type="button" class="btn" id="reputation-adjust-cancel-btn">Cancel</button></div></div></div>
 
 <div class="admin-modal" id="mail-template-modal" hidden>
   <div class="admin-modal-backdrop"></div>
@@ -3306,7 +3314,7 @@
   </div>
 </div>
 
-<script src="../js/members.js?v=29"></script>
+<script src="../js/members.js?v=30"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -11098,6 +11106,9 @@
   var reputationRewardList = document.getElementById('reputation-reward-list');
   var reputationRewardsCloseBtn = document.getElementById('reputation-rewards-modal-close');
   var reputationRewardsDoneBtn = document.getElementById('reputation-rewards-modal-done-btn');
+  var reputationRewardsSaveBtn = document.getElementById('reputation-rewards-save-btn');
+  var reputationLedgerBtn = document.getElementById('reputation-ledger-btn');
+  var reputationAdjustBtn = document.getElementById('reputation-adjust-btn');
 
   var reputationMultiplierModal = document.getElementById('reputation-multiplier-modal');
   var reputationMultiplierCloseBtn = document.getElementById('reputation-multiplier-modal-close');
@@ -11105,6 +11116,9 @@
   var reputationMultiplierSaveBtn = document.getElementById('reputation-multiplier-save-btn');
   var reputationMultiplierInput = document.getElementById('reputation-multiplier-input');
   var reputationMultiplierEndsInput = document.getElementById('reputation-multiplier-ends-input');
+  var reputationMultiplierStartsInput = document.getElementById('reputation-multiplier-starts-input');
+  var reputationEventNameInput = document.getElementById('reputation-event-name-input');
+  var reputationEventRewardKeys = document.getElementById('reputation-event-reward-keys');
   var reputationMultiplierModalError = document.getElementById('reputation-multiplier-modal-error');
   var reputationMultiplierModalStatus = document.getElementById('reputation-multiplier-modal-status');
 
@@ -11173,8 +11187,7 @@
       var row = document.createElement('div');
       row.className = 'reputation-reward-row';
       var earned = Number(reward.points) * multiplier;
-      row.innerHTML = '<span>' + escapeHtml(reward.label) + '</span><strong>+' + earned + ' rep</strong>' +
-        (multiplier > 1 ? '<small>Base: +' + reward.points + '</small>' : '');
+      row.innerHTML = '<label><input class="reputation-rule-enabled" type="checkbox" data-key="' + escapeHtml(reward.key) + '"' + (reward.enabled !== false ? ' checked' : '') + '> ' + escapeHtml(reward.label) + '</label><span><input class="reputation-rule-points" type="number" min="0" max="100" value="' + Number(reward.points) + '" data-key="' + escapeHtml(reward.key) + '"> rep</span>' + (multiplier > 1 ? '<small>Active event: +' + earned + '</small>' : '');
       reputationRewardList.appendChild(row);
     });
   }
@@ -11191,10 +11204,11 @@
   function closeReputationRewardsModal() { reputationRewardsModal.hidden = true; }
 
   function openReputationMultiplierModal() {
-    var settings = reputationSettings;
-    var multiplier = settings && settings.multiplier ? settings.multiplier : { multiplier: 1, is_active: false, ends_at: null };
-    reputationMultiplierInput.value = String(multiplier.is_active ? multiplier.multiplier : 1);
-    reputationMultiplierEndsInput.value = multiplier.is_active ? reputationDateInputValue(multiplier.ends_at) : '';
+    reputationMultiplierInput.value = '2';
+    reputationEventNameInput.value = '';
+    reputationMultiplierStartsInput.value = reputationDateInputValue(new Date().toISOString().slice(0, 19).replace('T', ' '));
+    reputationMultiplierEndsInput.value = '';
+    reputationEventRewardKeys.innerHTML = ((reputationSettings && reputationSettings.rewards) || []).map(function (reward) { return '<label class="reputation-event-key"><input type="checkbox" value="' + escapeHtml(reward.key) + '" checked> ' + escapeHtml(reward.label) + '</label>'; }).join('');
     reputationMultiplierModalError.classList.remove('show');
     reputationMultiplierModalStatus.classList.remove('show');
     syncReputationMultiplierEndInput();
@@ -11289,6 +11303,11 @@
   reputationRewardsCloseBtn.addEventListener('click', closeReputationRewardsModal);
   reputationRewardsDoneBtn.addEventListener('click', closeReputationRewardsModal);
   reputationRewardsModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeReputationRewardsModal);
+  reputationRewardsSaveBtn.addEventListener('click', function () {
+    var rules = Array.prototype.map.call(reputationRewardList.querySelectorAll('.reputation-rule-points'), function (input) { var enabled = reputationRewardList.querySelector('.reputation-rule-enabled[data-key="' + input.getAttribute('data-key') + '"]'); return { key: input.getAttribute('data-key'), points: Number(input.value), enabled: enabled && enabled.checked }; });
+    reputationRewardsSaveBtn.disabled = true;
+    fetch('/api/admin/reputation-levels/rules.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rules: rules, csrf: window.PW_AUTH.csrf }) }).then(function (r) { return r.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'Could not save rules.'); reputationRewardsSaveBtn.disabled = false; renderReputationSettings(data); renderReputationRewardList(data); }).catch(function (error) { reputationRewardsSaveBtn.disabled = false; reputationRewardsModalSub.textContent = error.message || 'Could not save rules.'; });
+  });
 
   reputationMultiplierBtn.addEventListener('click', function () {
     loadReputationSettings().then(function () { openReputationMultiplierModal(); });
@@ -11299,20 +11318,22 @@
   reputationMultiplierInput.addEventListener('change', syncReputationMultiplierEndInput);
   reputationMultiplierSaveBtn.addEventListener('click', function () {
     var multiplier = Number(reputationMultiplierInput.value);
+    var name = reputationEventNameInput.value.trim();
+    var startsAt = reputationMultiplierStartsInput.value;
     var endsAt = reputationMultiplierEndsInput.value;
+    var rewardKeys = Array.prototype.map.call(reputationEventRewardKeys.querySelectorAll('input:checked'), function (input) { return input.value; });
     reputationMultiplierModalError.classList.remove('show');
     reputationMultiplierModalStatus.classList.remove('show');
-    if (multiplier > 1 && !endsAt) {
-      reputationMultiplierModalError.textContent = 'Choose an end date and time for this event.';
+    if (!name || !startsAt || !endsAt || !rewardKeys.length) {
+      reputationMultiplierModalError.textContent = 'Give this event a name, dates, and at least one reward type.';
       reputationMultiplierModalError.classList.add('show');
       return;
     }
     reputationMultiplierSaveBtn.disabled = true;
-    fetch('/api/admin/reputation-levels/settings.php', {
+    fetch('/api/admin/reputation-levels/events.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        multiplier: multiplier,
-        ends_at: multiplier > 1 ? new Date(endsAt).toISOString() : '',
+        name: name, multiplier: multiplier, starts_at: new Date(startsAt).toISOString(), ends_at: new Date(endsAt).toISOString(), reward_keys: rewardKeys,
         csrf: window.PW_AUTH.csrf
       })
     })
@@ -11320,8 +11341,8 @@
       .then(function (data) {
         reputationMultiplierSaveBtn.disabled = false;
         if (!data.ok) throw new Error(data.error || 'Could not save the multiplier event.');
-        renderReputationSettings(data);
-        reputationMultiplierModalStatus.textContent = multiplier > 1 ? 'Multiplier event saved.' : 'Normal rewards restored.';
+        loadReputationSettings();
+        reputationMultiplierModalStatus.textContent = 'Reputation event scheduled.';
         reputationMultiplierModalStatus.classList.add('show');
         setTimeout(closeReputationMultiplierModal, 700);
       })
@@ -11330,6 +11351,29 @@
         reputationMultiplierModalError.textContent = error.message || 'Could not save the multiplier event.';
         reputationMultiplierModalError.classList.add('show');
       });
+  });
+
+  var reputationLedgerModal = document.getElementById('reputation-ledger-modal');
+  var reputationLedgerList = document.getElementById('reputation-ledger-list');
+  function closeReputationLedgerModal() { reputationLedgerModal.hidden = true; }
+  reputationLedgerBtn.addEventListener('click', function () {
+    reputationLedgerModal.hidden = false; reputationLedgerList.innerHTML = '<div class="admin-list-empty">Loading ledger&hellip;</div>';
+    fetch('/api/admin/reputation-levels/ledger.php', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Could not load ledger.');
+      reputationLedgerList.innerHTML = '';
+      (data.entries || []).forEach(function (entry) { var row = document.createElement('div'); row.className = 'admin-row'; row.innerHTML = '<div class="admin-row-main"><strong>' + escapeHtml(entry.display_name) + '</strong><p>' + escapeHtml(entry.label) + (entry.note ? ' · ' + escapeHtml(entry.note) : '') + '</p></div><div class="world-row-status"><span class="world-status-pill ' + (Number(entry.points) < 0 ? 'is-locked' : 'is-available') + '">' + (Number(entry.points) > 0 ? '+' : '') + entry.points + ' rep</span><small>' + reputationDateLabel(entry.created_at) + '</small></div>'; reputationLedgerList.appendChild(row); });
+      if (!data.entries || !data.entries.length) reputationLedgerList.innerHTML = '<div class="admin-list-empty">No ledger entries yet.</div>';
+    }).catch(function (error) { reputationLedgerList.innerHTML = '<div class="admin-list-empty">' + escapeHtml(error.message || 'Could not load ledger.') + '</div>'; });
+  });
+  document.getElementById('reputation-ledger-modal-close').addEventListener('click', closeReputationLedgerModal); document.getElementById('reputation-ledger-modal-done-btn').addEventListener('click', closeReputationLedgerModal); reputationLedgerModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeReputationLedgerModal);
+
+  var reputationAdjustModal = document.getElementById('reputation-adjust-modal');
+  function closeReputationAdjustModal() { reputationAdjustModal.hidden = true; }
+  reputationAdjustBtn.addEventListener('click', function () { reputationAdjustModal.hidden = false; document.getElementById('reputation-adjust-error').classList.remove('show'); });
+  document.getElementById('reputation-adjust-modal-close').addEventListener('click', closeReputationAdjustModal); document.getElementById('reputation-adjust-cancel-btn').addEventListener('click', closeReputationAdjustModal); reputationAdjustModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeReputationAdjustModal);
+  document.getElementById('reputation-adjust-save-btn').addEventListener('click', function () {
+    var save = this, error = document.getElementById('reputation-adjust-error'); error.classList.remove('show'); save.disabled = true;
+    fetch('/api/admin/reputation-levels/adjust.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ member_id: Number(document.getElementById('reputation-adjust-member-id').value), points: Number(document.getElementById('reputation-adjust-points').value), reason: document.getElementById('reputation-adjust-reason').value.trim(), csrf: window.PW_AUTH.csrf }) }).then(function (r) { return r.json(); }).then(function (data) { save.disabled = false; if (!data.ok) throw new Error(data.error || 'Could not save adjustment.'); closeReputationAdjustModal(); }).catch(function (err) { save.disabled = false; error.textContent = err.message || 'Could not save adjustment.'; error.classList.add('show'); });
   });
 
   reputationLevelSaveBtn.addEventListener('click', function () {

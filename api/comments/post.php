@@ -102,7 +102,7 @@ try {
 // +1 base reputation for replying. The active event multiplier is resolved
 // server-side so a member cannot influence the amount from the browser.
 try {
-    pw_award_reputation($db, (int)$user['id'], 1);
+    pw_award_reputation($db, (int)$user['id'], 1, 'comment_posted', ['source_type' => 'comment', 'source_id' => $commentId]);
 } catch (PDOException $e) {
     // migration_reputation.sql may be run after code deployment.
 }

@@ -809,7 +809,7 @@ function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commen
  * authoritative description of the live system.
  */
 function pw_reputation_reward_catalog(): array {
-    return [
+    $defaults = [
         ['key' => 'topic_created', 'label' => 'Start a forum topic', 'points' => 1],
         ['key' => 'comment_posted', 'label' => 'Post a forum reply', 'points' => 1],
         ['key' => 'content_liked', 'label' => 'Receive a like', 'points' => 2],
@@ -817,6 +817,21 @@ function pw_reputation_reward_catalog(): array {
         ['key' => 'book_started', 'label' => 'Start a book (first time)', 'points' => 3],
         ['key' => 'book_finished', 'label' => 'Finish a book (first time)', 'points' => 5],
     ];
+    try {
+        $rows = pw_db()->query('SELECT `key`, label, base_points, is_enabled FROM reputation_reward_rules ORDER BY `key` ASC')->fetchAll();
+        if (!$rows) return $defaults;
+        $byKey = [];
+        foreach ($rows as $row) {
+            $byKey[$row['key']] = ['key' => $row['key'], 'label' => $row['label'], 'points' => (int)$row['base_points'], 'enabled' => (bool)$row['is_enabled']];
+        }
+        foreach ($defaults as &$default) {
+            if (isset($byKey[$default['key']])) $default = $byKey[$default['key']];
+            else $default['enabled'] = true;
+        }
+    } catch (Throwable $e) {
+        // The code remains compatible until the expansion migration is run.
+    }
+    return $defaults;
 }
 
 /**
@@ -825,13 +840,19 @@ function pw_reputation_reward_catalog(): array {
  * finished event off. Settings are optional during deployment and safely
  * fall back to normal 1x awards if app_settings is not available yet.
  */
-function pw_reputation_multiplier_config(): array {
-    static $config = null;
-    if ($config !== null) {
-        return $config;
+function pw_reputation_multiplier_config(?string $rewardKey = null): array {
+    $config = ['multiplier' => 1, 'ends_at' => null, 'starts_at' => null, 'is_active' => false, 'event_name' => null, 'event_id' => null];
+    try {
+        $events = pw_db()->query("SELECT id, name, multiplier, starts_at, ends_at, reward_keys_json FROM reputation_events WHERE is_enabled = 1 AND starts_at <= UTC_TIMESTAMP() AND ends_at > UTC_TIMESTAMP() ORDER BY multiplier DESC, ends_at ASC")->fetchAll();
+        foreach ($events as $event) {
+            $keys = json_decode($event['reward_keys_json'], true);
+            if (!is_array($keys) || !$keys || $rewardKey === null || in_array($rewardKey, $keys, true)) {
+                return ['multiplier' => (int)$event['multiplier'], 'ends_at' => $event['ends_at'], 'starts_at' => $event['starts_at'], 'is_active' => true, 'event_name' => $event['name'], 'event_id' => (int)$event['id']];
+            }
+        }
+    } catch (Throwable $e) {
+        // Fall through to the previous single-event setting during rollout.
     }
-
-    $config = ['multiplier' => 1, 'ends_at' => null, 'is_active' => false];
     try {
         $stmt = pw_db()->query("SELECT `key`, value FROM app_settings WHERE `key` IN ('reputation_multiplier', 'reputation_multiplier_ends_at')");
         $values = [];
@@ -842,10 +863,13 @@ function pw_reputation_multiplier_config(): array {
         $endsAt = isset($values['reputation_multiplier_ends_at']) ? trim($values['reputation_multiplier_ends_at']) : '';
         $endsTimestamp = $endsAt !== '' ? strtotime($endsAt . ' UTC') : false;
         if (in_array($multiplier, [2, 3, 4], true) && $endsTimestamp !== false && $endsTimestamp > time()) {
-            $config = [
+            return [
                 'multiplier' => $multiplier,
                 'ends_at' => gmdate('Y-m-d H:i:s', $endsTimestamp),
+                'starts_at' => null,
                 'is_active' => true,
+                'event_name' => 'Legacy multiplier event',
+                'event_id' => null,
             ];
         }
     } catch (Throwable $e) {
@@ -859,23 +883,71 @@ function pw_reputation_multiplier_config(): array {
  * this only for positive, earned reputation; reversible awards such as likes
  * persist the returned value and subtract that exact amount on reversal.
  */
-function pw_award_reputation(PDO $db, int $userId, int $basePoints): int {
+function pw_award_reputation(PDO $db, int $userId, int $basePoints, string $rewardKey = 'manual', array $meta = []): int {
     if ($userId <= 0 || $basePoints <= 0) {
         return 0;
     }
-    $config = pw_reputation_multiplier_config();
+    $label = isset($meta['label']) ? (string)$meta['label'] : $rewardKey;
+    foreach (pw_reputation_reward_catalog() as $rule) {
+        if ($rule['key'] === $rewardKey) {
+            if (isset($rule['enabled']) && !$rule['enabled']) return 0;
+            $basePoints = (int)$rule['points'];
+            $label = $rule['label'];
+            break;
+        }
+    }
+    $config = pw_reputation_multiplier_config($rewardKey);
     $awarded = $basePoints * (int)$config['multiplier'];
     $stmt = $db->prepare('UPDATE users SET reputation = reputation + ? WHERE id = ?');
     $stmt->execute([$awarded, $userId]);
+    try {
+        $ledger = $db->prepare('INSERT INTO reputation_ledger (user_id, actor_user_id, reward_key, label, base_points, multiplier, points, source_type, source_id, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+        $ledger->execute([$userId, $meta['actor_user_id'] ?? null, $rewardKey, substr($label, 0, 140), $basePoints, (int)$config['multiplier'], $awarded, $meta['source_type'] ?? null, $meta['source_id'] ?? null, $meta['note'] ?? null]);
+        pw_evaluate_reputation_achievements($db, $userId);
+    } catch (Throwable $e) {
+        // Ledger/achievement tables are optional until the migration is run.
+    }
     return $awarded;
 }
 
-function pw_remove_reputation(PDO $db, int $userId, int $points): void {
+function pw_remove_reputation(PDO $db, int $userId, int $points, array $meta = []): void {
     if ($userId <= 0 || $points <= 0) {
         return;
     }
     $stmt = $db->prepare('UPDATE users SET reputation = GREATEST(0, reputation - ?) WHERE id = ?');
     $stmt->execute([$points, $userId]);
+    try {
+        $ledger = $db->prepare('INSERT INTO reputation_ledger (user_id, actor_user_id, reward_key, label, base_points, multiplier, points, source_type, source_id, note) VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)');
+        $ledger->execute([$userId, $meta['actor_user_id'] ?? null, $meta['reward_key'] ?? 'reversal', $meta['label'] ?? 'Reputation reversal', -$points, -$points, $meta['source_type'] ?? null, $meta['source_id'] ?? null, $meta['note'] ?? null]);
+    } catch (Throwable $e) {}
+}
+
+function pw_reputation_achievement_catalog(): array {
+    return [
+        ['key' => 'first_signal', 'name' => 'First Signal', 'description' => 'Started your first forum topic.', 'icon' => '✦'],
+        ['key' => 'nexus_voice', 'name' => 'Nexus Voice', 'description' => 'Published ten forum posts.', 'icon' => '◈'],
+        ['key' => 'resonance_awakened', 'name' => 'Resonance Awakened', 'description' => 'Completed the Overlord quiz.', 'icon' => '◉'],
+        ['key' => 'shelf_seeker', 'name' => 'Shelf Seeker', 'description' => 'Started three books.', 'icon' => '▰'],
+        ['key' => 'saga_finisher', 'name' => 'Saga Finisher', 'description' => 'Finished all fourteen books.', 'icon' => '◆'],
+    ];
+}
+
+function pw_evaluate_reputation_achievements(PDO $db, int $userId): void {
+    // Queries below are intentionally separate: missing optional tables must not block an award.
+    $topicStmt = $db->prepare('SELECT COUNT(*) FROM topics WHERE user_id = ? AND is_deleted = 0'); $topicStmt->execute([$userId]);
+    $postStmt = $db->prepare('SELECT (SELECT COUNT(*) FROM topics WHERE user_id = ? AND is_deleted = 0) + (SELECT COUNT(*) FROM comments WHERE user_id = ? AND is_deleted = 0)'); $postStmt->execute([$userId, $userId]);
+    $quizStmt = $db->prepare('SELECT COUNT(*) FROM quiz_results WHERE user_id = ?'); $quizStmt->execute([$userId]);
+    $bookStmt = $db->prepare('SELECT COUNT(*) FROM user_book_progress WHERE user_id = ? AND started_at IS NOT NULL'); $bookStmt->execute([$userId]);
+    $finishStmt = $db->prepare('SELECT COUNT(*) FROM user_book_progress WHERE user_id = ? AND finished_at IS NOT NULL'); $finishStmt->execute([$userId]);
+    $unlocks = [
+        'first_signal' => (int)$topicStmt->fetchColumn() >= 1,
+        'nexus_voice' => (int)$postStmt->fetchColumn() >= 10,
+        'resonance_awakened' => (int)$quizStmt->fetchColumn() >= 1,
+        'shelf_seeker' => (int)$bookStmt->fetchColumn() >= 3,
+        'saga_finisher' => (int)$finishStmt->fetchColumn() >= 14,
+    ];
+    $insert = $db->prepare('INSERT IGNORE INTO user_reputation_achievements (user_id, achievement_key) VALUES (?, ?)');
+    foreach ($unlocks as $key => $unlocked) if ($unlocked) $insert->execute([$userId, $key]);
 }
 
 // Direct-message alerts are intentionally collapsed per conversation. A busy
