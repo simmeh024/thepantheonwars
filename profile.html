@@ -71,25 +71,25 @@
 
       <div id="profile-content" hidden>
         <div class="profile-head">
-          <div class="profile-avatar-wrap" id="profile-avatar-wrap">
-            <img id="profile-avatar-img" class="profile-avatar" alt="" hidden>
-            <div id="profile-avatar-fallback" class="profile-avatar profile-avatar-fallback">?</div>
-            <label for="profile-avatar-input" class="profile-avatar-upload" title="Change avatar">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"></path>
-                <circle cx="12" cy="13" r="4"></circle>
-              </svg>
-            </label>
-            <input type="file" id="profile-avatar-input" accept="image/png,image/jpeg,image/webp" hidden>
+          <div class="profile-avatar-column">
+            <div class="profile-avatar-wrap" id="profile-avatar-wrap">
+              <img id="profile-avatar-img" class="profile-avatar" alt="" hidden>
+              <div id="profile-avatar-fallback" class="profile-avatar profile-avatar-fallback">?</div>
+              <label for="profile-avatar-input" class="profile-avatar-upload" title="Change avatar">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"></path>
+                  <circle cx="12" cy="13" r="4"></circle>
+                </svg>
+              </label>
+              <input type="file" id="profile-avatar-input" accept="image/png,image/jpeg,image/webp" hidden>
+            </div>
+            <span class="profile-role-badge" id="profile-role-badge"></span>
           </div>
           <div class="profile-head-text">
             <h1 id="profile-name">—</h1>
-            <div class="profile-head-meta">
-              <span class="profile-role-badge" id="profile-role-badge"></span>
-              <div class="reputation-bar-row">
-                <div class="reputation-bar" id="profile-reputation-bar" hidden></div>
-                <span class="resonance-icon-badge" id="profile-resonance-icon" hidden></span>
-              </div>
+            <div class="reputation-bar-row">
+              <div class="reputation-bar" id="profile-reputation-bar" hidden></div>
+              <span class="resonance-icon-badge" id="profile-resonance-icon" hidden></span>
             </div>
             <div class="profile-head-meta">
               <span class="profile-member-since" id="profile-member-since"></span>

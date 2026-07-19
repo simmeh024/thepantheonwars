@@ -432,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div class="nav-dropdown auth-nav-dropdown">' +
           '<a class="auth-profile-summary" href="member.html?id=' + encodeURIComponent(window.PW_AUTH.user.id) + '" aria-label="View ' + displayName + '\'s profile">' +
             '<span class="auth-profile-avatar"><img src="' + avatarUrl + '" alt="" onerror="this.hidden=true"><span class="auth-profile-avatar-fallback">' + initial + '</span></span>' +
-            '<span class="auth-profile-summary-copy"><strong>' + displayName + '</strong>' + reputationBarHtml(window.PW_AUTH.user.reputation, window.PW_AUTH.user.selected_icon) + '<span><i class="auth-online-dot auth-presence-dot is-' + presenceStatus + '"></i>' + escapeHtml(roleName) + ' · ' + presenceLabel + '</span></span>' +
+            '<span class="auth-profile-summary-copy"><strong>' + displayName + '</strong><span><i class="auth-online-dot auth-presence-dot is-' + presenceStatus + '"></i>' + escapeHtml(roleName) + ' · ' + presenceLabel + '</span>' + reputationBarHtml(window.PW_AUTH.user.reputation, window.PW_AUTH.user.selected_icon) + '</span>' +
           '</a>' +
           presencePickerHtml(presenceStatus) +
           '<div class="auth-dropdown-actions">' +
