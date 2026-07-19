@@ -70,12 +70,38 @@ if (!imagejpeg($destination, $temporaryPath, 86)) {
     imagedestroy($destination);
     pw_error('Could not save the processed image.');
 }
-imagedestroy($destination);
 rename($temporaryPath, $path);
+
+// Homepage dispatch cards use this smaller companion only on phone-sized
+// screens.  Keeping the original 1600px editorial image preserves the
+// desktop/library source, while the 720px variant avoids downloading a large
+// image for a roughly 356px-wide mobile card.  It is intentionally best-effort:
+// the original upload remains valid even if a shared-hosting filesystem hiccup
+// prevents the optional derivative from being written.
+$mobileFilename = substr($filename, 0, -4) . '-mobile.jpg';
+$mobilePath = $directory . '/' . $mobileFilename;
+$mobileMaxWidth = 720;
+if ($width > $mobileMaxWidth) {
+    $mobileWidth = $mobileMaxWidth;
+    $mobileHeight = max(1, (int)round($height * ($mobileWidth / $width)));
+    $mobileImage = imagecreatetruecolor($mobileWidth, $mobileHeight);
+    if ($mobileImage) {
+        imagecopyresampled($mobileImage, $destination, 0, 0, 0, 0, $mobileWidth, $mobileHeight, $width, $height);
+        $mobileTemporaryPath = $mobilePath . '.tmp';
+        if (imagejpeg($mobileImage, $mobileTemporaryPath, 78)) {
+            rename($mobileTemporaryPath, $mobilePath);
+        } else {
+            @unlink($mobileTemporaryPath);
+        }
+        imagedestroy($mobileImage);
+    }
+}
+imagedestroy($destination);
 
 pw_json([
     'ok' => true,
     'url' => '/uploads/news-images/' . $filename,
+    'mobile_url' => is_file($mobilePath) ? '/uploads/news-images/' . $mobileFilename : null,
     'name' => $filename,
     'width' => $width,
     'height' => $height,

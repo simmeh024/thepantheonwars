@@ -46,6 +46,16 @@
     return { type: 'standard', label: 'Stable signal' };
   }
 
+  // Editorial uploads retain their original as the desktop source. Newer
+  // uploads also receive a 720px companion from upload-image.php; use that
+  // companion only on phones, where homepage cards never need the 1600px
+  // original. Older uploads safely fall back to their original if they predate
+  // the companion file.
+  function mobileThumbnailUrl(url) {
+    var match = String(url || '').match(/^(\/uploads\/news-images\/img_[a-f0-9]{16})\.jpg$/);
+    return match ? match[1] + '-mobile.jpg' : '';
+  }
+
   // A post without a header image gets this accent-tinted placeholder
   // instead of a broken/missing thumbnail -- reuses the same is-bh4/
   // is-member accent-color convention as .post itself rather than
@@ -55,7 +65,17 @@
     wrap.className = className + (post.author_type === 'bh4' ? ' is-bh4' : ' is-member');
     if (post.header_image_url) {
       var img = document.createElement('img');
-      img.src = post.header_image_url;
+      var originalUrl = post.header_image_url;
+      var mobileUrl = mobileThumbnailUrl(originalUrl);
+      if (mobileUrl && window.matchMedia && window.matchMedia('(max-width: 780px)').matches) {
+        img.src = mobileUrl;
+        img.addEventListener('error', function restoreOriginal() {
+          img.removeEventListener('error', restoreOriginal);
+          img.src = originalUrl;
+        });
+      } else {
+        img.src = originalUrl;
+      }
       img.alt = '';
       img.loading = 'lazy';
       img.decoding = 'async';
