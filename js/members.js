@@ -344,6 +344,40 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  // Fixed 6-icon Overlord resonance catalog, index-matched to quiz.html's
+  // own hardcoded overlord list. Each color reuses that Overlord's world's
+  // existing atlas signal color (js/worlds.js ATLAS_TONES).
+  var OVERLORD_ICONS = {
+    'syn-dravus': { name: 'Syn Dravus', color: 'rgb(154, 96, 238)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>' },
+    'malric-thorne': { name: 'Malric Thorne', color: 'rgb(204, 72, 80)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="M4 18 3 8l5 4 4-7 4 7 5-4-1 10Z"/></svg>' },
+    'korrus-vale': { name: 'Korrus Vale', color: 'rgb(159, 224, 65)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 20.5 7v10L12 22 3.5 17V7Z"/><circle cx="12" cy="12" r="3"/></svg>' },
+    'lysara-venthe': { name: 'Lysara Venthe', color: 'rgb(68, 150, 237)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path d="M2 15c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/></svg>' },
+    'zura-kaleth': { name: 'Zura Kaleth', color: 'rgb(59, 148, 83)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8"/><path d="M12 11 6 21"/><path d="M12 11l6 10"/><path d="M12 11 4 15"/><path d="M12 11l8 4"/></svg>' },
+    'maerion-thal': { name: 'Maerion Thal', color: 'rgb(184, 111, 66)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16c4-2 6-8 9-11 3 3 5 9 9 11-4 2-7 0-9-3-2 3-5 5-9 3Z"/></svg>' }
+  };
+
+  // Builds the compact reputation bar + optional resonance icon badge shown
+  // in the nav profile dropdown, just above the role/presence line.
+  function reputationBarHtml(rep, iconKey) {
+    if (!rep) return '';
+    var color = rep.level_color || '#c7ccd6';
+    var square = '<span class="reputation-bar-square" style="background:' + color + '">' + (rep.level_number != null ? rep.level_number : '') + '</span>';
+    var track = '<span class="reputation-bar-track"><span class="reputation-bar-fill" style="width:' + (rep.progress_percent || 0) + '%;background:' + color + '"></span></span>';
+    var title = rep.level_name || 'Unranked';
+    if (rep.next_level_name) {
+      title += ' · ' + Math.max(0, rep.next_level_threshold - rep.points) + ' rep to ' + rep.next_level_name;
+    } else if (rep.level_name) {
+      title += ' · Max level';
+    }
+    var icon = iconKey ? OVERLORD_ICONS[iconKey] : null;
+    var iconHtml = icon
+      ? '<span class="resonance-icon-badge" style="color:' + icon.color + '" title="' + escapeHtml(icon.name) + ' — Pure Resonance">' + icon.svg + '</span>'
+      : '';
+    return '<div class="reputation-bar-row auth-reputation-row" title="' + escapeHtml(title) + '">' +
+      '<span class="reputation-bar reputation-bar-compact">' + square + track + '</span>' + iconHtml +
+      '</div>';
+  }
+
   var PRESENCE_LABELS = { online: 'Online', away: 'Away', inactive: 'Inactive', offline: 'Offline' };
 
   function normalizedPresenceStatus(status) {
@@ -398,7 +432,7 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div class="nav-dropdown auth-nav-dropdown">' +
           '<a class="auth-profile-summary" href="member.html?id=' + encodeURIComponent(window.PW_AUTH.user.id) + '" aria-label="View ' + displayName + '\'s profile">' +
             '<span class="auth-profile-avatar"><img src="' + avatarUrl + '" alt="" onerror="this.hidden=true"><span class="auth-profile-avatar-fallback">' + initial + '</span></span>' +
-            '<span class="auth-profile-summary-copy"><strong>' + displayName + '</strong><span><i class="auth-online-dot auth-presence-dot is-' + presenceStatus + '"></i>' + escapeHtml(roleName) + ' · ' + presenceLabel + '</span></span>' +
+            '<span class="auth-profile-summary-copy"><strong>' + displayName + '</strong>' + reputationBarHtml(window.PW_AUTH.user.reputation, window.PW_AUTH.user.selected_icon) + '<span><i class="auth-online-dot auth-presence-dot is-' + presenceStatus + '"></i>' + escapeHtml(roleName) + ' · ' + presenceLabel + '</span></span>' +
           '</a>' +
           presencePickerHtml(presenceStatus) +
           '<div class="auth-dropdown-actions">' +
