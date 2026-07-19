@@ -1,0 +1,8 @@
+/* Mobile-only homepage art. These rules are folded into home-mobile.css by
+   the publishing script so the homepage still has one CSS request. */
+@media (max-width: 780px) {
+  .prophecy-bg { display: none; }
+  .prophecy-scene {
+    background: #070511 url('../images/home-prophecy-mobile.jpg') center 30% / cover no-repeat;
+  }
+}

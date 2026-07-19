@@ -27,7 +27,7 @@
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
 <link rel="stylesheet" href="css/public.css?v=249" media="(min-width: 781px)">
-<link rel="stylesheet" href="css/home-mobile.css?v=1" media="(max-width: 780px)">
+<link rel="stylesheet" href="css/home-mobile.css?v=2" media="(max-width: 780px)">
 </head>
 <body>
 
@@ -189,7 +189,10 @@
       <div class="featured-book">
         <div class="cover-feature">
           <div class="cover-feature-frame">
-            <img src="images/covers/book-1.jpg" alt="The Mindweaver's Lie — Book One of The Pantheon Wars" width="480" height="720" loading="lazy" decoding="async" style="height: auto;">
+            <picture>
+              <source media="(max-width: 780px)" srcset="images/covers/book-1-mobile.jpg" width="320" height="480">
+              <img src="images/covers/book-1.jpg" alt="The Mindweaver's Lie — Book One of The Pantheon Wars" width="480" height="720" loading="lazy" decoding="async" style="height: auto;">
+            </picture>
           </div>
         </div>
         <div>
@@ -207,7 +210,7 @@
   </section>
 
   <section class="newsletter" id="newsletter" data-hide-when-logged-in>
-      <img src="images/bh4-dispatch.jpg" alt="" class="newsletter-bh4" aria-hidden="true">
+      <img src="images/bh4-dispatch.jpg" alt="" class="newsletter-bh4" aria-hidden="true" width="600" height="901" loading="lazy" decoding="async">
     <div class="container">
       <span class="eyebrow">Join the Pantheon</span>
       <h2>Get word when a new world opens</h2>
