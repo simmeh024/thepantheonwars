@@ -20,6 +20,10 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'" media="(min-width: 781px)">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet" media="(min-width: 781px)"></noscript>
 <link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/cinzel-latin.woff2" fetchpriority="high" media="(max-width: 780px)">
+<!-- Reserve the hero copy's final text metrics before first paint. Without
+     this small mobile preload, Jost arrives after the fallback and shifts the
+     visible hero content despite the otherwise stable layout. -->
+<link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/jost-latin.woff2" media="(max-width: 780px)">
 <link rel="preload" as="image" href="images/hero-main-bg-v3.jpg" fetchpriority="high" media="(min-width: 781px)">
 <link rel="preload" as="image" href="images/hero-main-bg-mobile-720.jpg" fetchpriority="high" media="(max-width: 480px)">
 <link rel="preload" as="image" href="images/hero-main-bg-mobile-lcp.jpg" fetchpriority="high" media="(min-width: 481px) and (max-width: 780px)">
@@ -169,18 +173,18 @@
     <div class="container">
       <div class="quiz-teaser ornate">
         <div class="quiz-portrait-collage" aria-hidden="true">
-          <img src="images/char-syn.jpg" alt="" loading="lazy" decoding="async">
-          <img src="images/char-malric.jpg" alt="" loading="lazy" decoding="async">
-          <img src="images/char-korrus.jpg" alt="" loading="lazy" decoding="async">
-          <img src="images/char-lysara.jpg" alt="" loading="lazy" decoding="async">
-          <img src="images/char-zura.jpg" alt="" loading="lazy" decoding="async">
-          <img src="images/char-krev.jpg" alt="" loading="lazy" decoding="async">
-          <img src="images/char-maerion.jpg" alt="" loading="lazy" decoding="async">
-          <img src="images/char-caelis.jpg" alt="" loading="lazy" decoding="async">
-          <img src="images/char-drak.jpg" alt="" loading="lazy" decoding="async">
-          <img src="images/char-eidra.jpg" alt="" loading="lazy" decoding="async">
-          <img src="images/char-seraphael.jpg" alt="" loading="lazy" decoding="async">
-          <img src="images/char-veylan.jpg" alt="" loading="lazy" decoding="async">
+          <img src="images/char-syn.jpg" alt="" width="92" height="92" loading="lazy" decoding="async">
+          <img src="images/char-malric.jpg" alt="" width="92" height="92" loading="lazy" decoding="async">
+          <img src="images/char-korrus.jpg" alt="" width="92" height="92" loading="lazy" decoding="async">
+          <img src="images/char-lysara.jpg" alt="" width="92" height="92" loading="lazy" decoding="async">
+          <img src="images/char-zura.jpg" alt="" width="92" height="92" loading="lazy" decoding="async">
+          <img src="images/char-krev.jpg" alt="" width="92" height="92" loading="lazy" decoding="async">
+          <img src="images/char-maerion.jpg" alt="" width="92" height="92" loading="lazy" decoding="async">
+          <img src="images/char-caelis.jpg" alt="" width="92" height="92" loading="lazy" decoding="async">
+          <img src="images/char-drak.jpg" alt="" width="92" height="92" loading="lazy" decoding="async">
+          <img src="images/char-eidra.jpg" alt="" width="92" height="92" loading="lazy" decoding="async">
+          <img src="images/char-seraphael.jpg" alt="" width="92" height="92" loading="lazy" decoding="async">
+          <img src="images/char-veylan.jpg" alt="" width="92" height="92" loading="lazy" decoding="async">
         </div>
         <span class="orn-bl"></span><span class="orn-br"></span>
         <span class="eyebrow">Twenty Questions. One Godcore.</span>
