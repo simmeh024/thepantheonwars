@@ -46,7 +46,7 @@
 
   function avatarHtml(member) {
     var initial = escapeHtml((member.display_name || '?').charAt(0).toUpperCase());
-    return '<span class="messages-avatar" style="--member-role-color:' + escapeHtml(member.role_color || '#c7ccd6') + '"><img src="/uploads/avatars/' + encodeURIComponent(member.id) + '.jpg" alt=""><span>' + initial + '</span></span>';
+    return '<span class="messages-avatar" style="--member-role-color:' + escapeHtml(member.role_color || '#c7ccd6') + '"><img src="/uploads/avatars/' + encodeURIComponent(member.id) + '.jpg" alt="" onerror="this.remove()"><span>' + initial + '</span></span>';
   }
 
   function wireAvatarFallback(container) {
@@ -59,7 +59,7 @@
     nameEl.textContent = member.display_name;
     roleEl.textContent = roleLabel(member.role) + (copy ? ' · ' + copy : '');
     roleEl.style.color = member.role_color || '#c7ccd6';
-    threadAvatar.innerHTML = '<img src="/uploads/avatars/' + encodeURIComponent(member.id) + '.jpg" alt=""><span>' + escapeHtml((member.display_name || '?').charAt(0).toUpperCase()) + '</span>';
+    threadAvatar.innerHTML = '<img src="/uploads/avatars/' + encodeURIComponent(member.id) + '.jpg" alt="" onerror="this.remove()"><span>' + escapeHtml((member.display_name || '?').charAt(0).toUpperCase()) + '</span>';
     threadAvatar.style.setProperty('--member-role-color', member.role_color || '#c7ccd6');
     wireAvatarFallback(threadAvatar);
   }

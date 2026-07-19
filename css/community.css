@@ -1911,7 +1911,7 @@
 .messages-heading h1 { margin: 5px 0 8px; }
 .messages-heading p { max-width: 650px; margin: 0; color: var(--text-dim); }
 .messages-heading-actions { display: flex; flex-wrap: wrap; gap: 10px; }
-.messages-shell { display: grid; grid-template-columns: minmax(230px, .72fr) minmax(0, 1.5fr); min-height: 380px; border: 1px solid var(--border-soft); background: rgba(17, 11, 29, .72); box-shadow: var(--shadow); }
+.messages-shell { display: grid; grid-template-columns: minmax(230px, .72fr) minmax(0, 1.5fr); min-height: 0; border: 1px solid var(--border-soft); background: rgba(17, 11, 29, .72); box-shadow: var(--shadow); }
 .messages-inbox { min-width: 0; border-right: 1px solid var(--border-soft); background: rgba(6, 4, 12, .28); }
 .messages-inbox-head, .messages-thread-head { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 18px; border-bottom: 1px solid var(--border-soft); }
 .messages-thread-identity { display: flex; align-items: center; min-width: 0; gap: 10px; }
@@ -1946,7 +1946,7 @@
 .messages-recipient-results button small { color: var(--text-faint); font-size: .68rem; text-transform: capitalize; }
 .messages-recipient-results p { margin: 0; padding: 10px; color: var(--text-faint); font-size: .78rem; }
 .messages-block-btn { padding: 7px 10px; font-size: .74rem; }
-.messages-thread-empty { display: grid; place-content: center; min-height: 210px; padding: 24px 30px; color: var(--text-faint); text-align: center; }
+.messages-thread-empty { display: grid; place-content: start center; min-height: 118px; padding: 15px 24px; color: var(--text-faint); text-align: center; }
 .messages-thread-empty > span { color: var(--gold-dim); font-size: 2rem; }
 .messages-thread-empty h2 { margin: 12px 0 6px; font-family: 'Cinzel', serif; font-size: 1rem; color: var(--text); }
 .messages-thread-empty p { margin: 0; }
