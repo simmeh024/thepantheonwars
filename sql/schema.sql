@@ -459,6 +459,27 @@ CREATE TABLE IF NOT EXISTS content_reports (
   CONSTRAINT fk_content_reports_resolver FOREIGN KEY (resolved_by) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Admin-managed personality quiz content. Each question has exactly six
+-- ordered options: the order maps to the fixed six-Overlord score catalog.
+CREATE TABLE IF NOT EXISTS quiz_questions (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  question_text VARCHAR(500) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  is_active TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_quiz_questions_active_order (is_active, sort_order, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS quiz_options (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  question_id INT UNSIGNED NOT NULL,
+  score_index TINYINT UNSIGNED NOT NULL,
+  option_text VARCHAR(1000) NOT NULL,
+  UNIQUE KEY uq_quiz_option_score (question_id, score_index),
+  CONSTRAINT fk_quiz_options_question FOREIGN KEY (question_id) REFERENCES quiz_questions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Private one-to-one member conversations. The participant ids are always
 -- stored in ascending order, which makes the unique key the authoritative
 -- guarantee that a pair of members has only one conversation.

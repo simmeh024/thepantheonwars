@@ -408,8 +408,8 @@ document.addEventListener('DOMContentLoaded', function () {
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'quiz-option';
-      btn.textContent = opt;
-      btn.addEventListener('click', function () { selectAnswer(idx); });
+      btn.textContent = typeof opt === 'string' ? opt : opt.text;
+      btn.addEventListener('click', function () { selectAnswer(typeof opt === 'string' ? idx : opt.score_index); });
       optionsEl.appendChild(btn);
     });
   }
@@ -561,7 +561,16 @@ document.addEventListener('DOMContentLoaded', function () {
     renderQuestion();
   });
 
-  renderQuestion();
+  // Quiz Control can publish a fully managed set of questions. Until it has
+  // six-option records in the database, the original in-page quiz remains a
+  // safe fallback so a migration or first admin visit never breaks play.
+  fetch('/api/quiz/questions.php', { credentials: 'same-origin' })
+    .then(function (response) { return response.json(); })
+    .then(function (data) {
+      if (data.ok && Array.isArray(data.questions) && data.questions.length) questions = data.questions;
+      renderQuestion();
+    })
+    .catch(function () { renderQuestion(); });
 });
 </script>
 </body>
