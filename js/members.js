@@ -406,6 +406,13 @@ document.addEventListener('DOMContentLoaded', function () {
     var slot = document.getElementById('auth-nav-item');
     var notifSlot = document.getElementById('notif-nav-item');
     var loggedIn = !!(window.PW_AUTH.loggedIn && window.PW_AUTH.user);
+    // Some acquisition prompts, such as Home's newsletter sign-up, only make
+    // sense before an account exists. Keep their visibility synced with the
+    // same confirmed session state that drives the account navigation, and
+    // restore them immediately when the visitor signs out.
+    document.querySelectorAll('[data-hide-when-logged-in]').forEach(function (el) {
+      el.hidden = loggedIn;
+    });
     if (notifSlot) notifSlot.hidden = !loggedIn;
     if (!loggedIn) {
       document.dispatchEvent(new CustomEvent('pw-notifications-hide'));
