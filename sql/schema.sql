@@ -992,6 +992,20 @@ CREATE TABLE IF NOT EXISTS books (
   updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- One private reading shelf per member. `reading` is the one currently-open
+-- title shown on their public profile; the application maintains one or none
+-- of those rows for each member.
+CREATE TABLE IF NOT EXISTS user_book_progress (
+  user_id INT UNSIGNED NOT NULL,
+  book_id INT NOT NULL,
+  status ENUM('not_started','reading','finished') NOT NULL DEFAULT 'not_started',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, book_id),
+  KEY idx_user_book_progress_current (user_id, status, updated_at),
+  CONSTRAINT fk_user_book_progress_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user_book_progress_book FOREIGN KEY (book_id) REFERENCES books(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- World Control: powers the public worlds.html page (replaces what used to
 -- be hand-authored HTML) plus the admin CRUD. A world's rich interactive
 -- detail section (cross-section map + accordion of layers/districts) is

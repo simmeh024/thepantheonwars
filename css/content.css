@@ -53,7 +53,10 @@
   grid-template-columns: 90px 120px 1fr;
   gap: 26px;
   align-items: center;
-  background: var(--panel);
+  background:
+    linear-gradient(124deg, color-mix(in srgb, var(--book-world-accent, var(--purple-bright)) 11%, transparent), transparent 42%),
+    repeating-linear-gradient(132deg, transparent 0 8px, color-mix(in srgb, var(--book-world-accent, var(--purple-bright)) 4%, transparent) 8px 9px),
+    var(--panel);
   border: 1px solid var(--border);
   padding: 22px;
   position: relative;
@@ -62,12 +65,12 @@
 .book-row::before {
   content: '';
   position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  background: linear-gradient(90deg, transparent, var(--book-world-accent, var(--gold-dim)), transparent);
   opacity: 0.5;
   transition: opacity 0.25s ease, background 0.25s ease;
 }
-.book-row:hover { border-color: var(--purple-bright); box-shadow: 0 10px 30px rgba(124,79,214,0.12); }
-.book-row:hover::before { background: linear-gradient(90deg, transparent, var(--gold-bright), transparent); opacity: 1; }
+.book-row:hover { border-color: var(--book-world-accent, var(--purple-bright)); box-shadow: 0 10px 30px color-mix(in srgb, var(--book-world-accent, var(--purple-bright)) 18%, transparent); }
+.book-row:hover::before { background: linear-gradient(90deg, transparent, var(--book-world-accent, var(--gold-bright)), transparent); opacity: 1; }
 .book-motion-ready .book-row { opacity: 0; transform: translateY(16px); }
 .book-motion-ready .book-row.is-visible { opacity: 1; transform: translateY(0); transition-delay: var(--book-reveal-delay, 0ms); }
 @media (max-width: 720px) {
@@ -93,8 +96,8 @@
 }
 .book-row:hover .book-art {
   transform: scale(1.03);
-  border-color: var(--gold-bright);
-  box-shadow: 0 10px 28px rgba(0,0,0,0.52), 0 0 18px rgba(236,201,135,0.2);
+  border-color: var(--book-world-accent, var(--gold-bright));
+  box-shadow: 0 10px 28px rgba(0,0,0,0.52), 0 0 18px color-mix(in srgb, var(--book-world-accent, var(--gold-bright)) 32%, transparent);
 }
 .book-art img { width: 100%; height: 100%; object-fit: cover; filter: saturate(0.95) contrast(1.05); }
 .book-art::after {
@@ -142,7 +145,7 @@
   font-family: 'Cinzel', serif; font-size: 2.2rem; color: var(--gold-dim);
 }
 .book-body h3 { margin-bottom: 0.3em; transition: transform 0.24s ease, color 0.24s ease; }
-.book-row:hover .book-body h3 { transform: translateY(-2px); color: var(--gold-bright); }
+.book-row:hover .book-body h3 { transform: translateY(-2px); color: var(--book-world-accent, var(--gold-bright)); }
 .book-body .status {
   display: inline-block; font-size: 0.68rem; text-transform: uppercase;
   letter-spacing: 0.12em; color: var(--text-faint); margin-bottom: 0.6em;
@@ -161,6 +164,24 @@
   transition: border-color 0.2s ease, color 0.2s ease;
 }
 .book-buy-link:hover { border-color: var(--gold); color: var(--gold-bright); }
+.book-reading-actions {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  margin-top: 16px; padding-top: 13px; border-top: 1px solid color-mix(in srgb, var(--book-world-accent, var(--border)) 30%, transparent);
+}
+.book-reading-state { display: flex; flex-direction: column; gap: 2px; }
+.book-reading-state span { color: var(--text-faint); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; }
+.book-reading-state strong { color: var(--book-world-accent, var(--gold-bright)); font-family: 'Cinzel', serif; font-size: 0.75rem; letter-spacing: 0.04em; }
+.book-reading-buttons { display: flex; flex-wrap: wrap; gap: 7px; }
+.book-reading-btn {
+  border: 1px solid var(--border); background: rgba(255,255,255,0.025); color: var(--text-dim); padding: 7px 10px;
+  font: 600 0.68rem/1 'Jost', sans-serif; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+.book-reading-btn:hover:not(:disabled) { color: var(--text); border-color: var(--book-world-accent, var(--purple-bright)); background: color-mix(in srgb, var(--book-world-accent, var(--purple-bright)) 12%, transparent); }
+.book-reading-btn.is-current, .book-reading-btn:disabled { color: var(--book-world-accent, var(--gold-bright)); border-color: color-mix(in srgb, var(--book-world-accent, var(--gold-bright)) 55%, transparent); background: color-mix(in srgb, var(--book-world-accent, var(--gold-bright)) 12%, transparent); cursor: default; }
+.book-row.is-currently-reading { border-color: color-mix(in srgb, var(--book-world-accent, var(--gold-bright)) 56%, var(--border)); }
+.book-row.is-finished-reading .book-art img { filter: saturate(0.7) contrast(1.03); }
+@media (max-width: 520px) { .book-reading-actions { align-items: flex-start; flex-direction: column; } }
 .book-figure {
   width: 34px; height: 34px; border-radius: 50%; overflow: hidden;
   flex-shrink: 0; border: 1px solid var(--gold-dim);

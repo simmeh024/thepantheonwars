@@ -492,6 +492,16 @@
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.95rem; cursor: not-allowed;
 }
 .profile-field-note { font-size: 0.78rem; color: var(--text-faint); margin: 0.6em 0 0; }
+.profile-reading-settings { margin-top: 1.8em; padding: 16px; border: 1px solid var(--border-soft); background: rgba(124,79,214,0.045); }
+.profile-reading-settings h3 { margin: 0; }
+.profile-reading-control { display: flex; gap: 10px; margin-top: 1em; }
+.profile-reading-control select {
+  min-width: 0; flex: 1; background: var(--panel-2); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 12px; font: 0.88rem 'Jost', sans-serif;
+}
+.profile-reading-control select:focus { outline: none; border-color: var(--purple-bright); }
+.profile-reading-control select:disabled { color: var(--text-faint); cursor: wait; }
+@media (max-width: 520px) { .profile-reading-control { align-items: stretch; flex-direction: column; } }
 
 .profile-signin-methods { margin-top: 1.55em; }
 .profile-signin-methods h3 { margin-bottom: 0.35em; }
@@ -1201,6 +1211,17 @@
 .member-status.is-inactive .member-status-dot { background: #7c8fd6; box-shadow: 0 0 6px rgba(124,143,214,0.68); }
 .member-status.is-inactive { color: #9ba8e7; }
 #member-meta { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.member-current-reading {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; max-width: 520px;
+  margin: 14px 0 4px; padding: 12px 14px; border: 1px solid rgba(224,178,74,0.32); border-left: 3px solid var(--gold-dim);
+  background: linear-gradient(90deg, rgba(224,178,74,0.1), rgba(124,79,214,0.035)); color: var(--text); text-decoration: none;
+  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+.member-current-reading:hover { border-color: var(--gold-bright); background: linear-gradient(90deg, rgba(224,178,74,0.16), rgba(124,79,214,0.08)); transform: translateX(2px); }
+.member-current-reading-label { color: var(--gold-bright); font: 0.65rem 'Cinzel', serif; letter-spacing: 0.09em; text-transform: uppercase; white-space: nowrap; }
+.member-current-reading strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 0.82rem 'Cinzel', serif; }
+.member-current-reading-arrow { color: var(--gold-bright); font-size: 1.05rem; }
+@media (max-width: 520px) { .member-current-reading { grid-template-columns: 1fr auto; } .member-current-reading-label { grid-column: 1 / -1; } }
 .member-index-posts { text-align: center; font-size: 0.95rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .member-index-empty { padding: 24px 22px; color: var(--text-faint); }
 

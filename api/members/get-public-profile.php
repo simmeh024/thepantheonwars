@@ -29,6 +29,32 @@ if (!$user) {
     pw_error('That member no longer exists.', 404);
 }
 
+// Reading progress is intentionally private except for this one active title.
+// Keep public profiles available during the short code-before-migration window
+// by treating the optional reading shelf as empty when its table is absent.
+$currentlyReading = null;
+try {
+    $readingStmt = $db->prepare(
+        "SELECT b.id, b.book_number, b.title, b.cover_image_url
+         FROM user_book_progress p
+         JOIN books b ON b.id = p.book_id
+         WHERE p.user_id = ? AND p.status = 'reading'
+         ORDER BY p.updated_at DESC
+         LIMIT 1"
+    );
+    $readingStmt->execute([$id]);
+    if ($reading = $readingStmt->fetch()) {
+        $currentlyReading = [
+            'id' => (int)$reading['id'],
+            'book_number' => (int)$reading['book_number'],
+            'title' => $reading['title'],
+            'cover_image_url' => $reading['cover_image_url'],
+        ];
+    }
+} catch (PDOException $e) {
+    // migration_reading_progress.sql may be applied after the code deploy.
+}
+
 $countStmt = $db->prepare(
     'SELECT
        (SELECT COUNT(*) FROM comments WHERE user_id = ? AND is_deleted = 0) +
@@ -70,6 +96,7 @@ pw_json([
         'reputation' => pw_reputation_info((int)$user['reputation']),
         'selected_icon' => $user['selected_icon'],
         'post_count' => $postCount,
+        'currently_reading' => $currentlyReading,
     ],
     'recentPosts' => array_map(function ($r) {
         return [

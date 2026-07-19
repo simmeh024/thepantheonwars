@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=240">
+<link rel="stylesheet" href="css/community-bundle.css?v=241">
 </head>
 <body>
 
@@ -171,6 +171,18 @@
             <span>Subscribe to the mailing list &mdash; news on new books, lore drops, and the soundtrack as it's released.</span>
           </label>
           <p class="profile-success" id="newsletter-subscribe-status" hidden>Saved.</p>
+
+          <section class="profile-reading-settings" aria-labelledby="profile-reading-title">
+            <h3 id="profile-reading-title">Currently Reading</h3>
+            <p class="profile-field-note">Choose the book you are reading now. This title is visible on your public member profile.</p>
+            <div class="profile-reading-control">
+              <select id="profile-current-reading-select" disabled aria-label="Currently reading book">
+                <option value="">Loading your shelf&hellip;</option>
+              </select>
+              <button type="button" class="btn btn-solid" id="profile-current-reading-save" disabled>Save</button>
+            </div>
+            <p class="profile-success" id="profile-current-reading-status" hidden></p>
+          </section>
 
           <div class="profile-divider"><span class="profile-divider-shard"></span></div>
 
@@ -918,6 +930,9 @@
   var lockedEmailInput = document.getElementById('profile-email-locked');
   var newsletterCheckbox = document.getElementById('newsletter-subscribe-checkbox');
   var newsletterStatus = document.getElementById('newsletter-subscribe-status');
+  var currentReadingSelect = document.getElementById('profile-current-reading-select');
+  var currentReadingSave = document.getElementById('profile-current-reading-save');
+  var currentReadingStatus = document.getElementById('profile-current-reading-status');
   var passwordForm = document.getElementById('password-form');
   var passwordError = document.getElementById('password-error');
   var passwordSuccess = document.getElementById('password-success');
@@ -1354,6 +1369,66 @@
       .catch(function () {});
   });
 
+  function setCurrentReadingStatus(message, isError) {
+    currentReadingStatus.textContent = message || '';
+    currentReadingStatus.hidden = !message;
+    currentReadingStatus.classList.toggle('show-error', !!isError);
+  }
+
+  function loadCurrentReading() {
+    currentReadingSelect.disabled = true;
+    currentReadingSave.disabled = true;
+    setCurrentReadingStatus('', false);
+    fetch('/api/reading-progress/list.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load your reading shelf.');
+        currentReadingSelect.innerHTML = '';
+        var clearOption = document.createElement('option');
+        clearOption.value = '';
+        clearOption.textContent = 'Nothing right now';
+        currentReadingSelect.appendChild(clearOption);
+        (data.books || []).forEach(function (book) {
+          var option = document.createElement('option');
+          option.value = String(book.id);
+          option.textContent = 'Book ' + book.book_number + ': ' + book.title;
+          option.selected = Number(data.current_book_id) === Number(book.id);
+          currentReadingSelect.appendChild(option);
+        });
+        currentReadingSelect.disabled = false;
+        currentReadingSave.disabled = false;
+      })
+      .catch(function (error) {
+        currentReadingSelect.innerHTML = '<option value="">Reading shelf unavailable</option>';
+        setCurrentReadingStatus(error.message || 'Could not load your reading shelf.', true);
+      });
+  }
+
+  currentReadingSave.addEventListener('click', function () {
+    var selectedId = parseInt(currentReadingSelect.value, 10) || 0;
+    currentReadingSave.disabled = true;
+    setCurrentReadingStatus('', false);
+    fetch('/api/reading-progress/update.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        book_id: selectedId,
+        status: selectedId ? 'reading' : 'not_started',
+        csrf: window.PW_AUTH.csrf,
+      }),
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not save your current book.');
+        setCurrentReadingStatus(selectedId ? 'Currently reading updated.' : 'Current book cleared.', false);
+      })
+      .catch(function (error) {
+        setCurrentReadingStatus(error.message || 'Could not save your current book.', true);
+      })
+      .finally(function () { currentReadingSave.disabled = false; });
+  });
+
   passwordForm.addEventListener('submit', function (e) {
     e.preventDefault();
     passwordError.classList.remove('show');
@@ -1437,6 +1512,7 @@
         newsletterCheckbox.checked = data.user.newsletter_subscribed !== false;
         setPasswordMode(data.user.has_password);
         loadGoogleIdentity();
+        loadCurrentReading();
 
         var oauthResult = new URLSearchParams(location.search).get('oauth');
         if (oauthResult === 'google-linked') {

@@ -13,6 +13,33 @@ document.addEventListener('DOMContentLoaded', function () {
   var motionReady = 'IntersectionObserver' in window &&
     !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var motionInitialized = false;
+  var readingProgress = {};
+  var readingProgressLoaded = false;
+  var booksById = {};
+
+  // Each volume receives a stable world signal rather than one generic purple
+  // card treatment. The CSS consumes these two values for the top bar, subtle
+  // grid texture, cover glow, and the reader's status controls.
+  var BOOK_WORLD_TONES = {
+    1: ['neoh', '#58d5ff'], 2: ['babki', '#6cde89'], 3: ['geof', '#f1bf59'],
+    4: ['asmecu', '#4fcbe1'], 5: ['sed', '#df635b'], 6: ['beoctica', '#6e9dff'],
+    7: ['reanium', '#eb8748'], 8: ['vermillia', '#e84b63'], 9: ['fragments', '#dc9d3c'],
+    10: ['cerius', '#ac6def'], 11: ['grid', '#53ccbb'], 12: ['crucible', '#c67add'],
+    13: ['nexus', '#f0cd6f'], 14: ['veil', '#c6e8ff']
+  };
+
+  function setBookWorldIdentity(row, bookNumber) {
+    var tone = BOOK_WORLD_TONES[bookNumber] || ['pantheon', '#a279ec'];
+    row.dataset.worldTone = tone[0];
+    row.style.setProperty('--book-world-accent', tone[1]);
+  }
+
+  function setStaticBookWorldIdentities() {
+    Array.prototype.forEach.call(document.querySelectorAll('.book-row[id^="book-"]'), function (row) {
+      var bookNumber = parseInt(row.id.replace('book-', ''), 10);
+      if (bookNumber) setBookWorldIdentity(row, bookNumber);
+    });
+  }
 
   function setupBookMotion() {
     if (!motionReady || motionInitialized) return;
@@ -80,6 +107,90 @@ document.addEventListener('DOMContentLoaded', function () {
     }).join('') + '</div>';
   }
 
+  function readingStatusLabel(status) {
+    if (status === 'reading') return 'Reading now';
+    if (status === 'finished') return 'Finished';
+    return 'Not started';
+  }
+
+  function renderReadingControls(book) {
+    var status = readingProgress[book.id] || 'not_started';
+    var primaryLabel = status === 'reading' ? 'Reading now' : (status === 'finished' ? 'Read again' : 'Start reading');
+    var resetButton = status === 'not_started' ? '' :
+      '<button type="button" class="book-reading-btn" data-reading-status="not_started">Not started</button>';
+    return '<div class="book-reading-actions" data-reading-book-id="' + book.id + '">' +
+      '<div class="book-reading-state"><span>Your shelf</span><strong>' + readingStatusLabel(status) + '</strong></div>' +
+      '<div class="book-reading-buttons">' +
+        '<button type="button" class="book-reading-btn' + (status === 'reading' ? ' is-current' : '') + '" data-reading-status="reading"' + (status === 'reading' ? ' disabled' : '') + '>' + primaryLabel + '</button>' +
+        '<button type="button" class="book-reading-btn" data-reading-status="finished"' + (status === 'finished' ? ' disabled' : '') + '>Mark finished</button>' +
+        resetButton +
+      '</div>' +
+    '</div>';
+  }
+
+  function syncReadingControls() {
+    if (!readingProgressLoaded) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.book-row[data-book-id]'), function (row) {
+      var book = booksById[row.dataset.bookId];
+      if (!book) return;
+      var existing = row.querySelector('.book-reading-actions');
+      if (existing) existing.remove();
+      var body = row.querySelector('.book-body');
+      if (body) body.insertAdjacentHTML('beforeend', renderReadingControls(book));
+      var status = readingProgress[book.id] || 'not_started';
+      row.classList.toggle('is-currently-reading', status === 'reading');
+      row.classList.toggle('is-finished-reading', status === 'finished');
+    });
+  }
+
+  function loadReadingProgress() {
+    if (!window.PW_AUTH || !window.PW_AUTH.loggedIn) return;
+    fetch('/api/reading-progress/list.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        readingProgress = {};
+        (data.books || []).forEach(function (book) { readingProgress[book.id] = book.status; });
+        readingProgressLoaded = true;
+        syncReadingControls();
+      })
+      .catch(function () {
+        // The catalog remains fully usable if a member's private shelf cannot load.
+      });
+  }
+
+  document.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-reading-status]');
+    if (!button || button.disabled || !window.PW_AUTH || !window.PW_AUTH.loggedIn) return;
+    var controls = button.closest('[data-reading-book-id]');
+    if (!controls) return;
+    var bookId = parseInt(controls.dataset.readingBookId, 10);
+    var status = button.dataset.readingStatus;
+    if (!bookId || !status) return;
+
+    Array.prototype.forEach.call(controls.querySelectorAll('button'), function (item) { item.disabled = true; });
+    fetch('/api/reading-progress/update.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ book_id: bookId, status: status, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not update your reading shelf.');
+        if (status === 'reading') {
+          Object.keys(readingProgress).forEach(function (id) {
+            if (readingProgress[id] === 'reading') readingProgress[id] = 'not_started';
+          });
+        }
+        readingProgress[bookId] = status;
+        syncReadingControls();
+      })
+      .catch(function () {
+        syncReadingControls();
+      });
+  });
+
   function renderBookRow(book) {
     var stage = Math.min(Math.max(parseInt(book.writing_stage, 10) || 1, 1), 15);
     var pct = (stage / 15 * 100).toFixed(2);
@@ -99,6 +210,8 @@ document.addEventListener('DOMContentLoaded', function () {
     var row = document.createElement('div');
     row.className = 'book-row';
     row.id = 'book-' + book.book_number;
+    row.dataset.bookId = book.id;
+    setBookWorldIdentity(row, book.book_number);
     row.innerHTML =
       '<div class="book-progress">' +
         '<div class="book-progress-head">' +
@@ -124,6 +237,8 @@ document.addEventListener('DOMContentLoaded', function () {
     return row;
   }
 
+  setStaticBookWorldIdentities();
+
   fetch('/api/books.php', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -136,13 +251,18 @@ document.addEventListener('DOMContentLoaded', function () {
         if (phaseLists[phase]) phaseLists[phase].innerHTML = '';
       });
       books.forEach(function (book) {
+        booksById[book.id] = book;
         var list = phaseLists[book.saga_phase];
         if (list) list.appendChild(renderBookRow(book));
       });
+      syncReadingControls();
       setupBookMotion();
     })
     .catch(function () {
       // Leave the static fallback markup in books.html untouched.
       setupBookMotion();
     });
+
+  document.addEventListener('pw-auth-ready', loadReadingProgress);
+  loadReadingProgress();
 });
