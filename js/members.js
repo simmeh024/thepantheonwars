@@ -278,6 +278,34 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Delegated so it still works after the nav item's innerHTML is replaced.
   document.addEventListener('click', function (e) {
+    // The account control sits outside the expandable main navigation on
+    // small screens. Its menu must therefore be explicitly toggled instead
+    // of inheriting the always-open mobile treatment used by main-nav menus.
+    var profileChip = e.target.closest && e.target.closest('.auth-profile-chip');
+    if (profileChip && window.matchMedia && window.matchMedia('(max-width: 780px)').matches) {
+      e.preventDefault();
+      var accountItem = profileChip.closest('.auth-nav-item');
+      if (!accountItem) return;
+      var isOpening = !accountItem.classList.contains('is-open');
+      document.querySelectorAll('.auth-nav-item.is-open').forEach(function (item) {
+        item.classList.remove('is-open');
+        var itemTrigger = item.querySelector('.auth-profile-chip');
+        if (itemTrigger) itemTrigger.setAttribute('aria-expanded', 'false');
+      });
+      if (isOpening) {
+        accountItem.classList.add('is-open');
+        profileChip.setAttribute('aria-expanded', 'true');
+      }
+      return;
+    }
+    var clickedAuthItem = e.target.closest && e.target.closest('.auth-nav-item');
+    if (window.matchMedia && window.matchMedia('(max-width: 780px)').matches && !clickedAuthItem) {
+      document.querySelectorAll('.auth-nav-item.is-open').forEach(function (item) {
+        item.classList.remove('is-open');
+        var itemTrigger = item.querySelector('.auth-profile-chip');
+        if (itemTrigger) itemTrigger.setAttribute('aria-expanded', 'false');
+      });
+    }
     var trigger = e.target.closest && e.target.closest('.auth-trigger');
     if (trigger) {
       e.preventDefault();
@@ -397,11 +425,9 @@ document.addEventListener('DOMContentLoaded', function () {
       '</div></div>';
   }
 
-  // Logged-in state is rendered as a .nav-item.has-dropdown, reusing the
-  // exact same hover/focus-within dropdown CSS that already drives the
-  // "The Universe" / "News" / "Community" nav menus (see css/style.css) --
-  // no extra JS toggle logic or new CSS needed, and it already behaves
-  // correctly in the mobile expanded-menu layout too.
+  // Logged-in state is rendered as a .nav-item.has-dropdown. Larger screens
+  // use the shared hover/focus menu behaviour; the compact account button
+  // toggles the same card on touch screens.
   function renderNav() {
     var slot = document.getElementById('auth-nav-item');
     var notifSlot = document.getElementById('notif-nav-item');
@@ -436,7 +462,7 @@ document.addEventListener('DOMContentLoaded', function () {
       slot.className = 'nav-item has-dropdown auth-nav-item';
       slot.style.setProperty('--auth-role-color', roleColor);
       slot.innerHTML =
-        '<span class="nav-parent auth-profile-chip" style="--auth-role-color:' + roleColor + '"><span class="auth-profile-initial">' + initial + '</span><span class="auth-profile-name">' + displayName + '</span><span class="nav-caret">⌄</span></span>' +
+        '<button type="button" class="nav-parent auth-profile-chip" style="--auth-role-color:' + roleColor + '" aria-label="Open account menu for ' + displayName + '" aria-expanded="false"><span class="auth-profile-initial">' + initial + '</span><span class="auth-profile-name">' + displayName + '</span><span class="nav-caret">⌄</span></button>' +
         '<div class="nav-dropdown auth-nav-dropdown">' +
           '<a class="auth-profile-summary" href="member.html?id=' + encodeURIComponent(window.PW_AUTH.user.id) + '" aria-label="View ' + displayName + '\'s profile">' +
             '<span class="auth-profile-avatar"><img src="' + avatarUrl + '" alt="" onerror="this.hidden=true"><span class="auth-profile-avatar-fallback">' + initial + '</span></span>' +
