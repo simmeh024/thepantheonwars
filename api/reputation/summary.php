@@ -4,6 +4,9 @@ require_once __DIR__ . '/../helpers.php';
 $user = pw_require_login();
 $db = pw_db();
 try {
+    // Backfill achievement badges for existing members on their first visit
+    // after rollout; future awards run this same check immediately.
+    pw_evaluate_reputation_achievements($db, (int)$user['id']);
     $stmt = $db->prepare('SELECT reputation FROM users WHERE id = ?');
     $stmt->execute([$user['id']]);
     $points = (int)$stmt->fetchColumn();
