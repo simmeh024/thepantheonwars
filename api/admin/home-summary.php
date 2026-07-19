@@ -1,8 +1,9 @@
 <?php
 /**
  * Bundled data source for the Admin Home page. It replaces the per-card
- * request fan-out with one permission-aware response and shares the single
- * system-health pass between the System Status card and the BH-4 advisor.
+ * request fan-out with one permission-aware response. Slow system-health work
+ * is deliberately loaded by home-system-health.php after this base payload so
+ * a cold local spaCy model load cannot delay the entire Home dashboard.
  *
  * A session-scoped 15-second cache absorbs repeat renders and overlapping
  * navigation. Callers may use ?fresh=1 after a manual dashboard action.
@@ -10,8 +11,6 @@
 require_once __DIR__ . '/../helpers.php';
 require_once __DIR__ . '/runtime-cache.php';
 require_once __DIR__ . '/loc-stats-helpers.php';
-require_once __DIR__ . '/system-status/status-helpers.php';
-require_once __DIR__ . '/task-advisor-helpers.php';
 require_once __DIR__ . '/../repo-languages-helpers.php';
 require_once __DIR__ . '/community-pulse/community-pulse-helpers.php';
 require_once __DIR__ . '/../dispatch-translation-drafts.php';
@@ -195,24 +194,11 @@ $bh4Row = $db->prepare(
 );
 $bh4Row->execute([$since]);
 $bh4Counts = $bh4Row->fetch();
-// The old page queried this once for System Status and again for the advisor.
-$systemSignals = pw_build_system_signals($db, $forceFresh);
+// System Status and BH-4's health-based advice are intentionally loaded by
+// home-system-health.php after this fast base payload has rendered. A cold
+// spaCy model load must not hold every Home card in its loading state.
 $systemStatus = ['ok' => false];
-if (pw_has_permission($adminUser, 'dashboards.view_system_status')) {
-    $systemStatus = array_merge(
-        ['ok' => true],
-        $systemSignals,
-        ['checked_at' => gmdate('c')]
-    );
-}
-
-$advisorData = pw_collect_task_advisor($db, $systemSignals);
-$criticalEvents = $advisorData['critical_events'];
-$criticalSummary = (!empty($advisorData['primary']) && ($advisorData['primary']['priority'] ?? '') === 'critical')
-    ? ($advisorData['primary']['title'] ?? null)
-    : null;
-unset($advisorData['critical_events']);
-$advisor = array_merge(['ok' => true], $advisorData);
+$advisor = ['ok' => false];
 $bh4 = [
     'ok' => true,
     'display_name' => $adminUser['display_name'],
@@ -220,8 +206,8 @@ $bh4 = [
     'dispatches_classified' => (int)$bh4Counts['dispatches_classified'],
     'translations_completed' => (int)$bh4Counts['translations_completed'],
     'admin_logins' => (int)$bh4Counts['admin_logins'],
-    'critical_events' => $criticalEvents,
-    'critical_summary' => $criticalSummary,
+    'critical_events' => null,
+    'critical_summary' => null,
 ];
 $locStats = pw_get_loc_stats($db);
 $loc = $locStats === null ? ['ok' => false] : array_merge(['ok' => true], $locStats);
