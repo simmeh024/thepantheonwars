@@ -36,6 +36,19 @@ $countStmt = $db->prepare('SELECT COUNT(*) AS count FROM news_comments WHERE new
 $countStmt->execute([(int)$post['id']]);
 $count = (int)$countStmt->fetch()['count'];
 
+// If this article was published from a Dispatch Composer draft, surface the
+// Dispatches that draft attached as source material in a public sidecard.
+// Most news_posts rows have no matching composer draft (imported/legacy
+// articles, or ones created directly in News Management) -- those simply
+// get an empty list.
+$attachedDispatches = [];
+$composerStmt = $db->prepare('SELECT id FROM dispatch_composer_posts WHERE news_post_id = ?');
+$composerStmt->execute([(int)$post['id']]);
+$composerRow = $composerStmt->fetch();
+if ($composerRow) {
+    $attachedDispatches = pw_composer_attached_dispatches($db, (int)$composerRow['id']);
+}
+
 pw_json([
     'ok' => true,
     'entry' => [
@@ -51,5 +64,6 @@ pw_json([
         'comment_count' => $count,
         'published_at' => $post['published_at'],
         'tags' => $tagStmt->fetchAll(),
+        'attached_dispatches' => $attachedDispatches,
     ],
 ]);

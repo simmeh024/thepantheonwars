@@ -475,8 +475,33 @@
 .post-share .btn.share-reddit { padding: 10px 22px; font-size: 0.72rem; }
 
 /* Dedicated News transmission and its member discussion. */
-.news-detail-container { max-width: 900px; }
+.news-detail-container { max-width: 1180px; }
 .news-detail-banner .container { max-width: 900px; }
+.news-detail-layout { display: flex; align-items: flex-start; gap: 28px; }
+.news-detail-layout .news-detail-article { flex: 1 1 auto; min-width: 0; order: 1; }
+
+/* Left sidecard: the Dispatches a Composer draft attached as source
+   material, shown only when the article was published that way. Sticky on
+   wide viewports; drops below the article on narrow ones rather than
+   pushing it down. */
+.news-detail-sidecard {
+  flex: 0 0 250px; order: 0; position: sticky; top: 90px;
+  padding: 22px 20px; border: 1px solid var(--border);
+  background: linear-gradient(160deg, rgba(48,28,86,0.28), rgba(13,9,28,0.78));
+}
+.news-detail-sidecard .eyebrow { display: block; margin-bottom: 6px; }
+.news-detail-sidecard h2 { margin: 0 0 14px; color: var(--text); font-family: 'Cinzel', serif; font-size: 1.02rem; }
+.news-detail-sidecard-list { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
+.news-detail-sidecard-list li { padding-bottom: 12px; border-bottom: 1px solid var(--border-soft); }
+.news-detail-sidecard-list li:last-child { border-bottom: none; padding-bottom: 0; }
+.news-detail-sidecard-list a { display: block; color: var(--text); font-size: 0.86rem; line-height: 1.4; text-decoration: none; }
+.news-detail-sidecard-list a:hover { color: var(--purple-bright); }
+.news-detail-sidecard-meta { display: block; margin-top: 4px; color: var(--text-faint); font-size: 0.68rem; letter-spacing: 0.02em; }
+@media (max-width: 860px) {
+  .news-detail-layout { flex-direction: column; }
+  .news-detail-sidecard { position: static; flex-basis: auto; width: 100%; box-sizing: border-box; order: 2; }
+  .news-detail-layout .news-detail-article { order: 1; }
+}
 .news-back-link { display: inline-flex; margin: 0 0 21px; color: var(--gold-bright); font: 700 0.68rem 'Jost', sans-serif; letter-spacing: 0.09em; text-decoration: none; text-transform: uppercase; transition: color 160ms ease, transform 160ms ease; }
 .news-back-link:hover { color: var(--purple-bright); transform: translateX(-3px); }
 .news-detail-article { --news-detail-accent: var(--purple-bright); position: relative; overflow: hidden; padding: 34px 38px; border: 1px solid var(--border); background: linear-gradient(135deg, rgba(48,28,86,0.34), rgba(13,9,28,0.82)); box-shadow: 0 18px 40px rgba(0,0,0,0.18); }

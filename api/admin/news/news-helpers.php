@@ -261,6 +261,30 @@ function pw_news_unique_slug($db, $title, $exceptId = null) {
     }
 }
 
+// Public-safe list of the Dispatches a Composer draft attached as source
+// material, ordered the same way the editor's "Attached" panel shows them.
+// Deliberately excludes admin_note (private, never published) and every
+// other Composer-only field -- only what the public sidecard needs.
+function pw_composer_attached_dispatches($db, $composerPostId) {
+    $stmt = $db->prepare(
+        'SELECT d.id, d.sha, d.subject, d.tag, d.committed_at
+         FROM dispatch_composer_items ci
+         JOIN dispatch_entries d ON d.id = ci.dispatch_id
+         WHERE ci.composer_post_id = ?
+         ORDER BY ci.sort_order ASC, ci.id ASC'
+    );
+    $stmt->execute([$composerPostId]);
+    return array_map(function ($r) {
+        return [
+            'id' => (int)$r['id'],
+            'subject' => $r['subject'],
+            'tag' => $r['tag'],
+            'short_sha' => substr($r['sha'], 0, 7),
+            'committed_at' => $r['committed_at'],
+        ];
+    }, $stmt->fetchAll());
+}
+
 // The single insertion path for a real news_posts row. Both News
 // Management's own create.php and Dispatch Composer's publish.php call this
 // -- neither duplicates the INSERT/tag-sync logic. Caller owns the

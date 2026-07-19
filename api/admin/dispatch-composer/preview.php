@@ -47,5 +47,6 @@ pw_json([
         'published_at' => $post['updated_at'],
         'tags' => [],
         'is_preview' => true,
+        'attached_dispatches' => pw_composer_attached_dispatches($db, $id),
     ],
 ]);

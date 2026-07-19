@@ -331,6 +331,39 @@
     appendParagraphs(post.body, target);
   }
 
+  // Shown only when this article was published from a Dispatch Composer
+  // draft that had Dispatches attached as source material (api/news/get.php
+  // returns an empty attached_dispatches array otherwise). Links straight to
+  // dev-dispatches.html's own deep-link support (?dispatch=<id>), which
+  // already scrolls to and expands that entry.
+  function buildSidecard(dispatches) {
+    var card = document.createElement('aside');
+    card.className = 'news-detail-sidecard';
+    var eyebrow = document.createElement('span');
+    eyebrow.className = 'eyebrow';
+    eyebrow.textContent = 'Related development';
+    card.appendChild(eyebrow);
+    var heading = document.createElement('h2');
+    heading.textContent = 'Dispatches in this update';
+    card.appendChild(heading);
+    var list = document.createElement('ul');
+    list.className = 'news-detail-sidecard-list';
+    dispatches.forEach(function (d) {
+      var li = document.createElement('li');
+      var link = document.createElement('a');
+      link.href = 'dev-dispatches.html?dispatch=' + encodeURIComponent(d.id);
+      link.textContent = d.subject;
+      li.appendChild(link);
+      var meta = document.createElement('span');
+      meta.className = 'news-detail-sidecard-meta';
+      meta.textContent = d.short_sha + ' · ' + relativeTime(d.committed_at);
+      li.appendChild(meta);
+      list.appendChild(li);
+    });
+    card.appendChild(list);
+    return card;
+  }
+
   function renderArticle(post) {
     document.title = post.title + ' — The Pantheon Wars';
     bannerTitle.textContent = post.title;
@@ -381,13 +414,20 @@
       actions.appendChild(share);
       article.appendChild(actions);
     }
-    articleHost.appendChild(article);
+    var hasSidecard = post.attached_dispatches && post.attached_dispatches.length > 0;
+    var layout = document.createElement('div');
+    layout.className = 'news-detail-layout' + (hasSidecard ? '' : ' no-sidecard');
+    if (hasSidecard) {
+      layout.appendChild(buildSidecard(post.attached_dispatches));
+    }
+    layout.appendChild(article);
+    articleHost.appendChild(layout);
 
     if (post.is_preview) {
       var previewNotice = document.createElement('p');
       previewNotice.className = 'lore-status';
       previewNotice.textContent = 'Composer preview — not yet published. Comments and sharing are disabled here.';
-      articleHost.insertBefore(previewNotice, article);
+      articleHost.insertBefore(previewNotice, layout);
     }
   }
 
