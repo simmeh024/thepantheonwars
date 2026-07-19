@@ -153,6 +153,7 @@
           <button type="button" class="notif-filter-btn" data-filter="world_available">New Worlds <span class="notif-filter-count" id="notif-filter-count-world_available">0</span></button>
           <button type="button" class="notif-filter-btn" data-filter="news_published">News <span class="notif-filter-count" id="notif-filter-count-news_published">0</span></button>
           <button type="button" class="notif-filter-btn" data-filter="topic_reply">Watched Replies <span class="notif-filter-count" id="notif-filter-count-topic_reply">0</span></button>
+          <button type="button" class="notif-filter-btn" data-filter="icon_unlocked">Icons Unlocked <span class="notif-filter-count" id="notif-filter-count-icon_unlocked">0</span></button>
           <label class="notif-unread-toggle">
             <input type="checkbox" id="notif-unread-toggle-input">
             <span class="notif-unread-toggle-track"><span class="notif-unread-toggle-thumb"></span></span>
@@ -291,6 +292,7 @@
   function notificationLink(n) {
     if (n.type === 'world_available' && n.world_slug) return 'worlds.html#' + encodeURIComponent(n.world_slug);
     if (n.type === 'news_published' && n.news_slug) return 'news-post.html?slug=' + encodeURIComponent(n.news_slug);
+    if (n.type === 'icon_unlocked') return 'profile.html?tab=settings';
     if (!n.topic_id) return '#';
     return 'community.html?topic=' + encodeURIComponent(n.topic_id) +
       (n.comment_id ? '&comment=' + encodeURIComponent(n.comment_id) : '');
@@ -318,6 +320,8 @@
         return 'A news article has been published. Check it out: <strong>' + (excerpt || 'Latest news') + '</strong> &rarr;';
       case 'topic_reply':
         return '<strong>' + (actor || 'Someone') + '</strong> replied' + (n.topic_title ? ' in a topic you\'re watching: <strong>' + escapeHtml(n.topic_title) + '</strong>' : ' in a topic you\'re watching');
+      case 'icon_unlocked':
+        return 'Pure Resonance achieved. You unlocked the <strong>' + (excerpt || 'Overlord') + '</strong> icon &mdash; choose it in Profile Settings.';
       default:
         return 'You have a new notification.';
     }
@@ -418,6 +422,7 @@
         document.getElementById('notif-filter-count-world_available').textContent = data.counts.world_available;
         document.getElementById('notif-filter-count-news_published').textContent = data.counts.news_published;
         document.getElementById('notif-filter-count-topic_reply').textContent = data.counts.topic_reply;
+        document.getElementById('notif-filter-count-icon_unlocked').textContent = data.counts.icon_unlocked;
 
         var topType = null, topCount = 0;
         Object.keys(STAT_LABELS).forEach(function (t) {

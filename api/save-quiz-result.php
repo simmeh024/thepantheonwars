@@ -16,6 +16,10 @@ if (!in_array($overlord, $validOverlords, true)) {
     pw_error('Unrecognized result.');
 }
 
+// Index-matched to $validOverlords -- see pw_overlord_icon_keys() in
+// api/helpers.php, the single source of truth for the fixed icon catalog.
+$iconKeys = pw_overlord_icon_keys();
+
 $scores = isset($input['scores']) && is_array($input['scores']) ? array_slice(array_map('intval', $input['scores']), 0, 6) : [];
 $scoresJson = json_encode($scores);
 
@@ -38,6 +42,18 @@ if ($isFirstQuiz) {
         $db->prepare('UPDATE users SET reputation = reputation + 10 WHERE id = ?')->execute([$user['id']]);
     } catch (PDOException $e) {
         // migration_reputation.sql may be run after code deployment.
+    }
+}
+
+// Pure Resonance (100%): a score total entirely on one overlord (all other
+// scores at 0), the same "tier-pure" threshold quiz.html's own client-side
+// resonance display already uses. Unlocks that overlord's icon.
+$total = array_sum($scores);
+if ($total > 0) {
+    foreach ($scores as $i => $s) {
+        if ($s === $total && isset($iconKeys[$i])) {
+            pw_unlock_overlord_icon((int)$user['id'], $iconKeys[$i], $validOverlords[$i]);
+        }
     }
 }
 

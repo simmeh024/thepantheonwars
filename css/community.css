@@ -627,9 +627,48 @@
 .reputation-bar-compact .reputation-bar-square { width: 13px; height: 13px; font-size: 0.56rem; }
 .reputation-bar-compact .reputation-bar-track { width: 44px; }
 
-.profile-head .reputation-bar { margin-top: 6px; }
+.profile-head .reputation-bar-row { margin-top: 6px; }
 .profile-head .reputation-bar-track { width: 90px; height: 6px; }
 .profile-head .reputation-bar-label { font-size: 0.74rem; }
+
+.reputation-bar-row { display: flex; align-items: center; gap: 8px; }
+
+/* Resonance icon badge: a small unlockable emblem next to the reputation
+   bar, earned by scoring a Pure Resonance (100%) quiz result with an
+   Overlord. Color is set inline per icon (currentColor drives the SVG
+   stroke). */
+.resonance-icon-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; width: 18px; height: 18px;
+  filter: drop-shadow(0 0 3px currentColor);
+}
+.resonance-icon-badge svg { width: 100%; height: 100%; }
+.reputation-bar-compact + .resonance-icon-badge { width: 15px; height: 15px; }
+
+/* Resonance Icon picker (Profile Settings): a grid of tiles, one per
+   Overlord icon plus a "None" tile. Locked tiles are dimmed and inert;
+   unlocked tiles are clickable and highlight when selected. */
+.icon-picker-grid {
+  display: flex; flex-wrap: wrap; gap: 10px; margin-top: 0.75em;
+}
+.icon-picker-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  width: 84px; padding: 10px 6px; border-radius: 8px;
+  border: 1px solid var(--border-soft); background: var(--panel);
+  cursor: pointer; transition: border-color 0.2s ease, transform 0.2s ease;
+}
+.icon-picker-tile svg { width: 26px; height: 26px; }
+.icon-picker-tile-label {
+  font-size: 0.66rem; color: var(--text-dim); text-align: center; line-height: 1.2;
+}
+.icon-picker-tile:not(:disabled):hover { border-color: currentColor; transform: translateY(-2px); }
+.icon-picker-tile.is-selected { border-color: currentColor; box-shadow: 0 0 0 1px currentColor; }
+.icon-picker-tile.is-locked {
+  color: var(--text-faint) !important; opacity: 0.45; cursor: not-allowed;
+}
+.icon-picker-tile-none {
+  color: var(--text-dim); justify-content: center; min-height: 62px;
+}
 
 .comment-divider { flex-shrink: 0; width: 1px; background: var(--border); align-self: stretch; }
 

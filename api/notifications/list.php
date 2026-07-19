@@ -22,7 +22,7 @@ if ($perPage > 100) {
 // comma-separated subset of types (unknown values are silently dropped
 // rather than erroring, since this only narrows an already-own-rows-only
 // query) and an unread-only flag.
-$allowedTypes = ['like', 'mention', 'quote', 'report_resolved', 'world_available', 'news_published', 'topic_reply'];
+$allowedTypes = ['like', 'mention', 'quote', 'report_resolved', 'world_available', 'news_published', 'topic_reply', 'icon_unlocked'];
 $types = [];
 if (!empty($_GET['types'])) {
     foreach (explode(',', $_GET['types']) as $t) {

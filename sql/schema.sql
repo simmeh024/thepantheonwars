@@ -74,6 +74,9 @@ CREATE TABLE IF NOT EXISTS users (
   -- Reputation points: +1 per topic/comment authored, +2 per like received
   -- (reversed on unlike). Drives the reputation bar against reputation_levels.
   reputation INT UNSIGNED NOT NULL DEFAULT 0,
+  -- One of the fixed Overlord resonance icon keys the user has unlocked (see
+  -- user_unlocked_icons), or NULL to show no icon next to the reputation bar.
+  selected_icon VARCHAR(40) NULL,
   banned_at DATETIME DEFAULT NULL,
   banned_until DATETIME DEFAULT NULL,
   UNIQUE KEY uniq_username (username),
@@ -92,6 +95,17 @@ CREATE TABLE IF NOT EXISTS reputation_levels (
   color CHAR(7) NOT NULL DEFAULT '#a279ec',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_reputation_levels_threshold (threshold)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- One row per (user, unlocked resonance icon). See migration_reputation_icons.sql
+-- for the fixed icon-key catalog and the 100% quiz-result unlock trigger.
+CREATE TABLE IF NOT EXISTS user_unlocked_icons (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  icon_key VARCHAR(40) NOT NULL,
+  unlocked_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_user_unlocked_icons (user_id, icon_key),
+  CONSTRAINT fk_user_unlocked_icons_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS quiz_results (
@@ -793,7 +807,7 @@ CREATE TABLE IF NOT EXISTS page_view_daily_transitions (
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,
-  type ENUM('like','mention','quote','report_resolved','world_available','news_published','topic_reply') NOT NULL,
+  type ENUM('like','mention','quote','report_resolved','world_available','news_published','topic_reply','icon_unlocked') NOT NULL,
   actor_user_id INT UNSIGNED NULL,
   topic_id INT UNSIGNED NULL,
   comment_id INT UNSIGNED NULL,
@@ -827,6 +841,7 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
   notif_world_available TINYINT(1) NOT NULL DEFAULT 1,
   notif_news_published TINYINT(1) NOT NULL DEFAULT 1,
   notif_topic_reply TINYINT(1) NOT NULL DEFAULT 1,
+  notif_icon_unlocked TINYINT(1) NOT NULL DEFAULT 1,
   CONSTRAINT fk_notification_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

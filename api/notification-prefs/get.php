@@ -11,7 +11,7 @@ require_once __DIR__ . '/../helpers.php';
 $user = pw_require_login();
 $db = pw_db();
 
-$stmt = $db->prepare('SELECT notif_like, notif_mention, notif_quote, notif_report_resolved, notif_world_available, notif_news_published, notif_topic_reply FROM notification_preferences WHERE user_id = ?');
+$stmt = $db->prepare('SELECT notif_like, notif_mention, notif_quote, notif_report_resolved, notif_world_available, notif_news_published, notif_topic_reply, notif_icon_unlocked FROM notification_preferences WHERE user_id = ?');
 $stmt->execute([$user['id']]);
 $row = $stmt->fetch();
 
@@ -23,6 +23,7 @@ $prefs = [
     'world_available' => $row ? (bool)$row['notif_world_available'] : true,
     'news_published' => $row ? (bool)$row['notif_news_published'] : true,
     'topic_reply' => $row ? (bool)$row['notif_topic_reply'] : true,
+    'icon_unlocked' => $row ? (bool)$row['notif_icon_unlocked'] : true,
 ];
 
 pw_json(['ok' => true, 'prefs' => $prefs]);

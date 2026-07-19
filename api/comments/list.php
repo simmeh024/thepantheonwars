@@ -13,7 +13,7 @@ $db = pw_db();
 $stmt = $db->prepare(
     'SELECT c.id, c.parent_id, c.depth, c.body, c.created_at, c.edited_at, c.edited_by,
             editor.display_name AS edited_by_name, c.user_id,
-            u.username, u.display_name, u.overlord_affinity, u.role, u.last_active_at, u.presence_status, u.reputation, r.color AS role_color
+            u.username, u.display_name, u.overlord_affinity, u.role, u.last_active_at, u.presence_status, u.reputation, u.selected_icon, r.color AS role_color
      FROM comments c
      JOIN users u ON u.id = c.user_id
      LEFT JOIN roles r ON r.slug = u.role
@@ -121,6 +121,7 @@ $out = array_map(function ($r) use ($currentId, $canModerate, $canDeleteAny, $po
         'role_color' => $r['role_color'] ?: '#c7ccd6',
         'presence_status' => pw_public_presence_status($r['presence_status'], $r['last_active_at']),
         'reputation' => pw_reputation_info((int)$r['reputation']),
+        'selected_icon' => $r['selected_icon'],
         'post_count' => isset($postCounts[$userId]) ? $postCounts[$userId] : 0,
         'canDelete' => $canDeleteAny || ($currentId !== null && $currentId === $userId),
         'canModerate' => $canModerate,

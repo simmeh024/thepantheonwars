@@ -68,6 +68,15 @@ $passwordStmt->execute([$user['id']]);
 $passwordRow = $passwordStmt->fetch();
 $hasPassword = $passwordRow && $passwordRow['password_hash'] !== null && $passwordRow['password_hash'] !== '';
 
+$unlockedIcons = [];
+try {
+    $iconStmt = $db->prepare('SELECT icon_key FROM user_unlocked_icons WHERE user_id = ?');
+    $iconStmt->execute([$user['id']]);
+    $unlockedIcons = array_map(function ($r) { return $r['icon_key']; }, $iconStmt->fetchAll());
+} catch (PDOException $e) {
+    // migration_reputation_icons.sql may be run after code deployment.
+}
+
 pw_json([
     'ok' => true,
     'user' => [
@@ -82,6 +91,8 @@ pw_json([
         'created_at' => $user['created_at'],
         'has_password' => $hasPassword,
         'reputation' => pw_reputation_info((int)$user['reputation']),
+        'selected_icon' => $user['selected_icon'],
+        'unlocked_icons' => $unlockedIcons,
     ],
     'quizHistory' => $quizHistory,
     'posts' => $posts,

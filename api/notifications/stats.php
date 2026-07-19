@@ -17,7 +17,7 @@ $stmt = $db->prepare(
 $stmt->execute([$user['id']]);
 $rows = $stmt->fetchAll();
 
-$counts = ['like' => 0, 'mention' => 0, 'quote' => 0, 'report_resolved' => 0, 'world_available' => 0, 'news_published' => 0, 'topic_reply' => 0];
+$counts = ['like' => 0, 'mention' => 0, 'quote' => 0, 'report_resolved' => 0, 'world_available' => 0, 'news_published' => 0, 'topic_reply' => 0, 'icon_unlocked' => 0];
 $total = 0;
 $unread = 0;
 foreach ($rows as $r) {

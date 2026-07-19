@@ -149,21 +149,22 @@ function pw_current_user() {
         return null;
     }
     try {
-        $stmt = pw_db()->prepare('SELECT id, username, email, newsletter_subscribed, display_name, overlord_affinity, role, presence_status, reputation, created_at, banned_at, banned_until FROM users WHERE id = ?');
+        $stmt = pw_db()->prepare('SELECT id, username, email, newsletter_subscribed, display_name, overlord_affinity, role, presence_status, reputation, selected_icon, created_at, banned_at, banned_until FROM users WHERE id = ?');
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch();
     } catch (Throwable $e) {
-        // newsletter_subscribed/reputation arrive via manual migrations after
-        // deploy (migration_newsletter_subscription.sql,
-        // migration_reputation.sql) -- this function runs on every
-        // authenticated request, so it must keep working during that window
-        // rather than fatal on a missing column.
+        // newsletter_subscribed/reputation/selected_icon arrive via manual
+        // migrations after deploy (migration_newsletter_subscription.sql,
+        // migration_reputation.sql, migration_reputation_icons.sql) -- this
+        // function runs on every authenticated request, so it must keep
+        // working during that window rather than fatal on a missing column.
         $stmt = pw_db()->prepare('SELECT id, username, email, display_name, overlord_affinity, role, presence_status, created_at, banned_at, banned_until FROM users WHERE id = ?');
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch();
         if ($user) {
             $user['newsletter_subscribed'] = 1;
             $user['reputation'] = 0;
+            $user['selected_icon'] = null;
         }
     }
     if (!$user) {
@@ -435,6 +436,39 @@ function pw_reputation_info(int $reputation): array {
         'next_level_threshold' => $next ? (int)$next['threshold'] : null,
         'progress_percent' => $progress,
     ];
+}
+
+/**
+ * Fixed 6-icon Overlord resonance catalog, in the same order as (and keyed
+ * to) the hardcoded overlord list already used by quiz.html and this
+ * file's own $validOverlords in api/save-quiz-result.php. Not admin-
+ * manageable -- deliberately as static as that existing list.
+ */
+function pw_overlord_icon_keys(): array {
+    return ['syn-dravus', 'malric-thorne', 'korrus-vale', 'lysara-venthe', 'zura-kaleth', 'maerion-thal'];
+}
+
+/**
+ * Unlocks an Overlord resonance icon for a user the first time they reach
+ * it (a 100% "Pure Resonance" quiz result) and notifies them. A second
+ * unlock attempt for the same icon is a silent no-op -- checked explicitly
+ * rather than relying on the unique key, so the notification only ever
+ * fires once. Best-effort: fails open if migration_reputation_icons.sql
+ * hasn't run yet.
+ */
+function pw_unlock_overlord_icon(int $userId, string $iconKey, string $overlordName): void {
+    try {
+        $db = pw_db();
+        $stmt = $db->prepare('SELECT id FROM user_unlocked_icons WHERE user_id = ? AND icon_key = ?');
+        $stmt->execute([$userId, $iconKey]);
+        if ($stmt->fetch()) {
+            return;
+        }
+        $db->prepare('INSERT INTO user_unlocked_icons (user_id, icon_key) VALUES (?, ?)')->execute([$userId, $iconKey]);
+        pw_notify($userId, 'icon_unlocked', null, null, null, null, $overlordName);
+    } catch (PDOException $e) {
+        // migration_reputation_icons.sql may be run after code deployment.
+    }
 }
 
 function pw_mark_user_offline_if_no_active_sessions(int $userId): void {
@@ -725,7 +759,7 @@ function pw_log_admin_activity($action, $description, $user = null) {
 // newly introduced ones, so this only ever needs to read, never backfill on
 // account creation.
 function pw_notifications_enabled($userId, $type) {
-    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved', 'world_available' => 'notif_world_available', 'news_published' => 'notif_news_published', 'topic_reply' => 'notif_topic_reply'];
+    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved', 'world_available' => 'notif_world_available', 'news_published' => 'notif_news_published', 'topic_reply' => 'notif_topic_reply', 'icon_unlocked' => 'notif_icon_unlocked'];
     if (!isset($columns[$type])) {
         return true;
     }

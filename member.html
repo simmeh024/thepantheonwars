@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=223">
+<link rel="stylesheet" href="css/community-bundle.css?v=224">
 </head>
 <body>
 
@@ -76,7 +76,10 @@
           </div>
           <h1 id="member-name">—</h1>
           <span class="member-role-badge" id="member-role-badge"></span>
-          <div class="reputation-bar" id="member-reputation-bar" hidden></div>
+          <div class="reputation-bar-row">
+            <div class="reputation-bar" id="member-reputation-bar" hidden></div>
+            <span class="resonance-icon-badge" id="member-resonance-icon" hidden></span>
+          </div>
         </div>
 
         <p class="lore-status" id="member-meta">
@@ -263,6 +266,27 @@
     return s.charAt(0).toUpperCase() + s.slice(1);
   }
 
+  // Fixed 6-icon Overlord resonance catalog, index-matched to quiz.html's
+  // own hardcoded overlord list. Each color reuses that Overlord's world's
+  // existing atlas signal color (js/worlds.js ATLAS_TONES).
+  var OVERLORD_ICONS = {
+    'syn-dravus': { name: 'Syn Dravus', color: 'rgb(154, 96, 238)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>' },
+    'malric-thorne': { name: 'Malric Thorne', color: 'rgb(204, 72, 80)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="M4 18 3 8l5 4 4-7 4 7 5-4-1 10Z"/></svg>' },
+    'korrus-vale': { name: 'Korrus Vale', color: 'rgb(159, 224, 65)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 20.5 7v10L12 22 3.5 17V7Z"/><circle cx="12" cy="12" r="3"/></svg>' },
+    'lysara-venthe': { name: 'Lysara Venthe', color: 'rgb(68, 150, 237)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path d="M2 15c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/></svg>' },
+    'zura-kaleth': { name: 'Zura Kaleth', color: 'rgb(59, 148, 83)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8"/><path d="M12 11 6 21"/><path d="M12 11l6 10"/><path d="M12 11 4 15"/><path d="M12 11l8 4"/></svg>' },
+    'maerion-thal': { name: 'Maerion Thal', color: 'rgb(184, 111, 66)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16c4-2 6-8 9-11 3 3 5 9 9 11-4 2-7 0-9-3-2 3-5 5-9 3Z"/></svg>' }
+  };
+
+  function renderResonanceIconBadge(container, iconKey) {
+    var icon = iconKey ? OVERLORD_ICONS[iconKey] : null;
+    if (!icon) { container.hidden = true; container.innerHTML = ''; return; }
+    container.hidden = false;
+    container.style.color = icon.color;
+    container.title = icon.name + ' — Pure Resonance';
+    container.innerHTML = icon.svg;
+  }
+
   function renderReputationBar(container, rep) {
     if (!rep) { container.hidden = true; return; }
     container.hidden = false;
@@ -333,6 +357,7 @@
         roleBadge.style.setProperty('--role-color', m.role_color || '#c7ccd6');
 
         renderReputationBar(document.getElementById('member-reputation-bar'), m.reputation);
+        renderResonanceIconBadge(document.getElementById('member-resonance-icon'), m.selected_icon);
 
         avatarFallback.textContent = (m.display_name || '?').charAt(0).toUpperCase();
         var probe = new Image();

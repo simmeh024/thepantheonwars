@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=223">
+<link rel="stylesheet" href="css/community-bundle.css?v=224">
 </head>
 <body>
 
@@ -89,7 +89,10 @@
               <span class="profile-member-since" id="profile-member-since"></span>
               <a class="profile-public-link" id="profile-public-link" href="#">View public profile &rarr;</a>
             </div>
-            <div class="reputation-bar" id="profile-reputation-bar" hidden></div>
+            <div class="reputation-bar-row">
+              <div class="reputation-bar" id="profile-reputation-bar" hidden></div>
+              <span class="resonance-icon-badge" id="profile-resonance-icon" hidden></span>
+            </div>
           </div>
         </div>
         <p id="profile-avatar-status" class="profile-avatar-status" hidden></p>
@@ -157,6 +160,16 @@
             <span>Subscribe to the mailing list &mdash; news on new books, lore drops, and the soundtrack as it's released.</span>
           </label>
           <p class="profile-success" id="newsletter-subscribe-status" hidden>Saved.</p>
+
+          <div class="profile-divider"><span class="profile-divider-shard"></span></div>
+
+          <section class="profile-icon-picker" aria-labelledby="icon-picker-title">
+            <h3 id="icon-picker-title">Resonance Icon</h3>
+            <p class="profile-field-note">Score a Pure Resonance (100%) result with an Overlord on the Quiz to unlock their icon. Choose one to display next to your reputation bar.</p>
+            <div class="icon-picker-grid" id="icon-picker-grid"></div>
+            <p class="auth-error" id="icon-picker-error"></p>
+            <p class="profile-success" id="icon-picker-status" hidden>Saved.</p>
+          </section>
 
           <div class="profile-divider"><span class="profile-divider-shard"></span></div>
 
@@ -310,6 +323,13 @@
             <span>
               <strong>Watched Topic Replies</strong>
               <small>Someone replies in a topic you started, replied to, or are watching.</small>
+            </span>
+          </label>
+          <label class="notif-pref-row">
+            <input type="checkbox" class="notif-pref-item" id="notif-pref-icon_unlocked" data-pref="icon_unlocked">
+            <span>
+              <strong>Resonance Icons</strong>
+              <small>You unlock an Overlord icon by scoring a Pure Resonance result on the Quiz.</small>
             </span>
           </label>
 
@@ -679,6 +699,93 @@
     var badge = document.getElementById('profile-role-badge');
     badge.style.setProperty('--role-color', roleColor || '#c7ccd6');
     badge.textContent = String(role || 'member').replace(/(^|_)([a-z])/g, function (_, gap, letter) { return gap + letter.toUpperCase(); }).replace(/_/g, ' ');
+  }
+
+  // Fixed 6-icon Overlord resonance catalog, index-matched to quiz.html's
+  // own hardcoded overlord list. Each color reuses that Overlord's world's
+  // existing atlas signal color (js/worlds.js ATLAS_TONES) rather than
+  // inventing a new palette.
+  var OVERLORD_ICONS = {
+    'syn-dravus': { name: 'Syn Dravus', color: 'rgb(154, 96, 238)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>' },
+    'malric-thorne': { name: 'Malric Thorne', color: 'rgb(204, 72, 80)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="M4 18 3 8l5 4 4-7 4 7 5-4-1 10Z"/></svg>' },
+    'korrus-vale': { name: 'Korrus Vale', color: 'rgb(159, 224, 65)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 20.5 7v10L12 22 3.5 17V7Z"/><circle cx="12" cy="12" r="3"/></svg>' },
+    'lysara-venthe': { name: 'Lysara Venthe', color: 'rgb(68, 150, 237)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path d="M2 15c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/></svg>' },
+    'zura-kaleth': { name: 'Zura Kaleth', color: 'rgb(59, 148, 83)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8"/><path d="M12 11 6 21"/><path d="M12 11l6 10"/><path d="M12 11 4 15"/><path d="M12 11l8 4"/></svg>' },
+    'maerion-thal': { name: 'Maerion Thal', color: 'rgb(184, 111, 66)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16c4-2 6-8 9-11 3 3 5 9 9 11-4 2-7 0-9-3-2 3-5 5-9 3Z"/></svg>' }
+  };
+  var OVERLORD_ICON_ORDER = ['syn-dravus', 'malric-thorne', 'korrus-vale', 'lysara-venthe', 'zura-kaleth', 'maerion-thal'];
+
+  function renderResonanceIconBadge(container, iconKey) {
+    var icon = iconKey ? OVERLORD_ICONS[iconKey] : null;
+    if (!icon) { container.hidden = true; container.innerHTML = ''; return; }
+    container.hidden = false;
+    container.style.color = icon.color;
+    container.title = icon.name + ' — Pure Resonance';
+    container.innerHTML = icon.svg;
+  }
+
+  var iconPickerGrid = document.getElementById('icon-picker-grid');
+  var iconPickerError = document.getElementById('icon-picker-error');
+  var iconPickerStatus = document.getElementById('icon-picker-status');
+  var currentUnlockedIcons = [];
+  var currentSelectedIcon = null;
+
+  function renderIconPicker() {
+    iconPickerGrid.innerHTML = '';
+
+    var noneTile = document.createElement('button');
+    noneTile.type = 'button';
+    noneTile.className = 'icon-picker-tile icon-picker-tile-none' + (!currentSelectedIcon ? ' is-selected' : '');
+    noneTile.textContent = 'None';
+    noneTile.title = 'Show no icon next to your reputation bar';
+    noneTile.addEventListener('click', function () { selectResonanceIcon(null); });
+    iconPickerGrid.appendChild(noneTile);
+
+    OVERLORD_ICON_ORDER.forEach(function (key) {
+      var icon = OVERLORD_ICONS[key];
+      var unlocked = currentUnlockedIcons.indexOf(key) !== -1;
+      var tile = document.createElement('button');
+      tile.type = 'button';
+      tile.className = 'icon-picker-tile' + (unlocked ? '' : ' is-locked') + (currentSelectedIcon === key ? ' is-selected' : '');
+      tile.style.color = icon.color;
+      tile.innerHTML = icon.svg + '<span class="icon-picker-tile-label">' + icon.name + '</span>';
+      tile.title = unlocked
+        ? icon.name + ' — Pure Resonance unlocked'
+        : icon.name + ' — score a Pure Resonance (100%) result with ' + icon.name + ' on the Quiz to unlock.';
+      if (unlocked) {
+        tile.addEventListener('click', function () { selectResonanceIcon(key); });
+      } else {
+        tile.disabled = true;
+      }
+      iconPickerGrid.appendChild(tile);
+    });
+  }
+
+  function selectResonanceIcon(iconKey) {
+    iconPickerError.classList.remove('show');
+    fetch('/api/profile-icon/update.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ icon_key: iconKey, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          iconPickerError.textContent = data.error || 'Could not save your icon.';
+          iconPickerError.classList.add('show');
+          return;
+        }
+        currentSelectedIcon = data.selected_icon;
+        renderIconPicker();
+        renderResonanceIconBadge(document.getElementById('profile-resonance-icon'), currentSelectedIcon);
+        iconPickerStatus.classList.add('show');
+        setTimeout(function () { iconPickerStatus.classList.remove('show'); }, 1500);
+      })
+      .catch(function () {
+        iconPickerError.textContent = 'Could not save your icon. Please try again.';
+        iconPickerError.classList.add('show');
+      });
   }
 
   function renderReputationBar(container, rep) {
@@ -1319,6 +1426,10 @@
         document.getElementById('profile-member-since').textContent = 'Member since ' + fmtDate(data.user.created_at);
         document.getElementById('profile-public-link').href = 'member.html?id=' + encodeURIComponent(data.user.id);
         renderReputationBar(document.getElementById('profile-reputation-bar'), data.user.reputation);
+        currentUnlockedIcons = data.user.unlocked_icons || [];
+        currentSelectedIcon = data.user.selected_icon || null;
+        renderIconPicker();
+        renderResonanceIconBadge(document.getElementById('profile-resonance-icon'), currentSelectedIcon);
         loadAvatar(data.user.id, data.user.display_name);
         lockedNameInput.value = data.user.display_name;
         lockedEmailInput.value = data.user.email;

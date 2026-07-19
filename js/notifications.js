@@ -64,6 +64,7 @@ function initNotifications() {
   function notificationLink(n) {
     if (n.type === 'world_available' && n.world_slug) return 'worlds.html#' + encodeURIComponent(n.world_slug);
     if (n.type === 'news_published' && n.news_slug) return 'news-post.html?slug=' + encodeURIComponent(n.news_slug);
+    if (n.type === 'icon_unlocked') return 'profile.html?tab=settings';
     if (!n.topic_id) return 'notifications.html';
     return 'community.html?topic=' + encodeURIComponent(n.topic_id) +
       (n.comment_id ? '&comment=' + encodeURIComponent(n.comment_id) : '');
@@ -112,6 +113,8 @@ function initNotifications() {
         return 'A news article has been published. Check it out: <strong>' + (excerpt || 'Latest news') + '</strong> &rarr;';
       case 'topic_reply':
         return '<strong>' + (actor || 'Someone') + '</strong> replied' + (n.topic_title ? ' in a topic you\'re watching: <strong>' + escapeHtml(n.topic_title) + '</strong>' : ' in a topic you\'re watching');
+      case 'icon_unlocked':
+        return 'Pure Resonance achieved. You unlocked the <strong>' + (excerpt || 'Overlord') + '</strong> icon &mdash; choose it in Profile Settings.';
       default:
         return 'You have a new notification.';
     }
