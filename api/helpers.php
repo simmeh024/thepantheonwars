@@ -803,6 +803,81 @@ function pw_notify($userId, $type, $actorUserId = null, $topicId = null, $commen
     ]);
 }
 
+/**
+ * The fixed activity awards shown in Reputation Control. Keeping this catalog
+ * server-side means the admin view and the actual award paths share one
+ * authoritative description of the live system.
+ */
+function pw_reputation_reward_catalog(): array {
+    return [
+        ['key' => 'topic_created', 'label' => 'Start a forum topic', 'points' => 1],
+        ['key' => 'comment_posted', 'label' => 'Post a forum reply', 'points' => 1],
+        ['key' => 'content_liked', 'label' => 'Receive a like', 'points' => 2],
+        ['key' => 'quiz_completed', 'label' => 'Complete the Overlord quiz (first time)', 'points' => 10],
+        ['key' => 'book_started', 'label' => 'Start a book (first time)', 'points' => 3],
+        ['key' => 'book_finished', 'label' => 'Finish a book (first time)', 'points' => 5],
+    ];
+}
+
+/**
+ * Reads the currently configured temporary reputation multiplier. Expiry is
+ * enforced at the point of every award, so no cron job is needed to switch a
+ * finished event off. Settings are optional during deployment and safely
+ * fall back to normal 1x awards if app_settings is not available yet.
+ */
+function pw_reputation_multiplier_config(): array {
+    static $config = null;
+    if ($config !== null) {
+        return $config;
+    }
+
+    $config = ['multiplier' => 1, 'ends_at' => null, 'is_active' => false];
+    try {
+        $stmt = pw_db()->query("SELECT `key`, value FROM app_settings WHERE `key` IN ('reputation_multiplier', 'reputation_multiplier_ends_at')");
+        $values = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $values[$row['key']] = (string)$row['value'];
+        }
+        $multiplier = isset($values['reputation_multiplier']) ? (int)$values['reputation_multiplier'] : 1;
+        $endsAt = isset($values['reputation_multiplier_ends_at']) ? trim($values['reputation_multiplier_ends_at']) : '';
+        $endsTimestamp = $endsAt !== '' ? strtotime($endsAt . ' UTC') : false;
+        if (in_array($multiplier, [2, 3, 4], true) && $endsTimestamp !== false && $endsTimestamp > time()) {
+            $config = [
+                'multiplier' => $multiplier,
+                'ends_at' => gmdate('Y-m-d H:i:s', $endsTimestamp),
+                'is_active' => true,
+            ];
+        }
+    } catch (Throwable $e) {
+        // app_settings may not have been migrated yet; normal awards remain safe.
+    }
+    return $config;
+}
+
+/**
+ * Applies the active event multiplier and awards the resulting amount. Call
+ * this only for positive, earned reputation; reversible awards such as likes
+ * persist the returned value and subtract that exact amount on reversal.
+ */
+function pw_award_reputation(PDO $db, int $userId, int $basePoints): int {
+    if ($userId <= 0 || $basePoints <= 0) {
+        return 0;
+    }
+    $config = pw_reputation_multiplier_config();
+    $awarded = $basePoints * (int)$config['multiplier'];
+    $stmt = $db->prepare('UPDATE users SET reputation = reputation + ? WHERE id = ?');
+    $stmt->execute([$awarded, $userId]);
+    return $awarded;
+}
+
+function pw_remove_reputation(PDO $db, int $userId, int $points): void {
+    if ($userId <= 0 || $points <= 0) {
+        return;
+    }
+    $stmt = $db->prepare('UPDATE users SET reputation = GREATEST(0, reputation - ?) WHERE id = ?');
+    $stmt->execute([$points, $userId]);
+}
+
 // Direct-message alerts are intentionally collapsed per conversation. A busy
 // exchange therefore remains one useful bell item rather than becoming a
 // notification for every individual line. Direct messages are core site

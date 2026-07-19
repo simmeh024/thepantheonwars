@@ -554,6 +554,9 @@ CREATE TABLE IF NOT EXISTS message_likes (
   target_type ENUM('topic','comment') NOT NULL,
   target_id INT UNSIGNED NOT NULL,
   user_id INT UNSIGNED NOT NULL,
+  -- Exact amount granted to the content author, retained so an unlike can
+  -- reverse a boosted event award even after that event has expired.
+  reputation_awarded SMALLINT UNSIGNED NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_message_like (target_type, target_id, user_id),
   KEY idx_target (target_type, target_id),

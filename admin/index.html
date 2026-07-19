@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=246">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=247">
 </head>
 <body>
 
@@ -88,7 +88,7 @@
         <li data-requires-permission="topic_reports.view"><button type="button" class="admin-nav-link" data-section="topic-reports"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>Topic Reports</button></li>
         <li data-requires-permission="privacy_requests.view"><button type="button" class="admin-nav-link" data-section="privacy-requests"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>Privacy Requests</button></li>
         <li data-requires-permission="forum_boards.view"><button type="button" class="admin-nav-link" data-section="forum-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Forum Control</button></li>
-        <li data-requires-permission="reputation.view"><button type="button" class="admin-nav-link" data-section="reputation-levels"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/><path d="M8.5 13.5 7 22l5-3 5 3-1.5-8.5"/></svg>Reputation Levels</button></li>
+        <li data-requires-permission="reputation.view"><button type="button" class="admin-nav-link" data-section="reputation-levels"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/><path d="M8.5 13.5 7 22l5-3 5 3-1.5-8.5"/></svg>Reputation Control</button></li>
       </ul>
     </div>
 
@@ -1344,6 +1344,7 @@
             <option value="reputation_level_created">Reputation level created</option>
             <option value="reputation_level_updated">Reputation level updated</option>
             <option value="reputation_level_deleted">Reputation level deleted</option>
+            <option value="reputation_multiplier_updated">Reputation multiplier updated</option>
           </optgroup>
           <optgroup label="Roles &amp; Permissions">
             <option value="role_created">Role created</option>
@@ -1734,12 +1735,15 @@
 
     <section class="admin-section" id="section-reputation-levels" hidden>
       <div class="admin-section-head">
-        <h1>Reputation Levels</h1>
-        <p>Define the reputation ranks members climb by posting and getting liked. The bar shown on a profile and next to each forum poster fills toward whichever level comes next.</p>
+        <h1>Reputation Control</h1>
+        <p>Manage member ranks, inspect every live reward, and run a time-limited bonus reputation event.</p>
       </div>
 
       <div class="admin-toolbar">
         <button type="button" class="btn btn-solid" id="reputation-level-create-btn">+ Add Level</button>
+        <button type="button" class="btn" id="reputation-rewards-btn">View Reward Rules</button>
+        <button type="button" class="btn" id="reputation-multiplier-btn" data-requires-permission="reputation.edit">Multiplier Event</button>
+        <span class="reputation-multiplier-status" id="reputation-multiplier-status">Checking event status&hellip;</span>
         <span class="admin-count" id="reputation-level-count"></span>
       </div>
 
@@ -3183,6 +3187,46 @@
       <button type="button" class="btn btn-solid" id="reputation-level-save-btn">Save</button>
       <button type="button" class="btn" id="reputation-level-cancel-btn">Cancel</button>
       <button type="button" class="admin-delete-btn" id="reputation-level-delete-btn" hidden>Delete Level</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal" id="reputation-rewards-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner">
+    <button type="button" class="admin-modal-close" id="reputation-rewards-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title">Current Reputation Rewards</h3>
+    <p class="admin-modal-sub" id="reputation-rewards-modal-sub">Loading current rewards&hellip;</p>
+    <div class="reputation-reward-list" id="reputation-reward-list"></div>
+    <div class="admin-modal-actions"><button type="button" class="btn" id="reputation-rewards-modal-done-btn">Done</button></div>
+  </div>
+</div>
+
+<div class="admin-modal" id="reputation-multiplier-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner">
+    <button type="button" class="admin-modal-close" id="reputation-multiplier-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title">Reputation Multiplier Event</h3>
+    <p class="admin-modal-sub">Boost every reputation reward for a limited time. Expiry is enforced automatically by the server.</p>
+    <div class="admin-field">
+      <label for="reputation-multiplier-input">Multiplier</label>
+      <select id="reputation-multiplier-input">
+        <option value="1">Normal rewards (1x)</option>
+        <option value="2">Double rewards (2x)</option>
+        <option value="3">Triple rewards (3x)</option>
+        <option value="4">Quadruple rewards (4x)</option>
+      </select>
+    </div>
+    <div class="admin-field">
+      <label for="reputation-multiplier-ends-input">End date and time</label>
+      <p class="admin-field-hint">Uses your local time. Required for a 2x, 3x, or 4x event; normal rewards ignore this value.</p>
+      <input type="datetime-local" id="reputation-multiplier-ends-input">
+    </div>
+    <p class="admin-modal-error" id="reputation-multiplier-modal-error"></p>
+    <p class="admin-modal-status" id="reputation-multiplier-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="reputation-multiplier-save-btn">Save Event</button>
+      <button type="button" class="btn" id="reputation-multiplier-cancel-btn">Cancel</button>
     </div>
   </div>
 </div>
@@ -5083,6 +5127,7 @@
     reputation_level_created: 'Reputation level created',
     reputation_level_updated: 'Reputation level updated',
     reputation_level_deleted: 'Reputation level deleted',
+    reputation_multiplier_updated: 'Reputation multiplier updated',
     topic_locked: 'Topic locked',
     topic_unlocked: 'Topic unlocked',
     topic_moved: 'Topic moved',
@@ -5178,6 +5223,7 @@
     reputation_level_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/><path d="M8.5 13.5 7 22l5-3 5 3-1.5-8.5"/></svg>',
     reputation_level_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/><path d="m15.5 15.5 2 2 4-4"/></svg>',
     reputation_level_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/><path d="M8.5 13.5 7 22l5-3 5 3-1.5-8.5"/><line x1="3" y1="3" x2="21" y2="21"/></svg>',
+    reputation_multiplier_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2v20"/><path d="m7 7 5-5 5 5"/><path d="m17 17-5 5-5-5"/></svg>',
     topic_locked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
     topic_unlocked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 7-2.6"/></svg>',
     topic_moved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M8 3 4 7l4 4"/><path d="M4 7h11a4 4 0 0 1 4 4v1"/><path d="M16 21l4-4-4-4"/><path d="M20 17H9a4 4 0 0 1-4-4v-1"/></svg>',
@@ -5263,7 +5309,7 @@
     if (action.indexOf('privacy_') === 0) return { key: 'community', label: 'Privacy', icon: ACTIVITY_ICONS.privacy_request_updated };
     if (action.indexOf('role_') === 0) return { key: 'roles', label: 'Roles', icon: ACTIVITY_ICONS.role_updated };
     if (action.indexOf('forum_board_') === 0) return { key: 'forum', label: 'Forum Boards', icon: ACTIVITY_ICONS.forum_board_created };
-    if (action.indexOf('reputation_level_') === 0) return { key: 'forum', label: 'Reputation Levels', icon: ACTIVITY_ICONS.reputation_level_created };
+    if (action.indexOf('reputation_level_') === 0 || action === 'reputation_multiplier_updated') return { key: 'forum', label: 'Reputation Control', icon: ACTIVITY_ICONS.reputation_level_created };
     if (action.indexOf('weather_') === 0) return { key: 'worlds', label: 'World Weather', icon: ACTIVITY_ICONS.weather_profile_updated };
     if (action.indexOf('world_') === 0) return { key: 'worlds', label: 'Worlds', icon: ACTIVITY_ICONS.world_updated };
     if (action.indexOf('overlord_') === 0) return { key: 'overlords', label: 'Overlords', icon: ACTIVITY_ICONS.overlord_updated };
@@ -11025,6 +11071,9 @@
   var reputationLevelListEl = document.getElementById('reputation-level-list');
   var reputationLevelCountEl = document.getElementById('reputation-level-count');
   var reputationLevelCreateBtn = document.getElementById('reputation-level-create-btn');
+  var reputationRewardsBtn = document.getElementById('reputation-rewards-btn');
+  var reputationMultiplierBtn = document.getElementById('reputation-multiplier-btn');
+  var reputationMultiplierStatus = document.getElementById('reputation-multiplier-status');
 
   var reputationLevelModal = document.getElementById('reputation-level-modal');
   var reputationLevelModalTitle = document.getElementById('reputation-level-modal-title');
@@ -11042,10 +11091,121 @@
 
   var reputationLevelModalMode = 'create';
   var currentReputationLevel = null;
+  var reputationSettings = null;
+
+  var reputationRewardsModal = document.getElementById('reputation-rewards-modal');
+  var reputationRewardsModalSub = document.getElementById('reputation-rewards-modal-sub');
+  var reputationRewardList = document.getElementById('reputation-reward-list');
+  var reputationRewardsCloseBtn = document.getElementById('reputation-rewards-modal-close');
+  var reputationRewardsDoneBtn = document.getElementById('reputation-rewards-modal-done-btn');
+
+  var reputationMultiplierModal = document.getElementById('reputation-multiplier-modal');
+  var reputationMultiplierCloseBtn = document.getElementById('reputation-multiplier-modal-close');
+  var reputationMultiplierCancelBtn = document.getElementById('reputation-multiplier-cancel-btn');
+  var reputationMultiplierSaveBtn = document.getElementById('reputation-multiplier-save-btn');
+  var reputationMultiplierInput = document.getElementById('reputation-multiplier-input');
+  var reputationMultiplierEndsInput = document.getElementById('reputation-multiplier-ends-input');
+  var reputationMultiplierModalError = document.getElementById('reputation-multiplier-modal-error');
+  var reputationMultiplierModalStatus = document.getElementById('reputation-multiplier-modal-status');
+
+  function reputationDateLabel(value) {
+    if (!value) return '';
+    var date = new Date(value.replace(' ', 'T') + 'Z');
+    if (isNaN(date.getTime())) return value + ' UTC';
+    return date.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' });
+  }
+
+  function reputationDateInputValue(value) {
+    if (!value) return '';
+    var date = new Date(value.replace(' ', 'T') + 'Z');
+    if (isNaN(date.getTime())) return '';
+    var pad = function (part) { return String(part).padStart(2, '0'); };
+    return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + 'T' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+  }
+
+  function syncReputationMultiplierEndInput() {
+    var enabled = Number(reputationMultiplierInput.value) > 1;
+    reputationMultiplierEndsInput.disabled = !enabled;
+    reputationMultiplierEndsInput.required = enabled;
+  }
+
+  function renderReputationSettings(settings) {
+    reputationSettings = settings || null;
+    var multiplier = settings && settings.multiplier ? settings.multiplier : { multiplier: 1, is_active: false, ends_at: null };
+    if (multiplier.is_active) {
+      reputationMultiplierStatus.className = 'reputation-multiplier-status is-active';
+      reputationMultiplierStatus.textContent = multiplier.multiplier + 'x active until ' + reputationDateLabel(multiplier.ends_at);
+    } else {
+      reputationMultiplierStatus.className = 'reputation-multiplier-status';
+      reputationMultiplierStatus.textContent = 'Normal rewards (1x)';
+    }
+
+    if (!reputationRewardsModal.hidden) renderReputationRewardList(settings);
+  }
+
+  function loadReputationSettings() {
+    return fetch('/api/admin/reputation-levels/settings.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load reputation settings.');
+        renderReputationSettings(data);
+        return data;
+      })
+      .catch(function () {
+        reputationMultiplierStatus.className = 'reputation-multiplier-status is-error';
+        reputationMultiplierStatus.textContent = 'Multiplier status unavailable';
+        return null;
+      });
+  }
+
+  function renderReputationRewardList(settings) {
+    var rewards = settings && settings.rewards ? settings.rewards : [];
+    var multiplier = settings && settings.multiplier && settings.multiplier.is_active ? settings.multiplier.multiplier : 1;
+    reputationRewardsModalSub.textContent = multiplier > 1
+      ? multiplier + 'x event is active until ' + reputationDateLabel(settings.multiplier.ends_at) + '.'
+      : 'Normal rewards are currently active.';
+    if (!rewards.length) {
+      reputationRewardList.innerHTML = '<div class="admin-list-empty">No reward rules are available.</div>';
+      return;
+    }
+    reputationRewardList.innerHTML = '';
+    rewards.forEach(function (reward) {
+      var row = document.createElement('div');
+      row.className = 'reputation-reward-row';
+      var earned = Number(reward.points) * multiplier;
+      row.innerHTML = '<span>' + escapeHtml(reward.label) + '</span><strong>+' + earned + ' rep</strong>' +
+        (multiplier > 1 ? '<small>Base: +' + reward.points + '</small>' : '');
+      reputationRewardList.appendChild(row);
+    });
+  }
+
+  function openReputationRewardsModal() {
+    reputationRewardsModal.hidden = false;
+    reputationRewardsModalSub.textContent = 'Loading current rewards&hellip;';
+    reputationRewardList.innerHTML = '<div class="admin-list-empty">Loading reward rules&hellip;</div>';
+    loadReputationSettings().then(function (data) {
+      if (data) renderReputationRewardList(data);
+    });
+  }
+
+  function closeReputationRewardsModal() { reputationRewardsModal.hidden = true; }
+
+  function openReputationMultiplierModal() {
+    var settings = reputationSettings;
+    var multiplier = settings && settings.multiplier ? settings.multiplier : { multiplier: 1, is_active: false, ends_at: null };
+    reputationMultiplierInput.value = String(multiplier.is_active ? multiplier.multiplier : 1);
+    reputationMultiplierEndsInput.value = multiplier.is_active ? reputationDateInputValue(multiplier.ends_at) : '';
+    reputationMultiplierModalError.classList.remove('show');
+    reputationMultiplierModalStatus.classList.remove('show');
+    syncReputationMultiplierEndInput();
+    reputationMultiplierModal.hidden = false;
+  }
+
+  function closeReputationMultiplierModal() { reputationMultiplierModal.hidden = true; }
 
   function loadReputationLevelList() {
     reputationLevelListEl.innerHTML = '<div class="admin-list-empty">Loading reputation levels&hellip;</div>';
-    return fetch('/api/admin/reputation-levels/list.php', { credentials: 'same-origin' })
+    var levelRequest = fetch('/api/admin/reputation-levels/list.php', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         var levels = (data.ok && data.levels) || [];
@@ -11055,6 +11215,8 @@
       .catch(function () {
         reputationLevelListEl.innerHTML = '<div class="admin-list-empty">Could not load reputation levels.</div>';
       });
+    loadReputationSettings();
+    return levelRequest;
   }
 
   function renderReputationLevelList(levels) {
@@ -11122,6 +11284,53 @@
   reputationLevelCloseBtn.addEventListener('click', closeReputationLevelModal);
   reputationLevelCancelBtn.addEventListener('click', closeReputationLevelModal);
   reputationLevelModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeReputationLevelModal);
+
+  reputationRewardsBtn.addEventListener('click', openReputationRewardsModal);
+  reputationRewardsCloseBtn.addEventListener('click', closeReputationRewardsModal);
+  reputationRewardsDoneBtn.addEventListener('click', closeReputationRewardsModal);
+  reputationRewardsModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeReputationRewardsModal);
+
+  reputationMultiplierBtn.addEventListener('click', function () {
+    loadReputationSettings().then(function () { openReputationMultiplierModal(); });
+  });
+  reputationMultiplierCloseBtn.addEventListener('click', closeReputationMultiplierModal);
+  reputationMultiplierCancelBtn.addEventListener('click', closeReputationMultiplierModal);
+  reputationMultiplierModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeReputationMultiplierModal);
+  reputationMultiplierInput.addEventListener('change', syncReputationMultiplierEndInput);
+  reputationMultiplierSaveBtn.addEventListener('click', function () {
+    var multiplier = Number(reputationMultiplierInput.value);
+    var endsAt = reputationMultiplierEndsInput.value;
+    reputationMultiplierModalError.classList.remove('show');
+    reputationMultiplierModalStatus.classList.remove('show');
+    if (multiplier > 1 && !endsAt) {
+      reputationMultiplierModalError.textContent = 'Choose an end date and time for this event.';
+      reputationMultiplierModalError.classList.add('show');
+      return;
+    }
+    reputationMultiplierSaveBtn.disabled = true;
+    fetch('/api/admin/reputation-levels/settings.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        multiplier: multiplier,
+        ends_at: multiplier > 1 ? new Date(endsAt).toISOString() : '',
+        csrf: window.PW_AUTH.csrf
+      })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        reputationMultiplierSaveBtn.disabled = false;
+        if (!data.ok) throw new Error(data.error || 'Could not save the multiplier event.');
+        renderReputationSettings(data);
+        reputationMultiplierModalStatus.textContent = multiplier > 1 ? 'Multiplier event saved.' : 'Normal rewards restored.';
+        reputationMultiplierModalStatus.classList.add('show');
+        setTimeout(closeReputationMultiplierModal, 700);
+      })
+      .catch(function (error) {
+        reputationMultiplierSaveBtn.disabled = false;
+        reputationMultiplierModalError.textContent = error.message || 'Could not save the multiplier event.';
+        reputationMultiplierModalError.classList.add('show');
+      });
+  });
 
   reputationLevelSaveBtn.addEventListener('click', function () {
     var payload = {

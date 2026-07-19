@@ -71,8 +71,7 @@ try {
     );
     $saveStmt->execute([(int)$user['id'], $bookId, $status, $status, $status]);
     if ($reputationAwarded > 0) {
-        $repStmt = $db->prepare('UPDATE users SET reputation = reputation + ? WHERE id = ?');
-        $repStmt->execute([$reputationAwarded, (int)$user['id']]);
+        $reputationAwarded = pw_award_reputation($db, (int)$user['id'], $reputationAwarded);
     }
     $db->commit();
 } catch (Throwable $e) {

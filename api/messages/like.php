@@ -34,18 +34,25 @@ if (!$stmt->fetch()) {
     pw_error('That message no longer exists.', 404);
 }
 
-$stmt = $db->prepare('SELECT id FROM message_likes WHERE target_type = ? AND target_id = ? AND user_id = ?');
-$stmt->execute([$targetType, $targetId, $user['id']]);
-$existing = $stmt->fetch();
+try {
+    $stmt = $db->prepare('SELECT id, reputation_awarded FROM message_likes WHERE target_type = ? AND target_id = ? AND user_id = ?');
+    $stmt->execute([$targetType, $targetId, $user['id']]);
+    $existing = $stmt->fetch();
+} catch (PDOException $e) {
+    // The multiplier migration may be run shortly after the code deploy.
+    $stmt = $db->prepare('SELECT id FROM message_likes WHERE target_type = ? AND target_id = ? AND user_id = ?');
+    $stmt->execute([$targetType, $targetId, $user['id']]);
+    $existing = $stmt->fetch();
+}
 
 if ($existing) {
     $stmt = $db->prepare('DELETE FROM message_likes WHERE id = ?');
     $stmt->execute([$existing['id']]);
     $liked = false;
 
-    // -2 reputation on unlike, mirroring the +2 award below -- clamped with
-    // GREATEST so a reputation column that's UNSIGNED can never underflow.
-    // Never applied to a self-like, matching that award's own skip below.
+    // Reverse the exact amount granted at like time, not today's multiplier.
+    // Older likes predate the stored ledger amount and therefore retain their
+    // original standard 2-point reversal.
     $unlikeOwnerId = null;
     if ($targetType === 'topic') {
         $ownerStmt = $db->prepare('SELECT user_id FROM topics WHERE id = ?');
@@ -60,7 +67,9 @@ if ($existing) {
     }
     if ($unlikeOwnerId !== null && $unlikeOwnerId !== (int)$user['id']) {
         try {
-            $db->prepare('UPDATE users SET reputation = GREATEST(0, reputation - 2) WHERE id = ?')->execute([$unlikeOwnerId]);
+            $awardedAtLikeTime = isset($existing['reputation_awarded']) && (int)$existing['reputation_awarded'] > 0
+                ? (int)$existing['reputation_awarded'] : 2;
+            pw_remove_reputation($db, $unlikeOwnerId, $awardedAtLikeTime);
         } catch (PDOException $e) {
             // migration_reputation.sql may be run after code deployment.
         }
@@ -68,6 +77,7 @@ if ($existing) {
 } else {
     $stmt = $db->prepare('INSERT INTO message_likes (target_type, target_id, user_id) VALUES (?, ?, ?)');
     $stmt->execute([$targetType, $targetId, $user['id']]);
+    $likeId = (int)$db->lastInsertId();
     $liked = true;
 
     // Notify the post's author (never on unlike, and never for a self-like
@@ -90,11 +100,18 @@ if ($existing) {
         }
     }
 
-    // +2 reputation to the liked content's author, never for a self-like --
-    // best-effort, reversed on unlike above.
+    // +2 base reputation to the liked content's author, never for a self-like.
+    // Persist the actual (possibly boosted) amount so unlike can reverse it.
     if ($owner && (int)$owner['user_id'] !== (int)$user['id']) {
         try {
-            $db->prepare('UPDATE users SET reputation = reputation + 2 WHERE id = ?')->execute([(int)$owner['user_id']]);
+            $likeReputationAwarded = pw_award_reputation($db, (int)$owner['user_id'], 2);
+            try {
+                $awardStmt = $db->prepare('UPDATE message_likes SET reputation_awarded = ? WHERE id = ?');
+                $awardStmt->execute([$likeReputationAwarded, $likeId]);
+            } catch (PDOException $e) {
+                // Safe during the code-before-migration window; old likes use
+                // the standard two-point fallback on reversal.
+            }
         } catch (PDOException $e) {
             // migration_reputation.sql may be run after code deployment.
         }

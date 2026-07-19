@@ -468,6 +468,24 @@
 .admin-count {
   color: var(--text-faint); font-size: 0.78rem; margin-left: auto;
 }
+.reputation-multiplier-status {
+  display: inline-flex; align-items: center; min-height: 30px; padding: 0 10px; border: 1px solid var(--border-soft);
+  color: var(--text-faint); background: rgba(124,79,214,0.06); font-size: 0.74rem; border-radius: 999px;
+}
+.reputation-multiplier-status.is-active { color: #ffd36d; border-color: rgba(255,211,109,0.46); background: rgba(255,211,109,0.09); }
+.reputation-multiplier-status.is-error { color: #e2a5a0; border-color: rgba(224,90,74,0.36); }
+.reputation-reward-list { display: grid; gap: 8px; }
+.reputation-reward-row {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; padding: 12px 14px;
+  border: 1px solid var(--border-soft); background: linear-gradient(100deg, rgba(124,79,214,0.09), rgba(255,255,255,0.018));
+}
+.reputation-reward-row span { color: var(--text-dim); font-size: 0.84rem; }
+.reputation-reward-row strong { color: var(--gold-bright); font-family: 'Cinzel', serif; font-size: 0.8rem; white-space: nowrap; }
+.reputation-reward-row small { grid-column: 2; margin-top: -8px; color: var(--text-faint); font-size: 0.67rem; text-align: right; }
+@media (max-width: 560px) {
+  .reputation-multiplier-status { width: 100%; order: 3; }
+  .reputation-reward-row { grid-template-columns: 1fr auto; }
+}
 
 .admin-list { border: 1px solid var(--border-soft); background: var(--panel); }
 .admin-list-empty { padding: 30px; text-align: center; color: var(--text-faint); font-size: 0.88rem; }

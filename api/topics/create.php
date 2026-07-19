@@ -104,9 +104,10 @@ try {
     // migration_forum_features_batch.sql may be run after code deployment.
 }
 
-// +1 reputation for starting a topic -- best-effort, never blocks posting.
+// +1 base reputation for starting a topic. The centralized helper applies an
+// active event multiplier server-side; failures never block posting.
 try {
-    $db->prepare('UPDATE users SET reputation = reputation + 1 WHERE id = ?')->execute([$user['id']]);
+    pw_award_reputation($db, (int)$user['id'], 1);
 } catch (PDOException $e) {
     // migration_reputation.sql may be run after code deployment.
 }

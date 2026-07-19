@@ -99,9 +99,10 @@ try {
     // migration_forum_features_batch.sql may be run after code deployment.
 }
 
-// +1 reputation for replying -- best-effort, never blocks posting.
+// +1 base reputation for replying. The active event multiplier is resolved
+// server-side so a member cannot influence the amount from the browser.
 try {
-    $db->prepare('UPDATE users SET reputation = reputation + 1 WHERE id = ?')->execute([$user['id']]);
+    pw_award_reputation($db, (int)$user['id'], 1);
 } catch (PDOException $e) {
     // migration_reputation.sql may be run after code deployment.
 }
