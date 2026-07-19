@@ -317,7 +317,6 @@ a.nav-parent { cursor: pointer; }
 .reputation-bar-compact .reputation-bar-square { width: 13px; height: 13px; font-size: 0.56rem; }
 .reputation-bar-compact .reputation-bar-track { width: 44px; }
 
-.profile-head .reputation-bar-row { margin-top: 6px; }
 .profile-head .reputation-bar-track { width: 90px; height: 6px; }
 .profile-head .reputation-bar-label { font-size: 0.74rem; }
 
