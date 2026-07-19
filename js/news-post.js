@@ -435,7 +435,33 @@
       list.appendChild(li);
     });
     card.appendChild(list);
+    revealSidecardCards(list);
     return card;
+  }
+
+  // Staggered scroll-in reveal for the sidecard's own cards, same
+  // IntersectionObserver pattern as js/books.js's book-row reveal. Cards are
+  // still detached from the document when this observes them; the browser
+  // simply won't report an intersection until the caller appends the list,
+  // which happens synchronously right after this returns.
+  function revealSidecardCards(list) {
+    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      Array.prototype.forEach.call(list.querySelectorAll('.news-detail-sidecard-item'), function (item) {
+        item.classList.add('is-visible');
+      });
+      return;
+    }
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-visible');
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.12, rootMargin: '0px 0px -5% 0px' });
+    Array.prototype.forEach.call(list.querySelectorAll('.news-detail-sidecard-item'), function (item, index) {
+      item.style.setProperty('--card-reveal-delay', (index % 4) * 70 + 'ms');
+      observer.observe(item);
+    });
   }
 
   function renderArticle(post) {

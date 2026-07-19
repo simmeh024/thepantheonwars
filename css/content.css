@@ -534,21 +534,37 @@
 .news-detail-sidecard-item.tag-refactor { --item-accent: #6f76e8; }
 .news-detail-sidecard-item.tag-experimental { --item-accent: #e074b0; }
 
-.news-detail-sidecard-item { height: 100%; }
+/* Scroll-in reveal (js/news-post.js toggles .is-visible via IntersectionObserver,
+   same stagger pattern as .book-motion-ready .book-row in js/books.js). */
+.news-detail-sidecard-item { height: 100%; opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
+.news-detail-sidecard-item.is-visible { opacity: 1; transform: translateY(0); transition-delay: var(--card-reveal-delay, 0ms); }
 .news-detail-sidecard-item a {
-  display: flex; align-items: flex-start; gap: 10px; padding: 12px; height: 100%; box-sizing: border-box;
-  border: 1px solid var(--border-soft); border-left: 2px solid var(--item-accent);
-  background: rgba(255,255,255,0.025); color: var(--text); text-decoration: none;
-  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+  position: relative; display: flex; align-items: flex-start; gap: 10px; padding: 14px 12px 12px; height: 100%; box-sizing: border-box;
+  border: 1px solid var(--border-soft); overflow: hidden;
+  background: linear-gradient(160deg, color-mix(in srgb, var(--item-accent) 9%, transparent), rgba(255,255,255,0.02));
+  color: var(--text); text-decoration: none;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+/* Top accent bar (mirrors .book-row::before) replaces the old flat left border. */
+.news-detail-sidecard-item a::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, transparent, var(--item-accent), transparent);
+  opacity: 0.55; transition: opacity 160ms ease;
 }
 .news-detail-sidecard-item a:hover {
-  background: color-mix(in srgb, var(--item-accent) 10%, transparent);
+  background: color-mix(in srgb, var(--item-accent) 14%, transparent);
   border-color: color-mix(in srgb, var(--item-accent) 55%, var(--border-soft));
-  transform: translateX(2px);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--item-accent) 24%, transparent);
 }
+.news-detail-sidecard-item a:hover::before { opacity: 1; }
 .news-detail-sidecard-icon {
-  flex-shrink: 0; width: 20px; height: 20px; margin-top: 1px; color: var(--item-accent);
+  flex-shrink: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+  padding: 6px; box-sizing: border-box; border-radius: 8px; color: var(--item-accent);
+  background: color-mix(in srgb, var(--item-accent) 16%, transparent);
+  transition: background 160ms ease;
 }
+.news-detail-sidecard-item a:hover .news-detail-sidecard-icon { background: color-mix(in srgb, var(--item-accent) 26%, transparent); }
 .news-detail-sidecard-icon svg { display: block; width: 100%; height: 100%; }
 .news-detail-sidecard-item-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .news-detail-sidecard-tag {
@@ -564,6 +580,10 @@
 }
 @media (max-width: 560px) {
   .news-detail-sidecard-list { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .news-detail-sidecard-item, .news-detail-sidecard-item.is-visible { opacity: 1; transform: none; transition: none; }
+  .news-detail-sidecard-item a:hover { transform: none; }
 }
 .news-back-link { display: inline-flex; margin: 0 0 21px; color: var(--gold-bright); font: 700 0.68rem 'Jost', sans-serif; letter-spacing: 0.09em; text-decoration: none; text-transform: uppercase; transition: color 160ms ease, transform 160ms ease; }
 .news-back-link:hover { color: var(--purple-bright); transform: translateX(-3px); }
