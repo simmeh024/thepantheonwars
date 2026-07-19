@@ -356,6 +356,22 @@
     experimental: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M10 2v6.3L4.5 18a2 2 0 0 0 1.7 3h11.6a2 2 0 0 0 1.7-3L14 8.3V2"/><path d="M8.5 2h7"/><path d="M6.5 15h11"/></svg>'
   };
 
+  // Fixed display order for the category bar (feature-first, same priority
+  // order used everywhere else this catalog appears) and one-line
+  // explanations for the bar segment's hover tooltip.
+  var TAG_ORDER = ['feature', 'improvement', 'fix', 'performance', 'ui_ux', 'lore', 'infrastructure', 'refactor', 'experimental'];
+  var TAG_DESCRIPTIONS = {
+    feature: 'A brand-new capability added to the site.',
+    improvement: 'An existing feature made better or more capable.',
+    fix: 'A bug or incorrect behavior corrected.',
+    performance: 'Something made faster or more efficient.',
+    ui_ux: 'Visual or interaction polish, no new functionality.',
+    lore: 'Story, worldbuilding, or in-universe content.',
+    infrastructure: 'Behind-the-scenes work: servers, deploys, tooling.',
+    refactor: 'Code reorganized without changing what it does.',
+    experimental: 'A trial feature that may not stick around.'
+  };
+
   // Shown only when this article was published from a Dispatch Composer
   // draft that had Dispatches attached as source material (api/news/get.php
   // returns an empty attached_dispatches array otherwise). Links straight to
@@ -457,7 +473,43 @@
     });
     card.appendChild(list);
     revealSidecardCards(list);
+    card.appendChild(buildCategoryBar(dispatches));
     return card;
+  }
+
+  // Single stacked bar summarizing the category mix of the attached
+  // dispatches, dev-metrics.html's language-history bar reworked for a
+  // fixed 9-category catalog instead of a variable language list: no
+  // separate legend row, each segment's own hover/focus tooltip carries the
+  // category name, share, and a one-line explanation instead.
+  function buildCategoryBar(dispatches) {
+    var counts = {};
+    dispatches.forEach(function (d) {
+      var tag = TAG_LABELS[d.tag] ? d.tag : 'feature';
+      counts[tag] = (counts[tag] || 0) + 1;
+    });
+    var total = dispatches.length;
+    var bar = document.createElement('div');
+    bar.className = 'news-detail-sidecard-catbar';
+    bar.setAttribute('role', 'img');
+    bar.setAttribute('aria-label', 'Category breakdown of the ' + total + ' dispatches above');
+    TAG_ORDER.forEach(function (tag) {
+      if (!counts[tag]) return;
+      var pct = Math.round((counts[tag] / total) * 100);
+      var seg = document.createElement('span');
+      seg.className = 'news-detail-sidecard-catbar-seg tag-' + tag;
+      seg.style.width = (counts[tag] / total * 100) + '%';
+      seg.tabIndex = 0;
+      var tooltip = document.createElement('span');
+      tooltip.className = 'news-detail-sidecard-catbar-tooltip';
+      var tooltipName = document.createElement('strong');
+      tooltipName.textContent = TAG_LABELS[tag] + ' · ' + pct + '%';
+      tooltip.appendChild(tooltipName);
+      tooltip.appendChild(document.createTextNode(TAG_DESCRIPTIONS[tag]));
+      seg.appendChild(tooltip);
+      bar.appendChild(seg);
+    });
+    return bar;
   }
 
   // Staggered scroll-in reveal for the sidecard's own cards, same

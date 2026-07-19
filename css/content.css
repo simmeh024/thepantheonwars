@@ -539,6 +539,21 @@
 .news-detail-sidecard-item.tag-refactor { --item-accent: #6f76e8; }
 .news-detail-sidecard-item.tag-experimental { --item-accent: #e074b0; }
 
+/* Category breakdown bar accents -- same 9-color palette as the filter pills
+   and cards above, duplicated a third time rather than shared (this
+   codebase's established small-data-table convention, e.g. TAG_LABELS/
+   TAG_ICONS across dev-dispatches.html and js/news-post.js). */
+.news-detail-sidecard-catbar-seg { --item-accent: var(--gold-bright); }
+.news-detail-sidecard-catbar-seg.tag-feature { --item-accent: var(--gold-bright); }
+.news-detail-sidecard-catbar-seg.tag-improvement { --item-accent: var(--purple-bright); }
+.news-detail-sidecard-catbar-seg.tag-fix { --item-accent: #e14b5a; }
+.news-detail-sidecard-catbar-seg.tag-performance { --item-accent: #e2984f; }
+.news-detail-sidecard-catbar-seg.tag-ui_ux { --item-accent: #45d1c9; }
+.news-detail-sidecard-catbar-seg.tag-lore { --item-accent: #3ecf8e; }
+.news-detail-sidecard-catbar-seg.tag-infrastructure { --item-accent: #9aa0ac; }
+.news-detail-sidecard-catbar-seg.tag-refactor { --item-accent: #6f76e8; }
+.news-detail-sidecard-catbar-seg.tag-experimental { --item-accent: #e074b0; }
+
 /* Scroll-in reveal (js/news-post.js toggles .is-visible via IntersectionObserver,
    same stagger pattern as .book-motion-ready .book-row in js/books.js). */
 .news-detail-sidecard-item { height: 100%; opacity: 0; transform: translateY(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
@@ -602,6 +617,36 @@
 .news-detail-sidecard-title { font-size: 0.85rem; line-height: 1.35; }
 .news-detail-sidecard-item a:hover .news-detail-sidecard-title { color: var(--item-accent); }
 .news-detail-sidecard-meta { color: var(--text-faint); font-size: 0.66rem; letter-spacing: 0.02em; }
+
+/* Category breakdown bar, bottom of the sidecard. Same flat stacked-div
+   pattern as dev-metrics.html's .lang-bar (no chart library anywhere in
+   this codebase) but each segment carries its own hover/focus tooltip
+   instead of a separate legend row, to stay compact at the card's width. */
+.news-detail-sidecard-catbar {
+  display: flex; height: 8px; border-radius: 5px; overflow: visible;
+  margin-top: 16px;
+}
+.news-detail-sidecard-catbar-seg {
+  position: relative; height: 100%; background: var(--item-accent); cursor: default;
+}
+.news-detail-sidecard-catbar-seg:first-child { border-top-left-radius: 5px; border-bottom-left-radius: 5px; }
+.news-detail-sidecard-catbar-seg:last-child { border-top-right-radius: 5px; border-bottom-right-radius: 5px; }
+.news-detail-sidecard-catbar-tooltip {
+  position: absolute; bottom: calc(100% + 10px); left: 50%; width: 190px;
+  background: var(--panel, #1b1235); border: 1px solid var(--border); border-radius: 4px;
+  padding: 10px 12px; font: 400 0.72rem/1.5 'Jost', sans-serif; color: var(--text-dim, var(--text-faint));
+  opacity: 0; visibility: hidden; transform: translateX(-50%) translateY(4px);
+  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 10px 26px rgba(0,0,0,0.5); z-index: 5; pointer-events: none;
+}
+.news-detail-sidecard-catbar-tooltip strong { display: block; margin-bottom: 4px; color: var(--item-accent); font-weight: 700; }
+.news-detail-sidecard-catbar-seg:hover .news-detail-sidecard-catbar-tooltip,
+.news-detail-sidecard-catbar-seg:focus-visible .news-detail-sidecard-catbar-tooltip {
+  opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0);
+}
+@media (max-width: 560px) {
+  .news-detail-sidecard-catbar-tooltip { width: 160px; }
+}
 @media (max-width: 860px) {
   .news-detail-layout { flex-direction: column; }
   .news-detail-sidecard { position: static; flex-basis: auto; width: 100%; box-sizing: border-box; order: 2; }
