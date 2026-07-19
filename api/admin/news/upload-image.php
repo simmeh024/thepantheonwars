@@ -96,12 +96,35 @@ if ($width > $mobileMaxWidth) {
         imagedestroy($mobileImage);
     }
 }
+
+// Dispatch cards render around 356px wide on a phone. Generate a second,
+// closely sized companion so the homepage does not fetch the larger 720px
+// fallback for newly uploaded editorial images.
+$cardFilename = substr($filename, 0, -4) . '-card.jpg';
+$cardPath = $directory . '/' . $cardFilename;
+$cardMaxWidth = 400;
+if ($width > $cardMaxWidth) {
+    $cardWidth = $cardMaxWidth;
+    $cardHeight = max(1, (int)round($height * ($cardWidth / $width)));
+    $cardImage = imagecreatetruecolor($cardWidth, $cardHeight);
+    if ($cardImage) {
+        imagecopyresampled($cardImage, $destination, 0, 0, 0, 0, $cardWidth, $cardHeight, $width, $height);
+        $cardTemporaryPath = $cardPath . '.tmp';
+        if (imagejpeg($cardImage, $cardTemporaryPath, 78)) {
+            rename($cardTemporaryPath, $cardPath);
+        } else {
+            @unlink($cardTemporaryPath);
+        }
+        imagedestroy($cardImage);
+    }
+}
 imagedestroy($destination);
 
 pw_json([
     'ok' => true,
     'url' => '/uploads/news-images/' . $filename,
     'mobile_url' => is_file($mobilePath) ? '/uploads/news-images/' . $mobileFilename : null,
+    'card_url' => is_file($cardPath) ? '/uploads/news-images/' . $cardFilename : null,
     'name' => $filename,
     'width' => $width,
     'height' => $height,

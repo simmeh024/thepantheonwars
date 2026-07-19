@@ -20,9 +20,10 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'" media="(min-width: 781px)">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet" media="(min-width: 781px)"></noscript>
 <link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/cinzel-latin.woff2" fetchpriority="high" media="(max-width: 780px)">
+<link rel="preload" as="font" type="font/woff2" crossorigin href="fonts/jost-latin.woff2" fetchpriority="high" media="(max-width: 780px)">
 <link rel="preload" as="image" href="images/hero-main-bg-v3.jpg" fetchpriority="high" media="(min-width: 781px)">
-<link rel="preload" as="image" href="images/hero-main-bg-mobile-720.jpg" fetchpriority="high" media="(max-width: 480px)">
-<link rel="preload" as="image" href="images/hero-main-bg-mobile-lcp.jpg" fetchpriority="high" media="(min-width: 481px) and (max-width: 780px)">
+<link rel="preload" as="image" type="image/webp" href="images/hero-main-bg-mobile-720.webp" fetchpriority="high" media="(max-width: 480px)">
+<link rel="preload" as="image" type="image/webp" href="images/hero-main-bg-mobile-lcp.webp" fetchpriority="high" media="(min-width: 481px) and (max-width: 780px)">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
@@ -80,7 +81,9 @@
   <section class="hero ornate">
     <div class="hero-bg-parallax" id="hero-bg-parallax">
       <picture class="hero-bg effect-neoh">
+        <source media="(max-width: 480px)" type="image/webp" srcset="images/hero-main-bg-mobile-720.webp" width="720" height="405">
         <source media="(max-width: 480px)" srcset="images/hero-main-bg-mobile-720.jpg" width="720" height="405">
+        <source media="(max-width: 780px)" type="image/webp" srcset="images/hero-main-bg-mobile-lcp.webp" width="960" height="540">
         <source media="(max-width: 780px)" srcset="images/hero-main-bg-mobile-lcp.jpg" width="960" height="540">
         <img class="hero-bg-image" src="images/hero-main-bg-v3.jpg" width="1672" height="941" alt="" fetchpriority="high" decoding="async">
       </picture>
@@ -343,7 +346,7 @@
         deferMobileProphecyArtwork();
       });
       window.addEventListener('load', function () {
-        var loadDispatches = function () { loadScript('js/home-dispatches.js?v=4'); };
+        var loadDispatches = function () { loadScript('js/home-dispatches.js?v=5'); };
         if ('requestIdleCallback' in window) window.requestIdleCallback(loadDispatches, { timeout: 1800 });
         else window.setTimeout(loadDispatches, 1200);
       });
@@ -356,7 +359,7 @@
         loadScript('js/home-prophecy.js?v=8');
       });
     });
-    loadScript('js/home-dispatches.js?v=4');
+    loadScript('js/home-dispatches.js?v=5');
   }());
 </script>
 </body>

@@ -47,13 +47,16 @@
   }
 
   // Editorial uploads retain their original as the desktop source. Newer
-  // uploads also receive a 720px companion from upload-image.php; use that
-  // companion only on phones, where homepage cards never need the 1600px
-  // original. Older uploads safely fall back to their original if they predate
-  // the companion file.
-  function mobileThumbnailUrl(url) {
+  // uploads receive 720px and 400px companions from upload-image.php. On
+  // phones, the 400px version closely matches a dispatch card's rendered
+  // width; absent derivatives cascade to 720px and finally the original, so
+  // every existing upload remains usable.
+  function mobileThumbnailUrls(url) {
     var match = String(url || '').match(/^(\/uploads\/news-images\/img_[a-f0-9]{16})\.jpg$/);
-    return match ? match[1] + '-mobile.jpg' : '';
+    return match ? {
+      card: match[1] + '-card.jpg',
+      mobile: match[1] + '-mobile.jpg'
+    } : null;
   }
 
   // A post without a header image gets this accent-tinted placeholder
@@ -66,13 +69,19 @@
     if (post.header_image_url) {
       var img = document.createElement('img');
       var originalUrl = post.header_image_url;
-      var mobileUrl = mobileThumbnailUrl(originalUrl);
-      if (mobileUrl && window.matchMedia && window.matchMedia('(max-width: 780px)').matches) {
-        img.src = mobileUrl;
-        img.addEventListener('error', function restoreOriginal() {
+      var mobileUrls = mobileThumbnailUrls(originalUrl);
+      if (mobileUrls && window.matchMedia && window.matchMedia('(max-width: 780px)').matches) {
+        var restoreOriginal = function () {
           img.removeEventListener('error', restoreOriginal);
           img.src = originalUrl;
-        });
+        };
+        var restoreMobile = function () {
+          img.removeEventListener('error', restoreMobile);
+          img.src = mobileUrls.mobile;
+          img.addEventListener('error', restoreOriginal);
+        };
+        img.src = mobileUrls.card;
+        img.addEventListener('error', restoreMobile);
       } else {
         img.src = originalUrl;
       }
