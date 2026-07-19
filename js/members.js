@@ -276,6 +276,14 @@ document.addEventListener('DOMContentLoaded', function () {
       .finally(function () { submitBtn.disabled = false; });
   });
 
+  function closeOpenAccountMenus() {
+    document.querySelectorAll('.auth-nav-item.is-open').forEach(function (item) {
+      item.classList.remove('is-open');
+      var itemTrigger = item.querySelector('.auth-profile-chip');
+      if (itemTrigger) itemTrigger.setAttribute('aria-expanded', 'false');
+    });
+  }
+
   // Delegated so it still works after the nav item's innerHTML is replaced.
   document.addEventListener('click', function (e) {
     // The account control sits outside the expandable main navigation on
@@ -287,24 +295,24 @@ document.addEventListener('DOMContentLoaded', function () {
       var accountItem = profileChip.closest('.auth-nav-item');
       if (!accountItem) return;
       var isOpening = !accountItem.classList.contains('is-open');
-      document.querySelectorAll('.auth-nav-item.is-open').forEach(function (item) {
-        item.classList.remove('is-open');
-        var itemTrigger = item.querySelector('.auth-profile-chip');
-        if (itemTrigger) itemTrigger.setAttribute('aria-expanded', 'false');
-      });
+      closeOpenAccountMenus();
       if (isOpening) {
         accountItem.classList.add('is-open');
         profileChip.setAttribute('aria-expanded', 'true');
       }
       return;
     }
+    var closeAccountMenu = e.target.closest && e.target.closest('.auth-menu-close');
+    if (closeAccountMenu && window.matchMedia && window.matchMedia('(max-width: 780px)').matches) {
+      e.preventDefault();
+      closeOpenAccountMenus();
+      var closedTrigger = document.querySelector('.auth-profile-chip');
+      if (closedTrigger) closedTrigger.focus();
+      return;
+    }
     var clickedAuthItem = e.target.closest && e.target.closest('.auth-nav-item');
     if (window.matchMedia && window.matchMedia('(max-width: 780px)').matches && !clickedAuthItem) {
-      document.querySelectorAll('.auth-nav-item.is-open').forEach(function (item) {
-        item.classList.remove('is-open');
-        var itemTrigger = item.querySelector('.auth-profile-chip');
-        if (itemTrigger) itemTrigger.setAttribute('aria-expanded', 'false');
-      });
+      closeOpenAccountMenus();
     }
     var trigger = e.target.closest && e.target.closest('.auth-trigger');
     if (trigger) {
@@ -425,6 +433,21 @@ document.addEventListener('DOMContentLoaded', function () {
       '</div></div>';
   }
 
+  function updateAuthMessagesBadge() {
+    var badge = document.getElementById('auth-messages-badge');
+    if (!badge || !window.PW_AUTH.loggedIn) return;
+    fetch('/api/direct-messages/unread-count.php', { credentials: 'same-origin', cache: 'no-store' })
+      .then(function (response) { return response.ok ? response.json() : null; })
+      .then(function (data) {
+        if (!data || !data.ok) return;
+        var unread = Math.max(0, Number(data.unread) || 0);
+        badge.hidden = unread === 0;
+        badge.textContent = unread > 99 ? '99+' : String(unread);
+        badge.setAttribute('aria-label', unread + ' unread message' + (unread === 1 ? '' : 's'));
+      })
+      .catch(function () {});
+  }
+
   // Logged-in state is rendered as a .nav-item.has-dropdown. Larger screens
   // use the shared hover/focus menu behaviour; the compact account button
   // toggles the same card on touch screens.
@@ -464,6 +487,7 @@ document.addEventListener('DOMContentLoaded', function () {
       slot.innerHTML =
         '<button type="button" class="nav-parent auth-profile-chip" style="--auth-role-color:' + roleColor + '" aria-label="Open account menu for ' + displayName + '" aria-expanded="false"><span class="auth-profile-initial">' + initial + '</span><span class="auth-profile-name">' + displayName + '</span><span class="nav-caret">⌄</span></button>' +
         '<div class="nav-dropdown auth-nav-dropdown">' +
+          '<button type="button" class="auth-menu-close" aria-label="Close account menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>' +
           '<a class="auth-profile-summary" href="member.html?id=' + encodeURIComponent(window.PW_AUTH.user.id) + '" aria-label="View ' + displayName + '\'s profile">' +
             '<span class="auth-profile-avatar"><img src="' + avatarUrl + '" alt="" onerror="this.hidden=true"><span class="auth-profile-avatar-fallback">' + initial + '</span></span>' +
             '<span class="auth-profile-summary-copy"><strong>' + displayName + '</strong><span><i class="auth-online-dot auth-presence-dot is-' + presenceStatus + '"></i>' + escapeHtml(roleName) + ' · ' + presenceLabel + '</span>' + reputationBarHtml(window.PW_AUTH.user.reputation, window.PW_AUTH.user.selected_icon) + '</span>' +
@@ -471,12 +495,13 @@ document.addEventListener('DOMContentLoaded', function () {
           presencePickerHtml(presenceStatus) +
           '<div class="auth-dropdown-actions">' +
             '<a href="member.html?id=' + encodeURIComponent(window.PW_AUTH.user.id) + '">' + profileIcon + '<span>Profile</span></a>' +
-            '<a href="messages.html">' + messagesIcon + '<span>Messages</span></a>' +
+            '<a href="messages.html">' + messagesIcon + '<span>Messages</span><span id="auth-messages-badge" class="auth-message-badge" hidden></span></a>' +
             '<a href="profile.html">' + settingsIcon + '<span>Settings</span></a>' +
-            (pwHasPermission('admin_console.access') ? '<a href="/admin">' + adminIcon + '<span>Admin Console</span></a>' : '') +
+            (pwHasPermission('admin_console.access') ? '<a class="auth-admin-console-link" href="/admin">' + adminIcon + '<span>Admin Console</span></a>' : '') +
           '</div>' +
           '<button type="button" class="auth-logout-btn">' + logoutIcon + '<span>Log Out</span></button>' +
         '</div>';
+      updateAuthMessagesBadge();
     } else {
       slot.className = 'auth-nav-item';
       slot.style.removeProperty('--auth-role-color');
