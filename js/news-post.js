@@ -331,6 +331,23 @@
     appendParagraphs(post.body, target);
   }
 
+  // Same 9-category catalog as dev-dispatches.html's own TAG_LABELS/
+  // TAG_ICONS -- hand-duplicated here rather than shared (this codebase has
+  // no shared JS module), so keep any new category in lockstep with that
+  // file's copy.
+  var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
+  var TAG_ICONS = {
+    feature: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z"/></svg>',
+    improvement: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="3 17 9 11 13 15 21 6"/><polyline points="15 6 21 6 21 12"/></svg>',
+    fix: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M14.7 6.3a4 4 0 0 0-5.4 4.6L3 17.2V21h3.8l6.3-6.3a4 4 0 0 0 4.6-5.4l-2.8 2.8-2-2z"/></svg>',
+    performance: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polygon points="13 2 4 14 11 14 10 22 20 10 13 10 13 2"/></svg>',
+    ui_ux: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 2-.9 2-2 0-.5-.2-1-.5-1.4-.3-.4-.5-.9-.5-1.4 0-1.1.9-2 2-2h2.2c1.5 0 2.8-1.3 2.8-2.8C20 6.4 16.4 3 12 3z"/><circle cx="7.5" cy="10.5" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="10.5" r="1"/><circle cx="9" cy="15" r="1"/></svg>',
+    lore: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15.5A2.5 2.5 0 0 0 17.5 21H6.5A2.5 2.5 0 0 1 4 18.5v-13z"/><path d="M4 18.5A2.5 2.5 0 0 1 6.5 16H20"/></svg>',
+    infrastructure: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="4" width="18" height="6" rx="1"/><rect x="3" y="14" width="18" height="6" rx="1"/><circle cx="7" cy="7" r="0.6" fill="currentColor" stroke="none"/><circle cx="7" cy="17" r="0.6" fill="currentColor" stroke="none"/></svg>',
+    refactor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="17 2 21 6 17 10"/><path d="M3 12a9 9 0 0 1 15.3-6.4L21 6"/><polyline points="7 22 3 18 7 14"/><path d="M21 12a9 9 0 0 1-15.3 6.4L3 18"/></svg>',
+    experimental: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M10 2v6.3L4.5 18a2 2 0 0 0 1.7 3h11.6a2 2 0 0 0 1.7-3L14 8.3V2"/><path d="M8.5 2h7"/><path d="M6.5 15h11"/></svg>'
+  };
+
   // Shown only when this article was published from a Dispatch Composer
   // draft that had Dispatches attached as source material (api/news/get.php
   // returns an empty attached_dispatches array otherwise). Links straight to
@@ -349,15 +366,31 @@
     var list = document.createElement('ul');
     list.className = 'news-detail-sidecard-list';
     dispatches.forEach(function (d) {
+      var tag = TAG_LABELS[d.tag] ? d.tag : 'feature';
       var li = document.createElement('li');
+      li.className = 'news-detail-sidecard-item tag-' + tag;
       var link = document.createElement('a');
       link.href = 'dev-dispatches.html?dispatch=' + encodeURIComponent(d.id);
-      link.textContent = d.subject;
-      li.appendChild(link);
+      var icon = document.createElement('span');
+      icon.className = 'news-detail-sidecard-icon';
+      icon.innerHTML = TAG_ICONS[tag];
+      link.appendChild(icon);
+      var body = document.createElement('span');
+      body.className = 'news-detail-sidecard-item-body';
+      var tagLabel = document.createElement('span');
+      tagLabel.className = 'news-detail-sidecard-tag';
+      tagLabel.textContent = TAG_LABELS[tag];
+      body.appendChild(tagLabel);
+      var title = document.createElement('span');
+      title.className = 'news-detail-sidecard-title';
+      title.textContent = d.subject;
+      body.appendChild(title);
       var meta = document.createElement('span');
       meta.className = 'news-detail-sidecard-meta';
       meta.textContent = d.short_sha + ' · ' + relativeTime(d.committed_at);
-      li.appendChild(meta);
+      body.appendChild(meta);
+      link.appendChild(body);
+      li.appendChild(link);
       list.appendChild(li);
     });
     card.appendChild(list);

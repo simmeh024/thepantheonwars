@@ -491,12 +491,45 @@
 }
 .news-detail-sidecard .eyebrow { display: block; margin-bottom: 6px; }
 .news-detail-sidecard h2 { margin: 0 0 14px; color: var(--text); font-family: 'Cinzel', serif; font-size: 1.02rem; }
-.news-detail-sidecard-list { display: flex; flex-direction: column; gap: 12px; margin: 0; padding: 0; list-style: none; }
-.news-detail-sidecard-list li { padding-bottom: 12px; border-bottom: 1px solid var(--border-soft); }
-.news-detail-sidecard-list li:last-child { border-bottom: none; padding-bottom: 0; }
-.news-detail-sidecard-list a { display: block; color: var(--text); font-size: 0.86rem; line-height: 1.4; text-decoration: none; }
-.news-detail-sidecard-list a:hover { color: var(--purple-bright); }
-.news-detail-sidecard-meta { display: block; margin-top: 4px; color: var(--text-faint); font-size: 0.68rem; letter-spacing: 0.02em; }
+.news-detail-sidecard-list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+
+/* Per-category accent, matching dev-dispatches.html's own tag palette
+   (css/community.css's .dispatch-entry-bar/.dispatch-entry-tag) -- kept as
+   a separate copy here since news-post.html uses public.css, which never
+   imports community.css. */
+.news-detail-sidecard-item { --item-accent: var(--gold-bright); }
+.news-detail-sidecard-item.tag-feature { --item-accent: var(--gold-bright); }
+.news-detail-sidecard-item.tag-improvement { --item-accent: var(--purple-bright); }
+.news-detail-sidecard-item.tag-fix { --item-accent: #e14b5a; }
+.news-detail-sidecard-item.tag-performance { --item-accent: #e2984f; }
+.news-detail-sidecard-item.tag-ui_ux { --item-accent: #45d1c9; }
+.news-detail-sidecard-item.tag-lore { --item-accent: #3ecf8e; }
+.news-detail-sidecard-item.tag-infrastructure { --item-accent: #9aa0ac; }
+.news-detail-sidecard-item.tag-refactor { --item-accent: #6f76e8; }
+.news-detail-sidecard-item.tag-experimental { --item-accent: #e074b0; }
+
+.news-detail-sidecard-item a {
+  display: flex; align-items: flex-start; gap: 10px; padding: 12px;
+  border: 1px solid var(--border-soft); border-left: 2px solid var(--item-accent);
+  background: rgba(255,255,255,0.025); color: var(--text); text-decoration: none;
+  transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+}
+.news-detail-sidecard-item a:hover {
+  background: color-mix(in srgb, var(--item-accent) 10%, transparent);
+  border-color: color-mix(in srgb, var(--item-accent) 55%, var(--border-soft));
+  transform: translateX(2px);
+}
+.news-detail-sidecard-icon {
+  flex-shrink: 0; width: 20px; height: 20px; margin-top: 1px; color: var(--item-accent);
+}
+.news-detail-sidecard-icon svg { display: block; width: 100%; height: 100%; }
+.news-detail-sidecard-item-body { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.news-detail-sidecard-tag {
+  color: var(--item-accent); font: 700 0.6rem 'Jost', sans-serif; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.news-detail-sidecard-title { font-size: 0.85rem; line-height: 1.35; }
+.news-detail-sidecard-item a:hover .news-detail-sidecard-title { color: var(--item-accent); }
+.news-detail-sidecard-meta { color: var(--text-faint); font-size: 0.66rem; letter-spacing: 0.02em; }
 @media (max-width: 860px) {
   .news-detail-layout { flex-direction: column; }
   .news-detail-sidecard { position: static; flex-basis: auto; width: 100%; box-sizing: border-box; order: 2; }
