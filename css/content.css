@@ -543,16 +543,26 @@
    and cards above, duplicated a third time rather than shared (this
    codebase's established small-data-table convention, e.g. TAG_LABELS/
    TAG_ICONS across dev-dispatches.html and js/news-post.js). */
-.news-detail-sidecard-catbar-seg { --item-accent: var(--gold-bright); }
-.news-detail-sidecard-catbar-seg.tag-feature { --item-accent: var(--gold-bright); }
-.news-detail-sidecard-catbar-seg.tag-improvement { --item-accent: var(--purple-bright); }
-.news-detail-sidecard-catbar-seg.tag-fix { --item-accent: #e14b5a; }
-.news-detail-sidecard-catbar-seg.tag-performance { --item-accent: #e2984f; }
-.news-detail-sidecard-catbar-seg.tag-ui_ux { --item-accent: #45d1c9; }
-.news-detail-sidecard-catbar-seg.tag-lore { --item-accent: #3ecf8e; }
-.news-detail-sidecard-catbar-seg.tag-infrastructure { --item-accent: #9aa0ac; }
-.news-detail-sidecard-catbar-seg.tag-refactor { --item-accent: #6f76e8; }
-.news-detail-sidecard-catbar-seg.tag-experimental { --item-accent: #e074b0; }
+.news-detail-sidecard-catbar-seg,
+.news-detail-sidecard-catbar-legend-dot { --item-accent: var(--gold-bright); }
+.news-detail-sidecard-catbar-seg.tag-feature,
+.news-detail-sidecard-catbar-legend-dot.tag-feature { --item-accent: var(--gold-bright); }
+.news-detail-sidecard-catbar-seg.tag-improvement,
+.news-detail-sidecard-catbar-legend-dot.tag-improvement { --item-accent: var(--purple-bright); }
+.news-detail-sidecard-catbar-seg.tag-fix,
+.news-detail-sidecard-catbar-legend-dot.tag-fix { --item-accent: #e14b5a; }
+.news-detail-sidecard-catbar-seg.tag-performance,
+.news-detail-sidecard-catbar-legend-dot.tag-performance { --item-accent: #e2984f; }
+.news-detail-sidecard-catbar-seg.tag-ui_ux,
+.news-detail-sidecard-catbar-legend-dot.tag-ui_ux { --item-accent: #45d1c9; }
+.news-detail-sidecard-catbar-seg.tag-lore,
+.news-detail-sidecard-catbar-legend-dot.tag-lore { --item-accent: #3ecf8e; }
+.news-detail-sidecard-catbar-seg.tag-infrastructure,
+.news-detail-sidecard-catbar-legend-dot.tag-infrastructure { --item-accent: #9aa0ac; }
+.news-detail-sidecard-catbar-seg.tag-refactor,
+.news-detail-sidecard-catbar-legend-dot.tag-refactor { --item-accent: #6f76e8; }
+.news-detail-sidecard-catbar-seg.tag-experimental,
+.news-detail-sidecard-catbar-legend-dot.tag-experimental { --item-accent: #e074b0; }
 
 /* Scroll-in reveal (js/news-post.js toggles .is-visible via IntersectionObserver,
    same stagger pattern as .book-motion-ready .book-row in js/books.js). */
@@ -623,14 +633,34 @@
    this codebase) but each segment carries its own hover/focus tooltip
    instead of a separate legend row, to stay compact at the card's width. */
 .news-detail-sidecard-catbar {
-  display: flex; height: 8px; border-radius: 5px; overflow: visible;
+  display: flex; height: 10px; border-radius: 5px; overflow: visible;
   margin-top: 16px;
 }
 .news-detail-sidecard-catbar-seg {
-  position: relative; height: 100%; background: var(--item-accent); cursor: default;
+  position: relative; height: 100%; box-sizing: border-box; cursor: default;
+  /* Top-lit, bottom-shadowed fill instead of a flat color, matching the
+     depth already used on the sidecard's own panel/card gradients. */
+  background: linear-gradient(180deg, color-mix(in srgb, var(--item-accent) 88%, white 12%), color-mix(in srgb, var(--item-accent) 78%, black 22%));
+  border-right: 2px solid var(--panel, #1b1235);
+  /* Scroll-in fill: starts at 0 width, grows to its real share once
+     .is-filled is added (js/news-post.js's own IntersectionObserver,
+     same pattern as the card reveal above it). */
+  width: 0;
+  transition: width 0.65s cubic-bezier(0.2, 0.8, 0.2, 1);
+  transition-delay: var(--seg-delay, 0ms);
 }
+.news-detail-sidecard-catbar.is-filled .news-detail-sidecard-catbar-seg { width: var(--seg-width, 0); }
+.news-detail-sidecard-catbar-seg:last-child { border-right: none; }
 .news-detail-sidecard-catbar-seg:first-child { border-top-left-radius: 5px; border-bottom-left-radius: 5px; }
 .news-detail-sidecard-catbar-seg:last-child { border-top-right-radius: 5px; border-bottom-right-radius: 5px; }
+/* Inline percentage, shown only on segments wide enough to hold it (js/news-post.js
+   only renders .news-detail-sidecard-catbar-pct past a 15% share). */
+.news-detail-sidecard-catbar-pct {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  font: 700 0.6rem 'Jost', sans-serif; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.55);
+  opacity: 0; transition: opacity 0.3s ease 0.5s;
+}
+.news-detail-sidecard-catbar.is-filled .news-detail-sidecard-catbar-pct { opacity: 1; }
 .news-detail-sidecard-catbar-tooltip {
   position: absolute; bottom: calc(100% + 10px); left: 50%; width: 190px;
   background: var(--panel, #1b1235); border: 1px solid var(--border); border-radius: 4px;
@@ -646,6 +676,25 @@
 }
 @media (max-width: 560px) {
   .news-detail-sidecard-catbar-tooltip { width: 160px; }
+}
+
+/* Mini legend row under the bar: a colored dot + label per present category,
+   so the color key reads at a glance without hovering every segment (the
+   tooltip above still carries the percentage and explanation). */
+.news-detail-sidecard-catbar-legend {
+  display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px;
+}
+.news-detail-sidecard-catbar-legend-item {
+  display: flex; align-items: center; gap: 6px;
+  color: var(--text-faint); font-size: 0.68rem; letter-spacing: 0.02em;
+}
+.news-detail-sidecard-catbar-legend-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  background: var(--item-accent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .news-detail-sidecard-catbar-seg { transition: none; width: var(--seg-width, 0); }
+  .news-detail-sidecard-catbar-pct { transition: none; opacity: 1; }
 }
 @media (max-width: 860px) {
   .news-detail-layout { flex-direction: column; }

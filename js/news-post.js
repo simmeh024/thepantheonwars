@@ -479,9 +479,11 @@
 
   // Single stacked bar summarizing the category mix of the attached
   // dispatches, dev-metrics.html's language-history bar reworked for a
-  // fixed 9-category catalog instead of a variable language list: no
-  // separate legend row, each segment's own hover/focus tooltip carries the
-  // category name, share, and a one-line explanation instead.
+  // fixed 9-category catalog instead of a variable language list: each
+  // segment carries its own hover/focus tooltip (name, share, one-line
+  // explanation) plus an inline percentage once it's wide enough to hold
+  // one; a compact color-key legend sits below so the palette reads at a
+  // glance without hovering every segment.
   function buildCategoryBar(dispatches) {
     var counts = {};
     dispatches.forEach(function (d) {
@@ -489,17 +491,32 @@
       counts[tag] = (counts[tag] || 0) + 1;
     });
     var total = dispatches.length;
+    var wrap = document.createElement('div');
+    wrap.className = 'news-detail-sidecard-catbar-wrap';
+
     var bar = document.createElement('div');
     bar.className = 'news-detail-sidecard-catbar';
     bar.setAttribute('role', 'img');
     bar.setAttribute('aria-label', 'Category breakdown of the ' + total + ' dispatches above');
+
+    var legend = document.createElement('div');
+    legend.className = 'news-detail-sidecard-catbar-legend';
+
+    var index = 0;
     TAG_ORDER.forEach(function (tag) {
       if (!counts[tag]) return;
       var pct = Math.round((counts[tag] / total) * 100);
       var seg = document.createElement('span');
       seg.className = 'news-detail-sidecard-catbar-seg tag-' + tag;
-      seg.style.width = (counts[tag] / total * 100) + '%';
+      seg.style.setProperty('--seg-width', (counts[tag] / total * 100) + '%');
+      seg.style.setProperty('--seg-delay', (index * 90) + 'ms');
       seg.tabIndex = 0;
+      if (pct >= 15) {
+        var pctLabel = document.createElement('span');
+        pctLabel.className = 'news-detail-sidecard-catbar-pct';
+        pctLabel.textContent = pct + '%';
+        seg.appendChild(pctLabel);
+      }
       var tooltip = document.createElement('span');
       tooltip.className = 'news-detail-sidecard-catbar-tooltip';
       var tooltipName = document.createElement('strong');
@@ -508,8 +525,39 @@
       tooltip.appendChild(document.createTextNode(TAG_DESCRIPTIONS[tag]));
       seg.appendChild(tooltip);
       bar.appendChild(seg);
+
+      var legendItem = document.createElement('span');
+      legendItem.className = 'news-detail-sidecard-catbar-legend-item';
+      var dot = document.createElement('span');
+      dot.className = 'news-detail-sidecard-catbar-legend-dot tag-' + tag;
+      legendItem.appendChild(dot);
+      legendItem.appendChild(document.createTextNode(TAG_LABELS[tag]));
+      legend.appendChild(legendItem);
+
+      index++;
     });
-    return bar;
+
+    wrap.appendChild(bar);
+    wrap.appendChild(legend);
+    fillCategoryBar(bar);
+    return wrap;
+  }
+
+  // Scroll-in fill for the category bar's segments, same IntersectionObserver
+  // stagger convention as revealSidecardCards() above.
+  function fillCategoryBar(bar) {
+    if (!('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      bar.classList.add('is-filled');
+      return;
+    }
+    var observer = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('is-filled');
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: 0.4 });
+    observer.observe(bar);
   }
 
   // Staggered scroll-in reveal for the sidecard's own cards, same
