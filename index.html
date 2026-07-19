@@ -19,13 +19,15 @@
 <link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/cinzel/v26/8vIJ7ww63mVu7gt79mT7.woff2" fetchpriority="high">
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
-<link rel="preload" as="image" href="images/hero-main-bg-v3.jpg" fetchpriority="high">
+<link rel="preload" as="image" href="images/hero-main-bg-v3.jpg" fetchpriority="high" media="(min-width: 781px)">
+<link rel="preload" as="image" href="images/hero-main-bg-mobile.jpg" fetchpriority="high" media="(max-width: 780px)">
 <link rel="icon" type="image/svg+xml" href="favicon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=249">
+<link rel="stylesheet" href="css/public.css?v=249" media="(min-width: 781px)">
+<link rel="stylesheet" href="css/public-mobile.css?v=1" media="(max-width: 780px)">
 </head>
 <body>
 
@@ -274,11 +276,31 @@
   </div>
 </footer>
 
-<script src="js/vendor/gsap-3.15.0.min.js"></script>
-<script src="js/vendor/ScrollTrigger-3.15.0.min.js"></script>
-<script src="js/main.js?v=8"></script>
+<script src="js/main.js?v=9"></script>
 <script src="js/members.js?v=28"></script>
-<script src="js/home-prophecy.js?v=7"></script>
-<script src="js/home-dispatches.js?v=3"></script>
+<script>
+  (function () {
+    function loadScript(src, onload) {
+      var script = document.createElement('script');
+      script.src = src;
+      script.onload = onload || null;
+      document.body.appendChild(script);
+    }
+    if (window.matchMedia('(max-width: 780px)').matches) {
+      window.addEventListener('load', function () {
+        var loadDispatches = function () { loadScript('js/home-dispatches.js?v=3'); };
+        if ('requestIdleCallback' in window) window.requestIdleCallback(loadDispatches, { timeout: 1800 });
+        else window.setTimeout(loadDispatches, 1200);
+      });
+      return;
+    }
+    loadScript('js/vendor/gsap-3.15.0.min.js', function () {
+      loadScript('js/vendor/ScrollTrigger-3.15.0.min.js', function () {
+        loadScript('js/home-prophecy.js?v=8');
+      });
+    });
+    loadScript('js/home-dispatches.js?v=3');
+  }());
+</script>
 </body>
 </html>

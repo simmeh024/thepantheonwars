@@ -3,7 +3,7 @@
 // God-Cores/Overlords/Thirteenth Key cards, Featured Book, and quiz
 // teaser. Everything here is skipped under prefers-reduced-motion,
 // matching every other animated page on this site.
-document.addEventListener('DOMContentLoaded', function () {
+function initHomeProphecy() {
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   var hasGsap = typeof window.gsap !== 'undefined';
   if (hasGsap && window.ScrollTrigger) gsap.registerPlugin(window.ScrollTrigger);
@@ -315,4 +315,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
     }
   }
-});
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initHomeProphecy);
+else initHomeProphecy();

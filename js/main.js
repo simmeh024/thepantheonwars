@@ -213,9 +213,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   // Random glitch bursts — hero image (homepage only)
+  var isMobileViewport = window.matchMedia && window.matchMedia('(max-width: 780px)').matches;
   var heroEl = document.querySelector('.hero');
   var heroBackgroundLayer = document.querySelector('.hero-bg');
-  if (heroEl && heroBackgroundLayer) {
+  if (!isMobileViewport && heroEl && heroBackgroundLayer) {
     (function scheduleHeroGlitch() {
       // Reuse the visible hero image. A late duplicate background became a
       // new LCP candidate in Chrome, so this effect must not reveal a second
@@ -235,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Random glitch bursts — nav logo (every page)
   var logoEl = document.querySelector('.logo');
-  if (logoEl) {
+  if (!isMobileViewport && logoEl) {
     (function scheduleLogoGlitch() {
       var delay = 6000 + Math.random() * 10000;
       setTimeout(function () {
