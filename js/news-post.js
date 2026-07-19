@@ -363,12 +363,53 @@
     var heading = document.createElement('h2');
     heading.textContent = 'Dispatches in this update';
     card.appendChild(heading);
+
     var list = document.createElement('ul');
     list.className = 'news-detail-sidecard-list';
+
+    // Only offer a filter for categories actually present in this list --
+    // no point showing a "Fix" pill when nothing attached is tagged fix.
+    var presentTags = [];
+    dispatches.forEach(function (d) {
+      var tag = TAG_LABELS[d.tag] ? d.tag : 'feature';
+      if (presentTags.indexOf(tag) === -1) presentTags.push(tag);
+    });
+    if (presentTags.length > 1) {
+      var filterBar = document.createElement('div');
+      filterBar.className = 'news-detail-sidecard-filter';
+      var allBtn = document.createElement('button');
+      allBtn.type = 'button';
+      allBtn.className = 'news-detail-sidecard-filter-btn is-active';
+      allBtn.textContent = 'All';
+      allBtn.dataset.tag = 'all';
+      filterBar.appendChild(allBtn);
+      presentTags.forEach(function (tag) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'news-detail-sidecard-filter-btn tag-' + tag;
+        btn.textContent = TAG_LABELS[tag];
+        btn.dataset.tag = tag;
+        filterBar.appendChild(btn);
+      });
+      filterBar.addEventListener('click', function (event) {
+        var btn = event.target.closest('.news-detail-sidecard-filter-btn');
+        if (!btn) return;
+        var selected = btn.dataset.tag;
+        Array.prototype.forEach.call(filterBar.querySelectorAll('.news-detail-sidecard-filter-btn'), function (b) {
+          b.classList.toggle('is-active', b === btn);
+        });
+        Array.prototype.forEach.call(list.querySelectorAll('li'), function (li) {
+          li.hidden = selected !== 'all' && li.dataset.tag !== selected;
+        });
+      });
+      card.appendChild(filterBar);
+    }
+
     dispatches.forEach(function (d) {
       var tag = TAG_LABELS[d.tag] ? d.tag : 'feature';
       var li = document.createElement('li');
       li.className = 'news-detail-sidecard-item tag-' + tag;
+      li.dataset.tag = tag;
       var link = document.createElement('a');
       link.href = 'dev-dispatches.html?dispatch=' + encodeURIComponent(d.id);
       var icon = document.createElement('span');

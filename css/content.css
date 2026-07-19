@@ -475,7 +475,7 @@
 .post-share .btn.share-reddit { padding: 10px 22px; font-size: 0.72rem; }
 
 /* Dedicated News transmission and its member discussion. */
-.news-detail-container { max-width: 1180px; }
+.news-detail-container { max-width: 1380px; }
 .news-detail-banner .container { max-width: 900px; }
 .news-detail-layout { display: flex; align-items: flex-start; gap: 28px; }
 .news-detail-layout .news-detail-article { flex: 1 1 auto; min-width: 0; order: 1; }
@@ -483,15 +483,41 @@
 /* Left sidecard: the Dispatches a Composer draft attached as source
    material, shown only when the article was published that way. Sticky on
    wide viewports; drops below the article on narrow ones rather than
-   pushing it down. */
+   pushing it down. Wide enough for its cards to lay out two per row. */
 .news-detail-sidecard {
-  flex: 0 0 250px; order: 0; position: sticky; top: 90px;
+  flex: 0 0 460px; order: 0; position: sticky; top: 90px;
   padding: 22px 20px; border: 1px solid var(--border);
   background: linear-gradient(160deg, rgba(48,28,86,0.28), rgba(13,9,28,0.78));
 }
 .news-detail-sidecard .eyebrow { display: block; margin-bottom: 6px; }
 .news-detail-sidecard h2 { margin: 0 0 14px; color: var(--text); font-family: 'Cinzel', serif; font-size: 1.02rem; }
-.news-detail-sidecard-list { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+
+/* Category filter pills -- only rendered when the attached list actually
+   spans more than one category. Purely client-side (js/news-post.js
+   toggles each card's [hidden]), no extra request. */
+.news-detail-sidecard-filter { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.news-detail-sidecard-filter-btn {
+  padding: 4px 10px; border: 1px solid var(--border-soft); border-radius: 20px;
+  background: transparent; color: var(--text-faint); cursor: pointer;
+  font: 600 0.64rem 'Jost', sans-serif; letter-spacing: 0.03em;
+  transition: border-color 140ms ease, background 140ms ease, color 140ms ease;
+}
+.news-detail-sidecard-filter-btn:hover { color: var(--text); border-color: var(--purple-bright); }
+.news-detail-sidecard-filter-btn.is-active {
+  color: var(--item-accent, var(--purple-bright)); border-color: var(--item-accent, var(--purple-bright));
+  background: color-mix(in srgb, var(--item-accent, var(--purple-bright)) 14%, transparent);
+}
+.news-detail-sidecard-filter-btn.tag-feature { --item-accent: var(--gold-bright); }
+.news-detail-sidecard-filter-btn.tag-improvement { --item-accent: var(--purple-bright); }
+.news-detail-sidecard-filter-btn.tag-fix { --item-accent: #e14b5a; }
+.news-detail-sidecard-filter-btn.tag-performance { --item-accent: #e2984f; }
+.news-detail-sidecard-filter-btn.tag-ui_ux { --item-accent: #45d1c9; }
+.news-detail-sidecard-filter-btn.tag-lore { --item-accent: #3ecf8e; }
+.news-detail-sidecard-filter-btn.tag-infrastructure { --item-accent: #9aa0ac; }
+.news-detail-sidecard-filter-btn.tag-refactor { --item-accent: #6f76e8; }
+.news-detail-sidecard-filter-btn.tag-experimental { --item-accent: #e074b0; }
+
+.news-detail-sidecard-list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0; padding: 0; list-style: none; }
 
 /* Per-category accent, matching dev-dispatches.html's own tag palette
    (css/community.css's .dispatch-entry-bar/.dispatch-entry-tag) -- kept as
@@ -508,8 +534,9 @@
 .news-detail-sidecard-item.tag-refactor { --item-accent: #6f76e8; }
 .news-detail-sidecard-item.tag-experimental { --item-accent: #e074b0; }
 
+.news-detail-sidecard-item { height: 100%; }
 .news-detail-sidecard-item a {
-  display: flex; align-items: flex-start; gap: 10px; padding: 12px;
+  display: flex; align-items: flex-start; gap: 10px; padding: 12px; height: 100%; box-sizing: border-box;
   border: 1px solid var(--border-soft); border-left: 2px solid var(--item-accent);
   background: rgba(255,255,255,0.025); color: var(--text); text-decoration: none;
   transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
@@ -534,6 +561,9 @@
   .news-detail-layout { flex-direction: column; }
   .news-detail-sidecard { position: static; flex-basis: auto; width: 100%; box-sizing: border-box; order: 2; }
   .news-detail-layout .news-detail-article { order: 1; }
+}
+@media (max-width: 560px) {
+  .news-detail-sidecard-list { grid-template-columns: 1fr; }
 }
 .news-back-link { display: inline-flex; margin: 0 0 21px; color: var(--gold-bright); font: 700 0.68rem 'Jost', sans-serif; letter-spacing: 0.09em; text-decoration: none; text-transform: uppercase; transition: color 160ms ease, transform 160ms ease; }
 .news-back-link:hover { color: var(--purple-bright); transform: translateX(-3px); }
