@@ -20,7 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
     'lysara-venthe': { accent: '#4fb3e8', glow: 'rgba(79,179,232,0.54)', motif: 'Veiled echoes', scene: 'veil', particle: 'veil' },
     'zura-kaleth': { accent: '#a8c75b', glow: 'rgba(168,199,91,0.56)', motif: 'Ritual fire', scene: 'ember', particle: 'ember', throneImage: 'images/overlord-zura-throne.png' },
     'prime-eidra': { accent: '#dfe8ff', glow: 'rgba(223,232,255,0.54)', motif: 'Perfect symmetry', scene: 'precision', particle: 'precision' },
-    'drak-varros': { accent: '#8891ad', glow: 'rgba(136,145,173,0.54)', motif: 'Gravity bound', scene: 'gravity', particle: 'gravity' },
+    'drak-varros': { accent: '#c66145', glow: 'rgba(198,97,69,0.58)', motif: 'Gravity bound', scene: 'gravity', particle: 'gravity', throneImage: 'images/overlord-drak-throne.png' },
     'maerion-thal': { accent: '#75b9dc', glow: 'rgba(117,185,220,0.56)', motif: 'Reflected faces', scene: 'water', particle: 'water', throneImage: 'images/overlord-maerion-throne.png' },
     'marion-thal': { accent: '#75b9dc', glow: 'rgba(117,185,220,0.56)', motif: 'Reflected faces', scene: 'water', particle: 'water', throneImage: 'images/overlord-maerion-throne.png' }
   };
@@ -71,7 +71,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderSealedCard(overlord) {
     var theme = themeFor(overlord);
-    return '<article class="throne-ring-sealed-card" style="' + themeStyle(theme) + '"><span class="throne-ring-sealed-portrait"><img src="' + escapeHtml(overlord.portrait_image_url) + '" alt="' + escapeHtml(overlord.name) + '" loading="lazy" decoding="async"></span><div><h4>' + escapeHtml(overlord.name) + '</h4><span>Lore coming soon</span></div></article>';
+    return '<article class="throne-ring-sealed-card" style="' + themeStyle(theme) + '"><span class="throne-ring-sealed-portrait"><img src="' + escapeHtml(sceneImageFor(overlord)) + '" alt="' + escapeHtml(overlord.name) + '" loading="lazy" decoding="async"></span><div><h4>' + escapeHtml(overlord.name) + '</h4><span>Lore coming soon</span></div></article>';
   }
 
   function renderCarousel() {
