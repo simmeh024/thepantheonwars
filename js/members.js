@@ -2,7 +2,7 @@
 // Injects the auth modal, keeps nav in sync with session state, and exposes
 // window.PW_AUTH for other scripts (quiz.html, community.html) to read.
 
-window.PW_AUTH = { loggedIn: false, user: null, csrf: null, permissions: [], oauth: { google: true, apple: false } };
+window.PW_AUTH = { loggedIn: false, user: null, csrf: null, permissions: [], oauth: { google: true, apple: false }, maintenance: { enabled: false, message: '' } };
 
 // '*' means every permission (the logged-in user's role is a superuser, e.g.
 // admin) -- see api/helpers.php's pw_has_permission() for the server-side
@@ -348,7 +348,7 @@ function initMembers() {
     if (logoutBtn) {
       e.preventDefault();
       postJson('/api/logout.php', { csrf: window.PW_AUTH.csrf }).then(function () {
-        window.PW_AUTH = { loggedIn: false, user: null, csrf: null, permissions: [], oauth: { google: true, apple: false } };
+        window.PW_AUTH = { loggedIn: false, user: null, csrf: null, permissions: [], oauth: { google: true, apple: false }, maintenance: { enabled: false, message: '' } };
         refreshAuthNav();
         if (/\/admin\/?$/.test(location.pathname)) location.href = '../index.html';
         else if (/profile\.html$/.test(location.pathname)) location.href = 'index.html';
@@ -385,8 +385,10 @@ function initMembers() {
         csrf: data.csrf,
         permissions: data.permissions || [],
         oauth: data.oauth || { google: true, apple: false },
+        maintenance: data.maintenance || { enabled: false, message: '' },
       };
       applyOauthButtonVisibility();
+      applyMaintenanceMode();
     });
   }
 
@@ -411,6 +413,42 @@ function initMembers() {
       var avatarLabel = avatarOption && avatarOption.closest('.auth-oauth-option');
       if (avatarLabel) avatarLabel.hidden = !settings.google;
     });
+  }
+
+  // Site Settings' Maintenance Mode toggle shows every non-admin visitor a
+  // full-page lockout instead of the page they requested. This is a
+  // visitor-facing interstitial only -- it does not block API requests --
+  // so the admin console (path-checked below, as a second guard alongside
+  // the permission check) and any account with admin_console.access can
+  // always still reach and use the real site to fix things.
+  var maintenanceOverlay = null;
+  function applyMaintenanceMode() {
+    var maintenance = (window.PW_AUTH && window.PW_AUTH.maintenance) || { enabled: false, message: '' };
+    var onAdminConsole = /^\/admin\/?/.test(location.pathname);
+    var shouldShow = !!maintenance.enabled && !onAdminConsole && !pwHasPermission('admin_console.access');
+
+    if (!shouldShow) {
+      if (maintenanceOverlay) {
+        maintenanceOverlay.remove();
+        maintenanceOverlay = null;
+        document.documentElement.classList.remove('maintenance-lock');
+      }
+      return;
+    }
+
+    if (!maintenanceOverlay) {
+      maintenanceOverlay = document.createElement('div');
+      maintenanceOverlay.className = 'maintenance-overlay';
+      maintenanceOverlay.innerHTML =
+        '<div class="maintenance-overlay-card">' +
+          '<span class="maintenance-overlay-kicker">The Pantheon Wars</span>' +
+          '<h1>Under Maintenance</h1>' +
+          '<p class="maintenance-overlay-message"></p>' +
+        '</div>';
+      document.body.appendChild(maintenanceOverlay);
+    }
+    maintenanceOverlay.querySelector('.maintenance-overlay-message').textContent = maintenance.message || 'The Pantheon Wars is undergoing scheduled maintenance. We\'ll be back shortly -- thank you for your patience.';
+    document.documentElement.classList.add('maintenance-lock');
   }
 
   // Fixed 6-icon Overlord resonance catalog, index-matched to quiz.html's
@@ -562,8 +600,10 @@ function initMembers() {
           csrf: data.csrf || null,
           permissions: data.permissions || [],
           oauth: data.oauth || { google: true, apple: false },
+          maintenance: data.maintenance || { enabled: false, message: '' },
         };
         applyOauthButtonVisibility();
+        applyMaintenanceMode();
         renderNav();
         if (window.PW_AUTH.loggedIn) loadNotifications();
         document.dispatchEvent(new CustomEvent('pw-auth-ready'));

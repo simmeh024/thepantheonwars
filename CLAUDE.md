@@ -371,15 +371,15 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=262`, community `css/community-bundle.css?v=246`, and admin
-  `css/admin-bundle.css?v=253`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=263`, community `css/community-bundle.css?v=247`, and admin
+  `css/admin-bundle.css?v=254`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=11), `js/members.js?v=N` (current: v=35)
+  than once): `js/main.js?v=N` (current: v=11), `js/members.js?v=N` (current: v=36)
   and `js/notifications.js?v=N` (loaded dynamically), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
@@ -469,6 +469,27 @@ also supports a deliberately manual `?full=1` historical rebuild.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Maintenance Mode (Site Settings):** a third Site Settings switch
+  alongside the two OAuth toggles, with an optional custom message
+  (`app_settings.maintenance_message`, `sql/migration_maintenance_mode.sql`)
+  that falls back to `PW_MAINTENANCE_DEFAULT_MESSAGE` in `api/helpers.php`
+  whenever it's left blank -- `pw_maintenance_settings()` resolves that
+  default for public consumption, while a separate `pw_maintenance_settings_raw()`
+  keeps the actually-stored (possibly empty) value for the admin edit form,
+  so re-saving an unedited blank field can never silently bake the default
+  in as if it were deliberately-authored text. **This is a visitor-facing
+  interstitial, not an API firewall**: `api/session-check.php` exposes
+  `enabled`/`message`, and `js/members.js`'s `applyMaintenanceMode()` shows a
+  full-page lockout card to every visitor except accounts with
+  `admin_console.access` and anyone already under `/admin/` -- existing
+  per-endpoint permission checks remain the only real security boundary
+  during maintenance, same as always; a sufficiently direct API call is not
+  blocked by this feature. Chosen deliberately over a broader server-side
+  request-blocking gate in `api/helpers.php` (which would touch the shared
+  bootstrap every single request goes through) to keep the blast radius of
+  a bug in this feature limited to a visible banner, not an accidental
+  site-wide outage.
 
 - **Site Settings (Admin Console -> System, new) + OAuth provider toggles:**
   built because Apple OAuth (below) landed before the user could actually

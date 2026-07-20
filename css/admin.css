@@ -337,6 +337,7 @@
    Settings) that aren't mail-specific. */
 .admin-form-card { max-width: 640px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: linear-gradient(145deg, rgba(42,25,72,0.92), rgba(18,12,34,0.9)); padding: 22px; }
 .admin-form-card-head { padding-bottom: 17px; margin-bottom: 17px; border-bottom: 1px solid var(--border-soft); }
+.admin-form-card-head-secondary { margin-top: 24px; }
 .admin-form-card-head h2 { margin: 0; font-size: 1rem; color: var(--text); }
 .admin-form-card-head p { margin: 5px 0 0; color: var(--text-faint); font-size: 0.78rem; line-height: 1.5; }
 .site-settings-toggle { display: flex; align-items: flex-start; gap: 11px; margin: 0 0 14px; padding: 13px 14px; border: 1px solid rgba(159,119,234,0.3); border-radius: var(--radius-sm); background: rgba(137,87,229,0.06); cursor: pointer; }

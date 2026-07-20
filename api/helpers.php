@@ -130,6 +130,46 @@ function pw_require_csrf($input) {
     }
 }
 
+// --- Site Settings: maintenance mode -----------------------------------------
+// Admin Console > System > Site Settings. Enforcement is client-side only
+// (js/members.js shows a full-page lockout to non-admin visitors) -- this is
+// a visitor-facing interstitial, not an API firewall; existing per-endpoint
+// permission checks are the real security boundary during maintenance same
+// as always.
+const PW_MAINTENANCE_DEFAULT_MESSAGE = "The Pantheon Wars is undergoing scheduled maintenance. We'll be back shortly -- thank you for your patience.";
+
+// Raw stored values (message may be ''), for the admin edit form -- it must
+// show what is actually saved, not the resolved default, or a re-save would
+// silently bake the default in as if it were deliberately-authored text.
+function pw_maintenance_settings_raw() {
+    $settings = ['enabled' => false, 'message' => ''];
+    try {
+        $stmt = pw_db()->query("SELECT `key`, value FROM app_settings WHERE `key` IN ('maintenance_mode_enabled', 'maintenance_message')");
+        foreach ($stmt->fetchAll() as $row) {
+            if ($row['key'] === 'maintenance_mode_enabled') {
+                $settings['enabled'] = $row['value'] === '1';
+            }
+            if ($row['key'] === 'maintenance_message') {
+                $settings['message'] = (string)$row['value'];
+            }
+        }
+    } catch (Throwable $e) {
+        // migration_maintenance_mode.sql may not have run yet -- keep the
+        // disabled default rather than fatal on every request.
+    }
+    return $settings;
+}
+
+// Resolved for public display: an empty stored message falls back to the
+// standard one.
+function pw_maintenance_settings() {
+    $raw = pw_maintenance_settings_raw();
+    return [
+        'enabled' => $raw['enabled'],
+        'message' => trim($raw['message']) !== '' ? $raw['message'] : PW_MAINTENANCE_DEFAULT_MESSAGE,
+    ];
+}
+
 // --- Auth guards ---------------------------------------------------------------
 // A ban is only "active" if it was set AND (it's permanent, i.e. no expiry,
 // OR the expiry hasn't passed yet). Once banned_until passes, the account is

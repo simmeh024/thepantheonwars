@@ -52,4 +52,5 @@ pw_json([
     // in Site Settings, so the login modal can hide a disabled provider's
     // button without a separate request.
     'oauth' => pw_oauth_settings(),
+    'maintenance' => pw_maintenance_settings(),
 ]);

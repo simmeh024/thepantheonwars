@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=253">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=254">
 </head>
 <body>
 
@@ -904,6 +904,9 @@
         </div>
         <label class="site-settings-toggle"><input type="checkbox" id="site-settings-google-input"><span><strong>Enable Google OAuth</strong><small>Lets visitors sign in or register with Google.</small></span></label>
         <label class="site-settings-toggle"><input type="checkbox" id="site-settings-apple-input"><span><strong>Enable Apple OAuth</strong><small>Lets visitors sign in or register with Apple. Leave off until Sign In with Apple credentials are configured (see docs/apple-oauth.md).</small></span></label>
+        <div class="admin-form-card-head admin-form-card-head-secondary"><div><h2>Maintenance Mode</h2><p>Shows every visitor a full-page message instead of the site. Signed-in administrators and the admin console are never blocked.</p></div></div>
+        <label class="site-settings-toggle"><input type="checkbox" id="site-settings-maintenance-input"><span><strong>Enable Maintenance Mode</strong><small>Locks the public site behind the message below until switched off again.</small></span></label>
+        <div class="admin-field"><label for="site-settings-maintenance-message-input">Maintenance message <span>(optional)</span></label><textarea id="site-settings-maintenance-message-input" rows="3" maxlength="1000" placeholder="Leave blank to use the standard message"></textarea></div>
         <p class="admin-modal-error" id="site-settings-error"></p>
         <p class="admin-modal-status" id="site-settings-status"></p>
         <div class="admin-modal-actions"><button type="submit" class="btn btn-solid" id="site-settings-save-btn">Save Site Settings</button></div>
@@ -3340,7 +3343,7 @@
   </div>
 </div>
 
-<script src="../js/members.js?v=35"></script>
+<script src="../js/members.js?v=36"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -11776,6 +11779,8 @@
   var siteSettingsForm = document.getElementById('site-settings-form');
   var siteSettingsGoogleInput = document.getElementById('site-settings-google-input');
   var siteSettingsAppleInput = document.getElementById('site-settings-apple-input');
+  var siteSettingsMaintenanceInput = document.getElementById('site-settings-maintenance-input');
+  var siteSettingsMaintenanceMessageInput = document.getElementById('site-settings-maintenance-message-input');
   var siteSettingsError = document.getElementById('site-settings-error');
   var siteSettingsStatus = document.getElementById('site-settings-status');
   var siteSettingsSaveBtn = document.getElementById('site-settings-save-btn');
@@ -11788,8 +11793,11 @@
       .then(function (data) {
         if (!data.ok) throw new Error(data.error || 'Could not load Site Settings.');
         var oauth = data.oauth || {};
+        var maintenance = data.maintenance || {};
         siteSettingsGoogleInput.checked = !!oauth.google;
         siteSettingsAppleInput.checked = !!oauth.apple;
+        siteSettingsMaintenanceInput.checked = !!maintenance.enabled;
+        siteSettingsMaintenanceMessageInput.value = maintenance.message || '';
         siteSettingsSaveBtn.disabled = !pwHasPermission('site_settings.manage');
       })
       .catch(function (error) {
@@ -11804,7 +11812,13 @@
     siteSettingsSaveBtn.disabled = true;
     fetch('/api/admin/site-settings/update.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ csrf: window.PW_AUTH.csrf, google_enabled: siteSettingsGoogleInput.checked, apple_enabled: siteSettingsAppleInput.checked })
+      body: JSON.stringify({
+        csrf: window.PW_AUTH.csrf,
+        google_enabled: siteSettingsGoogleInput.checked,
+        apple_enabled: siteSettingsAppleInput.checked,
+        maintenance_enabled: siteSettingsMaintenanceInput.checked,
+        maintenance_message: siteSettingsMaintenanceMessageInput.value.trim(),
+      })
     }).then(function (response) { return response.json(); }).then(function (data) {
       if (!data.ok) throw new Error(data.error || 'Could not save Site Settings.');
       setMailMessage(siteSettingsError, siteSettingsStatus, 'Site Settings saved.', false);
