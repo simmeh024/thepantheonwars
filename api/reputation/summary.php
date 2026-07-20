@@ -14,10 +14,17 @@ try {
     $achievementStmt->execute([$user['id']]);
     $unlocked = [];
     foreach ($achievementStmt->fetchAll() as $row) $unlocked[$row['achievement_key']] = $row['unlocked_at'];
+    $topicStmt = $db->prepare('SELECT COUNT(*) FROM topics WHERE user_id = ? AND is_deleted = 0'); $topicStmt->execute([$user['id']]);
+    $postStmt = $db->prepare('SELECT (SELECT COUNT(*) FROM topics WHERE user_id = ? AND is_deleted = 0) + (SELECT COUNT(*) FROM comments WHERE user_id = ? AND is_deleted = 0)'); $postStmt->execute([$user['id'], $user['id']]);
+    $quizStmt = $db->prepare('SELECT COUNT(*) FROM quiz_results WHERE user_id = ?'); $quizStmt->execute([$user['id']]);
+    $bookStmt = $db->prepare('SELECT COUNT(*) FROM user_book_progress WHERE user_id = ? AND started_at IS NOT NULL'); $bookStmt->execute([$user['id']]);
+    $finishStmt = $db->prepare('SELECT COUNT(*) FROM user_book_progress WHERE user_id = ? AND finished_at IS NOT NULL'); $finishStmt->execute([$user['id']]);
+    $progress = ['topics' => (int)$topicStmt->fetchColumn(), 'posts' => (int)$postStmt->fetchColumn(), 'quiz' => (int)$quizStmt->fetchColumn(), 'books_started' => (int)$bookStmt->fetchColumn(), 'books_finished' => (int)$finishStmt->fetchColumn()];
     $achievements = [];
     foreach (pw_reputation_achievement_catalog() as $achievement) {
         $achievement['unlocked_at'] = $unlocked[$achievement['key']] ?? null;
         $achievement['unlocked'] = isset($unlocked[$achievement['key']]);
+        $achievement['progress'] = min((int)$achievement['target'], (int)($progress[$achievement['progress_type']] ?? 0));
         $achievements[] = $achievement;
     }
     pw_json(['ok' => true, 'reputation' => pw_reputation_info($points), 'achievements' => $achievements]);
