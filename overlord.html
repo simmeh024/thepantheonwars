@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=258">
+<link rel="stylesheet" href="css/public.css?v=259">
 </head>
 <body>
 
@@ -173,6 +173,8 @@
 (function () {
   var gate = document.getElementById('overlord-gate');
   var content = document.getElementById('overlord-content');
+  var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var handoff = readThroneHandoff();
 
   function getParam(name) {
     var match = new RegExp('[?&]' + name + '=([^&]*)').exec(window.location.search);
@@ -183,6 +185,7 @@
     if (text) document.getElementById('overlord-gate-text').textContent = text;
     gate.hidden = false;
     content.hidden = true;
+    clearThroneHandoff();
   }
 
   function pronounNoun(pronoun) {
@@ -201,6 +204,57 @@
     }
     if (window.PW_AUTH && window.PW_AUTH.loggedIn) send();
     else document.addEventListener('pw-auth-ready', send, { once: true });
+  }
+
+  function readThroneHandoff() {
+    try {
+      var raw = window.sessionStorage.getItem('pw-throne-profile-handoff');
+      if (!raw) return null;
+      var payload = JSON.parse(raw);
+      var isCurrent = payload && payload.slug === getParam('slug') && payload.at && (Date.now() - payload.at) < 15000;
+      if (!isCurrent) {
+        window.sessionStorage.removeItem('pw-throne-profile-handoff');
+        return null;
+      }
+      if (!reducedMotion) {
+        document.body.classList.add('throne-profile-handoff');
+        document.documentElement.style.setProperty('--portal-accent', payload.accent || '#a279ec');
+        document.documentElement.style.setProperty('--portal-glow', payload.glow || 'rgba(162,121,236,0.55)');
+        document.body.appendChild(createThronePortal(payload, true));
+      }
+      return payload;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function createThronePortal(payload, waiting) {
+    var portal = document.createElement('div');
+    portal.className = 'profile-throne-portal' + (waiting ? ' is-waiting' : '');
+    portal.style.setProperty('--portal-accent', payload.accent || '#a279ec');
+    portal.style.setProperty('--portal-glow', payload.glow || 'rgba(162,121,236,0.55)');
+    if (payload.image) portal.style.setProperty('--portal-art', 'url("' + String(payload.image).replace(/"/g, '%22') + '")');
+    return portal;
+  }
+
+  function clearThroneHandoff() {
+    var portal = document.querySelector('.profile-throne-portal');
+    if (portal) portal.remove();
+    document.body.classList.remove('throne-profile-handoff');
+    try { window.sessionStorage.removeItem('pw-throne-profile-handoff'); } catch (error) {}
+    handoff = null;
+  }
+
+  function playThroneHandoffArrival() {
+    if (!handoff || reducedMotion) return;
+    var portal = document.querySelector('.profile-throne-portal') || createThronePortal(handoff, true);
+    if (!portal.parentNode) document.body.appendChild(portal);
+    window.requestAnimationFrame(function () { content.classList.add('is-portal-revealed'); });
+    portal.classList.remove('is-waiting');
+    portal.classList.add('is-receding');
+    window.setTimeout(function () {
+      clearThroneHandoff();
+    }, 780);
   }
 
   function load() {
@@ -255,6 +309,7 @@
         } else {
           backlink.hidden = true;
         }
+        playThroneHandoffArrival();
       })
       .catch(function () { showNotFound('Could not load this profile right now.'); });
   }

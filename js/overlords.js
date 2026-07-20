@@ -74,6 +74,10 @@ document.addEventListener('DOMContentLoaded', function () {
     return '<div class="throne-ring-particles" aria-hidden="true">' + particles + '</div>';
   }
 
+  function renderSignature(theme) {
+    return '<div class="throne-ring-signature throne-ring-signature--' + escapeHtml(theme.scene) + '" aria-hidden="true"><i></i><i></i><i></i><i></i></div>';
+  }
+
   function renderSealedCard(overlord) {
     var theme = themeFor(overlord);
     return '<article class="throne-ring-sealed-card" style="' + themeStyle(theme) + '"><span class="throne-ring-sealed-portrait"><img src="' + escapeHtml(sceneImageFor(overlord)) + '" alt="' + escapeHtml(overlord.name) + '" loading="lazy" decoding="async"></span><div><h4>' + escapeHtml(overlord.name) + '</h4><span>Lore coming soon</span></div></article>';
@@ -84,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var previous = available[wrapIndex(activeIndex - 1)];
     var next = available[wrapIndex(activeIndex + 1)];
     var theme = themeFor(selected);
-    ringEl.innerHTML = '<div class="throne-ring-stage throne-ring-stage--' + escapeHtml(theme.scene) + '" data-throne-theme="' + escapeHtml(theme.scene) + '" style="' + themeStyle(theme) + '" tabindex="0" aria-label="Throne Ring carousel. Use left and right arrow keys to change Overlord."><div class="throne-ring-color-wash" aria-hidden="true"></div>' + renderParticles(theme) + renderShadowThrone(previous, 'previous') + renderShadowThrone(next, 'next') + '<div class="throne-ring-orbit" aria-label="Select an Overlord">' + available.map(renderSeat).join('') + '</div>' + renderNavButton('previous', previous, theme) + renderNavButton('next', next, theme) + renderFocal(selected) + '<p class="throne-ring-live" role="status" aria-live="polite">' + escapeHtml(selected.name) + ' selected. ' + escapeHtml(selected.epithet || '') + '</p></div><p class="throne-ring-guidance">Use the arrows, swipe, or select a throne to move through the Pantheon.</p>';
+    ringEl.innerHTML = '<div class="throne-ring-stage throne-ring-stage--' + escapeHtml(theme.scene) + '" data-throne-theme="' + escapeHtml(theme.scene) + '" style="' + themeStyle(theme) + '" tabindex="0" aria-label="Throne Ring carousel. Use left and right arrow keys to change Overlord."><div class="throne-ring-color-wash" aria-hidden="true"></div>' + renderSignature(theme) + renderParticles(theme) + renderShadowThrone(previous, 'previous') + renderShadowThrone(next, 'next') + '<div class="throne-ring-orbit" aria-label="Select an Overlord">' + available.map(renderSeat).join('') + '</div>' + renderNavButton('previous', previous, theme) + renderNavButton('next', next, theme) + renderFocal(selected) + '<p class="throne-ring-live" role="status" aria-live="polite">' + escapeHtml(selected.name) + ' selected. ' + escapeHtml(selected.epithet || '') + '</p></div><p class="throne-ring-guidance">Use the arrows, swipe, or select a throne to move through the Pantheon.</p>';
   }
 
   function getStage() { return ringEl.querySelector('.throne-ring-stage'); }
@@ -111,6 +115,75 @@ document.addEventListener('DOMContentLoaded', function () {
         { x: startX + sign * (95 + (index % 5) * 28), y: startY - 22 + (index % 6) * 12, opacity: 0.84, scale: 1 + (index % 3) * 0.18, rotation: index * 49, duration: 0.28 + (index % 4) * 0.045, delay: (index % 6) * 0.018, ease: 'power2.out', yoyo: true, repeat: 1 }
       );
     });
+  }
+
+  function triggerSignature(stage, theme, direction, phase) {
+    if (!gsap || reducedMotion || !stage) return;
+    var signature = stage.querySelector('.throne-ring-signature');
+    if (!signature) return;
+    var sign = direction === 'next' ? -1 : 1;
+    var effect = {
+      neural: { x: sign * 18, y: -5, scaleX: 1.08, rotation: sign * 1 },
+      iron: { x: sign * 44, y: 8, scale: 1.08, rotation: sign * 8 },
+      radiation: { x: 0, y: 0, scaleX: 1.22, scaleY: 0.86 },
+      alchemy: { x: sign * 8, y: 0, scale: 1.1, rotation: sign * 12 },
+      veil: { x: sign * 28, y: -10, scale: 1.12, rotation: sign * 2 },
+      ember: { x: sign * 20, y: -42, scale: 1.1 },
+      precision: { x: 0, y: 0, scale: 1.14, rotation: sign * 22 },
+      gravity: { x: sign * -12, y: 24, scale: 0.8, rotation: sign * -5 },
+      water: { x: sign * 14, y: 9, scale: 1.2 },
+      chains: { x: sign * 58, y: 10, scaleX: 1.1, rotation: sign * 4 },
+      gilded: { x: 0, y: -5, scale: 1.18, rotation: sign * 32 },
+      unknown: { x: sign * 18, y: 0, scale: 1.05 }
+    }[theme.scene] || { x: sign * 18, y: 0, scale: 1.05 };
+    var duration = phase === 'exit' ? 0.32 : 0.54;
+    gsap.killTweensOf(signature);
+    gsap.fromTo(signature,
+      { opacity: 0, x: phase === 'exit' ? 0 : -effect.x * 0.35, y: phase === 'exit' ? 0 : -effect.y * 0.35, scale: phase === 'exit' ? 0.72 : 0.82, rotation: 0 },
+      { opacity: phase === 'exit' ? 0.94 : 0, x: effect.x, y: effect.y, scale: effect.scale || 1, scaleX: effect.scaleX || 1, scaleY: effect.scaleY || 1, rotation: effect.rotation || 0, duration: duration, ease: phase === 'exit' ? 'power3.out' : 'power2.out', yoyo: phase !== 'exit', repeat: phase !== 'exit' ? 1 : 0 }
+    );
+  }
+
+  function beginProfileHandoff(event, link) {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button === 1 || !gsap || reducedMotion) return;
+    if (isTransitioning) {
+      event.preventDefault();
+      return;
+    }
+    event.preventDefault();
+    var selected = available[activeIndex];
+    var theme = themeFor(selected);
+    var stage = getStage();
+    if (!stage) {
+      window.location.assign(link.href);
+      return;
+    }
+    try {
+      window.sessionStorage.setItem('pw-throne-profile-handoff', JSON.stringify({
+        slug: selected.slug,
+        accent: theme.accent,
+        glow: theme.glow,
+        scene: theme.scene,
+        image: sceneImageFor(selected),
+        at: Date.now()
+      }));
+    } catch (error) {}
+    isTransitioning = true;
+    setControlsLocked(stage, true);
+    var portal = document.createElement('div');
+    portal.className = 'throne-ring-portal';
+    portal.style.setProperty('--portal-accent', theme.accent);
+    portal.style.setProperty('--portal-glow', theme.glow);
+    portal.style.setProperty('--portal-art', 'url("' + sceneImageFor(selected).replace(/"/g, '%22') + '")');
+    document.body.appendChild(portal);
+    triggerSignature(stage, theme, 'next', 'exit');
+    gsap.timeline()
+      .to(stage.querySelector('.throne-ring-color-wash'), { opacity: 0.9, duration: 0.14, ease: 'power2.out' }, 0)
+      .to(stage.querySelector('.throne-ring-focal-art'), { scale: 1.18, filter: 'blur(3px) brightness(1.45)', duration: 0.38, ease: 'power3.in' }, 0)
+      .to(stage.querySelector('.throne-ring-focal-copy'), { y: -18, opacity: 0, duration: 0.24, ease: 'power2.in' }, 0.07)
+      .to(stage.querySelectorAll('.throne-ring-orbit, .throne-ring-nav, .throne-ring-shadow-throne'), { opacity: 0, duration: 0.22, ease: 'power2.in' }, 0.09)
+      .to(portal, { opacity: 1, scale: 1.14, duration: 0.44, ease: 'power3.in' }, 0.05)
+      .call(function () { window.location.assign(link.href); });
   }
 
   function setIncomingState(stage, direction) {
@@ -146,6 +219,7 @@ document.addEventListener('DOMContentLoaded', function () {
       .to(stage.querySelector('.throne-ring-focal-link'), { boxShadow: '0 0 0 4px rgba(5,3,12,0.4), 0 0 34px ' + theme.glow, duration: 0.28, yoyo: true, repeat: 1, ease: 'sine.inOut' }, 0.57)
       .to(stage.querySelector('.throne-ring-color-wash'), { opacity: 0, duration: 0.48, ease: 'power2.inOut' }, 0.38);
     emitTrail(stage, theme, direction);
+    triggerSignature(stage, theme, direction, 'enter');
   }
 
   function transitionToIndex(index, direction, focusTarget) {
@@ -167,6 +241,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var exitSign = direction === 'next' ? -1 : 1;
     setControlsLocked(outgoingStage, true);
     emitTrail(outgoingStage, outgoingTheme, direction);
+    triggerSignature(outgoingStage, outgoingTheme, direction, 'exit');
     var exitTimeline = gsap.timeline();
     exitTimeline.to(outgoingStage.querySelector('.throne-ring-color-wash'), { opacity: 0.68, duration: 0.14, ease: 'power2.out' }, 0)
       .to(outgoingStage.querySelector('.throne-ring-focal-art'), { x: exitSign * 250, opacity: 0, filter: 'blur(10px) brightness(0.58)', duration: 0.42, ease: 'power2.in' }, 0.03)
@@ -190,6 +265,11 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   ringEl.addEventListener('click', function (event) {
+    var profileLink = event.target.closest('.throne-ring-focal-link');
+    if (profileLink) {
+      beginProfileHandoff(event, profileLink);
+      return;
+    }
     var directionButton = event.target.closest('[data-throne-direction]');
     if (directionButton) {
       changeBy(directionButton.getAttribute('data-throne-direction') === 'previous' ? -1 : 1, directionButton.getAttribute('data-throne-direction'));

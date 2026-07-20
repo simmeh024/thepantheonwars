@@ -2161,6 +2161,32 @@
 .throne-ring-stage.is-transitioning { cursor: progress; }
 .throne-ring-stage.is-transitioning button { pointer-events: none; }
 .throne-ring-color-wash { position: absolute; z-index: 6; inset: 0; pointer-events: none; opacity: 0; background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--throne-accent) 38%, transparent) 48%, transparent 100%); mix-blend-mode: screen; }
+.throne-ring-signature { position: absolute; z-index: 6; inset: 8% 9%; overflow: hidden; pointer-events: none; opacity: 0; transform-origin: 50% 50%; mix-blend-mode: screen; will-change: transform, opacity; }
+.throne-ring-signature::before, .throne-ring-signature::after, .throne-ring-signature i { content: ''; position: absolute; display: block; }
+.throne-ring-signature::before { inset: 0; }
+.throne-ring-signature::after { inset: 0; }
+.throne-ring-signature--neural::before { background: repeating-linear-gradient(90deg, transparent 0 12%, color-mix(in srgb, var(--throne-accent) 72%, transparent) 12.2% 12.6%, transparent 12.8% 22%), repeating-linear-gradient(0deg, transparent 0 20%, color-mix(in srgb, var(--throne-accent) 34%, transparent) 20.2% 20.5%, transparent 20.7% 34%); mask-image: radial-gradient(circle at center, #000, transparent 70%); }
+.throne-ring-signature--neural i { width: 7px; height: 7px; border: 1px solid #eee3ff; border-radius: 50%; background: var(--throne-accent); box-shadow: 0 0 12px var(--throne-glow); }
+.throne-ring-signature--neural i:nth-child(1) { top: 23%; left: 26%; } .throne-ring-signature--neural i:nth-child(2) { top: 42%; left: 67%; } .throne-ring-signature--neural i:nth-child(3) { top: 69%; left: 38%; } .throne-ring-signature--neural i:nth-child(4) { top: 31%; left: 79%; }
+.throne-ring-signature--iron::before { background: repeating-linear-gradient(126deg, transparent 0 9%, color-mix(in srgb, var(--throne-accent) 56%, transparent) 9.3% 10%, transparent 10.4% 19%); clip-path: polygon(0 14%, 28% 34%, 14% 48%, 43% 61%, 31% 100%, 70% 72%, 100% 82%, 81% 54%, 100% 21%, 63% 36%, 44% 0, 36% 29%); }
+.throne-ring-signature--radiation::before { top: 47%; bottom: auto; width: 100%; height: 7%; background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--throne-accent) 88%, transparent), #eaffb0, color-mix(in srgb, var(--throne-accent) 88%, transparent), transparent); box-shadow: 0 0 22px var(--throne-glow), 0 0 52px var(--throne-glow); }
+.throne-ring-signature--alchemy::before { inset: 17% 28%; border: 1px solid color-mix(in srgb, var(--throne-accent) 78%, transparent); border-radius: 50%; background: repeating-radial-gradient(circle, transparent 0 11px, color-mix(in srgb, var(--throne-accent) 42%, transparent) 12px 13px, transparent 14px 23px); }
+.throne-ring-signature--veil::before { inset: 14% 17%; border-radius: 50%; background: repeating-radial-gradient(ellipse at center, transparent 0 12%, color-mix(in srgb, var(--throne-accent) 44%, transparent) 13% 14%, transparent 15% 23%); filter: blur(1px); }
+.throne-ring-signature--ember::before { background: radial-gradient(ellipse at 50% 100%, color-mix(in srgb, var(--throne-accent) 74%, transparent), transparent 53%); }
+.throne-ring-signature--ember i { bottom: -8%; width: 6px; height: 20%; background: linear-gradient(transparent, var(--throne-accent)); filter: blur(1px); } .throne-ring-signature--ember i:nth-child(1) { left: 25%; } .throne-ring-signature--ember i:nth-child(2) { left: 42%; height: 30%; } .throne-ring-signature--ember i:nth-child(3) { left: 64%; height: 24%; } .throne-ring-signature--ember i:nth-child(4) { left: 78%; height: 17%; }
+.throne-ring-signature--precision::before, .throne-ring-signature--gilded::before { inset: 12% 25%; border: 1px solid color-mix(in srgb, var(--throne-accent) 76%, transparent); border-radius: 50%; background: repeating-radial-gradient(circle, transparent 0 10px, color-mix(in srgb, var(--throne-accent) 40%, transparent) 11px 12px, transparent 13px 20px); }
+.throne-ring-signature--precision::after, .throne-ring-signature--gilded::after { inset: 25% 12%; border-top: 1px solid var(--throne-accent); border-bottom: 1px solid var(--throne-accent); }
+.throne-ring-signature--gravity::before { inset: 18% 29%; border: 2px solid #11111b; border-radius: 50%; background: radial-gradient(circle, rgba(0,0,0,0.92) 0 18%, color-mix(in srgb, var(--throne-accent) 28%, transparent) 19% 23%, transparent 48%); box-shadow: 0 0 0 8px color-mix(in srgb, var(--throne-accent) 12%, transparent), 0 0 38px #000; }
+.throne-ring-signature--water::before { inset: 11% 16%; border-radius: 50%; background: repeating-radial-gradient(ellipse at center, transparent 0 12%, color-mix(in srgb, var(--throne-accent) 48%, transparent) 13% 14%, transparent 15% 24%); }
+.throne-ring-signature--chains::before { background: repeating-linear-gradient(58deg, transparent 0 18px, color-mix(in srgb, var(--throne-accent) 72%, #86664d) 19px 22px, transparent 23px 38px), repeating-linear-gradient(-58deg, transparent 0 18px, color-mix(in srgb, var(--throne-accent) 58%, #382419) 19px 22px, transparent 23px 38px); }
+.throne-ring-signature--gilded::before { box-shadow: 0 0 28px var(--throne-glow), inset 0 0 24px color-mix(in srgb, var(--throne-accent) 22%, transparent); }
+.throne-ring-portal, .profile-throne-portal { position: fixed; z-index: 1200; inset: 0; pointer-events: none; opacity: 0; background-image: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--portal-accent) 72%, #fff) 0 1%, color-mix(in srgb, var(--portal-accent) 58%, transparent) 11%, color-mix(in srgb, var(--portal-accent) 23%, transparent) 34%, rgba(4,2,12,0.95) 72%), var(--portal-art, none); background-position: center; background-size: cover; box-shadow: inset 0 0 90px var(--portal-glow); transform: scale(0.34); }
+body.throne-profile-handoff #overlord-content { opacity: 0; transform: translateY(16px) scale(0.985); }
+body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: throne-profile-reveal 0.62s 0.1s cubic-bezier(.2,.8,.2,1) both; }
+.profile-throne-portal.is-waiting { opacity: 1; transform: scale(1.18); }
+.profile-throne-portal.is-receding { animation: throne-profile-portal-recede 0.72s cubic-bezier(.2,.8,.2,1) forwards; }
+@keyframes throne-profile-reveal { to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes throne-profile-portal-recede { 0% { opacity: 1; transform: scale(1.18); } 100% { opacity: 0; transform: scale(2.2); } }
 .throne-ring-particles { position: absolute; z-index: 6; top: 48%; left: 50%; width: 1px; height: 1px; pointer-events: none; }
 .throne-ring-particle { position: absolute; display: block; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: var(--throne-accent); box-shadow: 0 0 8px var(--throne-glow); will-change: transform, opacity; }
 .throne-ring-particle--neural { width: 4px; height: 4px; border: 1px solid #e6d9ff; background: transparent; box-shadow: 0 0 9px var(--throne-glow); }
@@ -2177,7 +2203,7 @@
 .throne-ring-stage--precision .throne-ring-constellation { background: linear-gradient(90deg, transparent 49.8%, rgba(223,232,255,0.18) 50%, transparent 50.2%), linear-gradient(transparent 49.8%, rgba(223,232,255,0.13) 50%, transparent 50.2%), radial-gradient(circle at 50% 45%, rgba(223,232,255,0.22), transparent 42%); }
 .throne-ring-stage--gravity .throne-ring-constellation { background: repeating-radial-gradient(circle at 50% 50%, transparent 0 42px, rgba(136,145,173,0.13) 43px 45px, transparent 46px 98px); }
 .throne-ring-stage--water .throne-ring-constellation { background: repeating-radial-gradient(ellipse at 50% 66%, transparent 0 46px, rgba(240,196,121,0.15) 47px 49px, transparent 50px 100px); }
-@media (prefers-reduced-motion: reduce) { .throne-ring-color-wash, .throne-ring-particles { display: none; } }
+@media (prefers-reduced-motion: reduce) { .throne-ring-color-wash, .throne-ring-particles, .throne-ring-signature, .throne-ring-portal, .profile-throne-portal { display: none; } body.throne-profile-handoff #overlord-content { opacity: 1; transform: none; } }
 
 /* Material frame around each throne scene. The frame takes its identity from
    the selected Overlord without competing with the focal portrait. */
