@@ -2,6 +2,9 @@
 -- scheduled/targeted multiplier events, and permanent achievements.
 -- Run in phpMyAdmin after deploying the accompanying code.
 
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS last_reputation_return_at DATETIME NULL DEFAULT NULL AFTER reputation;
+
 CREATE TABLE IF NOT EXISTS reputation_reward_rules (
   `key` VARCHAR(40) NOT NULL PRIMARY KEY,
   label VARCHAR(100) NOT NULL,
@@ -16,7 +19,8 @@ INSERT INTO reputation_reward_rules (`key`, label, base_points, is_enabled) VALU
   ('content_liked', 'Receive a like', 2, 1),
   ('quiz_completed', 'Complete the Overlord quiz (first time)', 10, 1),
   ('book_started', 'Start a book (first time)', 3, 1),
-  ('book_finished', 'Finish a book (first time)', 5, 1)
+  ('book_finished', 'Finish a book (first time)', 5, 1),
+  ('news_comment_posted', 'Comment on a newspost', 1, 1)
 ON DUPLICATE KEY UPDATE label = VALUES(label);
 
 CREATE TABLE IF NOT EXISTS reputation_events (

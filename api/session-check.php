@@ -16,6 +16,10 @@ if ($user) {
            AND (last_active_at IS NULL OR last_active_at < NOW() - INTERVAL 60 SECOND)'
     );
     $stmt->execute([$user['id']]);
+    $dailyReturnAwarded = pw_award_daily_return(pw_db(), (int)$user['id']);
+    if ($dailyReturnAwarded > 0) {
+        $user['reputation'] = (int)$user['reputation'] + $dailyReturnAwarded;
+    }
 
     $stmt = pw_db()->prepare('SELECT color FROM roles WHERE slug = ?');
     $stmt->execute([$user['role']]);

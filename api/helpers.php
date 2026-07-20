@@ -816,6 +816,7 @@ function pw_reputation_reward_catalog(): array {
         ['key' => 'quiz_completed', 'label' => 'Complete the Overlord quiz (first time)', 'points' => 10],
         ['key' => 'book_started', 'label' => 'Start a book (first time)', 'points' => 3],
         ['key' => 'book_finished', 'label' => 'Finish a book (first time)', 'points' => 5],
+        ['key' => 'news_comment_posted', 'label' => 'Comment on a newspost', 'points' => 1],
     ];
     try {
         $rows = pw_db()->query('SELECT `key`, label, base_points, is_enabled FROM reputation_reward_rules ORDER BY `key` ASC')->fetchAll();
@@ -924,11 +925,12 @@ function pw_remove_reputation(PDO $db, int $userId, int $points, array $meta = [
 
 function pw_reputation_achievement_catalog(): array {
     return [
-        ['key' => 'first_signal', 'name' => 'First Signal', 'description' => 'Started your first forum topic.', 'icon' => '✦'],
-        ['key' => 'nexus_voice', 'name' => 'Nexus Voice', 'description' => 'Published ten forum posts.', 'icon' => '◈'],
-        ['key' => 'resonance_awakened', 'name' => 'Resonance Awakened', 'description' => 'Completed the Overlord quiz.', 'icon' => '◉'],
-        ['key' => 'shelf_seeker', 'name' => 'Shelf Seeker', 'description' => 'Started three books.', 'icon' => '▰'],
-        ['key' => 'saga_finisher', 'name' => 'Saga Finisher', 'description' => 'Finished all fourteen books.', 'icon' => '◆'],
+        ['key' => 'first_signal', 'name' => 'First Signal', 'description' => 'Started your first forum topic.', 'points' => 5, 'icon' => '✦'],
+        ['key' => 'nexus_voice', 'name' => 'Nexus Voice', 'description' => 'Published ten forum posts.', 'points' => 15, 'icon' => '◈'],
+        ['key' => 'resonance_awakened', 'name' => 'Resonance Awakened', 'description' => 'Completed the Overlord quiz.', 'points' => 10, 'icon' => '◉'],
+        ['key' => 'shelf_seeker', 'name' => 'Shelf Seeker', 'description' => 'Started three books.', 'points' => 5, 'icon' => '▰'],
+        ['key' => 'seven_books_finished', 'name' => 'Seven Worlds Read', 'description' => 'Finished seven books.', 'points' => 50, 'icon' => '◫'],
+        ['key' => 'saga_finisher', 'name' => 'Saga Finisher', 'description' => 'Finished all fourteen books.', 'points' => 100, 'icon' => '◆'],
     ];
 }
 
@@ -944,10 +946,29 @@ function pw_evaluate_reputation_achievements(PDO $db, int $userId): void {
         'nexus_voice' => (int)$postStmt->fetchColumn() >= 10,
         'resonance_awakened' => (int)$quizStmt->fetchColumn() >= 1,
         'shelf_seeker' => (int)$bookStmt->fetchColumn() >= 3,
+        'seven_books_finished' => (int)$finishStmt->fetchColumn() >= 7,
         'saga_finisher' => (int)$finishStmt->fetchColumn() >= 14,
     ];
     $insert = $db->prepare('INSERT IGNORE INTO user_reputation_achievements (user_id, achievement_key) VALUES (?, ?)');
-    foreach ($unlocks as $key => $unlocked) if ($unlocked) $insert->execute([$userId, $key]);
+    $alreadyRewarded = $db->prepare('SELECT 1 FROM reputation_ledger WHERE user_id = ? AND reward_key = ? LIMIT 1');
+    foreach (pw_reputation_achievement_catalog() as $achievement) {
+        $key = $achievement['key'];
+        if (empty($unlocks[$key])) continue;
+        $insert->execute([$userId, $key]);
+        $alreadyRewarded->execute([$userId, 'achievement_' . $key]);
+        if (!$alreadyRewarded->fetchColumn()) {
+            pw_award_reputation($db, $userId, (int)$achievement['points'], 'achievement_' . $key, ['label' => $achievement['name'] . ' achievement', 'source_type' => 'achievement', 'note' => $achievement['description']]);
+        }
+    }
+}
+
+function pw_award_daily_return(PDO $db, int $userId): int {
+    try {
+        $claim = $db->prepare('UPDATE users SET last_reputation_return_at = UTC_TIMESTAMP() WHERE id = ? AND created_at <= UTC_TIMESTAMP() - INTERVAL 1 DAY AND (last_reputation_return_at IS NULL OR last_reputation_return_at <= UTC_TIMESTAMP() - INTERVAL 1 DAY)');
+        $claim->execute([$userId]);
+        if ($claim->rowCount() !== 1) return 0;
+        return pw_award_reputation($db, $userId, 2, 'daily_return', ['label' => 'Returned after a day', 'source_type' => 'daily_return']);
+    } catch (Throwable $e) { return 0; }
 }
 
 // Direct-message alerts are intentionally collapsed per conversation. A busy

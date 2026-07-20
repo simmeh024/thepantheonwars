@@ -74,6 +74,8 @@ CREATE TABLE IF NOT EXISTS users (
   -- Reputation points: +1 per topic/comment authored, +2 per like received
   -- (reversed on unlike). Drives the reputation bar against reputation_levels.
   reputation INT UNSIGNED NOT NULL DEFAULT 0,
+  -- Daily-return reward is claimed at most once per rolling 24 hours.
+  last_reputation_return_at DATETIME NULL DEFAULT NULL,
   -- One of the fixed Overlord resonance icon keys the user has unlocked (see
   -- user_unlocked_icons), or NULL to show no icon next to the reputation bar.
   selected_icon VARCHAR(40) NULL,

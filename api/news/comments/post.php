@@ -35,5 +35,9 @@ if (!(bool)$post['comments_enabled']) {
 
 $stmt = $db->prepare('INSERT INTO news_comments (news_post_id, user_id, body) VALUES (?, ?, ?)');
 $stmt->execute([(int)$post['id'], (int)$user['id'], $body]);
+$commentId = (int)$db->lastInsertId();
+try {
+    pw_award_reputation($db, (int)$user['id'], 1, 'news_comment_posted', ['source_type' => 'news_comment', 'source_id' => $commentId]);
+} catch (PDOException $e) {}
 
-pw_json(['ok' => true, 'id' => (int)$db->lastInsertId()]);
+pw_json(['ok' => true, 'id' => $commentId]);
