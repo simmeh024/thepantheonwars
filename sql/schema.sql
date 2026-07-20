@@ -514,6 +514,20 @@ CREATE TABLE IF NOT EXISTS user_reputation_achievements (
   CONSTRAINT fk_user_reputation_achievements_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Member-selected subset of unlocked achievements shown on their public profile.
+-- See migration_reputation_showcase.sql; positions are one through ten.
+CREATE TABLE IF NOT EXISTS user_reputation_achievement_showcase (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  achievement_key VARCHAR(40) NOT NULL,
+  position TINYINT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_reputation_showcase_member_achievement (user_id, achievement_key),
+  UNIQUE KEY uq_reputation_showcase_member_position (user_id, position),
+  CONSTRAINT fk_reputation_showcase_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Admin-managed personality quiz content. Each question has exactly six
 -- ordered options: the order maps to the fixed six-Overlord score catalog.
 CREATE TABLE IF NOT EXISTS quiz_questions (

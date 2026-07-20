@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=243">
+<link rel="stylesheet" href="css/community-bundle.css?v=244">
 </head>
 <body>
 
@@ -98,6 +98,10 @@
           <strong id="member-current-reading-title"></strong>
           <span class="member-current-reading-arrow" aria-hidden="true">&rarr;</span>
         </a>
+        <section class="member-achievement-showcase" id="member-achievement-showcase" hidden>
+          <div class="member-achievement-showcase-head"><span>Achievement Showcase</span><a href="reputation.html">View reputation</a></div>
+          <div class="member-achievement-showcase-grid" id="member-achievement-showcase-grid"></div>
+        </section>
         <p class="member-message-action" id="member-message-action" hidden>
           <a class="btn btn-solid" id="member-message-link" href="messages.html">Send private message</a>
         </p>
@@ -412,6 +416,23 @@
           readingEl.hidden = false;
         } else {
           readingEl.hidden = true;
+        }
+
+        var showcase = m.achievement_showcase || [];
+        var showcaseEl = document.getElementById('member-achievement-showcase');
+        var showcaseGrid = document.getElementById('member-achievement-showcase-grid');
+        showcaseGrid.innerHTML = '';
+        if (showcase.length) {
+          showcase.forEach(function (achievement) {
+            var tile = document.createElement('span');
+            tile.className = 'member-achievement-showcase-item tier-' + (achievement.tier || 'bronze');
+            tile.title = achievement.name + ' — ' + achievement.description;
+            tile.innerHTML = '<i>' + escapeHtml(achievement.icon) + '</i><span><strong>' + escapeHtml(achievement.name) + '</strong><small>' + escapeHtml(achievement.tier) + '</small></span>';
+            showcaseGrid.appendChild(tile);
+          });
+          showcaseEl.hidden = false;
+        } else {
+          showcaseEl.hidden = true;
         }
 
         var statusEl = document.getElementById('member-status');

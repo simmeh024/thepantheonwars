@@ -80,6 +80,27 @@ $stmt = $db->prepare(
 $stmt->execute([$id, $id]);
 $recentPosts = $stmt->fetchAll();
 
+$showcase = [];
+try {
+    $showcaseStmt = $db->prepare('SELECT achievement_key FROM user_reputation_achievement_showcase WHERE user_id = ? ORDER BY position ASC, id ASC');
+    $showcaseStmt->execute([$id]);
+    $catalog = [];
+    foreach (pw_reputation_achievement_catalog() as $achievement) $catalog[$achievement['key']] = $achievement;
+    foreach ($showcaseStmt->fetchAll() as $row) {
+        if (!isset($catalog[$row['achievement_key']])) continue;
+        $achievement = $catalog[$row['achievement_key']];
+        $showcase[] = [
+            'key' => $achievement['key'],
+            'name' => $achievement['name'],
+            'description' => $achievement['description'],
+            'tier' => $achievement['tier'],
+            'icon' => $achievement['icon'],
+        ];
+    }
+} catch (PDOException $e) {
+    // The optional showcase migration may be applied after this code deploy.
+}
+
 pw_json([
     'ok' => true,
     'member' => [
@@ -97,6 +118,7 @@ pw_json([
         'selected_icon' => $user['selected_icon'],
         'post_count' => $postCount,
         'currently_reading' => $currentlyReading,
+        'achievement_showcase' => $showcase,
     ],
     'recentPosts' => array_map(function ($r) {
         return [

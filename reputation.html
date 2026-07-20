@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
-<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/community-bundle.css?v=243"><link rel="stylesheet" href="css/reputation.css?v=5">
+<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/community-bundle.css?v=243"><link rel="stylesheet" href="css/reputation.css?v=6">
 </head>
 <body>
 <header class="site-header"><div class="nav-inner"><button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button><a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a><nav class="main-nav"><a href="index.html">Home</a><div class="nav-item has-dropdown"><span class="nav-parent">The Universe<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="books.html">The Books</a><a href="worlds.html">The Worlds</a><a href="overlords.html">The Overlords</a><a href="known-figures.html">Known Figures</a><a href="soundtracks.html">The Soundtracks</a></div></div><div class="nav-item has-dropdown"><span class="nav-parent">News<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="news.html">Latest News</a><a href="dev-dispatches.html">Development Dispatches</a></div></div><a href="about.html">About</a><div class="nav-item has-dropdown"><span class="nav-parent">Community<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="community.html">Nexus Veil (Forum)</a><a href="memberlist.html">Member List</a><a href="quiz.html">Quiz</a></div></div></nav><span class="nav-utility"><span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span></span></div></header>
@@ -15,8 +15,9 @@
   <div id="reputation-gate" class="profile-gate" hidden><span class="eyebrow">Members Only</span><h1>Your Reputation</h1><p>Log in to view your reputation history and achievements.</p><button type="button" class="btn btn-solid auth-trigger" data-tab="login">Log In</button></div>
   <div id="reputation-content" hidden>
     <div class="reputation-page-head"><span class="eyebrow">Community standing</span><h1>Reputation</h1><p id="reputation-level-copy">Loading your rank…</p><div class="reputation-page-bar"><span id="reputation-level-square"></span><span class="reputation-bar-track"><span id="reputation-level-fill" class="reputation-bar-fill"></span></span></div></div>
+    <div class="reputation-insights"><section class="reputation-rank-preview"><span class="reputation-insight-kicker">Next rank preview</span><strong id="reputation-next-rank">Resolving rank…</strong><p id="reputation-next-perk">Loading your next profile and forum distinction.</p></section><section class="reputation-timeline-card"><div class="reputation-timeline-head"><span class="reputation-insight-kicker">Signal history</span><span>Last 8 weeks</span></div><div class="reputation-timeline-bars" id="reputation-timeline-bars" aria-label="Reputation earned over the last eight weeks"></div><div class="reputation-timeline-highlights" id="reputation-timeline-highlights"></div></section></div>
     <div class="reputation-columns"><section class="reputation-card"><div class="reputation-card-head"><h2>Recent signals</h2><span id="reputation-total" class="reputation-total"></span></div><div id="reputation-log" class="reputation-log"><p class="lore-status">Loading your history…</p></div><div class="reputation-log-actions"><button id="reputation-more" type="button" class="btn" hidden>View more</button></div></section>
-    <section class="reputation-card"><div class="reputation-card-head"><h2>Achievements</h2><span id="reputation-achievement-count" class="reputation-total"></span></div><div class="achievement-filter" id="achievement-filter"><button type="button" class="is-active" data-achievement-filter="all">All</button><button type="button" data-achievement-filter="unlocked">Unlocked</button><button type="button" data-achievement-filter="locked">Locked</button></div><div id="reputation-achievements" class="reputation-achievements"></div><div class="achievement-pages" id="achievement-pages"></div></section></div>
+    <section class="reputation-card"><div class="reputation-card-head"><h2>Achievements</h2><span id="reputation-achievement-count" class="reputation-total"></span></div><div class="achievement-category-summary" id="achievement-category-summary"></div><div class="achievement-filter" id="achievement-filter"><button type="button" class="is-active" data-achievement-filter="all">All</button><button type="button" data-achievement-filter="unlocked">Unlocked</button><button type="button" data-achievement-filter="locked">Locked</button></div><div id="reputation-achievements" class="reputation-achievements"></div><div class="achievement-pages" id="achievement-pages"></div></section></div>
   </div>
 </div></section></main>
 <script src="js/main.js?v=11"></script>
@@ -26,7 +27,7 @@
   'use strict'; var gate=document.getElementById('reputation-gate'), content=document.getElementById('reputation-content'), log=document.getElementById('reputation-log'), more=document.getElementById('reputation-more'), page=1, pages=1;
   function esc(v){var d=document.createElement('div');d.textContent=v||'';return d.innerHTML;}
   function date(v){var d=new Date(String(v).replace(' ','T')+'Z');return isNaN(d)?v:d.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});}
-  function loadLog(append){fetch('/api/reputation/history.php?page='+page,{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){pages=data.pages||1; if(!append)log.innerHTML=''; if(!data.entries.length&&!append)log.innerHTML='<p class="lore-status">No logged reputation changes yet.</p>'; data.entries.forEach(function(entry){var row=document.createElement('div');row.className='reputation-log-row '+(Number(entry.points)<0?'is-loss':'');row.innerHTML='<div><strong>'+esc(entry.label)+'</strong><small>'+date(entry.created_at)+(entry.note?' · '+esc(entry.note):'')+'</small></div><b>'+(Number(entry.points)>0?'+':'')+entry.points+' rep</b>';log.appendChild(row);});more.hidden=page>=pages;});}
+  function loadLog(append){fetch('/api/reputation/history.php?page='+page,{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){pages=data.pages||1; if(!append)log.innerHTML=''; if(!data.entries.length&&!append)log.innerHTML='<p class="lore-status">No logged reputation changes yet.</p>'; data.entries.forEach(function(entry){var row=document.createElement('div'),label=esc(entry.label);row.className='reputation-log-row '+(Number(entry.points)<0?'is-loss':'');if(entry.source_url)label='<a class="reputation-log-source" href="'+esc(entry.source_url)+'">'+label+'</a>';row.innerHTML='<div><strong>'+label+'</strong><small>'+date(entry.created_at)+(entry.note?' · '+esc(entry.note):'')+'</small></div><b>'+(Number(entry.points)>0?'+':'')+entry.points+' rep</b>';log.appendChild(row);});more.hidden=page>=pages;});}
   function load(){if(!window.PW_AUTH.loggedIn){gate.hidden=false;content.hidden=true;return;}gate.hidden=true;content.hidden=false;fetch('/api/reputation/summary.php',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){if(!data.ok)throw new Error();var rep=data.reputation||{}, color=rep.level_color||'#a279ec';document.getElementById('reputation-level-copy').textContent=(rep.level_name||'Unranked')+' · '+rep.points+' reputation'+(rep.next_level_name?' · '+Math.max(0,rep.next_level_threshold-rep.points)+' to '+rep.next_level_name:'');document.getElementById('reputation-total').textContent=rep.points+' rep';var square=document.getElementById('reputation-level-square'),fill=document.getElementById('reputation-level-fill');square.style.background=color;square.textContent=rep.level_number||'';fill.style.width=(rep.progress_percent||0)+'%';fill.style.background=color;}).catch(function(){document.getElementById('reputation-level-copy').textContent='Reputation history is being prepared.';});page=1;loadLog(false);}
   more.addEventListener('click',function(){page++;loadLog(true);});document.addEventListener('pw-auth-ready',load);load();
 }());
@@ -34,7 +35,7 @@
 <script>
 (function () {
   'use strict';
-  var filter = 'all', currentPage = 1, perPage = 4, filterEl = document.getElementById('achievement-filter'), listEl = document.getElementById('reputation-achievements'), pagesEl = document.getElementById('achievement-pages'), allAchievements = [];
+  var filter = 'all', currentPage = 1, perPage = 4, filterEl = document.getElementById('achievement-filter'), listEl = document.getElementById('reputation-achievements'), pagesEl = document.getElementById('achievement-pages'), categoryEl = document.getElementById('achievement-category-summary'), allAchievements = [];
   function esc(value) { var element = document.createElement('div'); element.textContent = value || ''; return element.innerHTML; }
   function tierLabel(tier) { return String(tier || '').charAt(0).toUpperCase() + String(tier || '').slice(1); }
   function buildTracks(achievements) {
@@ -50,6 +51,19 @@
   function phaseTitle(phase) {
     var progress = Math.min(Number(phase.progress || 0), Number(phase.target || 1));
     return tierLabel(phase.tier) + ' tier · ' + phase.name + ' · ' + phase.description + ' · ' + progress + '/' + phase.target + (phase.unlocked ? ' · Unlocked' : ' · Locked');
+  }
+  function renderCategories() {
+    var groups = {};
+    allAchievements.forEach(function (achievement) {
+      var key = achievement.category || 'Community';
+      if (!groups[key]) groups[key] = { total: 0, unlocked: 0 };
+      groups[key].total++;
+      if (achievement.unlocked) groups[key].unlocked++;
+    });
+    categoryEl.innerHTML = Object.keys(groups).map(function (key) {
+      var group = groups[key], percent = Math.round((group.unlocked / Math.max(1, group.total)) * 100);
+      return '<div class="achievement-category"><span>' + esc(key) + '</span><strong>' + group.unlocked + '/' + group.total + '</strong><i><b style="width:' + percent + '%"></b></i></div>';
+    }).join('');
   }
   function render() {
     var visible = buildTracks(allAchievements).filter(function (track) {
@@ -69,7 +83,7 @@
       var card = document.createElement('div');
       card.className = 'reputation-achievement tier-' + esc(current.tier || 'bronze') + (unlockedPhases.length ? ' is-unlocked' : '') + (next ? ' next-tier-' + esc(next.tier) : ' is-complete');
       card.title = nextRequirement;
-      card.innerHTML = '<span>' + esc(current.icon) + '</span><div class="achievement-copy"><strong>' + esc(current.name) + ' <em>+' + Number(current.points || 0) + ' rep</em></strong><small>' + esc(current.description) + (current.unlocked ? ' · Unlocked' : ' · Locked') + '</small><small class="achievement-progress-label">' + esc(nextRequirement) + '</small>' + phaseBar + '</div>';
+      card.innerHTML = '<span>' + esc(current.icon) + '</span><div class="achievement-copy"><small class="achievement-category-label">' + esc(current.category || 'Community') + '</small><strong>' + esc(current.name) + ' <em>+' + Number(current.points || 0) + ' rep</em></strong><small>' + esc(current.description) + (current.unlocked ? ' · Unlocked' : ' · Locked') + '</small><small class="achievement-progress-label">' + esc(nextRequirement) + '</small>' + phaseBar + '</div>';
       listEl.appendChild(card);
     });
     if (!visible.length) listEl.innerHTML = '<p class="lore-status">No achievements in this filter.</p>';
@@ -78,10 +92,44 @@
   }
   function loadAchievements() {
     if (!window.PW_AUTH || !window.PW_AUTH.loggedIn) return;
-    fetch('/api/reputation/summary.php', { credentials: 'same-origin' }).then(function (response) { return response.json(); }).then(function (data) { if (!data.ok) return; allAchievements = data.achievements || []; render(); }).catch(function () {});
+    fetch('/api/reputation/summary.php', { credentials: 'same-origin' }).then(function (response) { return response.json(); }).then(function (data) { if (!data.ok) return; allAchievements = data.achievements || []; document.getElementById('reputation-achievement-count').textContent = allAchievements.filter(function (achievement) { return achievement.unlocked; }).length + '/' + allAchievements.length; renderCategories(); render(); }).catch(function () {});
   }
   filterEl.addEventListener('click', function (event) { var button = event.target.closest('[data-achievement-filter]'); if (!button) return; filter = button.getAttribute('data-achievement-filter'); currentPage = 1; filterEl.querySelectorAll('button').forEach(function (item) { item.classList.toggle('is-active', item === button); }); render(); });
   pagesEl.addEventListener('click', function (event) { var button = event.target.closest('[data-page]'); if (!button) return; currentPage = Number(button.getAttribute('data-page')); render(); });
   document.addEventListener('pw-auth-ready', loadAchievements); loadAchievements();
+}());
+</script>
+<script>
+(function () {
+  'use strict';
+  var bars = document.getElementById('reputation-timeline-bars'), highlights = document.getElementById('reputation-timeline-highlights');
+  function esc(value) { var element = document.createElement('div'); element.textContent = value || ''; return element.innerHTML; }
+  function formatDate(value) { var date = new Date(String(value).replace(' ', 'T') + 'Z'); return isNaN(date) ? value : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
+  function renderRank(reputation) {
+    var title = document.getElementById('reputation-next-rank'), copy = document.getElementById('reputation-next-perk');
+    if (!reputation.next_level_name) { title.textContent = 'Maximum rank attained'; copy.textContent = 'Your profile carries the highest available rank signal and forum distinction.'; return; }
+    var remaining = Math.max(0, Number(reputation.next_level_threshold) - Number(reputation.points));
+    title.textContent = reputation.next_level_name + ' · ' + remaining + ' rep remaining';
+    copy.textContent = 'Preview: a ' + reputation.next_level_name + ' profile aura and forum rank title at your next threshold.';
+  }
+  function renderTimeline(data) {
+    var daily = {}, now = new Date();
+    (data.daily || []).forEach(function (row) { daily[row.day] = Number(row.points || 0); });
+    var weeks = [{ points: 0, label: '' }, { points: 0, label: '' }, { points: 0, label: '' }, { points: 0, label: '' }, { points: 0, label: '' }, { points: 0, label: '' }, { points: 0, label: '' }, { points: 0, label: '' }];
+    for (var dayOffset = 55; dayOffset >= 0; dayOffset--) {
+      var day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOffset), key = day.getFullYear() + '-' + String(day.getMonth() + 1).padStart(2, '0') + '-' + String(day.getDate()).padStart(2, '0');
+      var weekIndex = Math.floor((55 - dayOffset) / 7); weeks[weekIndex].points += daily[key] || 0;
+      if (dayOffset % 7 === 6 || dayOffset === 0) weeks[weekIndex].label = day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    }
+    var peak = Math.max.apply(null, weeks.map(function (week) { return Math.max(0, week.points); }).concat([1]));
+    bars.innerHTML = weeks.map(function (week) { var height = week.points > 0 ? Math.max(10, Math.round((week.points / peak) * 100)) : 4; return '<span title="Week ending ' + esc(week.label) + ': +' + week.points + ' reputation"><i style="height:' + height + '%"></i><b>' + esc(week.label) + '</b></span>'; }).join('');
+    highlights.innerHTML = (data.highlights || []).length ? data.highlights.map(function (highlight) { return '<span title="' + esc(formatDate(highlight.created_at)) + '">' + esc(highlight.label) + ' <b>+' + Number(highlight.points || 0) + '</b></span>'; }).join('') : '<span class="reputation-timeline-empty">Your major reputation moments will appear here.</span>';
+  }
+  function load() {
+    if (!window.PW_AUTH || !window.PW_AUTH.loggedIn) return;
+    fetch('/api/reputation/summary.php', { credentials: 'same-origin' }).then(function (response) { return response.json(); }).then(function (data) { if (data.ok) renderRank(data.reputation || {}); }).catch(function () {});
+    fetch('/api/reputation/timeline.php', { credentials: 'same-origin' }).then(function (response) { return response.json(); }).then(function (data) { if (data.ok) renderTimeline(data); }).catch(function () { renderTimeline({}); });
+  }
+  document.addEventListener('pw-auth-ready', load); load();
 }());
 </script></body></html>

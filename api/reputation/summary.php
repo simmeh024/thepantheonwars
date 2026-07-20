@@ -27,7 +27,15 @@ try {
         $achievement['progress'] = min((int)$achievement['target'], (int)($progress[$achievement['progress_type']] ?? 0));
         $achievements[] = $achievement;
     }
-    pw_json(['ok' => true, 'reputation' => pw_reputation_info($points), 'achievements' => $achievements]);
+    $showcaseKeys = [];
+    try {
+        $showcaseStmt = $db->prepare('SELECT achievement_key FROM user_reputation_achievement_showcase WHERE user_id = ? ORDER BY position ASC, id ASC');
+        $showcaseStmt->execute([(int)$user['id']]);
+        $showcaseKeys = array_map(function ($row) { return $row['achievement_key']; }, $showcaseStmt->fetchAll());
+    } catch (PDOException $e) {
+        // The profile showcase migration can be applied independently.
+    }
+    pw_json(['ok' => true, 'reputation' => pw_reputation_info($points), 'achievements' => $achievements, 'showcase_keys' => $showcaseKeys]);
 } catch (Throwable $e) {
     pw_json(['ok' => false, 'error' => 'Reputation history becomes available after the reputation expansion migration.', 'migration_required' => true], 503);
 }
