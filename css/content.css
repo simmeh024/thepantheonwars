@@ -2127,14 +2127,22 @@
 .throne-ring-focal-teaser { max-width: 570px; margin: 0 auto 1.1rem; color: #d4c6ae; font: 400 clamp(0.82rem, 1.3vw, 1rem)/1.6 'Cinzel', serif; text-shadow: 0 2px 12px rgba(0,0,0,0.92); }
 .throne-ring-focal-link { display: inline-flex; align-items: center; justify-content: center; min-width: 210px; min-height: 48px; padding: 0 22px; border: 1px solid color-mix(in srgb, var(--throne-accent) 75%, var(--gold-dim)); background: linear-gradient(90deg, rgba(5,3,12,0.82), color-mix(in srgb, var(--throne-accent) 14%, rgba(5,3,12,0.88)), rgba(5,3,12,0.82)); color: var(--throne-accent); font-size: 0.69rem; letter-spacing: 0.19em; box-shadow: 0 0 0 4px rgba(5,3,12,0.4), 0 0 18px color-mix(in srgb, var(--throne-accent) 25%, transparent); }
 .throne-ring-focal-link:hover, .throne-ring-focal-link:focus-visible { color: #fff; border-color: var(--gold-bright); box-shadow: 0 0 0 4px rgba(5,3,12,0.4), 0 0 28px var(--throne-glow); }
-.throne-ring-nav { position: absolute; z-index: 8; top: 50%; display: grid; justify-items: center; gap: 11px; width: 108px; padding: 0; border: 0; background: none; color: var(--gold); cursor: pointer; font: 600 0.6rem/1 'Jost', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; transform: translateY(-50%); transition: color 0.22s ease, transform 0.22s ease; }
+.throne-ring-nav { position: absolute; z-index: 8; top: 50%; display: grid; justify-items: center; gap: 16px; width: 138px; padding: 0; border: 0; background: none; color: var(--gold); cursor: pointer; font: 600 0.6rem/1 'Jost', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; transform: translateY(-50%); transition: color 0.22s ease, transform 0.22s ease; }
 .throne-ring-nav--previous { left: clamp(12px, 4vw, 64px); }
 .throne-ring-nav--next { right: clamp(12px, 4vw, 64px); }
-.throne-ring-nav:hover, .throne-ring-nav:focus-visible { color: #fff; }
+.throne-ring-nav:hover, .throne-ring-nav:focus-visible { color: #fff; transform: translateY(-50%) scale(1.045); }
 .throne-ring-nav:focus-visible { outline: 2px solid var(--throne-accent); outline-offset: 6px; }
-.throne-ring-nav-diamond { display: grid; place-items: center; width: 62px; height: 62px; border: 1px solid color-mix(in srgb, var(--throne-accent) 75%, var(--gold-dim)); background: rgba(7,4,18,0.64); box-shadow: inset 0 0 22px color-mix(in srgb, var(--throne-accent) 17%, transparent), 0 0 18px color-mix(in srgb, var(--throne-accent) 26%, transparent); color: transparent; transform: rotate(45deg); }
-.throne-ring-nav-diamond::after { content: '\203a'; color: var(--throne-accent); font: 400 3.3rem/0.5 Georgia, serif; text-shadow: 0 0 10px var(--throne-glow); transform: rotate(-45deg); }
-.throne-ring-nav--previous .throne-ring-nav-diamond::after { content: '\2039'; }
+.throne-ring-nav-diamond { position: relative; display: grid; place-items: center; width: 82px; height: 82px; border: 1px solid color-mix(in srgb, var(--throne-accent) 85%, var(--gold-dim)); background: linear-gradient(135deg, color-mix(in srgb, var(--throne-accent) 16%, rgba(7,4,18,0.88)), rgba(7,4,18,0.92) 68%); box-shadow: inset 0 0 26px color-mix(in srgb, var(--throne-accent) 20%, transparent), 0 0 22px color-mix(in srgb, var(--throne-accent) 27%, transparent); transform: rotate(45deg); transition: border-color 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease; }
+.throne-ring-nav-diamond::before { content: ''; position: absolute; inset: -12px; border: 1px solid color-mix(in srgb, var(--throne-accent) 72%, transparent); box-shadow: 0 0 18px color-mix(in srgb, var(--throne-accent) 34%, transparent), inset 0 0 18px color-mix(in srgb, var(--throne-accent) 10%, transparent); }
+.throne-ring-nav-diamond::after { content: ''; position: absolute; inset: 9px; border: 1px solid color-mix(in srgb, var(--throne-accent) 44%, transparent); }
+.throne-ring-nav-chevron { position: relative; z-index: 1; color: #ffe2a0; font: 400 4.35rem/0.5 Georgia, serif; text-shadow: 0 0 12px rgba(255,201,105,0.92), 0 0 22px var(--throne-glow); transform: rotate(-45deg) translateY(-1px); transition: color 0.25s ease, text-shadow 0.25s ease, transform 0.25s ease; }
+.throne-ring-nav-label { position: relative; z-index: 1; display: grid; grid-template-columns: 24px auto 24px; align-items: center; gap: 8px; color: #e4bd70; font: 600 0.64rem/1 'Cinzel', serif; letter-spacing: 0.27em; text-shadow: 0 0 10px rgba(0,0,0,0.9); transition: color 0.25s ease, text-shadow 0.25s ease; }
+.throne-ring-nav-label i { display: block; position: relative; width: 24px; height: 1px; background: linear-gradient(90deg, transparent, var(--throne-accent)); box-shadow: 0 0 7px var(--throne-glow); }
+.throne-ring-nav-label i:last-child { background: linear-gradient(90deg, var(--throne-accent), transparent); }
+.throne-ring-nav:hover .throne-ring-nav-diamond, .throne-ring-nav:focus-visible .throne-ring-nav-diamond { border-color: #f6d68b; background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--throne-accent) 38%, transparent), rgba(7,4,18,0.92) 68%); box-shadow: inset 0 0 34px color-mix(in srgb, var(--throne-accent) 38%, transparent), 0 0 18px var(--throne-glow), 0 0 42px color-mix(in srgb, var(--throne-accent) 62%, transparent); filter: brightness(1.18); }
+.throne-ring-nav:hover .throne-ring-nav-diamond::before, .throne-ring-nav:focus-visible .throne-ring-nav-diamond::before { border-color: #f0c479; box-shadow: 0 0 28px var(--throne-glow), inset 0 0 24px color-mix(in srgb, var(--throne-accent) 28%, transparent); }
+.throne-ring-nav:hover .throne-ring-nav-chevron, .throne-ring-nav:focus-visible .throne-ring-nav-chevron { color: #fff2cf; text-shadow: 0 0 12px #ffd16e, 0 0 30px var(--throne-glow); transform: rotate(-45deg) scale(1.1); }
+.throne-ring-nav:hover .throne-ring-nav-label, .throne-ring-nav:focus-visible .throne-ring-nav-label { color: #ffe5ae; text-shadow: 0 0 12px var(--throne-glow); }
 .throne-ring-live { position: absolute; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .throne-ring-guidance { margin-top: 1rem; }
 .throne-ring-stage.is-entering .throne-ring-focal-art { animation: throne-ring-art-enter 0.55s cubic-bezier(.2,.75,.2,1) both; }
@@ -2223,7 +2231,13 @@
 .throne-ring-nav--precision .throne-ring-nav-ornament i { border-radius: 0; }
 .throne-ring-nav--gravity .throne-ring-nav-ornament::before { inset: 0 8px; border: 1px solid rgba(136,145,173,0.62); border-radius: 50%; box-shadow: inset 0 0 12px rgba(0,0,0,0.75); }
 .throne-ring-nav--gravity .throne-ring-nav-ornament i { background: #090914; border-color: #8891ad; }
-@media (max-width: 760px) { .throne-ring-nav-ornament { display: none; } }
+.throne-ring-nav--radiation .throne-ring-nav-ornament::before { inset: 3px 0; border: 0; background: repeating-linear-gradient(90deg, transparent 0 10px, rgba(159,224,65,0.72) 11px 13px, transparent 14px 22px); clip-path: polygon(0 47%, 100% 47%, 100% 53%, 0 53%); }
+.throne-ring-nav--radiation .throne-ring-nav-ornament::after { background: repeating-linear-gradient(90deg, transparent 0 8px, #9fe041 9px 11px, transparent 12px 18px); }
+.throne-ring-nav--radiation .throne-ring-nav-ornament i { border-color: #dfff92; box-shadow: 0 0 10px #9fe041, 0 0 18px rgba(159,224,65,0.5); }
+.throne-ring-nav--alchemy .throne-ring-nav-ornament::before { inset: 3px 0; border: 1px solid rgba(183,178,93,0.42); border-radius: 50%; background: repeating-radial-gradient(ellipse at 50% 50%, transparent 0 6px, rgba(183,178,93,0.46) 7px 8px, transparent 9px 14px); }
+.throne-ring-nav--alchemy .throne-ring-nav-ornament i { border-radius: 0; background: rgba(183,178,93,0.35); transform: rotate(45deg); }
+.throne-ring-nav:hover .throne-ring-nav-ornament, .throne-ring-nav:focus-visible .throne-ring-nav-ornament { opacity: 1; filter: brightness(1.35); }
+@media (max-width: 760px) { .throne-ring-nav-ornament { display: none; } .throne-ring-nav-diamond::before { inset: -7px; } .throne-ring-nav-diamond::after { inset: 5px; } .throne-ring-nav-chevron { font-size: 2.8rem; } }
 
 
 /* ---------------- Which Overlord Are You? quiz ---------------- */

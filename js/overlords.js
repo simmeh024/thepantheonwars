@@ -61,7 +61,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function renderNavButton(direction, neighbor, activeTheme) {
     var isPrevious = direction === 'previous';
-    return '<button class="throne-ring-nav throne-ring-nav--' + direction + ' throne-ring-nav--' + escapeHtml(activeTheme.scene) + '" type="button" data-throne-direction="' + direction + '" aria-label="' + (isPrevious ? 'Previous' : 'Next') + ' Overlord: ' + escapeHtml(neighbor.name) + '"><span class="throne-ring-nav-ornament" aria-hidden="true"><i></i><i></i><i></i></span><span class="throne-ring-nav-diamond" aria-hidden="true">' + (isPrevious ? '&#8249;' : '&#8250;') + '</span><span>' + (isPrevious ? 'Previous' : 'Next') + '</span></button>';
+    var label = isPrevious ? 'Previous' : 'Next';
+    return '<button class="throne-ring-nav throne-ring-nav--' + direction + ' throne-ring-nav--' + escapeHtml(activeTheme.scene) + '" type="button" data-throne-direction="' + direction + '" aria-label="' + label + ' Overlord: ' + escapeHtml(neighbor.name) + '"><span class="throne-ring-nav-ornament" aria-hidden="true"><i></i><i></i><i></i></span><span class="throne-ring-nav-diamond" aria-hidden="true"><span class="throne-ring-nav-chevron">' + (isPrevious ? '&#8249;' : '&#8250;') + '</span></span><span class="throne-ring-nav-label" aria-hidden="true"><i></i><span>' + label + '</span><i></i></span></button>';
   }
 
   function renderParticles(theme) {
