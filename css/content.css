@@ -2191,6 +2191,12 @@
 .throne-ring-scene-frame--water { border-color: rgba(117,185,220,0.58); background: repeating-radial-gradient(ellipse at 50% 100%, transparent 0 40px, rgba(117,185,220,0.2) 41px 43px, transparent 44px 92px); }
 @media (max-width: 760px) { .throne-ring-scene-frame { inset: 7px; } .throne-ring-scene-frame i { width: 16px; height: 16px; } }
 
+/* World imagery will own this layer later. Keep the interim stage deliberately
+   quiet: no constellation, material frame, radial rings, or pattern field. */
+.throne-ring-stage { background: #05030c; }
+.throne-ring-stage::before, .throne-ring-stage::after { display: none; }
+.throne-ring-constellation, .throne-ring-scene-frame { display: none; }
+
 
 /* ---------------- Which Overlord Are You? quiz ---------------- */
 .quiz-wrap { max-width: 760px; margin: 0 auto; }

@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var previous = available[wrapIndex(activeIndex - 1)];
     var next = available[wrapIndex(activeIndex + 1)];
     var theme = themeFor(selected);
-    ringEl.innerHTML = '<div class="throne-ring-stage throne-ring-stage--' + escapeHtml(theme.scene) + '" data-throne-theme="' + escapeHtml(theme.scene) + '" style="' + themeStyle(theme) + '" tabindex="0" aria-label="Throne Ring carousel. Use left and right arrow keys to change Overlord."><div class="throne-ring-scene-frame throne-ring-scene-frame--' + escapeHtml(theme.scene) + '" aria-hidden="true"><i></i><i></i><i></i><i></i></div><div class="throne-ring-constellation" aria-hidden="true"></div><div class="throne-ring-color-wash" aria-hidden="true"></div>' + renderParticles(theme) + renderShadowThrone(previous, 'previous') + renderShadowThrone(next, 'next') + '<div class="throne-ring-orbit" aria-label="Select an Overlord">' + available.map(renderSeat).join('') + '</div>' + renderNavButton('previous', previous) + renderNavButton('next', next) + renderFocal(selected) + '<p class="throne-ring-live" role="status" aria-live="polite">' + escapeHtml(selected.name) + ' selected. ' + escapeHtml(selected.epithet || '') + '</p></div><p class="throne-ring-guidance">Use the arrows, swipe, or select a throne to move through the Pantheon.</p>';
+    ringEl.innerHTML = '<div class="throne-ring-stage throne-ring-stage--' + escapeHtml(theme.scene) + '" data-throne-theme="' + escapeHtml(theme.scene) + '" style="' + themeStyle(theme) + '" tabindex="0" aria-label="Throne Ring carousel. Use left and right arrow keys to change Overlord."><div class="throne-ring-color-wash" aria-hidden="true"></div>' + renderParticles(theme) + renderShadowThrone(previous, 'previous') + renderShadowThrone(next, 'next') + '<div class="throne-ring-orbit" aria-label="Select an Overlord">' + available.map(renderSeat).join('') + '</div>' + renderNavButton('previous', previous) + renderNavButton('next', next) + renderFocal(selected) + '<p class="throne-ring-live" role="status" aria-live="polite">' + escapeHtml(selected.name) + ' selected. ' + escapeHtml(selected.epithet || '') + '</p></div><p class="throne-ring-guidance">Use the arrows, swipe, or select a throne to move through the Pantheon.</p>';
   }
 
   function getStage() { return ringEl.querySelector('.throne-ring-stage'); }
@@ -140,7 +140,6 @@ document.addEventListener('DOMContentLoaded', function () {
       .to(copyItems, { y: 0, opacity: 1, duration: 0.34, stagger: 0.055, ease: 'power2.out' }, 0.28)
       .to(stage.querySelector('.throne-ring-focal-link'), { boxShadow: '0 0 0 4px rgba(5,3,12,0.4), 0 0 34px ' + theme.glow, duration: 0.28, yoyo: true, repeat: 1, ease: 'sine.inOut' }, 0.57)
       .to(stage.querySelector('.throne-ring-color-wash'), { opacity: 0, duration: 0.48, ease: 'power2.inOut' }, 0.38);
-    gsap.to(stage.querySelector('.throne-ring-constellation'), { rotation: sign * 5, scale: 1.035, duration: 0.68, ease: 'power2.out' });
     emitTrail(stage, theme, direction);
   }
 
