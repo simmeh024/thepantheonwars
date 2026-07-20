@@ -369,23 +369,24 @@ also supports a deliberately manual `?full=1` historical rebuild.
   dependency is installed; continue to prefer CSS transitions and native browser
   APIs for modest motion and local UI state. Any new continuous motion must preserve
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
-- Cache-busting: `css/style.css?v=N` -- bump `N` across all public HTML files plus
-  the bundle reference and import query that include the changed source. Current
-  versions: public v=218, community v=205, and admin v=224. Public pages use
-  `css/public.css`, community pages use `css/community-bundle.css`, and the console
-  uses `css/admin-bundle.css`; `css/style.css` remains the legacy full compatibility
-  bundle. The ordered source and bundle map is in `css/SOURCES.md`.
+- Cache-busting: bump the query version across every HTML reference and the relevant
+  bundle/import when a static source changes. Current entry versions are public
+  `css/public.css?v=260`, community `css/community-bundle.css?v=244`, and admin
+  `css/admin-bundle.css?v=250`. Public pages use `css/public.css`, community pages
+  use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
+  `css/style.css` remains the legacy full compatibility bundle. The ordered source
+  and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=7), `js/members.js?v=N` (current: v=23)
-  and `js/notifications.js?v=N` (current: v=10), across the public pages
+  than once): `js/main.js?v=N` (current: v=11), `js/members.js?v=N` (current: v=32)
+  and `js/notifications.js?v=N` (loaded dynamically), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
-  `js/books.js?v=N` is page-specific (current: v=3) and only needs a version
+  `js/books.js?v=N` is page-specific (current: v=4) and only needs a version
   bump in `books.html`. `js/news.js?v=N` is likewise page-specific (current: v=9)
   and only needs a version bump in `news.html`. `js/news-post.js?v=N` powers the
-  dedicated public transmission page (current: v=3); it is only loaded by
+  dedicated public transmission page (current: v=12); it is only loaded by
   `news-post.html`.
 - Static CSS, JavaScript, font, image, and WebM video assets have a one-year
   `public, immutable` cache policy in `.htaccess`; HTML remains no-cache so
@@ -434,8 +435,14 @@ also supports a deliberately manual `?full=1` historical rebuild.
   way to scroll to it. `nav.main-nav` now also has
   `max-height: calc(100vh - 64px); overflow-y: auto` as a second, independent
   safety net in case a future addition ever makes the plain link list itself
-  too tall again.) On narrow screens the profile chip shows only the avatar
-  initial (name label and caret hidden) to stay compact next to the bell.
+  too tall again.) The authenticated profile chip is rendered by
+  `js/members.js`: it shows the member avatar, a role-coloured ring, display name,
+  and caret on desktop; on narrow screens only its avatar remains next to the bell.
+  The generated avatar markup has inline `22px` width/height, `flex-basis`, and
+  `object-fit: cover` as a defensive floor beneath the component CSS. Keep those
+  intrinsic dimensions when touching it: a CSS cache/cascade mismatch previously
+  allowed the source avatar to expand across the header. If the avatar fails to
+  load, the user initial fallback is shown instead.
 
 ## Verification checklist before every commit
 
@@ -1230,7 +1237,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   refresh when the tab becomes visible. `api/session-check.php` additionally
   throttles `users.last_active_at` writes to once per user per minute; the online
   window remains five minutes, so multi-tab activity stays accurate without
-  redundant row locks. The current members-script cache version is v=23 across
+  redundant row locks. The current members-script cache version is v=32 across
   every public page and the admin console.
 
 - **Static asset caching:** `.htaccess` now gives versioned CSS, JavaScript,
