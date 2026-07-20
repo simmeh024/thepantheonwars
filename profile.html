@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=244">
+<link rel="stylesheet" href="css/community-bundle.css?v=245">
 </head>
 <body>
 
@@ -454,7 +454,7 @@
 </div>
 
 <script src="js/main.js?v=11"></script>
-<script src="js/members.js?v=32"></script>
+<script src="js/members.js?v=33"></script>
 <script src="js/qrcode-generator.min.js?v=1"></script>
 <script>
 (function () {
@@ -1254,6 +1254,12 @@
             current.className = 'user-session-current';
             current.textContent = 'Current session';
             title.appendChild(current);
+          }
+          if (!session.is_persistent) {
+            var temporary = document.createElement('span');
+            temporary.className = 'user-session-temporary';
+            temporary.textContent = 'Temporary session';
+            title.appendChild(temporary);
           }
           var meta = document.createElement('p');
           meta.className = 'user-session-meta';

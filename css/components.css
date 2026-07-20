@@ -106,6 +106,8 @@
 .auth-google-mark { display: inline-flex; align-items: center; justify-content: center; width: 25px; height: 25px; margin-right: 9px; border: 1px solid rgba(224,178,74,0.72); border-radius: 50%; background: linear-gradient(135deg, var(--purple-bright), var(--gold-dim)); color: #fff8df; font: 700 1rem/1 'Cinzel', serif; letter-spacing: -0.05em; vertical-align: -6px; }
 .auth-oauth-option { display: flex; align-items: flex-start; gap: 8px; color: var(--text-faint); font-size: 0.78rem; line-height: 1.35; cursor: pointer; }
 .auth-oauth-option input { margin: 2px 0 0; accent-color: var(--purple-bright); }
+.auth-remember-option { display: flex; align-items: center; gap: 8px; margin: -2px 0 2px; color: var(--text-faint); font-size: 0.78rem; cursor: pointer; }
+.auth-remember-option input { accent-color: var(--purple-bright); }
 
 /* Password recovery lives on a dedicated, noindex page rather than inside
    the login modal. Keeping the card compact makes the security guidance and

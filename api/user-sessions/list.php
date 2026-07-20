@@ -10,7 +10,7 @@ $token = pw_current_session_token();
 
 try {
     $stmt = pw_db()->prepare(
-        'SELECT id, session_token_hash, device_label, browser_name, operating_system, ip_address, country_code, country_name, auth_provider, created_at, last_active_at, expires_at
+        'SELECT id, session_token_hash, device_label, browser_name, operating_system, ip_address, country_code, country_name, auth_provider, created_at, last_active_at, expires_at, is_persistent
          FROM user_sessions
          WHERE user_id = ? AND revoked_at IS NULL AND expires_at > UTC_TIMESTAMP()
          ORDER BY last_active_at DESC, created_at DESC'
@@ -30,6 +30,7 @@ try {
             'created_at' => $row['created_at'],
             'last_active_at' => $row['last_active_at'],
             'expires_at' => $row['expires_at'],
+            'is_persistent' => (bool)$row['is_persistent'],
             'is_current' => $currentHash !== '' && hash_equals($currentHash, $row['session_token_hash']),
         ];
     }, $stmt->fetchAll());

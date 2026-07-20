@@ -609,7 +609,23 @@ function pw_session_client_details() {
     return [$ua, $browser, $os, $browser . ' on ' . $os];
 }
 
-function pw_issue_user_session($userId, $provider = 'password') {
+// Re-issues the session cookie with the lifetime matching the caller's
+// "Remember me" choice. Must run BEFORE session_regenerate_id(true) -- that
+// call sends the new session cookie using whatever cookie params are
+// currently in effect, so the order here is load-bearing. A remembered
+// session gets the normal 30-day cookie; an unremembered one gets a true
+// session-scoped cookie (lifetime 0) so it disappears when the browser closes.
+function pw_apply_session_persistence($remember) {
+    session_set_cookie_params([
+        'lifetime' => $remember ? 60 * 60 * 24 * 30 : 0,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+}
+
+function pw_issue_user_session($userId, $provider = 'password', $remember = true) {
     $token = bin2hex(random_bytes(32));
     $_SESSION['pw_session_token'] = $token;
     $_SESSION['pw_authenticated_at'] = time();
@@ -627,11 +643,15 @@ function pw_issue_user_session($userId, $provider = 'password') {
             $countryCode = $country['country_code'];
             $countryName = $country['country_name'];
         }
+        // An unremembered session still gets a real database-side expiry (1 day)
+        // as a backstop, in case some browser keeps a "session" cookie alive
+        // longer than the current browsing session (e.g. session restore).
+        $expiryClause = $remember ? 'DATE_ADD(UTC_TIMESTAMP(), INTERVAL 30 DAY)' : 'DATE_ADD(UTC_TIMESTAMP(), INTERVAL 1 DAY)';
         $stmt = pw_db()->prepare(
             'INSERT INTO user_sessions (user_id, session_token_hash, php_session_id_hash, device_label, user_agent, browser_name, operating_system, ip_address, country_code, country_name, auth_provider, expires_at, is_persistent)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, DATE_ADD(UTC_TIMESTAMP(), INTERVAL 30 DAY), 1)'
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ' . $expiryClause . ', ?)'
         );
-        $stmt->execute([$userId, pw_session_hash($token), pw_session_hash(session_id()), $label, $ua, $browser, $os, $ip, $countryCode, $countryName, $provider]);
+        $stmt->execute([$userId, pw_session_hash($token), pw_session_hash(session_id()), $label, $ua, $browser, $os, $ip, $countryCode, $countryName, $provider, $remember ? 1 : 0]);
     } catch (Throwable $e) {
         // The registry migration may not have run yet. Do not break a valid
         // login during deployment; once present, validation becomes strict.

@@ -11,6 +11,7 @@ pw_require_csrf($input);
 
 $identifier = isset($input['identifier']) ? trim($input['identifier']) : '';
 $password = isset($input['password']) ? (string)$input['password'] : '';
+$remember = !empty($input['remember']);
 
 if ($identifier === '' || $password === '') {
     pw_error('Enter your username/email and password.');
@@ -94,6 +95,7 @@ if (pw_two_factor_is_enabled($db, (int)$user['id'])) {
     $_SESSION['pw_two_factor_pending_identifier'] = $identifier;
     $_SESSION['pw_two_factor_pending_at'] = time();
     $_SESSION['pw_two_factor_pending_attempts'] = 0;
+    $_SESSION['pw_two_factor_pending_remember'] = $remember;
     pw_log_activity('two_factor_challenge_issued', 'Password accepted; awaiting authenticator verification.', (int)$user['id'], $user['username']);
     pw_json(['ok' => true, 'two_factor_required' => true, 'expires_in' => PW_TWO_FACTOR_PENDING_TTL]);
 }
@@ -102,9 +104,10 @@ $stmt = $db->prepare('UPDATE users SET failed_login_attempts = 0, locked_until =
 $stmt->execute([$ip, $user['id']]);
 pw_log_login_attempt($ip, $identifier, true);
 
+pw_apply_session_persistence($remember);
 session_regenerate_id(true);
 $_SESSION['user_id'] = (int)$user['id'];
-pw_issue_user_session((int)$user['id'], 'password');
+pw_issue_user_session((int)$user['id'], 'password', $remember);
 
 pw_log_activity('login_ok', ucfirst($user['role']) . ' logged in.', (int)$user['id'], $user['username']);
 pw_log_activity('session_created', 'Created a password-authenticated session.', (int)$user['id'], $user['username']);

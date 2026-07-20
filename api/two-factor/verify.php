@@ -12,6 +12,7 @@ $userId = isset($_SESSION['pw_two_factor_pending_user_id']) ? (int)$_SESSION['pw
 $issuedAt = isset($_SESSION['pw_two_factor_pending_at']) ? (int)$_SESSION['pw_two_factor_pending_at'] : 0;
 $attempts = isset($_SESSION['pw_two_factor_pending_attempts']) ? (int)$_SESSION['pw_two_factor_pending_attempts'] : 0;
 $identifier = isset($_SESSION['pw_two_factor_pending_identifier']) ? (string)$_SESSION['pw_two_factor_pending_identifier'] : 'two-factor';
+$remember = !empty($_SESSION['pw_two_factor_pending_remember']);
 
 if ($userId <= 0 || $issuedAt < time() - PW_TWO_FACTOR_PENDING_TTL) {
     pw_two_factor_clear_pending_login();
@@ -56,10 +57,11 @@ try {
 }
 
 pw_log_login_attempt($ip, $identifier, true);
+pw_apply_session_persistence($remember);
 session_regenerate_id(true);
 pw_two_factor_clear_pending_login();
 $_SESSION['user_id'] = $userId;
-pw_issue_user_session($userId, 'password+totp');
+pw_issue_user_session($userId, 'password+totp', $remember);
 pw_log_activity('two_factor_verified', 'Completed authenticator verification for password sign-in.', $userId, $user['username']);
 pw_log_activity('login_ok', ucfirst($user['role']) . ' logged in with password and two-factor authentication.', $userId, $user['username']);
 pw_log_activity('session_created', 'Created a password-and-two-factor-authenticated session.', $userId, $user['username']);

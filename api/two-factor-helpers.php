@@ -165,6 +165,7 @@ function pw_two_factor_clear_pending_login(): void {
         $_SESSION['pw_two_factor_pending_user_id'],
         $_SESSION['pw_two_factor_pending_identifier'],
         $_SESSION['pw_two_factor_pending_at'],
-        $_SESSION['pw_two_factor_pending_attempts']
+        $_SESSION['pw_two_factor_pending_attempts'],
+        $_SESSION['pw_two_factor_pending_remember']
     );
 }

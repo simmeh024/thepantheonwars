@@ -558,6 +558,7 @@
 .user-session-details { min-width: 0; }
 .user-session-title { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; color: var(--text); font-weight: 600; }
 .user-session-current { color: #48dca4; border: 1px solid rgba(72, 220, 164, 0.45); background: rgba(72, 220, 164, 0.08); padding: 2px 7px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.user-session-temporary { color: var(--gold-bright); border: 1px solid rgba(224, 178, 74, 0.4); background: rgba(224, 178, 74, 0.08); padding: 2px 7px; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.06em; }
 .user-session-meta, .user-session-timing { margin: 5px 0 0; color: var(--text-faint); font-size: 0.78rem; }
 .user-session-timing { color: var(--purple-bright); }
 .user-session-revoke { flex: 0 0 auto; }

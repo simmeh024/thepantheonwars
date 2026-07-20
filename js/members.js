@@ -54,6 +54,7 @@ function initMembers() {
           '<p class="auth-recovery-link" hidden>Forgot your password? <a href="/password-reset.html">Reset it here.</a></p>' +
           '<div class="auth-field"><label for="login-identifier">Username or email</label><input id="login-identifier" name="identifier" type="text" autocomplete="username" required>' + fieldStateHtml() + '</div>' +
           '<div class="auth-field"><label for="login-password">Password</label>' + passwordFieldHtml('login-password', 'password', 'current-password') + fieldStateHtml() + '</div>' +
+          '<label class="auth-remember-option"><input type="checkbox" id="login-remember" checked>Remember me</label>' +
           '<div class="auth-oauth-divider"><span>or continue through Google</span></div>' +
           '<button type="button" class="btn auth-google-btn" data-google-oauth="login"><span class="auth-google-mark" aria-hidden="true">G</span>Continue with Google</button>' +
           '<button type="submit" class="btn btn-solid auth-submit">Log In</button>' +
@@ -190,11 +191,12 @@ function initMembers() {
     var form = e.target;
     var identifier = form.querySelector('#login-identifier').value.trim();
     var password = form.querySelector('#login-password').value;
+    var remember = form.querySelector('#login-remember').checked;
     var submitBtn = form.querySelector('.auth-submit');
     setRecoveryLink(form, false);
     submitBtn.disabled = true;
     ensureCsrfToken().then(function () {
-      return postJson('/api/login.php', { identifier: identifier, password: password, csrf: window.PW_AUTH.csrf });
+      return postJson('/api/login.php', { identifier: identifier, password: password, remember: remember, csrf: window.PW_AUTH.csrf });
     }).then(function (r) {
       if (r.data && r.data.ok) {
         if (r.data.two_factor_required) {
