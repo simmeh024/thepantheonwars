@@ -2097,7 +2097,7 @@
 .throne-ring-stage::before { inset: 8% 16% 10%; opacity: 0.72; }
 .throne-ring-stage::after { inset: 18% 29% 13%; opacity: 0.52; }
 .throne-ring-constellation { position: absolute; inset: 0; z-index: 0; pointer-events: none; opacity: 0.66; background: repeating-radial-gradient(ellipse at 50% 53%, transparent 0 58px, color-mix(in srgb, var(--throne-accent) 13%, transparent) 59px 60px, transparent 61px 108px), radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--throne-accent) 28%, transparent), transparent 33%); }
-.throne-ring-shadow-throne { position: absolute; z-index: 1; top: 15%; bottom: 20%; width: 28%; overflow: hidden; opacity: 0.3; filter: grayscale(0.8) brightness(0.34) contrast(1.12); mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 73%, transparent); -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 73%, transparent); pointer-events: none; }
+.throne-ring-shadow-throne { position: absolute; z-index: 1; top: 15%; bottom: 20%; width: 28%; overflow: hidden; opacity: 0.46; filter: grayscale(0.56) brightness(0.56) contrast(1.08); mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 73%, transparent); -webkit-mask-image: linear-gradient(to bottom, transparent, #000 18%, #000 73%, transparent); pointer-events: none; }
 .throne-ring-shadow-throne::after { content: ''; position: absolute; inset: 0; background: rgba(5,3,12,0.48); }
 .throne-ring-shadow-throne--previous { left: 7%; transform: perspective(900px) rotateY(22deg) scale(0.9); transform-origin: right center; }
 .throne-ring-shadow-throne--next { right: 7%; transform: perspective(900px) rotateY(-22deg) scale(0.9); transform-origin: left center; }
@@ -2105,7 +2105,7 @@
 .throne-ring-shadow-throne--next::after { background: linear-gradient(to right, rgba(5,3,12,0.16), rgba(5,3,12,0.96)); }
 .throne-ring-shadow-throne img { width: 100%; height: 100%; object-fit: cover; object-position: center 25%; }
 .throne-ring-orbit { position: absolute; z-index: 7; top: auto; right: auto; bottom: 25px; left: 50%; display: flex; align-items: end; justify-content: center; gap: clamp(6px, 1.2vw, 15px); width: auto; height: auto; transform: translateX(-50%); }
-.throne-ring-seat { --ring-radius: 0; position: relative; top: auto; left: auto; display: grid; gap: 5px; width: 57px; padding: 0; border: 0; background: transparent; color: var(--text-faint); cursor: pointer; transform: none; filter: grayscale(0.86) brightness(0.5); opacity: 0.55; transition: filter 0.3s ease, opacity 0.3s ease, transform 0.3s ease; }
+.throne-ring-seat { --ring-radius: 0; position: relative; top: auto; left: auto; display: grid; gap: 5px; width: 57px; padding: 0; border: 0; background: transparent; color: var(--text-faint); cursor: pointer; transform: none; filter: grayscale(0.3) brightness(0.9); opacity: 0.84; transition: filter 0.3s ease, opacity 0.3s ease, transform 0.3s ease; }
 .throne-ring-seat::before { display: none; }
 .throne-ring-seat:hover, .throne-ring-seat:focus-visible, .throne-ring-seat.is-active { filter: none; opacity: 1; transform: translateY(-4px); }
 .throne-ring-seat:focus-visible { outline: 2px solid var(--throne-accent); outline-offset: 5px; border-radius: 50%; }
@@ -2173,7 +2173,7 @@
 
 /* Material frame around each throne scene. The frame takes its identity from
    the selected Overlord without competing with the focal portrait. */
-.throne-ring-scene-frame { position: absolute; z-index: 9; inset: 12px; pointer-events: none; border: 1px solid color-mix(in srgb, var(--throne-accent) 48%, rgba(236,201,135,0.32)); box-shadow: inset 0 0 34px rgba(0,0,0,0.34), 0 0 18px color-mix(in srgb, var(--throne-accent) 15%, transparent); }
+.throne-ring-scene-frame { position: absolute; z-index: 2; inset: 12px; pointer-events: none; border: 1px solid color-mix(in srgb, var(--throne-accent) 48%, rgba(236,201,135,0.32)); box-shadow: inset 0 0 34px rgba(0,0,0,0.34), 0 0 18px color-mix(in srgb, var(--throne-accent) 15%, transparent); }
 .throne-ring-scene-frame::before, .throne-ring-scene-frame::after { content: ''; position: absolute; inset: 8px; opacity: 0.68; }
 .throne-ring-scene-frame::before { border-top: 1px solid color-mix(in srgb, var(--throne-accent) 64%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--throne-accent) 46%, transparent); }
 .throne-ring-scene-frame::after { border-left: 1px solid color-mix(in srgb, var(--throne-accent) 36%, transparent); border-right: 1px solid color-mix(in srgb, var(--throne-accent) 36%, transparent); }
@@ -2182,7 +2182,7 @@
 .throne-ring-scene-frame i:nth-child(2) { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
 .throne-ring-scene-frame i:nth-child(3) { right: -1px; bottom: -1px; border-left: 0; border-top: 0; }
 .throne-ring-scene-frame i:nth-child(4) { bottom: -1px; left: -1px; border-right: 0; border-top: 0; }
-.throne-ring-scene-frame--neural { background-image: radial-gradient(circle at 10% 12%, var(--throne-accent) 0 1px, transparent 2px), radial-gradient(circle at 90% 88%, var(--throne-accent) 0 1px, transparent 2px), linear-gradient(115deg, transparent 18%, color-mix(in srgb, var(--throne-accent) 30%, transparent) 18.3%, transparent 18.7%), linear-gradient(-65deg, transparent 79%, color-mix(in srgb, var(--throne-accent) 30%, transparent) 79.3%, transparent 79.7%); background-size: 46px 46px, 54px 54px, 100% 100%, 100% 100%; }
+.throne-ring-scene-frame--neural { background-image: radial-gradient(circle at 10% 12%, var(--throne-accent) 0 1px, transparent 2px), radial-gradient(circle at 90% 88%, var(--throne-accent) 0 1px, transparent 2px), linear-gradient(115deg, transparent 18%, color-mix(in srgb, var(--throne-accent) 30%, transparent) 18.3%, transparent 18.7%), linear-gradient(-65deg, transparent 79%, color-mix(in srgb, var(--throne-accent) 30%, transparent) 79.3%, transparent 79.7%); background-size: 152px 152px, 174px 174px, 100% 100%, 100% 100%; }
 .throne-ring-scene-frame--iron { background: repeating-linear-gradient(116deg, transparent 0 86px, rgba(224,90,74,0.23) 87px 89px, transparent 90px 146px), linear-gradient(90deg, rgba(10,7,16,0.8), transparent 18%, transparent 82%, rgba(10,7,16,0.8)); }
 .throne-ring-scene-frame--veil { border-color: rgba(79,179,232,0.54); background: radial-gradient(ellipse at 0 50%, rgba(79,179,232,0.16), transparent 36%), radial-gradient(ellipse at 100% 50%, rgba(79,179,232,0.16), transparent 36%); filter: saturate(1.08); }
 .throne-ring-scene-frame--ember { background: repeating-radial-gradient(ellipse at 50% 100%, transparent 0 43px, rgba(168,199,91,0.2) 44px 46px, transparent 47px 96px), linear-gradient(90deg, rgba(19,24,10,0.8), transparent 23%, transparent 77%, rgba(19,24,10,0.8)); }
