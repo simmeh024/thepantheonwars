@@ -486,7 +486,7 @@ function initMembers() {
       slot.className = 'nav-item has-dropdown auth-nav-item';
       slot.style.setProperty('--auth-role-color', roleColor);
       slot.innerHTML =
-        '<button type="button" class="nav-parent auth-profile-chip" style="--auth-role-color:' + roleColor + '" aria-label="Open account menu for ' + displayName + '" aria-expanded="false"><span class="auth-profile-chip-avatar"><img src="' + avatarUrl + '" alt="" onerror="this.hidden=true"><span class="auth-profile-chip-avatar-fallback">' + initial + '</span></span><span class="auth-profile-name">' + displayName + '</span><span class="nav-caret">⌄</span></button>' +
+        '<button type="button" class="nav-parent auth-profile-chip" style="--auth-role-color:' + roleColor + '" aria-label="Open account menu for ' + displayName + '" aria-expanded="false"><span class="auth-profile-chip-avatar" style="display:grid;width:22px;height:22px;flex:0 0 22px;overflow:hidden;place-items:center;border-radius:50%"><img src="' + avatarUrl + '" alt="" style="display:block;width:100%;height:100%;object-fit:cover" onerror="this.hidden=true"><span class="auth-profile-chip-avatar-fallback">' + initial + '</span></span><span class="auth-profile-name">' + displayName + '</span><span class="nav-caret">⌄</span></button>' +
         '<div class="nav-dropdown auth-nav-dropdown">' +
           '<button type="button" class="auth-menu-close" aria-label="Close account menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m7 7 10 10M17 7 7 17"/></svg></button>' +
           '<a class="auth-profile-summary" href="member.html?id=' + encodeURIComponent(window.PW_AUTH.user.id) + '" aria-label="View ' + displayName + '\'s profile">' +
