@@ -25,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function () {
     'drak-varros': { accent: '#c66145', glow: 'rgba(198,97,69,0.58)', motif: 'Gravity bound', scene: 'gravity', particle: 'gravity', throneImage: 'images/overlord-drak-throne.png' },
     'maerion-thal': { accent: '#75b9dc', glow: 'rgba(117,185,220,0.56)', motif: 'Reflected faces', scene: 'water', particle: 'water', throneImage: 'images/overlord-maerion-throne.png' },
     'krev-ashmane': { accent: '#b45b35', glow: 'rgba(180,91,53,0.58)', motif: 'Screamstone eternal', scene: 'chains', particle: 'ember', throneImage: 'images/overlord-krev-throne.png' },
+    'veylan-dros': { accent: '#e5b84e', glow: 'rgba(229,184,78,0.58)', motif: 'Gilded calculus', scene: 'gilded', particle: 'precision', throneImage: 'images/overlord-veylan-throne.png' },
     'marion-thal': { accent: '#75b9dc', glow: 'rgba(117,185,220,0.56)', motif: 'Reflected faces', scene: 'water', particle: 'water', throneImage: 'images/overlord-maerion-throne.png' }
   };
   var FALLBACK_THEME = { accent: '#b894f5', glow: 'rgba(184,148,245,0.5)', motif: 'Unknown signal', scene: 'unknown', particle: 'neural' };

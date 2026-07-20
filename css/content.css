@@ -2113,19 +2113,19 @@
 .throne-ring-seat.is-active .throne-ring-seat-portrait { width: 60px; height: 60px; border-width: 2px; box-shadow: 0 0 0 4px color-mix(in srgb, var(--throne-accent) 12%, transparent), 0 0 25px var(--throne-glow); }
 .throne-ring-seat-name { max-width: 70px; font-size: 0.5rem; letter-spacing: 0.08em; }
 .throne-ring-seat.is-active .throne-ring-seat-name { color: var(--throne-accent); }
-.throne-ring-focal { position: absolute; z-index: 3; inset: 0; display: block; width: auto; padding: 0; transform: none; border: 0; background: none; box-shadow: none; }
+.throne-ring-focal { position: absolute; z-index: auto; inset: 0; display: block; width: auto; padding: 0; transform: none; border: 0; background: none; box-shadow: none; pointer-events: none; }
 .throne-ring-focal::after { content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none; background: linear-gradient(to bottom, rgba(4,2,12,0.22), transparent 28%, rgba(4,2,12,0.1) 44%, rgba(4,2,12,0.92) 88%, #05030c 100%); }
 .throne-ring-focal-art { position: absolute; z-index: 0; top: 3%; bottom: 11%; left: 50%; width: min(44%, 520px); min-width: 320px; overflow: hidden; transform: translateX(-50%); filter: drop-shadow(0 0 36px var(--throne-glow)); }
 .throne-ring-focal-art::before { content: ''; position: absolute; z-index: 1; inset: 0; pointer-events: none; background: linear-gradient(to right, rgba(5,3,12,0.66), transparent 28%, transparent 72%, rgba(5,3,12,0.66)), linear-gradient(to bottom, transparent 57%, rgba(5,3,12,0.58)); }
 .throne-ring-focal-art img { width: 100%; height: 100%; object-fit: cover; object-position: center 21%; }
-.throne-ring-focal-copy { position: absolute; z-index: 2; right: 50%; bottom: 88px; width: min(94%, 700px); transform: translateX(50%); text-align: center; }
+.throne-ring-focal-copy { position: absolute; z-index: 8; right: 50%; bottom: 142px; width: min(94%, 700px); transform: translateX(50%); text-align: center; pointer-events: none; }
 .throne-ring-focal-sigil { display: block; margin-bottom: 8px; color: var(--throne-accent); font-size: 1.25rem; filter: drop-shadow(0 0 8px var(--throne-glow)); }
 .throne-ring-focal-motif { margin-bottom: 9px; color: var(--throne-accent); font-size: 0.64rem; }
 .throne-ring-focal h3 { margin: 0 0 0.2em; color: #f4ead9; font-size: clamp(1.8rem, 4vw, 3.1rem); text-shadow: 0 3px 18px rgba(0,0,0,0.92); }
 .throne-ring-focal-epithet { margin: 0 0 0.6rem; color: var(--throne-accent); font-size: 0.88rem; letter-spacing: 0.12em; text-transform: uppercase; text-shadow: 0 2px 12px rgba(0,0,0,0.92); }
 .throne-ring-focal-world { margin: 0 0 0.85rem; color: var(--gold-bright); font-size: 0.67rem; letter-spacing: 0.15em; text-transform: uppercase; }
 .throne-ring-focal-teaser { max-width: 570px; margin: 0 auto 1.1rem; color: #d4c6ae; font: 400 clamp(0.82rem, 1.3vw, 1rem)/1.6 'Cinzel', serif; text-shadow: 0 2px 12px rgba(0,0,0,0.92); }
-.throne-ring-focal-link { display: inline-flex; align-items: center; justify-content: center; min-width: 210px; min-height: 48px; padding: 0 22px; border: 1px solid color-mix(in srgb, var(--throne-accent) 75%, var(--gold-dim)); background: linear-gradient(90deg, rgba(5,3,12,0.82), color-mix(in srgb, var(--throne-accent) 14%, rgba(5,3,12,0.88)), rgba(5,3,12,0.82)); color: var(--throne-accent); font-size: 0.69rem; letter-spacing: 0.19em; box-shadow: 0 0 0 4px rgba(5,3,12,0.4), 0 0 18px color-mix(in srgb, var(--throne-accent) 25%, transparent); }
+.throne-ring-focal-link { position: relative; z-index: 1; display: inline-flex; align-items: center; justify-content: center; min-width: 210px; min-height: 48px; padding: 0 22px; border: 1px solid color-mix(in srgb, var(--throne-accent) 75%, var(--gold-dim)); background: linear-gradient(90deg, rgba(5,3,12,0.82), color-mix(in srgb, var(--throne-accent) 14%, rgba(5,3,12,0.88)), rgba(5,3,12,0.82)); color: var(--throne-accent); font-size: 0.69rem; letter-spacing: 0.19em; box-shadow: 0 0 0 4px rgba(5,3,12,0.4), 0 0 18px color-mix(in srgb, var(--throne-accent) 25%, transparent); pointer-events: auto; }
 .throne-ring-focal-link:hover, .throne-ring-focal-link:focus-visible { color: #fff; border-color: var(--gold-bright); box-shadow: 0 0 0 4px rgba(5,3,12,0.4), 0 0 28px var(--throne-glow); }
 .throne-ring-nav { position: absolute; z-index: 8; top: 50%; display: grid; justify-items: center; gap: 16px; width: 138px; padding: 0; border: 0; background: none; color: var(--gold); cursor: pointer; font: 600 0.6rem/1 'Jost', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; transform: translateY(-50%); transition: color 0.22s ease, transform 0.22s ease; }
 .throne-ring-nav--previous { left: clamp(12px, 4vw, 64px); }
@@ -2236,6 +2236,8 @@
 .throne-ring-nav--radiation .throne-ring-nav-ornament i { border-color: #dfff92; box-shadow: 0 0 10px #9fe041, 0 0 18px rgba(159,224,65,0.5); }
 .throne-ring-nav--alchemy .throne-ring-nav-ornament::before { inset: 3px 0; border: 1px solid rgba(183,178,93,0.42); border-radius: 50%; background: repeating-radial-gradient(ellipse at 50% 50%, transparent 0 6px, rgba(183,178,93,0.46) 7px 8px, transparent 9px 14px); }
 .throne-ring-nav--alchemy .throne-ring-nav-ornament i { border-radius: 0; background: rgba(183,178,93,0.35); transform: rotate(45deg); }
+.throne-ring-nav--gilded .throne-ring-nav-ornament::before { inset: 2px 0; border: 1px solid rgba(229,184,78,0.52); border-radius: 50%; background: repeating-radial-gradient(ellipse at 50% 50%, transparent 0 7px, rgba(229,184,78,0.4) 8px 9px, transparent 10px 15px); box-shadow: 0 0 11px rgba(229,184,78,0.34); }
+.throne-ring-nav--gilded .throne-ring-nav-ornament i { border-color: #ffe29a; background: rgba(229,184,78,0.44); box-shadow: 0 0 9px rgba(255,215,126,0.75); }
 .throne-ring-nav:hover .throne-ring-nav-ornament, .throne-ring-nav:focus-visible .throne-ring-nav-ornament { opacity: 1; filter: brightness(1.35); }
 @media (max-width: 760px) { .throne-ring-nav-ornament { display: none; } .throne-ring-nav-diamond::before { inset: -7px; } .throne-ring-nav-diamond::after { inset: 5px; } .throne-ring-nav-chevron { font-size: 2.8rem; } }
 
