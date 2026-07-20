@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
-<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/community-bundle.css?v=243"><link rel="stylesheet" href="css/reputation.css?v=3">
+<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/community-bundle.css?v=243"><link rel="stylesheet" href="css/reputation.css?v=4">
 </head>
 <body>
 <header class="site-header"><div class="nav-inner"><button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button><a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a><nav class="main-nav"><a href="index.html">Home</a><div class="nav-item has-dropdown"><span class="nav-parent">The Universe<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="books.html">The Books</a><a href="worlds.html">The Worlds</a><a href="overlords.html">The Overlords</a><a href="known-figures.html">Known Figures</a><a href="soundtracks.html">The Soundtracks</a></div></div><div class="nav-item has-dropdown"><span class="nav-parent">News<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="news.html">Latest News</a><a href="dev-dispatches.html">Development Dispatches</a></div></div><a href="about.html">About</a><div class="nav-item has-dropdown"><span class="nav-parent">Community<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="community.html">Nexus Veil (Forum)</a><a href="memberlist.html">Member List</a><a href="quiz.html">Quiz</a></div></div></nav><span class="nav-utility"><span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span></span></div></header>
@@ -16,7 +16,7 @@
   <div id="reputation-content" hidden>
     <div class="reputation-page-head"><span class="eyebrow">Community standing</span><h1>Reputation</h1><p id="reputation-level-copy">Loading your rank…</p><div class="reputation-page-bar"><span id="reputation-level-square"></span><span class="reputation-bar-track"><span id="reputation-level-fill" class="reputation-bar-fill"></span></span></div></div>
     <div class="reputation-columns"><section class="reputation-card"><div class="reputation-card-head"><h2>Recent signals</h2><span id="reputation-total" class="reputation-total"></span></div><div id="reputation-log" class="reputation-log"><p class="lore-status">Loading your history…</p></div><div class="reputation-log-actions"><button id="reputation-more" type="button" class="btn" hidden>View more</button></div></section>
-    <section class="reputation-card"><div class="reputation-card-head"><h2>Achievements</h2><span id="reputation-achievement-count" class="reputation-total"></span></div><div class="achievement-tier-track" id="achievement-tier-track"><span data-tier="bronze">Bronze</span><span data-tier="silver">Silver</span><span data-tier="gold">Gold</span><span data-tier="prismatic">Prismatic</span></div><div class="achievement-filter" id="achievement-filter"><button type="button" class="is-active" data-achievement-filter="all">All</button><button type="button" data-achievement-filter="unlocked">Unlocked</button><button type="button" data-achievement-filter="locked">Locked</button></div><div id="reputation-achievements" class="reputation-achievements"></div><div class="achievement-pages" id="achievement-pages"></div></section></div>
+    <section class="reputation-card"><div class="reputation-card-head"><h2>Achievements</h2><span id="reputation-achievement-count" class="reputation-total"></span></div><div class="achievement-filter" id="achievement-filter"><button type="button" class="is-active" data-achievement-filter="all">All</button><button type="button" data-achievement-filter="unlocked">Unlocked</button><button type="button" data-achievement-filter="locked">Locked</button></div><div id="reputation-achievements" class="reputation-achievements"></div><div class="achievement-pages" id="achievement-pages"></div></section></div>
   </div>
 </div></section></main>
 <script src="js/main.js?v=11"></script>
@@ -34,7 +34,7 @@
 <script>
 (function () {
   'use strict';
-  var filter = 'all', currentPage = 1, perPage = 4, filterEl = document.getElementById('achievement-filter'), listEl = document.getElementById('reputation-achievements'), pagesEl = document.getElementById('achievement-pages'), tierTrack = document.getElementById('achievement-tier-track'), allAchievements = [];
+  var filter = 'all', currentPage = 1, perPage = 4, filterEl = document.getElementById('achievement-filter'), listEl = document.getElementById('reputation-achievements'), pagesEl = document.getElementById('achievement-pages'), allAchievements = [];
   function esc(value) { var element = document.createElement('div'); element.textContent = value || ''; return element.innerHTML; }
   function tierLabel(tier) { return String(tier || '').charAt(0).toUpperCase() + String(tier || '').slice(1); }
   function buildTracks(achievements) {
@@ -62,7 +62,7 @@
       var phases = track.phases, unlockedPhases = phases.filter(function (phase) { return phase.unlocked; });
       var current = unlockedPhases.length ? unlockedPhases[unlockedPhases.length - 1] : phases[0];
       var next = phases.find(function (phase) { return !phase.unlocked; });
-      var targetPhase = next || current, progress = Math.min(Number(targetPhase.progress || 0), Number(targetPhase.target || 1));
+      var targetPhase = next || current, totalProgress = phases.reduce(function (highest, phase) { return Math.max(highest, Number(phase.progress || 0)); }, 0), progress = Math.min(totalProgress, Number(targetPhase.target || 1));
       var percent = Math.min(100, Math.round((progress / Math.max(1, Number(targetPhase.target || 1))) * 100));
       var nextRequirement = next ? 'Next: ' + next.name + ' (' + tierLabel(next.tier) + ') — ' + next.description + ' · ' + progress + '/' + next.target : 'All ' + track.label + ' milestones unlocked.';
       var phaseBar = phases.length > 1 ? '<div class="achievement-phase-track" aria-label="' + esc(track.label) + ' achievement phases">' + phases.map(function (phase) { var state = phase.unlocked ? ' is-unlocked' : (next && phase.key === next.key ? ' is-next' : ''); return '<span class="tier-' + esc(phase.tier) + state + '" title="' + esc(phaseTitle(phase)) + '">' + esc(tierLabel(phase.tier)) + '</span>'; }).join('') + '</div>' : '';
@@ -78,7 +78,7 @@
   }
   function loadAchievements() {
     if (!window.PW_AUTH || !window.PW_AUTH.loggedIn) return;
-    fetch('/api/reputation/summary.php', { credentials: 'same-origin' }).then(function (response) { return response.json(); }).then(function (data) { if (!data.ok) return; allAchievements = data.achievements || []; var rank={bronze:1,silver:2,gold:3,prismatic:4},highest=0;allAchievements.forEach(function(a){if(a.unlocked)highest=Math.max(highest,rank[a.tier]||0);});tierTrack.querySelectorAll('[data-tier]').forEach(function(item){var level=rank[item.getAttribute('data-tier')]||0;item.classList.toggle('is-reached',level<=highest);item.classList.toggle('is-current',level===highest);}); render(); }).catch(function () {});
+    fetch('/api/reputation/summary.php', { credentials: 'same-origin' }).then(function (response) { return response.json(); }).then(function (data) { if (!data.ok) return; allAchievements = data.achievements || []; render(); }).catch(function () {});
   }
   filterEl.addEventListener('click', function (event) { var button = event.target.closest('[data-achievement-filter]'); if (!button) return; filter = button.getAttribute('data-achievement-filter'); currentPage = 1; filterEl.querySelectorAll('button').forEach(function (item) { item.classList.toggle('is-active', item === button); }); render(); });
   pagesEl.addEventListener('click', function (event) { var button = event.target.closest('[data-page]'); if (!button) return; currentPage = Number(button.getAttribute('data-page')); render(); });
