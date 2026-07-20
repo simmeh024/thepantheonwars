@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=249">
+<link rel="stylesheet" href="css/public.css?v=250">
 </head>
 <body>
 
@@ -77,10 +77,20 @@
     </div>
   </div>
 
-  <section>
+  <section class="throne-ring-section" aria-labelledby="throne-ring-heading">
     <div class="container">
-      <div class="grid grid-3" id="overlord-grid">
-        <div class="admin-list-empty">Loading&hellip;</div>
+      <div class="throne-ring-intro">
+        <span class="eyebrow">The Inner Pantheon</span>
+        <h2 id="throne-ring-heading">The Throne Ring</h2>
+        <p class="lede">Every throne leaves a different mark on the worlds beneath it. Enter the ring and choose the ruler whose signal you wish to follow.</p>
+      </div>
+      <div class="throne-ring" id="throne-ring" aria-busy="true">
+        <div class="admin-list-empty">The thrones are assembling&hellip;</div>
+      </div>
+      <div class="throne-ring-sealed" id="throne-ring-sealed" hidden>
+        <span class="eyebrow">Beyond the Veil</span>
+        <h3>Sealed Thrones</h3>
+        <div class="throne-ring-sealed-grid" id="throne-ring-sealed-grid"></div>
       </div>
       <p class="overlords-note" id="overlords-note" hidden></p>
     </div>
@@ -166,6 +176,6 @@
 
 <script src="js/main.js?v=11"></script>
 <script src="js/members.js?v=30"></script>
-<script src="js/overlords.js?v=1"></script>
+<script src="js/overlords.js?v=2"></script>
 </body>
 </html>

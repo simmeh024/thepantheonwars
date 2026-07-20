@@ -2049,6 +2049,48 @@
   letter-spacing: 0.1em; color: var(--text-faint); margin-top: 0.6em;
 }
 
+/* ---------------- The Throne Ring (structural layer) ---------------- */
+.throne-ring-section { overflow: hidden; }
+.throne-ring-intro { max-width: 690px; margin: 0 auto 2.6rem; text-align: center; }
+.throne-ring-intro h2 { margin-bottom: 0.35em; }
+.throne-ring-intro .lede { margin: 0 auto; }
+.throne-ring { --throne-accent: var(--purple-bright); --throne-glow: rgba(162,121,236,0.45); position: relative; }
+.throne-ring-stage { position: relative; isolation: isolate; min-height: 700px; overflow: hidden; border: 1px solid rgba(162,121,236,0.32); background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--throne-accent, var(--purple-bright)) 12%, transparent) 0, transparent 31%), radial-gradient(ellipse at 50% 50%, rgba(21,13,46,0.18) 0, rgba(8,5,19,0.93) 73%), linear-gradient(135deg, rgba(43,26,80,0.54), rgba(7,4,18,0.9)); box-shadow: inset 0 0 0 1px rgba(236,201,135,0.045), 0 22px 58px rgba(0,0,0,0.25); }
+.throne-ring-stage::before, .throne-ring-stage::after { content: ''; position: absolute; z-index: -1; pointer-events: none; border-radius: 50%; }
+.throne-ring-stage::before { inset: 8% 18%; border: 1px solid color-mix(in srgb, var(--throne-accent, var(--purple-bright)) 42%, transparent); box-shadow: 0 0 42px var(--throne-glow, rgba(162,121,236,0.32)), inset 0 0 42px rgba(0,0,0,0.34); }
+.throne-ring-stage::after { inset: 21% 31%; border: 1px solid rgba(236,201,135,0.19); }
+.throne-ring-orbit { position: absolute; inset: 50% auto auto 50%; width: 1px; height: 1px; z-index: 2; }
+.throne-ring-seat { --ring-radius: min(30vw, 254px); position: absolute; top: 0; left: 0; display: grid; justify-items: center; gap: 8px; width: 118px; color: var(--text); text-align: center; text-decoration: none; transform: rotate(var(--ring-angle)) translateY(calc(var(--ring-radius) * -1)) translateX(-50%) rotate(calc(-1 * var(--ring-angle))); transform-origin: center; transition: filter 0.22s ease, opacity 0.22s ease; }
+.throne-ring-seat::before { content: ''; position: absolute; top: 44px; left: 50%; width: 1px; height: calc(var(--ring-radius) - 54px); transform: translateX(-50%) rotate(180deg); transform-origin: top; background: linear-gradient(var(--throne-accent), transparent 84%); opacity: 0.36; pointer-events: none; }
+.throne-ring-seat:hover, .throne-ring-seat:focus-visible { color: #fff; filter: brightness(1.2); }
+.throne-ring-seat:focus-visible { outline: 2px solid var(--throne-accent); outline-offset: 7px; border-radius: 6px; }
+.throne-ring-seat-portrait { position: relative; z-index: 1; width: 82px; height: 82px; overflow: hidden; border: 2px solid var(--throne-accent); border-radius: 50%; background: var(--panel-2); box-shadow: 0 0 0 5px color-mix(in srgb, var(--throne-accent) 10%, transparent), 0 0 22px var(--throne-glow); }
+.throne-ring-seat-portrait img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.throne-ring-seat-name { position: relative; z-index: 1; max-width: 118px; color: var(--text-dim); font: 600 0.65rem/1.25 'Jost', sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
+.throne-ring-focal { --throne-accent: var(--purple-bright); --throne-glow: rgba(162,121,236,0.45); position: absolute; top: 50%; left: 50%; z-index: 3; display: grid; grid-template-columns: 170px minmax(210px, 280px); align-items: center; gap: 24px; width: min(78%, 560px); padding: 27px; transform: translate(-50%, -50%); border: 1px solid color-mix(in srgb, var(--throne-accent) 66%, rgba(236,201,135,0.38)); background: linear-gradient(135deg, color-mix(in srgb, var(--throne-accent) 17%, rgba(15,9,33,0.96)), rgba(8,5,19,0.94) 68%); box-shadow: 0 0 0 1px rgba(255,255,255,0.025) inset, 0 16px 45px rgba(0,0,0,0.46), 0 0 44px var(--throne-glow); }
+.throne-ring-focal-halo { position: absolute; z-index: -1; inset: -24%; pointer-events: none; border-radius: 50%; background: radial-gradient(circle, color-mix(in srgb, var(--throne-accent) 24%, transparent), transparent 66%); filter: blur(6px); }
+.throne-ring-focal-portrait { width: 170px; height: 220px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--throne-accent) 72%, transparent); background: var(--bg); box-shadow: 0 0 30px var(--throne-glow); }
+.throne-ring-focal-portrait img { width: 100%; height: 100%; object-fit: cover; object-position: center; }
+.throne-ring-focal-copy { min-width: 0; }
+.throne-ring-focal-motif { display: block; margin-bottom: 0.8rem; color: var(--throne-accent); font: 600 0.62rem/1 'Jost', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+.throne-ring-focal h3 { margin: 0 0 0.28em; font-size: clamp(1.25rem, 2.8vw, 1.9rem); }
+.throne-ring-focal-epithet { margin: 0 0 0.7rem; color: var(--gold-bright); font: 500 0.78rem/1.35 'Cinzel', serif; }
+.throne-ring-focal-world { margin: 0 0 1.2rem; color: var(--text-faint); font-size: 0.76rem; letter-spacing: 0.05em; }
+.throne-ring-focal-link { color: var(--throne-accent); font: 600 0.68rem/1 'Jost', sans-serif; letter-spacing: 0.13em; text-transform: uppercase; }
+.throne-ring-focal-link:hover { color: var(--gold-bright); }
+.throne-ring-guidance { margin: 1rem 0 0; color: var(--text-faint); font-size: 0.76rem; text-align: center; }
+.throne-ring-sealed { margin-top: 3.5rem; text-align: center; }
+.throne-ring-sealed h3 { margin: 0.3rem 0 1.4rem; }
+.throne-ring-sealed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; }
+.throne-ring-sealed-card { display: flex; align-items: center; gap: 13px; padding: 13px; border: 1px solid color-mix(in srgb, var(--throne-accent) 30%, transparent); background: rgba(18,11,38,0.56); text-align: left; }
+.throne-ring-sealed-portrait { width: 50px; height: 50px; flex: 0 0 50px; overflow: hidden; border: 1px solid var(--throne-accent); border-radius: 50%; filter: grayscale(1) brightness(0.56); }
+.throne-ring-sealed-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.throne-ring-sealed-card h4 { margin: 0 0 0.3em; font: 600 0.84rem/1.2 'Cinzel', serif; }
+.throne-ring-sealed-card span:not(.throne-ring-sealed-portrait) { color: var(--text-faint); font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; }
+@media (max-width: 760px) { .throne-ring-stage { min-height: auto; padding: 20px; overflow: visible; } .throne-ring-stage::before, .throne-ring-stage::after { display: none; } .throne-ring-focal { position: relative; top: auto; left: auto; width: 100%; grid-template-columns: 94px minmax(0, 1fr); gap: 17px; padding: 18px; transform: none; } .throne-ring-focal-portrait { width: 94px; height: 126px; } .throne-ring-orbit { position: relative; inset: auto; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px 8px; width: auto; height: auto; margin-top: 25px; } .throne-ring-seat { position: relative; top: auto; left: auto; width: auto; transform: none; } .throne-ring-seat::before { display: none; } .throne-ring-seat-portrait { width: 62px; height: 62px; } .throne-ring-seat-name { max-width: 90px; font-size: 0.58rem; } }
+@media (max-width: 430px) { .throne-ring-stage { padding: 14px; } .throne-ring-focal { grid-template-columns: 78px minmax(0, 1fr); gap: 13px; padding: 15px; } .throne-ring-focal-portrait { width: 78px; height: 108px; } .throne-ring-focal-motif { margin-bottom: 0.55rem; font-size: 0.55rem; } .throne-ring-focal-world { margin-bottom: 0.85rem; } }
+@media (prefers-reduced-motion: reduce) { .throne-ring-seat { transition: none; } }
+
 
 /* ---------------- Which Overlord Are You? quiz ---------------- */
 .quiz-wrap { max-width: 760px; margin: 0 auto; }
