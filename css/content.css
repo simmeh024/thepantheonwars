@@ -2171,6 +2171,26 @@
 .throne-ring-stage--water .throne-ring-constellation { background: repeating-radial-gradient(ellipse at 50% 66%, transparent 0 46px, rgba(240,196,121,0.15) 47px 49px, transparent 50px 100px); }
 @media (prefers-reduced-motion: reduce) { .throne-ring-color-wash, .throne-ring-particles { display: none; } }
 
+/* Material frame around each throne scene. The frame takes its identity from
+   the selected Overlord without competing with the focal portrait. */
+.throne-ring-scene-frame { position: absolute; z-index: 9; inset: 12px; pointer-events: none; border: 1px solid color-mix(in srgb, var(--throne-accent) 48%, rgba(236,201,135,0.32)); box-shadow: inset 0 0 34px rgba(0,0,0,0.34), 0 0 18px color-mix(in srgb, var(--throne-accent) 15%, transparent); }
+.throne-ring-scene-frame::before, .throne-ring-scene-frame::after { content: ''; position: absolute; inset: 8px; opacity: 0.68; }
+.throne-ring-scene-frame::before { border-top: 1px solid color-mix(in srgb, var(--throne-accent) 64%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--throne-accent) 46%, transparent); }
+.throne-ring-scene-frame::after { border-left: 1px solid color-mix(in srgb, var(--throne-accent) 36%, transparent); border-right: 1px solid color-mix(in srgb, var(--throne-accent) 36%, transparent); }
+.throne-ring-scene-frame i { position: absolute; width: 26px; height: 26px; border: 1px solid var(--throne-accent); box-shadow: 0 0 12px var(--throne-glow); }
+.throne-ring-scene-frame i:nth-child(1) { top: -1px; left: -1px; border-right: 0; border-bottom: 0; }
+.throne-ring-scene-frame i:nth-child(2) { top: -1px; right: -1px; border-left: 0; border-bottom: 0; }
+.throne-ring-scene-frame i:nth-child(3) { right: -1px; bottom: -1px; border-left: 0; border-top: 0; }
+.throne-ring-scene-frame i:nth-child(4) { bottom: -1px; left: -1px; border-right: 0; border-top: 0; }
+.throne-ring-scene-frame--neural { background-image: radial-gradient(circle at 10% 12%, var(--throne-accent) 0 1px, transparent 2px), radial-gradient(circle at 90% 88%, var(--throne-accent) 0 1px, transparent 2px), linear-gradient(115deg, transparent 18%, color-mix(in srgb, var(--throne-accent) 30%, transparent) 18.3%, transparent 18.7%), linear-gradient(-65deg, transparent 79%, color-mix(in srgb, var(--throne-accent) 30%, transparent) 79.3%, transparent 79.7%); background-size: 46px 46px, 54px 54px, 100% 100%, 100% 100%; }
+.throne-ring-scene-frame--iron { background: repeating-linear-gradient(116deg, transparent 0 86px, rgba(224,90,74,0.23) 87px 89px, transparent 90px 146px), linear-gradient(90deg, rgba(10,7,16,0.8), transparent 18%, transparent 82%, rgba(10,7,16,0.8)); }
+.throne-ring-scene-frame--veil { border-color: rgba(79,179,232,0.54); background: radial-gradient(ellipse at 0 50%, rgba(79,179,232,0.16), transparent 36%), radial-gradient(ellipse at 100% 50%, rgba(79,179,232,0.16), transparent 36%); filter: saturate(1.08); }
+.throne-ring-scene-frame--ember { background: repeating-radial-gradient(ellipse at 50% 100%, transparent 0 43px, rgba(168,199,91,0.2) 44px 46px, transparent 47px 96px), linear-gradient(90deg, rgba(19,24,10,0.8), transparent 23%, transparent 77%, rgba(19,24,10,0.8)); }
+.throne-ring-scene-frame--precision { background: linear-gradient(90deg, transparent 49.85%, rgba(223,232,255,0.35) 50%, transparent 50.15%), linear-gradient(transparent 49.85%, rgba(223,232,255,0.26) 50%, transparent 50.15%); }
+.throne-ring-scene-frame--gravity { border-width: 2px; border-color: rgba(136,145,173,0.56); box-shadow: inset 0 0 50px rgba(0,0,0,0.68), 0 0 18px rgba(136,145,173,0.23); }
+.throne-ring-scene-frame--water { border-color: rgba(117,185,220,0.58); background: repeating-radial-gradient(ellipse at 50% 100%, transparent 0 40px, rgba(117,185,220,0.2) 41px 43px, transparent 44px 92px); }
+@media (max-width: 760px) { .throne-ring-scene-frame { inset: 7px; } .throne-ring-scene-frame i { width: 16px; height: 16px; } }
+
 
 /* ---------------- Which Overlord Are You? quiz ---------------- */
 .quiz-wrap { max-width: 760px; margin: 0 auto; }
