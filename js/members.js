@@ -56,12 +56,12 @@ function initMembers() {
           '<p class="auth-modal-intro">Return to the worlds beyond the Veil.</p>' +
           '<p class="auth-error"></p>' +
           '<p class="auth-recovery-link" hidden>Forgot your password? <a href="/password-reset.html">Reset it here.</a></p>' +
+          '<button type="button" class="btn auth-google-btn" data-oauth-provider="google" data-oauth-intent="login"><span class="auth-google-mark" aria-hidden="true">G</span>Continue with Google</button>' +
+          '<button type="button" class="btn auth-apple-btn" data-oauth-provider="apple" data-oauth-intent="login" hidden><span class="auth-apple-mark" aria-hidden="true">' + APPLE_ICON + '</span>Continue with Apple</button>' +
+          '<div class="auth-oauth-divider"><span>or continue with your Pantheon Wars account</span></div>' +
           '<div class="auth-field"><label for="login-identifier">Username or email</label><input id="login-identifier" name="identifier" type="text" autocomplete="username" required>' + fieldStateHtml() + '</div>' +
           '<div class="auth-field"><label for="login-password">Password</label>' + passwordFieldHtml('login-password', 'password', 'current-password') + fieldStateHtml() + '</div>' +
           '<label class="auth-remember-option"><input type="checkbox" id="login-remember" checked>Remember me</label>' +
-          '<div class="auth-oauth-divider"><span>or continue through</span></div>' +
-          '<button type="button" class="btn auth-google-btn" data-oauth-provider="google" data-oauth-intent="login"><span class="auth-google-mark" aria-hidden="true">G</span>Continue with Google</button>' +
-          '<button type="button" class="btn auth-apple-btn" data-oauth-provider="apple" data-oauth-intent="login" hidden><span class="auth-apple-mark" aria-hidden="true">' + APPLE_ICON + '</span>Continue with Apple</button>' +
           '<button type="submit" class="btn btn-solid auth-submit">Log In</button>' +
         '</form>' +
         '<form class="auth-form" data-form="two-factor" hidden>' +
@@ -76,14 +76,14 @@ function initMembers() {
           '<h3 class="auth-modal-title">Join the Pantheon</h3>' +
           '<p class="auth-modal-intro">Create your place in the Pantheon.</p>' +
           '<p class="auth-error"></p>' +
+          '<label class="auth-oauth-option"><input type="checkbox" id="reg-google-avatar" checked>Import my Google profile picture when available</label>' +
+          '<button type="button" class="btn auth-google-btn" data-oauth-provider="google" data-oauth-intent="register"><span class="auth-google-mark" aria-hidden="true">G</span>Register with Google</button>' +
+          '<button type="button" class="btn auth-apple-btn" data-oauth-provider="apple" data-oauth-intent="register" hidden><span class="auth-apple-mark" aria-hidden="true">' + APPLE_ICON + '</span>Register with Apple</button>' +
+          '<div class="auth-oauth-divider"><span>or register with your Pantheon Wars account</span></div>' +
           '<div class="auth-field"><label for="reg-username">Username</label><input id="reg-username" name="username" type="text" autocomplete="username" required minlength="3" maxlength="30" pattern="[A-Za-z0-9_-]+"><small class="auth-field-hint">3–30 characters: letters, numbers, hyphens, or underscores.</small>' + fieldStateHtml() + '</div>' +
           '<div class="auth-field"><label for="reg-email">Email</label><input id="reg-email" name="email" type="email" autocomplete="email" required>' + fieldStateHtml() + '</div>' +
           '<div class="auth-field"><label for="reg-password">Password</label>' + passwordFieldHtml('reg-password', 'password', 'new-password', 8) + '<div class="auth-password-strength" id="reg-password-strength" aria-live="polite"><i></i><i></i><i></i><i></i><small>Use 8 or more characters.</small></div>' + fieldStateHtml() + '</div>' +
           '<div class="auth-field"><label for="reg-password-confirm">Confirm Password</label>' + passwordFieldHtml('reg-password-confirm', 'password-confirm', 'new-password', 8) + fieldStateHtml() + '</div>' +
-          '<div class="auth-oauth-divider"><span>or continue through</span></div>' +
-          '<label class="auth-oauth-option"><input type="checkbox" id="reg-google-avatar" checked>Import my Google profile picture when available</label>' +
-          '<button type="button" class="btn auth-google-btn" data-oauth-provider="google" data-oauth-intent="register"><span class="auth-google-mark" aria-hidden="true">G</span>Register with Google</button>' +
-          '<button type="button" class="btn auth-apple-btn" data-oauth-provider="apple" data-oauth-intent="register" hidden><span class="auth-apple-mark" aria-hidden="true">' + APPLE_ICON + '</span>Register with Apple</button>' +
           '<button type="submit" class="btn btn-solid auth-submit">Create Account</button>' +
         '</form>' +
         '<div class="auth-success" hidden aria-live="polite"><span class="auth-success-mark">✓</span><span class="auth-success-label">Account created</span><h3>Welcome to the Pantheon.</h3><p>Your account is ready. Preparing your profile&hellip;</p></div>' +
