@@ -2149,6 +2149,28 @@
 @media (max-width: 760px) { .throne-ring-stage { min-height: 660px; padding: 0; overflow: hidden; } .throne-ring-stage::before, .throne-ring-stage::after, .throne-ring-shadow-throne { display: none; } .throne-ring-focal { position: absolute; inset: 0; display: block; width: auto; padding: 0; } .throne-ring-focal-art { top: 0; bottom: 0; width: min(100%, 460px); min-width: 0; } .throne-ring-focal-art::before { background: linear-gradient(to right, rgba(5,3,12,0.56), transparent 22%, transparent 78%, rgba(5,3,12,0.56)), linear-gradient(to bottom, rgba(5,3,12,0.12), transparent 36%, rgba(5,3,12,0.82) 76%, #05030c); } .throne-ring-focal-copy { bottom: 103px; width: calc(100% - 44px); } .throne-ring-focal h3 { font-size: clamp(1.65rem, 9vw, 2.45rem); } .throne-ring-focal-teaser { max-width: 430px; font-size: 0.75rem; line-height: 1.5; } .throne-ring-nav { top: 47%; width: 61px; gap: 8px; font-size: 0.5rem; } .throne-ring-nav > span:last-child { display: none; } .throne-ring-nav--previous { left: 10px; } .throne-ring-nav--next { right: 10px; } .throne-ring-nav-diamond { width: 43px; height: 43px; font-size: 2.4rem; } .throne-ring-orbit { bottom: 18px; gap: 5px; max-width: calc(100% - 20px); overflow-x: auto; justify-content: flex-start; padding: 6px; } .throne-ring-seat { flex: 0 0 43px; width: 43px; } .throne-ring-seat-portrait, .throne-ring-seat.is-active .throne-ring-seat-portrait { width: 38px; height: 38px; } .throne-ring-seat-name { display: none; } }
 @media (prefers-reduced-motion: reduce) { .throne-ring-stage.is-entering .throne-ring-focal-art, .throne-ring-stage.is-entering .throne-ring-focal-copy { animation: none; } .throne-ring-seat, .throne-ring-nav { transition: none; } }
 
+/* GSAP carousel depth, per-throne trails, and transition safety. */
+.throne-ring-stage.is-transitioning { cursor: progress; }
+.throne-ring-stage.is-transitioning button { pointer-events: none; }
+.throne-ring-color-wash { position: absolute; z-index: 6; inset: 0; pointer-events: none; opacity: 0; background: linear-gradient(90deg, transparent 0%, color-mix(in srgb, var(--throne-accent) 38%, transparent) 48%, transparent 100%); mix-blend-mode: screen; }
+.throne-ring-particles { position: absolute; z-index: 6; top: 48%; left: 50%; width: 1px; height: 1px; pointer-events: none; }
+.throne-ring-particle { position: absolute; display: block; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: var(--throne-accent); box-shadow: 0 0 8px var(--throne-glow); will-change: transform, opacity; }
+.throne-ring-particle--neural { width: 4px; height: 4px; border: 1px solid #e6d9ff; background: transparent; box-shadow: 0 0 9px var(--throne-glow); }
+.throne-ring-particle--shard { width: 7px; height: 7px; border-radius: 0; transform: rotate(45deg); background: linear-gradient(135deg, #ffd1c6, var(--throne-accent)); }
+.throne-ring-particle--veil { width: 12px; height: 4px; border-radius: 100%; opacity: 0.78; filter: blur(1px); }
+.throne-ring-particle--ember { width: 5px; height: 9px; border-radius: 70% 30% 70% 30%; background: linear-gradient(#fff2bd, var(--throne-accent)); }
+.throne-ring-particle--precision { width: 6px; height: 6px; border-radius: 0; border: 1px solid #fff; background: transparent; }
+.throne-ring-particle--gravity { width: 8px; height: 8px; background: #171726; box-shadow: 0 0 0 2px var(--throne-accent), 0 0 10px var(--throne-glow); }
+.throne-ring-particle--water { width: 10px; height: 5px; border: 1px solid var(--throne-accent); background: transparent; border-radius: 50%; }
+.throne-ring-stage--neural .throne-ring-constellation { background: repeating-radial-gradient(ellipse at 50% 53%, transparent 0 58px, rgba(186,153,255,0.18) 59px 60px, transparent 61px 108px), radial-gradient(circle at 50% 38%, rgba(162,121,236,0.34), transparent 33%); }
+.throne-ring-stage--iron .throne-ring-constellation { background: repeating-linear-gradient(114deg, transparent 0 78px, rgba(224,90,74,0.12) 79px 81px, transparent 82px 148px), radial-gradient(circle at 50% 45%, rgba(224,90,74,0.24), transparent 48%); }
+.throne-ring-stage--veil .throne-ring-constellation { filter: blur(1px); background: radial-gradient(ellipse at 35% 49%, rgba(79,179,232,0.23), transparent 42%), radial-gradient(ellipse at 65% 49%, rgba(79,179,232,0.2), transparent 42%); }
+.throne-ring-stage--ember .throne-ring-constellation { background: repeating-radial-gradient(ellipse at 50% 65%, transparent 0 64px, rgba(229,144,72,0.12) 65px 67px, transparent 68px 122px), radial-gradient(circle at 50% 52%, rgba(229,144,72,0.28), transparent 45%); }
+.throne-ring-stage--precision .throne-ring-constellation { background: linear-gradient(90deg, transparent 49.8%, rgba(223,232,255,0.18) 50%, transparent 50.2%), linear-gradient(transparent 49.8%, rgba(223,232,255,0.13) 50%, transparent 50.2%), radial-gradient(circle at 50% 45%, rgba(223,232,255,0.22), transparent 42%); }
+.throne-ring-stage--gravity .throne-ring-constellation { background: repeating-radial-gradient(circle at 50% 50%, transparent 0 42px, rgba(136,145,173,0.13) 43px 45px, transparent 46px 98px); }
+.throne-ring-stage--water .throne-ring-constellation { background: repeating-radial-gradient(ellipse at 50% 66%, transparent 0 46px, rgba(240,196,121,0.15) 47px 49px, transparent 50px 100px); }
+@media (prefers-reduced-motion: reduce) { .throne-ring-color-wash, .throne-ring-particles { display: none; } }
+
 
 /* ---------------- Which Overlord Are You? quiz ---------------- */
 .quiz-wrap { max-width: 760px; margin: 0 auto; }
