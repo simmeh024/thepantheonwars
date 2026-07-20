@@ -681,8 +681,11 @@ nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
 .auth-profile-chip { gap: 7px; padding: 4px 8px 4px 4px; border: 1px solid rgba(162,121,236,0.33); border-radius: 999px; background: rgba(124,79,214,0.08); transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; }
 button.auth-profile-chip { color: inherit; cursor: pointer; font: inherit; }
 .auth-nav-item:hover .auth-profile-chip, .auth-nav-item:focus-within .auth-profile-chip { border-color: var(--auth-role-color, var(--gold-dim)); background: rgba(124,79,214,0.14); box-shadow: 0 0 16px rgba(162,121,236,0.16); }
-.auth-profile-initial { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border: 1px solid var(--auth-role-color, var(--purple-bright)); border-radius: 50%; color: var(--text); font: 600 0.68rem/1 'Cinzel', serif; box-shadow: 0 0 8px color-mix(in srgb, var(--auth-role-color, var(--purple-bright)) 48%, transparent); }
-.auth-profile-name { max-width: 110px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.auth-profile-chip-avatar { position: relative; display: grid; width: 22px; height: 22px; flex: 0 0 22px; overflow: hidden; place-items: center; border: 1px solid var(--auth-role-color, var(--purple-bright)); border-radius: 50%; background: rgba(8,5,19,0.88); box-shadow: 0 0 8px color-mix(in srgb, var(--auth-role-color, var(--purple-bright)) 48%, transparent); }
+.auth-profile-chip-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.auth-profile-chip-avatar img[hidden] + .auth-profile-chip-avatar-fallback { display: grid; }
+.auth-profile-chip-avatar-fallback { display: none; width: 100%; height: 100%; place-items: center; color: var(--text); font: 600 0.68rem/1 'Cinzel', serif; }
+.auth-profile-name { max-width: 110px; overflow: hidden; color: var(--text); font: 600 0.72rem/1 'Cinzel', Georgia, serif; letter-spacing: 0.12em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
 .nav-toggle {
   display: none;
   flex-direction: column;
@@ -762,13 +765,13 @@ button.auth-profile-chip { color: inherit; cursor: pointer; font: inherit; }
   .nav-dropdown-rich { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
   .nav-dropdown-rich .nav-dropdown-links a { padding: 8px 10px; border: 1px solid rgba(162,121,236,0.14); background: rgba(255,255,255,0.018); }
   .nav-dropdown-aside { margin-top: 2px; }
-  /* Compact top-bar treatment: just the avatar initial (name/caret hidden)
+  /* Compact top-bar treatment: just the avatar (name/caret hidden)
      when signed in, or the plain "Login" link when signed out -- either way
      .nav-utility stays small enough to sit beside the bell next to the logo. */
   .nav-utility { gap: 10px; }
   .auth-profile-chip { gap: 0; padding: 0; border: 0; background: none; box-shadow: none; }
   .auth-profile-name, .auth-nav-item .nav-caret { display: none; }
-  .auth-profile-initial { width: 28px; height: 28px; }
+  .auth-profile-chip-avatar { width: 28px; height: 28px; flex-basis: 28px; }
   /* The account menu is outside main-nav. Keep it hidden until the avatar is
      tapped, then anchor an opaque, bounded card below that control. */
   .auth-nav-item { position: relative; flex-direction: row; width: auto; }
