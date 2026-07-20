@@ -817,6 +817,7 @@ function pw_reputation_reward_catalog(): array {
         ['key' => 'book_started', 'label' => 'Start a book (first time)', 'points' => 3],
         ['key' => 'book_finished', 'label' => 'Finish a book (first time)', 'points' => 5],
         ['key' => 'news_comment_posted', 'label' => 'Comment on a newspost', 'points' => 1],
+        ['key' => 'lore_discovery', 'label' => 'Discover a World or Overlord (first visit)', 'points' => 2],
     ];
     try {
         $rows = pw_db()->query('SELECT `key`, label, base_points, is_enabled FROM reputation_reward_rules ORDER BY `key` ASC')->fetchAll();

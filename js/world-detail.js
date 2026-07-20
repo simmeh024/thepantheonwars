@@ -21,6 +21,21 @@ document.addEventListener('DOMContentLoaded', function () {
     document.title = world.name + ' — World Record — The Pantheon Wars';
   }
 
+  // A discovery is awarded exactly once on the server for each member/world
+  // pair. Waiting for the auth bootstrap keeps this page fully public while
+  // still rewarding signed-in explorers who arrive before session-check ends.
+  function recordLoreDiscovery(worldId) {
+    function send() {
+      if (!window.PW_AUTH || !window.PW_AUTH.loggedIn || !window.PW_AUTH.csrf) return;
+      fetch('/api/reputation/lore-discovery.php', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entity_type: 'world', entity_id: worldId, csrf: window.PW_AUTH.csrf })
+      }).catch(function () {});
+    }
+    if (window.PW_AUTH && window.PW_AUTH.loggedIn) send();
+    else document.addEventListener('pw-auth-ready', send, { once: true });
+  }
+
   function setHeroImage(url) {
     if (!hero || !url) return;
     hero.style.setProperty('--world-record-image', 'url("' + String(url).replace(/"/g, '%22') + '")');
@@ -213,6 +228,7 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
       }
       if (content) content.innerHTML = detailHtml(world);
+      recordLoreDiscovery(world.id);
       if (window.wireWorldInteractions) window.wireWorldInteractions();
       weatherRequest.then(function (weatherData) { renderWorldWeather(weatherData, slug, world.name); });
     })

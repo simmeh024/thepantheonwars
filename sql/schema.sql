@@ -528,6 +528,19 @@ CREATE TABLE IF NOT EXISTS user_reputation_achievement_showcase (
   CONSTRAINT fk_reputation_showcase_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- First-visit lore discovery records. Every member can earn the discovery
+-- award once per available World and once per available Overlord.
+CREATE TABLE IF NOT EXISTS user_lore_discoveries (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  entity_type ENUM('world','overlord') NOT NULL,
+  entity_id INT UNSIGNED NOT NULL,
+  discovered_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_lore_discovery_member_record (user_id, entity_type, entity_id),
+  KEY idx_lore_discovery_member (user_id, discovered_at),
+  CONSTRAINT fk_lore_discovery_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Admin-managed personality quiz content. Each question has exactly six
 -- ordered options: the order maps to the fixed six-Overlord score catalog.
 CREATE TABLE IF NOT EXISTS quiz_questions (

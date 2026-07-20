@@ -191,6 +191,18 @@
     return 'His';
   }
 
+  function recordLoreDiscovery(overlordId) {
+    function send() {
+      if (!window.PW_AUTH || !window.PW_AUTH.loggedIn || !window.PW_AUTH.csrf) return;
+      fetch('/api/reputation/lore-discovery.php', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entity_type: 'overlord', entity_id: overlordId, csrf: window.PW_AUTH.csrf })
+      }).catch(function () {});
+    }
+    if (window.PW_AUTH && window.PW_AUTH.loggedIn) send();
+    else document.addEventListener('pw-auth-ready', send, { once: true });
+  }
+
   function load() {
     var slug = getParam('slug');
     if (!slug) {
@@ -209,6 +221,7 @@
         content.hidden = false;
 
         var ov = data.overlord;
+        recordLoreDiscovery(ov.id);
         document.title = (ov.meta_title || (ov.name + ' — The Pantheon Wars'));
         document.getElementById('overlord-doc-title').textContent = ov.meta_title || (ov.name + ' — The Pantheon Wars');
         document.getElementById('overlord-doc-description').setAttribute('content', ov.meta_description || '');
