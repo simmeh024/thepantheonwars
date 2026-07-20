@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var THRONE_THEMES = {
     'syn-dravus': { accent: '#a279ec', glow: 'rgba(162,121,236,0.62)', motif: 'Neural archive', scene: 'neural', particle: 'neural', throneImage: 'images/overlord-syn-throne.png' },
     'malric-thorne': { accent: '#e05a4a', glow: 'rgba(224,90,74,0.54)', motif: 'Iron roots', scene: 'iron', particle: 'shard', throneImage: 'images/overlord-malric-throne.png' },
+    'korrus-vale': { accent: '#9fe041', glow: 'rgba(159,224,65,0.58)', motif: 'Radiant decay', scene: 'radiation', particle: 'ember', throneImage: 'images/overlord-korrus-throne.png' },
     'lysara-venthe': { accent: '#4fb3e8', glow: 'rgba(79,179,232,0.54)', motif: 'Veiled echoes', scene: 'veil', particle: 'veil', throneImage: 'images/overlord-lysara-throne.png' },
     'zura-kaleth': { accent: '#a8c75b', glow: 'rgba(168,199,91,0.56)', motif: 'Ritual fire', scene: 'ember', particle: 'ember', throneImage: 'images/overlord-zura-throne.png' },
     'prime-eidra': { accent: '#dfe8ff', glow: 'rgba(223,232,255,0.54)', motif: 'Perfect symmetry', scene: 'precision', particle: 'precision' },
