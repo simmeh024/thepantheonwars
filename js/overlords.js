@@ -17,11 +17,12 @@ document.addEventListener('DOMContentLoaded', function () {
   var THRONE_THEMES = {
     'syn-dravus': { accent: '#a279ec', glow: 'rgba(162,121,236,0.62)', motif: 'Neural archive', scene: 'neural', particle: 'neural', throneImage: 'images/overlord-syn-throne.png' },
     'malric-thorne': { accent: '#e05a4a', glow: 'rgba(224,90,74,0.54)', motif: 'Iron roots', scene: 'iron', particle: 'shard' },
-    'lysara-venthe': { accent: '#4fb3e8', glow: 'rgba(79,179,232,0.54)', motif: 'Veiled echoes', scene: 'veil', particle: 'veil' },
+    'lysara-venthe': { accent: '#4fb3e8', glow: 'rgba(79,179,232,0.54)', motif: 'Veiled echoes', scene: 'veil', particle: 'veil', throneImage: 'images/overlord-lysara-throne.png' },
     'zura-kaleth': { accent: '#a8c75b', glow: 'rgba(168,199,91,0.56)', motif: 'Ritual fire', scene: 'ember', particle: 'ember', throneImage: 'images/overlord-zura-throne.png' },
     'prime-eidra': { accent: '#dfe8ff', glow: 'rgba(223,232,255,0.54)', motif: 'Perfect symmetry', scene: 'precision', particle: 'precision' },
     'drak-varros': { accent: '#c66145', glow: 'rgba(198,97,69,0.58)', motif: 'Gravity bound', scene: 'gravity', particle: 'gravity', throneImage: 'images/overlord-drak-throne.png' },
     'maerion-thal': { accent: '#75b9dc', glow: 'rgba(117,185,220,0.56)', motif: 'Reflected faces', scene: 'water', particle: 'water', throneImage: 'images/overlord-maerion-throne.png' },
+    'krev-ashmane': { accent: '#b45b35', glow: 'rgba(180,91,53,0.58)', motif: 'Screamstone eternal', scene: 'chains', particle: 'ember', throneImage: 'images/overlord-krev-throne.png' },
     'marion-thal': { accent: '#75b9dc', glow: 'rgba(117,185,220,0.56)', motif: 'Reflected faces', scene: 'water', particle: 'water', throneImage: 'images/overlord-maerion-throne.png' }
   };
   var FALLBACK_THEME = { accent: '#b894f5', glow: 'rgba(184,148,245,0.5)', motif: 'Unknown signal', scene: 'unknown', particle: 'neural' };
