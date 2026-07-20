@@ -925,10 +925,10 @@ function pw_remove_reputation(PDO $db, int $userId, int $points, array $meta = [
 
 function pw_reputation_achievement_catalog(): array {
     return [
-        ['key' => 'first_signal', 'name' => 'First Signal', 'description' => 'Started your first forum topic.', 'points' => 5, 'tier' => 'bronze', 'progress_type' => 'topics', 'target' => 1, 'icon' => '✦'],
-        ['key' => 'topic_vanguard', 'name' => 'Topic Vanguard', 'description' => 'Started fifty forum topics.', 'points' => 50, 'tier' => 'silver', 'progress_type' => 'topics', 'target' => 50, 'icon' => '◈'],
-        ['key' => 'topic_architect', 'name' => 'Topic Architect', 'description' => 'Started two hundred and fifty forum topics.', 'points' => 100, 'tier' => 'gold', 'progress_type' => 'topics', 'target' => 250, 'icon' => '◆'],
-        ['key' => 'nexus_sovereign', 'name' => 'Nexus Sovereign', 'description' => 'Started two thousand forum topics.', 'points' => 1000, 'tier' => 'prismatic', 'progress_type' => 'topics', 'target' => 2000, 'icon' => '✧'],
+        ['key' => 'first_signal', 'name' => 'First Signal', 'description' => 'Started your first forum topic.', 'points' => 5, 'tier' => 'bronze', 'progress_type' => 'topics', 'target' => 1, 'icon' => '✦', 'track' => 'forum_topics', 'track_label' => 'Forum Topics', 'track_order' => 1],
+        ['key' => 'topic_vanguard', 'name' => 'Topic Vanguard', 'description' => 'Started fifty forum topics.', 'points' => 50, 'tier' => 'silver', 'progress_type' => 'topics', 'target' => 50, 'icon' => '◈', 'track' => 'forum_topics', 'track_label' => 'Forum Topics', 'track_order' => 2],
+        ['key' => 'topic_architect', 'name' => 'Topic Architect', 'description' => 'Started two hundred and fifty forum topics.', 'points' => 100, 'tier' => 'gold', 'progress_type' => 'topics', 'target' => 250, 'icon' => '◆', 'track' => 'forum_topics', 'track_label' => 'Forum Topics', 'track_order' => 3],
+        ['key' => 'nexus_sovereign', 'name' => 'Nexus Sovereign', 'description' => 'Started two thousand forum topics.', 'points' => 1000, 'tier' => 'prismatic', 'progress_type' => 'topics', 'target' => 2000, 'icon' => '✧', 'track' => 'forum_topics', 'track_label' => 'Forum Topics', 'track_order' => 4],
         ['key' => 'nexus_voice', 'name' => 'Nexus Voice', 'description' => 'Published ten forum posts.', 'points' => 15, 'tier' => 'silver', 'progress_type' => 'posts', 'target' => 10, 'icon' => '◈'],
         ['key' => 'resonance_awakened', 'name' => 'Resonance Awakened', 'description' => 'Completed the Overlord quiz.', 'points' => 10, 'tier' => 'bronze', 'progress_type' => 'quiz', 'target' => 1, 'icon' => '◉'],
         ['key' => 'shelf_seeker', 'name' => 'Shelf Seeker', 'description' => 'Started three books.', 'points' => 5, 'tier' => 'bronze', 'progress_type' => 'books_started', 'target' => 3, 'icon' => '▰'],

@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
-<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/community-bundle.css?v=243"><link rel="stylesheet" href="css/reputation.css?v=2">
+<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/community-bundle.css?v=243"><link rel="stylesheet" href="css/reputation.css?v=3">
 </head>
 <body>
 <header class="site-header"><div class="nav-inner"><button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button><a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a><nav class="main-nav"><a href="index.html">Home</a><div class="nav-item has-dropdown"><span class="nav-parent">The Universe<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="books.html">The Books</a><a href="worlds.html">The Worlds</a><a href="overlords.html">The Overlords</a><a href="known-figures.html">Known Figures</a><a href="soundtracks.html">The Soundtracks</a></div></div><div class="nav-item has-dropdown"><span class="nav-parent">News<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="news.html">Latest News</a><a href="dev-dispatches.html">Development Dispatches</a></div></div><a href="about.html">About</a><div class="nav-item has-dropdown"><span class="nav-parent">Community<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="community.html">Nexus Veil (Forum)</a><a href="memberlist.html">Member List</a><a href="quiz.html">Quiz</a></div></div></nav><span class="nav-utility"><span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span></span></div></header>
@@ -27,7 +27,7 @@
   function esc(v){var d=document.createElement('div');d.textContent=v||'';return d.innerHTML;}
   function date(v){var d=new Date(String(v).replace(' ','T')+'Z');return isNaN(d)?v:d.toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});}
   function loadLog(append){fetch('/api/reputation/history.php?page='+page,{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){pages=data.pages||1; if(!append)log.innerHTML=''; if(!data.entries.length&&!append)log.innerHTML='<p class="lore-status">No logged reputation changes yet.</p>'; data.entries.forEach(function(entry){var row=document.createElement('div');row.className='reputation-log-row '+(Number(entry.points)<0?'is-loss':'');row.innerHTML='<div><strong>'+esc(entry.label)+'</strong><small>'+date(entry.created_at)+(entry.note?' · '+esc(entry.note):'')+'</small></div><b>'+(Number(entry.points)>0?'+':'')+entry.points+' rep</b>';log.appendChild(row);});more.hidden=page>=pages;});}
-  function load(){if(!window.PW_AUTH.loggedIn){gate.hidden=false;content.hidden=true;return;}gate.hidden=true;content.hidden=false;fetch('/api/reputation/summary.php',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){if(!data.ok)throw new Error();var rep=data.reputation||{}, color=rep.level_color||'#a279ec';document.getElementById('reputation-level-copy').textContent=(rep.level_name||'Unranked')+' · '+rep.points+' reputation'+(rep.next_level_name?' · '+Math.max(0,rep.next_level_threshold-rep.points)+' to '+rep.next_level_name:'');document.getElementById('reputation-total').textContent=rep.points+' rep';var square=document.getElementById('reputation-level-square'),fill=document.getElementById('reputation-level-fill');square.style.background=color;square.textContent=rep.level_number||'';fill.style.width=(rep.progress_percent||0)+'%';fill.style.background=color;var area=document.getElementById('reputation-achievements');area.innerHTML='';var unlocked=0;(data.achievements||[]).forEach(function(a){if(a.unlocked)unlocked++;var card=document.createElement('div');card.className='reputation-achievement '+(a.unlocked?'is-unlocked':'');card.innerHTML='<span>'+esc(a.icon)+'</span><div><strong>'+esc(a.name)+' <em>+'+Number(a.points||0)+' rep</em></strong><small>'+esc(a.description)+(a.unlocked?' · Unlocked':'')+'</small></div>';area.appendChild(card);});document.getElementById('reputation-achievement-count').textContent=unlocked+'/'+(data.achievements||[]).length;}).catch(function(){document.getElementById('reputation-level-copy').textContent='Reputation history is being prepared.';});page=1;loadLog(false);}
+  function load(){if(!window.PW_AUTH.loggedIn){gate.hidden=false;content.hidden=true;return;}gate.hidden=true;content.hidden=false;fetch('/api/reputation/summary.php',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){if(!data.ok)throw new Error();var rep=data.reputation||{}, color=rep.level_color||'#a279ec';document.getElementById('reputation-level-copy').textContent=(rep.level_name||'Unranked')+' · '+rep.points+' reputation'+(rep.next_level_name?' · '+Math.max(0,rep.next_level_threshold-rep.points)+' to '+rep.next_level_name:'');document.getElementById('reputation-total').textContent=rep.points+' rep';var square=document.getElementById('reputation-level-square'),fill=document.getElementById('reputation-level-fill');square.style.background=color;square.textContent=rep.level_number||'';fill.style.width=(rep.progress_percent||0)+'%';fill.style.background=color;}).catch(function(){document.getElementById('reputation-level-copy').textContent='Reputation history is being prepared.';});page=1;loadLog(false);}
   more.addEventListener('click',function(){page++;loadLog(true);});document.addEventListener('pw-auth-ready',load);load();
 }());
 </script>
@@ -36,17 +36,40 @@
   'use strict';
   var filter = 'all', currentPage = 1, perPage = 4, filterEl = document.getElementById('achievement-filter'), listEl = document.getElementById('reputation-achievements'), pagesEl = document.getElementById('achievement-pages'), tierTrack = document.getElementById('achievement-tier-track'), allAchievements = [];
   function esc(value) { var element = document.createElement('div'); element.textContent = value || ''; return element.innerHTML; }
+  function tierLabel(tier) { return String(tier || '').charAt(0).toUpperCase() + String(tier || '').slice(1); }
+  function buildTracks(achievements) {
+    var tracks = [], byKey = {};
+    achievements.forEach(function (achievement) {
+      var key = achievement.track || achievement.key;
+      if (!byKey[key]) { byKey[key] = { key: key, label: achievement.track_label || achievement.name, phases: [] }; tracks.push(byKey[key]); }
+      byKey[key].phases.push(achievement);
+    });
+    tracks.forEach(function (track) { track.phases.sort(function (a, b) { return Number(a.track_order || 1) - Number(b.track_order || 1); }); });
+    return tracks;
+  }
+  function phaseTitle(phase) {
+    var progress = Math.min(Number(phase.progress || 0), Number(phase.target || 1));
+    return tierLabel(phase.tier) + ' tier · ' + phase.name + ' · ' + phase.description + ' · ' + progress + '/' + phase.target + (phase.unlocked ? ' · Unlocked' : ' · Locked');
+  }
   function render() {
-    var visible = allAchievements.filter(function (achievement) { return filter === 'all' || (filter === 'unlocked' ? achievement.unlocked : !achievement.unlocked); });
+    var visible = buildTracks(allAchievements).filter(function (track) {
+      var unlocked = track.phases.some(function (phase) { return phase.unlocked; });
+      return filter === 'all' || (filter === 'unlocked' ? unlocked : !unlocked);
+    });
     var pageCount = Math.max(1, Math.ceil(visible.length / perPage)); currentPage = Math.min(currentPage, pageCount);
     listEl.innerHTML = '';
-    visible.slice((currentPage - 1) * perPage, currentPage * perPage).forEach(function (achievement) {
-      var progress = Math.min(Number(achievement.progress || 0), Number(achievement.target || 1));
-      var percent = Math.min(100, Math.round((progress / Math.max(1, Number(achievement.target || 1))) * 100));
+    visible.slice((currentPage - 1) * perPage, currentPage * perPage).forEach(function (track) {
+      var phases = track.phases, unlockedPhases = phases.filter(function (phase) { return phase.unlocked; });
+      var current = unlockedPhases.length ? unlockedPhases[unlockedPhases.length - 1] : phases[0];
+      var next = phases.find(function (phase) { return !phase.unlocked; });
+      var targetPhase = next || current, progress = Math.min(Number(targetPhase.progress || 0), Number(targetPhase.target || 1));
+      var percent = Math.min(100, Math.round((progress / Math.max(1, Number(targetPhase.target || 1))) * 100));
+      var nextRequirement = next ? 'Next: ' + next.name + ' (' + tierLabel(next.tier) + ') — ' + next.description + ' · ' + progress + '/' + next.target : 'All ' + track.label + ' milestones unlocked.';
+      var phaseBar = phases.length > 1 ? '<div class="achievement-phase-track" aria-label="' + esc(track.label) + ' achievement phases">' + phases.map(function (phase) { var state = phase.unlocked ? ' is-unlocked' : (next && phase.key === next.key ? ' is-next' : ''); return '<span class="tier-' + esc(phase.tier) + state + '" title="' + esc(phaseTitle(phase)) + '">' + esc(tierLabel(phase.tier)) + '</span>'; }).join('') + '</div>' : '';
       var card = document.createElement('div');
-      card.className = 'reputation-achievement tier-' + esc(achievement.tier || 'bronze') + (achievement.unlocked ? ' is-unlocked' : '');
-      card.title = (achievement.tier || 'bronze') + ' tier · ' + achievement.description + ' · ' + progress + '/' + achievement.target;
-      card.innerHTML = '<span>' + esc(achievement.icon) + '</span><div class="achievement-copy"><strong>' + esc(achievement.name) + ' <em>+' + Number(achievement.points || 0) + ' rep</em></strong><small>' + esc(achievement.description) + (achievement.unlocked ? ' · Unlocked' : ' · Locked') + '</small><div class="achievement-progress"><i style="width:' + percent + '%"></i></div><small class="achievement-progress-label">' + progress + ' / ' + achievement.target + '</small></div>';
+      card.className = 'reputation-achievement tier-' + esc(current.tier || 'bronze') + (unlockedPhases.length ? ' is-unlocked' : '') + (next ? ' next-tier-' + esc(next.tier) : ' is-complete');
+      card.title = nextRequirement;
+      card.innerHTML = '<span>' + esc(current.icon) + '</span><div class="achievement-copy"><strong>' + esc(current.name) + ' <em>+' + Number(current.points || 0) + ' rep</em></strong><small>' + esc(current.description) + (current.unlocked ? ' · Unlocked' : ' · Locked') + '</small><div class="achievement-progress" title="' + esc(nextRequirement) + '"><i style="width:' + percent + '%"></i></div><small class="achievement-progress-label">' + esc(nextRequirement) + '</small>' + phaseBar + '</div>';
       listEl.appendChild(card);
     });
     if (!visible.length) listEl.innerHTML = '<p class="lore-status">No achievements in this filter.</p>';
