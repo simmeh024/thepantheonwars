@@ -62,7 +62,7 @@ function initMain() {
     var routeGroups = {
       'The Universe': ['/books.html', '/chapter-one.html', '/worlds.html', '/overlord.html', '/overlords.html', '/known-figures.html', '/soundtracks.html'],
       'News': ['/news.html', '/dev-dispatches.html', '/dev-metrics.html'],
-      'Community': ['/community.html', '/member.html', '/memberlist.html', '/profile.html', '/notifications.html', '/quiz.html']
+      'Community': ['/community.html', '/member.html', '/memberlist.html', '/profile.html', '/reputation.html', '/notifications.html', '/quiz.html']
     };
     Array.prototype.forEach.call(nav.querySelectorAll('.nav-item.has-dropdown'), function (item) {
       var navLabel = item.querySelector('.nav-parent');
