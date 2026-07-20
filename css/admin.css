@@ -333,6 +333,16 @@
 .mail-settings-card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; padding-bottom: 17px; margin-bottom: 17px; border-bottom: 1px solid var(--border-soft); }
 .mail-settings-card h2, .mail-settings-guide h2 { margin: 0; font-size: 1rem; color: var(--text); }
 .mail-settings-card-head p, .mail-settings-guide p { margin: 5px 0 0; color: var(--text-faint); font-size: 0.78rem; line-height: 1.5; }
+/* Generic version of the card shape above, for settings pages (e.g. Site
+   Settings) that aren't mail-specific. */
+.admin-form-card { max-width: 640px; border: 1px solid var(--border); border-radius: var(--radius-lg); background: linear-gradient(145deg, rgba(42,25,72,0.92), rgba(18,12,34,0.9)); padding: 22px; }
+.admin-form-card-head { padding-bottom: 17px; margin-bottom: 17px; border-bottom: 1px solid var(--border-soft); }
+.admin-form-card-head h2 { margin: 0; font-size: 1rem; color: var(--text); }
+.admin-form-card-head p { margin: 5px 0 0; color: var(--text-faint); font-size: 0.78rem; line-height: 1.5; }
+.site-settings-toggle { display: flex; align-items: flex-start; gap: 11px; margin: 0 0 14px; padding: 13px 14px; border: 1px solid rgba(159,119,234,0.3); border-radius: var(--radius-sm); background: rgba(137,87,229,0.06); cursor: pointer; }
+.site-settings-toggle input { accent-color: var(--purple-bright); margin-top: 3px; }
+.site-settings-toggle strong { display: block; color: var(--text); font-size: 0.87rem; }
+.site-settings-toggle small { display: block; margin-top: 3px; color: var(--text-faint); font-size: 0.74rem; line-height: 1.4; }
 .mail-transport-pill, .mail-template-state { display: inline-flex; align-items: center; flex: 0 0 auto; border: 1px solid var(--border-soft); border-radius: 999px; padding: 4px 9px; color: var(--text-faint); font-size: 0.67rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; }
 .mail-transport-pill.is-ready, .mail-template-state.is-active { border-color: rgba(62,207,142,0.5); color: var(--status-success); background: rgba(62,207,142,0.09); }
 .mail-transport-pill.is-warning { border-color: rgba(209,169,85,0.52); color: var(--gold-bright); background: rgba(209,169,85,0.08); }

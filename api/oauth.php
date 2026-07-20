@@ -8,7 +8,33 @@
 
 require_once __DIR__ . '/helpers.php';
 
+// Site Settings (Admin Console > System) lets an administrator turn each
+// provider on/off independently of whether its credentials are configured --
+// e.g. Apple can stay off until a Developer account exists, then be switched
+// on later with no code deploy. Defaults (google on, apple off) are chosen so
+// a missing/pre-migration app_settings table still matches today's real
+// rollout state, the same fail-safe-default pattern as pw_mail_settings().
+function pw_oauth_settings() {
+    $settings = ['google' => true, 'apple' => false];
+    try {
+        $stmt = pw_db()->query("SELECT `key`, value FROM app_settings WHERE `key` IN ('oauth_google_enabled', 'oauth_apple_enabled')");
+        foreach ($stmt->fetchAll() as $row) {
+            if ($row['key'] === 'oauth_google_enabled') $settings['google'] = $row['value'] === '1';
+            if ($row['key'] === 'oauth_apple_enabled') $settings['apple'] = $row['value'] === '1';
+        }
+    } catch (Throwable $e) {
+        // migration_site_settings.sql may not have run yet -- keep the
+        // defaults above rather than fatal on every OAuth-adjacent request.
+    }
+    return $settings;
+}
+
 function pw_oauth_provider_config($provider) {
+    $enabledSettings = pw_oauth_settings();
+    if (empty($enabledSettings[$provider])) {
+        return null;
+    }
+
     if ($provider === 'google') {
         if (!defined('GOOGLE_OAUTH_CLIENT_ID') || !defined('GOOGLE_OAUTH_CLIENT_SECRET') || !defined('GOOGLE_OAUTH_REDIRECT_URI')
             || GOOGLE_OAUTH_CLIENT_ID === '' || GOOGLE_OAUTH_CLIENT_SECRET === '' || GOOGLE_OAUTH_REDIRECT_URI === '') {

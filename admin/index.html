@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=252">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=253">
 </head>
 <body>
 
@@ -104,7 +104,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="system" data-requires-permission="dashboards.view_system_status,dashboards.view_audit_log,admin_console.access">
+    <div class="admin-nav-category is-collapsed" data-category="system" data-requires-permission="dashboards.view_system_status,dashboards.view_audit_log,site_settings.view,admin_console.access">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>System</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -112,6 +112,7 @@
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li data-requires-permission="dashboards.view_system_status"><button type="button" class="admin-nav-link" data-section="system-status"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>System Status</button></li>
         <li data-requires-permission="dashboards.view_audit_log"><button type="button" class="admin-nav-link" data-section="audit-log"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Audit Log</button></li>
+        <li data-requires-permission="site_settings.view"><button type="button" class="admin-nav-link" data-section="site-settings"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.2 2.2-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56v.1h-3.1v-.1a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-2.2-2.2.06-.06A1.7 1.7 0 0 0 6.8 15a1.7 1.7 0 0 0-1.56-1.03h-.1v-3.1h.1A1.7 1.7 0 0 0 6.8 9.84a1.7 1.7 0 0 0-.34-1.88L6.4 7.9l2.2-2.2.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.03-1.56v-.1h3.1v.1a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.2 2.2-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03h.1v3.1h-.1A1.7 1.7 0 0 0 19.4 15z"/></svg>Site Settings</button></li>
         <li data-requires-permission="admin_console.access"><button type="button" class="admin-nav-link" data-section="admin-settings"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.2 2.2-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56v.1h-3.1v-.1a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-2.2-2.2.06-.06A1.7 1.7 0 0 0 6.8 15a1.7 1.7 0 0 0-1.56-1.03h-.1v-3.1h.1A1.7 1.7 0 0 0 6.8 9.84a1.7 1.7 0 0 0-.34-1.88L6.4 7.9l2.2-2.2.06.06a1.7 1.7 0 0 0 1.88.34 1.7 1.7 0 0 0 1.03-1.56v-.1h3.1v.1a1.7 1.7 0 0 0 1.03 1.56 1.7 1.7 0 0 0 1.88-.34l.06-.06 2.2 2.2-.06.06a1.7 1.7 0 0 0-.34 1.88 1.7 1.7 0 0 0 1.56 1.03h.1v3.1h-.1A1.7 1.7 0 0 0 19.4 15z"/></svg>Admin Settings</button></li>
       </ul>
     </div>
@@ -890,6 +891,23 @@
         <button type="button" class="admin-settings-reset" id="admin-sidebar-order-reset">Restore default</button>
       </div>
       <div class="admin-sidebar-order-grid" id="admin-sidebar-order-controls" aria-live="polite"></div>
+    </section>
+
+    <section class="admin-section" id="section-site-settings" hidden>
+      <div class="admin-section-head">
+        <h1>Site Settings</h1>
+        <p>Site-wide switches that affect every visitor, independent of individual feature configuration.</p>
+      </div>
+      <form class="admin-form-card" id="site-settings-form">
+        <div class="admin-form-card-head">
+          <div><h2>Sign-in providers</h2><p>Hides a provider's button on the public site the moment it's switched off here, even if its credentials are already configured.</p></div>
+        </div>
+        <label class="site-settings-toggle"><input type="checkbox" id="site-settings-google-input"><span><strong>Enable Google OAuth</strong><small>Lets visitors sign in or register with Google.</small></span></label>
+        <label class="site-settings-toggle"><input type="checkbox" id="site-settings-apple-input"><span><strong>Enable Apple OAuth</strong><small>Lets visitors sign in or register with Apple. Leave off until Sign In with Apple credentials are configured (see docs/apple-oauth.md).</small></span></label>
+        <p class="admin-modal-error" id="site-settings-error"></p>
+        <p class="admin-modal-status" id="site-settings-status"></p>
+        <div class="admin-modal-actions"><button type="submit" class="btn btn-solid" id="site-settings-save-btn">Save Site Settings</button></div>
+      </form>
     </section>
 
     <section class="admin-section" id="section-mail-settings" hidden>
@@ -3322,7 +3340,7 @@
   </div>
 </div>
 
-<script src="../js/members.js?v=34"></script>
+<script src="../js/members.js?v=35"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -3505,6 +3523,7 @@
       if (name === 'system-status') { loadSystemStatusDetail(); loadCpuHistory(); }
       if (name === 'dispatch-control') loadControlList();
       if (name === 'news-management') loadNewsList();
+      if (name === 'site-settings') loadSiteSettings();
       if (name === 'mail-settings') loadMailSettings();
       if (name === 'mail-templates') loadMailTemplates();
       if (name === 'mail-log') { loadMailLog(); loadMailSuppressions(mailSuppressionType); }
@@ -11745,6 +11764,55 @@
         soundtrackModalError.textContent = 'Could not delete this soundtrack. Please try again.';
         soundtrackModalError.classList.add('show');
       });
+  });
+
+  // ===== Site settings ========================================================
+  // Site-wide switches independent of individual feature configuration --
+  // currently just the two OAuth provider toggles. A provider switched off
+  // here is hidden on the public login/register modal (js/members.js reads
+  // the same api/session-check.php payload) and api/oauth.php's
+  // pw_oauth_provider_config() refuses it server-side too, so the two can
+  // never disagree.
+  var siteSettingsForm = document.getElementById('site-settings-form');
+  var siteSettingsGoogleInput = document.getElementById('site-settings-google-input');
+  var siteSettingsAppleInput = document.getElementById('site-settings-apple-input');
+  var siteSettingsError = document.getElementById('site-settings-error');
+  var siteSettingsStatus = document.getElementById('site-settings-status');
+  var siteSettingsSaveBtn = document.getElementById('site-settings-save-btn');
+
+  function loadSiteSettings() {
+    if (!siteSettingsForm) return;
+    setMailMessage(siteSettingsError, siteSettingsStatus, '', false);
+    fetch('/api/admin/site-settings/get.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not load Site Settings.');
+        var oauth = data.oauth || {};
+        siteSettingsGoogleInput.checked = !!oauth.google;
+        siteSettingsAppleInput.checked = !!oauth.apple;
+        siteSettingsSaveBtn.disabled = !pwHasPermission('site_settings.manage');
+      })
+      .catch(function (error) {
+        setMailMessage(siteSettingsError, siteSettingsStatus, error.message || 'Could not load Site Settings.', true);
+      });
+  }
+
+  if (siteSettingsForm) siteSettingsForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    if (!pwHasPermission('site_settings.manage')) return;
+    setMailMessage(siteSettingsError, siteSettingsStatus, '', false);
+    siteSettingsSaveBtn.disabled = true;
+    fetch('/api/admin/site-settings/update.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csrf: window.PW_AUTH.csrf, google_enabled: siteSettingsGoogleInput.checked, apple_enabled: siteSettingsAppleInput.checked })
+    }).then(function (response) { return response.json(); }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Could not save Site Settings.');
+      setMailMessage(siteSettingsError, siteSettingsStatus, 'Site Settings saved.', false);
+      siteSettingsSaveBtn.disabled = false;
+    }).catch(function (error) {
+      setMailMessage(siteSettingsError, siteSettingsStatus, error.message || 'Could not save Site Settings.', true);
+      siteSettingsSaveBtn.disabled = false;
+    });
   });
 
   // ===== Mail settings and templates =========================================

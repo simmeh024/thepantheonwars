@@ -2,7 +2,7 @@
 // Injects the auth modal, keeps nav in sync with session state, and exposes
 // window.PW_AUTH for other scripts (quiz.html, community.html) to read.
 
-window.PW_AUTH = { loggedIn: false, user: null, csrf: null, permissions: [] };
+window.PW_AUTH = { loggedIn: false, user: null, csrf: null, permissions: [], oauth: { google: true, apple: false } };
 
 // '*' means every permission (the logged-in user's role is a superuser, e.g.
 // admin) -- see api/helpers.php's pw_has_permission() for the server-side
@@ -61,7 +61,7 @@ function initMembers() {
           '<label class="auth-remember-option"><input type="checkbox" id="login-remember" checked>Remember me</label>' +
           '<div class="auth-oauth-divider"><span>or continue through</span></div>' +
           '<button type="button" class="btn auth-google-btn" data-oauth-provider="google" data-oauth-intent="login"><span class="auth-google-mark" aria-hidden="true">G</span>Continue with Google</button>' +
-          '<button type="button" class="btn auth-apple-btn" data-oauth-provider="apple" data-oauth-intent="login"><span class="auth-apple-mark" aria-hidden="true">' + APPLE_ICON + '</span>Continue with Apple</button>' +
+          '<button type="button" class="btn auth-apple-btn" data-oauth-provider="apple" data-oauth-intent="login" hidden><span class="auth-apple-mark" aria-hidden="true">' + APPLE_ICON + '</span>Continue with Apple</button>' +
           '<button type="submit" class="btn btn-solid auth-submit">Log In</button>' +
         '</form>' +
         '<form class="auth-form" data-form="two-factor" hidden>' +
@@ -83,7 +83,7 @@ function initMembers() {
           '<div class="auth-oauth-divider"><span>or continue through</span></div>' +
           '<label class="auth-oauth-option"><input type="checkbox" id="reg-google-avatar" checked>Import my Google profile picture when available</label>' +
           '<button type="button" class="btn auth-google-btn" data-oauth-provider="google" data-oauth-intent="register"><span class="auth-google-mark" aria-hidden="true">G</span>Register with Google</button>' +
-          '<button type="button" class="btn auth-apple-btn" data-oauth-provider="apple" data-oauth-intent="register"><span class="auth-apple-mark" aria-hidden="true">' + APPLE_ICON + '</span>Register with Apple</button>' +
+          '<button type="button" class="btn auth-apple-btn" data-oauth-provider="apple" data-oauth-intent="register" hidden><span class="auth-apple-mark" aria-hidden="true">' + APPLE_ICON + '</span>Register with Apple</button>' +
           '<button type="submit" class="btn btn-solid auth-submit">Create Account</button>' +
         '</form>' +
         '<div class="auth-success" hidden aria-live="polite"><span class="auth-success-mark">✓</span><span class="auth-success-label">Account created</span><h3>Welcome to the Pantheon.</h3><p>Your account is ready. Preparing your profile&hellip;</p></div>' +
@@ -348,7 +348,7 @@ function initMembers() {
     if (logoutBtn) {
       e.preventDefault();
       postJson('/api/logout.php', { csrf: window.PW_AUTH.csrf }).then(function () {
-        window.PW_AUTH = { loggedIn: false, user: null, csrf: null, permissions: [] };
+        window.PW_AUTH = { loggedIn: false, user: null, csrf: null, permissions: [], oauth: { google: true, apple: false } };
         refreshAuthNav();
         if (/\/admin\/?$/.test(location.pathname)) location.href = '../index.html';
         else if (/profile\.html$/.test(location.pathname)) location.href = 'index.html';
@@ -384,7 +384,32 @@ function initMembers() {
         user: data.user || null,
         csrf: data.csrf,
         permissions: data.permissions || [],
+        oauth: data.oauth || { google: true, apple: false },
       };
+      applyOauthButtonVisibility();
+    });
+  }
+
+  // Site Settings (Admin Console > System) can switch each OAuth provider
+  // off independently of whether it's credentialed -- e.g. Apple stays
+  // hidden here until an admin turns it on, matching api/oauth.php's own
+  // pw_oauth_provider_config() gate so a hidden button and a working button
+  // never disagree. Apple starts `hidden` in the markup above as the safe
+  // default before this ever runs.
+  function applyOauthButtonVisibility() {
+    var settings = (window.PW_AUTH && window.PW_AUTH.oauth) || { google: true, apple: false };
+    modal.querySelectorAll('form.auth-form').forEach(function (form) {
+      var anyVisible = false;
+      form.querySelectorAll('[data-oauth-provider]').forEach(function (button) {
+        var enabled = !!settings[button.getAttribute('data-oauth-provider')];
+        button.hidden = !enabled;
+        if (enabled) anyVisible = true;
+      });
+      var divider = form.querySelector('.auth-oauth-divider');
+      if (divider) divider.hidden = !anyVisible;
+      var avatarOption = form.querySelector('#reg-google-avatar');
+      var avatarLabel = avatarOption && avatarOption.closest('.auth-oauth-option');
+      if (avatarLabel) avatarLabel.hidden = !settings.google;
     });
   }
 
@@ -536,7 +561,9 @@ function initMembers() {
           user: data.user || null,
           csrf: data.csrf || null,
           permissions: data.permissions || [],
+          oauth: data.oauth || { google: true, apple: false },
         };
+        applyOauthButtonVisibility();
         renderNav();
         if (window.PW_AUTH.loggedIn) loadNotifications();
         document.dispatchEvent(new CustomEvent('pw-auth-ready'));

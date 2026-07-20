@@ -1,0 +1,5 @@
+<?php
+require_once __DIR__ . '/../../oauth.php';
+
+pw_require_permission('site_settings.view');
+pw_json(['ok' => true, 'oauth' => pw_oauth_settings()]);

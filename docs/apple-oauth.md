@@ -1,10 +1,19 @@
 # Apple OAuth setup ("Sign in with Apple")
 
-Apple sign-in is intentionally inactive until credentials are placed in the
-outside-webroot secrets file, the same as Google. Unlike Google, there is no
-static client secret string to paste in — Apple's token endpoint takes a
-short-lived JWT that the server signs itself on every sign-in attempt, using a
-private key you generate once.
+Apple sign-in is inactive until **both** of these are true:
+
+1. Credentials are placed in the outside-webroot secrets file (steps below).
+2. **Enable Apple OAuth** is switched on in Admin Console → System → Site
+   Settings (off by default — `oauth_apple_enabled` in `app_settings`). This
+   toggle exists so Apple can be wired up and tested independently of
+   whether a Developer account is ready yet, and switched off again later
+   without touching credentials or code. Google has the same toggle
+   (on by default) for symmetry. Whichever is off, that provider's button is
+   also hidden on the public login/register modal, not just blocked server-side.
+
+Unlike Google, there is no static client secret string to paste in — Apple's
+token endpoint takes a short-lived JWT that the server signs itself on every
+sign-in attempt, using a private key you generate once.
 
 Requires an active Apple Developer Program membership ($99/year).
 
@@ -46,9 +55,12 @@ Requires an active Apple Developer Program membership ($99/year).
    sign-in attempt (`pw_oauth_apple_client_secret()` in `api/oauth.php`),
    rather than storing one long-lived secret string the way Google does.
 
-No SQL migration is needed beyond the one Google already required —
 `oauth_identities.provider` is a plain `VARCHAR(32)`, not an enum, so it
-already accepts `'apple'` as a value with no schema change.
+already accepts `'apple'` as a value with no schema change. Run
+`sql/migration_site_settings.sql` once (if it hasn't already run for the
+Google toggle) to add the Site Settings permissions and the
+`oauth_apple_enabled`/`oauth_google_enabled` `app_settings` rows the toggle
+above reads and writes.
 
 ## How it differs from the Google flow
 

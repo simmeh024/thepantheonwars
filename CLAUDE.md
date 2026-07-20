@@ -372,14 +372,14 @@ also supports a deliberately manual `?full=1` historical rebuild.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
   `css/public.css?v=262`, community `css/community-bundle.css?v=246`, and admin
-  `css/admin-bundle.css?v=252`. Public pages use `css/public.css`, community pages
+  `css/admin-bundle.css?v=253`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=11), `js/members.js?v=N` (current: v=34)
+  than once): `js/main.js?v=N` (current: v=11), `js/members.js?v=N` (current: v=35)
   and `js/notifications.js?v=N` (loaded dynamically), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
@@ -469,6 +469,28 @@ also supports a deliberately manual `?full=1` historical rebuild.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Site Settings (Admin Console -> System, new) + OAuth provider toggles:**
+  built because Apple OAuth (below) landed before the user could actually
+  create an Apple Developer account, so Apple needed to exist in code but
+  stay firmly off until that account is ready -- without a future code
+  deploy just to flip it on. `app_settings` gained `oauth_google_enabled`
+  (default `1`) and `oauth_apple_enabled` (default `0`), a new
+  `site_settings.view`/`site_settings.manage` permission pair, and
+  `api/admin/site-settings/{get,update}.php` (`sql/migration_site_settings.sql`).
+  `pw_oauth_settings()` in `api/oauth.php` reads them with the same
+  fail-safe-default try/catch pattern as `pw_mail_settings()`; critically,
+  `pw_oauth_provider_config($provider)` now checks this toggle *before*
+  checking credentials, so switching a provider off is a hard server-side
+  stop regardless of whether its `GOOGLE_OAUTH_*`/`APPLE_OAUTH_*` constants
+  are configured -- the toggle always wins. `api/session-check.php` (already
+  the endpoint every page's `js/members.js` calls on load) now also returns
+  these two booleans, so the public login/register modal can hide a
+  disabled provider's button (`applyOauthButtonVisibility()`) without a
+  separate request; the Apple button additionally starts `hidden` in the
+  raw HTML as the safe default before that JS ever runs, so there is no
+  flash of an Apple button before the real setting loads. Google's button
+  stays visible by default, matching its own default-enabled setting.
 
 - **Apple OAuth ("Sign in with Apple"):** a second provider alongside Google,
   documented end-to-end in `docs/apple-oauth.md` (Apple Developer Program

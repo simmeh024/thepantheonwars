@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/helpers.php';
+require_once __DIR__ . '/oauth.php';
 
 $user = pw_current_user();
 $roleColor = '#c7ccd6';
@@ -48,4 +48,8 @@ pw_json([
     // '*' means every permission (superuser role, e.g. admin).
     'permissions' => $user ? pw_user_permissions($user) : [],
     'csrf' => pw_csrf_token(),
+    // Public and safe: just which sign-in providers are currently switched on
+    // in Site Settings, so the login modal can hide a disabled provider's
+    // button without a separate request.
+    'oauth' => pw_oauth_settings(),
 ]);
