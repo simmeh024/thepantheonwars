@@ -24,6 +24,27 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // define('GOOGLE_OAUTH_CLIENT_SECRET', 'REPLACE_WITH_GOOGLE_CLIENT_SECRET');
 // define('GOOGLE_OAUTH_REDIRECT_URI', 'https://thepantheonwars.com/api/oauth/callback.php?provider=google');
 
+// Apple OAuth ("Sign in with Apple", optional until enabled). Requires an
+// Apple Developer Program membership. In the Apple Developer portal: create
+// an App ID with the "Sign In with Apple" capability, then a separate
+// Services ID -- that Services ID's identifier is APPLE_OAUTH_CLIENT_ID, not
+// the App ID's bundle identifier. Register this exact domain and Return URL
+// on the Services ID's Sign In with Apple configuration:
+//   Domain:     thepantheonwars.com
+//   Return URL: https://thepantheonwars.com/api/oauth/callback.php?provider=apple
+// Apple will show a domain-verification file to download -- host it at
+// https://thepantheonwars.com/.well-known/apple-developer-domain-association.txt
+// exactly as given, or the domain registration will not verify. See
+// docs/apple-oauth.md for the full walkthrough, including generating the
+// Sign In with Apple private key (.p8) and finding the Team ID/Key ID below.
+// Unlike Google, there is no static client secret string -- APPLE_OAUTH_PRIVATE_KEY
+// is used to sign a short-lived JWT client secret on every sign-in attempt.
+// define('APPLE_OAUTH_CLIENT_ID', 'REPLACE_WITH_APPLE_SERVICES_ID');
+// define('APPLE_OAUTH_TEAM_ID', 'REPLACE_WITH_APPLE_TEAM_ID');
+// define('APPLE_OAUTH_KEY_ID', 'REPLACE_WITH_APPLE_KEY_ID');
+// define('APPLE_OAUTH_PRIVATE_KEY', "-----BEGIN PRIVATE KEY-----\nREPLACE_WITH_P8_FILE_CONTENTS\n-----END PRIVATE KEY-----");
+// define('APPLE_OAUTH_REDIRECT_URI', 'https://thepantheonwars.com/api/oauth/callback.php?provider=apple');
+
 // Authenticator-app two-factor authentication for password sign-ins. Generate
 // this once with `php -r "echo base64_encode(random_bytes(32));"` and keep it
 // in the outside-webroot config.php file. It encrypts TOTP secrets before they

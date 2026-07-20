@@ -1912,6 +1912,8 @@
 }
 .member-auth-badge-pantheon { color: #d2b4ff; background: rgba(137,87,229,0.16); border: 1px solid rgba(162,121,236,0.52); }
 .member-auth-badge-google { color: #9ed9ff; background: rgba(65,150,235,0.15); border: 1px solid rgba(99,180,255,0.5); }
+.member-auth-badge-apple { color: #d6d9de; background: rgba(140,145,155,0.15); border: 1px solid rgba(170,175,185,0.5); }
+.member-auth-badge-multi { color: #f0d9a6; background: rgba(224,178,74,0.15); border: 1px solid rgba(224,178,74,0.5); }
 .member-verification-badge {
   flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
   padding: 3px 9px; border-radius: 999px; font-size: 0.62rem; font-weight: 600;

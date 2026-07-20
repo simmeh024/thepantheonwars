@@ -23,7 +23,7 @@ $stmt = $db->prepare('SELECT password_hash FROM users WHERE id = ?');
 $stmt->execute([$user['id']]);
 $passwordHash = $stmt->fetchColumn();
 if ($passwordHash === false || $passwordHash === null || $passwordHash === '') {
-    pw_error('Two-factor authentication is available for password sign-ins only. Google sign-in already uses Google account protection.', 409);
+    pw_error('Two-factor authentication is available for password sign-ins only. Signing in through Google or Apple already uses that provider\'s own account protection.', 409);
 }
 if ($currentPassword === '' || !password_verify($currentPassword, $passwordHash)) {
     pw_error('Enter your current password to continue.', 403);

@@ -17,6 +17,10 @@ function initMembers() {
 
   var EYE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z"/><circle cx="12" cy="12" r="3"/></svg>';
   var EYE_OFF_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 5c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19"/><path d="M1 1l22 22"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+  // A generic apple-silhouette glyph, styled to match the site's own dark/gold
+  // auth aesthetic rather than Apple's mandated black button treatment.
+  var APPLE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M16.5 3.5c.1 1-.3 2-.9 2.8-.6.8-1.6 1.4-2.6 1.3-.1-1 .3-2.1 1-2.8.6-.8 1.7-1.3 2.5-1.3zm2.9 15.4c-.6 1.3-.9 1.9-1.7 3-1.1 1.6-2.7 3.6-4.6 3.6-1.7 0-2.2-1.1-4.1-1.1-1.9 0-2.5 1.1-4.1 1.1-1.9 0-3.4-1.9-4.5-3.4C-.9 19.6-.3 14 2.1 11.1c1.2-1.4 2.9-2.3 4.5-2.3 1.7 0 2.8 1.1 4.1 1.1 1.3 0 2.2-1.1 4.1-1.1 1.5 0 3.1.8 4.2 2.2-3.7 2.1-3.1 7 .4 8z"/></svg>';
+  var PROVIDER_LABELS = { google: 'Google', apple: 'Apple' };
 
   // Password input + show/hide toggle button, shared by login/register.
   function passwordFieldHtml(id, name, autocomplete, minlength) {
@@ -55,8 +59,9 @@ function initMembers() {
           '<div class="auth-field"><label for="login-identifier">Username or email</label><input id="login-identifier" name="identifier" type="text" autocomplete="username" required>' + fieldStateHtml() + '</div>' +
           '<div class="auth-field"><label for="login-password">Password</label>' + passwordFieldHtml('login-password', 'password', 'current-password') + fieldStateHtml() + '</div>' +
           '<label class="auth-remember-option"><input type="checkbox" id="login-remember" checked>Remember me</label>' +
-          '<div class="auth-oauth-divider"><span>or continue through Google</span></div>' +
-          '<button type="button" class="btn auth-google-btn" data-google-oauth="login"><span class="auth-google-mark" aria-hidden="true">G</span>Continue with Google</button>' +
+          '<div class="auth-oauth-divider"><span>or continue through</span></div>' +
+          '<button type="button" class="btn auth-google-btn" data-oauth-provider="google" data-oauth-intent="login"><span class="auth-google-mark" aria-hidden="true">G</span>Continue with Google</button>' +
+          '<button type="button" class="btn auth-apple-btn" data-oauth-provider="apple" data-oauth-intent="login"><span class="auth-apple-mark" aria-hidden="true">' + APPLE_ICON + '</span>Continue with Apple</button>' +
           '<button type="submit" class="btn btn-solid auth-submit">Log In</button>' +
         '</form>' +
         '<form class="auth-form" data-form="two-factor" hidden>' +
@@ -75,9 +80,10 @@ function initMembers() {
           '<div class="auth-field"><label for="reg-email">Email</label><input id="reg-email" name="email" type="email" autocomplete="email" required>' + fieldStateHtml() + '</div>' +
           '<div class="auth-field"><label for="reg-password">Password</label>' + passwordFieldHtml('reg-password', 'password', 'new-password', 8) + '<div class="auth-password-strength" id="reg-password-strength" aria-live="polite"><i></i><i></i><i></i><i></i><small>Use 8 or more characters.</small></div>' + fieldStateHtml() + '</div>' +
           '<div class="auth-field"><label for="reg-password-confirm">Confirm Password</label>' + passwordFieldHtml('reg-password-confirm', 'password-confirm', 'new-password', 8) + fieldStateHtml() + '</div>' +
-          '<div class="auth-oauth-divider"><span>or continue through Google</span></div>' +
+          '<div class="auth-oauth-divider"><span>or continue through</span></div>' +
           '<label class="auth-oauth-option"><input type="checkbox" id="reg-google-avatar" checked>Import my Google profile picture when available</label>' +
-          '<button type="button" class="btn auth-google-btn" data-google-oauth="register"><span class="auth-google-mark" aria-hidden="true">G</span>Register with Google</button>' +
+          '<button type="button" class="btn auth-google-btn" data-oauth-provider="google" data-oauth-intent="register"><span class="auth-google-mark" aria-hidden="true">G</span>Register with Google</button>' +
+          '<button type="button" class="btn auth-apple-btn" data-oauth-provider="apple" data-oauth-intent="register"><span class="auth-apple-mark" aria-hidden="true">' + APPLE_ICON + '</span>Register with Apple</button>' +
           '<button type="submit" class="btn btn-solid auth-submit">Create Account</button>' +
         '</form>' +
         '<div class="auth-success" hidden aria-live="polite"><span class="auth-success-mark">✓</span><span class="auth-success-label">Account created</span><h3>Welcome to the Pantheon.</h3><p>Your account is ready. Preparing your profile&hellip;</p></div>' +
@@ -546,12 +552,13 @@ function initMembers() {
     window.refreshAuthNav();
   }
 
-  modal.querySelectorAll('[data-google-oauth]').forEach(function (button) {
+  modal.querySelectorAll('[data-oauth-provider]').forEach(function (button) {
     button.addEventListener('click', function () {
-      var intent = button.getAttribute('data-google-oauth');
+      var provider = button.getAttribute('data-oauth-provider');
+      var intent = button.getAttribute('data-oauth-intent');
       var returnTo = location.pathname + location.search;
-      var url = '/api/oauth/start.php?provider=google&intent=' + encodeURIComponent(intent) + '&return_to=' + encodeURIComponent(returnTo);
-      if (intent === 'register') {
+      var url = '/api/oauth/start.php?provider=' + encodeURIComponent(provider) + '&intent=' + encodeURIComponent(intent) + '&return_to=' + encodeURIComponent(returnTo);
+      if (intent === 'register' && provider === 'google') {
         var importAvatar = modal.querySelector('#reg-google-avatar');
         url += '&import_avatar=' + (importAvatar && importAvatar.checked ? '1' : '0');
       }
@@ -606,21 +613,25 @@ function initMembers() {
     var params = new URLSearchParams(location.search);
     var result = params.get('oauth');
     if (!result) return;
-    var messages = {
-      'google-not-configured': 'Google sign-in is not configured yet. Please use your username/email and password.',
-      'google-cancelled': 'Google sign-in was cancelled. You can try again whenever you are ready.',
-      'google-failed': 'Google sign-in could not be completed. Please try again or use your password.',
-      'google-link-required': 'This email already has an account. Sign in with your password, then link Google from Profile Settings.',
-      'google-banned': 'This account has been suspended.',
-    };
     // These are Profile Settings outcomes. Leave the parameter in place for
-    // profile.html's own script to render beside the Google link controls.
-    if (result === 'google-linked' || result === 'google-link-conflict' || result === 'google-link-expired') {
+    // profile.html's own script to render beside the provider link controls.
+    if (/-(linked|link-conflict|link-expired)$/.test(result)) {
       return;
     }
-    if (messages[result]) {
-      openModal('login');
-      showFormError(modal.querySelector('[data-form="login"]'), messages[result]);
+    var match = /^(google|apple)-(.+)$/.exec(result);
+    if (match) {
+      var label = PROVIDER_LABELS[match[1]];
+      var outcomeMessages = {
+        'not-configured': label + ' sign-in is not configured yet. Please use your username/email and password.',
+        'cancelled': label + ' sign-in was cancelled. You can try again whenever you are ready.',
+        'failed': label + ' sign-in could not be completed. Please try again or use your password.',
+        'link-required': 'This email already has an account. Sign in with your password, then link ' + label + ' from Profile Settings.',
+        'banned': 'This account has been suspended.',
+      };
+      if (outcomeMessages[match[2]]) {
+        openModal('login');
+        showFormError(modal.querySelector('[data-form="login"]'), outcomeMessages[match[2]]);
+      }
     }
     params.delete('oauth');
     if (window.history && window.history.replaceState) {

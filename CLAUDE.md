@@ -371,15 +371,15 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=261`, community `css/community-bundle.css?v=245`, and admin
-  `css/admin-bundle.css?v=251`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=262`, community `css/community-bundle.css?v=246`, and admin
+  `css/admin-bundle.css?v=252`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=11), `js/members.js?v=N` (current: v=33)
+  than once): `js/main.js?v=N` (current: v=11), `js/members.js?v=N` (current: v=34)
   and `js/notifications.js?v=N` (loaded dynamically), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
@@ -469,6 +469,48 @@ also supports a deliberately manual `?full=1` historical rebuild.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Apple OAuth ("Sign in with Apple"):** a second provider alongside Google,
+  documented end-to-end in `docs/apple-oauth.md` (Apple Developer Program
+  setup, Services ID + Return URL, domain-verification file, private key/Team
+  ID/Key ID). Landing this exposed that `api/oauth.php`'s "provider-neutral"
+  claim wasn't actually true yet -- `api/oauth/{start,callback,unlink}.php`
+  all hardcoded literal `'google'` strings in result codes and audit-log
+  actions -- so those three files were generalized to interpolate `$provider`
+  (Google's own behavior is unchanged; every result code it already produced,
+  e.g. `google-signed-in`, is byte-for-byte the same). Apple's flow differs
+  structurally from Google's in three ways `api/oauth.php` now accounts for:
+  it requires `response_mode=form_post` (Apple POSTs state/code/user to the
+  redirect URI instead of Google's GET redirect -- `callback.php` merges
+  `$_POST + $_GET` so one endpoint serves both), its client secret is a
+  short-lived ES256 JWT signed per-request with a Sign In with Apple private
+  key rather than a static string (`pw_oauth_apple_client_secret()`, hand-
+  rolled since no JWT library exists in this codebase -- includes a small
+  DER-to-raw ECDSA signature conversion), and there is no UserInfo REST call:
+  the identity comes from decoding (not re-verifying against Apple's JWKS --
+  the trust boundary is the direct server-to-server TLS response from
+  Apple's token endpoint, the same trust model the Google flow already uses
+  for its access-token-authenticated REST call) the `id_token` JWT Apple's
+  token endpoint returns directly. Apple never provides a profile picture and
+  only ever sends the user's name once (their very first authorization).
+  `oauth_identities.provider` needed no schema change (`VARCHAR(32)`, not an
+  enum). Profile Settings -> Sign-in Methods, the admin audit log
+  (`apple_*` actions/icons), and the admin Members list auth badge (now
+  Google/Apple/both/"Pantheon Wars" instead of a Google-only binary) all
+  gained an Apple counterpart alongside Google's.
+
+- **Remember me / session persistence:** login has an opt-in "Remember me"
+  checkbox (checked by default, so nothing changes unless a visitor unchecks
+  it). Unchecked, `pw_apply_session_persistence()` issues a session-only
+  cookie (dies on browser close) instead of the 30-day one, and
+  `pw_issue_user_session()` writes a matching `user_sessions.expires_at`
+  (1-day backstop cap instead of 30 days) and `is_persistent` value -- a
+  column that had existed since the User Sessions feature but was hardcoded
+  to `1` and never actually varied until now. The choice survives the
+  two-factor challenge round trip via `$_SESSION['pw_two_factor_pending_
+  remember']`. Registration and Google/Apple OAuth sign-in remain always-
+  persistent (no checkbox there). Profile -> User Sessions shows a
+  "Temporary session" badge for non-persistent rows.
 
 - **Private member messaging:** `messages.html` plus `js/messages.js` provides
   permanent, one-to-one member conversations backed by `direct_conversations`,
@@ -1155,8 +1197,10 @@ also supports a deliberately manual `?full=1` historical rebuild.
   everywhere requires the current password and destroys the local session.
 
 - **Google OAuth:** the provider-neutral `api/oauth.php` centralizes OAuth state,
-  PKCE, safe local return URLs, Google code exchange/userinfo validation, identity
-  linking and optional first-registration avatar import. `oauth_identities` stores
+  PKCE, safe local return URLs, code exchange/profile validation, identity
+  linking and optional first-registration avatar import (Google's provider
+  config and profile exchange were the first branch added there; see "Apple
+  OAuth" above for the second). `oauth_identities` stores
   only `(provider, provider_subject, verified email)`—never provider tokens. Run
   `migration_oauth_google.sql` before defining `GOOGLE_OAUTH_CLIENT_ID`,
   `GOOGLE_OAUTH_CLIENT_SECRET`, and `GOOGLE_OAUTH_REDIRECT_URI` in the external
@@ -1164,8 +1208,9 @@ also supports a deliberately manual `?full=1` historical rebuild.
   Existing email addresses are never auto-linked: users sign in normally, then use
   Profile Settings -> Sign-in Methods to link Google. Google-only accounts have a
   NULL password hash, may add a local password later, and cannot unlink their last
-  sign-in method until they do. Google login/registration/link/unlink outcomes are
-  recorded in `admin_activity_log` and sessions carry `auth_provider = google`.
+  sign-in method until they do. Login/registration/link/unlink outcomes for both
+  providers are recorded in `admin_activity_log` and sessions carry
+  `auth_provider = google` or `auth_provider = apple`.
 
 - **BH-4 status imagery:** Admin Home swaps the BH-4 portrait from normal to
   medium or critical automatically from the Task Advisor priority: `clear` /

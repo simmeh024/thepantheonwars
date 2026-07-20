@@ -32,6 +32,7 @@ account is deliberately not linked automatically: the visitor must first sign in
 to that existing account and link Google from Profile Settings.
 
 Google is configured through the provider-neutral helpers in `api/oauth.php`.
-Adding a later provider means adding its configuration and verified-profile
-exchange there while reusing the same state, identity table, session, profile,
-and audit-log flow.
+Apple ("Sign in with Apple", see `docs/apple-oauth.md`) is a second provider
+built the same way, adding its own configuration and verified-profile exchange
+there while reusing the same state, identity table, session, profile, and
+audit-log flow. A future provider only needs the same two additions.

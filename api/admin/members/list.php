@@ -104,7 +104,12 @@ $stmt = $db->prepare(
                 SELECT 1
                 FROM oauth_identities oi
                 WHERE oi.user_id = u.id AND oi.provider = 'google'
-            ) AS has_google_identity
+            ) AS has_google_identity,
+            EXISTS(
+                SELECT 1
+                FROM oauth_identities oi
+                WHERE oi.user_id = u.id AND oi.provider = 'apple'
+            ) AS has_apple_identity
      FROM users u
      $whereSql
      ORDER BY u.created_at DESC, u.id DESC
@@ -137,6 +142,7 @@ $out = array_map(function ($r) use ($otherRolesByUser, $canViewIp) {
         'display_name' => $r['display_name'],
         'role' => $r['role'],
         'has_google_identity' => (bool)$r['has_google_identity'],
+        'has_apple_identity' => (bool)$r['has_apple_identity'],
         'two_factor_enabled' => (bool)$r['two_factor_enabled'],
         'newsletter_subscribed' => (bool)$r['newsletter_subscribed'],
         'other_roles' => isset($otherRolesByUser[$r['id']]) ? $otherRolesByUser[$r['id']] : [],

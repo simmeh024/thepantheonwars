@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=251">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=252">
 </head>
 <body>
 
@@ -1237,6 +1237,14 @@
             <option value="google_link_required">Google link required</option>
             <option value="google_oauth_cancelled">Google sign-in cancelled</option>
             <option value="google_oauth_failed">Google sign-in failed</option>
+            <option value="apple_registered">Apple account created</option>
+            <option value="apple_login">Apple sign-in</option>
+            <option value="apple_login_banned">Apple sign-in blocked</option>
+            <option value="apple_linked">Apple linked</option>
+            <option value="apple_unlinked">Apple unlinked</option>
+            <option value="apple_link_required">Apple link required</option>
+            <option value="apple_oauth_cancelled">Apple sign-in cancelled</option>
+            <option value="apple_oauth_failed">Apple sign-in failed</option>
             <option value="password_reset_requested">Password reset requested</option>
             <option value="password_reset_completed">Password reset completed</option>
           </optgroup>
@@ -3314,7 +3322,7 @@
   </div>
 </div>
 
-<script src="../js/members.js?v=33"></script>
+<script src="../js/members.js?v=34"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -5107,6 +5115,14 @@
     google_link_required: 'Google link required',
     google_oauth_cancelled: 'Google sign-in cancelled',
     google_oauth_failed: 'Google sign-in failed',
+    apple_registered: 'Apple account created',
+    apple_login: 'Apple sign-in',
+    apple_login_banned: 'Apple sign-in blocked',
+    apple_linked: 'Apple linked',
+    apple_unlinked: 'Apple unlinked',
+    apple_link_required: 'Apple link required',
+    apple_oauth_cancelled: 'Apple sign-in cancelled',
+    apple_oauth_failed: 'Apple sign-in failed',
     password_reset_requested: 'Password reset requested',
     password_reset_completed: 'Password reset completed',
     book_created: 'Book created',
@@ -5206,6 +5222,10 @@
     google_login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
     google_linked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1"/></svg>',
     google_unlinked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1"/><line x1="3" y1="3" x2="21" y2="21"/></svg>',
+    apple_registered: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/><path d="M18 5v6M15 8h6"/></svg>',
+    apple_login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+    apple_linked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1"/></svg>',
+    apple_unlinked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2a5 5 0 0 0 7.1 7.1l1.1-1.1"/><line x1="3" y1="3" x2="21" y2="21"/></svg>',
     password_reset_requested: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><path d="M12 15v2M12 19h.01"/></svg>',
     password_reset_completed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/><path d="m9 15 2 2 4-4"/></svg>',
     book_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>',
@@ -5307,6 +5327,7 @@
   function activityCategory(action) {
     if (action.indexOf('login') === 0) return { key: 'login', label: 'Login', icon: ACTIVITY_ICONS.login };
     if (action.indexOf('google_') === 0) return { key: 'login', label: 'Google', icon: ACTIVITY_ICONS.google_login };
+    if (action.indexOf('apple_') === 0) return { key: 'login', label: 'Apple', icon: ACTIVITY_ICONS.apple_login };
     if (action.indexOf('password_reset_') === 0) return { key: 'login', label: 'Account security', icon: ACTIVITY_ICONS.password_reset_completed };
     if (action.indexOf('book_') === 0) return { key: 'books', label: 'Books', icon: ACTIVITY_ICONS.book_created };
     if (action.indexOf('news_') === 0) return { key: 'content', label: 'News', icon: ACTIVITY_ICONS.news_post_created };
@@ -7365,10 +7386,17 @@
       lastLogin.textContent = fmtLastLogin(entry);
       row.appendChild(lastLogin);
 
+      var oauthProviders = [];
+      if (entry.has_google_identity) oauthProviders.push('Google');
+      if (entry.has_apple_identity) oauthProviders.push('Apple');
+      var authClass = oauthProviders.length === 0 ? 'member-auth-badge-pantheon'
+        : oauthProviders.length > 1 ? 'member-auth-badge-multi'
+        : 'member-auth-badge-' + oauthProviders[0].toLowerCase();
+
       var source = document.createElement('div');
       source.className = 'member-source-column';
       source.innerHTML =
-        '<span class="member-auth-badge ' + (entry.has_google_identity ? 'member-auth-badge-google' : 'member-auth-badge-pantheon') + '">' + (entry.has_google_identity ? 'Google' : 'Pantheon Wars') + '</span>';
+        '<span class="member-auth-badge ' + authClass + '">' + (oauthProviders.length ? oauthProviders.join(' + ') : 'Pantheon Wars') + '</span>';
       row.appendChild(source);
 
       var verification = document.createElement('div');
@@ -7381,8 +7409,8 @@
 
       var twoFactor = document.createElement('div');
       twoFactor.className = 'member-two-factor-column';
-      twoFactor.innerHTML = entry.has_google_identity
-        ? '<span class="member-two-factor-na" aria-label="Managed by Google">&mdash;</span>'
+      twoFactor.innerHTML = oauthProviders.length
+        ? '<span class="member-two-factor-na" aria-label="Managed by ' + oauthProviders.join(', ') + '">&mdash;</span>'
         : '<span class="member-two-factor-badge ' + (entry.two_factor_enabled ? 'member-two-factor-badge-enabled' : 'member-two-factor-badge-disabled') + '">' +
             (entry.two_factor_enabled ? 'Enabled' : 'Not enabled') +
           '</span>';

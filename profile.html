@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=245">
+<link rel="stylesheet" href="css/community-bundle.css?v=246">
 </head>
 <body>
 
@@ -202,6 +202,16 @@
               <div class="profile-oauth-actions">
                 <button type="button" class="btn" id="profile-google-link-btn">Link Google</button>
                 <button type="button" class="btn btn-danger" id="profile-google-unlink-btn" hidden>Unlink</button>
+              </div>
+            </div>
+            <div class="profile-oauth-row">
+              <div>
+                <strong>Apple</strong>
+                <small id="profile-apple-status">Checking connection&hellip;</small>
+              </div>
+              <div class="profile-oauth-actions">
+                <button type="button" class="btn" id="profile-apple-link-btn">Link Apple</button>
+                <button type="button" class="btn btn-danger" id="profile-apple-unlink-btn" hidden>Unlink</button>
               </div>
             </div>
             <p id="profile-oauth-status" class="profile-success" hidden></p>
@@ -454,7 +464,7 @@
 </div>
 
 <script src="js/main.js?v=11"></script>
-<script src="js/members.js?v=33"></script>
+<script src="js/members.js?v=34"></script>
 <script src="js/qrcode-generator.min.js?v=1"></script>
 <script>
 (function () {
@@ -945,9 +955,6 @@
   var currentPasswordInput = document.getElementById('current-password');
   var passwordSettingsTitle = document.getElementById('password-settings-title');
   var passwordSubmit = passwordForm.querySelector('button[type="submit"]');
-  var googleStatus = document.getElementById('profile-google-status');
-  var googleLinkBtn = document.getElementById('profile-google-link-btn');
-  var googleUnlinkBtn = document.getElementById('profile-google-unlink-btn');
   var oauthStatus = document.getElementById('profile-oauth-status');
   var profileHasPassword = true;
   var notifPrefsLoaded = false;
@@ -978,40 +985,57 @@
     oauthStatus.classList.toggle('show-error', !!isError);
   }
 
-  function loadGoogleIdentity() {
-    googleStatus.textContent = 'Checking connection\u2026';
-    fetch('/api/oauth/identities.php', { credentials: 'same-origin' })
-      .then(function (response) { return response.json(); })
-      .then(function (data) {
-        if (!data.ok) throw new Error(data.error || 'Could not load sign-in methods.');
-        var google = (data.identities || []).find(function (identity) { return identity.provider === 'google'; });
-        googleStatus.textContent = google ? ('Linked to ' + google.email) : 'Not linked';
-        googleLinkBtn.hidden = !!google;
-        googleUnlinkBtn.hidden = !google;
+  // Shared wiring for each Sign-in Methods row (Google, Apple, ...): loads
+  // whether this provider is linked, and hooks up its own link/unlink buttons.
+  // Returns the loader so the ?oauth= result handler below can refresh the
+  // right row after a link attempt completes.
+  var oauthIdentityLoaders = {};
+  function wireOauthProvider(provider, label) {
+    var status = document.getElementById('profile-' + provider + '-status');
+    var linkBtn = document.getElementById('profile-' + provider + '-link-btn');
+    var unlinkBtn = document.getElementById('profile-' + provider + '-unlink-btn');
+
+    function loadIdentity() {
+      status.textContent = 'Checking connection\u2026';
+      fetch('/api/oauth/identities.php', { credentials: 'same-origin' })
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.error || 'Could not load sign-in methods.');
+          var identity = (data.identities || []).find(function (identity) { return identity.provider === provider; });
+          status.textContent = identity ? ('Linked to ' + identity.email) : 'Not linked';
+          linkBtn.hidden = !!identity;
+          unlinkBtn.hidden = !identity;
+        })
+        .catch(function () {
+          status.textContent = 'Connection status unavailable';
+        });
+    }
+
+    linkBtn.addEventListener('click', function () {
+      window.location.assign('/api/oauth/start.php?provider=' + provider + '&intent=link&return_to=%2Fprofile.html');
+    });
+    unlinkBtn.addEventListener('click', function () {
+      if (!window.confirm('Remove ' + label + ' as a sign-in method? You can link it again later.')) return;
+      setOauthStatus('', false);
+      fetch('/api/oauth/unlink.php', {
+        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: provider, csrf: window.PW_AUTH.csrf }),
       })
-      .catch(function () {
-        googleStatus.textContent = 'Connection status unavailable';
-      });
+        .then(function (response) { return response.json(); })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.error || 'Could not unlink ' + label + '.');
+          setOauthStatus(label + ' sign-in removed.', false);
+          loadIdentity();
+        })
+        .catch(function (error) { setOauthStatus(error.message, true); });
+    });
+
+    oauthIdentityLoaders[provider] = loadIdentity;
+    return loadIdentity;
   }
 
-  googleLinkBtn.addEventListener('click', function () {
-    window.location.assign('/api/oauth/start.php?provider=google&intent=link&return_to=%2Fprofile.html');
-  });
-  googleUnlinkBtn.addEventListener('click', function () {
-    if (!window.confirm('Remove Google as a sign-in method? You can link it again later.')) return;
-    setOauthStatus('', false);
-    fetch('/api/oauth/unlink.php', {
-      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ provider: 'google', csrf: window.PW_AUTH.csrf }),
-    })
-      .then(function (response) { return response.json(); })
-      .then(function (data) {
-        if (!data.ok) throw new Error(data.error || 'Could not unlink Google.');
-        setOauthStatus('Google sign-in removed.', false);
-        loadGoogleIdentity();
-      })
-      .catch(function (error) { setOauthStatus(error.message, true); });
-  });
+  wireOauthProvider('google', 'Google');
+  wireOauthProvider('apple', 'Apple');
 
   function setTwoFactorError(id, message) {
     var el = document.getElementById(id);
@@ -1522,16 +1546,20 @@
         lockedEmailInput.value = data.user.email;
         newsletterCheckbox.checked = data.user.newsletter_subscribed !== false;
         setPasswordMode(data.user.has_password);
-        loadGoogleIdentity();
+        Object.keys(oauthIdentityLoaders).forEach(function (provider) { oauthIdentityLoaders[provider](); });
         loadCurrentReading();
 
         var oauthResult = new URLSearchParams(location.search).get('oauth');
-        if (oauthResult === 'google-linked') {
-          setOauthStatus('Google is now linked to your account.', false);
-        } else if (oauthResult === 'google-link-conflict') {
-          setOauthStatus('That Google account is already linked to another member.', true);
-        } else if (oauthResult === 'google-link-expired') {
-          setOauthStatus('Your Google linking request expired. Please try again.', true);
+        var oauthMatch = oauthResult ? /^(google|apple)-(linked|link-conflict|link-expired)$/.exec(oauthResult) : null;
+        if (oauthMatch) {
+          var oauthLabel = oauthMatch[1] === 'apple' ? 'Apple' : 'Google';
+          if (oauthMatch[2] === 'linked') {
+            setOauthStatus(oauthLabel + ' is now linked to your account.', false);
+          } else if (oauthMatch[2] === 'link-conflict') {
+            setOauthStatus('That ' + oauthLabel + ' account is already linked to another member.', true);
+          } else if (oauthMatch[2] === 'link-expired') {
+            setOauthStatus('Your ' + oauthLabel + ' linking request expired. Please try again.', true);
+          }
         }
         if (oauthResult && window.history && window.history.replaceState) {
           var params = new URLSearchParams(location.search);

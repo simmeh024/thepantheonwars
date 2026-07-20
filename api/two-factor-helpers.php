@@ -4,8 +4,9 @@
  *
  * Secrets are never stored in plaintext. The application encryption key lives
  * outside public_html in config.php, while the database contains only an
- * authenticated AES-256-GCM ciphertext. Google OAuth keeps its own provider
- * security and deliberately does not enter this password-login flow.
+ * authenticated AES-256-GCM ciphertext. OAuth providers (Google, Apple) keep
+ * their own provider security and deliberately do not enter this
+ * password-login flow.
  */
 
 const PW_TWO_FACTOR_PERIOD = 30;
