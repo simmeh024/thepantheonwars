@@ -361,8 +361,10 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the whole `<svg>...</svg>` as a template string, sets `.innerHTML` once per refresh).
   Match whichever pattern fits if you add another chart.
 - **GSAP 3.15.0 and ScrollTrigger are locally vendored** in `js/vendor/`, used by
-  the Worlds atlas and, as of Known Figures, one other page -- both deliberate
-  uses of the same pinned files, not separate dependencies. The files load after
+  the Worlds atlas and Known Figures (both GSAP+ScrollTrigger), and now
+  `overlord.html` (GSAP alone -- its pointer-tilt portrait effect needs no
+  scroll-triggering) -- all deliberate uses of the same pinned files, not
+  separate dependencies. The files load after
   the initial page markup and are documented with their package source and
   Standard License link in `js/vendor/README.md`. Do not replace them with a CDN
   dependency. No Alpine
@@ -371,7 +373,7 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=264`, community `css/community-bundle.css?v=248`, and admin
+  `css/public.css?v=265`, community `css/community-bundle.css?v=249`, and admin
   `css/admin-bundle.css?v=255`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
@@ -469,6 +471,45 @@ also supports a deliberately manual `?full=1` historical rebuild.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Overlord profile page enhancements** (`overlord.html`): six additions.
+  **Per-Overlord theming**: `accent_color`/`accent_glow` were captured by
+  Overlord Control and returned by `api/overlords.php` since that feature
+  shipped, but never actually rendered anywhere on the detail page itself
+  (only the separately-hardcoded `THRONE_THEMES` map in `js/overlords.js`
+  used colors, and only on the roster carousel) -- the page now sets
+  `--overlord-accent`/`--overlord-glow` on `documentElement` the same way the
+  existing Throne Ring "profile handoff" portal already sets
+  `--portal-accent`/`--portal-glow`, driving the portrait border/glow,
+  epithet color, and the two new panels below. Setting a CSS custom property
+  to `''` still counts as "set" and silently breaks a `var(--x, fallback)`
+  default (a real gotcha, not just theory) -- so an Overlord with no accent
+  color removes the property instead of setting it empty. **3D tilt
+  portrait**: ported `js/known-figures.js`'s pointer-tilt "holo card" +
+  radial sheen technique to the circular portrait frame (fine-pointer/hover
+  only, `prefers-reduced-motion` skips it); this is GSAP's third deliberate
+  use in this codebase (see above), needing only the bare library, not
+  ScrollTrigger. **Resonance sigil + "Your Overlord"**: the fixed 6-icon
+  `OVERLORD_ICONS` set from `js/members.js` (quiz-covered Overlords only) is
+  hand-duplicated into `overlord.html` per this codebase's no-shared-module
+  convention, shown as a small badge; separately, a signed-in visitor whose
+  `overlord_affinity` (set by the quiz) matches the page gets a gold "Your
+  Overlord" badge and a matching portrait ring -- previously this page
+  rendered identically for every visitor regardless of quiz history.
+  **Decree of the day**: `overlords.decrees` (new, one line per admin-authored
+  decree, run `sql/migration_overlord_enhancements.sql`) rotates
+  deterministically by UTC date (`crc32(slug + date) % count`, the same
+  date-seeding technique already used for World Weather forecasts) via a new
+  `pw_resolve_overlord_decree()` in `api/overlords.php`; the endpoint only
+  ever returns today's already-resolved line, never the raw list. Left
+  blank, it falls back to a generated line instead of an empty panel.
+  **Ambient hero particles**: a pure-CSS drifting-mote layer tinted by
+  `--overlord-glow`, gated by the same `prefers-reduced-motion` `display:
+  none` pattern already used for the Throne Ring's own particle effects --
+  deliberately simpler than either the Throne Ring's 7-variant particle
+  system or the Worlds atlas's canvas engine, since this page only needed
+  one ambient layer tied to a color already being computed for other reasons,
+  not a full per-motif system.
 
 - **Fixed: disabling a Site Settings OAuth provider didn't hide its button.**
   Confirmed live (2026-07-20): `api/session-check.php` correctly reported

@@ -1221,6 +1221,7 @@ CREATE TABLE IF NOT EXISTS overlords (
   bio_paragraph_3 TEXT NULL,
   quote_text VARCHAR(400) NOT NULL DEFAULT '',
   quote_cite VARCHAR(150) NOT NULL DEFAULT '',
+  decrees TEXT NULL,
   accent_color VARCHAR(20) NOT NULL DEFAULT '',
   accent_glow VARCHAR(20) NOT NULL DEFAULT '',
   meta_title VARCHAR(150) NOT NULL DEFAULT '',

@@ -1997,21 +1997,89 @@
 }
 
 /* ---------------- Overlord bio pages ---------------- */
+/* --overlord-accent/--overlord-glow are set on documentElement by overlord.html
+   from the record's own accent_color/accent_glow (same technique the Throne
+   Ring "profile handoff" portal already uses for --portal-accent/--portal-glow),
+   so each Overlord's page reads in their own color instead of one fixed purple. */
 .overlord-portrait-frame {
+  position: relative;
   width: 168px; height: 168px; border-radius: 50%; overflow: hidden;
-  margin: 0 auto 22px; border: 2px solid var(--gold-dim);
-  box-shadow: 0 0 46px rgba(124,79,214,0.4);
+  margin: 0 auto 22px; border: 2px solid var(--overlord-accent, var(--gold-dim));
+  box-shadow: 0 0 46px var(--overlord-glow, rgba(124,79,214,0.4));
+  will-change: transform;
 }
-.overlord-portrait-frame img { width: 100%; height: 100%; object-fit: cover; }
+.overlord-portrait-frame img { width: 100%; height: 100%; object-fit: cover; will-change: transform; }
+.overlord-portrait-frame.is-your-overlord {
+  box-shadow: 0 0 0 3px var(--gold-bright), 0 0 60px rgba(224,178,74,0.5);
+}
+.overlord-portrait-sheen {
+  position: absolute; left: 50%; top: 50%; width: 70%; height: 70%; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,255,255,0.42), rgba(255,255,255,0) 68%);
+  opacity: 0; mix-blend-mode: screen; pointer-events: none; z-index: 2; will-change: transform, opacity;
+}
 .overlord-epithet {
-  font-family: 'Cinzel', serif; color: var(--purple-bright); font-size: 1.05rem;
+  font-family: 'Cinzel', serif; color: var(--overlord-accent, var(--purple-bright)); font-size: 1.05rem;
   letter-spacing: 0.04em; display: block; margin-bottom: 0.3em;
 }
 .overlord-domain-tag {
   font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.14em;
   color: var(--text-faint); display: block; margin-top: 0.6em;
 }
+.overlord-resonance-badge {
+  display: inline-flex; align-items: center; gap: 6px; margin: 0.7em 0.3em 0;
+  padding: 4px 11px; border-radius: 999px; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--overlord-accent, var(--purple-bright)); border: 1px solid var(--overlord-accent, var(--border-soft));
+  background: rgba(255,255,255,0.04);
+}
+.overlord-resonance-badge svg { width: 14px; height: 14px; flex: 0 0 auto; }
+.overlord-your-badge {
+  display: inline-flex; align-items: center; gap: 6px; margin: 0.7em 0.3em 0;
+  padding: 4px 12px; border-radius: 999px; font-size: 0.64rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
+  color: #1a1206; background: linear-gradient(135deg, var(--gold-bright), var(--gold-dim));
+  box-shadow: 0 0 22px rgba(224,178,74,0.45);
+}
+#overlord-quote-block { color: var(--overlord-accent, var(--gold-bright)); }
+#overlord-quote-block::before, #overlord-quote-block::after { color: var(--overlord-accent, var(--gold-dim)); }
+.overlord-decree-panel {
+  max-width: 560px; margin: 2.2em auto 0; padding: 18px 22px; text-align: center;
+  border: 1px solid var(--overlord-accent, var(--border-soft)); border-radius: var(--radius-sm);
+  background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0));
+}
+.overlord-decree-panel-label {
+  display: block; margin-bottom: 0.5em; font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--overlord-accent, var(--gold-dim));
+}
+.overlord-decree-panel-text { margin: 0; font-family: 'Cinzel', serif; font-size: 0.95rem; color: var(--text-dim); line-height: 1.6; }
 .overlord-backlink { text-align: center; margin-top: 2.4em; }
+
+/* Ambient hero particles: a soft drift of motes tinted by the same
+   --overlord-glow color, behind the content but above the hero background/
+   veil. Purely CSS so there's no motion at all to gate under
+   prefers-reduced-motion beyond the one display:none rule below. */
+.overlord-hero-particles { position: absolute; inset: 0; z-index: 1; overflow: hidden; pointer-events: none; }
+.overlord-hero-particle {
+  position: absolute; bottom: -10px; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--overlord-glow, rgba(162,121,236,0.55));
+  box-shadow: 0 0 8px var(--overlord-glow, rgba(162,121,236,0.55));
+  opacity: 0; animation: overlord-particle-drift 9s ease-in infinite;
+}
+.overlord-hero-particle:nth-child(1) { left: 4%; animation-delay: 0s; animation-duration: 8.4s; }
+.overlord-hero-particle:nth-child(2) { left: 12%; animation-delay: 1.3s; animation-duration: 10.2s; }
+.overlord-hero-particle:nth-child(3) { left: 21%; animation-delay: 2.6s; animation-duration: 7.6s; }
+.overlord-hero-particle:nth-child(4) { left: 33%; animation-delay: 0.7s; animation-duration: 9.8s; }
+.overlord-hero-particle:nth-child(5) { left: 45%; animation-delay: 3.4s; animation-duration: 8.9s; }
+.overlord-hero-particle:nth-child(6) { left: 56%; animation-delay: 1.9s; animation-duration: 10.6s; }
+.overlord-hero-particle:nth-child(7) { left: 67%; animation-delay: 4.1s; animation-duration: 7.9s; }
+.overlord-hero-particle:nth-child(8) { left: 78%; animation-delay: 0.2s; animation-duration: 9.3s; }
+.overlord-hero-particle:nth-child(9) { left: 88%; animation-delay: 2.2s; animation-duration: 8.1s; }
+.overlord-hero-particle:nth-child(10) { left: 95%; animation-delay: 3.8s; animation-duration: 10.9s; }
+@keyframes overlord-particle-drift {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  12% { opacity: 0.85; }
+  85% { opacity: 0.5; }
+  100% { transform: translateY(-260px) scale(1.15); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .overlord-hero-particles { display: none; } }
 
 /* ---------------- Overlords hub page ---------------- */
 .overlord-card { text-align: center; }

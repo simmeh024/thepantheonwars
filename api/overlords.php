@@ -10,20 +10,43 @@ $db = pw_db();
 
 $fields = 'o.id, o.slug, o.name, o.epithet, o.pronoun_possessive, o.status,
            o.portrait_image_url, o.card_teaser, o.bio_paragraph_1, o.bio_paragraph_2,
-           o.bio_paragraph_3, o.quote_text, o.quote_cite, o.accent_color, o.accent_glow,
+           o.bio_paragraph_3, o.quote_text, o.quote_cite, o.decrees, o.accent_color, o.accent_glow,
            o.meta_title, o.meta_description, o.sort_order,
            w.slug AS world_slug, w.name AS world_name, w.thumb_image_url AS world_thumb_image_url';
+
+// Deterministic "decree of the day": same admin-authored list resolves to the
+// same line for every visitor all UTC day, then rotates the next day -- same
+// technique as the World Weather forecast's date-seeded selection. Never
+// exposes the raw list (an admin previewing decrees ahead of their turn isn't
+// the point of this endpoint), only today's resolved pick.
+function pw_resolve_overlord_decree($r) {
+    $lines = [];
+    if (!empty($r['decrees'])) {
+        foreach (preg_split('/\r\n|\r|\n/', $r['decrees']) as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+                $lines[] = $line;
+            }
+        }
+    }
+    if (!$lines) {
+        return $r['name'] . "'s will is absolute, yet no decree has crossed the Nexus Veil today.";
+    }
+    $seed = crc32($r['slug'] . gmdate('Y-m-d'));
+    return $lines[$seed % count($lines)];
+}
 
 function pw_format_overlord($r) {
     $out = $r;
     $out['id'] = (int)$r['id'];
     $out['sort_order'] = (int)$r['sort_order'];
+    $out['decree'] = pw_resolve_overlord_decree($r);
     $out['world'] = $r['world_slug'] ? [
         'slug' => $r['world_slug'],
         'name' => $r['world_name'],
         'thumb_image_url' => $r['world_thumb_image_url'],
     ] : null;
-    unset($out['world_slug'], $out['world_name'], $out['world_thumb_image_url']);
+    unset($out['decrees'], $out['world_slug'], $out['world_name'], $out['world_thumb_image_url']);
     return $out;
 }
 

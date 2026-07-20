@@ -12,7 +12,7 @@ $db = pw_db();
 $rows = $db->query(
     'SELECT o.id, o.slug, o.name, o.epithet, o.world_id, o.pronoun_possessive, o.status,
             o.portrait_image_url, o.card_teaser, o.bio_paragraph_1, o.bio_paragraph_2, o.bio_paragraph_3,
-            o.quote_text, o.quote_cite, o.accent_color, o.accent_glow,
+            o.quote_text, o.quote_cite, o.decrees, o.accent_color, o.accent_glow,
             o.meta_title, o.meta_description, o.sort_order,
             w.slug AS world_slug, w.name AS world_name
      FROM overlords o LEFT JOIN worlds w ON w.id = o.world_id

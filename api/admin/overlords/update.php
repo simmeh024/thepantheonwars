@@ -33,13 +33,13 @@ $stmt = $db->prepare(
     'UPDATE overlords SET
         name = ?, epithet = ?, world_id = ?, pronoun_possessive = ?, status = ?,
         portrait_image_url = ?, card_teaser = ?, bio_paragraph_1 = ?, bio_paragraph_2 = ?, bio_paragraph_3 = ?,
-        quote_text = ?, quote_cite = ?, accent_color = ?, accent_glow = ?, meta_title = ?, meta_description = ?
+        quote_text = ?, quote_cite = ?, decrees = ?, accent_color = ?, accent_glow = ?, meta_title = ?, meta_description = ?
      WHERE id = ?'
 );
 $stmt->execute([
     $data['name'], $data['epithet'], $data['world_id'], $data['pronoun_possessive'], $data['status'],
     $data['portrait_image_url'], $data['card_teaser'], $data['bio_paragraph_1'], $data['bio_paragraph_2'], $data['bio_paragraph_3'],
-    $data['quote_text'], $data['quote_cite'], $data['accent_color'], $data['accent_glow'],
+    $data['quote_text'], $data['quote_cite'], $data['decrees'], $data['accent_color'], $data['accent_glow'],
     $data['meta_title'], $data['meta_description'],
     $id,
 ]);

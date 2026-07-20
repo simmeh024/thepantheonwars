@@ -2822,6 +2822,12 @@
       </div>
     </div>
 
+    <div class="admin-field">
+      <label for="overlord-decrees-input">Decrees <span>(optional, one per line)</span></label>
+      <p class="admin-field-hint">The public profile rotates through these deterministically by date. Leave blank to show a generated line instead.</p>
+      <textarea id="overlord-decrees-input" maxlength="2000" rows="4"></textarea>
+    </div>
+
     <div class="admin-field-row">
       <div class="admin-field">
         <label for="overlord-accent-color-input">Accent color</label>
@@ -10581,6 +10587,7 @@
   var overlordBio3Input = document.getElementById('overlord-bio-3-input');
   var overlordQuoteTextInput = document.getElementById('overlord-quote-text-input');
   var overlordQuoteCiteInput = document.getElementById('overlord-quote-cite-input');
+  var overlordDecreesInput = document.getElementById('overlord-decrees-input');
   var overlordAccentColorInput = document.getElementById('overlord-accent-color-input');
   var overlordAccentGlowInput = document.getElementById('overlord-accent-glow-input');
   var overlordMetaTitleInput = document.getElementById('overlord-meta-title-input');
@@ -10704,6 +10711,7 @@
     overlordBio3Input.value = o.bio_paragraph_3 || '';
     overlordQuoteTextInput.value = o.quote_text || '';
     overlordQuoteCiteInput.value = o.quote_cite || '';
+    overlordDecreesInput.value = o.decrees || '';
     overlordAccentColorInput.value = o.accent_color || '#c7ccd6';
     overlordAccentGlowInput.value = o.accent_glow || '#3a3d45';
     overlordMetaTitleInput.value = o.meta_title || '';
@@ -10764,6 +10772,7 @@
       bio_paragraph_3: overlordBio3Input.value.trim(),
       quote_text: overlordQuoteTextInput.value.trim(),
       quote_cite: overlordQuoteCiteInput.value.trim(),
+      decrees: overlordDecreesInput.value.trim(),
       accent_color: overlordAccentColorInput.value,
       accent_glow: overlordAccentGlowInput.value,
       meta_title: overlordMetaTitleInput.value.trim(),

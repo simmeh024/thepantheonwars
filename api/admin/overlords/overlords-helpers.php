@@ -58,6 +58,12 @@ function pw_validate_overlord_input($input) {
         pw_error('Quote attribution must be 150 characters or fewer.');
     }
 
+    $out['decrees'] = isset($input['decrees']) ? trim((string)$input['decrees']) : '';
+    if (mb_strlen($out['decrees']) > 2000) {
+        pw_error('Decrees must be 2000 characters or fewer in total.');
+    }
+    $out['decrees'] = $out['decrees'] === '' ? null : $out['decrees'];
+
     foreach (['accent_color', 'accent_glow'] as $field) {
         $out[$field] = isset($input[$field]) ? trim((string)$input[$field]) : '';
         if ($out[$field] !== '' && !preg_match('/^#[0-9a-fA-F]{3,8}$/', $out[$field])) {
