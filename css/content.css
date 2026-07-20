@@ -2197,6 +2197,34 @@
 .throne-ring-stage::before, .throne-ring-stage::after { display: none; }
 .throne-ring-constellation, .throne-ring-scene-frame { display: none; }
 
+/* Active-world navigation ornaments: a small visual signature around the
+   carousel controls, without reintroducing a scene-wide background layer. */
+.throne-ring-nav { isolation: isolate; }
+.throne-ring-nav-ornament { position: absolute; z-index: 0; top: 7px; width: 96px; height: 48px; opacity: 0.72; pointer-events: none; }
+.throne-ring-nav-diamond, .throne-ring-nav > span:last-child { position: relative; z-index: 1; }
+.throne-ring-nav--previous .throne-ring-nav-ornament { right: 42px; transform: scaleX(-1); }
+.throne-ring-nav--next .throne-ring-nav-ornament { left: 42px; }
+.throne-ring-nav-ornament::before, .throne-ring-nav-ornament::after, .throne-ring-nav-ornament i { content: ''; position: absolute; display: block; }
+.throne-ring-nav-ornament::before { inset: 7px 0; border-top: 1px solid color-mix(in srgb, var(--throne-accent) 55%, transparent); border-bottom: 1px solid color-mix(in srgb, var(--throne-accent) 30%, transparent); }
+.throne-ring-nav-ornament::after { top: 50%; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, var(--throne-accent), transparent); box-shadow: 0 0 9px var(--throne-glow); }
+.throne-ring-nav-ornament i { top: 19px; width: 7px; height: 7px; border: 1px solid var(--throne-accent); border-radius: 50%; box-shadow: 0 0 8px var(--throne-glow); }
+.throne-ring-nav-ornament i:nth-child(1) { left: 19px; }
+.throne-ring-nav-ornament i:nth-child(2) { left: 45px; }
+.throne-ring-nav-ornament i:nth-child(3) { left: 71px; }
+.throne-ring-nav--iron .throne-ring-nav-ornament::before { inset: 2px 0; border: 0; background: repeating-linear-gradient(105deg, transparent 0 13px, rgba(224,90,74,0.7) 14px 16px, transparent 17px 28px); clip-path: polygon(0 50%, 12% 0, 24% 50%, 36% 0, 48% 50%, 60% 0, 72% 50%, 84% 0, 100% 50%, 84% 100%, 72% 50%, 60% 100%, 48% 50%, 36% 100%, 24% 50%, 12% 100%); }
+.throne-ring-nav--iron .throne-ring-nav-ornament i { border-radius: 0; transform: rotate(45deg); }
+.throne-ring-nav--veil .throne-ring-nav-ornament { filter: blur(0.35px); }
+.throne-ring-nav--veil .throne-ring-nav-ornament::before { inset: 5px 0; border: 0; border-radius: 50%; background: repeating-radial-gradient(ellipse at 50% 50%, transparent 0 9px, rgba(79,179,232,0.45) 10px 11px, transparent 12px 18px); }
+.throne-ring-nav--ember .throne-ring-nav-ornament::before { inset: 0; border: 0; background: repeating-radial-gradient(ellipse at 0 100%, transparent 0 12px, rgba(168,199,91,0.65) 13px 14px, transparent 15px 23px); }
+.throne-ring-nav--ember .throne-ring-nav-ornament i { border-radius: 70% 30% 70% 30%; transform: rotate(38deg); }
+.throne-ring-nav--water .throne-ring-nav-ornament::before { inset: 3px 0; border: 0; background: repeating-radial-gradient(ellipse at 50% 100%, transparent 0 8px, rgba(117,185,220,0.52) 9px 10px, transparent 11px 16px); }
+.throne-ring-nav--water .throne-ring-nav-ornament i { width: 10px; height: 5px; top: 20px; border-radius: 50%; }
+.throne-ring-nav--precision .throne-ring-nav-ornament::before { inset: 0; border: 1px solid rgba(223,232,255,0.52); background: linear-gradient(90deg, transparent 49%, rgba(223,232,255,0.42) 50%, transparent 51%), linear-gradient(transparent 49%, rgba(223,232,255,0.42) 50%, transparent 51%); }
+.throne-ring-nav--precision .throne-ring-nav-ornament i { border-radius: 0; }
+.throne-ring-nav--gravity .throne-ring-nav-ornament::before { inset: 0 8px; border: 1px solid rgba(136,145,173,0.62); border-radius: 50%; box-shadow: inset 0 0 12px rgba(0,0,0,0.75); }
+.throne-ring-nav--gravity .throne-ring-nav-ornament i { background: #090914; border-color: #8891ad; }
+@media (max-width: 760px) { .throne-ring-nav-ornament { display: none; } }
+
 
 /* ---------------- Which Overlord Are You? quiz ---------------- */
 .quiz-wrap { max-width: 760px; margin: 0 auto; }
