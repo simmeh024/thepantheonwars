@@ -371,8 +371,8 @@ also supports a deliberately manual `?full=1` historical rebuild.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=263`, community `css/community-bundle.css?v=247`, and admin
-  `css/admin-bundle.css?v=254`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=264`, community `css/community-bundle.css?v=248`, and admin
+  `css/admin-bundle.css?v=255`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
@@ -469,6 +469,24 @@ also supports a deliberately manual `?full=1` historical rebuild.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Fixed: disabling a Site Settings OAuth provider didn't hide its button.**
+  Confirmed live (2026-07-20): `api/session-check.php` correctly reported
+  `oauth.apple: false` after the toggle was switched off and saved, but the
+  Apple button stayed visible in the login/register modal regardless --
+  a client-side CSS bug, not a deploy/migration/caching issue. `.auth-google-
+  btn`/`.auth-apple-btn`/`.auth-oauth-divider`/`.auth-oauth-option` (added for
+  Apple OAuth/Site Settings) each set their own `display: flex`, which ties
+  in CSS specificity with the browser's default `[hidden] { display: none }`
+  rule and wins the cascade since the author rule is declared later --
+  exactly the reason `.auth-form[hidden] { display: none; }` already exists
+  a few lines above in `components.css` for the same tab-switching mechanism,
+  a defensive override this codebase already established the need for and
+  that these four new selectors simply didn't get. Fixed with
+  `.auth-google-btn[hidden], .auth-apple-btn[hidden], .auth-oauth-divider[hidden],
+  .auth-oauth-option[hidden] { display: none; }`. Google's own button was
+  never observed broken only because it defaults enabled; the underlying bug
+  would have hit it identically the first time someone disabled Google.
 
 - **Maintenance Mode (Site Settings):** a third Site Settings switch
   alongside the two OAuth toggles, with an optional custom message

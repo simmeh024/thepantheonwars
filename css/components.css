@@ -128,6 +128,12 @@ html.maintenance-lock body { overflow: hidden; }
 .auth-apple-mark svg { width: 15px; height: 15px; }
 .auth-oauth-option { display: flex; align-items: flex-start; gap: 8px; color: var(--text-faint); font-size: 0.78rem; line-height: 1.35; cursor: pointer; }
 .auth-oauth-option input { margin: 2px 0 0; accent-color: var(--purple-bright); }
+/* Each of these sets its own `display`, which ties in specificity with the
+   browser default `[hidden]` rule and can win the cascade -- same reason
+   .auth-form[hidden] above needs its own override. Without this, js/members.js
+   setting .hidden on a disabled provider's button (Site Settings) has no
+   visible effect. */
+.auth-google-btn[hidden], .auth-apple-btn[hidden], .auth-oauth-divider[hidden], .auth-oauth-option[hidden] { display: none; }
 .auth-remember-option { display: flex; align-items: center; gap: 8px; margin: -2px 0 2px; color: var(--text-faint); font-size: 0.78rem; cursor: pointer; }
 .auth-remember-option input { accent-color: var(--purple-bright); }
 
