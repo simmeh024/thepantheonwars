@@ -479,12 +479,39 @@
   display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 12px; padding: 12px 14px;
   border: 1px solid var(--border-soft); background: linear-gradient(100deg, rgba(124,79,214,0.09), rgba(255,255,255,0.018));
 }
-.reputation-reward-row span { color: var(--text-dim); font-size: 0.84rem; }
+.reputation-reward-row label {
+  display: inline-flex; align-items: center; gap: 9px; min-width: 0; margin: 0;
+  color: var(--text); font-size: 0.84rem; font-weight: 500; letter-spacing: 0; text-transform: none; cursor: pointer;
+}
+.reputation-reward-row input[type="checkbox"] {
+  appearance: none; -webkit-appearance: none; display: grid; place-content: center; flex: 0 0 16px;
+  width: 16px; height: 16px; margin: 0; border: 1px solid rgba(162,121,236,0.62); border-radius: 2px;
+  background: rgba(8,5,19,0.82); cursor: pointer; transition: border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease;
+}
+.reputation-reward-row input[type="checkbox"]::after {
+  content: ''; width: 7px; height: 4px; border: solid #fff7df; border-width: 0 0 2px 2px;
+  transform: rotate(-45deg) scale(0); transform-origin: center; transition: transform 0.12s ease;
+}
+.reputation-reward-row input[type="checkbox"]:checked {
+  border-color: var(--purple-bright); background: linear-gradient(135deg, var(--purple-deep), var(--purple));
+  box-shadow: 0 0 9px rgba(157,111,232,0.34);
+}
+.reputation-reward-row input[type="checkbox"]:checked::after { transform: rotate(-45deg) scale(1); }
+.reputation-reward-row > span { display: inline-flex; align-items: center; gap: 7px; color: var(--text-dim); font-size: 0.78rem; white-space: nowrap; }
+.reputation-rule-points {
+  width: 72px; height: 34px; padding: 6px 9px; border: 1px solid var(--border); border-radius: 2px;
+  background: rgba(8,5,19,0.84); color: var(--gold-bright); font-family: 'Jost', sans-serif; font-size: 0.88rem; font-weight: 600;
+  text-align: center; color-scheme: dark; transition: border-color 0.16s ease, box-shadow 0.16s ease, background-color 0.16s ease;
+}
+.reputation-rule-points:hover { border-color: rgba(162,121,236,0.64); }
+.reputation-rule-points:focus { outline: none; border-color: var(--purple-bright); background: rgba(16,10,34,0.96); box-shadow: 0 0 0 3px rgba(157,111,232,0.16); }
 .reputation-reward-row strong { color: var(--gold-bright); font-family: 'Cinzel', serif; font-size: 0.8rem; white-space: nowrap; }
 .reputation-reward-row small { grid-column: 2; margin-top: -8px; color: var(--text-faint); font-size: 0.67rem; text-align: right; }
 @media (max-width: 560px) {
   .reputation-multiplier-status { width: 100%; order: 3; }
-  .reputation-reward-row { grid-template-columns: 1fr auto; }
+  .reputation-reward-row { grid-template-columns: minmax(0, 1fr) auto; gap: 10px; padding: 11px 12px; }
+  .reputation-reward-row label { font-size: 0.8rem; }
+  .reputation-reward-row small { grid-column: 1 / -1; margin: -3px 0 0; text-align: left; }
 }
 
 .admin-list { border: 1px solid var(--border-soft); background: var(--panel); }
