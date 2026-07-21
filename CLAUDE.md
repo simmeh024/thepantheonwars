@@ -323,8 +323,10 @@ curl -s -o /dev/null "https://thepantheonwars.com/api/cron/rollup-page-view-jour
 This writes completed-day transitions to `page_view_daily_transitions`; the endpoint
 also supports a deliberately manual `?full=1` historical rebuild.
 
-3. Weekly (any day/time is fine -- it always looks back exactly 7 days from
-   whenever it runs), Dispatch Translation quality report:
+3. Sundays at 00:00 UTC (cPanel cron fields: minute `0`, hour `0`, day `*`,
+   month `*`, weekday `0`; it always looks back exactly 7 days from whenever
+   it runs, so the exact day/time isn't load-bearing, just what was chosen),
+   Dispatch Translation quality report:
 ```
 curl -s -o \dev\null "https://thepantheonwars.com/api/cron/generate-quality-report.php?key=<CRON_SAMPLE_KEY>"
 ```
