@@ -1372,27 +1372,29 @@
 /* Completing all 14 books is the top ("prismatic") reputation-achievement
    tier -- reuses that same rainbow identity here (and the prismatic-shift
    keyframe already defined in components.css for the Nexus Veil card)
-   rather than inventing a new special-effect language for one badge. */
+   rather than inventing a new special-effect language for one badge.
+   The rotating ring is a gradient-border trick (two background layers, one
+   clipped to padding-box, one to border-box), not an absolutely-positioned
+   pseudo-element -- an earlier ::before-based version escaped its own pill
+   and rendered as a page-spanning rotating band, since an absolutely-
+   positioned layer is only ever as safe as its containing block actually
+   resolves to be. A background layer can never escape its own element's
+   box, so this can't repeat that failure mode. */
 .member-current-reading.is-saga-complete {
-  position: relative; z-index: 0;
-  border-color: rgba(224,178,74,0.55);
-  background: linear-gradient(90deg, rgba(224,178,74,0.14), rgba(176,95,255,0.12));
+  border: 2px solid transparent;
+  background:
+    linear-gradient(90deg, rgba(224,178,74,0.14), rgba(176,95,255,0.12)) padding-box,
+    linear-gradient(90deg, #ff5f6d, #ffc371, #f7ff5f, #5fffb0, #5f9fff, #b05fff, #ff5f6d) border-box;
+  background-size: 100% 100%, 200% auto;
+  animation: prismatic-shift 6s linear infinite;
   box-shadow: 0 0 16px rgba(176,95,255,0.16);
 }
 .member-current-reading.is-saga-complete:hover {
-  border-color: #b05fff;
-  background: linear-gradient(90deg, rgba(224,178,74,0.2), rgba(176,95,255,0.18));
+  background:
+    linear-gradient(90deg, rgba(224,178,74,0.2), rgba(176,95,255,0.18)) padding-box,
+    linear-gradient(90deg, #ff5f6d, #ffc371, #f7ff5f, #5fffb0, #5f9fff, #b05fff, #ff5f6d) border-box;
+  background-size: 100% 100%, 200% auto;
   box-shadow: 0 0 22px rgba(176,95,255,0.26);
-}
-/* Idea 1: a slow-rotating rainbow ring sitting just behind the pill --
-   the pill's own opaque-ish background covers the center, leaving only a
-   thin glowing ring visible at the edges. */
-.member-current-reading.is-saga-complete::before {
-  content: '';
-  position: absolute; inset: -3px; z-index: -1;
-  background: conic-gradient(from 0deg, #ff5f6d, #ffc371, #f7ff5f, #5fffb0, #5f9fff, #b05fff, #ff5f6d);
-  filter: blur(2px);
-  animation: prismatic-ring-spin 5s linear infinite;
 }
 .member-current-reading.is-saga-complete .member-current-reading-label {
   background: linear-gradient(90deg, #ff5f6d, #ffc371, #f7ff5f, #5fffb0, #5f9fff, #b05fff, #ff5f6d);
@@ -1408,7 +1410,6 @@
   display: inline-block;
   animation: prismatic-glyph-pulse 3s ease-in-out infinite;
 }
-@keyframes prismatic-ring-spin { to { transform: rotate(360deg); } }
 @keyframes prismatic-glyph-pulse {
   0%, 100% { color: #ff5f6d; filter: drop-shadow(0 0 5px #ff5f6d); transform: scale(1); }
   16.6% { color: #ffc371; filter: drop-shadow(0 0 7px #ffc371); transform: scale(1.18); }

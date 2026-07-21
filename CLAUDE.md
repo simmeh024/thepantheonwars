@@ -441,8 +441,8 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=266`, community `css/community-bundle.css?v=256`, and admin
-  `css/admin-bundle.css?v=264`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=266`, community `css/community-bundle.css?v=257`, and admin
+  `css/admin-bundle.css?v=265`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
@@ -540,6 +540,27 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Fixed: Saga Complete's rotating ring escaped its pill.** Confirmed live
+  (screenshot) immediately after the entry below shipped: the `::before`
+  ring, absolutely positioned at `inset: -3px` behind
+  `.member-current-reading.is-saga-complete`, rendered as a huge rotating
+  band cutting diagonally across the entire page -- avatar, achievement
+  showcase, and Overlord Affinity card all included -- rather than a thin
+  ring around the small pill. `position: relative` on the pill should have
+  scoped the pseudo-element's containing block correctly, but evidently
+  didn't resolve that way in practice; rather than chase the exact cause
+  further, replaced it with a gradient-border technique instead (two
+  `background` layers -- one clipped to `padding-box` for the pill's own
+  fill, one to `border-box` carrying the rainbow gradient -- animated via
+  the same `background-position`-shifting `prismatic-shift` keyframe the
+  label already uses, rather than `transform: rotate()` on a pseudo-
+  element). A background layer is structurally incapable of escaping its
+  own element's box the way an absolutely-positioned one can, so this
+  closes off the whole failure mode rather than just this one instance of
+  it. The pulsing gem glyph (arrow-slot swap) was unaffected and unchanged.
+  `community.css?v=206` / `community-bundle.css?v=257` /
+  `admin-bundle.css?v=265`.
 
 - **Saga Complete badge: rotating ring + pulsing gem glyph.** Two follow-up
   effects on the reading-completion badge below, picked from a shortlist of
