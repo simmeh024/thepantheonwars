@@ -22,6 +22,19 @@ function initMembers() {
   var APPLE_ICON = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M16.5 3.5c.1 1-.3 2-.9 2.8-.6.8-1.6 1.4-2.6 1.3-.1-1 .3-2.1 1-2.8.6-.8 1.7-1.3 2.5-1.3zm2.9 15.4c-.6 1.3-.9 1.9-1.7 3-1.1 1.6-2.7 3.6-4.6 3.6-1.7 0-2.2-1.1-4.1-1.1-1.9 0-2.5 1.1-4.1 1.1-1.9 0-3.4-1.9-4.5-3.4C-.9 19.6-.3 14 2.1 11.1c1.2-1.4 2.9-2.3 4.5-2.3 1.7 0 2.8 1.1 4.1 1.1 1.3 0 2.2-1.1 4.1-1.1 1.5 0 3.1.8 4.2 2.2-3.7 2.1-3.1 7 .4 8z"/></svg>';
   var PROVIDER_LABELS = { google: 'Google', apple: 'Apple' };
 
+  // Silent Google re-login: set once a visitor actually signs in/registers/
+  // links with Google on this browser, so refreshAuthNav() knows it's worth
+  // trying a quiet prompt=none bounce the next time the local session is
+  // gone. Cleared on an explicit Log Out (so that doesn't immediately get
+  // undone by a lingering Google session) and on a failed silent attempt
+  // (Google itself reporting no active session/consent -- stop asking until
+  // the visitor signs in with Google again). Apple has no silent equivalent
+  // and never touches this flag. GOOGLE_SILENT_TRIED_KEY is sessionStorage
+  // (per-tab) so a failed attempt can't bounce through Google more than once
+  // per tab session.
+  var GOOGLE_LINKED_KEY = 'pw_google_linked';
+  var GOOGLE_SILENT_TRIED_KEY = 'pw_google_silent_tried';
+
   // Password input + show/hide toggle button, shared by login/register.
   function passwordFieldHtml(id, name, autocomplete, minlength) {
     return '<div class="auth-password-field">' +
@@ -349,6 +362,9 @@ function initMembers() {
       e.preventDefault();
       postJson('/api/logout.php', { csrf: window.PW_AUTH.csrf }).then(function () {
         window.PW_AUTH = { loggedIn: false, user: null, csrf: null, permissions: [], oauth: { google: true, apple: false }, maintenance: { enabled: false, message: '' } };
+        // An explicit Log Out must not be immediately undone by a lingering
+        // Google session on the very next page load.
+        localStorage.removeItem(GOOGLE_LINKED_KEY);
         refreshAuthNav();
         if (/\/admin\/?$/.test(location.pathname)) location.href = '../index.html';
         else if (/profile\.html$/.test(location.pathname)) location.href = 'index.html';
@@ -602,6 +618,18 @@ function initMembers() {
           oauth: data.oauth || { google: true, apple: false },
           maintenance: data.maintenance || { enabled: false, message: '' },
         };
+        // Silent Google re-login: only for a visitor who has used Google here
+        // before (GOOGLE_LINKED_KEY), only once per tab session
+        // (GOOGLE_SILENT_TRIED_KEY guards against a retry loop if it fails),
+        // and never during maintenance lockout. Navigates away instead of
+        // painting logged-out chrome first; the same page reloads fresh after
+        // the round trip either way.
+        if (!window.PW_AUTH.loggedIn && window.PW_AUTH.oauth.google && !window.PW_AUTH.maintenance.enabled &&
+            localStorage.getItem(GOOGLE_LINKED_KEY) === '1' && !sessionStorage.getItem(GOOGLE_SILENT_TRIED_KEY)) {
+          sessionStorage.setItem(GOOGLE_SILENT_TRIED_KEY, '1');
+          window.location.assign('/api/oauth/start.php?provider=google&intent=login&silent=1&return_to=' + encodeURIComponent(location.pathname + location.search));
+          return;
+        }
         applyOauthButtonVisibility();
         applyMaintenanceMode();
         renderNav();
@@ -680,6 +708,11 @@ function initMembers() {
     var params = new URLSearchParams(location.search);
     var result = params.get('oauth');
     if (!result) return;
+    if (/^google-(signed-in|registered|linked)$/.test(result)) {
+      localStorage.setItem(GOOGLE_LINKED_KEY, '1');
+    } else if (result === 'google-silent-failed') {
+      localStorage.removeItem(GOOGLE_LINKED_KEY);
+    }
     // These are Profile Settings outcomes. Leave the parameter in place for
     // profile.html's own script to render beside the provider link controls.
     if (/-(linked|link-conflict|link-expired)$/.test(result)) {

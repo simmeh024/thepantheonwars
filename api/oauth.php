@@ -111,7 +111,7 @@ function pw_oauth_redirect($returnTo, $result) {
     exit;
 }
 
-function pw_oauth_begin_flow($provider, $intent, $returnTo, $importAvatar = false, $linkUserId = null) {
+function pw_oauth_begin_flow($provider, $intent, $returnTo, $importAvatar = false, $linkUserId = null, $silent = false) {
     // OAuth can begin for a brand-new visitor, so it must deliberately create
     // the session that persists state and the PKCE verifier across redirects.
     pw_start_session();
@@ -125,6 +125,10 @@ function pw_oauth_begin_flow($provider, $intent, $returnTo, $importAvatar = fals
         'return_to' => pw_oauth_safe_return_to($returnTo),
         'import_avatar' => $importAvatar ? 1 : 0,
         'link_user_id' => $linkUserId !== null ? (int)$linkUserId : null,
+        // A silent (prompt=none) attempt must never register a new account or
+        // show an error toast on failure -- callback.php checks this flag to
+        // fail closed instead of falling into its normal login/register path.
+        'silent' => $silent ? 1 : 0,
         'expires_at' => time() + 600,
     ];
     return $_SESSION['pw_oauth_flow'];

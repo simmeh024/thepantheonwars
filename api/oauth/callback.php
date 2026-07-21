@@ -19,6 +19,13 @@ if (!$flow) {
 
 $returnTo = $flow['return_to'];
 if (isset($params['error'])) {
+    // A silent (prompt=none) attempt reports "no active Google session" the
+    // same way a declined consent screen would (error=login_required or
+    // interaction_required) -- that's routine, not a failure the visitor
+    // asked about, so it must never surface the normal cancelled/failed toast.
+    if (!empty($flow['silent'])) {
+        pw_oauth_redirect($returnTo, $provider . '-silent-failed');
+    }
     pw_log_activity($provider . '_oauth_cancelled', $label . ' sign-in was cancelled or declined.', null, $label . ' OAuth');
     pw_oauth_redirect($returnTo, $params['error'] === 'access_denied' ? $provider . '-cancelled' : $provider . '-failed');
 }
@@ -89,6 +96,15 @@ if ($identity) {
     $username = $identity['username'];
     $result = $provider . '-signed-in';
 } else {
+    // A silent attempt must never create an account: this endpoint reaching
+    // here at all already means Google vouched for an active session and
+    // prior consent, but there being no matching oauth_identities row means
+    // this browser was never actually linked to a Pantheon Wars account --
+    // fail closed exactly like a missing session, rather than registering
+    // one behind the visitor's back.
+    if (!empty($flow['silent'])) {
+        pw_oauth_redirect($returnTo, $provider . '-silent-failed');
+    }
     $emailStmt = $db->prepare('SELECT id, username FROM users WHERE email = ?');
     $emailStmt->execute([$profile['email']]);
     $emailUser = $emailStmt->fetch();
