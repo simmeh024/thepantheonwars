@@ -174,6 +174,18 @@ For legacy `Area: change` titles, the same reviewed dictionary also checks the
 complete title after the formatter has separated its area prefix; only the
 first, most specific scoped match is used.
 
+The same array also carries a **developer-slang glossary**: general
+software-engineering jargon (hotfix, WIP, tech debt, boilerplate, race
+condition, flaky, regression, rollback, and similar) rather than this
+project's own recurring commit titles. These are word/phrase-level swaps
+within an otherwise normal sentence, not whole-subject replacements, so they
+compose with the rest of a draft rather than replacing it outright.
+Conventional Commits prefixes (`refactor:`, `chore:`, `revert`, etc.) are
+already handled separately as commit-intent signals and are not duplicated
+here. Add a slang entry only for a term with one clear, stable, reader-safe
+meaning -- the same review bar as every other dictionary entry -- and add a
+regression case in `tools/test-dispatch-translator.php` alongside it.
+
 When a safe changed-file aggregate is available, the formatter adds it as a
 separate final paragraph: `Total files edited: N in <allow-listed scope>.`
 This keeps the main BH-4 explanation readable while retaining a concise,

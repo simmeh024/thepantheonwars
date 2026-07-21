@@ -85,6 +85,26 @@ $cases = [
         'options' => ['embedding_match' => ['dispatch_id' => 123, 'score' => 0.4, 'subject' => 'Unrelated', 'translation' => 'Unrelated.']],
         'forbidden_evidence' => ['semantic context'],
     ],
+    // Developer-slang glossary: general jargon terms, not this project's own
+    // historical commit titles. Confirms the raw jargon word never leaks
+    // into reader-facing prose and that a match earns the same
+    // reader_safe_dictionary evidence as any other dictionary entry.
+    [
+        'subject' => 'Hotfix a flaky login test',
+        'body' => '',
+        'tag' => 'fix',
+        'contains' => ['urgent fix', 'inconsistent'],
+        'forbidden' => ['hotfix', 'flaky'],
+        'evidence' => ['reader safe dictionary'],
+    ],
+    [
+        'subject' => 'Clean up tech debt and boilerplate in the login flow',
+        'body' => '',
+        'tag' => 'refactor',
+        'contains' => ['accumulated maintenance work', 'repetitive setup code'],
+        'forbidden' => ['tech debt', 'boilerplate'],
+        'evidence' => ['reader safe dictionary'],
+    ],
 ];
 
 foreach ($cases as $case) {

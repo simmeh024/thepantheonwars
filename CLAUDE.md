@@ -541,6 +541,21 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Developer-slang glossary added to the reader-safe terminology
+  dictionary** (`api/dispatch-translation-drafts.php`): ~28 new entries for
+  general software-engineering jargon (hotfix, WIP, tech debt, boilerplate,
+  spaghetti code, race condition, flaky, regression, rollback, and similar)
+  in the same `$replacements` array that already mixed this project's own
+  historical commit titles with generic short-word swaps (CSS, JavaScript,
+  N+1 queries, etc.) -- no new mechanism needed, just more entries in the
+  existing one. Conventional Commits prefixes (`refactor:`, `chore:`,
+  `revert`, etc.) already had their own dedicated commit-intent handling
+  and are deliberately not duplicated here. Each entry earns the same
+  10-point `reader_safe_dictionary` confidence evidence as any other match.
+  Two new regression cases added to `tools/test-dispatch-translator.php`
+  confirm the raw jargon never leaks into reader-facing prose. Documented in
+  `docs/dispatch-spacy.md`'s "Reader-safe terminology dictionary" section.
+
 - **Sentence-embedding semantic similarity for Dispatch Translations
   (planned via EnterPlanMode, then implemented):** a second, independent
   local NLP capability alongside the existing spaCy/RapidFuzz worker --
