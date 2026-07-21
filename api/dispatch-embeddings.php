@@ -56,7 +56,12 @@ function pw_dispatch_embedding_request(array $payload): ?array
         2 => ['pipe', 'w'],
     ], $pipes, null, null, ['bypass_shell' => true]);
     if (!is_resource($process)) {
-        $unavailable = true;
+        // Deliberately not latching here either: a spawn failure on this
+        // account can be transient process-count pressure (this account has
+        // a hard OS-level ceiling on simultaneous processes), not proof the
+        // worker itself is broken. Same reasoning as the timeout branch
+        // below -- only the pre-flight interpreter/script checks above are
+        // genuinely static for the life of this process.
         return null;
     }
 
@@ -85,7 +90,16 @@ function pw_dispatch_embedding_request(array $payload): ?array
 
     if ($status['running']) {
         proc_terminate($process);
-        $unavailable = true;
+        // Deliberately not latching $unavailable here: a single slow cold
+        // start is a per-call timing variance, not proof the worker is
+        // broken. Latching it would be harmless for a normal web request
+        // (each request is its own fresh PHP process anyway), but it
+        // silently disabled every remaining row of a CLI batch script that
+        // loops over hundreds of dispatches in one long-running process --
+        // one slow row would otherwise kill embedding lookups for the rest
+        // of that entire run. Only latch for failures that are actually
+        // permanent within this process (missing interpreter/script above,
+        // or a real script error below).
     }
     $output .= stream_get_contents($pipes[1]);
     $errors .= stream_get_contents($pipes[2]);

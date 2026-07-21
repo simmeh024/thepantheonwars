@@ -52,6 +52,14 @@ foreach ($rows as $row) {
     } else {
         $failed++;
     }
+
+    // This account has a hard ceiling on simultaneous processes. A brief
+    // pause between each one-shot embedding process keeps this one-time
+    // batch from bunching up spawn attempts against that ceiling -- a few
+    // extra minutes across ~600 rows costs nothing here, unlike the live
+    // request path (which only ever runs one call at a time anyway and
+    // must stay fast).
+    usleep(300000);
 }
 
 echo "Processed {$total} approved translations: {$updated} embedded, {$skipped} already cached, {$failed} failed.\n";
