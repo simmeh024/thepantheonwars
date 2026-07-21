@@ -25,7 +25,17 @@ echo "Script: {$script}\n";
 echo "  is_file: " . (is_file($script) ? 'yes' : 'NO') . "\n\n";
 
 $db = pw_db();
-$row = $db->query('SELECT dispatch_id, translation FROM dispatch_translations ORDER BY dispatch_id ASC LIMIT 1')->fetch();
+// Deliberately pick a row that does NOT already have a cached embedding --
+// picking any already-cached row (e.g. plain ORDER BY dispatch_id ASC LIMIT 1)
+// would skip the exact code path the failing rows actually go through.
+$row = $db->query(
+    'SELECT dt.dispatch_id, dt.translation
+     FROM dispatch_translations dt
+     LEFT JOIN dispatch_translation_embeddings dte ON dte.dispatch_id = dt.dispatch_id
+     WHERE dte.dispatch_id IS NULL
+     ORDER BY dt.dispatch_id ASC
+     LIMIT 1'
+)->fetch();
 if (!$row) {
     fwrite(STDERR, "No dispatch_translations rows found.\n");
     exit(1);
