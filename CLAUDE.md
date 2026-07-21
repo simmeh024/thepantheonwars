@@ -442,7 +442,7 @@ at that time.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
   `css/public.css?v=266`, community `css/community-bundle.css?v=258`, and admin
-  `css/admin-bundle.css?v=266`. Public pages use `css/public.css`, community pages
+  `css/admin-bundle.css?v=267`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
@@ -540,6 +540,68 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Sentence-embedding semantic similarity for Dispatch Translations
+  (planned via EnterPlanMode, then implemented):** a second, independent
+  local NLP capability alongside the existing spaCy/RapidFuzz worker --
+  full setup and architecture rationale in the new `docs/dispatch-
+  embeddings.md`. Motivated by a real weak auto-generated Dispatch ("BH-4
+  has made the community experience around darken Saga Complete's easier
+  to follow") that nothing in the dictionary/domain-regex/RapidFuzz-alias
+  system recognized, because those all need literal word overlap and this
+  commit shared none with any prior similar change. **Architecture
+  decision:** a *persistent* Flask service
+  (`tools/dispatch-embeddings-service.py`, `all-MiniLM-L6-v2`, loaded once
+  at process start via a **second, separate** cPanel "Setup Python App" /
+  Passenger instance) rather than extending the existing one-shot
+  `proc_open`-per-call pattern -- `import torch` alone commonly costs
+  1-3 seconds, which would routinely blow through
+  `api/dispatch-spacy.php`'s existing hardcoded 6-second budget on every
+  single draft generation rather than occasionally. `api/dispatch-
+  embeddings.php` is the new bridge (curl over loopback HTTP, same
+  fail-open/`$unavailable`-latch shape as `pw_dispatch_spacy_analyze()`),
+  gated by a new `DISPATCH_EMBEDDING_SERVICE_URL` secrets constant.
+  **Embedding cache is PHP-owned, not Python-resident:** the Flask service's
+  only job is `POST /encode {text} -> {embedding}` -- it never touches
+  MySQL or sees a corpus. PHP stores one embedding per approved translation
+  in the new `dispatch_translation_embeddings` table
+  (`migration_dispatch_translation_embeddings.sql`, upserted by
+  `pw_dispatch_update_translation_embedding()` at publish/edit time in both
+  `api/admin/dispatch-translations/save.php` and the auto-publish path in
+  `pw_create_dispatch_translation_draft()`) and computes cosine similarity
+  itself (`pw_dispatch_cosine_similarity()`/
+  `pw_dispatch_nearest_embedding_match()`, plain PHP, no dependency). Only
+  the one new incoming commit is ever sent to the service per draft --
+  a strictly *tighter* version of the pre-existing "raw prior translations
+  never leave the PHP/Python boundary" guarantee than the status quo
+  (`nearest_translation_similarity()` already ships up to 8 full past-
+  translation snippets into the spaCy worker per call for a much weaker
+  signal). **Deliberately staged scope** (a bigger, riskier "template
+  replay" stage that could let retrieval steer auto-published wording was
+  designed and explicitly deferred, not built): Stage 1 folds match
+  strength into the existing `semantic_context` confidence-evidence slot in
+  `pw_dispatch_draft_confidence()` (still capped at its existing 5-point
+  weight this pass -- only the underlying signal changed, so any quality
+  shift is attributable to one change at a time) via a new `>= 0.75`
+  threshold OR'd alongside spaCy's existing static-vector domain check;
+  Stage 2 surfaces the single best match (score + subject + text) as a
+  read-only "Similar past Dispatch" reference panel in the Dispatch
+  Translations review modal (`admin/index.html`, new `#admin-semantic-
+  match` block, copy button reusing the existing `wireCopyCommitButton()`
+  pattern) for a human editor to adapt manually -- it never changes draft
+  text automatically. System Status gets a new "Embedding Service"
+  Connected/Disconnected row, deliberately *not* wired into BH-4's
+  critical-directive escalation the way spaCy is (`task-advisor-
+  helpers.php`'s `$criticalPriority` list) since this signal is additive
+  and never load-bearing for publication. `tools/backfill-dispatch-
+  embeddings.php` is the one-off CLI backfill for translations approved
+  before this shipped (safe to re-run; re-verifies each write actually
+  landed rather than trusting the call silently). `tools/test-dispatch-
+  translator.php` gained two new cases using a synthetic
+  `options['embedding_match']` (no live service needed, matching the
+  existing `spacy_analysis['fuzzy_concept']` test pattern) plus a new
+  `forbidden_evidence`/`best_semantic_match` assertion type in the harness
+  itself. `admin.css?v=226` / `admin-bundle.css?v=267`.
 
 - **Fixed: Saga Complete's rainbow filled the whole pill, not just the
   ring.** Confirmed live (screenshot) right after the gradient-border fix

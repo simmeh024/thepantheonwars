@@ -925,6 +925,22 @@ CREATE TABLE IF NOT EXISTS dispatch_diff_context (
     FOREIGN KEY (dispatch_id) REFERENCES dispatch_entries(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Sentence-transformer embedding cache for approved translations, one row per
+-- published dispatch_translations row -- see migration_dispatch_translation_embeddings.sql
+-- and docs/dispatch-embeddings.md. Lets a new draft's semantic-similarity
+-- lookup compare against the whole approved corpus in plain PHP (cosine
+-- similarity) without re-encoding anything except the one incoming commit.
+CREATE TABLE IF NOT EXISTS dispatch_translation_embeddings (
+  dispatch_id INT UNSIGNED NOT NULL PRIMARY KEY,
+  model VARCHAR(64) NOT NULL,
+  translation_hash CHAR(64) NOT NULL,
+  embedding_json TEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_dispatch_translation_embeddings_dispatch
+    FOREIGN KEY (dispatch_id) REFERENCES dispatch_entries(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Rule-based drafts are deliberately isolated from approved translations.
 -- A draft is never exposed through the public dispatch APIs; an admin must
 -- approve or edit it first, which moves its text into dispatch_translations.

@@ -8,6 +8,7 @@
 require_once __DIR__ . '/dispatch-diff-context.php';
 require_once __DIR__ . '/dispatch-fuzzy-concepts.php';
 require_once __DIR__ . '/dispatch-spacy.php';
+require_once __DIR__ . '/dispatch-embeddings.php';
 
 function pw_dispatch_draft_phrase_is_recent(string $candidate, array $recentTranslations): bool
 {
@@ -118,6 +119,12 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     $diffContext = is_array($options['diff_context'] ?? null) ? $options['diff_context'] : [];
     $recentTranslations = is_array($options['recent_translations'] ?? null) ? $options['recent_translations'] : [];
     $spacyAnalysis = is_array($options['spacy_analysis'] ?? null) ? $options['spacy_analysis'] : [];
+    // Pre-computed by pw_dispatch_draft_options_for_dispatch() (a single
+    // sentence-embedding lookup against the cached approved-translation
+    // corpus) so this formatter itself stays a pure function the regression
+    // harness can test with a synthetic value -- see tools/test-dispatch-translator.php.
+    $embeddingMatch = is_array($options['embedding_match'] ?? null) ? $options['embedding_match'] : [];
+    $embeddingSimilarity = isset($embeddingMatch['score']) ? (float)$embeddingMatch['score'] : 0.0;
     $clean = trim($subject);
     $clean = preg_replace('/^(?:feat(?:ure)?|fix|perf(?:ormance)?|refactor|chore|docs?|style|test)(?:\([^)]*\))?!?:\s*/i', '', $clean);
     $clean = preg_replace('/\s*\(?#[0-9]+\)?\s*$/', '', $clean);
@@ -386,6 +393,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
                 'confidence' => pw_dispatch_draft_confidence($rulesMatched, ['recognized_subject' => true, 'path_scope' => !empty($diffContext)]),
                 'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
                 'requires_editor_review' => false,
+                'best_semantic_match' => $embeddingMatch,
             ];
         }
         return [
@@ -393,6 +401,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
             'confidence' => pw_dispatch_draft_confidence(0),
             'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
             'requires_editor_review' => false,
+            'best_semantic_match' => $embeddingMatch,
         ];
     }
 
@@ -668,7 +677,13 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     $domain = $plan['domain'];
     $mode = $plan['intent'];
     $evidence['path_scope'] = $plan['has_path_scope'];
-    $evidence['semantic_context'] = $plan['semantic_domain'] !== '';
+    // Either signal earns the same 5-point weight -- the sentence-embedding
+    // match (real contextual similarity against approved past translations)
+    // is a strictly stronger signal than spaCy's static-word-vector domain
+    // classifier, but this pass deliberately keeps the existing weight
+    // unchanged so a quality shift is attributable to the signal change
+    // alone, not a re-tuned weight at the same time. See CLAUDE.md.
+    $evidence['semantic_context'] = $plan['semantic_domain'] !== '' || $embeddingSimilarity >= 0.75;
     $naturalOverrideApplied = false;
     $naturalOverrides = [
         '/\b(?:action intent|Dispatch title rewrites|translator regression|reader-facing development summaries|Dispatch Draft Translator)\b/i' => [
@@ -837,6 +852,11 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         'plan' => $plan,
         'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
         'requires_editor_review' => $fuzzyConceptUsed,
+        // The single best-matching approved past Dispatch (or [] if none
+        // scored above threshold), for the admin editor's reference panel.
+        // Never used to alter wording -- PHP's templates above are already
+        // finalized by this point.
+        'best_semantic_match' => $embeddingMatch,
     ];
 }
 
@@ -985,6 +1005,18 @@ function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string
         // Draft creation already handles the translations table independently;
         // an empty guard is safer than preventing a webhook from completing.
     }
+    // Only the current commit is ever encoded here; the corpus it's compared
+    // against is the pre-computed cache in dispatch_translation_embeddings
+    // (populated at publish/edit time by pw_dispatch_update_translation_embedding()),
+    // so this never re-encodes any prior translation just to draft a new one.
+    $embeddingMatch = [];
+    if ($subject !== '' || $body !== '') {
+        $encoded = pw_dispatch_embedding_similarity(trim($subject . "\n" . $body));
+        if (!empty($encoded['embedding'])) {
+            $embeddingMatch = pw_dispatch_nearest_embedding_match($db, $encoded['embedding'], $dispatchId);
+        }
+    }
+
     return [
         'diff_context' => $contexts[$dispatchId] ?? [],
         'recent_translations' => $recentTranslations,
@@ -993,6 +1025,7 @@ function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string
         'spacy_analysis' => ($subject !== '' || $body !== '')
             ? pw_dispatch_spacy_analyze($subject, $body, $recentTranslations, pw_dispatch_fuzzy_worker_concepts())
             : [],
+        'embedding_match' => $embeddingMatch,
     ];
 }
 
@@ -1051,6 +1084,7 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
                 // A high-confidence publication is valid even on installations
                 // that have not yet created the optional draft storage table.
             }
+            pw_dispatch_update_translation_embedding($db, $dispatchId, $result['draft']);
             pw_log_dispatch_translation_lifecycle(
                 $db,
                 'translation_auto_published',
@@ -1061,6 +1095,7 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
                 'auto_published' => true,
                 'translation' => $result['draft'],
                 'confidence' => $result['confidence'],
+                'best_semantic_match' => $result['best_semantic_match'] ?? [],
             ];
         }
         return ['ok' => false, 'reason' => 'published'];
@@ -1094,5 +1129,6 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
         'auto_published' => false,
         'draft' => $result['draft'],
         'confidence' => $result['confidence'],
+        'best_semantic_match' => $result['best_semantic_match'] ?? [],
     ];
 }

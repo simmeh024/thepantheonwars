@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
+require_once __DIR__ . '/../../dispatch-embeddings.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
@@ -41,6 +42,11 @@ $stmt = $db->prepare(
      ON DUPLICATE KEY UPDATE sha = VALUES(sha), translation = VALUES(translation)'
 );
 $stmt->execute([$dispatchId, $dispatch['sha'], $translation]);
+
+// Best-effort embedding cache write, so this now-approved translation can
+// surface as a "similar past Dispatch" reference for a future draft. Never
+// blocks a save if the local embedding service is unavailable.
+pw_dispatch_update_translation_embedding($db, $dispatchId, $translation);
 
 // Saving is explicit editorial approval. Remove any local rule-based draft
 // only after the approved text has been written successfully.

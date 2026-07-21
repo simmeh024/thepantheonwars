@@ -33,6 +33,7 @@ if (!empty($result['auto_published'])) {
         'translation' => $result['translation'],
         'confidence' => $result['confidence'],
         'requires_editor_review' => false,
+        'best_semantic_match' => $result['best_semantic_match'] ?? [],
     ]);
 }
 
@@ -55,4 +56,5 @@ pw_json([
     'confidence' => $result['confidence'],
     'auto_published' => false,
     'requires_editor_review' => !empty($result['requires_editor_review']),
+    'best_semantic_match' => $result['best_semantic_match'] ?? [],
 ]);

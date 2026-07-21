@@ -13,6 +13,7 @@
  */
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/status-helpers.php';
+require_once __DIR__ . '/../../dispatch-embeddings.php';
 
 pw_require_permission('dashboards.view_system_status');
 $db = pw_db();
@@ -122,6 +123,7 @@ $cpuLoad = pw_check_cpu_load();
 // --- SSL certificate + Avatar storage + Total storage ----------------------------
 $ssl = pw_check_ssl_expiry();
 $spacy = pw_dispatch_spacy_status();
+$embeddings = pw_dispatch_embedding_status();
 $avatarStorage = pw_check_avatar_storage();
 $totalStorage = pw_check_total_storage();
 
@@ -134,6 +136,7 @@ pw_json([
     'next_sync' => ['label' => $nextSyncLabel],
     'ssl' => ['status' => $ssl['status'], 'label' => $ssl['label']],
     'spacy' => $spacy,
+    'embeddings' => $embeddings,
     'mail' => $mail,
     'db_load' => $dbLoad,
     'database_size' => $dbSize,

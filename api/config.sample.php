@@ -59,6 +59,16 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // define('SPACY_PYTHON_BIN', '/home/rdy3i6my40b0/virtualenv/dispatch-nlp/3.11/bin/python');
 // define('SPACY_MODEL', 'en_core_web_md');
 
+// Optional local sentence-embedding service for Dispatch translation semantic
+// similarity -- a separate, persistent Python service (not the one-shot
+// spaCy/RapidFuzz worker above). See docs/dispatch-embeddings.md for the
+// cPanel "Setup Python App" setup. The rule-based formatter and its
+// auto-publication decisions remain fully functional without this; it only
+// ever adds a graded confidence signal and an editor-facing "similar past
+// Dispatch" reference, never wording. Loopback only -- this should never be
+// reachable from outside the hosting account.
+// define('DISPATCH_EMBEDDING_SERVICE_URL', 'http://127.0.0.1:5001');
+
 // Transactional mail is deliberately off until Mail Settings has a sender
 // identity and its delivery toggle is enabled. Shared hosting uses PHP's native
 // mail() transport, so no SMTP password is stored in the admin database. These

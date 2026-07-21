@@ -2272,6 +2272,22 @@
   font-size: 0.74rem; line-height: 1.45;
 }
 .translation-editor-guidance::before { content: '\2726'; flex: 0 0 auto; color: #45d1c9; }
+/* Read-only reference panel: a strong sentence-embedding match against an
+   already-approved past Dispatch, shown purely for an editor to compare
+   against and copy/adapt -- never auto-applied to the draft text itself. */
+.admin-semantic-match {
+  margin: 0 0 18px; padding: 10px 12px;
+  border-left: 2px solid rgba(162,121,236,0.6);
+  background: rgba(124,79,214,0.06);
+}
+.admin-semantic-match-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  font-family: 'Cinzel', serif; font-size: 0.78rem; color: var(--gold-bright);
+  margin-bottom: 6px;
+}
+.admin-semantic-match-score { color: var(--text-faint); font-family: 'Jost', sans-serif; font-size: 0.7rem; margin-left: 4px; }
+.admin-semantic-match-subject { margin: 0 0 4px; color: var(--text-faint); font-size: 0.72rem; font-style: italic; }
+.admin-semantic-match-text { margin: 0; color: var(--text-dim); font-size: 0.82rem; line-height: 1.5; }
 .admin-field input[type="text"], .admin-field input[type="email"], .admin-field input[type="number"],
 .admin-field input[type="password"], .admin-field input[type="search"], .admin-field input[type="datetime-local"] {
   width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);

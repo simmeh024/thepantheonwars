@@ -1,0 +1,6 @@
+# Separate venv from tools/requirements-dispatch-nlp.txt (spaCy/RapidFuzz) --
+# see docs/dispatch-embeddings.md. Keeping this isolated means the existing
+# spaCy worker's venv, size, and startup behavior are never affected by this
+# much heavier dependency chain (torch + transformers).
+flask
+sentence-transformers

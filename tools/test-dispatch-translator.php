@@ -60,6 +60,31 @@ $cases = [
         'evidence' => ['reviewed fuzzy concept match'],
         'requires_editor_review' => true,
     ],
+    // A strong sentence-embedding match (options['embedding_match'], as
+    // pw_dispatch_draft_options_for_dispatch() would supply from a real
+    // encode+lookup) contributes the same 5-point semantic_context evidence
+    // spaCy's static-vector domain classifier already earns -- this is a
+    // pure-PHP synthetic value, so no live embedding service is needed to
+    // cover this behavior. The subject is deliberately nonsense so no other
+    // dictionary/domain/action rule can fire and blur the signal being tested.
+    [
+        'subject' => 'Zqlm plexor for the tazwick subsystem',
+        'body' => '',
+        'tag' => 'improvement',
+        'options' => ['embedding_match' => ['dispatch_id' => 123, 'score' => 0.83, 'subject' => 'Earlier plexor tazwick change', 'translation' => 'BH-4 already explained a similar earlier update.']],
+        'evidence' => ['semantic context'],
+        'best_semantic_match' => ['dispatch_id' => 123, 'score' => 0.83, 'subject' => 'Earlier plexor tazwick change', 'translation' => 'BH-4 already explained a similar earlier update.'],
+    ],
+    // Below the 0.75 threshold, pw_dispatch_nearest_embedding_match() itself
+    // would never have returned a match at all -- but even if some future
+    // caller passed a low score through anyway, it must not earn evidence.
+    [
+        'subject' => 'Zqlm plexor for the tazwick subsystem',
+        'body' => '',
+        'tag' => 'improvement',
+        'options' => ['embedding_match' => ['dispatch_id' => 123, 'score' => 0.4, 'subject' => 'Unrelated', 'translation' => 'Unrelated.']],
+        'forbidden_evidence' => ['semantic context'],
+    ],
 ];
 
 foreach ($cases as $case) {
@@ -86,6 +111,16 @@ foreach ($cases as $case) {
             fwrite(STDERR, "Expected confidence evidence is missing: " . $label . "\n");
             exit(1);
         }
+    }
+    foreach ($case['forbidden_evidence'] ?? [] as $label) {
+        if (in_array($label, $result['confidence']['evidence'] ?? [], true)) {
+            fwrite(STDERR, "Confidence evidence should not include: " . $label . "\n");
+            exit(1);
+        }
+    }
+    if (isset($case['best_semantic_match']) && ($result['best_semantic_match'] ?? []) !== $case['best_semantic_match']) {
+        fwrite(STDERR, "Unexpected best_semantic_match payload:\n" . print_r($result['best_semantic_match'] ?? null, true) . "\n");
+        exit(1);
     }
     if (isset($case['level']) && ($result['confidence']['level'] ?? '') !== $case['level']) {
         fwrite(STDERR, "Unexpected confidence level: " . ($result['confidence']['level'] ?? 'missing') . "\n");
