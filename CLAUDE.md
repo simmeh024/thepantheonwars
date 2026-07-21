@@ -528,8 +528,13 @@ at that time.
 
 ## Standing user instructions
 
-- Always write detailed, multi-paragraph commit messages -- never a single-line
-  commit. Explain what changed, why, and what was verified.
+- Commit messages: keep the first line (subject) short and plain -- it feeds
+  this repo's own GitHub-webhook-driven Dispatch Translation pipeline (see
+  "Dispatch Draft Translator" below), and a long or clause-heavy subject
+  produces a garbled public Development Dispatch. Follow it with a blank
+  line and a real, detailed body explaining what changed and why -- detail
+  belongs there, not crammed into the subject. Never a bare single-line
+  commit with no body.
 - Always commit and push finished, verified changes to `main` without waiting to be
   asked -- the user handles the cPanel deploy step and any SQL migrations themselves,
   so git push is the one action that should happen proactively. Still stage only the
