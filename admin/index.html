@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=260">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=261">
 </head>
 <body>
 
@@ -3419,6 +3419,48 @@
     return div.innerHTML;
   }
 
+  // Reusable inline field validation, shared by every modal in this file.
+  // fieldEl is the .admin-field wrapper (not the input itself), so a single
+  // .has-error class + message line works the same whether the field holds
+  // an input, select, or textarea.
+  function pwSetFieldError(fieldEl, message) {
+    if (!fieldEl) return;
+    fieldEl.classList.add('has-error');
+    var msgEl = fieldEl.querySelector('.admin-field-error');
+    if (!msgEl) {
+      msgEl = document.createElement('p');
+      msgEl.className = 'admin-field-error';
+      fieldEl.appendChild(msgEl);
+    }
+    msgEl.textContent = message;
+  }
+  function pwClearFieldError(fieldEl) {
+    if (!fieldEl) return;
+    fieldEl.classList.remove('has-error');
+    var msgEl = fieldEl.querySelector('.admin-field-error');
+    if (msgEl) msgEl.remove();
+  }
+  // Wires on-blur (and, for text-like inputs, live as-you-type-after-first-
+  // blur) validation onto one input using a validator that returns an error
+  // string or '' when valid. Kept generic so any modal can adopt it for a
+  // required/constrained field without duplicating this wiring.
+  function pwWireFieldValidation(inputEl, fieldEl, validator) {
+    if (!inputEl || !fieldEl) return;
+    var touched = false;
+    function run() {
+      var message = validator(inputEl.value);
+      if (message) {
+        pwSetFieldError(fieldEl, message);
+      } else {
+        pwClearFieldError(fieldEl);
+      }
+      return !message;
+    }
+    inputEl.addEventListener('blur', function () { touched = true; run(); });
+    inputEl.addEventListener('input', function () { if (touched) run(); });
+    return run;
+  }
+
   function fmtDate(iso) {
     var d = new Date((iso || '').replace(' ', 'T') + 'Z');
     if (isNaN(d.getTime())) return iso || '';
@@ -4430,10 +4472,10 @@
         openCreateBookModal();
         return;
       }
-      quickActionNewBookBtn.disabled = true;
+      quickActionNewBookBtn.disabled = true; quickActionNewBookBtn.classList.add('is-busy');
       loadBookList().then(function () {
         loadedSections['book-control'] = true;
-        quickActionNewBookBtn.disabled = false;
+        quickActionNewBookBtn.disabled = false; quickActionNewBookBtn.classList.remove('is-busy');
         openCreateBookModal();
       });
     });
@@ -4540,7 +4582,7 @@
   if (sysStatusLogBackupBtn) {
     sysStatusLogBackupBtn.addEventListener('click', function () {
       if (!window.confirm('Log that you just performed a manual backup?')) return;
-      sysStatusLogBackupBtn.disabled = true;
+      sysStatusLogBackupBtn.disabled = true; sysStatusLogBackupBtn.classList.add('is-busy');
       fetch('/api/admin/system-status/log-backup.php', {
         method: 'POST',
         credentials: 'same-origin',
@@ -4549,10 +4591,10 @@
       })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-          sysStatusLogBackupBtn.disabled = false;
+          sysStatusLogBackupBtn.disabled = false; sysStatusLogBackupBtn.classList.remove('is-busy');
           if (data.ok) loadHomeSummary(true);
         })
-        .catch(function () { sysStatusLogBackupBtn.disabled = false; });
+        .catch(function () { sysStatusLogBackupBtn.disabled = false; sysStatusLogBackupBtn.classList.remove('is-busy'); });
     });
   }
 
@@ -4688,7 +4730,7 @@
 
   if (devSnapshotRefreshBtn) {
     devSnapshotRefreshBtn.addEventListener('click', function () {
-      devSnapshotRefreshBtn.disabled = true;
+      devSnapshotRefreshBtn.disabled = true; devSnapshotRefreshBtn.classList.add('is-busy');
       devSnapshotRefreshBtn.classList.add('is-spinning');
       fetch('/api/admin/repo-languages-refresh.php', {
         method: 'POST',
@@ -4715,7 +4757,7 @@
           if (devSnapshotUpdatedEl) devSnapshotUpdatedEl.textContent = 'Refresh failed. Please try again.';
         })
         .finally(function () {
-          devSnapshotRefreshBtn.disabled = false;
+          devSnapshotRefreshBtn.disabled = false; devSnapshotRefreshBtn.classList.remove('is-busy');
           devSnapshotRefreshBtn.classList.remove('is-spinning');
         });
     });
@@ -4897,7 +4939,7 @@
     reportActionTextInput.value = '';
     reportActionBoardField.hidden = action !== 'move';
     reportActionConfirmBtn.hidden = false;
-    reportActionConfirmBtn.disabled = false;
+    reportActionConfirmBtn.disabled = false; reportActionConfirmBtn.classList.remove('is-busy');
 
     if (action === 'lock') {
       reportActionModalTitle.textContent = report.is_locked ? 'Unlock Topic' : 'Lock Topic';
@@ -4971,7 +5013,7 @@
         payload = { id: report.id, resolution: text, csrf: window.PW_AUTH.csrf };
       }
 
-      reportActionConfirmBtn.disabled = true;
+      reportActionConfirmBtn.disabled = true; reportActionConfirmBtn.classList.add('is-busy');
       fetch(url, {
         method: 'POST',
         credentials: 'same-origin',
@@ -4979,7 +5021,7 @@
         body: JSON.stringify(payload),
       }).then(function (r) { return r.json(); }).then(function (data) {
         if (!data.ok) {
-          reportActionConfirmBtn.disabled = false;
+          reportActionConfirmBtn.disabled = false; reportActionConfirmBtn.classList.remove('is-busy');
           reportActionModalError.textContent = data.error || 'Could not complete that action.';
           reportActionModalError.classList.add('show');
           return;
@@ -4992,7 +5034,7 @@
           loadTopicReports();
         }, 900);
       }).catch(function () {
-        reportActionConfirmBtn.disabled = false;
+        reportActionConfirmBtn.disabled = false; reportActionConfirmBtn.classList.remove('is-busy');
         reportActionModalError.textContent = 'Could not reach the server. Try again in a moment.';
         reportActionModalError.classList.add('show');
       });
@@ -6314,7 +6356,7 @@
   if (sysDetailRecheckSpacyBtn) {
     sysDetailRecheckSpacyBtn.addEventListener('click', function () {
       var originalLabel = sysDetailRecheckSpacyBtn.textContent;
-      sysDetailRecheckSpacyBtn.disabled = true;
+      sysDetailRecheckSpacyBtn.disabled = true; sysDetailRecheckSpacyBtn.classList.add('is-busy');
       sysDetailRecheckSpacyBtn.textContent = 'Rechecking\u2026';
       fetch('/api/admin/system-status/recheck-spacy.php', {
         method: 'POST',
@@ -6331,7 +6373,7 @@
           window.alert('Could not recheck spaCy. Please try again.');
         })
         .finally(function () {
-          sysDetailRecheckSpacyBtn.disabled = false;
+          sysDetailRecheckSpacyBtn.disabled = false; sysDetailRecheckSpacyBtn.classList.remove('is-busy');
           sysDetailRecheckSpacyBtn.textContent = originalLabel;
         });
     });
@@ -6507,7 +6549,7 @@
       return;
     }
     controlModalError.classList.remove('show');
-    controlSaveBtn.disabled = true;
+    controlSaveBtn.disabled = true; controlSaveBtn.classList.add('is-busy');
     fetch('/api/admin/dispatches/update.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -6521,7 +6563,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        controlSaveBtn.disabled = false;
+        controlSaveBtn.disabled = false; controlSaveBtn.classList.remove('is-busy');
         if (!data.ok) {
           controlModalError.textContent = data.error || 'Could not save changes.';
           controlModalError.classList.add('show');
@@ -6533,7 +6575,7 @@
         setTimeout(closeControlModal, 700);
       })
       .catch(function () {
-        controlSaveBtn.disabled = false;
+        controlSaveBtn.disabled = false; controlSaveBtn.classList.remove('is-busy');
         controlModalError.textContent = 'Could not save changes. Please try again.';
         controlModalError.classList.add('show');
       });
@@ -6541,7 +6583,7 @@
 
   resyncBtn.addEventListener('click', function () {
     if (!pwHasPermission('dispatches.edit')) return;
-    resyncBtn.disabled = true;
+    resyncBtn.disabled = true; resyncBtn.classList.add('is-busy');
     resyncStatusEl.className = 'admin-resync-status';
     resyncStatusEl.textContent = 'Checking GitHub for new commits…';
     fetch('/api/admin/dispatches/resync.php', {
@@ -6552,7 +6594,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        resyncBtn.disabled = false;
+        resyncBtn.disabled = false; resyncBtn.classList.remove('is-busy');
         if (!data.ok) {
           resyncStatusEl.textContent = data.error || 'Re-sync failed.';
           resyncStatusEl.className = 'admin-resync-status is-error';
@@ -6565,7 +6607,7 @@
         loadControlList();
       })
       .catch(function () {
-        resyncBtn.disabled = false;
+        resyncBtn.disabled = false; resyncBtn.classList.remove('is-busy');
         resyncStatusEl.textContent = 'Re-sync failed. Please try again.';
         resyncStatusEl.className = 'admin-resync-status is-error';
       });
@@ -6791,7 +6833,7 @@
       return;
     }
     modalError.classList.remove('show');
-    saveBtn.disabled = true;
+    saveBtn.disabled = true; saveBtn.classList.add('is-busy');
     fetch('/api/admin/dispatch-translations/save.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -6800,7 +6842,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        saveBtn.disabled = false;
+        saveBtn.disabled = false; saveBtn.classList.remove('is-busy');
         if (!data.ok) {
           modalError.textContent = data.error || 'Could not save translation.';
           modalError.classList.add('show');
@@ -6812,7 +6854,7 @@
         setTimeout(closeModal, 700);
       })
       .catch(function () {
-        saveBtn.disabled = false;
+        saveBtn.disabled = false; saveBtn.classList.remove('is-busy');
         modalError.textContent = 'Could not save translation. Please try again.';
         modalError.classList.add('show');
       });
@@ -7072,7 +7114,7 @@
       payload.id = currentForumCategory.id;
     }
     forumCategoryModalError.classList.remove('show');
-    forumCategorySaveBtn.disabled = true;
+    forumCategorySaveBtn.disabled = true; forumCategorySaveBtn.classList.add('is-busy');
     fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
@@ -7081,7 +7123,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        forumCategorySaveBtn.disabled = false;
+        forumCategorySaveBtn.disabled = false; forumCategorySaveBtn.classList.remove('is-busy');
         if (!data.ok) {
           forumCategoryModalError.textContent = data.error || 'Could not save this category.';
           forumCategoryModalError.classList.add('show');
@@ -7093,7 +7135,7 @@
         setTimeout(closeForumCategoryModal, 700);
       })
       .catch(function () {
-        forumCategorySaveBtn.disabled = false;
+        forumCategorySaveBtn.disabled = false; forumCategorySaveBtn.classList.remove('is-busy');
         forumCategoryModalError.textContent = 'Could not save this category. Please try again.';
         forumCategoryModalError.classList.add('show');
       });
@@ -7390,7 +7432,7 @@
     }
 
     forumBoardModalError.classList.remove('show');
-    forumBoardSaveBtn.disabled = true;
+    forumBoardSaveBtn.disabled = true; forumBoardSaveBtn.classList.add('is-busy');
     fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
@@ -7399,7 +7441,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        forumBoardSaveBtn.disabled = false;
+        forumBoardSaveBtn.disabled = false; forumBoardSaveBtn.classList.remove('is-busy');
         if (!data.ok) {
           forumBoardModalError.textContent = data.error || 'Could not save this board.';
           forumBoardModalError.classList.add('show');
@@ -7411,7 +7453,7 @@
         setTimeout(closeForumBoardModal, 700);
       })
       .catch(function () {
-        forumBoardSaveBtn.disabled = false;
+        forumBoardSaveBtn.disabled = false; forumBoardSaveBtn.classList.remove('is-busy');
         forumBoardModalError.textContent = 'Could not save this board. Please try again.';
         forumBoardModalError.classList.add('show');
       });
@@ -7421,7 +7463,7 @@
     if (!currentForumBoard) return;
     var confirmMsg = 'Delete the board "' + currentForumBoard.name + '"? This only works while it has no topics.';
     if (!window.confirm(confirmMsg)) return;
-    forumBoardDeleteBtn.disabled = true;
+    forumBoardDeleteBtn.disabled = true; forumBoardDeleteBtn.classList.add('is-busy');
     fetch('/api/admin/forum-boards/delete.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -7430,7 +7472,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        forumBoardDeleteBtn.disabled = false;
+        forumBoardDeleteBtn.disabled = false; forumBoardDeleteBtn.classList.remove('is-busy');
         if (!data.ok) {
           forumBoardModalError.textContent = data.error || 'Could not delete this board.';
           forumBoardModalError.classList.add('show');
@@ -7440,7 +7482,7 @@
         closeForumBoardModal();
       })
       .catch(function () {
-        forumBoardDeleteBtn.disabled = false;
+        forumBoardDeleteBtn.disabled = false; forumBoardDeleteBtn.classList.remove('is-busy');
         forumBoardModalError.textContent = 'Could not delete this board. Please try again.';
         forumBoardModalError.classList.add('show');
       });
@@ -7579,6 +7621,16 @@
   var memberSearchDebounce = null;
   var currentMember = null;
   var memberModalMode = 'edit';
+
+  var validateMemberDisplayName = pwWireFieldValidation(memberDisplayNameInput, memberDisplayNameInput.closest('.admin-field'), function (value) {
+    return value.trim() ? '' : 'Display name is required.';
+  });
+  var validateMemberEmail = pwWireFieldValidation(memberEmailInput, memberEmailInput.closest('.admin-field'), function (value) {
+    var trimmed = value.trim();
+    if (!trimmed) return 'Email is required.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return 'Enter a valid email address.';
+    return '';
+  });
 
   function buildMemberUrl() {
     var params = new URLSearchParams();
@@ -7857,6 +7909,8 @@
 
     memberModalError.classList.remove('show');
     memberModalStatus.classList.remove('show');
+    pwClearFieldError(memberDisplayNameInput.closest('.admin-field'));
+    pwClearFieldError(memberEmailInput.closest('.admin-field'));
     memberModal.hidden = false;
     setTimeout(function () { memberDisplayNameInput.focus(); }, 30);
   }
@@ -7894,6 +7948,8 @@
 
     memberModalError.classList.remove('show');
     memberModalStatus.classList.remove('show');
+    pwClearFieldError(memberDisplayNameInput.closest('.admin-field'));
+    pwClearFieldError(memberEmailInput.closest('.admin-field'));
     memberModal.hidden = false;
     setTimeout(function () { memberUsernameInput.focus(); }, 30);
   }
@@ -8061,7 +8117,7 @@
     var newRole = memberLookupLockedRole ? memberLookupLockedRole.slug : memberLookupRoleSelect.value;
     var newRoleLabel = memberLookupLockedRole ? memberLookupLockedRole.label : roleLabelFor(newRole);
     memberLookupError.classList.remove('show');
-    memberLookupAssignBtn.disabled = true;
+    memberLookupAssignBtn.disabled = true; memberLookupAssignBtn.classList.add('is-busy');
 
     Promise.all(selectedEntries.map(function (entry) {
       return fetch('/api/admin/members/update.php', {
@@ -8090,7 +8146,7 @@
         loadMembers();
         if (typeof loadRoles === 'function' && !roleListEl.closest('.admin-section').hidden) loadRoles();
       }
-      memberLookupAssignBtn.disabled = memberLookupSelectedCountNum() === 0;
+      memberLookupAssignBtn.disabled = memberLookupSelectedCountNum() === 0; memberLookupAssignBtn.classList.remove('is-busy');
       if (!failed.length) setTimeout(closeMemberLookupModal, 900);
     });
   });
@@ -8125,6 +8181,7 @@
 
   function updateAddRolesSubmitState() {
     addRolesSubmitBtn.disabled = addRolesSelectedRoleSlugs().length === 0 || addRolesSelectedMemberCount() === 0;
+    addRolesSubmitBtn.classList.remove('is-busy');
   }
 
   function renderAddRolesRoleList() {
@@ -8254,7 +8311,7 @@
     var selectedEntries = Object.keys(addRolesSelectedMembers).map(function (id) { return addRolesSelectedMembers[id]; });
     if (!roleSlugs.length || !selectedEntries.length) return;
     addRolesError.classList.remove('show');
-    addRolesSubmitBtn.disabled = true;
+    addRolesSubmitBtn.disabled = true; addRolesSubmitBtn.classList.add('is-busy');
 
     Promise.all(selectedEntries.map(function (entry) {
       var newOtherRoles = (entry.other_roles || []).slice();
@@ -8418,7 +8475,7 @@
     var selectedEntries = Object.keys(memberRemoveSelected).map(function (id) { return memberRemoveSelected[id]; });
     if (!selectedEntries.length) return;
     memberRemoveError.classList.remove('show');
-    memberRemoveBtn.disabled = true;
+    memberRemoveBtn.disabled = true; memberRemoveBtn.classList.add('is-busy');
 
     Promise.all(selectedEntries.map(function (entry) {
       return fetch('/api/admin/members/update.php', {
@@ -8450,7 +8507,7 @@
         loadMembers();
         if (typeof loadRoles === 'function' && roleListEl.closest('.admin-section') && !roleListEl.closest('.admin-section').hidden) loadRoles();
       }
-      memberRemoveBtn.disabled = memberRemoveSelectedCountNum() === 0;
+      memberRemoveBtn.disabled = memberRemoveSelectedCountNum() === 0; memberRemoveBtn.classList.remove('is-busy');
       if (!failed.length) setTimeout(closeMemberRemoveModal, 900);
     });
   });
@@ -8458,7 +8515,7 @@
   memberResetAvatarBtn.addEventListener('click', function () {
     if (!currentMember || !pwHasPermission('members.reset_avatar')) return;
     if (!window.confirm('Remove ' + currentMember.display_name + '\'s avatar?')) return;
-    memberResetAvatarBtn.disabled = true;
+    memberResetAvatarBtn.disabled = true; memberResetAvatarBtn.classList.add('is-busy');
     fetch('/api/admin/members/reset-avatar.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -8467,7 +8524,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        memberResetAvatarBtn.disabled = false;
+        memberResetAvatarBtn.disabled = false; memberResetAvatarBtn.classList.remove('is-busy');
         if (!data.ok) {
           memberModalError.textContent = data.error || 'Could not reset avatar.';
           memberModalError.classList.add('show');
@@ -8479,7 +8536,7 @@
         memberModalStatus.classList.add('show');
       })
       .catch(function () {
-        memberResetAvatarBtn.disabled = false;
+        memberResetAvatarBtn.disabled = false; memberResetAvatarBtn.classList.remove('is-busy');
         memberModalError.textContent = 'Could not reset avatar. Please try again.';
         memberModalError.classList.add('show');
       });
@@ -8490,7 +8547,7 @@
     var confirmMsg = 'Generate a new password for ' + currentMember.display_name + '? ' +
       'Their current password will stop working immediately.';
     if (!window.confirm(confirmMsg)) return;
-    memberGeneratePasswordBtn.disabled = true;
+    memberGeneratePasswordBtn.disabled = true; memberGeneratePasswordBtn.classList.add('is-busy');
     fetch('/api/admin/members/reset-password.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -8499,7 +8556,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        memberGeneratePasswordBtn.disabled = false;
+        memberGeneratePasswordBtn.disabled = false; memberGeneratePasswordBtn.classList.remove('is-busy');
         if (!data.ok) {
           memberModalError.textContent = data.error || 'Could not generate a new password.';
           memberModalError.classList.add('show');
@@ -8513,7 +8570,7 @@
         memberModalStatus.classList.add('show');
       })
       .catch(function () {
-        memberGeneratePasswordBtn.disabled = false;
+        memberGeneratePasswordBtn.disabled = false; memberGeneratePasswordBtn.classList.remove('is-busy');
         memberModalError.textContent = 'Could not generate a new password. Please try again.';
         memberModalError.classList.add('show');
       });
@@ -8522,7 +8579,7 @@
   memberResetTwoFactorBtn.addEventListener('click', function () {
     if (!currentMember || !currentMember.two_factor_enabled) return;
     if (!window.confirm('Reset two-factor authentication for ' + currentMember.display_name + '? This also signs them out on every device.')) return;
-    memberResetTwoFactorBtn.disabled = true;
+    memberResetTwoFactorBtn.disabled = true; memberResetTwoFactorBtn.classList.add('is-busy');
     memberModalError.classList.remove('show');
     fetch('/api/admin/members/reset-two-factor.php', {
       method: 'POST',
@@ -8532,7 +8589,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        memberResetTwoFactorBtn.disabled = false;
+        memberResetTwoFactorBtn.disabled = false; memberResetTwoFactorBtn.classList.remove('is-busy');
         if (!data.ok) throw new Error(data.error || 'Could not reset two-factor authentication.');
         currentMember.two_factor_enabled = false;
         memberResetTwoFactorBtn.hidden = true;
@@ -8541,7 +8598,7 @@
         loadMembers();
       })
       .catch(function (error) {
-        memberResetTwoFactorBtn.disabled = false;
+        memberResetTwoFactorBtn.disabled = false; memberResetTwoFactorBtn.classList.remove('is-busy');
         memberModalError.textContent = error.message || 'Could not reset two-factor authentication. Please try again.';
         memberModalError.classList.add('show');
       });
@@ -8570,7 +8627,7 @@
     var confirmMsg = 'Permanently delete ' + currentMember.username + '\'s account? ' +
       'This also deletes their comments, forum posts, and reactions. This cannot be undone.';
     if (!window.confirm(confirmMsg)) return;
-    memberDeleteBtn.disabled = true;
+    memberDeleteBtn.disabled = true; memberDeleteBtn.classList.add('is-busy');
     fetch('/api/admin/members/delete.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -8579,7 +8636,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        memberDeleteBtn.disabled = false;
+        memberDeleteBtn.disabled = false; memberDeleteBtn.classList.remove('is-busy');
         if (!data.ok) {
           memberModalError.textContent = data.error || 'Could not delete this account.';
           memberModalError.classList.add('show');
@@ -8589,13 +8646,19 @@
         closeMemberModal();
       })
       .catch(function () {
-        memberDeleteBtn.disabled = false;
+        memberDeleteBtn.disabled = false; memberDeleteBtn.classList.remove('is-busy');
         memberModalError.textContent = 'Could not delete this account. Please try again.';
         memberModalError.classList.add('show');
       });
   });
 
   memberSaveBtn.addEventListener('click', function () {
+    var displayNameOk = validateMemberDisplayName();
+    var emailOk = validateMemberEmail();
+    if (!displayNameOk || !emailOk) {
+      (displayNameOk ? memberEmailInput : memberDisplayNameInput).focus();
+      return;
+    }
     var displayName = memberDisplayNameInput.value.trim();
     var email = memberEmailInput.value.trim();
     var role = memberRoleSelect.value;
@@ -8621,7 +8684,7 @@
       }
 
       memberModalError.classList.remove('show');
-      memberSaveBtn.disabled = true;
+      memberSaveBtn.disabled = true; memberSaveBtn.classList.add('is-busy');
       fetch('/api/admin/members/create.php', {
         method: 'POST',
         credentials: 'same-origin',
@@ -8637,7 +8700,7 @@
       })
         .then(function (r) { return r.json(); })
         .then(function (data) {
-          memberSaveBtn.disabled = false;
+          memberSaveBtn.disabled = false; memberSaveBtn.classList.remove('is-busy');
           if (!data.ok) {
             memberModalError.textContent = data.error || 'Could not create member.';
             memberModalError.classList.add('show');
@@ -8649,7 +8712,7 @@
           setTimeout(closeMemberModal, 700);
         })
         .catch(function () {
-          memberSaveBtn.disabled = false;
+          memberSaveBtn.disabled = false; memberSaveBtn.classList.remove('is-busy');
           memberModalError.textContent = 'Could not create member. Please try again.';
           memberModalError.classList.add('show');
         });
@@ -8678,7 +8741,7 @@
     }
 
     memberModalError.classList.remove('show');
-    memberSaveBtn.disabled = true;
+    memberSaveBtn.disabled = true; memberSaveBtn.classList.add('is-busy');
     fetch('/api/admin/members/update.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -8697,7 +8760,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        memberSaveBtn.disabled = false;
+        memberSaveBtn.disabled = false; memberSaveBtn.classList.remove('is-busy');
         if (!data.ok) {
           memberModalError.textContent = data.error || 'Could not save member.';
           memberModalError.classList.add('show');
@@ -8709,7 +8772,7 @@
         setTimeout(closeMemberModal, 700);
       })
       .catch(function () {
-        memberSaveBtn.disabled = false;
+        memberSaveBtn.disabled = false; memberSaveBtn.classList.remove('is-busy');
         memberModalError.textContent = 'Could not save member. Please try again.';
         memberModalError.classList.add('show');
       });
@@ -9148,7 +9211,7 @@
       return;
     }
     roleModalError.classList.remove('show');
-    roleSaveBtn.disabled = true;
+    roleSaveBtn.disabled = true; roleSaveBtn.classList.add('is-busy');
 
     var body = { csrf: window.PW_AUTH.csrf, color: color, permissions: collectCheckedPermissions() };
     var url;
@@ -9176,12 +9239,12 @@
     }).catch(function () {
       roleModalError.textContent = 'Could not reach the server. Please try again.';
       roleModalError.classList.add('show');
-    }).finally(function () { roleSaveBtn.disabled = false; });
+    }).finally(function () { roleSaveBtn.disabled = false; roleSaveBtn.classList.remove('is-busy'); });
   });
 
   roleDeleteBtn.addEventListener('click', function () {
     if (!currentRole || !window.confirm('Delete the role "' + currentRole.label + '"? This cannot be undone.')) return;
-    roleDeleteBtn.disabled = true;
+    roleDeleteBtn.disabled = true; roleDeleteBtn.classList.add('is-busy');
     fetch('/api/admin/roles/delete.php', {
       method: 'POST', credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
@@ -9197,7 +9260,7 @@
     }).catch(function () {
       roleModalError.textContent = 'Could not reach the server. Please try again.';
       roleModalError.classList.add('show');
-    }).finally(function () { roleDeleteBtn.disabled = false; });
+    }).finally(function () { roleDeleteBtn.disabled = false; roleDeleteBtn.classList.remove('is-busy'); });
   });
 
   // ===== Book Control (Lore Management) ========================================
@@ -9238,6 +9301,13 @@
   var bookBuyAmazonInput = document.getElementById('book-buy-amazon-input');
   var bookBuyAppleInput = document.getElementById('book-buy-apple-input');
   var bookBuyBnInput = document.getElementById('book-buy-bn-input');
+
+  var validateBookTitle = pwWireFieldValidation(bookTitleInput, bookTitleInput.closest('.admin-field'), function (value) {
+    return value.trim() ? '' : 'Title is required.';
+  });
+  var validateBookStatusLabel = pwWireFieldValidation(bookStatusLabelInput, bookStatusLabelInput.closest('.admin-field'), function (value) {
+    return value.trim() ? '' : 'Status label is required.';
+  });
 
   var SAGA_PHASE_LABELS = { 1: 'I', 2: 'II', 3: 'III' };
 
@@ -9580,12 +9650,14 @@
     bookDeleteBtn.hidden = !pwHasPermission('books.delete');
     bookModalError.classList.remove('show');
     bookModalStatus.classList.remove('show');
-    bookSaveBtn.disabled = true;
+    pwClearFieldError(bookTitleInput.closest('.admin-field'));
+    pwClearFieldError(bookStatusLabelInput.closest('.admin-field'));
+    bookSaveBtn.disabled = true; bookSaveBtn.classList.add('is-busy');
     bookModal.hidden = false;
     fetch('/api/admin/books/get.php?id=' + encodeURIComponent(entry.id), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        bookSaveBtn.disabled = !pwHasPermission('books.edit');
+        bookSaveBtn.disabled = !pwHasPermission('books.edit'); bookSaveBtn.classList.remove('is-busy');
         if (!data.ok) {
           bookModalError.textContent = data.error || 'Could not load this book.';
           bookModalError.classList.add('show');
@@ -9595,7 +9667,7 @@
         populateBookForm(data.book);
       })
       .catch(function () {
-        bookSaveBtn.disabled = !pwHasPermission('books.edit');
+        bookSaveBtn.disabled = !pwHasPermission('books.edit'); bookSaveBtn.classList.remove('is-busy');
         bookModalError.textContent = 'Could not load this book. Please try again.';
         bookModalError.classList.add('show');
       });
@@ -9610,6 +9682,8 @@
     bookDeleteBtn.hidden = true;
     bookModalError.classList.remove('show');
     bookModalStatus.classList.remove('show');
+    pwClearFieldError(bookTitleInput.closest('.admin-field'));
+    pwClearFieldError(bookStatusLabelInput.closest('.admin-field'));
     var maxNum = 0;
     lastBookEntries.forEach(function (e) { if (e.book_number > maxNum) maxNum = e.book_number; });
     populateBookForm({
@@ -9642,6 +9716,12 @@
   });
 
   bookSaveBtn.addEventListener('click', function () {
+    var titleOk = validateBookTitle();
+    var statusLabelOk = validateBookStatusLabel();
+    if (!titleOk || !statusLabelOk) {
+      (titleOk ? bookStatusLabelInput : bookTitleInput).focus();
+      return;
+    }
     var payload = {
       book_number: parseInt(bookNumberInput.value, 10) || 0,
       saga_phase: parseInt(bookSagaPhaseSelect.value, 10),
@@ -9684,7 +9764,7 @@
     }
 
     bookModalError.classList.remove('show');
-    bookSaveBtn.disabled = true;
+    bookSaveBtn.disabled = true; bookSaveBtn.classList.add('is-busy');
     var url = bookModalMode === 'create' ? '/api/admin/books/create.php' : '/api/admin/books/update.php';
     if (bookModalMode === 'edit' && currentBook) payload.id = currentBook.id;
 
@@ -9696,7 +9776,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        bookSaveBtn.disabled = false;
+        bookSaveBtn.disabled = false; bookSaveBtn.classList.remove('is-busy');
         if (!data.ok) {
           bookModalError.textContent = data.error || 'Could not save this book.';
           bookModalError.classList.add('show');
@@ -9708,7 +9788,7 @@
         setTimeout(closeBookModal, 700);
       })
       .catch(function () {
-        bookSaveBtn.disabled = false;
+        bookSaveBtn.disabled = false; bookSaveBtn.classList.remove('is-busy');
         bookModalError.textContent = 'Could not save this book. Please try again.';
         bookModalError.classList.add('show');
       });
@@ -9718,7 +9798,7 @@
     if (!currentBook) return;
     var confirmMsg = 'Permanently delete Book ' + currentBook.book_number + ': "' + currentBook.title + '"? This cannot be undone.';
     if (!window.confirm(confirmMsg)) return;
-    bookDeleteBtn.disabled = true;
+    bookDeleteBtn.disabled = true; bookDeleteBtn.classList.add('is-busy');
     fetch('/api/admin/books/delete.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -9727,7 +9807,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        bookDeleteBtn.disabled = false;
+        bookDeleteBtn.disabled = false; bookDeleteBtn.classList.remove('is-busy');
         if (!data.ok) {
           bookModalError.textContent = data.error || 'Could not delete this book.';
           bookModalError.classList.add('show');
@@ -9737,7 +9817,7 @@
         closeBookModal();
       })
       .catch(function () {
-        bookDeleteBtn.disabled = false;
+        bookDeleteBtn.disabled = false; bookDeleteBtn.classList.remove('is-busy');
         bookModalError.textContent = 'Could not delete this book. Please try again.';
         bookModalError.classList.add('show');
       });
@@ -9987,7 +10067,7 @@
         var sectionStatus = section.querySelector('.weather-section-status');
         sectionError.classList.remove('show');
         sectionStatus.classList.remove('show');
-        saveBtn.disabled = true;
+        saveBtn.disabled = true; saveBtn.classList.add('is-busy');
         var originalLabel = saveBtn.textContent;
         saveBtn.textContent = 'Saving Weather...';
         fetch('/api/admin/weather/update.php', {
@@ -9997,7 +10077,7 @@
         })
           .then(function (r) { return r.json(); })
           .then(function (data) {
-            saveBtn.disabled = false;
+            saveBtn.disabled = false; saveBtn.classList.remove('is-busy');
             saveBtn.textContent = originalLabel;
             if (!data.ok) throw new Error(data.error || 'Could not save weather.');
             sectionStatus.textContent = profile.name + ' weather saved. The public forecast now uses the new revision.';
@@ -10005,7 +10085,7 @@
             return loadWeatherControl();
           })
           .catch(function (error) {
-            saveBtn.disabled = false;
+            saveBtn.disabled = false; saveBtn.classList.remove('is-busy');
             saveBtn.textContent = originalLabel;
             sectionError.textContent = error.message || 'Could not save weather.';
             sectionError.classList.add('show');
@@ -10425,7 +10505,7 @@
     }
 
     worldModalError.classList.remove('show');
-    worldSaveBtn.disabled = true;
+    worldSaveBtn.disabled = true; worldSaveBtn.classList.add('is-busy');
     fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
@@ -10434,7 +10514,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        worldSaveBtn.disabled = false;
+        worldSaveBtn.disabled = false; worldSaveBtn.classList.remove('is-busy');
         if (!data.ok) {
           worldModalError.textContent = data.error || 'Could not save this world.';
           worldModalError.classList.add('show');
@@ -10466,7 +10546,7 @@
         }
       })
       .catch(function () {
-        worldSaveBtn.disabled = false;
+        worldSaveBtn.disabled = false; worldSaveBtn.classList.remove('is-busy');
         worldModalError.textContent = 'Could not save this world. Please try again.';
         worldModalError.classList.add('show');
       });
@@ -10476,7 +10556,7 @@
     if (!currentWorld) return;
     var confirmMsg = 'Permanently delete the world "' + currentWorld.name + '" and all of its layers and landmarks? This cannot be undone.';
     if (!window.confirm(confirmMsg)) return;
-    worldDeleteBtn.disabled = true;
+    worldDeleteBtn.disabled = true; worldDeleteBtn.classList.add('is-busy');
     fetch('/api/admin/worlds/delete.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -10485,7 +10565,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        worldDeleteBtn.disabled = false;
+        worldDeleteBtn.disabled = false; worldDeleteBtn.classList.remove('is-busy');
         if (!data.ok) {
           worldModalError.textContent = data.error || 'Could not delete this world.';
           worldModalError.classList.add('show');
@@ -10495,7 +10575,7 @@
         closeWorldModal();
       })
       .catch(function () {
-        worldDeleteBtn.disabled = false;
+        worldDeleteBtn.disabled = false; worldDeleteBtn.classList.remove('is-busy');
         worldModalError.textContent = 'Could not delete this world. Please try again.';
         worldModalError.classList.add('show');
       });
@@ -10623,7 +10703,7 @@
     }
 
     worldLayerModalError.classList.remove('show');
-    worldLayerSaveBtn.disabled = true;
+    worldLayerSaveBtn.disabled = true; worldLayerSaveBtn.classList.add('is-busy');
     fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
@@ -10632,7 +10712,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        worldLayerSaveBtn.disabled = false;
+        worldLayerSaveBtn.disabled = false; worldLayerSaveBtn.classList.remove('is-busy');
         if (!data.ok) {
           worldLayerModalError.textContent = data.error || 'Could not save this layer.';
           worldLayerModalError.classList.add('show');
@@ -10645,7 +10725,7 @@
         });
       })
       .catch(function () {
-        worldLayerSaveBtn.disabled = false;
+        worldLayerSaveBtn.disabled = false; worldLayerSaveBtn.classList.remove('is-busy');
         worldLayerModalError.textContent = 'Could not save this layer. Please try again.';
         worldLayerModalError.classList.add('show');
       });
@@ -10655,7 +10735,7 @@
     if (!currentWorldLayer) return;
     var confirmMsg = 'Delete the layer "' + currentWorldLayer.name + '" and everything nested inside it (sublocations, landmarks)? This cannot be undone.';
     if (!window.confirm(confirmMsg)) return;
-    worldLayerDeleteBtn.disabled = true;
+    worldLayerDeleteBtn.disabled = true; worldLayerDeleteBtn.classList.add('is-busy');
     fetch('/api/admin/worlds/layers/delete.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -10664,7 +10744,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        worldLayerDeleteBtn.disabled = false;
+        worldLayerDeleteBtn.disabled = false; worldLayerDeleteBtn.classList.remove('is-busy');
         if (!data.ok) {
           worldLayerModalError.textContent = data.error || 'Could not delete this layer.';
           worldLayerModalError.classList.add('show');
@@ -10674,7 +10754,7 @@
         refreshCurrentWorldDetail();
       })
       .catch(function () {
-        worldLayerDeleteBtn.disabled = false;
+        worldLayerDeleteBtn.disabled = false; worldLayerDeleteBtn.classList.remove('is-busy');
         worldLayerModalError.textContent = 'Could not delete this layer. Please try again.';
         worldLayerModalError.classList.add('show');
       });
@@ -10778,7 +10858,7 @@
     }
 
     worldLandmarkModalError.classList.remove('show');
-    worldLandmarkSaveBtn.disabled = true;
+    worldLandmarkSaveBtn.disabled = true; worldLandmarkSaveBtn.classList.add('is-busy');
     fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
@@ -10787,7 +10867,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        worldLandmarkSaveBtn.disabled = false;
+        worldLandmarkSaveBtn.disabled = false; worldLandmarkSaveBtn.classList.remove('is-busy');
         if (!data.ok) {
           worldLandmarkModalError.textContent = data.error || 'Could not save this landmark.';
           worldLandmarkModalError.classList.add('show');
@@ -10800,7 +10880,7 @@
         });
       })
       .catch(function () {
-        worldLandmarkSaveBtn.disabled = false;
+        worldLandmarkSaveBtn.disabled = false; worldLandmarkSaveBtn.classList.remove('is-busy');
         worldLandmarkModalError.textContent = 'Could not save this landmark. Please try again.';
         worldLandmarkModalError.classList.add('show');
       });
@@ -10810,7 +10890,7 @@
     if (!currentWorldLandmark) return;
     var confirmMsg = 'Delete the landmark "' + currentWorldLandmark.name + '"? This cannot be undone.';
     if (!window.confirm(confirmMsg)) return;
-    worldLandmarkDeleteBtn.disabled = true;
+    worldLandmarkDeleteBtn.disabled = true; worldLandmarkDeleteBtn.classList.add('is-busy');
     fetch('/api/admin/worlds/landmarks/delete.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -10819,7 +10899,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        worldLandmarkDeleteBtn.disabled = false;
+        worldLandmarkDeleteBtn.disabled = false; worldLandmarkDeleteBtn.classList.remove('is-busy');
         if (!data.ok) {
           worldLandmarkModalError.textContent = data.error || 'Could not delete this landmark.';
           worldLandmarkModalError.classList.add('show');
@@ -10829,7 +10909,7 @@
         refreshCurrentWorldDetail();
       })
       .catch(function () {
-        worldLandmarkDeleteBtn.disabled = false;
+        worldLandmarkDeleteBtn.disabled = false; worldLandmarkDeleteBtn.classList.remove('is-busy');
         worldLandmarkModalError.textContent = 'Could not delete this landmark. Please try again.';
         worldLandmarkModalError.classList.add('show');
       });
@@ -11086,7 +11166,7 @@
     }
 
     overlordModalError.classList.remove('show');
-    overlordSaveBtn.disabled = true;
+    overlordSaveBtn.disabled = true; overlordSaveBtn.classList.add('is-busy');
     fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
@@ -11095,7 +11175,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        overlordSaveBtn.disabled = false;
+        overlordSaveBtn.disabled = false; overlordSaveBtn.classList.remove('is-busy');
         if (!data.ok) {
           overlordModalError.textContent = data.error || 'Could not save this overlord.';
           overlordModalError.classList.add('show');
@@ -11107,7 +11187,7 @@
         setTimeout(closeOverlordModal, 700);
       })
       .catch(function () {
-        overlordSaveBtn.disabled = false;
+        overlordSaveBtn.disabled = false; overlordSaveBtn.classList.remove('is-busy');
         overlordModalError.textContent = 'Could not save this overlord. Please try again.';
         overlordModalError.classList.add('show');
       });
@@ -11117,7 +11197,7 @@
     if (!currentOverlord) return;
     var confirmMsg = 'Permanently delete the overlord "' + currentOverlord.name + '"? This cannot be undone.';
     if (!window.confirm(confirmMsg)) return;
-    overlordDeleteBtn.disabled = true;
+    overlordDeleteBtn.disabled = true; overlordDeleteBtn.classList.add('is-busy');
     fetch('/api/admin/overlords/delete.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -11126,7 +11206,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        overlordDeleteBtn.disabled = false;
+        overlordDeleteBtn.disabled = false; overlordDeleteBtn.classList.remove('is-busy');
         if (!data.ok) {
           overlordModalError.textContent = data.error || 'Could not delete this overlord.';
           overlordModalError.classList.add('show');
@@ -11136,7 +11216,7 @@
         closeOverlordModal();
       })
       .catch(function () {
-        overlordDeleteBtn.disabled = false;
+        overlordDeleteBtn.disabled = false; overlordDeleteBtn.classList.remove('is-busy');
         overlordModalError.textContent = 'Could not delete this overlord. Please try again.';
         overlordModalError.classList.add('show');
       });
@@ -11365,7 +11445,7 @@
     }
 
     knownFigureModalError.classList.remove('show');
-    knownFigureSaveBtn.disabled = true;
+    knownFigureSaveBtn.disabled = true; knownFigureSaveBtn.classList.add('is-busy');
     fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
@@ -11374,7 +11454,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        knownFigureSaveBtn.disabled = false;
+        knownFigureSaveBtn.disabled = false; knownFigureSaveBtn.classList.remove('is-busy');
         if (!data.ok) {
           knownFigureModalError.textContent = data.error || 'Could not save this known figure.';
           knownFigureModalError.classList.add('show');
@@ -11386,7 +11466,7 @@
         setTimeout(closeKnownFigureModal, 700);
       })
       .catch(function () {
-        knownFigureSaveBtn.disabled = false;
+        knownFigureSaveBtn.disabled = false; knownFigureSaveBtn.classList.remove('is-busy');
         knownFigureModalError.textContent = 'Could not save this known figure. Please try again.';
         knownFigureModalError.classList.add('show');
       });
@@ -11396,7 +11476,7 @@
     if (!currentKnownFigure) return;
     var confirmMsg = 'Permanently delete the known figure "' + currentKnownFigure.name + '"? This cannot be undone.';
     if (!window.confirm(confirmMsg)) return;
-    knownFigureDeleteBtn.disabled = true;
+    knownFigureDeleteBtn.disabled = true; knownFigureDeleteBtn.classList.add('is-busy');
     fetch('/api/admin/known-figures/delete.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -11405,7 +11485,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        knownFigureDeleteBtn.disabled = false;
+        knownFigureDeleteBtn.disabled = false; knownFigureDeleteBtn.classList.remove('is-busy');
         if (!data.ok) {
           knownFigureModalError.textContent = data.error || 'Could not delete this known figure.';
           knownFigureModalError.classList.add('show');
@@ -11415,7 +11495,7 @@
         closeKnownFigureModal();
       })
       .catch(function () {
-        knownFigureDeleteBtn.disabled = false;
+        knownFigureDeleteBtn.disabled = false; knownFigureDeleteBtn.classList.remove('is-busy');
         knownFigureModalError.textContent = 'Could not delete this known figure. Please try again.';
         knownFigureModalError.classList.add('show');
       });
@@ -11653,8 +11733,8 @@
   reputationRewardsModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeReputationRewardsModal);
   reputationRewardsSaveBtn.addEventListener('click', function () {
     var rules = Array.prototype.map.call(reputationRewardList.querySelectorAll('.reputation-rule-points'), function (input) { var enabled = reputationRewardList.querySelector('.reputation-rule-enabled[data-key="' + input.getAttribute('data-key') + '"]'); return { key: input.getAttribute('data-key'), points: Number(input.value), enabled: enabled && enabled.checked }; });
-    reputationRewardsSaveBtn.disabled = true;
-    fetch('/api/admin/reputation-levels/rules.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rules: rules, csrf: window.PW_AUTH.csrf }) }).then(function (r) { return r.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'Could not save rules.'); reputationRewardsSaveBtn.disabled = false; renderReputationSettings(data); renderReputationRewardList(data); }).catch(function (error) { reputationRewardsSaveBtn.disabled = false; reputationRewardsModalSub.textContent = error.message || 'Could not save rules.'; });
+    reputationRewardsSaveBtn.disabled = true; reputationRewardsSaveBtn.classList.add('is-busy');
+    fetch('/api/admin/reputation-levels/rules.php', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rules: rules, csrf: window.PW_AUTH.csrf }) }).then(function (r) { return r.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'Could not save rules.'); reputationRewardsSaveBtn.disabled = false; reputationRewardsSaveBtn.classList.remove('is-busy'); renderReputationSettings(data); renderReputationRewardList(data); }).catch(function (error) { reputationRewardsSaveBtn.disabled = false; reputationRewardsSaveBtn.classList.remove('is-busy'); reputationRewardsModalSub.textContent = error.message || 'Could not save rules.'; });
   });
 
   reputationMultiplierBtn.addEventListener('click', function () {
@@ -11677,7 +11757,7 @@
       reputationMultiplierModalError.classList.add('show');
       return;
     }
-    reputationMultiplierSaveBtn.disabled = true;
+    reputationMultiplierSaveBtn.disabled = true; reputationMultiplierSaveBtn.classList.add('is-busy');
     fetch('/api/admin/reputation-levels/events.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -11687,7 +11767,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        reputationMultiplierSaveBtn.disabled = false;
+        reputationMultiplierSaveBtn.disabled = false; reputationMultiplierSaveBtn.classList.remove('is-busy');
         if (!data.ok) throw new Error(data.error || 'Could not save the multiplier event.');
         loadReputationSettings();
         reputationMultiplierModalStatus.textContent = 'Reputation event scheduled.';
@@ -11695,7 +11775,7 @@
         setTimeout(closeReputationMultiplierModal, 700);
       })
       .catch(function (error) {
-        reputationMultiplierSaveBtn.disabled = false;
+        reputationMultiplierSaveBtn.disabled = false; reputationMultiplierSaveBtn.classList.remove('is-busy');
         reputationMultiplierModalError.textContent = error.message || 'Could not save the multiplier event.';
         reputationMultiplierModalError.classList.add('show');
       });
@@ -11751,7 +11831,7 @@
     }
 
     reputationLevelModalError.classList.remove('show');
-    reputationLevelSaveBtn.disabled = true;
+    reputationLevelSaveBtn.disabled = true; reputationLevelSaveBtn.classList.add('is-busy');
     fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
@@ -11760,7 +11840,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        reputationLevelSaveBtn.disabled = false;
+        reputationLevelSaveBtn.disabled = false; reputationLevelSaveBtn.classList.remove('is-busy');
         if (!data.ok) {
           reputationLevelModalError.textContent = data.error || 'Could not save this level.';
           reputationLevelModalError.classList.add('show');
@@ -11772,7 +11852,7 @@
         setTimeout(closeReputationLevelModal, 700);
       })
       .catch(function () {
-        reputationLevelSaveBtn.disabled = false;
+        reputationLevelSaveBtn.disabled = false; reputationLevelSaveBtn.classList.remove('is-busy');
         reputationLevelModalError.textContent = 'Could not save this level. Please try again.';
         reputationLevelModalError.classList.add('show');
       });
@@ -11782,7 +11862,7 @@
     if (!currentReputationLevel) return;
     var confirmMsg = 'Permanently delete the reputation level "' + currentReputationLevel.name + '"? This cannot be undone.';
     if (!window.confirm(confirmMsg)) return;
-    reputationLevelDeleteBtn.disabled = true;
+    reputationLevelDeleteBtn.disabled = true; reputationLevelDeleteBtn.classList.add('is-busy');
     fetch('/api/admin/reputation-levels/delete.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -11791,7 +11871,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        reputationLevelDeleteBtn.disabled = false;
+        reputationLevelDeleteBtn.disabled = false; reputationLevelDeleteBtn.classList.remove('is-busy');
         if (!data.ok) {
           reputationLevelModalError.textContent = data.error || 'Could not delete this level.';
           reputationLevelModalError.classList.add('show');
@@ -11801,7 +11881,7 @@
         closeReputationLevelModal();
       })
       .catch(function () {
-        reputationLevelDeleteBtn.disabled = false;
+        reputationLevelDeleteBtn.disabled = false; reputationLevelDeleteBtn.classList.remove('is-busy');
         reputationLevelModalError.textContent = 'Could not delete this level. Please try again.';
         reputationLevelModalError.classList.add('show');
       });
@@ -12014,7 +12094,7 @@
     }
 
     soundtrackModalError.classList.remove('show');
-    soundtrackSaveBtn.disabled = true;
+    soundtrackSaveBtn.disabled = true; soundtrackSaveBtn.classList.add('is-busy');
     fetch(url, {
       method: 'POST',
       credentials: 'same-origin',
@@ -12023,7 +12103,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        soundtrackSaveBtn.disabled = false;
+        soundtrackSaveBtn.disabled = false; soundtrackSaveBtn.classList.remove('is-busy');
         if (!data.ok) {
           soundtrackModalError.textContent = data.error || 'Could not save this soundtrack.';
           soundtrackModalError.classList.add('show');
@@ -12035,7 +12115,7 @@
         setTimeout(closeSoundtrackModal, 700);
       })
       .catch(function () {
-        soundtrackSaveBtn.disabled = false;
+        soundtrackSaveBtn.disabled = false; soundtrackSaveBtn.classList.remove('is-busy');
         soundtrackModalError.textContent = 'Could not save this soundtrack. Please try again.';
         soundtrackModalError.classList.add('show');
       });
@@ -12045,7 +12125,7 @@
     if (!currentSoundtrack) return;
     var confirmMsg = 'Permanently delete the soundtrack "' + currentSoundtrack.heading + '"? This cannot be undone.';
     if (!window.confirm(confirmMsg)) return;
-    soundtrackDeleteBtn.disabled = true;
+    soundtrackDeleteBtn.disabled = true; soundtrackDeleteBtn.classList.add('is-busy');
     fetch('/api/admin/soundtracks/delete.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -12054,7 +12134,7 @@
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        soundtrackDeleteBtn.disabled = false;
+        soundtrackDeleteBtn.disabled = false; soundtrackDeleteBtn.classList.remove('is-busy');
         if (!data.ok) {
           soundtrackModalError.textContent = data.error || 'Could not delete this soundtrack.';
           soundtrackModalError.classList.add('show');
@@ -12064,7 +12144,7 @@
         closeSoundtrackModal();
       })
       .catch(function () {
-        soundtrackDeleteBtn.disabled = false;
+        soundtrackDeleteBtn.disabled = false; soundtrackDeleteBtn.classList.remove('is-busy');
         soundtrackModalError.textContent = 'Could not delete this soundtrack. Please try again.';
         soundtrackModalError.classList.add('show');
       });
@@ -12110,7 +12190,7 @@
     event.preventDefault();
     if (!pwHasPermission('site_settings.manage')) return;
     setMailMessage(siteSettingsError, siteSettingsStatus, '', false);
-    siteSettingsSaveBtn.disabled = true;
+    siteSettingsSaveBtn.disabled = true; siteSettingsSaveBtn.classList.add('is-busy');
     fetch('/api/admin/site-settings/update.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -12123,10 +12203,10 @@
     }).then(function (response) { return response.json(); }).then(function (data) {
       if (!data.ok) throw new Error(data.error || 'Could not save Site Settings.');
       setMailMessage(siteSettingsError, siteSettingsStatus, 'Site Settings saved.', false);
-      siteSettingsSaveBtn.disabled = false;
+      siteSettingsSaveBtn.disabled = false; siteSettingsSaveBtn.classList.remove('is-busy');
     }).catch(function (error) {
       setMailMessage(siteSettingsError, siteSettingsStatus, error.message || 'Could not save Site Settings.', true);
-      siteSettingsSaveBtn.disabled = false;
+      siteSettingsSaveBtn.disabled = false; siteSettingsSaveBtn.classList.remove('is-busy');
     });
   });
 
@@ -12236,7 +12316,7 @@
           ? ('Transport: ' + (settings.transport || 'PHP mail') + '. ' + (settings.ready ? 'Transactional delivery is enabled.' : 'Add a verified sender, then enable delivery when you are ready.'))
           : 'The server does not currently expose a mail transport. Delivery stays disabled.';
         mailSettingsSaveBtn.disabled = !pwHasPermission('mail.manage');
-        mailSendTestBtn.disabled = !settings.ready || !pwHasPermission('mail.manage');
+        mailSendTestBtn.disabled = !settings.ready || !pwHasPermission('mail.manage'); mailSendTestBtn.classList.remove('is-busy');
         loadMailDomainStatus();
       })
       .catch(function (error) {
@@ -12249,7 +12329,7 @@
     event.preventDefault();
     if (!pwHasPermission('mail.manage')) return;
     setMailMessage(mailSettingsError, mailSettingsStatus, '', false);
-    mailSettingsSaveBtn.disabled = true;
+    mailSettingsSaveBtn.disabled = true; mailSettingsSaveBtn.classList.add('is-busy');
     fetch('/api/admin/mail/save-settings.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ csrf: window.PW_AUTH.csrf, enabled: mailEnabledInput.checked, from_name: mailFromNameInput.value.trim(), from_email: mailFromEmailInput.value.trim(), reply_to: mailReplyToInput.value.trim() })
@@ -12259,7 +12339,7 @@
       loadMailSettings();
     }).catch(function (error) {
       setMailMessage(mailSettingsError, mailSettingsStatus, error.message || 'Could not save Mail Settings.', true);
-      mailSettingsSaveBtn.disabled = false;
+      mailSettingsSaveBtn.disabled = false; mailSettingsSaveBtn.classList.remove('is-busy');
     });
   });
 
@@ -12270,7 +12350,7 @@
       setMailMessage(mailSettingsError, mailSettingsStatus, 'Enter a recipient for the test email.', true);
       return;
     }
-    mailSendTestBtn.disabled = true;
+    mailSendTestBtn.disabled = true; mailSendTestBtn.classList.add('is-busy');
     setMailMessage(mailSettingsError, mailSettingsStatus, '', false);
     fetch('/api/admin/mail/send-test.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
@@ -12452,7 +12532,7 @@
     mailTemplateTextInput.value = template.text_body || '';
     mailTemplateEnabledInput.checked = !!template.is_enabled;
     setMailMessage(mailTemplateModalError, mailTemplateModalStatus, '', false);
-    mailTemplateSaveBtn.disabled = false;
+    mailTemplateSaveBtn.disabled = false; mailTemplateSaveBtn.classList.remove('is-busy');
     mailTemplateSendTestBtn.disabled = !pwHasPermission('mail.manage');
     mailTemplateModal.hidden = false;
     setTimeout(function () { mailTemplateSubjectInput.focus(); }, 25);
@@ -12467,7 +12547,7 @@
       setMailMessage(mailTemplateModalError, mailTemplateModalStatus, 'Enter a recipient for the template test.', true);
       return;
     }
-    mailTemplateSendTestBtn.disabled = true;
+    mailTemplateSendTestBtn.disabled = true; mailTemplateSendTestBtn.classList.add('is-busy');
     setMailMessage(mailTemplateModalError, mailTemplateModalStatus, '', false);
     fetch('/api/admin/mail/send-test.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
@@ -12477,11 +12557,11 @@
       setMailMessage(mailTemplateModalError, mailTemplateModalStatus, 'Template test accepted by the server. Check the inbox and spam folder.', false);
     }).catch(function (error) {
       setMailMessage(mailTemplateModalError, mailTemplateModalStatus, error.message || 'The template test could not be sent.', true);
-    }).finally(function () { mailTemplateSendTestBtn.disabled = !pwHasPermission('mail.manage'); });
+    }).finally(function () { mailTemplateSendTestBtn.disabled = !pwHasPermission('mail.manage'); mailTemplateSendTestBtn.classList.remove('is-busy'); });
   });
   if (mailTemplateSaveBtn) mailTemplateSaveBtn.addEventListener('click', function () {
     if (!mailTemplateCurrent || !pwHasPermission('mail.manage')) return;
-    mailTemplateSaveBtn.disabled = true;
+    mailTemplateSaveBtn.disabled = true; mailTemplateSaveBtn.classList.add('is-busy');
     setMailMessage(mailTemplateModalError, mailTemplateModalStatus, '', false);
     fetch('/api/admin/mail/save-template.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
@@ -12492,7 +12572,7 @@
       loadMailTemplates();
       setTimeout(closeMailTemplateModal, 450);
     }).catch(function (error) {
-      mailTemplateSaveBtn.disabled = false;
+      mailTemplateSaveBtn.disabled = false; mailTemplateSaveBtn.classList.remove('is-busy');
       setMailMessage(mailTemplateModalError, mailTemplateModalStatus, error.message || 'Could not save this template.', true);
     });
   });
@@ -12692,8 +12772,8 @@
     data.append('image', file);
     data.append('csrf', window.PW_AUTH.csrf);
     newsImageLibraryStatus.textContent = 'Uploading and preparing image…';
-    newsImageUploadBtn.disabled = true;
-    newsImageLibraryUploadBtn.disabled = true;
+    newsImageUploadBtn.disabled = true; newsImageUploadBtn.classList.add('is-busy');
+    newsImageLibraryUploadBtn.disabled = true; newsImageLibraryUploadBtn.classList.add('is-busy');
     fetch('/api/admin/news/upload-image.php', { method: 'POST', credentials: 'same-origin', body: data })
       .then(function (response) { return response.json(); })
       .then(function (result) {
@@ -12709,8 +12789,8 @@
         newsImageLibraryStatus.textContent = '';
       })
       .finally(function () {
-        newsImageUploadBtn.disabled = false;
-        newsImageLibraryUploadBtn.disabled = false;
+        newsImageUploadBtn.disabled = false; newsImageUploadBtn.classList.remove('is-busy');
+        newsImageLibraryUploadBtn.disabled = false; newsImageLibraryUploadBtn.classList.remove('is-busy');
         newsImageFileInput.value = '';
       });
   }
@@ -12964,13 +13044,13 @@
     }
     if (newsModalMode === 'edit' && newsCurrent) payload.id = newsCurrent.id;
     clearNewsModalMessages();
-    newsSaveBtn.disabled = true;
+    newsSaveBtn.disabled = true; newsSaveBtn.classList.add('is-busy');
     fetch(newsModalMode === 'edit' ? '/api/admin/news/update.php' : '/api/admin/news/create.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
     })
       .then(function (response) { return response.json(); })
       .then(function (data) {
-        newsSaveBtn.disabled = false;
+        newsSaveBtn.disabled = false; newsSaveBtn.classList.remove('is-busy');
         if (!data.ok) throw new Error(data.error || 'Could not save this news post.');
         newsModalStatus.textContent = newsModalMode === 'edit' ? 'Changes saved.' : 'News post published.';
         newsModalStatus.classList.add('show');
@@ -12978,7 +13058,7 @@
         setTimeout(closeNewsModal, 600);
       })
       .catch(function (error) {
-        newsSaveBtn.disabled = false;
+        newsSaveBtn.disabled = false; newsSaveBtn.classList.remove('is-busy');
         newsModalError.textContent = error.message || 'Could not save this news post. Please try again.';
         newsModalError.classList.add('show');
       });
@@ -12988,20 +13068,20 @@
     if (!newsCurrent || !pwHasPermission('news.delete')) return;
     if (!window.confirm('Delete "' + newsCurrent.title + '"? This cannot be undone.')) return;
     clearNewsModalMessages();
-    newsDeleteBtn.disabled = true;
+    newsDeleteBtn.disabled = true; newsDeleteBtn.classList.add('is-busy');
     fetch('/api/admin/news/delete.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: newsCurrent.id, csrf: window.PW_AUTH.csrf })
     })
       .then(function (response) { return response.json(); })
       .then(function (data) {
-        newsDeleteBtn.disabled = false;
+        newsDeleteBtn.disabled = false; newsDeleteBtn.classList.remove('is-busy');
         if (!data.ok) throw new Error(data.error || 'Could not delete this news post.');
         loadNewsList();
         closeNewsModal();
       })
       .catch(function (error) {
-        newsDeleteBtn.disabled = false;
+        newsDeleteBtn.disabled = false; newsDeleteBtn.classList.remove('is-busy');
         newsModalError.textContent = error.message || 'Could not delete this news post. Please try again.';
         newsModalError.classList.add('show');
       });
@@ -13168,7 +13248,7 @@
   });
 
   composerCreateBtn.addEventListener('click', function () {
-    composerCreateBtn.disabled = true;
+    composerCreateBtn.disabled = true; composerCreateBtn.classList.add('is-busy');
     fetch('/api/admin/dispatch-composer/create.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ csrf: window.PW_AUTH.csrf })
@@ -13179,7 +13259,7 @@
         openComposerEditor(data.id);
       })
       .catch(function (error) { window.alert(error.message || 'Could not create a new draft.'); })
-      .finally(function () { composerCreateBtn.disabled = false; });
+      .finally(function () { composerCreateBtn.disabled = false; composerCreateBtn.classList.remove('is-busy'); });
   });
 
   composerFilterTabsEl.addEventListener('click', function (event) {
@@ -13402,7 +13482,7 @@
     var data = new FormData();
     data.append('image', file);
     data.append('csrf', window.PW_AUTH.csrf);
-    composerImageUploadBtn.disabled = true;
+    composerImageUploadBtn.disabled = true; composerImageUploadBtn.classList.add('is-busy');
     fetch('/api/admin/news/upload-image.php', { method: 'POST', credentials: 'same-origin', body: data })
       .then(function (response) { return response.json(); })
       .then(function (result) {
@@ -13414,7 +13494,7 @@
         composerEditorError.classList.add('show');
       })
       .finally(function () {
-        composerImageUploadBtn.disabled = false;
+        composerImageUploadBtn.disabled = false; composerImageUploadBtn.classList.remove('is-busy');
         composerImageFileInput.value = '';
       });
   });
@@ -13432,7 +13512,7 @@
       data.append('image', file);
       data.append('csrf', window.PW_AUTH.csrf);
       composerImageLibraryStatus.textContent = 'Uploading and preparing image…';
-      composerImageLibraryUploadBtn.disabled = true;
+      composerImageLibraryUploadBtn.disabled = true; composerImageLibraryUploadBtn.classList.add('is-busy');
       fetch('/api/admin/news/upload-image.php', { method: 'POST', credentials: 'same-origin', body: data })
         .then(function (response) { return response.json(); })
         .then(function (result) {
@@ -13443,7 +13523,7 @@
         .catch(function (error) {
           composerImageLibraryStatus.textContent = error.message || 'Could not upload this image.';
         })
-        .finally(function () { composerImageLibraryUploadBtn.disabled = false; });
+        .finally(function () { composerImageLibraryUploadBtn.disabled = false; composerImageLibraryUploadBtn.classList.remove('is-busy'); });
     });
     input.click();
   });
@@ -13716,28 +13796,28 @@
   }
 
   composerSaveDraftBtn.addEventListener('click', function () {
-    composerSaveDraftBtn.disabled = true;
-    composerSave('draft').finally(function () { composerSaveDraftBtn.disabled = false; });
+    composerSaveDraftBtn.disabled = true; composerSaveDraftBtn.classList.add('is-busy');
+    composerSave('draft').finally(function () { composerSaveDraftBtn.disabled = false; composerSaveDraftBtn.classList.remove('is-busy'); });
   });
   composerMarkReadyBtn.addEventListener('click', function () {
-    composerMarkReadyBtn.disabled = true;
-    composerSave('ready').finally(function () { composerMarkReadyBtn.disabled = false; });
+    composerMarkReadyBtn.disabled = true; composerMarkReadyBtn.classList.add('is-busy');
+    composerSave('ready').finally(function () { composerMarkReadyBtn.disabled = false; composerMarkReadyBtn.classList.remove('is-busy'); });
   });
 
   composerPreviewBtn.addEventListener('click', function () {
-    composerPreviewBtn.disabled = true;
+    composerPreviewBtn.disabled = true; composerPreviewBtn.classList.add('is-busy');
     var proceed = composerCurrentStatus === 'published' || composerCurrentStatus === 'archived'
       ? Promise.resolve()
       : composerSave(composerCurrentStatus === 'ready' ? 'ready' : 'draft');
     proceed
       .then(function () { window.open('/news-post.html?composer_preview=' + encodeURIComponent(composerCurrentId), '_blank'); })
       .catch(function () {})
-      .finally(function () { composerPreviewBtn.disabled = false; });
+      .finally(function () { composerPreviewBtn.disabled = false; composerPreviewBtn.classList.remove('is-busy'); });
   });
 
   composerPublishBtn.addEventListener('click', function () {
     if (!window.confirm('Publish this article to the public News page now? This cannot be undone from here.')) return;
-    composerPublishBtn.disabled = true;
+    composerPublishBtn.disabled = true; composerPublishBtn.classList.add('is-busy');
     composerEditorError.textContent = '';
     composerEditorError.classList.remove('show');
     composerSave(composerCurrentStatus === 'draft' ? 'draft' : composerCurrentStatus)
@@ -13763,7 +13843,7 @@
         composerEditorError.textContent = error.message || 'Could not publish this article.';
         composerEditorError.classList.add('show');
       })
-      .finally(function () { composerPublishBtn.disabled = false; });
+      .finally(function () { composerPublishBtn.disabled = false; composerPublishBtn.classList.remove('is-busy'); });
   });
 
   // ===== Lore Management / Quiz Control ========================================

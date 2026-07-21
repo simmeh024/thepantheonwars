@@ -442,7 +442,7 @@ at that time.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
   `css/public.css?v=265`, community `css/community-bundle.css?v=249`, and admin
-  `css/admin-bundle.css?v=260`. Public pages use `css/public.css`, community pages
+  `css/admin-bundle.css?v=261`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
@@ -539,6 +539,54 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Admin Console forms polish** (focus/hover, loading state, inline
+  validation): three additions to `css/admin.css` and `admin/index.html`,
+  all reusing existing conventions rather than introducing new ones.
+  **Stronger focus/hover on form controls**: `.admin-field input[type="text"/
+  "email"/"number"/"password"/"search"/"datetime-local"], select, textarea`
+  (plus the toolbar `.admin-search`) gained a `:hover` border tint and a
+  `:focus` box-shadow glow on top of the existing border-color change --
+  previously `:focus { outline: none; border-color: ...; }` alone, which is
+  weaker than it looks: the sitewide `:focus-visible` ring in `base.css`
+  (`!important`) still applied underneath for keyboard focus, but there was
+  no visible hover affordance at all and the focus treatment was
+  inconsistent in strength across field types. **Button loading state**:
+  every one of the ~55 Save/Delete/Assign/Reset/Upload/Resync/Confirm
+  buttons already disables itself before a fetch and re-enables after
+  (an existing, established pattern -- 137 call sites found via `grep`),
+  so rather than inventing a new pattern, a mechanical Python-regex pass
+  added `.classList.add('is-busy')` / `.classList.remove('is-busy')`
+  alongside every literal `X.disabled = true/false;` line for `\w*Btn`-named
+  variables, with `.btn.is-busy` in CSS drawing a small `::before` spinner
+  (border-top-color: currentColor, so it tints to match each button's own
+  text color) without ever touching button text content -- no button's
+  label needs to be stored/restored in JS. That mechanical pass alone
+  wasn't complete: several re-enable paths use an inline one-liner
+  (`.finally(function () { x.disabled = false; })`) or a dynamic expression
+  re-evaluating `disabled` from current state/permissions
+  (`x.disabled = !pwHasPermission(...)`, or `x.disabled =
+  selectedCount() === 0`) rather than a bare literal, which the first
+  regex pass couldn't match -- a second pass plus manual fixes found and
+  fixed 18 such spots (`bookSaveBtn`'s edit-load path, `mailSendTestBtn`,
+  `mailTemplateSendTestBtn`, `memberLookupAssignBtn`, `memberRemoveBtn`,
+  `addRolesSubmitBtn`'s shared `updateAddRolesSubmitState()`, and 11 more
+  inline `.finally()/.catch()` cases) that would otherwise have left a
+  button showing a permanent stuck spinner after its very first use. Cross-
+  checked afterward via a per-variable add/remove count script -- zero
+  `is-busy` adds remain without a matching remove anywhere in the file.
+  **Reusable inline field validation**: `pwSetFieldError()` /
+  `pwClearFieldError()` / `pwWireFieldValidation()` (new, near `escapeHtml()`
+  since every modal in this one file already shares helpers like it) toggle
+  a `.has-error` class on the `.admin-field` wrapper plus an injected
+  `.admin-field-error` message line, wired on blur (and live thereafter) via
+  a generic `validator(value) -> errorString` callback. Deliberately a
+  sibling of `.admin-field-hint` rather than replacing it, so a field can
+  show both a hint and a validation error at once. Demonstrated on Book
+  Control (Title, Status label) and Members (Display name, Email format) --
+  the pattern is generic and ready to adopt on any other modal's required
+  fields without duplicating the wiring, but wasn't mechanically retrofitted
+  onto all ~20 admin modals in this pass.
 
 - **GitHub webhook repository validation:** `api/github-webhook.php` now
   checks the payload's `repository.full_name` against a configurable

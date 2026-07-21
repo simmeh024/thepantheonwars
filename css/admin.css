@@ -484,8 +484,13 @@
   flex: 1 1 220px; max-width: 320px;
   background: var(--panel); border: 1px solid var(--border); color: var(--text);
   padding: 9px 13px; font-family: 'Jost', sans-serif; font-size: 0.85rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.admin-search:focus { outline: none; border-color: var(--purple-bright); }
+.admin-search:hover { border-color: var(--gold-dim); }
+.admin-search:focus {
+  outline: none; border-color: var(--purple-bright);
+  box-shadow: 0 0 0 3px rgba(124,79,214,0.28);
+}
 .admin-count {
   color: var(--text-faint); font-size: 0.78rem; margin-left: auto;
 }
@@ -2004,6 +2009,35 @@
 }
 
 .admin-field-hint { font-size: 0.76rem; line-height: 1.5; color: var(--text-faint); margin: -0.3em 0 0.6em; }
+
+/* On-blur/real-time inline field validation. pwSetFieldError()/
+   pwClearFieldError() (in admin/index.html) toggle .has-error on the
+   .admin-field wrapper and insert/remove this message -- deliberately a
+   sibling error line rather than reusing .admin-field-hint, so a field with
+   both a hint and a validation error can show both at once without either
+   overwriting the other. */
+.admin-field.has-error input[type="text"],
+.admin-field.has-error input[type="email"],
+.admin-field.has-error input[type="number"],
+.admin-field.has-error input[type="password"],
+.admin-field.has-error select,
+.admin-field.has-error textarea {
+  border-color: var(--status-critical);
+}
+.admin-field.has-error input[type="text"]:focus,
+.admin-field.has-error input[type="email"]:focus,
+.admin-field.has-error input[type="number"]:focus,
+.admin-field.has-error input[type="password"]:focus,
+.admin-field.has-error select:focus,
+.admin-field.has-error textarea:focus {
+  box-shadow: 0 0 0 3px rgba(224,90,74,0.28);
+}
+.admin-field-error {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 0.74rem; line-height: 1.4; color: var(--status-critical);
+  margin: 5px 0 0;
+}
+.admin-field-error::before { content: '\26A0'; font-size: 0.8em; }
 .admin-readonly-value { font-size: 0.92rem; color: var(--text-soft); background: var(--bg); border: 1px solid var(--border-soft); border-radius: 4px; padding: 0.5em 0.7em; margin: 0; }
 
 .member-other-roles-list {
@@ -2217,6 +2251,7 @@
 .admin-field textarea {
   width: 100%; min-height: 160px; background: var(--bg); border: 1px solid var(--border); color: var(--text);
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.92rem; line-height: 1.55; resize: vertical;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .admin-commit-body {
   width: 100%; max-height: 160px; overflow-y: auto; margin: 0;
@@ -2224,7 +2259,11 @@
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.82rem; line-height: 1.55;
   white-space: pre-wrap; word-wrap: break-word;
 }
-.admin-field textarea:focus { outline: none; border-color: var(--purple-bright); }
+.admin-field textarea:hover { border-color: var(--gold-dim); }
+.admin-field textarea:focus {
+  outline: none; border-color: var(--purple-bright);
+  box-shadow: 0 0 0 3px rgba(124,79,214,0.28);
+}
 .translation-editor-guidance {
   display: flex; align-items: flex-start; gap: 8px;
   margin: -1px 0 9px; padding: 8px 10px;
@@ -2233,16 +2272,30 @@
   font-size: 0.74rem; line-height: 1.45;
 }
 .translation-editor-guidance::before { content: '\2726'; flex: 0 0 auto; color: #45d1c9; }
-.admin-field input[type="text"], .admin-field input[type="email"], .admin-field input[type="number"] {
+.admin-field input[type="text"], .admin-field input[type="email"], .admin-field input[type="number"],
+.admin-field input[type="password"], .admin-field input[type="search"], .admin-field input[type="datetime-local"] {
   width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.92rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.admin-field input[type="text"]:focus, .admin-field input[type="email"]:focus, .admin-field input[type="number"]:focus { outline: none; border-color: var(--purple-bright); }
+.admin-field input[type="text"]:hover, .admin-field input[type="email"]:hover, .admin-field input[type="number"]:hover,
+.admin-field input[type="password"]:hover, .admin-field input[type="search"]:hover, .admin-field input[type="datetime-local"]:hover { border-color: var(--gold-dim); }
+.admin-field input[type="text"]:focus, .admin-field input[type="email"]:focus, .admin-field input[type="number"]:focus,
+.admin-field input[type="password"]:focus, .admin-field input[type="search"]:focus, .admin-field input[type="datetime-local"]:focus {
+  outline: none; border-color: var(--purple-bright);
+  box-shadow: 0 0 0 3px rgba(124,79,214,0.28);
+}
+.admin-field input[type="password"]:disabled, .admin-field input[type="datetime-local"]:disabled { opacity: 0.55; cursor: not-allowed; }
 .admin-field select {
   width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.92rem; cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.admin-field select:focus { outline: none; border-color: var(--purple-bright); }
+.admin-field select:hover { border-color: var(--gold-dim); }
+.admin-field select:focus {
+  outline: none; border-color: var(--purple-bright);
+  box-shadow: 0 0 0 3px rgba(124,79,214,0.28);
+}
 .admin-tag-select { flex: 0 0 170px; max-width: 170px; cursor: pointer; }
 .admin-resync-status {
   font-family: 'Jost', sans-serif; font-size: 0.8rem; color: var(--text-faint);
@@ -2264,6 +2317,35 @@
 .admin-modal-actions { display: flex; align-items: center; gap: 10px; margin-top: 18px; }
 .admin-modal-actions .btn { padding: 11px 22px; font-size: 0.74rem; }
 .admin-modal-actions .btn:disabled { cursor: wait; opacity: 0.76; }
+
+/* Loading state for any button mid-submission: toggled alongside the
+   existing `.disabled = true/false` pattern already used at every save,
+   delete, upload, and action-confirm call site across the admin console
+   (js just adds/removes this class next to the existing disabled toggle --
+   no button's control flow changed). A small spinner sits to the left of
+   the existing label rather than replacing it, so no button's text content
+   ever needs to be read/restored in JS. */
+.btn.is-busy {
+  position: relative;
+  padding-left: 2.6em;
+  cursor: wait;
+  pointer-events: none;
+  opacity: 0.8;
+}
+.btn.is-busy::before {
+  content: '';
+  position: absolute;
+  left: 1em;
+  top: 50%;
+  width: 0.9em;
+  height: 0.9em;
+  margin-top: -0.45em;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: pw-btn-spin 0.7s linear infinite;
+}
+@keyframes pw-btn-spin { to { transform: rotate(360deg); } }
 .world-modal-footer {
   position: sticky; z-index: 6; bottom: -30px;
   margin: 18px -30px -30px; padding: 15px 30px 30px;
