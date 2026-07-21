@@ -1382,8 +1382,12 @@
    box, so this can't repeat that failure mode. */
 .member-current-reading.is-saga-complete {
   border: 2px solid transparent;
+  /* The padding-box fill has to be nearly opaque -- at the original subtle
+     0.1-ish alpha (fine for a flat tint over the page background) it barely
+     masked the border-box rainbow layer behind it, so the rainbow dominated
+     the whole interior instead of staying confined to the 2px ring. */
   background:
-    linear-gradient(90deg, rgba(224,178,74,0.14), rgba(176,95,255,0.12)) padding-box,
+    linear-gradient(90deg, rgba(38,24,58,0.94), rgba(30,18,50,0.94)) padding-box,
     linear-gradient(90deg, #ff5f6d, #ffc371, #f7ff5f, #5fffb0, #5f9fff, #b05fff, #ff5f6d) border-box;
   background-size: 100% 100%, 200% auto;
   animation: prismatic-shift 6s linear infinite;
@@ -1391,7 +1395,7 @@
 }
 .member-current-reading.is-saga-complete:hover {
   background:
-    linear-gradient(90deg, rgba(224,178,74,0.2), rgba(176,95,255,0.18)) padding-box,
+    linear-gradient(90deg, rgba(48,30,70,0.96), rgba(38,22,62,0.96)) padding-box,
     linear-gradient(90deg, #ff5f6d, #ffc371, #f7ff5f, #5fffb0, #5f9fff, #b05fff, #ff5f6d) border-box;
   background-size: 100% 100%, 200% auto;
   box-shadow: 0 0 22px rgba(176,95,255,0.26);

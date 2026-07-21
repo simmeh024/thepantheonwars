@@ -441,8 +441,8 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=266`, community `css/community-bundle.css?v=257`, and admin
-  `css/admin-bundle.css?v=265`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=266`, community `css/community-bundle.css?v=258`, and admin
+  `css/admin-bundle.css?v=266`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
@@ -540,6 +540,20 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Fixed: Saga Complete's rainbow filled the whole pill, not just the
+  ring.** Confirmed live (screenshot) right after the gradient-border fix
+  below shipped: the `padding-box`-clipped fill layer's alpha
+  (`rgba(224,178,74,0.14)`/`rgba(176,95,255,0.12)`) was tuned for a flat
+  *tint over the page background*, not for masking an opaque layer sitting
+  directly behind it in the same element -- at ~12-14% opacity it barely
+  dimmed the border-box rainbow layer, so the rainbow dominated the entire
+  interior instead of staying confined to the 2px border ring, and the
+  label/title text became hard to read against it. Raised that fill layer
+  to ~94-96% opacity (`rgba(38,24,58,0.94)` idle / `rgba(48,30,70,0.96)`
+  hover) so it actually masks the center; the rainbow now only shows
+  through the ring where the fill layer doesn't extend. `community.css?v=207`
+  / `community-bundle.css?v=258` / `admin-bundle.css?v=266`.
 
 - **Fixed: Saga Complete's rotating ring escaped its pill.** Confirmed live
   (screenshot) immediately after the entry below shipped: the `::before`
