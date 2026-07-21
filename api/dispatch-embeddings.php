@@ -246,8 +246,19 @@ function pw_dispatch_nearest_embedding_match(PDO $db, array $queryVector, int $e
  */
 function pw_dispatch_update_translation_embedding(PDO $db, int $dispatchId, string $translation): void
 {
+    // TEMPORARY diagnostic logging, gated by an env var so normal production
+    // behavior is unaffected. Enable with:
+    //   PW_DEBUG_EMBEDDING=1 php tools/backfill-dispatch-embeddings.php
+    $debug = getenv('PW_DEBUG_EMBEDDING') !== false;
+    $log = static function (string $message) use ($debug, $dispatchId): void {
+        if ($debug) {
+            fwrite(STDERR, "[embed dispatch_id={$dispatchId}] {$message}\n");
+        }
+    };
+
     $translation = trim($translation);
     if ($translation === '') {
+        $log('empty translation, skipping');
         return;
     }
     $hash = hash('sha256', $translation);
@@ -256,16 +267,21 @@ function pw_dispatch_update_translation_embedding(PDO $db, int $dispatchId, stri
         $stmt->execute([$dispatchId]);
         $existingHash = $stmt->fetchColumn();
         if ($existingHash === $hash) {
+            $log('hash already cached, skipping');
             return;
         }
+        $log('hash check passed, existingHash=' . var_export($existingHash, true));
     } catch (PDOException $e) {
+        $log('PDOException on hash SELECT: ' . $e->getMessage());
         return;
     }
 
     $result = pw_dispatch_embedding_similarity($translation);
     if (empty($result['embedding'])) {
+        $log('pw_dispatch_embedding_similarity() returned no embedding, result=' . var_export($result, true));
         return;
     }
+    $log('embedding obtained, length=' . count($result['embedding']));
 
     try {
         $stmt = $db->prepare(
@@ -277,7 +293,8 @@ function pw_dispatch_update_translation_embedding(PDO $db, int $dispatchId, stri
                embedding_json = VALUES(embedding_json)'
         );
         $stmt->execute([$dispatchId, $result['model'], $hash, json_encode($result['embedding'])]);
+        $log('INSERT/UPDATE succeeded, rowCount=' . $stmt->rowCount());
     } catch (PDOException $e) {
-        // Optional migration may not be applied yet.
+        $log('PDOException on INSERT: ' . $e->getMessage());
     }
 }
