@@ -442,7 +442,7 @@ at that time.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
   `css/public.css?v=265`, community `css/community-bundle.css?v=249`, and admin
-  `css/admin-bundle.css?v=255`. Public pages use `css/public.css`, community pages
+  `css/admin-bundle.css?v=260`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
@@ -539,6 +539,39 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Admin Console typography and whitespace polish** (`css/admin.css`, CSS-only,
+  no markup changes): a real bug was found while auditing spacing rather than
+  just eyeballing it -- a bare `.admin-field` (the wrapper div around every
+  label+input/select/textarea in every CRUD modal across the whole console)
+  had no `margin-bottom` defined anywhere in the cascade. `.admin-field-row
+  .admin-field { margin-bottom: 0; }` (for side-by-side fields) and
+  `.weather-boundary-grid .admin-field { margin: 0; }` both exist specifically
+  to *cancel* a base margin that turned out to never exist, and
+  `.admin-field-hint`'s `-0.3em` top pull only makes sense as a small trim
+  against an expected positive gap above it -- three independent pieces of
+  existing CSS whose design intent already assumed this spacing existed.
+  Added `.admin-field { margin-bottom: 18px; }` once, near the other
+  `.admin-field` rules; both existing override contexts have higher
+  selector specificity so neither needed to change. Beyond that fix: page
+  title (`.admin-section-head h1`, 1.6rem -> 1.75rem, plus tighter
+  letter-spacing and more margin below), subsection (`.admin-subsection-head
+  h2`) and modal title (`.admin-modal-title`, 1.15rem -> 1.25rem) all got a
+  clearer size/spacing step between hierarchy levels; wrapping text blocks
+  that had no explicit `line-height` (`.admin-section-head p`,
+  `.admin-subsection-head p`, `.admin-modal-sub`, `.admin-field-hint`) now
+  match the `1.5`/`1.55` already used elsewhere in this same file
+  (`.admin-form-card-head p`, `.mail-settings-card-head p`) instead of
+  inheriting the body's tighter default; and `.admin-row` (every list row
+  across Members/Books/Worlds/Dispatches/etc.) and `.admin-nav-link`
+  (sidebar) both got a couple of extra vertical padding pixels. Bumped
+  `admin.css?v=224` / `admin-bundle.css?v=260`. Note: this session's sandbox
+  has no way to load the real admin console (it requires a live PHP session
+  against `api/session-check.php`, which a static `file://` preview can't
+  reach -- it just sits on "Checking access..."), so this was verified by
+  hand-tracing CSS cascade/specificity and brace/paren balance rather than a
+  live screenshot; worth a quick look on the real deployed console before
+  trusting it fully.
 
 - **Hardened client IP detection (`pw_client_ip()`):** previously trusted
   `CF-Connecting-IP` and `X-Forwarded-For` unconditionally -- since this host
