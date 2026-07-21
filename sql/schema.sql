@@ -996,7 +996,7 @@ CREATE TABLE IF NOT EXISTS page_view_daily_transitions (
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,
-  type ENUM('like','mention','quote','report_resolved','world_available','news_published','topic_reply','icon_unlocked','direct_message') NOT NULL,
+  type ENUM('like','mention','quote','report_resolved','world_available','news_published','topic_reply','icon_unlocked','direct_message','new_device_login') NOT NULL,
   actor_user_id INT UNSIGNED NULL,
   topic_id INT UNSIGNED NULL,
   comment_id INT UNSIGNED NULL,
@@ -1036,6 +1036,7 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
   notif_news_published TINYINT(1) NOT NULL DEFAULT 1,
   notif_topic_reply TINYINT(1) NOT NULL DEFAULT 1,
   notif_icon_unlocked TINYINT(1) NOT NULL DEFAULT 1,
+  notif_new_device_login TINYINT(1) NOT NULL DEFAULT 1,
   CONSTRAINT fk_notification_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

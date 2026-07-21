@@ -665,6 +665,35 @@ function pw_apply_session_persistence($remember) {
     ]);
 }
 
+// A "significant change" is this exact browser+OS+country combination never
+// having appeared before in this user's session history (user_sessions rows
+// are never deleted, only revoked_at is set, so the full table already is
+// that history -- no separate "known devices" table is needed). Deliberately
+// requires at least one *other* session to exist first, so a brand-new
+// registration (where literally everything is new) never fires this.
+// Country is NULL-safe compared (<=>) since a first-ever session on an IP
+// ip_country_cache hasn't resolved yet stores NULL, and that shouldn't by
+// itself look "different" from another NULL on a later, legitimate session.
+function pw_maybe_notify_new_device($userId, $sessionId, $browser, $os, $countryCode, $label, $countryName) {
+    try {
+        $stmt = pw_db()->prepare(
+            'SELECT
+                SUM(id != ?) AS prior_sessions,
+                SUM(id != ? AND browser_name = ? AND operating_system = ? AND country_code <=> ?) AS matching_sessions
+             FROM user_sessions WHERE user_id = ?'
+        );
+        $stmt->execute([$sessionId, $sessionId, $browser, $os, $countryCode, $userId]);
+        $row = $stmt->fetch();
+        if (!$row || (int)$row['prior_sessions'] === 0 || (int)$row['matching_sessions'] > 0) {
+            return;
+        }
+        $description = $countryName ? ($label . ' · ' . $countryName) : $label;
+        pw_notify($userId, 'new_device_login', null, null, null, null, $description);
+    } catch (Throwable $e) {
+        // Best-effort -- a notification is never worth breaking a real login.
+    }
+}
+
 function pw_issue_user_session($userId, $provider = 'password', $remember = true) {
     $token = bin2hex(random_bytes(32));
     $_SESSION['pw_session_token'] = $token;
@@ -692,6 +721,7 @@ function pw_issue_user_session($userId, $provider = 'password', $remember = true
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ' . $expiryClause . ', ?)'
         );
         $stmt->execute([$userId, pw_session_hash($token), pw_session_hash(session_id()), $label, $ua, $browser, $os, $ip, $countryCode, $countryName, $provider, $remember ? 1 : 0]);
+        pw_maybe_notify_new_device($userId, (int)pw_db()->lastInsertId(), $browser, $os, $countryCode, $label, $countryName);
     } catch (Throwable $e) {
         // The registry migration may not have run yet. Do not break a valid
         // login during deployment; once present, validation becomes strict.
@@ -819,7 +849,7 @@ function pw_log_admin_activity($action, $description, $user = null) {
 // newly introduced ones, so this only ever needs to read, never backfill on
 // account creation.
 function pw_notifications_enabled($userId, $type) {
-    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved', 'world_available' => 'notif_world_available', 'news_published' => 'notif_news_published', 'topic_reply' => 'notif_topic_reply', 'icon_unlocked' => 'notif_icon_unlocked'];
+    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved', 'world_available' => 'notif_world_available', 'news_published' => 'notif_news_published', 'topic_reply' => 'notif_topic_reply', 'icon_unlocked' => 'notif_icon_unlocked', 'new_device_login' => 'notif_new_device_login'];
     if (!isset($columns[$type])) {
         return true;
     }

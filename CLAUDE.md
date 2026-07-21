@@ -540,6 +540,32 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **New sign-in (device/location) alerts:** `user_sessions` already recorded
+  `browser_name`/`operating_system`/`country_code` per session (and is never
+  pruned, only `revoked_at` is set), so no new "known devices" table was
+  needed -- `pw_maybe_notify_new_device()` in `api/helpers.php`, called from
+  inside `pw_issue_user_session()` right after the insert, just checks
+  whether this exact browser+OS+country combination has ever appeared
+  before anywhere else in that user's own `user_sessions` rows (NULL-safe
+  `<=>` on country, since an unresolved IP stores NULL and that must never
+  itself look "different"). Deliberately requires at least one *other*
+  session to already exist, so a brand-new registration -- where literally
+  everything is new -- never fires it. On a genuine first-ever sighting it
+  sends a new `new_device_login` notification (`sql/migration_new_device_
+  alerts.sql` adds the ENUM value and a `notif_new_device_login` opt-out
+  column, default enabled), linking to Profile -> User Sessions
+  (`profile.html?tab=sessions`) so the visitor can review or revoke it if it
+  wasn't them. Wired into every existing surface a notification type needs
+  to touch in this codebase: `pw_notifications_enabled()`'s column map,
+  both `api/notification-prefs/{get,save}.php`, `api/notifications/
+  stats.php`'s counts and `list.php`'s type whitelist, a new Notification
+  Settings toggle, and the icon/link/text entries hand-duplicated in both
+  `js/notifications.js` (bell dropdown) and `notifications.html` (full
+  history page, plus its own filter chip) per this codebase's no-shared-
+  module convention. Session storage, country resolution, and the Session
+  Manager list itself were already fully built by the earlier User Sessions
+  feature -- this only added the detection and the notification.
+
 - **Application-wide permission-visibility audit:** cross-referenced every
   `pw_require_permission()`/`pw_has_permission()` key checked anywhere under
   `api/` against `admin/index.html`'s frontend gates and found the "+ Add X"

@@ -154,6 +154,7 @@
           <button type="button" class="notif-filter-btn" data-filter="news_published">News <span class="notif-filter-count" id="notif-filter-count-news_published">0</span></button>
           <button type="button" class="notif-filter-btn" data-filter="topic_reply">Watched Replies <span class="notif-filter-count" id="notif-filter-count-topic_reply">0</span></button>
           <button type="button" class="notif-filter-btn" data-filter="icon_unlocked">Icons Unlocked <span class="notif-filter-count" id="notif-filter-count-icon_unlocked">0</span></button>
+          <button type="button" class="notif-filter-btn" data-filter="new_device_login">New Sign-ins <span class="notif-filter-count" id="notif-filter-count-new_device_login">0</span></button>
           <label class="notif-unread-toggle">
             <input type="checkbox" id="notif-unread-toggle-input">
             <span class="notif-unread-toggle-track"><span class="notif-unread-toggle-thumb"></span></span>
@@ -260,6 +261,7 @@
     report_resolved: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>',
     world_available: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>',
     news_published: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
+    new_device_login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/><path d="m9 10 2 2 4-4"/></svg>',
   };
 
   function escapeHtml(s) {
@@ -294,6 +296,7 @@
     if (n.type === 'world_available' && n.world_slug) return 'worlds.html#' + encodeURIComponent(n.world_slug);
     if (n.type === 'news_published' && n.news_slug) return 'news-post.html?slug=' + encodeURIComponent(n.news_slug);
     if (n.type === 'icon_unlocked') return 'profile.html?tab=settings';
+    if (n.type === 'new_device_login') return 'profile.html?tab=sessions';
     if (!n.topic_id) return '#';
     return 'community.html?topic=' + encodeURIComponent(n.topic_id) +
       (n.comment_id ? '&comment=' + encodeURIComponent(n.comment_id) : '');
@@ -325,6 +328,8 @@
         return '<strong>' + (actor || 'Someone') + '</strong> replied' + (n.topic_title ? ' in a topic you\'re watching: <strong>' + escapeHtml(n.topic_title) + '</strong>' : ' in a topic you\'re watching');
       case 'icon_unlocked':
         return 'Pure Resonance achieved. You unlocked the <strong>' + (excerpt || 'Overlord') + '</strong> icon &mdash; choose it in Profile Settings.';
+      case 'new_device_login':
+        return 'New sign-in detected' + (excerpt ? ': <strong>' + excerpt + '</strong>' : '') + '. If this wasn\'t you, review your sessions.';
       default:
         return 'You have a new notification.';
     }
@@ -426,6 +431,7 @@
         document.getElementById('notif-filter-count-news_published').textContent = data.counts.news_published;
         document.getElementById('notif-filter-count-topic_reply').textContent = data.counts.topic_reply;
         document.getElementById('notif-filter-count-icon_unlocked').textContent = data.counts.icon_unlocked;
+        document.getElementById('notif-filter-count-new_device_login').textContent = data.counts.new_device_login;
 
         var topType = null, topCount = 0;
         Object.keys(STAT_LABELS).forEach(function (t) {
