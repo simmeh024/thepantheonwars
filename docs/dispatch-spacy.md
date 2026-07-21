@@ -17,40 +17,70 @@ RapidFuzz do not call an AI or send commit text outside the hosting account. If
 the worker is unavailable or exceeds its 6-second budget, PHP uses the existing
 rule-only translation without changing auto-publication.
 
+A second, independent local worker (`docs/dispatch-embeddings.md`) adds real
+sentence-embedding semantic similarity alongside spaCy/RapidFuzz -- same
+fail-open contract, same "PHP owns all reader-facing prose" rule, different
+venv, different signal. It contributes a graded confidence signal and a
+read-only "Similar past Dispatch" editor reference; it never writes a draft.
+
 ## End-to-end translation flow
 
 This is the current implementation flow, suitable as the source for a visual
 flowchart. The PHP formatter is the authority for every reader-facing sentence;
-the Python worker can only return bounded, local analysis signals.
+both Python workers can only return bounded, local analysis signals.
 
 ```mermaid
 flowchart TD
-    A[GitHub webhook, re-sync, or admin Generate Draft] --> B[Read raw subject, body, tag, and safe diff aggregate]
-    B --> C[Load existing translation and latest approved wording variants]
-    C --> D[Deterministic PHP classification]
-    D --> D1[Recognise action, domain, named content, and reader-safe dictionary]
-    D --> D2[Allow-list changed-file scope and calculate safe file summary]
-    D --> E{Optional local Python worker available?}
-    E -- No, error, or timeout --> F[Use deterministic PHP plan only]
-    E -- Yes --> G[spaCy extracts verbs, noun phrases, entities, and bounded semantic hints]
-    G --> H[RapidFuzz compares the current commit with reviewed concept aliases and recent approved wording]
-    H --> I{Strong, unambiguous reviewed concept match?}
-    I -- Yes --> J[Return only reviewed concept id and score; PHP validates the id]
-    I -- No --> K[Return bounded similarity and semantic signals only]
-    J --> L[Build reader-safe BH-4 draft from PHP templates]
-    K --> L
-    F --> L
-    L --> M[Append separate safe file-scope paragraph when available]
-    M --> N[Score explainable evidence]
-    N --> O{High: at least 65% plus independent signals?}
+    A[GitHub webhook, re-sync, or admin Generate/Regenerate Draft] --> B[Read raw subject, body, tag, and safe diff aggregate]
+    B --> C[pw_dispatch_draft_options_for_dispatch]
+    C --> C1[Load safe diff context]
+    C --> C2[Load up to 20 recent approved translations]
+
+    C --> D{spaCy/RapidFuzz worker available?}
+    D -- No, error, or timeout --> D1[No linguistic hints]
+    D -- Yes --> D2[spaCy: verbs, noun phrases, entities, bounded semantic-domain hint]
+    D2 --> D3[RapidFuzz: compare vs reviewed concept aliases + up to 8 recent translations]
+    D3 --> D4{Reviewed concept match, score >= 92, 4pt lead?}
+    D4 -- Yes --> D5[Return concept id + score only; PHP validates id against allow-list]
+    D4 -- No --> D6[Return bounded similarity score only]
+
+    C --> E{Commit subject or body present?}
+    E -- Yes --> E1[Encode current commit text --\none-shot proc_open call to tools/dispatch-embeddings.py]
+    E1 --> E2{Encode succeeded within budget?}
+    E2 -- No, timeout, or unavailable --> E3[No embedding signal -- fails open]
+    E2 -- Yes --> E4[pw_dispatch_nearest_embedding_match:\ncosine similarity computed in PHP against\ncached approved-translation vectors]
+    E4 --> E5{Best cached match score >= 0.75?}
+    E5 -- No --> E3
+    E5 -- Yes --> E6[best_semantic_match: dispatch id,\nsubject, translation text, score]
+
+    D1 --> F[Build reader-safe BH-4 draft from PHP templates]
+    D5 --> F
+    D6 --> F
+    E3 --> F
+    E6 --> F
+
+    F --> M2[Append separate safe file-scope paragraph when available]
+    M2 --> N[Score explainable evidence]
+    N --> N1["semantic_context (5pt) = spaCy domain hint\nOR embedding score >= 0.75 -- either alone\nsatisfies it, the two are not additive"]
+    N1 --> O{High: at least 65% plus independent signals?}
     O -- No --> P[Create private draft for editor review]
     O -- Yes --> Q{RapidFuzz reviewed concept used?}
     Q -- Yes --> P
-    Q -- No --> R[Auto-publish translation and audit the event]
-    P --> S[Editor approves, edits, publishes, or regenerates]
-    R --> T[Public Dispatch shows end-user translation first]
-    S --> T
+    Q -- No --> R[(Auto-publish to dispatch_translations)]
+    P --> S["Editor review queue -- shows draft plus a\nread-only 'Similar past Dispatch' panel when\nE6 fired (copy/adapt only, never auto-applied)"]
+    S --> S1[Editor approves, edits, publishes, or regenerates]
+    S1 --> R
+    R --> R1[pw_dispatch_update_translation_embedding:\nencode the newly-approved translation text,\nupsert into dispatch_translation_embeddings]
+    R1 --> T[Public Dispatch shows end-user translation first]
 ```
+
+The embedding lookup (E1-E6) and the spaCy/RapidFuzz lookup (D1-D6) run
+independently off the same draft-options step and never depend on each
+other's output -- either, both, or neither can contribute to a given draft.
+The corpus the embedding lookup compares against only grows at R1, right
+after a translation actually gets approved (whether by auto-publish or by an
+editor's manual save) -- so the very first commit of a kind has nothing to
+match against, but every similar commit after it does.
 
 ### What each stage is allowed to do
 
@@ -67,9 +97,18 @@ flowchart TD
   only when its score is at least 92 and at least four points ahead of the next
   candidate. PHP then revalidates the returned id against its own allow-list.
   It never returns another translation's prose to PHP.
+- **Embeddings worker (separate, `docs/dispatch-embeddings.md`):** encodes
+  only the current commit's text via a one-shot `proc_open` process. PHP
+  owns the cached corpus (`dispatch_translation_embeddings`) and computes
+  cosine similarity itself -- the worker never sees, stores, or returns
+  another translation's text. A match at or above 0.75 contributes to the
+  same `semantic_context` evidence slot spaCy's domain hint feeds (either
+  alone satisfies it) and surfaces as a read-only editor reference; it never
+  writes to a draft.
 - **Safety gate:** a validated RapidFuzz concept can improve a private draft but
   always sets `requires_editor_review`; it cannot auto-publish. A missing,
   failing, or slow worker produces the normal deterministic result instead.
+  The same fail-open contract applies to the embeddings worker independently.
 - **Output:** the public page displays an approved end-user explanation first;
   the original technical record remains separately available through BH-4's
   technical analysis.

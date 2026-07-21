@@ -38,21 +38,26 @@ flowchart TD
       CAT7 --> CAT8["category_source = manual, confidence = 100\nlogged to dispatch_category_overrides"]
     end
 
-    subgraph TRN["Translation -- see docs/dispatch-spacy.md for full detail"]
+    subgraph TRN["Translation -- see docs/dispatch-spacy.md + docs/dispatch-embeddings.md for full detail"]
       direction TB
       TRN1["Deterministic PHP planner: recognized action,\ndomain, dictionary terms, safe file scope"]
       TRN2{Optional spaCy/RapidFuzz\nworker available?}
       TRN1 --> TRN2
       TRN2 -- No/timeout --> TRN3[PHP-only plan]
       TRN2 -- Yes --> TRN4["spaCy hints + RapidFuzz reviewed-concept\nfuzzy match (needs 92+ score, 4pt lead)"]
+      TRN1 --> TRNE1["Encode current commit (one-shot proc_open)\n+ PHP cosine similarity vs cached corpus"]
+      TRNE1 --> TRNE2{"Cached match >= 0.75?"}
+      TRNE2 -- Yes --> TRNE3["best_semantic_match: read-only\n'Similar past Dispatch' editor reference"]
       TRN3 --> TRN5[Build BH-4 reader-safe draft]
       TRN4 --> TRN5
-      TRN5 --> TRN6["Score confidence: subject 25, dictionary 10,\nintent 30, body 10, file-scope 20, semantic 5"]
+      TRNE2 --> TRN5
+      TRN5 --> TRN6["Score confidence: subject 25, dictionary 10,\nintent 30, body 10, file-scope 20,\nsemantic 5 (spaCy domain hint OR embedding match)"]
       TRN6 --> TRN7{"High (>=65% + independent\nsignals) AND no RapidFuzz\nconcept used?"}
       TRN7 -- Yes --> TRN8[(Auto-publish to dispatch_translations)]
-      TRN7 -- No --> TRN9[Private draft: editor review queue]
+      TRN7 -- No --> TRN9["Private draft: editor review queue\n(shows TRNE3 panel when present)"]
       TRN9 --> TRN10[Editor approves / edits / regenerates]
       TRN10 --> TRN8
+      TRN8 --> TRNE4["Cache this approved translation's embedding\n(pw_dispatch_update_translation_embedding)\n-- grows the corpus TRNE1 compares against next time"]
     end
 
     TRN8 --> G["Public Dispatch page: approved translation\nshown first, BH-4 technical record as fallback"]
