@@ -218,19 +218,41 @@ function pw_dispatch_nearest_embedding_match(PDO $db, array $queryVector, int $e
     if ($queryVector === []) {
         return [];
     }
+    // A dispatch an admin has rated more Bad than Good must never be
+    // recommended as a "similar past Dispatch" reference again -- that would
+    // be actively steering an editor toward wording already known to be
+    // wrong. The feedback table is a separate, newer migration than the
+    // embeddings cache itself, so this exclusion degrades independently:
+    // if it's not there yet, matching still works, just without this filter,
+    // rather than going dark entirely until both migrations are applied.
     try {
         $stmt = $db->prepare(
             'SELECT dte.dispatch_id, dte.embedding_json, dt.translation, de.subject
              FROM dispatch_translation_embeddings dte
              INNER JOIN dispatch_translations dt ON dt.dispatch_id = dte.dispatch_id
              INNER JOIN dispatch_entries de ON de.id = dte.dispatch_id
-             WHERE dte.dispatch_id <> ?'
+             LEFT JOIN dispatch_translation_feedback dtf ON dtf.dispatch_id = dte.dispatch_id
+             WHERE dte.dispatch_id <> ?
+             GROUP BY dte.dispatch_id, dte.embedding_json, dt.translation, de.subject
+             HAVING SUM(dtf.rating = \'bad\') <= SUM(dtf.rating = \'good\')'
         );
         $stmt->execute([$excludeDispatchId]);
         $rows = $stmt->fetchAll();
     } catch (PDOException $e) {
-        // The optional migration may not be applied yet.
-        return [];
+        try {
+            $stmt = $db->prepare(
+                'SELECT dte.dispatch_id, dte.embedding_json, dt.translation, de.subject
+                 FROM dispatch_translation_embeddings dte
+                 INNER JOIN dispatch_translations dt ON dt.dispatch_id = dte.dispatch_id
+                 INNER JOIN dispatch_entries de ON de.id = dte.dispatch_id
+                 WHERE dte.dispatch_id <> ?'
+            );
+            $stmt->execute([$excludeDispatchId]);
+            $rows = $stmt->fetchAll();
+        } catch (PDOException $e2) {
+            // The embeddings migration itself may not be applied yet.
+            return [];
+        }
     }
 
     $best = null;

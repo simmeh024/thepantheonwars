@@ -306,7 +306,7 @@ Confirmed empirically (useful if extending System Status further):
 
 ## Cron jobs
 
-Two cPanel cron jobs exist:
+Three cPanel cron jobs exist:
 
 1. Every minute, CPU load sampling:
 ```
@@ -322,6 +322,20 @@ curl -s -o /dev/null "https://thepantheonwars.com/api/cron/rollup-page-view-jour
 ```
 This writes completed-day transitions to `page_view_daily_transitions`; the endpoint
 also supports a deliberately manual `?full=1` historical rebuild.
+
+3. Weekly (any day/time is fine -- it always looks back exactly 7 days from
+   whenever it runs), Dispatch Translation quality report:
+```
+curl -s -o \dev\null "https://thepantheonwars.com/api/cron/generate-quality-report.php?key=<CRON_SAMPLE_KEY>"
+```
+This computes and stores a `dispatch_quality_reports` row (see "Dispatch
+Translation quality feedback and weekly self-tuning report" below); viewed
+in Admin -> Development Dispatches -> Translation Quality. Reuses the same
+`CRON_SAMPLE_KEY` as the other two rather than adding a fourth secret for
+the same trust boundary. Requires
+`sql/migration_dispatch_translation_quality.sql` and
+`sql/migration_dispatch_quality_reports.sql` to have been run first; until
+then the endpoint 500s harmlessly (no partial/corrupt row is ever written).
 
 ## Permission-aware UI is a standing requirement, not a one-off audit
 
@@ -545,6 +559,40 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Weekly self-tuning quality report, built on the feedback below:**
+  `api/dispatch-quality-report.php`'s `pw_dispatch_generate_quality_report()`
+  reads the past week's `dispatch_translation_feedback`/
+  `dispatch_translation_edit_events` and produces an advisory summary --
+  overall good/bad ratio and average edit-similarity, a per-category
+  bad-rate breakdown, a per-confidence-evidence bad-rate breakdown (cheaply
+  recomputed via `pw_dispatch_end_user_draft()` with stored diff-context but
+  deliberately *without* re-calling the spaCy or embedding worker, so
+  `semantic_context` is undercounted here -- an accepted limitation, not a
+  live-translator bug), and "weak clusters" of Bad-rated translations that
+  are semantically similar to each other (threshold-based connected
+  components over the already-cached embedding vectors, reusing
+  `pw_dispatch_cosine_similarity()` -- not a general ML clustering
+  algorithm). New weekly cron job
+  (`api/cron/generate-quality-report.php`, see "Cron jobs" above) plus a
+  manual "Generate Report Now" button for on-demand runs
+  (`api/admin/quality-reports/generate-now.php`). New Admin -> Development
+  Dispatches -> **Translation Quality** page renders the latest report
+  (stat cards, two tables, a cluster list) and a history list to page back
+  through prior weeks; "Mark Reviewed" just tracks that a human looked at
+  it. Deliberately advisory-only for everything except one thing: nothing
+  here can safely rewrite the translator's hardcoded PHP weights/thresholds/
+  dictionary automatically (they're source code, not a database setting),
+  so this report's job is to give a human the data to decide whether a code
+  change is warranted -- there is no "Apply" button for those. The one
+  genuinely automatic, safe-by-construction rule already ships unconditionally
+  and needed no report: `pw_dispatch_nearest_embedding_match()` in
+  `api/dispatch-embeddings.php` now excludes any dispatch rated more Bad
+  than Good from ever being recommended as a "similar past Dispatch"
+  reference again, with its own independent fail-open fallback (matching
+  without the exclusion) if the feedback migration isn't applied yet but the
+  embeddings migration is. Run `sql/migration_dispatch_quality_reports.sql`
+  after the feedback migration below.
 
 - **Dispatch Translation quality feedback (two purely observational
   signals, neither read by the translator or the auto-publish gate):**

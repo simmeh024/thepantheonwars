@@ -979,6 +979,22 @@ CREATE TABLE IF NOT EXISTS dispatch_translation_edit_events (
     FOREIGN KEY (dispatch_id) REFERENCES dispatch_entries(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Weekly self-tuning maintenance pass: a human-readable summary of the past
+-- week's Good/Bad feedback and edit-distance data (overall stats, per-tag
+-- breakdown, confidence-evidence breakdown, weak-translation clusters).
+-- Advisory only -- nothing here is ever auto-applied to the translator.
+CREATE TABLE IF NOT EXISTS dispatch_quality_reports (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  window_start DATE NOT NULL,
+  window_end DATE NOT NULL,
+  summary_json TEXT NOT NULL,
+  status ENUM('unread', 'reviewed') NOT NULL DEFAULT 'unread',
+  generated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  reviewed_at DATETIME DEFAULT NULL,
+  reviewed_by_username VARCHAR(80) DEFAULT NULL,
+  KEY idx_generated_at (generated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Rule-based drafts are deliberately isolated from approved translations.
 -- A draft is never exposed through the public dispatch APIs; an admin must
 -- approve or edit it first, which moves its text into dispatch_translations.
