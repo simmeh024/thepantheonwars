@@ -441,8 +441,8 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=266`, community `css/community-bundle.css?v=255`, and admin
-  `css/admin-bundle.css?v=263`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=266`, community `css/community-bundle.css?v=256`, and admin
+  `css/admin-bundle.css?v=264`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
@@ -540,6 +540,25 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Saga Complete badge: rotating ring + pulsing gem glyph.** Two follow-up
+  effects on the reading-completion badge below, picked from a shortlist of
+  five. **Rotating rainbow ring**: `.member-current-reading.is-saga-complete`
+  gets a `position: relative` + `::before` at `inset: -3px` with a spinning
+  `conic-gradient` (blurred 2px) sitting behind the pill at `z-index: -1` --
+  the pill's own background covers the center, leaving only a thin glowing
+  ring visible at the edges, rather than a flat animated border. **Pulsing
+  gem glyph**: rather than adding a fourth grid column, the existing arrow
+  slot (`#member-current-reading-arrow`) is reused -- JS swaps its character
+  to `◆` (the same diamond already used as the `saga_finisher` reputation
+  achievement's own icon in `pw_reputation_achievement_catalog()`) only in
+  this state, and `prismatic-glyph-pulse` cycles its color/glow/scale
+  through the identical six rainbow stops as the ring and the label's
+  existing `prismatic-shift` text gradient, so all three effects read as
+  one consistent rainbow language rather than three different color sets.
+  `community.css?v=205` / `community-bundle.css?v=256` (and
+  `admin-bundle.css?v=264` for its unreachable-from-admin `community.css`
+  import, same reasoning as the entry below).
 
 - **Reading-completion profile badge:** the reputation-achievement system
   already had exactly the "finished a book" / "finished all 14" milestones

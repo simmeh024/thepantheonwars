@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=255">
+<link rel="stylesheet" href="css/community-bundle.css?v=256">
 </head>
 <body>
 
@@ -96,7 +96,7 @@
         <a class="member-current-reading" id="member-current-reading" href="books.html" hidden>
           <span class="member-current-reading-label" id="member-current-reading-label">Currently Reading</span>
           <strong id="member-current-reading-title"></strong>
-          <span class="member-current-reading-arrow" aria-hidden="true">&rarr;</span>
+          <span class="member-current-reading-arrow" id="member-current-reading-arrow" aria-hidden="true">&rarr;</span>
         </a>
         <section class="member-achievement-showcase" id="member-achievement-showcase" hidden>
           <div class="member-achievement-showcase-head"><span>Achievement Showcase</span><a href="reputation.html">View reputation</a></div>
@@ -411,7 +411,9 @@
         var readingEl = document.getElementById('member-current-reading');
         var readingLabelEl = document.getElementById('member-current-reading-label');
         var readingTitleEl = document.getElementById('member-current-reading-title');
+        var readingArrowEl = document.getElementById('member-current-reading-arrow');
         readingEl.classList.remove('is-saga-complete');
+        readingArrowEl.textContent = '→';
         if (m.currently_reading) {
           readingLabelEl.textContent = 'Currently Reading';
           readingEl.href = 'books.html#book-' + encodeURIComponent(m.currently_reading.book_number);
@@ -420,11 +422,14 @@
         } else if (m.books_total > 0 && m.books_finished_count >= m.books_total) {
           // Nothing is actively "reading" because every book has been
           // finished -- this replaces the pill instead of leaving an empty
-          // gap where it used to sit.
+          // gap where it used to sit. The arrow slot doubles as a pulsing
+          // gem glyph (same diamond as the "Saga Finisher" achievement's
+          // own icon in pw_reputation_achievement_catalog()).
           readingLabelEl.textContent = 'Saga Complete';
           readingEl.classList.add('is-saga-complete');
           readingEl.href = 'books.html';
           readingTitleEl.textContent = 'All ' + m.books_total + ' books finished';
+          readingArrowEl.textContent = '◆';
           readingEl.hidden = false;
         } else if (m.last_finished_book) {
           readingLabelEl.textContent = 'Finished Reading';
