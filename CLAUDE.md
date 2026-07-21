@@ -541,6 +541,31 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Dispatch Translation quality feedback (two purely observational
+  signals, neither read by the translator or the auto-publish gate):**
+  `sql/migration_dispatch_translation_quality.sql` adds
+  `dispatch_translation_feedback` (an explicit Good/Bad rating an admin can
+  leave on any published translation -- one row per dispatch+rater, upsert
+  on re-rating, clicking the same rating again removes your own vote) and
+  `dispatch_translation_edit_events` (an automatic log of how much an
+  approved translation differs from whatever the engine originally
+  suggested, computed with PHP's built-in `similar_text()` -- 100% for an
+  auto-published translation since by definition nothing was edited, a real
+  percentage for a manual save compared against the previously published
+  text or the queued rule-based draft, and `NULL` when there was nothing to
+  compare against). New `api/admin/dispatch-translations/rate.php` (gated by
+  the existing `dispatch_translations.edit` permission, no new permission
+  key needed) and a new `pw_dispatch_log_translation_edit_event()` helper in
+  `api/dispatch-translation-drafts.php`, called from both
+  `pw_create_dispatch_translation_draft()`'s auto-publish path and
+  `api/admin/dispatch-translations/save.php`. Admin UI: Good/Bad buttons
+  with a live tally in the Dispatch Translations review modal, shown only
+  once a translation is actually published (there's nothing reader-facing
+  to judge before that) -- `admin.css?v=227` / `admin-bundle.css?v=268`.
+  Deliberately staged: this pass only captures the two signals; there is no
+  dashboard/aggregation view yet, matching this project's usual "capture
+  first, analyze later" rollout pattern (see the embeddings feature above).
+
 - **Developer-slang glossary added to the reader-safe terminology
   dictionary** (`api/dispatch-translation-drafts.php`): ~28 new entries for
   general software-engineering jargon (hotfix, WIP, tech debt, boilerplate,

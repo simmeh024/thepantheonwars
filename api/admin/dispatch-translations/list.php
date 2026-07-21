@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../dispatch-translation-drafts.php';
 
-pw_require_permission('dispatch_translations.view');
+$currentUser = pw_require_permission('dispatch_translations.view');
 
 $db = pw_db();
 
@@ -60,7 +60,30 @@ try {
     // a dependency needed only for repetition-aware confidence metadata.
 }
 
-$out = array_map(function ($r) use ($contexts, $recentTranslations) {
+$feedback = [];
+try {
+    $feedbackStmt = $db->prepare(
+        "SELECT dispatch_id,
+                SUM(rating = 'good') AS good,
+                SUM(rating = 'bad') AS bad,
+                MAX(CASE WHEN rated_by_user_id = ? THEN rating ELSE NULL END) AS my_rating
+         FROM dispatch_translation_feedback
+         GROUP BY dispatch_id"
+    );
+    $feedbackStmt->execute([(int)$currentUser['id']]);
+    foreach ($feedbackStmt->fetchAll() as $row) {
+        $feedback[(int)$row['dispatch_id']] = [
+            'good' => (int)$row['good'],
+            'bad' => (int)$row['bad'],
+            'my_rating' => $row['my_rating'],
+        ];
+    }
+} catch (PDOException $e) {
+    // Keep the translations list available if the quality-feedback
+    // migration has not been applied yet.
+}
+
+$out = array_map(function ($r) use ($contexts, $recentTranslations, $feedback) {
     $draftMetadata = pw_dispatch_end_user_draft($r['subject'], (string)$r['body'], $r['tag'], [
         'diff_context' => $contexts[(int)$r['id']] ?? [],
         'recent_translations' => $recentTranslations,
@@ -80,6 +103,7 @@ $out = array_map(function ($r) use ($contexts, $recentTranslations) {
         'has_draft' => $r['generated_draft'] !== null,
         'draft_updated_at' => $r['draft_updated_at'],
         'confidence' => $draftMetadata['confidence'],
+        'feedback' => $feedback[(int)$r['id']] ?? ['good' => 0, 'bad' => 0, 'my_rating' => null],
     ];
 }, $rows);
 

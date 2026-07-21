@@ -1084,6 +1084,40 @@ function pw_log_dispatch_translation_lifecycle(PDO $db, string $action, string $
     }
 }
 
+/**
+ * Purely observational logging, never read back by the translator itself.
+ * $previousText is whatever the engine had already suggested for this
+ * dispatch immediately before this event -- a queued rule-based draft, a
+ * previously published translation, or null when there was nothing to
+ * compare against (e.g. a translation typed entirely from scratch). A null
+ * $previousText logs a null similarity rather than a misleading 0% or 100%.
+ * Best-effort: a missing migration or any failure here must never block a
+ * publish or save.
+ */
+function pw_dispatch_log_translation_edit_event(PDO $db, int $dispatchId, string $event, ?string $previousText, string $newText): void
+{
+    $similarity = null;
+    if ($previousText !== null && $previousText !== '') {
+        similar_text($previousText, $newText, $percent);
+        $similarity = round($percent, 2);
+    }
+    try {
+        $stmt = $db->prepare(
+            'INSERT INTO dispatch_translation_edit_events (dispatch_id, event, similarity_pct, previous_length, new_length)
+             VALUES (?, ?, ?, ?, ?)'
+        );
+        $stmt->execute([
+            $dispatchId,
+            $event,
+            $similarity,
+            $previousText !== null ? mb_strlen($previousText, 'UTF-8') : 0,
+            mb_strlen($newText, 'UTF-8'),
+        ]);
+    } catch (PDOException $e) {
+        // Optional migration may not be applied yet.
+    }
+}
+
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
 {
     $entryStmt = $db->prepare('SELECT id, sha, subject, body, tag FROM dispatch_entries WHERE id = ?');
@@ -1123,6 +1157,9 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
                 // that have not yet created the optional draft storage table.
             }
             pw_dispatch_update_translation_embedding($db, $dispatchId, $result['draft']);
+            // Auto-publication is by definition zero human edit -- the engine's
+            // own text becomes the final text -- so similarity is trivially 100%.
+            pw_dispatch_log_translation_edit_event($db, $dispatchId, 'auto_published', $result['draft'], $result['draft']);
             pw_log_dispatch_translation_lifecycle(
                 $db,
                 'translation_auto_published',

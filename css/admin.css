@@ -2288,6 +2288,36 @@
 .admin-semantic-match-score { color: var(--text-faint); font-family: 'Jost', sans-serif; font-size: 0.7rem; margin-left: 4px; }
 .admin-semantic-match-subject { margin: 0 0 4px; color: var(--text-faint); font-size: 0.72rem; font-style: italic; }
 .admin-semantic-match-text { margin: 0; color: var(--text-dim); font-size: 0.82rem; line-height: 1.5; }
+/* Purely observational quality feedback on a published translation -- never
+   changes the translation, its confidence, or its publication state. */
+.admin-translation-feedback {
+  display: flex; align-items: center; gap: 10px; margin: 0 0 18px;
+}
+.admin-translation-feedback-label {
+  font-family: 'Jost', sans-serif; font-size: 0.78rem; color: var(--text-faint);
+}
+.admin-feedback-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: 6px;
+  border: 1px solid var(--border); background: var(--bg);
+  color: var(--text-dim); font-family: 'Jost', sans-serif; font-size: 0.8rem;
+  cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+.admin-feedback-btn svg { width: 15px; height: 15px; flex: 0 0 auto; }
+.admin-feedback-btn:hover { border-color: var(--purple-bright); color: var(--text); }
+.admin-feedback-btn.is-good.is-active {
+  border-color: rgba(84,196,120,0.7); background: rgba(84,196,120,0.12); color: #6fe08f;
+}
+.admin-feedback-btn.is-bad.is-active {
+  border-color: rgba(224,90,90,0.7); background: rgba(224,90,90,0.12); color: #f08a8a;
+}
+.admin-feedback-count {
+  font-family: 'Jost', sans-serif; font-size: 0.74rem; color: var(--text-faint);
+  min-width: 1em; text-align: center;
+}
+.admin-feedback-btn.is-active .admin-feedback-count { color: inherit; }
+.admin-feedback-btn:disabled { opacity: 0.6; cursor: default; }
+.admin-feedback-btn.is-busy { opacity: 0.7; }
 .admin-field input[type="text"], .admin-field input[type="email"], .admin-field input[type="number"],
 .admin-field input[type="password"], .admin-field input[type="search"], .admin-field input[type="datetime-local"] {
   width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);

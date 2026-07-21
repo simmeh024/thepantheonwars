@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
 require_once __DIR__ . '/../../dispatch-embeddings.php';
+require_once __DIR__ . '/../../dispatch-translation-drafts.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
@@ -32,9 +33,24 @@ if (!$dispatch) {
     pw_error('That dispatch no longer exists.', 404);
 }
 
-$stmt = $db->prepare('SELECT id FROM dispatch_translations WHERE dispatch_id = ?');
+$stmt = $db->prepare('SELECT translation FROM dispatch_translations WHERE dispatch_id = ?');
 $stmt->execute([$dispatchId]);
-$isUpdate = (bool)$stmt->fetch();
+$existingTranslation = $stmt->fetchColumn();
+$isUpdate = $existingTranslation !== false;
+
+// Whatever the engine had already suggested for this dispatch before this
+// save: the previously published translation takes priority (editing an
+// already-approved translation), otherwise the queued rule-based draft (a
+// first-time approval), otherwise null (typed from scratch, nothing to
+// diff against).
+if ($isUpdate) {
+    $previousText = (string)$existingTranslation;
+} else {
+    $draftLookup = $db->prepare('SELECT draft FROM dispatch_translation_drafts WHERE dispatch_id = ?');
+    $draftLookup->execute([$dispatchId]);
+    $queuedDraft = $draftLookup->fetchColumn();
+    $previousText = $queuedDraft !== false ? (string)$queuedDraft : null;
+}
 
 $stmt = $db->prepare(
     'INSERT INTO dispatch_translations (dispatch_id, sha, translation)
@@ -42,6 +58,8 @@ $stmt = $db->prepare(
      ON DUPLICATE KEY UPDATE sha = VALUES(sha), translation = VALUES(translation)'
 );
 $stmt->execute([$dispatchId, $dispatch['sha'], $translation]);
+
+pw_dispatch_log_translation_edit_event($db, $dispatchId, 'manual_save', $previousText, $translation);
 
 // Best-effort embedding cache write, so this now-approved translation can
 // surface as a "similar past Dispatch" reference for a future draft. Never

@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=267">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=268">
 </head>
 <body>
 
@@ -2130,6 +2130,19 @@
       </div>
       <p class="admin-semantic-match-subject" id="admin-semantic-match-subject"></p>
       <p class="admin-semantic-match-text" id="admin-semantic-match-text"></p>
+    </div>
+    <div class="admin-translation-feedback" id="admin-translation-feedback" hidden>
+      <span class="admin-translation-feedback-label">Translation quality:</span>
+      <button type="button" class="admin-feedback-btn is-good" id="admin-feedback-good-btn" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 10v12"/><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/></svg>
+        <span>Good</span>
+        <span class="admin-feedback-count" id="admin-feedback-good-count">0</span>
+      </button>
+      <button type="button" class="admin-feedback-btn is-bad" id="admin-feedback-bad-btn" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14V2"/><path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/></svg>
+        <span>Bad</span>
+        <span class="admin-feedback-count" id="admin-feedback-bad-count">0</span>
+      </button>
     </div>
     <p class="admin-modal-error" id="admin-modal-error"></p>
     <p class="admin-modal-status" id="admin-modal-status"></p>
@@ -6672,6 +6685,11 @@
   var semanticMatchSubjectEl = document.getElementById('admin-semantic-match-subject');
   var semanticMatchTextEl = document.getElementById('admin-semantic-match-text');
   var semanticMatchCopyBtn = document.getElementById('admin-semantic-match-copy-btn');
+  var feedbackPanelEl = document.getElementById('admin-translation-feedback');
+  var feedbackGoodBtn = document.getElementById('admin-feedback-good-btn');
+  var feedbackBadBtn = document.getElementById('admin-feedback-bad-btn');
+  var feedbackGoodCountEl = document.getElementById('admin-feedback-good-count');
+  var feedbackBadCountEl = document.getElementById('admin-feedback-bad-count');
 
   var currentFilter = 'all';
   var currentQuery = '';
@@ -6778,6 +6796,53 @@
     semanticMatchEl.hidden = false;
   }
 
+  // Purely observational quality feedback -- shown only for a published
+  // translation (there is nothing reader-facing to judge before that), never
+  // changes the translation itself or any confidence/publication decision.
+  function updateFeedbackPanel(entry) {
+    if (!feedbackPanelEl) return;
+    if (!entry || !entry.has_translation || !pwHasPermission('dispatch_translations.edit')) {
+      feedbackPanelEl.hidden = true;
+      return;
+    }
+    var feedback = entry.feedback || { good: 0, bad: 0, my_rating: null };
+    feedbackGoodCountEl.textContent = feedback.good || 0;
+    feedbackBadCountEl.textContent = feedback.bad || 0;
+    feedbackGoodBtn.classList.toggle('is-active', feedback.my_rating === 'good');
+    feedbackGoodBtn.setAttribute('aria-pressed', feedback.my_rating === 'good' ? 'true' : 'false');
+    feedbackBadBtn.classList.toggle('is-active', feedback.my_rating === 'bad');
+    feedbackBadBtn.setAttribute('aria-pressed', feedback.my_rating === 'bad' ? 'true' : 'false');
+    feedbackPanelEl.hidden = false;
+  }
+
+  function submitFeedback(rating) {
+    if (!currentEntry || !pwHasPermission('dispatch_translations.edit')) return;
+    var btn = rating === 'good' ? feedbackGoodBtn : feedbackBadBtn;
+    var otherBtn = rating === 'good' ? feedbackBadBtn : feedbackGoodBtn;
+    btn.disabled = true; otherBtn.disabled = true;
+    btn.classList.add('is-busy');
+    fetch('/api/admin/dispatch-translations/rate.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dispatch_id: currentEntry.id, rating: rating, csrf: window.PW_AUTH.csrf }),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        btn.disabled = false; otherBtn.disabled = false;
+        btn.classList.remove('is-busy');
+        if (!data.ok) return;
+        currentEntry.feedback = data.feedback;
+        updateFeedbackPanel(currentEntry);
+      })
+      .catch(function () {
+        btn.disabled = false; otherBtn.disabled = false;
+        btn.classList.remove('is-busy');
+      });
+  }
+  if (feedbackGoodBtn) feedbackGoodBtn.addEventListener('click', function () { submitFeedback('good'); });
+  if (feedbackBadBtn) feedbackBadBtn.addEventListener('click', function () { submitFeedback('bad'); });
+
   function setGenerateDraftButton(label, isLoading) {
     var labelEl = generateDraftBtn.querySelector('.admin-button-label');
     if (labelEl) labelEl.textContent = label;
@@ -6797,6 +6862,7 @@
     // alongside an existing draft/translation, so reopening an entry without
     // regenerating starts with no reference shown.
     updateSemanticMatch(null);
+    updateFeedbackPanel(entry);
     modalError.classList.remove('show');
     modalStatus.classList.remove('show');
     var canEditTranslation = pwHasPermission('dispatch_translations.edit');
