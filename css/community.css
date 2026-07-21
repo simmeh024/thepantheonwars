@@ -1368,6 +1368,28 @@
 .member-current-reading-label { color: var(--gold-bright); font: 0.65rem 'Cinzel', serif; letter-spacing: 0.09em; text-transform: uppercase; white-space: nowrap; }
 .member-current-reading strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 0.82rem 'Cinzel', serif; }
 .member-current-reading-arrow { color: var(--gold-bright); font-size: 1.05rem; }
+
+/* Completing all 14 books is the top ("prismatic") reputation-achievement
+   tier -- reuses that same rainbow identity here (and the prismatic-shift
+   keyframe already defined in components.css for the Nexus Veil card)
+   rather than inventing a new special-effect language for one badge. */
+.member-current-reading.is-saga-complete {
+  border-color: rgba(224,178,74,0.55);
+  background: linear-gradient(90deg, rgba(224,178,74,0.14), rgba(176,95,255,0.12));
+  box-shadow: 0 0 16px rgba(176,95,255,0.16);
+}
+.member-current-reading.is-saga-complete:hover {
+  border-color: #b05fff;
+  background: linear-gradient(90deg, rgba(224,178,74,0.2), rgba(176,95,255,0.18));
+  box-shadow: 0 0 22px rgba(176,95,255,0.26);
+}
+.member-current-reading.is-saga-complete .member-current-reading-label {
+  background: linear-gradient(90deg, #ff5f6d, #ffc371, #f7ff5f, #5fffb0, #5f9fff, #b05fff, #ff5f6d);
+  background-size: 200% auto;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: prismatic-shift 6s linear infinite;
+}
+.member-current-reading.is-saga-complete .member-current-reading-arrow { color: #b05fff; }
 @media (max-width: 520px) { .member-current-reading { grid-template-columns: 1fr auto; } .member-current-reading-label { grid-column: 1 / -1; } }
 .member-index-posts { text-align: center; font-size: 0.95rem; color: var(--text-dim); font-variant-numeric: tabular-nums; }
 .member-index-empty { padding: 24px 22px; color: var(--text-faint); }

@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=254">
+<link rel="stylesheet" href="css/community-bundle.css?v=255">
 </head>
 <body>
 
@@ -94,7 +94,7 @@
           </span>
         </p>
         <a class="member-current-reading" id="member-current-reading" href="books.html" hidden>
-          <span class="member-current-reading-label">Currently Reading</span>
+          <span class="member-current-reading-label" id="member-current-reading-label">Currently Reading</span>
           <strong id="member-current-reading-title"></strong>
           <span class="member-current-reading-arrow" aria-hidden="true">&rarr;</span>
         </a>
@@ -409,10 +409,27 @@
         document.getElementById('member-joined').textContent = 'Joined ' + fmtDate(m.created_at);
 
         var readingEl = document.getElementById('member-current-reading');
+        var readingLabelEl = document.getElementById('member-current-reading-label');
         var readingTitleEl = document.getElementById('member-current-reading-title');
+        readingEl.classList.remove('is-saga-complete');
         if (m.currently_reading) {
+          readingLabelEl.textContent = 'Currently Reading';
           readingEl.href = 'books.html#book-' + encodeURIComponent(m.currently_reading.book_number);
           readingTitleEl.textContent = 'Book ' + m.currently_reading.book_number + ': ' + m.currently_reading.title;
+          readingEl.hidden = false;
+        } else if (m.books_total > 0 && m.books_finished_count >= m.books_total) {
+          // Nothing is actively "reading" because every book has been
+          // finished -- this replaces the pill instead of leaving an empty
+          // gap where it used to sit.
+          readingLabelEl.textContent = 'Saga Complete';
+          readingEl.classList.add('is-saga-complete');
+          readingEl.href = 'books.html';
+          readingTitleEl.textContent = 'All ' + m.books_total + ' books finished';
+          readingEl.hidden = false;
+        } else if (m.last_finished_book) {
+          readingLabelEl.textContent = 'Finished Reading';
+          readingEl.href = 'books.html#book-' + encodeURIComponent(m.last_finished_book.book_number);
+          readingTitleEl.textContent = 'Book ' + m.last_finished_book.book_number + ': ' + m.last_finished_book.title;
           readingEl.hidden = false;
         } else {
           readingEl.hidden = true;

@@ -441,8 +441,8 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=266`, community `css/community-bundle.css?v=254`, and admin
-  `css/admin-bundle.css?v=262`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=266`, community `css/community-bundle.css?v=255`, and admin
+  `css/admin-bundle.css?v=263`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
@@ -540,6 +540,41 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Reading-completion profile badge:** the reputation-achievement system
+  already had exactly the "finished a book" / "finished all 14" milestones
+  (`seven_books_finished`, `saga_finisher` -- prismatic tier -- in
+  `pw_reputation_achievement_catalog()`, `api/helpers.php`), computed live
+  off `user_book_progress.finished_at` and unlocked automatically the first
+  time a book is marked finished (`books.html`'s per-book "Mark finished"
+  button -> `api/reading-progress/update.php` -> `pw_award_reputation()` ->
+  `pw_evaluate_reputation_achievements()`). What was missing was any
+  *automatic* surfacing of that on the public profile: the Achievement
+  Showcase on `member.html` is deliberately opt-in (a member must visit
+  Profile Settings and manually pin an unlocked achievement before it shows
+  up), and the "Currently Reading" pill simply went `hidden` once nothing
+  had `status = 'reading'` -- exactly what happens once every book is marked
+  finished, leaving a member who just completed the whole saga with a blank
+  gap instead of any acknowledgment. Fixed by extending that *same* pill
+  (always-automatic, unlike the showcase) rather than the showcase system:
+  `api/members/get-public-profile.php` now also returns
+  `last_finished_book` (most recent `finished_at`), `books_finished_count`,
+  and `books_total` (a live `COUNT(*) FROM books`, not the achievement
+  catalog's hardcoded `14`, so this stays correct if a 15th book is ever
+  added even though the achievement's own literal target would not).
+  `member.html`'s reading-pill JS now falls through: currently reading (
+  unchanged) -> all books finished ("Saga Complete", `.is-saga-complete`) ->
+  most recently finished book ("Finished Reading: Book N") -> hidden (only
+  if the member has never started anything). The Saga Complete state reuses
+  the existing `prismatic-shift` keyframe (already defined in
+  `css/components.css` for the Nexus Veil card's rainbow text) for the
+  label, rather than inventing a new special-effect language for the top
+  achievement tier. Needed no new table/migration -- both new aggregate
+  values are plain queries against the already-migrated
+  `user_book_progress`/`books` tables. `community.css?v=204` /
+  `community-bundle.css?v=255` (and `admin-bundle.css?v=263`, which also
+  imports `community.css` even though nothing changed here is reachable
+  from any admin markup).
 
 - **Public-site forms polish** (the visitor/member-facing counterpart to the
   admin console pass below): same three ingredients, applied where the

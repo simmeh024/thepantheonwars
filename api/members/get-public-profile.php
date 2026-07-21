@@ -33,6 +33,9 @@ if (!$user) {
 // Keep public profiles available during the short code-before-migration window
 // by treating the optional reading shelf as empty when its table is absent.
 $currentlyReading = null;
+$lastFinishedBook = null;
+$booksFinishedCount = 0;
+$booksTotal = 0;
 try {
     $readingStmt = $db->prepare(
         "SELECT b.id, b.book_number, b.title, b.cover_image_url
@@ -51,6 +54,33 @@ try {
             'cover_image_url' => $reading['cover_image_url'],
         ];
     }
+
+    // Fallback for the reading-status pill when nothing is actively "reading"
+    // (most commonly because every book has been finished) -- the most
+    // recently finished title, plus the aggregate count needed to tell
+    // "finished one book" apart from "finished the whole saga".
+    $finishedStmt = $db->prepare(
+        "SELECT b.id, b.book_number, b.title, b.cover_image_url
+         FROM user_book_progress p
+         JOIN books b ON b.id = p.book_id
+         WHERE p.user_id = ? AND p.status = 'finished'
+         ORDER BY p.finished_at DESC
+         LIMIT 1"
+    );
+    $finishedStmt->execute([$id]);
+    if ($finished = $finishedStmt->fetch()) {
+        $lastFinishedBook = [
+            'id' => (int)$finished['id'],
+            'book_number' => (int)$finished['book_number'],
+            'title' => $finished['title'],
+            'cover_image_url' => $finished['cover_image_url'],
+        ];
+    }
+
+    $finishedCountStmt = $db->prepare("SELECT COUNT(*) FROM user_book_progress WHERE user_id = ? AND status = 'finished'");
+    $finishedCountStmt->execute([$id]);
+    $booksFinishedCount = (int)$finishedCountStmt->fetchColumn();
+    $booksTotal = (int)$db->query('SELECT COUNT(*) FROM books')->fetchColumn();
 } catch (PDOException $e) {
     // migration_reading_progress.sql may be applied after the code deploy.
 }
@@ -118,6 +148,9 @@ pw_json([
         'selected_icon' => $user['selected_icon'],
         'post_count' => $postCount,
         'currently_reading' => $currentlyReading,
+        'last_finished_book' => $lastFinishedBook,
+        'books_finished_count' => $booksFinishedCount,
+        'books_total' => $booksTotal,
         'achievement_showcase' => $showcase,
     ],
     'recentPosts' => array_map(function ($r) {
