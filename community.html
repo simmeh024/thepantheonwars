@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=250">
+<link rel="stylesheet" href="css/community-bundle.css?v=251">
 </head>
 <body>
 
@@ -1369,10 +1369,35 @@
       groups.forEach(function (group, i) {
         var categoryHead = document.createElement('div');
         categoryHead.className = 'board-category-head' + (i === 0 ? ' is-first' : '');
-        categoryHead.textContent = group.name;
+        // Collapsing is a mobile-only affordance (CSS gates the actual
+        // collapse effect to the same breakpoint the compact board rows use,
+        // same convention as the footer's own mobile-only collapsible
+        // sections) -- toggling this class is harmless on desktop, where it
+        // has no visual effect.
+        categoryHead.setAttribute('role', 'button');
+        categoryHead.tabIndex = 0;
+        categoryHead.setAttribute('aria-expanded', 'true');
+        categoryHead.innerHTML =
+          '<span class="board-category-head-label"></span>' +
+          '<span class="board-category-toggle-icon" aria-hidden="true">&#9662;</span>';
+        categoryHead.querySelector('.board-category-head-label').textContent = group.name;
         boardIndexEl.appendChild(categoryHead);
+
+        var groupWrap = document.createElement('div');
+        groupWrap.className = 'board-category-boards';
         group.boards.forEach(function (b) {
-          boardIndexEl.appendChild(buildBoardRow(b, stats[b.slug]));
+          groupWrap.appendChild(buildBoardRow(b, stats[b.slug]));
+        });
+        boardIndexEl.appendChild(groupWrap);
+
+        function toggleCategory() {
+          var collapsed = groupWrap.classList.toggle('is-collapsed');
+          categoryHead.classList.toggle('is-collapsed', collapsed);
+          categoryHead.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        }
+        categoryHead.addEventListener('click', toggleCategory);
+        categoryHead.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleCategory(); }
         });
       });
     }).catch(function () {
@@ -1458,6 +1483,51 @@
       latestCell.appendChild(empty);
     }
     row.appendChild(latestCell);
+
+    // Mobile-only compact footer (CSS hides this on desktop and hides the
+    // separate stat/latest cells above on mobile instead) -- one line for
+    // topic/post counts instead of two huge stacked numbers with no label,
+    // one line for the latest post instead of its own tall stacked block.
+    var mobileMeta = document.createElement('div');
+    mobileMeta.className = 'board-index-mobile-meta';
+
+    var mobileCounts = document.createElement('div');
+    mobileCounts.className = 'board-index-mobile-counts';
+    var topicCount = stat ? stat.topic_count : 0;
+    var postCount = stat ? stat.post_count : 0;
+    mobileCounts.textContent =
+      topicCount + (topicCount === 1 ? ' topic' : ' topics') + ' · ' +
+      postCount + (postCount === 1 ? ' post' : ' posts');
+    mobileMeta.appendChild(mobileCounts);
+
+    var mobileLatest = document.createElement('div');
+    mobileLatest.className = 'board-index-mobile-latest';
+    if (stat && stat.latest) {
+      var mobileLink = document.createElement('a');
+      mobileLink.href = '#';
+      mobileLink.className = 'board-index-mobile-latest-link';
+      mobileLink.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        goToTopic(stat.latest.topic_id, b.slug);
+      });
+      var mobileLatestTitle = document.createElement('span');
+      mobileLatestTitle.className = 'board-index-mobile-latest-title';
+      mobileLatestTitle.textContent = stat.latest.title;
+      mobileLink.appendChild(mobileLatestTitle);
+      mobileLink.appendChild(document.createTextNode(' — by '));
+      var mobileLatestAuthor = document.createElement('span');
+      mobileLatestAuthor.className = 'board-index-mobile-latest-author';
+      mobileLatestAuthor.style.setProperty('--role-color', stat.latest.role_color || '#c7ccd6');
+      mobileLatestAuthor.textContent = stat.latest.display_name;
+      mobileLink.appendChild(mobileLatestAuthor);
+      mobileLink.appendChild(document.createTextNode(', ' + fmtTime(stat.latest.created_at)));
+      mobileLatest.appendChild(mobileLink);
+    } else {
+      mobileLatest.textContent = 'No posts yet';
+    }
+    mobileMeta.appendChild(mobileLatest);
+    row.appendChild(mobileMeta);
 
     return row;
   }
