@@ -362,21 +362,11 @@ function pw_require_permission($key) {
     return $user;
 }
 
-// --- Admin activity log ---------------------------------------------------
-function pw_client_ip() {
-    foreach (['HTTP_CF_CONNECTING_IP', 'HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $key) {
-        if (!empty($_SERVER[$key])) {
-            $value = $_SERVER[$key];
-            if ($key === 'HTTP_X_FORWARDED_FOR') {
-                // May contain a client,proxy1,proxy2 chain -- the first entry is the client.
-                $parts = explode(',', $value);
-                $value = trim($parts[0]);
-            }
-            return substr($value, 0, 64);
-        }
-    }
-    return 'unknown';
-}
+// --- Client IP resolution ---------------------------------------------------
+// pw_client_ip() and its CIDR-matching helpers live in their own dependency-
+// free file (api/client-ip.php) so tools/test-client-ip.php can exercise them
+// directly without needing a database connection.
+require_once __DIR__ . '/client-ip.php';
 
 // Masks the last two octets of an IPv4 address (203.0.113.42 ->
 // 203.0.xxx.xxx) or the last six groups of an IPv6 address, for display to

@@ -540,6 +540,32 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Hardened client IP detection (`pw_client_ip()`):** previously trusted
+  `CF-Connecting-IP` and `X-Forwarded-For` unconditionally -- since this host
+  has no Cloudflare (or any) reverse proxy in front of it (confirmed
+  separately: real DNS lives at GoDaddy's `pdns13/14.domaincontrol.com`, no
+  CDN), any visitor could set either header directly and spoof the IP behind
+  login rate limiting, audit logging, and visitor stats. Extracted into its
+  own dependency-free file, `api/client-ip.php` (required by `api/helpers.
+  php`, same as before for every existing caller), so it can be exercised by
+  a new `tools/test-client-ip.php` CLI regression script without a database
+  connection -- same reasoning `api/dispatch-translation-drafts.php` is kept
+  standalone for `tools/test-dispatch-translator.php`. Now: every candidate
+  value (`REMOTE_ADDR`, the proxy headers) is validated with `filter_var(...,
+  FILTER_VALIDATE_IP)` before being trusted at all; the two proxy headers are
+  only consulted when `REMOTE_ADDR` itself falls inside Cloudflare's
+  published edge ranges (`PW_CLOUDFLARE_IP_RANGES`, hardcoded rather than
+  fetched live so this check can never depend on a third-party HTTP call
+  succeeding); an `X-Forwarded-For` chain only ever considers its first
+  entry, and a malformed first entry discards the whole header rather than
+  reading further down a chain the client could also have forged; the final
+  fallback is always the real, un-spoofable `REMOTE_ADDR`, itself validated
+  the same way. CIDR containment (`pw_ip_in_cidr()`) uses `inet_pton()` binary
+  comparison, which handles IPv4 and IPv6 with the same logic. No behavior
+  changed for the 8 existing call sites (login/2FA/OAuth rate limiting,
+  activity logging, visitor tracking) beyond no longer trusting a header this
+  host was never actually receiving from a real proxy.
+
 - **New sign-in (device/location) alerts:** `user_sessions` already recorded
   `browser_name`/`operating_system`/`country_code` per session (and is never
   pruned, only `revoked_at` is set), so no new "known devices" table was
