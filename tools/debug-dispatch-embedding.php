@@ -85,7 +85,43 @@ $exitCode = proc_close($process);
 
 echo "Timed out (20s budget): " . ($timedOut ? 'YES' : 'no') . "\n";
 echo "Exit code: {$exitCode}\n\n";
-echo "----- STDOUT -----\n";
-echo $output === '' ? "(empty)\n" : $output . "\n";
-echo "----- STDERR -----\n";
-echo $errors === '' ? "(empty)\n" : $errors . "\n";
+
+$decoded = json_decode($output, true);
+if (!is_array($decoded) || empty($decoded['ok']) || !is_array($decoded['embedding'] ?? null)) {
+    echo "Decoded response missing ok/embedding -- stopping before DB write attempt.\n";
+    echo "----- STDOUT -----\n" . ($output === '' ? "(empty)\n" : $output . "\n");
+    echo "----- STDERR -----\n" . ($errors === '' ? "(empty)\n" : $errors . "\n");
+    exit(1);
+}
+echo "Encode succeeded, embedding length: " . count($decoded['embedding']) . "\n\n";
+
+echo "----- Attempting the real DB write (INSERT ... ON DUPLICATE KEY UPDATE) -----\n";
+try {
+    $checkTable = $db->query("SHOW TABLES LIKE 'dispatch_translation_embeddings'")->fetchAll();
+    echo "Table exists: " . (count($checkTable) > 0 ? 'yes' : 'NO') . "\n";
+    if (count($checkTable) > 0) {
+        $columns = $db->query('DESCRIBE dispatch_translation_embeddings')->fetchAll();
+        foreach ($columns as $col) {
+            echo "  column: {$col['Field']} {$col['Type']} null={$col['Null']} key={$col['Key']}\n";
+        }
+    }
+
+    $hash = hash('sha256', $text);
+    $embeddingJson = json_encode($decoded['embedding']);
+    echo "embedding_json length: " . strlen((string)$embeddingJson) . "\n";
+    echo "model value: '" . (string)($decoded['model'] ?? '') . "'\n";
+
+    $stmt = $db->prepare(
+        'INSERT INTO dispatch_translation_embeddings (dispatch_id, model, translation_hash, embedding_json)
+         VALUES (?, ?, ?, ?)
+         ON DUPLICATE KEY UPDATE
+           model = VALUES(model),
+           translation_hash = VALUES(translation_hash),
+           embedding_json = VALUES(embedding_json)'
+    );
+    $stmt->execute([(int)$row['dispatch_id'], (string)($decoded['model'] ?? ''), $hash, $embeddingJson]);
+    echo "INSERT/UPDATE succeeded, rows affected: " . $stmt->rowCount() . "\n";
+} catch (PDOException $e) {
+    echo "PDOException: " . $e->getMessage() . "\n";
+    echo "SQLSTATE: " . implode(',', $e->errorInfo ?? []) . "\n";
+}
