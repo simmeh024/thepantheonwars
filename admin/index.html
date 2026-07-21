@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=255">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=256">
 </head>
 <body>
 
@@ -1752,6 +1752,18 @@
         <p>Manage the Nexus Veil forum&rsquo;s boards &mdash; name, description, icon, order, and who can see them.</p>
       </div>
 
+      <div class="admin-subsection-head">
+        <h2>Board Categories</h2>
+        <p>Group boards for the public forum index.</p>
+      </div>
+      <div class="admin-toolbar">
+        <button type="button" class="btn btn-solid" id="forum-category-create-btn">+ Add Category</button>
+        <span class="admin-count" id="forum-category-count"></span>
+      </div>
+      <div class="admin-list" id="forum-category-list">
+        <div class="admin-list-empty">Loading categories&hellip;</div>
+      </div>
+
       <div class="admin-toolbar">
         <button type="button" class="btn btn-solid" id="forum-board-create-btn">+ Add Board</button>
         <span class="admin-count" id="forum-board-count"></span>
@@ -3146,6 +3158,11 @@
       <label for="forum-board-description-input">Description</label>
       <input type="text" id="forum-board-description-input" maxlength="255">
     </div>
+    <div class="admin-field">
+      <label for="forum-board-category-select">Category</label>
+      <p class="admin-field-hint">Groups this board on the public forum index, with space between each category.</p>
+      <select id="forum-board-category-select"></select>
+    </div>
     <div class="admin-field-row">
       <div class="admin-field">
         <label for="forum-board-icon-select">Icon</label>
@@ -3190,6 +3207,27 @@
       <button type="button" class="btn btn-solid" id="forum-board-save-btn">Save</button>
       <button type="button" class="btn" id="forum-board-cancel-btn">Cancel</button>
       <button type="button" class="admin-delete-btn" id="forum-board-delete-btn" hidden>Delete Board</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal" id="forum-category-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner">
+    <button type="button" class="admin-modal-close" id="forum-category-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="forum-category-modal-title">Edit Category</h3>
+
+    <div class="admin-field">
+      <label for="forum-category-name-input">Name</label>
+      <input type="text" id="forum-category-name-input" maxlength="100">
+    </div>
+
+    <p class="admin-modal-error" id="forum-category-modal-error"></p>
+    <p class="admin-modal-status" id="forum-category-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="forum-category-save-btn">Save</button>
+      <button type="button" class="btn" id="forum-category-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="forum-category-delete-btn" hidden>Delete Category</button>
     </div>
   </div>
 </div>
@@ -3541,7 +3579,7 @@
       if (name === 'members') loadMembers();
       if (name === 'topic-reports') loadTopicReports();
       if (name === 'privacy-requests') loadPrivacyRequests();
-      if (name === 'forum-control') loadForumBoards();
+      if (name === 'forum-control') { loadForumCategories(); loadForumBoards(); }
       if (name === 'reputation-levels') loadReputationLevelList();
       if (name === 'book-control') loadBookList();
       if (name === 'quiz-control') loadQuizQuestionList();
@@ -6852,6 +6890,213 @@
     }, 300);
   });
 
+  // ===== Forum Categories (Community > Forum Control) ===========================
+  // A tightly-coupled sub-list within Forum Control rather than its own nav
+  // entry -- same list/modal/reorder pattern as the board list just below,
+  // trimmed to a single Name field (no icon/color/visibility). Reuses the
+  // board list's own forum_boards.view/edit/delete permissions since a
+  // category has no independent permission meaning of its own.
+  var forumCategoryListEl = document.getElementById('forum-category-list');
+  var forumCategoryCountEl = document.getElementById('forum-category-count');
+  var forumCategoryCreateBtn = document.getElementById('forum-category-create-btn');
+  var forumCategoryModal = document.getElementById('forum-category-modal');
+  var forumCategoryModalTitle = document.getElementById('forum-category-modal-title');
+  var forumCategoryModalError = document.getElementById('forum-category-modal-error');
+  var forumCategoryModalStatus = document.getElementById('forum-category-modal-status');
+  var forumCategoryCloseBtn = document.getElementById('forum-category-modal-close');
+  var forumCategoryCancelBtn = document.getElementById('forum-category-cancel-btn');
+  var forumCategorySaveBtn = document.getElementById('forum-category-save-btn');
+  var forumCategoryDeleteBtn = document.getElementById('forum-category-delete-btn');
+  var forumCategoryNameInput = document.getElementById('forum-category-name-input');
+  var forumBoardCategorySelect = document.getElementById('forum-board-category-select');
+
+  var lastForumCategoryEntries = [];
+  var forumCategoryModalMode = 'create';
+  var currentForumCategory = null;
+
+  function loadForumCategories() {
+    forumCategoryListEl.innerHTML = '<div class="admin-list-empty">Loading categories&hellip;</div>';
+    return fetch('/api/admin/forum-categories/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        lastForumCategoryEntries = (data.ok && data.entries) || [];
+        forumCategoryCountEl.textContent = lastForumCategoryEntries.length + (lastForumCategoryEntries.length === 1 ? ' category' : ' categories');
+        renderForumCategoryList(lastForumCategoryEntries);
+        populateForumBoardCategorySelect();
+      })
+      .catch(function () {
+        forumCategoryListEl.innerHTML = '<div class="admin-list-empty">Could not load forum categories.</div>';
+      });
+  }
+
+  function renderForumCategoryList(entries) {
+    if (!entries.length) {
+      forumCategoryListEl.innerHTML = '<div class="admin-list-empty">No categories yet.</div>';
+      return;
+    }
+    forumCategoryListEl.innerHTML = '';
+    entries.forEach(function (entry, i) {
+      var row = document.createElement('div');
+      row.className = 'admin-row';
+      row.tabIndex = 0;
+
+      var main = document.createElement('div');
+      main.className = 'admin-row-main';
+      main.innerHTML =
+        '<p class="forum-board-row-title">' + escapeHtml(entry.name) + '</p>' +
+        '<div class="admin-row-meta"><span>' + entry.board_count + (entry.board_count === 1 ? ' board' : ' boards') + '</span></div>';
+      row.appendChild(main);
+
+      var actions = document.createElement('div');
+      actions.className = 'role-row-actions';
+      actions.innerHTML =
+        '<button type="button" class="permission-mini-btn" data-category-action="up"' + (i === 0 ? ' disabled' : '') + '>Move Up</button>' +
+        '<button type="button" class="permission-mini-btn" data-category-action="down"' + (i === entries.length - 1 ? ' disabled' : '') + '>Move Down</button>' +
+        '<button type="button" class="permission-mini-btn" data-category-action="edit">Edit Category</button>';
+      row.appendChild(actions);
+
+      actions.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-category-action]');
+        if (!btn || btn.disabled) return;
+        e.stopPropagation();
+        var dir = btn.getAttribute('data-category-action');
+        if (dir === 'edit') { openForumCategoryModal(entry); return; }
+        reorderForumCategory(entry, dir === 'up' ? i - 1 : i + 1);
+      });
+
+      row.addEventListener('click', function () { openForumCategoryModal(entry); });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openForumCategoryModal(entry); }
+      });
+      forumCategoryListEl.appendChild(row);
+    });
+  }
+
+  function reorderForumCategory(entry, targetIndex) {
+    if (targetIndex < 0 || targetIndex >= lastForumCategoryEntries.length) return;
+    var ids = lastForumCategoryEntries.map(function (c) { return c.id; });
+    var fromIndex = ids.indexOf(entry.id);
+    ids.splice(fromIndex, 1);
+    ids.splice(targetIndex, 0, entry.id);
+    fetch('/api/admin/forum-categories/reorder.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: ids, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function () { loadForumCategories(); });
+  }
+
+  // Keeps the board modal's Category <select> in sync with the categories
+  // list, preserving whatever is currently selected (if still valid) across
+  // a reload triggered elsewhere (e.g. after adding a new category).
+  function populateForumBoardCategorySelect() {
+    if (!forumBoardCategorySelect) return;
+    var current = forumBoardCategorySelect.value;
+    forumBoardCategorySelect.innerHTML = lastForumCategoryEntries.map(function (c) {
+      return '<option value="' + c.id + '">' + escapeHtml(c.name) + '</option>';
+    }).join('');
+    if (current) forumBoardCategorySelect.value = current;
+  }
+
+  function openForumCategoryModal(entry) {
+    forumCategoryModalMode = 'edit';
+    currentForumCategory = entry;
+    forumCategoryModalTitle.textContent = 'Edit Category';
+    forumCategoryNameInput.value = entry.name || '';
+    forumCategoryDeleteBtn.hidden = false;
+    forumCategoryModalError.classList.remove('show');
+    forumCategoryModalStatus.classList.remove('show');
+    forumCategoryModal.hidden = false;
+  }
+
+  function openCreateForumCategoryModal() {
+    forumCategoryModalMode = 'create';
+    currentForumCategory = null;
+    forumCategoryModalTitle.textContent = 'Add Category';
+    forumCategoryNameInput.value = '';
+    forumCategoryDeleteBtn.hidden = true;
+    forumCategoryModalError.classList.remove('show');
+    forumCategoryModalStatus.classList.remove('show');
+    forumCategoryModal.hidden = false;
+    setTimeout(function () { forumCategoryNameInput.focus(); }, 30);
+  }
+
+  function closeForumCategoryModal() {
+    forumCategoryModal.hidden = true;
+    currentForumCategory = null;
+  }
+
+  forumCategoryCreateBtn.addEventListener('click', openCreateForumCategoryModal);
+  forumCategoryCloseBtn.addEventListener('click', closeForumCategoryModal);
+  forumCategoryCancelBtn.addEventListener('click', closeForumCategoryModal);
+  forumCategoryModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeForumCategoryModal);
+
+  forumCategorySaveBtn.addEventListener('click', function () {
+    var payload = {
+      name: forumCategoryNameInput.value.trim(),
+      csrf: window.PW_AUTH.csrf
+    };
+    if (!payload.name) {
+      forumCategoryModalError.textContent = 'Give the category a name.';
+      forumCategoryModalError.classList.add('show');
+      return;
+    }
+    var url = '/api/admin/forum-categories/create.php';
+    if (forumCategoryModalMode === 'edit' && currentForumCategory) {
+      url = '/api/admin/forum-categories/update.php';
+      payload.id = currentForumCategory.id;
+    }
+    forumCategoryModalError.classList.remove('show');
+    forumCategorySaveBtn.disabled = true;
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        forumCategorySaveBtn.disabled = false;
+        if (!data.ok) {
+          forumCategoryModalError.textContent = data.error || 'Could not save this category.';
+          forumCategoryModalError.classList.add('show');
+          return;
+        }
+        forumCategoryModalStatus.textContent = 'Saved.';
+        forumCategoryModalStatus.classList.add('show');
+        loadForumCategories();
+        setTimeout(closeForumCategoryModal, 700);
+      })
+      .catch(function () {
+        forumCategorySaveBtn.disabled = false;
+        forumCategoryModalError.textContent = 'Could not save this category. Please try again.';
+        forumCategoryModalError.classList.add('show');
+      });
+  });
+
+  forumCategoryDeleteBtn.addEventListener('click', function () {
+    if (!currentForumCategory) return;
+    if (!window.confirm('Delete the "' + currentForumCategory.name + '" category? This only works if no boards are assigned to it.')) return;
+    fetch('/api/admin/forum-categories/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentForumCategory.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          forumCategoryModalError.textContent = data.error || 'Could not delete this category.';
+          forumCategoryModalError.classList.add('show');
+          return;
+        }
+        loadForumCategories();
+        closeForumCategoryModal();
+      });
+  });
+
   // ===== Forum Control (Community) ==============================================
   // Boards used to be hardcoded in community.html/api/boards-summary.php/
   // api/topics/move.php -- forum_boards is now the source of truth, managed
@@ -6935,6 +7180,7 @@
           '<span>' + escapeHtml(entry.slug) + '</span>' +
           '<span class="admin-row-sep">&bull;</span>' +
           '<span>' + entry.topic_count + (entry.topic_count === 1 ? ' topic' : ' topics') + '</span>' +
+          (entry.category_name ? '<span class="admin-row-sep">&bull;</span><span>' + escapeHtml(entry.category_name) + '</span>' : '') +
         '</div>';
       row.appendChild(main);
 
@@ -7026,6 +7272,8 @@
     forumBoardDescriptionInput.value = board.description || '';
     forumBoardIconSelect.value = board.icon_key || 'scroll';
     forumBoardAccentColorInput.value = board.accent_color || '#a279ec';
+    populateForumBoardCategorySelect();
+    if (board.category_id) forumBoardCategorySelect.value = board.category_id;
     updateForumBoardIconPreview();
     forumBoardRolesSelected = {};
     (board.role_slugs || []).forEach(function (slug) { forumBoardRolesSelected[slug] = true; });
@@ -7089,6 +7337,7 @@
       name: forumBoardNameInput.value.trim(),
       description: forumBoardDescriptionInput.value.trim(),
       icon_key: forumBoardIconSelect.value,
+      category_id: parseInt(forumBoardCategorySelect.value, 10) || 0,
       accent_color: forumBoardAccentColorInput.value,
       is_public: forumBoardVisibilityPublic.checked,
       role_slugs: Object.keys(forumBoardRolesSelected),

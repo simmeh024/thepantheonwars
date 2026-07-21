@@ -746,6 +746,19 @@
   color: var(--gold-bright);
 }
 .board-index-col-stat { text-align: center; }
+
+/* One label row per category, interleaved with the board rows inside the
+   same bordered .board-index panel. margin-top is the "space between each
+   category" gap the first category doesn't need (it already sits directly
+   under the shared Forum/Topics/Posts/Latest Post head row above it). */
+.board-category-head {
+  margin-top: 18px; padding: 9px 22px;
+  background: var(--panel-2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border-soft);
+  font-family: 'Cinzel', serif; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em;
+  color: var(--gold-bright);
+}
+.board-category-head.is-first { margin-top: 0; border-top: none; }
+
 .board-index-row {
   display: grid; grid-template-columns: 1fr 90px 90px 220px; gap: 10px; align-items: center;
   padding: 18px 22px; border-bottom: 1px solid var(--border-soft); transition: background 0.2s ease;

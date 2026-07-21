@@ -12,7 +12,12 @@ require_once __DIR__ . '/../../helpers.php';
 pw_require_permission('forum_boards.view');
 $db = pw_db();
 
-$boards = $db->query('SELECT * FROM forum_boards ORDER BY sort_order')->fetchAll();
+$boards = $db->query(
+    'SELECT fb.*, fc.name AS category_name
+     FROM forum_boards fb
+     LEFT JOIN forum_categories fc ON fc.id = fb.category_id
+     ORDER BY fb.sort_order'
+)->fetchAll();
 
 $roleRows = $db->query('SELECT board_id, role_slug FROM forum_board_roles')->fetchAll();
 $rolesByBoard = [];
@@ -31,6 +36,8 @@ $out = array_map(function ($b) use ($db, $rolesByBoard) {
         'name' => $b['name'],
         'description' => $b['description'],
         'icon_key' => $b['icon_key'],
+        'category_id' => (int)$b['category_id'],
+        'category_name' => $b['category_name'],
         'accent_color' => $b['accent_color'],
         'is_protected' => (bool)$b['is_protected'],
         'is_public' => (bool)$b['is_public'],

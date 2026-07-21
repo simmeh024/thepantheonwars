@@ -13,6 +13,7 @@ function pw_validate_forum_board_input($input, $requireSlug) {
     $description = isset($input['description']) ? trim($input['description']) : '';
     $iconKey = isset($input['icon_key']) ? trim($input['icon_key']) : '';
     $accentColor = isset($input['accent_color']) ? trim((string)$input['accent_color']) : '';
+    $categoryId = isset($input['category_id']) ? (int)$input['category_id'] : 0;
     $isPublic = !empty($input['is_public']);
     $roleSlugs = [];
     if (!$isPublic && isset($input['role_slugs']) && is_array($input['role_slugs'])) {
@@ -39,12 +40,21 @@ function pw_validate_forum_board_input($input, $requireSlug) {
     if ($accentColor === '' || !preg_match('/^#[0-9a-fA-F]{3,8}$/', $accentColor)) {
         pw_error('Accent color must be a hex color like #a279ec.');
     }
+    if ($categoryId <= 0) {
+        pw_error('Choose a category.');
+    }
+    $categoryStmt = pw_db()->prepare('SELECT id FROM forum_categories WHERE id = ?');
+    $categoryStmt->execute([$categoryId]);
+    if (!$categoryStmt->fetch()) {
+        pw_error('Choose a valid category.');
+    }
 
     $data = [
         'name' => $name,
         'description' => $description,
         'icon_key' => $iconKey,
         'accent_color' => $accentColor,
+        'category_id' => $categoryId,
         'is_public' => $isPublic ? 1 : 0,
         'role_slugs' => $roleSlugs,
     ];

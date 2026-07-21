@@ -456,6 +456,15 @@
 }
 .admin-section-head p { color: var(--text-faint); font-size: 0.88rem; margin: 0; max-width: 640px; }
 
+/* A smaller heading for a tightly-coupled sub-list within one admin-section
+   (e.g. Forum Control's Board Categories above its board list), rather than
+   giving it a whole separate top-level nav entry. */
+.admin-subsection-head { margin: 4px 0 14px; }
+.admin-subsection-head h2 {
+  font-family: 'Cinzel', serif; font-size: 1.1rem; color: var(--gold-bright); margin: 0 0 4px;
+}
+.admin-subsection-head p { color: var(--text-faint); font-size: 0.82rem; margin: 0; max-width: 640px; }
+
 .admin-toolbar {
   display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 20px;
 }
@@ -526,6 +535,7 @@
 }
 
 .admin-list { border: 1px solid var(--border-soft); background: var(--panel); }
+#forum-category-list { margin-bottom: 24px; }
 .admin-list-empty { padding: 30px; text-align: center; color: var(--text-faint); font-size: 0.88rem; }
 .admin-row {
   display: flex; align-items: center; gap: 16px;

@@ -8,6 +8,15 @@ require_once __DIR__ . '/helpers.php';
 $currentUser = pw_current_user();
 $db = pw_db();
 $allBoardRows = $db->query('SELECT * FROM forum_boards ORDER BY sort_order')->fetchAll();
+
+// A small, fixed-size table -- a plain in-PHP lookup here is simpler than
+// joining it into every board query below, and categories are a pure
+// display grouping so they never affect the pw_can_see_board() filtering.
+$categoriesById = [];
+foreach ($db->query('SELECT id, name, sort_order FROM forum_categories')->fetchAll() as $c) {
+    $categoriesById[(int)$c['id']] = $c;
+}
+
 $boardRows = [];
 $boardList = [];
 
@@ -16,12 +25,16 @@ foreach ($allBoardRows as $boardRow) {
         continue;
     }
     $boardRows[] = $boardRow;
+    $category = $categoriesById[(int)$boardRow['category_id']] ?? null;
     $boardList[] = [
         'slug' => $boardRow['slug'],
         'name' => $boardRow['name'],
         'description' => $boardRow['description'],
         'icon_key' => $boardRow['icon_key'],
         'accent_color' => $boardRow['accent_color'],
+        'category_id' => (int)$boardRow['category_id'],
+        'category_name' => $category ? $category['name'] : '',
+        'category_sort_order' => $category ? (int)$category['sort_order'] : 0,
     ];
 }
 

@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=249">
+<link rel="stylesheet" href="css/community-bundle.css?v=250">
 </head>
 <body>
 
@@ -426,6 +426,9 @@
             desc: b.description,
             icon: ICONS[b.icon_key] || ICONS.scroll,
             accent: b.accent_color || '#a279ec',
+            categoryId: b.category_id,
+            categoryName: b.category_name || '',
+            categorySortOrder: b.category_sort_order || 0,
           };
         });
         return data;
@@ -1347,8 +1350,30 @@
     loadBoardsMeta().then(function (data) {
       skeletonWrap.remove();
       var stats = data.boards || {};
+      // Group boards by category, preserving each board's existing relative
+      // order within its group. A category with zero boards visible to this
+      // particular visitor (e.g. an admin-only category, to a guest) simply
+      // never gets a group -- same "just doesn't appear" precedent as an
+      // individually hidden board.
+      var groups = [];
+      var groupsById = {};
       BOARDS.forEach(function (b) {
-        boardIndexEl.appendChild(buildBoardRow(b, stats[b.slug]));
+        var key = b.categoryId;
+        if (!groupsById[key]) {
+          groupsById[key] = { name: b.categoryName, sortOrder: b.categorySortOrder, boards: [] };
+          groups.push(groupsById[key]);
+        }
+        groupsById[key].boards.push(b);
+      });
+      groups.sort(function (a, b) { return a.sortOrder - b.sortOrder; });
+      groups.forEach(function (group, i) {
+        var categoryHead = document.createElement('div');
+        categoryHead.className = 'board-category-head' + (i === 0 ? ' is-first' : '');
+        categoryHead.textContent = group.name;
+        boardIndexEl.appendChild(categoryHead);
+        group.boards.forEach(function (b) {
+          boardIndexEl.appendChild(buildBoardRow(b, stats[b.slug]));
+        });
       });
     }).catch(function () {
       // Do not leave the forum frozen on its skeleton when a transient

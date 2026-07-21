@@ -120,6 +120,16 @@ CREATE TABLE IF NOT EXISTS quiz_results (
   CONSTRAINT fk_quiz_results_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Board categories (Forum Control's "Board Categories" list). A pure display
+-- grouping for the public forum index -- pw_can_see_board() in
+-- api/helpers.php still gates per-board visibility independently of category.
+CREATE TABLE IF NOT EXISTS forum_categories (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Forum boards (admin-managed via the "Forum Control" section). Board
 -- metadata used to be hardcoded in community.html/api/boards-summary.php/
 -- api/topics/move.php -- this table is now the single source of truth.
@@ -132,11 +142,13 @@ CREATE TABLE IF NOT EXISTS forum_boards (
   name VARCHAR(100) NOT NULL,
   description VARCHAR(255) NOT NULL DEFAULT '',
   icon_key VARCHAR(40) NOT NULL DEFAULT 'scroll',
+  category_id INT UNSIGNED NOT NULL,
   accent_color VARCHAR(20) NOT NULL DEFAULT '#a279ec',
   is_protected TINYINT(1) NOT NULL DEFAULT 0,
   is_public TINYINT(1) NOT NULL DEFAULT 1,
   sort_order INT NOT NULL DEFAULT 0,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_forum_boards_category FOREIGN KEY (category_id) REFERENCES forum_categories(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Which roles can see a board when is_public = 0 (see pw_can_see_board() in
