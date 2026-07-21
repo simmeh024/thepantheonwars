@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=252">
+<link rel="stylesheet" href="css/community-bundle.css?v=253">
 </head>
 <body>
 
@@ -1780,11 +1780,26 @@
     });
   });
 
+  // Mobile-only status glyph replacing the "Pinned"/trending text tags with
+  // a single icon, same idea as a plain forum's pin/chat-bubble icons per
+  // topic row -- pinned wins over trending since a topic is only ever one
+  // or the other visually here.
+  var TOPIC_ROW_ICONS = {
+    pinned: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M8 3h8l-1 6 3 3H6l3-3z"/></svg>',
+    trending: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.5c1.2 3.6-2.4 5-2.4 8.6a2.4 2.4 0 0 0 4.8 0c0-.8-.3-1.5-.7-1.9.7 2.3-.7 3.3-1.7 3.3-1.2 0-1.8-1.2-1-2.6.9-1.6-.2-3.4-.6-4.9-1 1.7-3.4 3.6-3.4 6.9a4.2 4.2 0 0 0 8.4 0c0-4.3-2.4-5.3-3.4-9.4z"/></svg>',
+    normal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+  };
+
   function buildTopicRow(t, opts) {
     opts = opts || {};
     var row = document.createElement('div');
     row.className = 'topic-row' + (t.is_pinned ? ' is-pinned' : '');
     row.addEventListener('click', function () { goToTopic(t.id, t.board); });
+
+    var mobileIcon = document.createElement('span');
+    mobileIcon.className = 'topic-row-mobile-icon' + (t.is_pinned ? ' is-pinned' : t.is_trending ? ' is-trending' : '');
+    mobileIcon.innerHTML = t.is_pinned ? TOPIC_ROW_ICONS.pinned : (t.is_trending ? TOPIC_ROW_ICONS.trending : TOPIC_ROW_ICONS.normal);
+    row.appendChild(mobileIcon);
 
     var topicCell = document.createElement('div');
     topicCell.className = 'topic-row-topic';

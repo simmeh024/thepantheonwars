@@ -987,15 +987,41 @@
 .topic-row-replies { font-variant-numeric: tabular-nums; }
 .topic-row-starter { color: var(--role-color, var(--text-faint)); }
 
+/* Mobile-only status glyph (pin/trending/plain chat bubble) replacing the
+   text tags above -- hidden here so desktop, which already shows those tags
+   plus the Started-by/Last-reply columns, never renders a redundant icon. */
+.topic-row-mobile-icon { display: none; }
+
 @media (max-width: 720px) {
   .topic-list-head { display: none; }
+
+  /* Plain single-line-per-topic row: status icon, title (wraps to a second
+     line for long titles), and a small reply-count badge on the right --
+     Started-by/Last-reply are dropped entirely rather than stacked below,
+     matching a plain compact topic list instead of the denser desktop grid. */
   .topic-row {
-    grid-template-columns: 1fr; gap: 6px; text-align: left;
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 12px 16px;
   }
-  .topic-row-starter, .topic-row-lastreply, .topic-row-replies { text-align: left; }
-  .topic-row-starter::before { content: 'Started by '; color: var(--text-faint); }
-  .topic-row-lastreply::before { content: 'Last reply: '; color: var(--text-faint); }
-  .topic-row-replies::before { content: 'Replies: '; color: var(--text-faint); }
+  .topic-row-mobile-icon {
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 26px; height: 26px; margin-top: 1px; border-radius: 50%;
+    background: var(--panel-2); border: 1px solid var(--border-soft); color: var(--text-faint);
+  }
+  .topic-row-mobile-icon svg { width: 13px; height: 13px; }
+  .topic-row-mobile-icon.is-pinned { color: var(--gold-bright); border-color: rgba(224,178,74,0.4); }
+  .topic-row-mobile-icon.is-trending { color: #ff8a4c; border-color: rgba(255,138,76,0.35); }
+
+  .topic-row-topic { flex: 1 1 auto; }
+  .topic-row-pin-tag, .topic-row-trending-tag { display: none; }
+
+  .topic-row-starter, .topic-row-lastreply { display: none; }
+  .topic-row-replies {
+    flex-shrink: 0; align-self: flex-start;
+    min-width: 28px; text-align: center; font-size: 0.72rem;
+    padding: 2px 8px; border: 1px solid var(--border-soft); border-radius: 12px;
+    background: var(--panel-2); color: var(--text-dim);
+  }
 }
 
 /* Topic OP (the first post of a topic), reuses .comment-item styling */
