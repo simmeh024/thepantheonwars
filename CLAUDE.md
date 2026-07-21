@@ -616,6 +616,39 @@ at that time.
   Python App" form fields exactly (Application root / URL / startup file /
   entry point / environment variable), not a generic description.
 
+  **Reversed again after real production evidence (persistent service was
+  wrong, not just its URL model):** once actually running, the persistent
+  Flask/Passenger app sat at ~852MB resident memory on its own
+  (`ps -u rdy3i6my40b0 --sort=-rss`), on an account with roughly 1.5GB total
+  RAM -- and every live translation that invoked it immediately got the
+  much-lighter spaCy Passenger worker OOM-killed (confirmed repeatedly:
+  restart spaCy, it works, trigger one live translation, spaCy disconnects).
+  Reverted the whole persistent-service architecture: `tools/
+  dispatch_embeddings_service.py` (Flask) was replaced by
+  `tools/dispatch-embeddings.py`, a one-shot script invoked via `proc_open`
+  from `api/dispatch-embeddings.php`, following `api/dispatch-spacy.php`'s
+  exact existing pattern (fresh process per call, ~10s budget, model loaded
+  and released every single call). This trades a few extra seconds of
+  `import torch` latency per Dispatch draft generation -- the same tradeoff
+  the spaCy worker already makes -- for zero resident memory between calls,
+  so it can never starve spaCy (or anything else on the account) again. The
+  one-shot script also pins `OMP_NUM_THREADS`/`MKL_NUM_THREADS`/
+  `torch.set_num_threads(1)` to keep its brief footprint minimal on the
+  account's 2 allocated vCPUs. `DISPATCH_EMBEDDING_SERVICE_URL`/`_KEY` (the
+  HTTP/shared-secret scheme, no longer relevant since this never listens on
+  anything now) were replaced by a single `DISPATCH_EMBEDDING_PYTHON_BIN`
+  venv-interpreter constant, matching `SPACY_PYTHON_BIN`'s existing shape.
+  The already-created `dispatch-embeddings-app` venv is kept and reused
+  (only the always-on Passenger app itself needs to be stopped/deleted in
+  cPanel); no new SQL migration, no change to the PHP-owned embedding cache
+  design, and no change to `pw_dispatch_cosine_similarity()`/
+  `pw_dispatch_nearest_embedding_match()`. `docs/dispatch-embeddings.md` was
+  rewritten again to document this and to explain why a persistent service
+  is the wrong shape for this specific 1.5GB-RAM account, even though it
+  remains the right shape for the model-load-cost reasoning that motivated
+  it in the first place -- the constraint that actually decided it was
+  memory, not the earlier-assumed timeout budget.
+
 - **Fixed: Saga Complete's rainbow filled the whole pill, not just the
   ring.** Confirmed live (screenshot) right after the gradient-border fix
   below shipped: the `padding-box`-clipped fill layer's alpha

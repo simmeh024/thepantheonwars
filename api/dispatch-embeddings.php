@@ -1,85 +1,106 @@
 <?php
 /**
  * Optional local sentence-embedding bridge for Dispatch Translation semantic
- * similarity, mirroring api/dispatch-spacy.php's fail-open shape but talking
- * to a persistent local service over curl instead of proc_open-ing a
- * one-shot script -- see tools/dispatch-embeddings-service.py and
- * docs/dispatch-embeddings.md for why this needs to be a persistent process.
+ * similarity, mirroring api/dispatch-spacy.php's proc_open shape exactly --
+ * a fresh one-shot Python process per call (tools/dispatch-embeddings.py),
+ * not a persistent service.
  *
- * This bridge itself never exposes a public endpoint, and the request it
- * sends never leaves the hosting account's own server. Unlike a self-managed
- * host, cPanel's "Setup Python App" (see docs/dispatch-embeddings.md) always
- * routes a Python app through a real URL path on the account's own domain --
- * there is no raw loopback-port access -- so DISPATCH_EMBEDDING_SERVICE_KEY
- * is sent as a shared-secret header on every request, checked by the Python
- * side, so the endpoint can't be used by anyone who merely finds its URL.
+ * This was originally a persistent Flask/Passenger app talking over HTTP.
+ * Live production evidence reversed that: `ps -u ... --sort=-rss` showed the
+ * persistent process resident at ~850MB on an account with roughly 1.5GB
+ * total RAM, and every live translation that invoked it immediately got the
+ * (much lighter) spaCy Passenger worker OOM-killed. See
+ * docs/dispatch-embeddings.md for the full account. A one-shot proc_open
+ * process pays a few extra seconds of torch-import/model-load latency per
+ * call -- the same tradeoff api/dispatch-spacy.php already makes -- but
+ * releases every byte of that memory the instant it exits, so nothing sits
+ * resident between calls competing with spaCy or anything else on the
+ * account.
  *
- * If the service is unconfigured, unreachable, unauthorized, or returns
- * anything unexpected, every function here fails open to an empty result --
- * the deterministic translator then produces exactly its established
- * fallback, with zero change to confidence, wording, or publication
- * decisions.
+ * If the interpreter, script, or model is unconfigured, missing, or slow,
+ * every function here fails open to an empty result -- the deterministic
+ * translator then produces exactly its established fallback, with zero
+ * change to confidence, wording, or publication decisions.
  */
 
 /**
- * Shared request helper. Returns the decoded response body (already
- * confirmed to have `ok: true`) or null on any failure. A connection-level
- * failure (refused, timed out, DNS) latches $unavailable for the rest of
- * this request, same as api/dispatch-spacy.php's pattern -- there is no
- * point retrying a service that just failed to connect.
+ * Shared process helper. Returns the decoded response body (already
+ * confirmed to have `ok: true`) or null on any failure. A missing
+ * interpreter/script latches $unavailable for the rest of this request,
+ * same as api/dispatch-spacy.php's pattern -- there is no point retrying a
+ * worker that can't even start.
  */
-function pw_dispatch_embedding_request(string $path, ?array $body): ?array
+function pw_dispatch_embedding_request(array $payload): ?array
 {
     static $unavailable = false;
-    if ($unavailable || !function_exists('curl_init') || !defined('DISPATCH_EMBEDDING_SERVICE_URL')) {
+    if ($unavailable || !function_exists('proc_open') || !defined('DISPATCH_EMBEDDING_PYTHON_BIN')) {
         return null;
     }
 
-    $base = trim((string)DISPATCH_EMBEDDING_SERVICE_URL);
-    if ($base === '') {
+    $python = trim((string)DISPATCH_EMBEDDING_PYTHON_BIN);
+    $script = dirname(__DIR__) . '/tools/dispatch-embeddings.py';
+    if ($python === '' || !is_file($python) || !is_file($script)) {
         $unavailable = true;
         return null;
     }
 
-    $ch = curl_init(rtrim($base, '/') . $path);
-    if ($ch === false) {
+    $json = json_encode($payload, JSON_UNESCAPED_UNICODE);
+    if ($json === false) {
+        return null;
+    }
+
+    $pipes = [];
+    $process = @proc_open([$python, $script], [
+        0 => ['pipe', 'r'],
+        1 => ['pipe', 'w'],
+        2 => ['pipe', 'w'],
+    ], $pipes, null, null, ['bypass_shell' => true]);
+    if (!is_resource($process)) {
         $unavailable = true;
         return null;
     }
-    $headers = ['X-Dispatch-Key: ' . (defined('DISPATCH_EMBEDDING_SERVICE_KEY') ? (string)DISPATCH_EMBEDDING_SERVICE_KEY : '')];
-    $options = [
-        CURLOPT_RETURNTRANSFER => true,
-        // Short and strict: this is a warm local service, not a cold worker
-        // startup. A slow/unresponsive service should fail fast, not eat
-        // into the same request budget api/dispatch-spacy.php protects.
-        CURLOPT_CONNECTTIMEOUT => 1,
-        CURLOPT_TIMEOUT => 2,
-        CURLOPT_HTTPHEADER => $headers,
-    ];
-    if ($body !== null) {
-        $payload = json_encode($body, JSON_UNESCAPED_UNICODE);
-        if ($payload === false) {
-            curl_close($ch);
-            return null;
+
+    fwrite($pipes[0], $json);
+    fclose($pipes[0]);
+    stream_set_blocking($pipes[1], false);
+    stream_set_blocking($pipes[2], false);
+    $output = '';
+    $errors = '';
+    // Cold-starting torch + sentence-transformers on this host commonly
+    // costs a few seconds before any encode happens at all. Bounded slightly
+    // looser than api/dispatch-spacy.php's 6s since this worker runs far
+    // less often (draft generation only, never per-keystroke), but still
+    // strict enough that a hung process can never block a request
+    // indefinitely.
+    $deadline = microtime(true) + 10.0;
+    do {
+        $output .= stream_get_contents($pipes[1]);
+        $errors .= stream_get_contents($pipes[2]);
+        $status = proc_get_status($process);
+        if (!$status['running']) {
+            break;
         }
-        $options[CURLOPT_POST] = true;
-        $options[CURLOPT_POSTFIELDS] = $payload;
-        $options[CURLOPT_HTTPHEADER] = array_merge($headers, ['Content-Type: application/json']);
-    }
-    curl_setopt_array($ch, $options);
-    $response = curl_exec($ch);
-    $httpCode = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
+        usleep(20000);
+    } while (microtime(true) < $deadline);
 
-    if ($response === false) {
+    if ($status['running']) {
+        proc_terminate($process);
         $unavailable = true;
+    }
+    $output .= stream_get_contents($pipes[1]);
+    $errors .= stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    proc_close($process);
+
+    $decoded = json_decode($output, true);
+    if (!is_array($decoded) || empty($decoded['ok'])) {
+        if ($errors !== '') {
+            $unavailable = true;
+        }
         return null;
     }
-    if ($httpCode !== 200) {
-        return null;
-    }
-    $decoded = json_decode($response, true);
-    return is_array($decoded) && !empty($decoded['ok']) ? $decoded : null;
+    return $decoded;
 }
 
 /**
@@ -87,7 +108,7 @@ function pw_dispatch_embedding_request(string $path, ?array $body): ?array
  * cleaned text, or (at publish/edit time) one just-approved translation's
  * text -- never a batch of prior translations. The cached corpus itself
  * lives in dispatch_translation_embeddings, computed by PHP from these
- * single-string results, never sent back to this service as a whole.
+ * single-string results, never sent back to this worker as a whole.
  */
 function pw_dispatch_embedding_similarity(string $text): array
 {
@@ -95,7 +116,7 @@ function pw_dispatch_embedding_similarity(string $text): array
     if ($text === '') {
         return [];
     }
-    $decoded = pw_dispatch_embedding_request('/encode', ['text' => mb_substr($text, 0, 4000, 'UTF-8')]);
+    $decoded = pw_dispatch_embedding_request(['text' => mb_substr($text, 0, 4000, 'UTF-8')]);
     if ($decoded === null || !is_array($decoded['embedding'] ?? null)) {
         return [];
     }
@@ -106,17 +127,17 @@ function pw_dispatch_embedding_similarity(string $text): array
 }
 
 /**
- * System Status uses a real request rather than merely checking whether the
- * config constant exists, matching pw_dispatch_spacy_status()'s reasoning --
- * this catches a stopped Passenger app, a removed venv, or a hung model load
- * alike. Deliberately not wired into BH-4's critical-directive escalation
- * the way spaCy is: this signal is additive and optional, never load-bearing
- * for publication, so a disconnected service is a System Status row, not an
- * admin alert.
+ * System Status uses a real process run rather than merely checking whether
+ * the config constant exists, matching pw_dispatch_spacy_status()'s
+ * reasoning -- this catches a missing venv, a removed model, disabled
+ * proc_open, and a hung model load alike. Deliberately not wired into BH-4's
+ * critical-directive escalation the way spaCy is: this signal is additive
+ * and optional, never load-bearing for publication, so a disconnected
+ * worker is a System Status row, not an admin alert.
  */
 function pw_dispatch_embedding_status(): array
 {
-    $decoded = pw_dispatch_embedding_request('/health', null);
+    $decoded = pw_dispatch_embedding_request(['health' => true]);
     return $decoded === null
         ? ['status' => 'bad', 'label' => 'Disconnected']
         : ['status' => 'ok', 'label' => 'Connected'];

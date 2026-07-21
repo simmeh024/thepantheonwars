@@ -17,8 +17,8 @@ require_once dirname(__DIR__) . '/api/dispatch-embeddings.php';
 
 $db = pw_db();
 
-if (!defined('DISPATCH_EMBEDDING_SERVICE_URL') || trim((string)DISPATCH_EMBEDDING_SERVICE_URL) === '') {
-    fwrite(STDERR, "DISPATCH_EMBEDDING_SERVICE_URL is not configured. Set it in the outside-webroot secrets config first.\n");
+if (!defined('DISPATCH_EMBEDDING_PYTHON_BIN') || trim((string)DISPATCH_EMBEDDING_PYTHON_BIN) === '') {
+    fwrite(STDERR, "DISPATCH_EMBEDDING_PYTHON_BIN is not configured. Set it in the outside-webroot secrets config first.\n");
     exit(1);
 }
 

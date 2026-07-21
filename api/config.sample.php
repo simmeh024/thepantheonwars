@@ -59,25 +59,18 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // define('SPACY_PYTHON_BIN', '/home/rdy3i6my40b0/virtualenv/dispatch-nlp/3.11/bin/python');
 // define('SPACY_MODEL', 'en_core_web_md');
 
-// Optional local sentence-embedding service for Dispatch translation semantic
-// similarity -- a separate, persistent Python service (not the one-shot
-// spaCy/RapidFuzz worker above). See docs/dispatch-embeddings.md for the
-// cPanel "Setup Python App" setup. The rule-based formatter and its
-// auto-publication decisions remain fully functional without this; it only
-// ever adds a graded confidence signal and an editor-facing "similar past
-// Dispatch" reference, never wording. This is a real URL on the account's
-// own domain (see the key below for why that's still safe).
-// define('DISPATCH_EMBEDDING_SERVICE_URL', 'https://thepantheonwars.com/REPLACE_WITH_APP_URL_PATH');
-// Shared secret sent as the X-Dispatch-Key header on every request above and
-// checked by tools/dispatch_embeddings_service.py. cPanel's "Setup Python
-// App" always routes a Python app through a real URL path on the account's
-// own domain (unlike the spaCy worker above, there is no raw loopback-port
-// option), so this is what keeps that endpoint from being usable by anyone
-// who merely finds its URL. Generate with:
-//   php -r "echo bin2hex(random_bytes(24));"
-// and set the identical value as the DISPATCH_EMBEDDING_SERVICE_KEY
-// environment variable in the Passenger app's own settings in cPanel.
-// define('DISPATCH_EMBEDDING_SERVICE_KEY', 'REPLACE_WITH_REAL_RANDOM_STRING');
+// Optional local sentence-embedding worker for Dispatch translation semantic
+// similarity -- a second, independent Python venv (not the spaCy/RapidFuzz
+// venv above), invoked the same way: a fresh one-shot process per call via
+// proc_open, never a persistent service. See docs/dispatch-embeddings.md.
+// (An earlier version of this ran as a persistent Flask/Passenger app; that
+// was reverted after live production evidence showed it sitting at ~850MB
+// resident memory on this account's ~1.5GB RAM ceiling, which got the
+// spaCy Passenger worker OOM-killed on every live translation.) The rule-
+// based formatter and its auto-publication decisions remain fully
+// functional without this; it only ever adds a graded confidence signal and
+// an editor-facing "similar past Dispatch" reference, never wording.
+// define('DISPATCH_EMBEDDING_PYTHON_BIN', '/home/rdy3i6my40b0/virtualenv/dispatch-embeddings-app/3.11/bin/python');
 
 // Transactional mail is deliberately off until Mail Settings has a sender
 // identity and its delivery toggle is enabled. Shared hosting uses PHP's native
