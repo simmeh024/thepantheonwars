@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=251">
+<link rel="stylesheet" href="css/community-bundle.css?v=252">
 </head>
 <body>
 
@@ -1378,8 +1378,11 @@
         categoryHead.tabIndex = 0;
         categoryHead.setAttribute('aria-expanded', 'true');
         categoryHead.innerHTML =
-          '<span class="board-category-head-label"></span>' +
-          '<span class="board-category-toggle-icon" aria-hidden="true">&#9662;</span>';
+          '<span class="board-category-head-left">' +
+            '<span class="board-category-toggle-icon" aria-hidden="true">&#9662;</span>' +
+            '<span class="board-category-head-label"></span>' +
+          '</span>' +
+          '<span class="board-category-head-latest">Latest Post</span>';
         categoryHead.querySelector('.board-category-head-label').textContent = group.name;
         boardIndexEl.appendChild(categoryHead);
 
@@ -1484,50 +1487,28 @@
     }
     row.appendChild(latestCell);
 
-    // Mobile-only compact footer (CSS hides this on desktop and hides the
-    // separate stat/latest cells above on mobile instead) -- one line for
-    // topic/post counts instead of two huge stacked numbers with no label,
-    // one line for the latest post instead of its own tall stacked block.
-    var mobileMeta = document.createElement('div');
-    mobileMeta.className = 'board-index-mobile-meta';
-
-    var mobileCounts = document.createElement('div');
-    mobileCounts.className = 'board-index-mobile-counts';
-    var topicCount = stat ? stat.topic_count : 0;
-    var postCount = stat ? stat.post_count : 0;
-    mobileCounts.textContent =
-      topicCount + (topicCount === 1 ? ' topic' : ' topics') + ' · ' +
-      postCount + (postCount === 1 ? ' post' : ' posts');
-    mobileMeta.appendChild(mobileCounts);
-
-    var mobileLatest = document.createElement('div');
-    mobileLatest.className = 'board-index-mobile-latest';
+    // Mobile-only: a single plain timestamp beside the board name (CSS hides
+    // the description and the desktop stat/latest cells on mobile instead,
+    // and lays this row out as one line) -- no counts, no description, no
+    // author, matching a plain phpBB-style compact board list rather than
+    // the earlier denser two-line mobile summary.
+    var mobileTime = document.createElement('div');
+    mobileTime.className = 'board-index-mobile-time';
     if (stat && stat.latest) {
-      var mobileLink = document.createElement('a');
-      mobileLink.href = '#';
-      mobileLink.className = 'board-index-mobile-latest-link';
-      mobileLink.addEventListener('click', function (e) {
+      var mobileTimeLink = document.createElement('a');
+      mobileTimeLink.href = '#';
+      mobileTimeLink.className = 'board-index-mobile-time-link';
+      mobileTimeLink.textContent = fmtTime(stat.latest.created_at);
+      mobileTimeLink.addEventListener('click', function (e) {
         e.preventDefault();
         e.stopPropagation();
         goToTopic(stat.latest.topic_id, b.slug);
       });
-      var mobileLatestTitle = document.createElement('span');
-      mobileLatestTitle.className = 'board-index-mobile-latest-title';
-      mobileLatestTitle.textContent = stat.latest.title;
-      mobileLink.appendChild(mobileLatestTitle);
-      mobileLink.appendChild(document.createTextNode(' — by '));
-      var mobileLatestAuthor = document.createElement('span');
-      mobileLatestAuthor.className = 'board-index-mobile-latest-author';
-      mobileLatestAuthor.style.setProperty('--role-color', stat.latest.role_color || '#c7ccd6');
-      mobileLatestAuthor.textContent = stat.latest.display_name;
-      mobileLink.appendChild(mobileLatestAuthor);
-      mobileLink.appendChild(document.createTextNode(', ' + fmtTime(stat.latest.created_at)));
-      mobileLatest.appendChild(mobileLink);
+      mobileTime.appendChild(mobileTimeLink);
     } else {
-      mobileLatest.textContent = 'No posts yet';
+      mobileTime.textContent = '—';
     }
-    mobileMeta.appendChild(mobileLatest);
-    row.appendChild(mobileMeta);
+    row.appendChild(mobileTime);
 
     return row;
   }

@@ -759,16 +759,19 @@
   color: var(--gold-bright);
 }
 .board-category-head.is-first { margin-top: 0; border-top: none; }
+.board-category-head-left { display: flex; align-items: center; gap: 8px; }
 /* The collapse toggle only does anything within the mobile breakpoint below
    (same convention as the footer's own mobile-only collapsible sections) --
    hidden here so desktop never shows a chevron for a control that doesn't do
-   anything at that width. */
+   anything at that width. Same reasoning for the per-category "Latest Post"
+   label: desktop already shows that once, shared, in .board-index-head. */
 .board-category-toggle-icon { display: none; }
+.board-category-head-latest { display: none; }
 
-/* Mobile-only compact board footer -- built alongside the desktop stat/latest
+/* Mobile-only compact timestamp -- built alongside the desktop stat/latest
    cells in buildBoardRow() and toggled by the media query below, rather than
    two separate render paths. */
-.board-index-mobile-meta { display: none; }
+.board-index-mobile-time { display: none; }
 
 .board-index-row {
   display: grid; grid-template-columns: 1fr 90px 90px 220px; gap: 10px; align-items: center;
@@ -808,42 +811,35 @@
 @media (max-width: 720px) {
   .board-index-head { display: none; }
 
-  /* Tighter card: the desktop grid cells (stat/stat/latest) are hidden below
-     in favor of the compact mobile-meta footer, so this row no longer needs
-     the desktop grid at all -- less padding and a smaller icon shrink each
-     board card noticeably without losing readability. */
+  /* Plain single-line board row -- icon, name, and a bare timestamp, no
+     description/counts/author. Matches a classic compact forum board list
+     rather than the earlier denser two-line mobile summary. */
   .board-index-row {
-    display: block; padding: 14px 16px;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 16px;
   }
-  .board-index-icon { width: 34px; height: 34px; }
-  .board-index-icon svg { width: 17px; height: 17px; }
+  .board-index-icon { width: 30px; height: 30px; }
+  .board-index-icon svg { width: 15px; height: 15px; }
+  .board-index-desc { display: none; }
   .board-index-stat, .board-index-latest { display: none; }
 
-  .board-index-mobile-meta {
-    display: flex; flex-direction: column; gap: 4px;
-    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border-soft);
-    font-size: 0.76rem;
+  .board-index-mobile-time {
+    display: block; flex-shrink: 0; font-size: 0.76rem; color: var(--text-faint);
   }
-  .board-index-mobile-counts { color: var(--text-dim); font-variant-numeric: tabular-nums; }
-  .board-index-mobile-latest { color: var(--text-faint); overflow: hidden; }
-  .board-index-mobile-latest-link {
-    display: block; color: inherit; text-decoration: none;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .board-index-mobile-latest-title { color: var(--purple-bright); }
-  .board-index-mobile-latest-author { color: var(--role-color, var(--text-faint)); }
+  .board-index-mobile-time-link { color: inherit; text-decoration: none; }
 
   /* Category headers stick under the fixed site nav while scrolling a long
      board list -- top matches this same page's existing sticky sidebar
      offset (.community-sidebar) for a consistent clearance value. Also
-     doubles as the mobile-only collapse toggle (idea 5): a tap collapses
-     that category's boards, same max-height/opacity transition already used
-     for the footer's own mobile-only collapsible sections. */
+     doubles as the mobile-only collapse toggle: a tap collapses that
+     category's boards, same max-height/opacity transition already used for
+     the footer's own mobile-only collapsible sections. */
   .board-category-head {
     position: sticky; top: 100px; z-index: 4; cursor: pointer;
   }
   .board-category-toggle-icon { display: inline-block; transition: transform 0.2s ease; }
   .board-category-head.is-collapsed .board-category-toggle-icon { transform: rotate(-90deg); }
+  .board-category-head-latest { display: block; font-size: 0.64rem; }
   .board-category-boards {
     overflow: hidden; max-height: 4000px; opacity: 1;
     transition: max-height 0.35s ease, opacity 0.25s ease;
