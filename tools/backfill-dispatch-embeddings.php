@@ -53,13 +53,17 @@ foreach ($rows as $row) {
         $failed++;
     }
 
-    // This account has a hard ceiling on simultaneous processes. A brief
-    // pause between each one-shot embedding process keeps this one-time
-    // batch from bunching up spawn attempts against that ceiling -- a few
-    // extra minutes across ~600 rows costs nothing here, unlike the live
-    // request path (which only ever runs one call at a time anyway and
-    // must stay fast).
-    usleep(300000);
+    // This account has a hard ceiling on simultaneous processes/threads.
+    // Live evidence (cPanel's Resource Usage "Faults" chart) showed heavy
+    // NprocF spikes during this batch at a 0.3s pause -- CloudLinux was
+    // killing newly-spawned embedding processes outright for breaching that
+    // ceiling, not for running too long. 3s gives everything else on the
+    // account (spaCy, PHP-FPM/LiteSpeed workers, this SSH session, cron)
+    // room to finish and release their own process/thread slots between
+    // each spawn. A one-time batch of ~600 rows taking half an hour instead
+    // of a few minutes costs nothing here, unlike the live request path
+    // (which only ever runs one call at a time anyway and must stay fast).
+    sleep(3);
 }
 
 echo "Processed {$total} approved translations: {$updated} embedded, {$skipped} already cached, {$failed} failed.\n";

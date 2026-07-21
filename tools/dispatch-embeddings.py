@@ -28,12 +28,27 @@ import sys
 
 # Keep this one-shot process's own CPU/memory footprint as small as possible
 # -- these must be set before numpy/torch are imported. Fewer BLAS/OpenMP
-# threads means less thread-stack memory and no risk of this short-lived
-# process briefly grabbing more of the account's 2 allocated vCPUs than a
-# single commit-message-length encode actually needs.
+# threads means less thread-stack memory and, on this account specifically,
+# fewer OS-level tasks counted against its process/thread ceiling -- live
+# production evidence (cPanel's Resource Usage "Faults" chart) showed heavy
+# NprocF spikes during a batch of these calls, meaning CloudLinux was
+# killing newly-spawned processes for breaching that ceiling, not for
+# running too long. OPENBLAS_NUM_THREADS/NUMEXPR_NUM_THREADS cover thread
+# pools that OMP_NUM_THREADS/MKL_NUM_THREADS alone don't reach depending on
+# which BLAS backend numpy/torch resolve to on this host.
 os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 os.environ.setdefault("OMP_NUM_THREADS", "1")
 os.environ.setdefault("MKL_NUM_THREADS", "1")
+os.environ.setdefault("OPENBLAS_NUM_THREADS", "1")
+os.environ.setdefault("NUMEXPR_NUM_THREADS", "1")
+# The model is downloaded and cached locally after the first-ever call (see
+# docs/dispatch-embeddings.md). Every call after that has no real reason to
+# reach out to the Hugging Face Hub at all -- forcing offline mode removes a
+# network round trip (and whatever thread/socket it uses) from every single
+# one-shot invocation, and also removes the "unauthenticated requests" rate-
+# limit warning from stderr.
+os.environ.setdefault("HF_HUB_OFFLINE", "1")
+os.environ.setdefault("TRANSFORMERS_OFFLINE", "1")
 
 MODEL_NAME = "all-MiniLM-L6-v2"
 MAX_TEXT_CHARS = 4000
