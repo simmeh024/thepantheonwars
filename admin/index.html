@@ -359,7 +359,7 @@
                 </span>
               </button>
             </li>
-            <li>
+            <li data-requires-permission="members.edit">
               <button type="button" class="quick-action-btn" id="quick-action-new-member">
                 <span class="quick-action-icon">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
@@ -381,7 +381,7 @@
                 </span>
               </button>
             </li>
-            <li>
+            <li data-requires-permission="books.edit">
               <button type="button" class="quick-action-btn" id="quick-action-new-book">
                 <span class="quick-action-icon quick-action-icon--orange">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>
@@ -520,7 +520,7 @@
       </div>
 
       <div class="admin-home-grid">
-        <div class="activity-widget admin-home-grid-main">
+        <div class="activity-widget admin-home-grid-main" data-requires-permission="dashboards.view_audit_log">
           <div class="activity-widget-head">
             <div class="activity-widget-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -550,19 +550,19 @@
             </div>
           </div>
           <ul class="pending-work-list" id="pending-work-list">
-            <li class="pending-work-row" id="pending-work-translations-row">
+            <li class="pending-work-row" id="pending-work-translations-row" data-requires-permission="dispatch_translations.view">
               <span class="pending-work-label">Dispatches awaiting translation</span>
               <span class="pending-work-count" id="pending-work-translations-count">&hellip;</span>
             </li>
-            <li class="pending-work-row" id="pending-work-category-review-row">
+            <li class="pending-work-row" id="pending-work-category-review-row" data-requires-permission="dispatches.view">
               <span class="pending-work-label">Dispatches needing category review</span>
               <span class="pending-work-count pending-work-count-warn" id="pending-work-category-review-count">&hellip;</span>
             </li>
-            <li class="pending-work-row" id="pending-work-reports-row">
+            <li class="pending-work-row" id="pending-work-reports-row" data-requires-permission="topic_reports.view">
               <span class="pending-work-label">Active Topic Reports</span>
               <span class="pending-work-count pending-work-count-warn" id="pending-work-reports-count">&hellip;</span>
             </li>
-            <li class="pending-work-row" id="pending-work-news-reports-row">
+            <li class="pending-work-row" id="pending-work-news-reports-row" data-requires-permission="topic_reports.view">
               <span class="pending-work-label">Active News Comment Reports</span>
               <span class="pending-work-count pending-work-count-warn" id="pending-work-news-reports-count">&hellip;</span>
             </li>
@@ -1445,7 +1445,7 @@
       </div>
 
       <div class="admin-toolbar">
-        <button type="button" class="btn btn-solid" id="resync-btn">Force Re-sync</button>
+        <button type="button" class="btn btn-solid" id="resync-btn" data-requires-permission="dispatches.edit">Force Re-sync</button>
         <select class="admin-search admin-tag-select" id="control-tag-filter">
           <option value="">All categories</option>
           <option value="feature">Feature</option>
@@ -4817,46 +4817,55 @@
       var actions = document.createElement('div');
       actions.className = 'report-row-actions';
 
+      var canManageReports = pwHasPermission('topic_reports.manage');
+      var canDeleteReports = pwHasPermission('topic_reports.delete');
+
       // Lock/Move/Delete act on the reported content itself -- once a report
       // is resolved there's nothing left to action from this row, so those
       // three are swapped out for a single Re-open button instead.
       if (r.source === 'forum' && !r.target_deleted && r.status === 'open') {
-        var lockBtn = document.createElement('button');
-        lockBtn.type = 'button';
-        lockBtn.className = 'report-action-btn';
-        lockBtn.textContent = r.is_locked ? 'Unlock' : 'Lock';
-        lockBtn.addEventListener('click', function () { openReportActionModal(r, 'lock'); });
-        actions.appendChild(lockBtn);
+        if (canManageReports) {
+          var lockBtn = document.createElement('button');
+          lockBtn.type = 'button';
+          lockBtn.className = 'report-action-btn';
+          lockBtn.textContent = r.is_locked ? 'Unlock' : 'Lock';
+          lockBtn.addEventListener('click', function () { openReportActionModal(r, 'lock'); });
+          actions.appendChild(lockBtn);
 
-        var moveBtn = document.createElement('button');
-        moveBtn.type = 'button';
-        moveBtn.className = 'report-action-btn';
-        moveBtn.textContent = 'Move';
-        moveBtn.addEventListener('click', function () { openReportActionModal(r, 'move'); });
-        actions.appendChild(moveBtn);
+          var moveBtn = document.createElement('button');
+          moveBtn.type = 'button';
+          moveBtn.className = 'report-action-btn';
+          moveBtn.textContent = 'Move';
+          moveBtn.addEventListener('click', function () { openReportActionModal(r, 'move'); });
+          actions.appendChild(moveBtn);
+        }
 
-        var deleteBtn = document.createElement('button');
-        deleteBtn.type = 'button';
-        deleteBtn.className = 'report-action-btn report-action-btn-danger';
-        deleteBtn.textContent = 'Delete';
-        deleteBtn.addEventListener('click', function () { openReportActionModal(r, 'delete'); });
-        actions.appendChild(deleteBtn);
+        if (canDeleteReports) {
+          var deleteBtn = document.createElement('button');
+          deleteBtn.type = 'button';
+          deleteBtn.className = 'report-action-btn report-action-btn-danger';
+          deleteBtn.textContent = 'Delete';
+          deleteBtn.addEventListener('click', function () { openReportActionModal(r, 'delete'); });
+          actions.appendChild(deleteBtn);
+        }
       }
 
-      if (r.status === 'open') {
-        var closeBtn = document.createElement('button');
-        closeBtn.type = 'button';
-        closeBtn.className = 'report-action-btn report-action-btn-close';
-        closeBtn.textContent = 'Close Report';
-        closeBtn.addEventListener('click', function () { openReportActionModal(r, 'resolve'); });
-        actions.appendChild(closeBtn);
-      } else {
-        var reopenBtn = document.createElement('button');
-        reopenBtn.type = 'button';
-        reopenBtn.className = 'report-action-btn report-action-btn-reopen';
-        reopenBtn.textContent = 'Re-open';
-        reopenBtn.addEventListener('click', function () { openReportActionModal(r, 'reopen'); });
-        actions.appendChild(reopenBtn);
+      if (canManageReports) {
+        if (r.status === 'open') {
+          var closeBtn = document.createElement('button');
+          closeBtn.type = 'button';
+          closeBtn.className = 'report-action-btn report-action-btn-close';
+          closeBtn.textContent = 'Close Report';
+          closeBtn.addEventListener('click', function () { openReportActionModal(r, 'resolve'); });
+          actions.appendChild(closeBtn);
+        } else {
+          var reopenBtn = document.createElement('button');
+          reopenBtn.type = 'button';
+          reopenBtn.className = 'report-action-btn report-action-btn-reopen';
+          reopenBtn.textContent = 'Re-open';
+          reopenBtn.addEventListener('click', function () { openReportActionModal(r, 'reopen'); });
+          actions.appendChild(reopenBtn);
+        }
       }
 
       row.appendChild(actions);
@@ -4879,6 +4888,8 @@
   }
 
   function openReportActionModal(report, action) {
+    var requiredPermission = action === 'delete' ? 'topic_reports.delete' : 'topic_reports.manage';
+    if (!pwHasPermission(requiredPermission)) return;
     pendingReportAction = { report: report, action: action };
     reportActionModalError.classList.remove('show');
     reportActionModalStatus.classList.remove('show');
@@ -6469,6 +6480,7 @@
     controlCommitBodyEl.textContent = entry.body && entry.body.trim() ? entry.body : 'No further commit details.';
     controlModalError.classList.remove('show');
     controlModalStatus.classList.remove('show');
+    controlSaveBtn.disabled = !pwHasPermission('dispatches.edit');
     controlModal.hidden = false;
     setTimeout(function () { controlSubjectInput.focus(); }, 30);
   }
@@ -6483,7 +6495,7 @@
   controlModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeControlModal);
 
   controlSaveBtn.addEventListener('click', function () {
-    if (!currentControlEntry) return;
+    if (!currentControlEntry || !pwHasPermission('dispatches.edit')) return;
     var subject = controlSubjectInput.value.trim();
     if (!subject) {
       controlModalError.textContent = 'Title can\'t be empty.';
@@ -6524,6 +6536,7 @@
   });
 
   resyncBtn.addEventListener('click', function () {
+    if (!pwHasPermission('dispatches.edit')) return;
     resyncBtn.disabled = true;
     resyncStatusEl.className = 'admin-resync-status';
     resyncStatusEl.textContent = 'Checking GitHub for new commits…';
@@ -6695,10 +6708,13 @@
     updateDraftConfidence(entry.confidence);
     modalError.classList.remove('show');
     modalStatus.classList.remove('show');
-    deleteBtn.hidden = !entry.has_translation;
-    generateDraftBtn.hidden = entry.has_translation;
+    var canEditTranslation = pwHasPermission('dispatch_translations.edit');
+    deleteBtn.hidden = !entry.has_translation || !canEditTranslation;
+    generateDraftBtn.hidden = entry.has_translation || !canEditTranslation;
     setGenerateDraftButton(entry.has_draft ? 'Regenerate Draft' : 'Generate Draft', false);
     saveBtn.textContent = entry.has_translation ? 'Save Changes' : 'Approve & Publish';
+    saveBtn.disabled = !canEditTranslation;
+    textarea.disabled = !canEditTranslation;
     if (entry.has_draft) {
       modalStatus.textContent = 'Rule-based draft ready. Review it before publishing.';
       modalStatus.classList.add('show');
@@ -6763,7 +6779,7 @@
   });
 
   saveBtn.addEventListener('click', function () {
-    if (!currentEntry) return;
+    if (!currentEntry || !pwHasPermission('dispatch_translations.edit')) return;
     var text = textarea.value.trim();
     if (!text) {
       modalError.textContent = 'Translation text can\'t be empty.';
@@ -6799,7 +6815,7 @@
   });
 
   generateDraftBtn.addEventListener('click', function () {
-    if (!currentEntry) return;
+    if (!currentEntry || !pwHasPermission('dispatch_translations.edit')) return;
     var idleLabel = currentEntry.has_draft ? 'Regenerate Draft' : 'Generate Draft';
     setGenerateDraftButton('Generating Draft', true);
     modalError.classList.remove('show');
@@ -6849,7 +6865,7 @@
   });
 
   deleteBtn.addEventListener('click', function () {
-    if (!currentEntry) return;
+    if (!currentEntry || !pwHasPermission('dispatch_translations.edit')) return;
     if (!window.confirm('Delete this translation?')) return;
     fetch('/api/admin/dispatch-translations/delete.php', {
       method: 'POST',
@@ -6915,6 +6931,7 @@
   var currentForumCategory = null;
 
   function loadForumCategories() {
+    forumCategoryCreateBtn.hidden = !pwHasPermission('forum_boards.edit');
     forumCategoryListEl.innerHTML = '<div class="admin-list-empty">Loading categories&hellip;</div>';
     return fetch('/api/admin/forum-categories/list.php', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
@@ -7005,13 +7022,15 @@
     currentForumCategory = entry;
     forumCategoryModalTitle.textContent = 'Edit Category';
     forumCategoryNameInput.value = entry.name || '';
-    forumCategoryDeleteBtn.hidden = false;
+    forumCategoryDeleteBtn.hidden = !pwHasPermission('forum_boards.delete');
     forumCategoryModalError.classList.remove('show');
     forumCategoryModalStatus.classList.remove('show');
     forumCategoryModal.hidden = false;
+    forumCategorySaveBtn.disabled = !pwHasPermission('forum_boards.edit');
   }
 
   function openCreateForumCategoryModal() {
+    if (!pwHasPermission('forum_boards.edit')) return;
     forumCategoryModalMode = 'create';
     currentForumCategory = null;
     forumCategoryModalTitle.textContent = 'Add Category';
@@ -7141,6 +7160,7 @@
   var forumBoardRolesSelected = {};
 
   function loadForumBoards() {
+    forumBoardCreateBtn.hidden = !pwHasPermission('forum_boards.edit');
     forumBoardListEl.innerHTML = '<div class="admin-list-empty">Loading boards&hellip;</div>';
     fetch('/api/admin/forum-boards/list.php', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
@@ -7293,7 +7313,7 @@
     forumBoardModalSub.textContent = entry.slug;
     forumBoardSlugField.hidden = false;
     forumBoardSlugInput.disabled = true;
-    forumBoardDeleteBtn.hidden = entry.is_protected;
+    forumBoardDeleteBtn.hidden = entry.is_protected || !pwHasPermission('forum_boards.delete');
     // Protected boards (Announcements) always stay public -- the
     // community.post_announcements permission check and the public
     // is-announcement-board styling both key off the literal slug, so
@@ -7304,9 +7324,11 @@
     forumBoardModalStatus.classList.remove('show');
     populateForumBoardForm(entry);
     forumBoardModal.hidden = false;
+    forumBoardSaveBtn.disabled = !pwHasPermission('forum_boards.edit');
   }
 
   function openCreateForumBoardModal() {
+    if (!pwHasPermission('forum_boards.edit')) return;
     forumBoardModalMode = 'create';
     currentForumBoard = null;
     forumBoardModalTitle.textContent = 'Add Board';
@@ -7785,6 +7807,8 @@
 
     memberPasswordResetRow.hidden = false;
     memberResetTwoFactorBtn.hidden = !entry.two_factor_enabled || !pwHasPermission('members.reset_two_factor');
+    memberResetAvatarBtn.hidden = !pwHasPermission('members.reset_avatar');
+    memberGeneratePasswordBtn.hidden = !pwHasPermission('members.reset_password');
     memberGeneratedPasswordBox.hidden = true;
     memberGeneratedPasswordHint.hidden = true;
     memberGeneratedPasswordInput.value = '';
@@ -7834,6 +7858,7 @@
   }
 
   function openCreateMemberModal() {
+    if (!pwHasPermission('members.edit')) return;
     memberModalMode = 'create';
     currentMember = null;
     memberModalTitle.textContent = 'Create Member';
@@ -8427,7 +8452,7 @@
   });
 
   memberResetAvatarBtn.addEventListener('click', function () {
-    if (!currentMember) return;
+    if (!currentMember || !pwHasPermission('members.reset_avatar')) return;
     if (!window.confirm('Remove ' + currentMember.display_name + '\'s avatar?')) return;
     memberResetAvatarBtn.disabled = true;
     fetch('/api/admin/members/reset-avatar.php', {
@@ -8457,7 +8482,7 @@
   });
 
   memberGeneratePasswordBtn.addEventListener('click', function () {
-    if (!currentMember) return;
+    if (!currentMember || !pwHasPermission('members.reset_password')) return;
     var confirmMsg = 'Generate a new password for ' + currentMember.display_name + '? ' +
       'Their current password will stop working immediately.';
     if (!window.confirm(confirmMsg)) return;
@@ -9225,6 +9250,7 @@
   }
 
   function loadBookList() {
+    bookCreateBtn.hidden = !pwHasPermission('books.edit');
     bookListEl.innerHTML = '<div class="admin-list-empty">Loading books&hellip;</div>';
     return fetch(buildBookListUrl(), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
@@ -9547,7 +9573,7 @@
     currentBook = null;
     bookModalTitle.textContent = 'Edit Book';
     bookModalSub.innerHTML = 'Book ' + entry.book_number + ' &mdash; ' + escapeHtml(entry.title);
-    bookDeleteBtn.hidden = false;
+    bookDeleteBtn.hidden = !pwHasPermission('books.delete');
     bookModalError.classList.remove('show');
     bookModalStatus.classList.remove('show');
     bookSaveBtn.disabled = true;
@@ -9555,7 +9581,7 @@
     fetch('/api/admin/books/get.php?id=' + encodeURIComponent(entry.id), { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
       .then(function (data) {
-        bookSaveBtn.disabled = false;
+        bookSaveBtn.disabled = !pwHasPermission('books.edit');
         if (!data.ok) {
           bookModalError.textContent = data.error || 'Could not load this book.';
           bookModalError.classList.add('show');
@@ -9565,13 +9591,14 @@
         populateBookForm(data.book);
       })
       .catch(function () {
-        bookSaveBtn.disabled = false;
+        bookSaveBtn.disabled = !pwHasPermission('books.edit');
         bookModalError.textContent = 'Could not load this book. Please try again.';
         bookModalError.classList.add('show');
       });
   }
 
   function openCreateBookModal() {
+    if (!pwHasPermission('books.edit')) return;
     bookModalMode = 'create';
     currentBook = null;
     bookModalTitle.textContent = 'Add Book';
@@ -10094,6 +10121,7 @@
   }
 
   function loadWorldList() {
+    worldCreateBtn.hidden = !pwHasPermission('worlds.edit');
     worldListEl.innerHTML = '<div class="admin-list-empty">Loading worlds&hellip;</div>';
     return fetch('/api/admin/worlds/list.php', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
@@ -10317,14 +10345,16 @@
     worldModalTitle.textContent = 'Edit World';
     worldModalSub.textContent = entry.slug;
     worldSlugInput.disabled = true;
-    worldDeleteBtn.hidden = false;
+    worldDeleteBtn.hidden = !pwHasPermission('worlds.delete');
     worldModalError.classList.remove('show');
     worldModalStatus.classList.remove('show');
     populateWorldForm(entry);
     worldModal.hidden = false;
+    worldSaveBtn.disabled = !pwHasPermission('worlds.edit');
   }
 
   function openCreateWorldModal() {
+    if (!pwHasPermission('worlds.edit')) return;
     worldModalMode = 'create';
     currentWorld = null;
     worldModalTitle.textContent = 'Add World';
@@ -10870,6 +10900,7 @@
   }
 
   function loadOverlordList() {
+    overlordCreateBtn.hidden = !pwHasPermission('overlords.edit');
     overlordListEl.innerHTML = '<div class="admin-list-empty">Loading overlords&hellip;</div>';
     populateOverlordWorldOptions();
     return fetch('/api/admin/overlords/list.php', { credentials: 'same-origin' })
@@ -10974,14 +11005,16 @@
     overlordModalTitle.textContent = 'Edit Overlord';
     overlordModalSub.textContent = entry.slug;
     overlordSlugInput.disabled = true;
-    overlordDeleteBtn.hidden = false;
+    overlordDeleteBtn.hidden = !pwHasPermission('overlords.delete');
     overlordModalError.classList.remove('show');
     overlordModalStatus.classList.remove('show');
     populateOverlordWorldOptions().then(function () { populateOverlordForm(entry); });
     overlordModal.hidden = false;
+    overlordSaveBtn.disabled = !pwHasPermission('overlords.edit');
   }
 
   function openCreateOverlordModal() {
+    if (!pwHasPermission('overlords.edit')) return;
     overlordModalMode = 'create';
     currentOverlord = null;
     overlordModalTitle.textContent = 'Add Overlord';
@@ -11157,6 +11190,7 @@
   wireImageField('known_figure_portrait');
 
   function loadKnownFigureList() {
+    knownFigureCreateBtn.hidden = !pwHasPermission('known_figures.edit');
     knownFigureListEl.innerHTML = '<div class="admin-list-empty">Loading known figures&hellip;</div>';
     return fetch('/api/admin/known-figures/list.php', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
@@ -11257,14 +11291,16 @@
     knownFigureModalTitle.textContent = 'Edit Known Figure';
     knownFigureModalSub.textContent = entry.slug;
     knownFigureSlugInput.disabled = true;
-    knownFigureDeleteBtn.hidden = false;
+    knownFigureDeleteBtn.hidden = !pwHasPermission('known_figures.delete');
     knownFigureModalError.classList.remove('show');
     knownFigureModalStatus.classList.remove('show');
     populateKnownFigureForm(entry);
     knownFigureModal.hidden = false;
+    knownFigureSaveBtn.disabled = !pwHasPermission('known_figures.edit');
   }
 
   function openCreateKnownFigureModal() {
+    if (!pwHasPermission('known_figures.edit')) return;
     knownFigureModalMode = 'create';
     currentKnownFigure = null;
     knownFigureModalTitle.textContent = 'Add Known Figure';
@@ -11824,6 +11860,7 @@
   soundtrackSpotifyUrlInput.addEventListener('input', updateSoundtrackSpotifyPreview);
 
   function loadSoundtrackList() {
+    soundtrackCreateBtn.hidden = !pwHasPermission('soundtracks.edit');
     soundtrackListEl.innerHTML = '<div class="admin-list-empty">Loading soundtracks&hellip;</div>';
     return fetch('/api/admin/soundtracks/list.php', { credentials: 'same-origin' })
       .then(function (r) { return r.json(); })
@@ -11912,14 +11949,16 @@
     currentSoundtrack = entry;
     soundtrackModalTitle.textContent = 'Edit Soundtrack';
     soundtrackModalSub.textContent = entry.heading;
-    soundtrackDeleteBtn.hidden = false;
+    soundtrackDeleteBtn.hidden = !pwHasPermission('soundtracks.delete');
     soundtrackModalError.classList.remove('show');
     soundtrackModalStatus.classList.remove('show');
     populateSoundtrackForm(entry);
     soundtrackModal.hidden = false;
+    soundtrackSaveBtn.disabled = !pwHasPermission('soundtracks.edit');
   }
 
   function openCreateSoundtrackModal() {
+    if (!pwHasPermission('soundtracks.edit')) return;
     soundtrackModalMode = 'create';
     currentSoundtrack = null;
     soundtrackModalTitle.textContent = 'Add Soundtrack';
@@ -13742,6 +13781,7 @@
       .then(function (r) { return r.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'Could not save quiz content.'); return data; });
   }
   function loadQuizQuestionList() {
+    quizQuestionCreateBtn.hidden = !pwHasPermission('quiz.edit');
     quizQuestionListEl.innerHTML = '<div class="admin-list-empty">Loading quiz questions&hellip;</div>';
     return fetch('/api/admin/quiz/list.php', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (data) {
       if (!data.ok) throw new Error();
@@ -13758,6 +13798,7 @@
     }).catch(function () { quizQuestionListEl.innerHTML = '<div class="admin-list-empty">Could not load quiz questions. Run the Quiz Control migration first.</div>'; });
   }
   function openQuizQuestionModal(question) {
+    if (!question && !pwHasPermission('quiz.edit')) return;
     quizQuestionCurrent = question || null;
     quizQuestionModalTitle.textContent = question ? 'Edit Quiz Question' : 'Add Quiz Question';
     quizQuestionTextInput.value = question ? question.question_text : '';
@@ -13766,7 +13807,8 @@
     quizQuestionOptionInputs.forEach(function (input, index) { input.value = question && question.options ? (question.options[index] || '') : ''; });
     quizQuestionModalError.textContent = ''; quizQuestionModalError.classList.remove('show');
     quizQuestionModalStatus.textContent = ''; quizQuestionModalStatus.classList.remove('show');
-    document.getElementById('quiz-question-delete-btn').hidden = !question;
+    document.getElementById('quiz-question-delete-btn').hidden = !question || !pwHasPermission('quiz.delete');
+    document.getElementById('quiz-question-save-btn').disabled = !pwHasPermission('quiz.edit');
     quizQuestionModal.hidden = false;
     setTimeout(function () { quizQuestionTextInput.focus(); }, 30);
   }

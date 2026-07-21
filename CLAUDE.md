@@ -323,6 +323,74 @@ curl -s -o /dev/null "https://thepantheonwars.com/api/cron/rollup-page-view-jour
 This writes completed-day transitions to `page_view_daily_transitions`; the endpoint
 also supports a deliberately manual `?full=1` historical rebuild.
 
+## Permission-aware UI is a standing requirement, not a one-off audit
+
+The backend permission system (`permissions` table, `role_permissions`,
+`pw_has_permission()`/`pw_require_permission()` in `api/helpers.php`,
+`pw_user_permissions()` returning `['*']` for a superuser role) is the only
+real security boundary and is never to be weakened for UI convenience. But
+every control, button, modal, nav entry, or dashboard card that a given
+session cannot actually use must also be hidden from that session -- a
+visible-but-blocked control is a UX bug even when the backend correctly
+rejects it. This was audited application-wide (2026-07-21) and is now a
+standing convention for every new admin feature, not just the modules fixed
+at that time.
+
+**The reusable mechanism (already built, use it, do not reinvent it):**
+- `window.PW_AUTH.permissions` (from `api/session-check.php`) is the single
+  source of truth on the frontend, same as the backend's own permission set.
+- `pwHasPermission(key)` (defined once in `js/members.js`, available on every
+  page including the admin console) checks it -- `'*'` short-circuits true for
+  a superuser role, matching the backend's own bypass exactly.
+- In `admin/index.html`, `applyNavPermissions()` runs once at `checkAccess()`
+  and hides every element carrying a static `data-requires-permission="key"`
+  (or `"key1,key2"`, OR-matched) attribute. Use this for elements with no
+  other logic toggling their `hidden` state (nav `<li>`s, dashboard cards,
+  toolbar buttons that are always either fully visible or fully hidden).
+- For a control whose visibility is *also* driven by other state (a Delete
+  button hidden in create-mode but shown in edit-mode; a Save button that's
+  temporarily disabled while a fetch is in flight) do **not** rely on the
+  static attribute -- it only runs once and other code can silently re-show
+  the element afterward. Instead compute the final state at the same point
+  the other logic already runs, e.g.
+  `xDeleteBtn.hidden = <business condition> || !pwHasPermission('x.delete');`
+  and `xSaveBtn.disabled = !pwHasPermission('x.edit');` inside the section's
+  `loadX()`/`openXModal()`/`openCreateXModal()` functions. Every flat-CRUD
+  module (Book/World/Overlord/Quiz/Soundtrack/Known Figures/Forum/Dispatch
+  Control) follows this exact pattern now -- copy it rather than inventing a
+  new one.
+- A "+ Add X" create action must refuse to open even if called directly
+  (quick action, keyboard shortcut, a stale button), not just hide its
+  trigger: `function openCreateXModal() { if (!pwHasPermission('x.edit'))
+  return; ... }`. A view-only session (has `x.view` but not `x.edit`) may
+  still open an *existing* record's modal to inspect it, matching the
+  Members module's own precedent -- only Save/Delete are disabled there, the
+  modal itself still opens.
+- For rows/buttons built dynamically in JS (Topic Reports' per-report
+  lock/move/delete/resolve buttons, previously built unconditionally), guard
+  the `document.createElement`/`appendChild` calls themselves with
+  `pwHasPermission(...)`, and re-check the same permission inside whatever
+  function actually performs the action (`openReportActionModal()` etc.) as
+  defense in depth -- never trust that a hidden trigger is the only path to
+  the handler.
+- Never invent a hardcoded role check (`role === 'admin'`) anywhere in new
+  code, frontend or backend. Where a capability depends on more than a flat
+  permission key (forum moderation's `canModerate`/`canDelete`, which also
+  needs to know about board-specific context), compute it **server-side**
+  from `pw_has_permission()` and send the resolved boolean down in the API
+  response (see `api/topics/get.php`/`api/comments/list.php`) -- the frontend
+  branches on that flag, never re-derives it from a role string. This is
+  still permission-based, just resolved once on the trusted side.
+- An empty dashboard card caused by a missing permission (the backend
+  computing that section's data only `if (pw_has_permission(...))`, per
+  `api/admin/home-summary.php`) must be hidden via
+  `data-requires-permission`, not left to render as a blank/loading card
+  forever. Before gating a card, check whether its backend data is actually
+  permission-conditional at all (`grep` `home-summary.php` for the field) --
+  several Home cards (Content Drafts, Security Snapshot, Site Stats,
+  Translation Confidence) are deliberately computed for every admin
+  regardless of role and must stay ungated.
+
 ## Admin console conventions (`admin/index.html` -- single large file)
 
 - Sidebar categories: **Lore Management** (Book Control, World Control, Weather
@@ -471,6 +539,34 @@ also supports a deliberately manual `?full=1` historical rebuild.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Application-wide permission-visibility audit:** cross-referenced every
+  `pw_require_permission()`/`pw_has_permission()` key checked anywhere under
+  `api/` against `admin/index.html`'s frontend gates and found the "+ Add X"
+  create button and/or in-modal Save button ungated (visible and clickable,
+  even though the backend correctly blocked the save) across Book, World,
+  Overlord, Quiz, Soundtrack, Known Figures (delete only), Forum Control
+  (boards + categories), Dispatch Control (Force Re-sync + edit modal), and
+  Dispatch Translations (save/generate-draft/delete) -- a consistent gap
+  where `.view`/`.delete` had been wired up but `.edit`/`.create` was missed.
+  Also fixed: Topic Reports' per-row lock/move/close/reopen/delete buttons
+  were built in JS with zero permission checks at all (now gated by
+  `topic_reports.manage`/`.delete`); Members' Reset Avatar/Generate Password
+  buttons were unconditionally visible (now `members.reset_avatar`/
+  `members.reset_password`); Home's "Recent Activity" card is the literal
+  reported bug (an audit-log preview that rendered as a permanently-empty
+  "Loading activity..." card for anyone without `dashboards.view_audit_log`,
+  since the backend only populates that field conditionally) plus four
+  Pending Work rows with the same empty-by-permission problem; the "Add New
+  Book"/"Add New Member" Quick Actions were reachable and would silently
+  no-op-to-403 for a Test-role user. Verified (not changed) that
+  `community.html`'s forum moderation menu was already doing this correctly
+  -- `canModerate`/`canDelete` are resolved server-side from
+  `pw_has_permission()` in `api/topics/get.php`/`api/comments/list.php` and
+  sent down as booleans, which is the same permission-based approach just
+  computed once on the trusted side rather than re-checked as a raw key in
+  the browser. See the new "Permission-aware UI is a standing requirement"
+  section above for the pattern every future admin control must follow.
 
 - **Overlord profile page enhancements** (`overlord.html`): six additions.
   **Per-Overlord theming**: `accent_color`/`accent_glow` were captured by
