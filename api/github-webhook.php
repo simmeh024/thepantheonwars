@@ -6,6 +6,7 @@
  * the X-Hub-Signature-256 header before touching the database.
  */
 require_once __DIR__ . '/db.php';
+require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/dispatch-helpers.php';
 require_once __DIR__ . '/dispatch-diff-context.php';
 require_once __DIR__ . '/dispatch-translation-drafts.php';
@@ -41,6 +42,35 @@ if (!hash_equals($expected, $signatureHeader)) {
     gh_respond(['ok' => false, 'error' => 'Invalid signature'], 401);
 }
 
+$payload = json_decode($rawBody, true);
+
+// Repository check: a valid signature only proves the caller knows our
+// shared secret, not that the delivery actually came from this project's
+// repository -- the same secret could be (accidentally or deliberately)
+// reused on another repo's webhook config. Reject anything that isn't
+// explicitly this repo before any further processing. Configurable via
+// GITHUB_REPOSITORY in the outside-webroot secrets config; defaults to the
+// real repo so existing production webhooks keep working with no config
+// change required.
+$expectedRepository = defined('GITHUB_REPOSITORY') ? GITHUB_REPOSITORY : 'simmeh024/thepantheonwars';
+$actualRepository = is_array($payload) && isset($payload['repository']['full_name'])
+    ? (string)$payload['repository']['full_name']
+    : '';
+if ($actualRepository !== $expectedRepository) {
+    try {
+        pw_log_activity(
+            'webhook_repository_rejected',
+            'Rejected a signed webhook delivery from unexpected repository "' . ($actualRepository !== '' ? $actualRepository : 'unknown') . '" (expected "' . $expectedRepository . '").',
+            null,
+            $actualRepository !== '' ? $actualRepository : 'unknown'
+        );
+    } catch (Exception $e) {
+        // admin_activity_log should always exist by this point, but never let
+        // a logging failure mask the actual rejection below.
+    }
+    gh_respond(['ok' => false, 'error' => 'Unexpected repository'], 403);
+}
+
 // Record that GitHub reached us -- this is the "Webhook Delivery" signal on
 // the System Status page, independent of whether the repo itself is
 // reachable from our side. Runs for every authenticated call (ping or push)
@@ -69,7 +99,6 @@ if ($event !== 'push') {
     gh_respond(['ok' => true, 'message' => 'Ignored event: ' . $event]);
 }
 
-$payload = json_decode($rawBody, true);
 if (!is_array($payload) || empty($payload['commits']) || !is_array($payload['commits'])) {
     gh_respond(['ok' => true, 'message' => 'No commits in payload']);
 }

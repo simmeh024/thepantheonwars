@@ -104,6 +104,17 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // and everything keeps working at the lower unauthenticated limit.
 // define('GITHUB_TOKEN', 'REPLACE_WITH_REAL_TOKEN');
 
+// Optional. api/github-webhook.php rejects any signed delivery whose
+// payload's repository.full_name doesn't match this exactly, returning 403
+// -- a valid HMAC signature only proves the caller knows the shared
+// GITHUB_WEBHOOK_SECRET, not that the delivery came from this project's own
+// repo (the same secret could end up reused on another repo's webhook
+// config, by accident or otherwise). Leave commented out and the webhook
+// already defaults to 'simmeh024/thepantheonwars', so existing production
+// webhooks keep working with no config change required; only set this if
+// the real repository is ever renamed or moved.
+// define('GITHUB_REPOSITORY', 'simmeh024/thepantheonwars');
+
 // Required for the System Status "CPU (Shared)" 24h chart's cron sampler
 // (api/cron/sample-load.php) AND the Visitor Statistics page's daily
 // rollup/prune job (api/cron/rollup-page-views.php) -- both are cron-only,

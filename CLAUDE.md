@@ -540,6 +540,30 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **GitHub webhook repository validation:** `api/github-webhook.php` now
+  checks the payload's `repository.full_name` against a configurable
+  expected value immediately after HMAC signature verification and before
+  any payload processing (decoding the body once, right there, instead of
+  the second time further down where it used to happen) -- a valid
+  `X-Hub-Signature-256` only proves the caller knows `GITHUB_WEBHOOK_SECRET`,
+  not that the delivery actually came from this project's own repo; the
+  same secret could end up reused on another repo's webhook config by
+  accident. Mismatches respond 403 and are recorded via
+  `pw_log_activity('webhook_repository_rejected', ...)` into the same
+  `admin_activity_log` every other security block already uses (visible in
+  Audit Log under the new "Webhook rejected (wrong repository)" filter, in
+  the Dispatches optgroup next to "Force re-synced from GitHub" since
+  that's the feature this webhook feeds). Configurable via `GITHUB_REPOSITORY`
+  in the outside-webroot secrets config (see `api/config.sample.php`), but
+  defaults to `simmeh024/thepantheonwars` when unset so existing production
+  webhooks keep working with zero config changes required. This also pulled
+  `api/github-webhook.php` into requiring `api/helpers.php` (previously it
+  only required `db.php` directly) to get `pw_log_activity()`/
+  `pw_client_ip()` -- matching helpers.php's own header comment that every
+  `api/*.php` entry point should require it; no behavior change for the
+  file's existing header-setting or session logic since the webhook never
+  carries a session cookie.
+
 - **Login endpoint rate limit:** a new `login_rate_limit_hits` table
   (`sql/migration_login_rate_limit.sql`) plus `pw_login_endpoint_rate_limited()`
   in `api/helpers.php` add a tighter, separate layer in front of `api/login.php`
