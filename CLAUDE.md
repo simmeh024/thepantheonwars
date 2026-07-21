@@ -540,6 +540,24 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Login endpoint rate limit:** a new `login_rate_limit_hits` table
+  (`sql/migration_login_rate_limit.sql`) plus `pw_login_endpoint_rate_limited()`
+  in `api/helpers.php` add a tighter, separate layer in front of `api/login.php`
+  -- 10 requests per IP per rolling 60 seconds, checked before the empty-field
+  validation and before any password hash comparison. This is deliberately
+  distinct from the two throttles already in that file: the 20-failures-in-15-
+  minutes IP check and the 6-failures/5-minute per-account lockout both only
+  log a row (`login_attempts`) once identifier/password have already passed
+  basic validation as a real credential attempt, so a flood of malformed or
+  empty POSTs against the endpoint itself would never trip either one. The new
+  check inserts one hit row per request unconditionally (valid or not) and is
+  checked first, before those other two. It is deliberately not wired through
+  `pw_log_activity()` -- an automated burst can trip it dozens of times a
+  minute, which would flood the admin audit log the way the existing
+  `login_ip_blocked` entries never do (those are comparatively rare); the hit
+  table itself is the record. Run
+  `sql/migration_login_rate_limit.sql` once in phpMyAdmin after deployment.
+
 - **Admin Console typography and whitespace polish** (`css/admin.css`, CSS-only,
   no markup changes): a real bug was found while auditing spacing rather than
   just eyeballing it -- a bare `.admin-field` (the wrapper div around every

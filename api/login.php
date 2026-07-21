@@ -13,12 +13,21 @@ $identifier = isset($input['identifier']) ? trim($input['identifier']) : '';
 $password = isset($input['password']) ? (string)$input['password'] : '';
 $remember = !empty($input['remember']);
 
+$db = pw_db();
+$ip = pw_client_ip();
+
+// Endpoint-level rate limit: counts every POST that reaches this endpoint,
+// valid or not, independent of the credential-attempt-based throttles below
+// (which only log a row once identifier/password have already passed basic
+// validation). Checked first so a flood of automated requests never even
+// reaches the empty-field check, let alone a password hash comparison.
+if (pw_login_endpoint_rate_limited($ip)) {
+    pw_error('Too many login requests from this network. Please wait a moment and try again.', 429);
+}
+
 if ($identifier === '' || $password === '') {
     pw_error('Enter your username/email and password.');
 }
-
-$db = pw_db();
-$ip = pw_client_ip();
 
 // IP-based throttle, independent of the per-account lockout below -- catches
 // credential stuffing spread across many different usernames from one

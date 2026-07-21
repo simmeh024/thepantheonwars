@@ -814,6 +814,17 @@ CREATE TABLE IF NOT EXISTS login_attempts (
   KEY idx_identifier_created (identifier, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- A dedicated, tighter rate limit for the login endpoint itself, separate
+-- from the login_attempts-backed IP/account throttles above. One row per
+-- POST reaching api/login.php, success or failure or even malformed --
+-- see pw_login_endpoint_rate_limited() in api/helpers.php.
+CREATE TABLE IF NOT EXISTS login_rate_limit_hits (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  ip_address VARCHAR(64) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_ip_created (ip_address, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- Raw per-page-view log backing the "Visitor Statistics" admin page.
 -- Pruned to a 90-day rolling window by api/cron/rollup-page-views.php,
 -- which also rolls each finished day up into page_view_daily_stats below.

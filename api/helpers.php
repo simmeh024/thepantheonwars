@@ -783,6 +783,27 @@ function pw_log_login_attempt($ip, $identifier, $success) {
     }
 }
 
+// --- Login endpoint rate limiting --------------------------------------------
+// A separate, tighter layer from the login_attempts-backed IP/account
+// throttles above: those only log a row once an identifier/password have
+// already passed basic validation, so a flood of malformed or empty POSTs
+// against the endpoint itself would never trip either one. This counts every
+// request that reaches api/login.php in a short rolling window, checked
+// before any password verification or per-account lookup is spent on it.
+// Deliberately not written through pw_log_activity -- an automated burst can
+// trip this dozens of times a minute, which would flood the admin audit log;
+// the hit table itself is the record.
+function pw_login_endpoint_rate_limited($ip) {
+    $db = pw_db();
+    $db->prepare('INSERT INTO login_rate_limit_hits (ip_address) VALUES (?)')->execute([$ip]);
+    if (random_int(1, 50) === 1) {
+        $db->exec('DELETE FROM login_rate_limit_hits WHERE created_at < (UTC_TIMESTAMP() - INTERVAL 1 HOUR)');
+    }
+    $stmt = $db->prepare('SELECT COUNT(*) AS c FROM login_rate_limit_hits WHERE ip_address = ? AND created_at > (UTC_TIMESTAMP() - INTERVAL 60 SECOND)');
+    $stmt->execute([$ip]);
+    return (int)$stmt->fetch()['c'] > 10;
+}
+
 // --- Password strength -------------------------------------------------------
 // Checks a password against the Have I Been Pwned breached-password corpus
 // via the k-anonymity range API: only the first 5 hex chars of the
