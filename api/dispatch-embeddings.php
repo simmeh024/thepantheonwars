@@ -32,14 +32,30 @@
  */
 function pw_dispatch_embedding_request(array $payload): ?array
 {
+    // TEMPORARY diagnostic logging -- see PW_DEBUG_EMBEDDING note on
+    // pw_dispatch_update_translation_embedding() above.
+    $debug = getenv('PW_DEBUG_EMBEDDING') !== false;
+
     static $unavailable = false;
-    if ($unavailable || !function_exists('proc_open') || !defined('DISPATCH_EMBEDDING_PYTHON_BIN')) {
+    if ($unavailable) {
+        if ($debug) {
+            fwrite(STDERR, "[embed request] latched unavailable, skipping without trying\n");
+        }
+        return null;
+    }
+    if (!function_exists('proc_open') || !defined('DISPATCH_EMBEDDING_PYTHON_BIN')) {
+        if ($debug) {
+            fwrite(STDERR, "[embed request] proc_open missing or DISPATCH_EMBEDDING_PYTHON_BIN undefined\n");
+        }
         return null;
     }
 
     $python = trim((string)DISPATCH_EMBEDDING_PYTHON_BIN);
     $script = dirname(__DIR__) . '/tools/dispatch-embeddings.py';
     if ($python === '' || !is_file($python) || !is_file($script)) {
+        if ($debug) {
+            fwrite(STDERR, "[embed request] pre-flight failed: python='{$python}' is_file(python)=" . (is_file($python) ? '1' : '0') . " is_file(script)=" . (is_file($script) ? '1' : '0') . "\n");
+        }
         $unavailable = true;
         return null;
     }
@@ -109,9 +125,14 @@ function pw_dispatch_embedding_request(array $payload): ?array
 
     $decoded = json_decode($output, true);
     if (!is_array($decoded) || empty($decoded['ok'])) {
-        if ($errors !== '') {
-            $unavailable = true;
+        if ($debug) {
+            fwrite(STDERR, "[embed request] decode failed. output=" . var_export($output, true) . " errors=" . var_export($errors, true) . "\n");
         }
+        // Deliberately not latching here anymore either, for the same
+        // per-call-vs-permanent reasoning as the branches above -- see
+        // pw_dispatch_update_translation_embedding()'s debug logging for
+        // why a single early failure must not silently disable an entire
+        // long-running batch run.
         return null;
     }
     return $decoded;
