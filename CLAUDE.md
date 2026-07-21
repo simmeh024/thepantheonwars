@@ -551,7 +551,7 @@ at that time.
   system recognized, because those all need literal word overlap and this
   commit shared none with any prior similar change. **Architecture
   decision:** a *persistent* Flask service
-  (`tools/dispatch-embeddings-service.py`, `all-MiniLM-L6-v2`, loaded once
+  (`tools/dispatch_embeddings_service.py`, `all-MiniLM-L6-v2`, loaded once
   at process start via a **second, separate** cPanel "Setup Python App" /
   Passenger instance) rather than extending the existing one-shot
   `proc_open`-per-call pattern -- `import torch` alone commonly costs
@@ -602,6 +602,19 @@ at that time.
   existing `spacy_analysis['fuzzy_concept']` test pattern) plus a new
   `forbidden_evidence`/`best_semantic_match` assertion type in the harness
   itself. `admin.css?v=226` / `admin-bundle.css?v=267`.
+  **Corrected during actual cPanel setup:** unlike a self-managed server,
+  "Setup Python App" always routes a Python app through a real URL path on
+  the account's own domain -- there is no raw `127.0.0.1:<port>` loopback
+  option the way the original design assumed. Added
+  `DISPATCH_EMBEDDING_SERVICE_KEY`, a shared secret sent as the
+  `X-Dispatch-Key` header on every request and checked by
+  `tools/dispatch_embeddings_service.py` (renamed from
+  `dispatch-embeddings-service.py` -- Python can't import a hyphenated
+  module name, which matters once `passenger_wsgi.py` has to import it by
+  name), so the endpoint can't be used by anyone who merely finds its URL.
+  `docs/dispatch-embeddings.md`'s setup steps now match the real "Setup
+  Python App" form fields exactly (Application root / URL / startup file /
+  entry point / environment variable), not a generic description.
 
 - **Fixed: Saga Complete's rainbow filled the whole pill, not just the
   ring.** Confirmed live (screenshot) right after the gradient-border fix

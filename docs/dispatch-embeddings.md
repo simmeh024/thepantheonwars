@@ -57,22 +57,47 @@ commit*, then computes cosine similarity against the cached corpus itself
 `api/dispatch-embeddings.php`) -- no network round trip per comparison, and
 no prior translation's text is ever sent back to Python.
 
+## A real difference from the spaCy worker: there is no loopback-only option
+
+Unlike a self-managed server, cPanel's "Setup Python App" always exposes a
+Python app through a real URL path on the account's own domain (e.g.
+`https://thepantheonwars.com/dispatch-embeddings`) -- there is no way to get
+a raw `127.0.0.1:<port>` you can reach only from PHP running on the same
+box. That means, unlike the spaCy worker (which never listens on anything),
+this endpoint is technically internet-reachable by anyone who finds its URL.
+`DISPATCH_EMBEDDING_SERVICE_KEY` closes that gap: PHP sends it as an
+`X-Dispatch-Key` header on every request, and
+`tools/dispatch_embeddings_service.py` rejects `/encode` calls that don't
+present it. Treat it exactly like any other secret in this project (random,
+outside-webroot-only, never committed).
+
 ## cPanel setup (one time)
 
-1. In cPanel, open **Setup Python App** and create a **second**, separate
-   Python 3.11 or 3.12 application outside `public_html` (do not reuse the
-   existing `dispatch-nlp` app/venv -- keeping this isolated means a problem
-   with the much heavier `torch`/`sentence-transformers` dependency chain can
-   never affect the already-working spaCy worker).
-2. In that venv's terminal, install the committed dependencies:
+1. In cPanel, open **Setup Python App** → **Create Application** and fill in:
+   - **Python version:** 3.11 or 3.12 (whatever the picker defaults to is fine).
+   - **Application root:** a new folder name *outside* `public_html`, e.g.
+     `dispatch-embeddings-app` (creates `/home/rdy3i6my40b0/dispatch-embeddings-app`).
+     Do not reuse the existing `dispatch-nlp` app/venv -- keeping this
+     isolated means a problem with the much heavier `torch`/
+     `sentence-transformers` dependency chain can never affect the
+     already-working spaCy worker.
+   - **Application URL:** leave the domain as `thepantheonwars.com` and give
+     it a path segment, e.g. `dispatch-embeddings` (this becomes the real
+     URL -- see above for why `DISPATCH_EMBEDDING_SERVICE_KEY` matters).
+   - **Application startup file:** `passenger_wsgi.py`
+   - **Application Entry point:** `application`
+   - **Passenger log file:** e.g. `/home/rdy3i6my40b0/logs/dispatch-embeddings-passenger.log`
+   Click Create.
+2. cPanel shows a command to enter the app's virtual environment. Run it,
+   then install the committed dependencies:
 
    ```bash
    python -m pip install --upgrade pip
    python -m pip install -r /home/rdy3i6my40b0/public_html/tools/requirements-dispatch-embeddings.txt
    ```
 
-3. Point the app's Passenger entry point at the Flask app. cPanel generates a
-   `passenger_wsgi.py` for the new application; replace its contents with:
+3. cPanel creates a starter `passenger_wsgi.py` inside the application root.
+   Replace its contents with:
 
    ```python
    import sys
@@ -80,18 +105,22 @@ no prior translation's text is ever sent back to Python.
    from dispatch_embeddings_service import app as application
    ```
 
-   (Python module names can't contain hyphens -- either symlink/copy
-   `tools/dispatch-embeddings-service.py` to `tools/dispatch_embeddings_service.py`
-   on the server, or adjust the import to match whatever filename actually
-   ends up in that directory.)
-4. Note the port/URL cPanel assigns the app (Setup Python App shows this,
-   typically a `127.0.0.1:<port>` loopback address -- it should never be
-   reachable from outside the hosting account). Restart the app once from
-   its cPanel page so it picks up the dependencies and loads the model.
-5. In `/home/rdy3i6my40b0/pantheonwars-secrets/config.php`, add:
+   (`tools/dispatch_embeddings_service.py` -- underscores, not hyphens, since
+   Python can't import a hyphenated module name -- is deployed into
+   `public_html/tools` by the normal git push/cPanel-deploy flow, same as
+   every other file in `tools/`; nothing extra needs to be copied into the
+   application root itself.)
+4. In the app's cPanel page, add an **environment variable**
+   `DISPATCH_EMBEDDING_SERVICE_KEY` with a freshly generated random value
+   (`php -r "echo bin2hex(random_bytes(24));"` from any existing PHP
+   context, or any long random string). Restart the app so it picks up the
+   dependencies, the environment variable, and loads the model.
+5. In `/home/rdy3i6my40b0/pantheonwars-secrets/config.php`, add the *same*
+   key value plus the app's real URL from step 1:
 
    ```php
-   define('DISPATCH_EMBEDDING_SERVICE_URL', 'http://127.0.0.1:<port>');
+   define('DISPATCH_EMBEDDING_SERVICE_URL', 'https://thepantheonwars.com/dispatch-embeddings');
+   define('DISPATCH_EMBEDDING_SERVICE_KEY', 'THE_SAME_RANDOM_VALUE_FROM_STEP_4');
    ```
 
 6. Run the one-off backfill so existing approved translations get an

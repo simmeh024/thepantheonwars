@@ -6,12 +6,19 @@
  * one-shot script -- see tools/dispatch-embeddings-service.py and
  * docs/dispatch-embeddings.md for why this needs to be a persistent process.
  *
- * This bridge never exposes a public endpoint and never sends commit or
- * translation text anywhere outside the hosting account. If the service is
- * unconfigured, unreachable, or returns anything unexpected, every function
- * here fails open to an empty result -- the deterministic translator then
- * produces exactly its established fallback, with zero change to
- * confidence, wording, or publication decisions.
+ * This bridge itself never exposes a public endpoint, and the request it
+ * sends never leaves the hosting account's own server. Unlike a self-managed
+ * host, cPanel's "Setup Python App" (see docs/dispatch-embeddings.md) always
+ * routes a Python app through a real URL path on the account's own domain --
+ * there is no raw loopback-port access -- so DISPATCH_EMBEDDING_SERVICE_KEY
+ * is sent as a shared-secret header on every request, checked by the Python
+ * side, so the endpoint can't be used by anyone who merely finds its URL.
+ *
+ * If the service is unconfigured, unreachable, unauthorized, or returns
+ * anything unexpected, every function here fails open to an empty result --
+ * the deterministic translator then produces exactly its established
+ * fallback, with zero change to confidence, wording, or publication
+ * decisions.
  */
 
 /**
@@ -39,6 +46,7 @@ function pw_dispatch_embedding_request(string $path, ?array $body): ?array
         $unavailable = true;
         return null;
     }
+    $headers = ['X-Dispatch-Key: ' . (defined('DISPATCH_EMBEDDING_SERVICE_KEY') ? (string)DISPATCH_EMBEDDING_SERVICE_KEY : '')];
     $options = [
         CURLOPT_RETURNTRANSFER => true,
         // Short and strict: this is a warm local service, not a cold worker
@@ -46,6 +54,7 @@ function pw_dispatch_embedding_request(string $path, ?array $body): ?array
         // into the same request budget api/dispatch-spacy.php protects.
         CURLOPT_CONNECTTIMEOUT => 1,
         CURLOPT_TIMEOUT => 2,
+        CURLOPT_HTTPHEADER => $headers,
     ];
     if ($body !== null) {
         $payload = json_encode($body, JSON_UNESCAPED_UNICODE);
@@ -55,7 +64,7 @@ function pw_dispatch_embedding_request(string $path, ?array $body): ?array
         }
         $options[CURLOPT_POST] = true;
         $options[CURLOPT_POSTFIELDS] = $payload;
-        $options[CURLOPT_HTTPHEADER] = ['Content-Type: application/json'];
+        $options[CURLOPT_HTTPHEADER] = array_merge($headers, ['Content-Type: application/json']);
     }
     curl_setopt_array($ch, $options);
     $response = curl_exec($ch);

@@ -65,9 +65,19 @@ define('DB_PASS', 'REPLACE_WITH_REAL_PASSWORD');
 // cPanel "Setup Python App" setup. The rule-based formatter and its
 // auto-publication decisions remain fully functional without this; it only
 // ever adds a graded confidence signal and an editor-facing "similar past
-// Dispatch" reference, never wording. Loopback only -- this should never be
-// reachable from outside the hosting account.
-// define('DISPATCH_EMBEDDING_SERVICE_URL', 'http://127.0.0.1:5001');
+// Dispatch" reference, never wording. This is a real URL on the account's
+// own domain (see the key below for why that's still safe).
+// define('DISPATCH_EMBEDDING_SERVICE_URL', 'https://thepantheonwars.com/REPLACE_WITH_APP_URL_PATH');
+// Shared secret sent as the X-Dispatch-Key header on every request above and
+// checked by tools/dispatch_embeddings_service.py. cPanel's "Setup Python
+// App" always routes a Python app through a real URL path on the account's
+// own domain (unlike the spaCy worker above, there is no raw loopback-port
+// option), so this is what keeps that endpoint from being usable by anyone
+// who merely finds its URL. Generate with:
+//   php -r "echo bin2hex(random_bytes(24));"
+// and set the identical value as the DISPATCH_EMBEDDING_SERVICE_KEY
+// environment variable in the Passenger app's own settings in cPanel.
+// define('DISPATCH_EMBEDDING_SERVICE_KEY', 'REPLACE_WITH_REAL_RANDOM_STRING');
 
 // Transactional mail is deliberately off until Mail Settings has a sender
 // identity and its delivery toggle is enabled. Shared hosting uses PHP's native

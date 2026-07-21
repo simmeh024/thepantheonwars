@@ -20,11 +20,23 @@ this keeps "only the incoming commit needs encoding" literally true and never
 hands a corpus of prior translation text to this process.
 """
 
+import os
+
 from flask import Flask, jsonify, request
 from sentence_transformers import SentenceTransformer
 
 MODEL_NAME = "all-MiniLM-L6-v2"
 MAX_TEXT_CHARS = 4000
+
+# cPanel's "Setup Python App" exposes this service at a real URL path routed
+# through the account's own domain (there is no raw loopback-port access the
+# way a self-managed server would offer) -- so unlike the spaCy worker, which
+# never leaves the process, this endpoint is reachable by anyone who finds
+# the URL unless it checks a shared secret. Set via the Passenger app's
+# "Environment variables" section (see docs/dispatch-embeddings.md); if left
+# unset, no check is enforced -- convenient for local development, but this
+# must always be set in production.
+EXPECTED_KEY = os.environ.get("DISPATCH_EMBEDDING_SERVICE_KEY", "")
 
 app = Flask(__name__)
 
@@ -40,6 +52,9 @@ def health():
 
 @app.route("/encode", methods=["POST"])
 def encode():
+    if EXPECTED_KEY and request.headers.get("X-Dispatch-Key", "") != EXPECTED_KEY:
+        return jsonify({"ok": False, "error": "Unauthorized."}), 401
+
     payload = request.get_json(silent=True)
     if not isinstance(payload, dict):
         return jsonify({"ok": False, "error": "Expected a JSON object."}), 400
