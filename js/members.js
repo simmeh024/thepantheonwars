@@ -213,7 +213,7 @@ function initMembers() {
     var remember = form.querySelector('#login-remember').checked;
     var submitBtn = form.querySelector('.auth-submit');
     setRecoveryLink(form, false);
-    submitBtn.disabled = true;
+    submitBtn.disabled = true; submitBtn.classList.add('is-busy');
     ensureCsrfToken().then(function () {
       return postJson('/api/login.php', { identifier: identifier, password: password, remember: remember, csrf: window.PW_AUTH.csrf });
     }).then(function (r) {
@@ -234,14 +234,14 @@ function initMembers() {
     }).catch(function (error) {
       showFormError(form, (error && error.message) || 'Could not reach the server. Try again in a moment.');
     })
-      .finally(function () { submitBtn.disabled = false; });
+      .finally(function () { submitBtn.disabled = false; submitBtn.classList.remove('is-busy'); });
   });
 
   twoFactorForm.addEventListener('submit', function (e) {
     e.preventDefault();
     var code = twoFactorForm.querySelector('#login-two-factor-code').value.replace(/\D/g, '');
     var submitBtn = twoFactorForm.querySelector('.auth-submit');
-    submitBtn.disabled = true;
+    submitBtn.disabled = true; submitBtn.classList.add('is-busy');
     twoFactorForm.querySelector('.auth-error').classList.remove('show');
     ensureCsrfToken().then(function () {
       return postJson('/api/two-factor/verify.php', { code: code, csrf: window.PW_AUTH.csrf });
@@ -254,7 +254,7 @@ function initMembers() {
       showFormError(twoFactorForm, (r.data && r.data.error) || 'Could not verify that code.');
     }).catch(function (error) {
       showFormError(twoFactorForm, (error && error.message) || 'Could not reach the server. Try again in a moment.');
-    }).finally(function () { submitBtn.disabled = false; });
+    }).finally(function () { submitBtn.disabled = false; submitBtn.classList.remove('is-busy'); });
   });
 
   modal.querySelector('.auth-two-factor-back').addEventListener('click', function () {
@@ -277,7 +277,7 @@ function initMembers() {
     }
     form.querySelectorAll('input[required]').forEach(function (input) { updateFieldState(input); });
     var submitBtn = form.querySelector('.auth-submit');
-    submitBtn.disabled = true;
+    submitBtn.disabled = true; submitBtn.classList.add('is-busy');
     ensureCsrfToken().then(function () {
       return postJson('/api/register.php', { username: username, email: email, password: password, csrf: window.PW_AUTH.csrf });
     }).then(function (r) {
@@ -294,7 +294,7 @@ function initMembers() {
     }).catch(function (error) {
       showFormError(form, (error && error.message) || 'Could not reach the server. Try again in a moment.');
     })
-      .finally(function () { submitBtn.disabled = false; });
+      .finally(function () { submitBtn.disabled = false; submitBtn.classList.remove('is-busy'); });
   });
 
   function closeOpenAccountMenus() {

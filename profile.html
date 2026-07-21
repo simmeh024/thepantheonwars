@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=253">
+<link rel="stylesheet" href="css/community-bundle.css?v=254">
 </head>
 <body>
 
@@ -471,7 +471,7 @@
 </div>
 
 <script src="js/main.js?v=11"></script>
-<script src="js/members.js?v=38"></script>
+<script src="js/members.js?v=39"></script>
 <script src="js/qrcode-generator.min.js?v=1"></script>
 <script>
 (function () {
@@ -1126,7 +1126,7 @@
   twoFactorSetupForm.addEventListener('submit', function (event) {
     event.preventDefault();
     var button = twoFactorSetupForm.querySelector('button[type="submit"]');
-    button.disabled = true;
+    button.disabled = true; button.classList.add('is-busy');
     setTwoFactorError('two-factor-setup-error', '');
     postTwoFactor('/api/two-factor/setup.php', {
       current_password: document.getElementById('two-factor-current-password').value
@@ -1140,13 +1140,13 @@
       setTimeout(function () { document.getElementById('two-factor-confirm-code').focus(); }, 20);
     }).catch(function (error) {
       setTwoFactorError('two-factor-setup-error', error.message);
-    }).finally(function () { button.disabled = false; });
+    }).finally(function () { button.disabled = false; button.classList.remove('is-busy'); });
   });
 
   twoFactorConfirmForm.addEventListener('submit', function (event) {
     event.preventDefault();
     var button = twoFactorConfirmForm.querySelector('button[type="submit"]');
-    button.disabled = true;
+    button.disabled = true; button.classList.add('is-busy');
     setTwoFactorError('two-factor-confirm-error', '');
     postTwoFactor('/api/two-factor/enable.php', {
       code: document.getElementById('two-factor-confirm-code').value.replace(/\D/g, '')
@@ -1156,13 +1156,13 @@
       loadTwoFactorStatus();
     }).catch(function (error) {
       setTwoFactorError('two-factor-confirm-error', error.message);
-    }).finally(function () { button.disabled = false; });
+    }).finally(function () { button.disabled = false; button.classList.remove('is-busy'); });
   });
 
   twoFactorDisableForm.addEventListener('submit', function (event) {
     event.preventDefault();
     var button = twoFactorDisableForm.querySelector('button[type="submit"]');
-    button.disabled = true;
+    button.disabled = true; button.classList.add('is-busy');
     setTwoFactorError('two-factor-disable-error', '');
     postTwoFactor('/api/two-factor/disable.php', {
       current_password: document.getElementById('two-factor-disable-password').value,
@@ -1175,7 +1175,7 @@
       loadTwoFactorStatus();
     }).catch(function (error) {
       setTwoFactorError('two-factor-disable-error', error.message);
-    }).finally(function () { button.disabled = false; });
+    }).finally(function () { button.disabled = false; button.classList.remove('is-busy'); });
   });
 
   twoFactorCopySecret.addEventListener('click', function () {
@@ -1448,7 +1448,7 @@
 
   currentReadingSave.addEventListener('click', function () {
     var selectedId = parseInt(currentReadingSelect.value, 10) || 0;
-    currentReadingSave.disabled = true;
+    currentReadingSave.disabled = true; currentReadingSave.classList.add('is-busy');
     setCurrentReadingStatus('', false);
     fetch('/api/reading-progress/update.php', {
       method: 'POST',
@@ -1468,7 +1468,7 @@
       .catch(function (error) {
         setCurrentReadingStatus(error.message || 'Could not save your current book.', true);
       })
-      .finally(function () { currentReadingSave.disabled = false; });
+      .finally(function () { currentReadingSave.disabled = false; currentReadingSave.classList.remove('is-busy'); });
   });
 
   passwordForm.addEventListener('submit', function (e) {
@@ -1491,6 +1491,7 @@
       return;
     }
 
+    passwordSubmit.disabled = true; passwordSubmit.classList.add('is-busy');
     fetch('/api/change-password.php', {
       method: 'POST',
       credentials: 'same-origin',
@@ -1515,7 +1516,8 @@
       .catch(function () {
         passwordError.textContent = 'Could not update your password. Please try again.';
         passwordError.classList.add('show');
-      });
+      })
+      .finally(function () { passwordSubmit.disabled = false; passwordSubmit.classList.remove('is-busy'); });
   });
 
   function load() {

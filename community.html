@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=253">
+<link rel="stylesheet" href="css/community-bundle.css?v=254">
 </head>
 <body>
 
@@ -370,7 +370,7 @@
 </div>
 
 <script src="js/main.js?v=11"></script>
-<script src="js/members.js?v=38"></script>
+<script src="js/members.js?v=39"></script>
 <script>
 (function () {
   // Delegated so spoiler controls created from safe BBCode markup do not need
@@ -2567,7 +2567,7 @@
     reportModalError.classList.remove('show');
     reportModalStatus.classList.remove('show');
     reportSubmitBtn.hidden = false;
-    reportSubmitBtn.disabled = false;
+    reportSubmitBtn.disabled = false; reportSubmitBtn.classList.remove('is-busy');
     reportModal.hidden = false;
     setTimeout(function () { reportReasonInput.focus(); }, 30);
   }
@@ -2596,7 +2596,7 @@
         return;
       }
       if (!reportTarget || !window.PW_AUTH.csrf) return;
-      reportSubmitBtn.disabled = true;
+      reportSubmitBtn.disabled = true; reportSubmitBtn.classList.add('is-busy');
       fetch('/api/reports/create.php', {
         method: 'POST',
         credentials: 'same-origin',
@@ -2610,7 +2610,7 @@
         }),
       }).then(function (r) { return r.json(); }).then(function (data) {
         if (!data.ok) {
-          reportSubmitBtn.disabled = false;
+          reportSubmitBtn.disabled = false; reportSubmitBtn.classList.remove('is-busy');
           reportModalError.textContent = data.error || 'Could not submit that report.';
           reportModalError.classList.add('show');
           return;
@@ -2620,7 +2620,7 @@
         reportSubmitBtn.hidden = true;
         setTimeout(closeReportModal, 1600);
       }).catch(function () {
-        reportSubmitBtn.disabled = false;
+        reportSubmitBtn.disabled = false; reportSubmitBtn.classList.remove('is-busy');
         reportModalError.textContent = 'Could not reach the server. Try again in a moment.';
         reportModalError.classList.add('show');
       });

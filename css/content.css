@@ -26,16 +26,58 @@
 .privacy-form-card .admin-field select {
   width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
   padding: 12px 14px; font-family: 'Jost', sans-serif; font-size: 0.92rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .privacy-form-card .admin-field textarea { min-height: 160px; line-height: 1.55; resize: vertical; }
 .privacy-form-card .admin-field select { cursor: pointer; }
+.privacy-form-card .admin-field textarea:hover,
+.privacy-form-card .admin-field select:hover { border-color: var(--gold-dim); }
 .privacy-form-card .admin-field textarea:focus,
-.privacy-form-card .admin-field select:focus { outline: none; border-color: var(--purple-bright); }
+.privacy-form-card .admin-field select:focus {
+  outline: none; border-color: var(--purple-bright);
+  box-shadow: 0 0 0 3px rgba(124,79,214,0.28);
+}
 .privacy-form-card .form-error { color: #e05a4a; }
 .privacy-form-card .form-status { color: #3ecf8e; }
-.privacy-request-status, .privacy-request-resolution { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 9px 10px; font-family: 'Jost', sans-serif; font-size: 0.82rem; }
+.privacy-request-status, .privacy-request-resolution {
+  width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 9px 10px; font-family: 'Jost', sans-serif; font-size: 0.82rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
 .privacy-request-resolution { min-height: 78px; resize: vertical; }
-.privacy-request-status:focus, .privacy-request-resolution:focus { outline: none; border-color: var(--purple-bright); }
+.privacy-request-status:hover, .privacy-request-resolution:hover { border-color: var(--gold-dim); }
+.privacy-request-status:focus, .privacy-request-resolution:focus {
+  outline: none; border-color: var(--purple-bright);
+  box-shadow: 0 0 0 3px rgba(124,79,214,0.28);
+}
+
+/* Loading state for any public/community submit button mid-request --
+   same pattern and CSS as .btn.is-busy in css/admin.css, duplicated here
+   rather than shared since this file (imported by public.css and
+   community-bundle.css) and admin.css (admin-bundle.css only) never load
+   together. JS only toggles this class alongside a button's existing
+   .disabled toggle; no button's label text needs to change. */
+.btn.is-busy {
+  position: relative;
+  padding-left: 2.6em;
+  cursor: wait;
+  pointer-events: none;
+  opacity: 0.8;
+}
+.btn.is-busy::before {
+  content: '';
+  position: absolute;
+  left: 1em;
+  top: 50%;
+  width: 0.9em;
+  height: 0.9em;
+  margin-top: -0.45em;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: pw-btn-spin 0.7s linear infinite;
+}
+@keyframes pw-btn-spin { to { transform: rotate(360deg); } }
 
 /* ---------------- Books page ---------------- */
 .phase-block { margin-bottom: 70px; }

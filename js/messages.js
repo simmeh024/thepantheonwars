@@ -418,7 +418,7 @@
     var body = composeBody.value.trim();
     var recipientId = activeConversation ? activeConversation.counterpart.id : (activeMember && activeMember.id);
     if (!body || !recipientId) return;
-    sendButton.disabled = true;
+    sendButton.disabled = true; sendButton.classList.add('is-busy');
     publishTyping(false, true);
     post('/api/direct-messages/send.php', { recipient_id: recipientId, body: body }).then(function (data) {
       composeBody.value = ''; countEl.textContent = '0 / 2000';
@@ -426,7 +426,7 @@
     }).catch(function (error) {
       sendDisabled.hidden = false;
       sendDisabled.textContent = error.message;
-    }).finally(function () { sendButton.disabled = false; });
+    }).finally(function () { sendButton.disabled = false; sendButton.classList.remove('is-busy'); });
   });
 
   blockButton.addEventListener('click', function () {

@@ -779,7 +779,7 @@
     reportError.classList.remove('show');
     reportStatus.classList.remove('show');
     reportSubmit.hidden = false;
-    reportSubmit.disabled = false;
+    reportSubmit.disabled = false; reportSubmit.classList.remove('is-busy');
     reportModal.hidden = false;
     setTimeout(function () { reportReason.focus(); }, 30);
   }
@@ -804,7 +804,7 @@
       return;
     }
     if (!reportTargetId || !window.PW_AUTH || !window.PW_AUTH.csrf) return;
-    reportSubmit.disabled = true;
+    reportSubmit.disabled = true; reportSubmit.classList.add('is-busy');
     fetch('/api/reports/create.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ target_type: 'news_comment', target_id: reportTargetId, reason: reason, csrf: window.PW_AUTH.csrf })
@@ -815,7 +815,7 @@
       reportSubmit.hidden = true;
       setTimeout(closeReportModal, 1500);
     }).catch(function (error) {
-      reportSubmit.disabled = false;
+      reportSubmit.disabled = false; reportSubmit.classList.remove('is-busy');
       reportError.textContent = error.message || 'Could not submit that report.';
       reportError.classList.add('show');
     });

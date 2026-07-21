@@ -441,23 +441,24 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=265`, community `css/community-bundle.css?v=249`, and admin
-  `css/admin-bundle.css?v=261`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=266`, community `css/community-bundle.css?v=254`, and admin
+  `css/admin-bundle.css?v=262`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=11), `js/members.js?v=N` (current: v=36)
+  than once): `js/main.js?v=N` (current: v=11), `js/members.js?v=N` (current: v=39)
   and `js/notifications.js?v=N` (loaded dynamically), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
   `js/books.js?v=N` is page-specific (current: v=4) and only needs a version
   bump in `books.html`. `js/news.js?v=N` is likewise page-specific (current: v=9)
   and only needs a version bump in `news.html`. `js/news-post.js?v=N` powers the
-  dedicated public transmission page (current: v=12); it is only loaded by
-  `news-post.html`.
+  dedicated public transmission page (current: v=13); it is only loaded by
+  `news-post.html`. `js/messages.js?v=N` (current: v=6) is only loaded by
+  `messages.html`.
 - Static CSS, JavaScript, font, image, and WebM video assets have a one-year
   `public, immutable` cache policy in `.htaccess`; HTML remains no-cache so
   changed version URLs reach visitors immediately. Never replace an asset at
@@ -539,6 +540,53 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Public-site forms polish** (the visitor/member-facing counterpart to the
+  admin console pass below): same three ingredients, applied where the
+  public site actually needed them rather than mechanically everywhere.
+  **Focus/hover**: the login/register modal's `.auth-field input` already
+  had a strong focus glow (`box-shadow` + border tint) from an earlier
+  build -- only missing `:hover`, added here -- but half a dozen other
+  public/community fields had the same weak `outline: none; border-color`
+  pattern the admin pass fixed: `.community-form textarea` (forum
+  composer), `.reply-form-wrap textarea`, `.inline-edit-title`/
+  `.inline-edit-form textarea` (moderator inline edit), `.forum-search-form
+  input[search]`, `.profile-reading-control select`, `.dispatch-search
+  input`, and (`css/content.css`, reused by `privacy-request.html`)
+  `.privacy-form-card .admin-field textarea/select` and
+  `.privacy-request-status`/`-resolution`. **Loading state**: `.btn.is-busy`
+  (identical CSS to `admin.css`'s copy) was added to `css/content.css`
+  instead of a shared file, specifically because content.css is imported by
+  `public.css`/`community-bundle.css` but never `admin-bundle.css` -- avoids
+  a redundant duplicate definition landing in the admin console. Wired into
+  the login/2FA/register submit buttons in `js/members.js`, `js/messages.js`'s
+  message-send button, `js/news-post.js`'s and `community.html`'s report-
+  submit buttons, `privacy-request.html`'s submit, and three spots in
+  `profile.html` (Now Reading save, all three two-factor setup/confirm/
+  disable buttons) -- deliberately *not* added to buttons that already had
+  their own working text-swap loading pattern (`password-reset.html`,
+  `community.html`'s image-upload button, `news-post.js`'s comment-submit),
+  since a second competing loading signal would be redundant, not an
+  improvement. One real, previously-unprotected gap found and fixed along
+  the way: `profile.html`'s Change Password submit (`passwordSubmit`, a
+  `var` already declared but never actually used before this) had *no*
+  disable/loading guard at all, meaning a fast double-click could double-
+  submit a password change. **Inline validation**: investigated whether the
+  login modal's `.auth-field.is-valid`/`.is-invalid` classes (with a
+  `setFieldState()`/`updateFieldState()` pair in `js/members.js`, wired to
+  `input`/`blur` on every required field) were real or vestigial -- they're
+  real and already fully wired, just not literally named the way an initial
+  grep for `classList.add('is-valid')` expected (it's built as `'is-' +
+  state`). `password-reset.html` reuses the same `.auth-field` CSS classes
+  but, being a standalone page outside that modal's closure, never had the
+  matching JS -- hand-duplicated an equivalent `setFieldState()`/
+  `updateFieldState()` pair directly in its own inline script (this
+  codebase's established no-shared-module convention), plus a client-side
+  password-match check before the confirm-password field ever reaches the
+  server. Touched CSS: `components.css?v=209`, `community.css?v=203`,
+  `content.css?v=230` (`public.css?v=266`, `community-bundle.css?v=254`,
+  and `admin-bundle.css?v=262` for its `community.css` import). Touched JS:
+  `members.js?v=39`, `messages.js?v=6`, `news-post.js?v=13`.
 
 - **Admin Console forms polish** (focus/hover, loading state, inline
   validation): three additions to `css/admin.css` and `admin/index.html`,
