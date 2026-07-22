@@ -23,8 +23,13 @@ ALTER TABLE quiz_options
   ADD COLUMN IF NOT EXISTS sort_order INT NOT NULL DEFAULT 0,
   MODIFY COLUMN score_index TINYINT UNSIGNED NULL;
 
-ALTER TABLE quiz_options DROP INDEX IF EXISTS uq_quiz_option_score;
+-- Order matters. uq_quiz_option_score is (question_id, score_index), so its
+-- leftmost column makes it the index backing fk_quiz_options_question, and
+-- InnoDB refuses to drop a foreign key's only supporting index (errno 1553).
+-- The replacement index also leads with question_id, so creating it first gives
+-- the constraint somewhere else to land and the unique key then drops cleanly.
 ALTER TABLE quiz_options ADD KEY IF NOT EXISTS idx_quiz_options_question (question_id, sort_order, id);
+ALTER TABLE quiz_options DROP INDEX IF EXISTS uq_quiz_option_score;
 
 -- Legacy rows were ordered by score_index; preserve that as the new sort_order.
 UPDATE quiz_options SET sort_order = score_index WHERE sort_order = 0 AND score_index IS NOT NULL;
