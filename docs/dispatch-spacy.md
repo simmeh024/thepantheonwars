@@ -221,6 +221,15 @@ the console persona -- the avatar, the verified badge, the Technical Analysis
 transcript label, and the `admin_activity_log` actor for an automatic
 publication are all unchanged. Only the generated prose changed voice.
 
+**The lore pre-check is decisive from the subject and changed-file scope only,
+never the body.** It used to read the body, which forced any commit merely
+*discussing* worldbuilding into the lore voice -- the commit "Rewrite Dispatch
+summaries in first person" published the worldbuilding benefit because its body
+contained "worldbuilding", "world" and "lore" while explaining that very
+problem. Body lore cues still count, but at ordinary body weight through the
+`content` domain, which now carries the same cues in its own pattern. This is
+the same subject-over-body rule the scored domains follow.
+
 `tooling` is a separate domain from `content`. Both used to share the
 `content` pool, so a change to the Dispatch pipeline itself was described in
 the worldbuilding voice -- one commit about internal confidence checks

@@ -219,6 +219,21 @@ $cases = [
         'contains' => ['We have'],
         'forbidden' => ['Pantheon Wars record', 'BH-4 has', 'established setting'],
     ],
+    // The lore pre-check is decisive from the SUBJECT only. This is the real
+    // commit that published the worldbuilding benefit ("The added context
+    // supports exploration while preserving the established setting") for a
+    // change to the translator: its body contained "worldbuilding", "world"
+    // and "lore" while explaining that exact problem, and the pre-check read
+    // the body. It also leaked the bare verb as "rewrite Dispatch", because
+    // "rewrite" had no action template and fell through to the spaCy object.
+    [
+        'subject' => 'Rewrite Dispatch summaries in first person',
+        'body' => 'A change to the pipeline was described in the worldbuilding voice, adding no lore, as if it were a world record.',
+        'tag' => 'improvement',
+        'plan_domain' => 'tooling',
+        'contains' => ['Dispatch summaries in first person'],
+        'forbidden' => ['rewrite Dispatch', 'Pantheon Wars record', 'established setting'],
+    ],
     // The counterpart: genuine in-world material must still read as content,
     // so splitting tooling out cannot quietly strip the lore voice.
     [

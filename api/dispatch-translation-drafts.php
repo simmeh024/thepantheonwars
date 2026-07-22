@@ -28,13 +28,22 @@ function pw_dispatch_draft_phrase_is_recent(string $candidate, array $recentTran
 function pw_dispatch_draft_domain(string $subjectText, string $tag, array $diffContext, string $bodyText = ''): string
 {
     $scopeText = implode(' ', $diffContext['areas'] ?? []) . ' ' . implode(' ', $diffContext['extensions'] ?? []);
+    $loreCue = '/\b(?:Asmecu|Cerius|Neoh|High Hammer|worlds?|worldbuilding|district(?:s)?|map|overlord|lore|book|chapter)\b/i';
     // A named world, a district map, or an explicit worldbuilding scope is a
     // decisive reader-facing cue. Do this before broad technical vocabulary:
     // a world record can legitimately mention image loading or responsive
-    // behaviour without becoming a performance Dispatch. This one stays a hard
-    // pre-check rather than a score, per the documented rule that named
-    // worlds, maps, districts and books are decisive content signals.
-    if (preg_match('/\b(?:Asmecu|Cerius|Neoh|High Hammer|worlds?|worldbuilding|district(?:s)?|map|overlord|lore|book|chapter)\b/i', $subjectText . ' ' . $bodyText . ' ' . $scopeText)) {
+    // behaviour without becoming a performance Dispatch.
+    //
+    // Decisive only from the SUBJECT (or the changed-file scope). It used to
+    // read the body too, which meant a commit merely *discussing* lore was
+    // forced into the lore voice: "Rewrite Dispatch summaries in first person"
+    // published with the worldbuilding benefit because its body contained the
+    // words "worldbuilding", "world" and "lore" while explaining that very
+    // problem. That is the same subject-over-body rule the scored domains
+    // below already follow; a body mention is incidental, not a declaration of
+    // what the commit is about. Body lore cues still count, but only at
+    // ordinary body weight through the 'content' domain.
+    if (preg_match($loreCue, $subjectText . ' ' . $scopeText)) {
         return 'content';
     }
     $domains = [
@@ -48,7 +57,10 @@ function pw_dispatch_draft_domain(string $subjectText, string $tag, array $diffC
         // the Dispatch pipeline itself was described with the lore voice
         // ("Readers have a clearer route into the affected part of the
         // Pantheon Wars record") even though it added no lore at all.
-        'content' => '/\b(?:story|character|quiz)\b/i',
+        // The lore cues are included here as well so a body-only mention still
+        // pulls toward content at ordinary body weight, rather than being
+        // discarded entirely now that the decisive pre-check ignores the body.
+        'content' => '/\b(?:story|character|quiz|Asmecu|Cerius|Neoh|High Hammer|worlds?|worldbuilding|district(?:s)?|map|overlord|lore|book|chapter)\b/i',
         // The development-record machinery itself. A large share of this
         // repository's commits are about this pipeline, so it needs its own
         // voice rather than borrowing the one written for worldbuilding.
@@ -193,7 +205,7 @@ function pw_dispatch_lcfirst_object(string $value): string
  */
 function pw_dispatch_action_verbs(): string
 {
-    return 'add|create|introduce|include|fix|resolve|repair|restore|improve|enhance|refine|polish|streamline|redesign|rework|restructure|expand|keep|show|align|widen|enlarge|split|stack|make|throttle|reduce|defer|slow|prevent|reserve|use|switch|load|deliver|cross link|connect|unlock|bump|optimi[sz]e|speed up|update|refresh|remove|retire|delete|move|reorganize|reorganise|reposition|secure|protect|harden|strengthen|color code|give|respect|clear|place|confine|pin|anchor|animate|preserve|preload|tighten|elevate|complete|alert|index|bundle|limit|pause|cache|pre aggregate|bulk load|track|collapse|graph|log|group|mask|rename|surface|reorder|finalize|swap|render|force|mirror|theme|store|merge|replace|auto refresh|always refresh|right align|put|pull|un float|paginate|increase|version|trim|revert|relative|sortable|styled|subtle|tiered|full|compact|label|highlight|explore|sharpen|hide|implement|enable|allow|expose|adjust|correct|clarify|consolidate|standardize|standardise|simplify|migrate|integrate|validate|verify|review|audit|diagnose|stabilize|stabilise|modernize|modernise|address|ensure|support|avoid|guard|isolate|measure|monitor|prepare|document|describe';
+    return 'add|create|introduce|include|fix|resolve|repair|restore|improve|enhance|refine|polish|streamline|redesign|rework|restructure|rewrite|expand|keep|show|align|widen|enlarge|split|stack|make|throttle|reduce|defer|slow|prevent|reserve|use|switch|load|deliver|cross link|connect|unlock|bump|optimi[sz]e|speed up|update|refresh|remove|retire|delete|move|reorganize|reorganise|reposition|secure|protect|harden|strengthen|color code|give|respect|clear|place|confine|pin|anchor|animate|preserve|preload|tighten|elevate|complete|alert|index|bundle|limit|pause|cache|pre aggregate|bulk load|track|collapse|graph|log|group|mask|rename|surface|reorder|finalize|swap|render|force|mirror|theme|store|merge|replace|auto refresh|always refresh|right align|put|pull|un float|paginate|increase|version|trim|revert|relative|sortable|styled|subtle|tiered|full|compact|label|highlight|explore|sharpen|hide|implement|enable|allow|expose|adjust|correct|clarify|consolidate|standardize|standardise|simplify|migrate|integrate|validate|verify|review|audit|diagnose|stabilize|stabilise|modernize|modernise|address|ensure|support|avoid|guard|isolate|measure|monitor|prepare|document|describe';
 }
 
 /**
@@ -768,7 +780,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         '/^(?:fix|resolve|repair)\s+(.+)$/i' => 'This update fixes %s.',
         '/^(?:restore)\s+(.+)$/i' => 'This update restores %s.',
         '/^(?:improve|enhance|refine|polish|streamline)\s+(.+)$/i' => 'This update improves %s.',
-        '/^(?:redesign|rework|restructure)\s+(.+)$/i' => 'This update gives %s a clearer structure and presentation.',
+        '/^(?:redesign|rework|restructure|rewrite)\s+(.+)$/i' => 'This update gives %s a clearer structure and presentation.',
         '/^(?:expand)\s+(.+)$/i' => 'This update adds more detail to %s.',
         '/^(?:keep|show|align)\s+(.+)$/i' => 'This update keeps %s clear and easy to read.',
         '/^(?:widen|enlarge)\s+(.+)$/i' => 'This update gives %s more room to work clearly.',
@@ -1235,7 +1247,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v30\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v31\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array
