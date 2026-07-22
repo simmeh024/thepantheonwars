@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=273">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=274">
 </head>
 <body>
 
@@ -15482,7 +15482,10 @@
     head.appendChild(textarea);
     var removeBtn = document.createElement('button');
     removeBtn.type = 'button';
-    removeBtn.className = 'admin-delete-btn quiz-option-remove';
+    // permission-mini-btn, not admin-delete-btn: the latter is the modal's one
+    // primary destructive action, and repeating it per answer made a column of
+    // heavy red buttons. This tints red on hover instead.
+    removeBtn.className = 'permission-mini-btn quiz-option-remove';
     removeBtn.textContent = 'Remove';
     removeBtn.addEventListener('click', function () {
       if (quizOptionRows().length <= QUIZ_MIN_OPTIONS) return;
@@ -15507,6 +15510,11 @@
       input.step = '1';
       input.value = String((option.weights && option.weights[i]) || 0);
       input.disabled = !quizCaps.weights;
+      // Highlights the columns this answer actually scores, so a row's leaning
+      // reads at a glance instead of hunting for the non-zero cell.
+      function markWeight() { input.classList.toggle('has-weight', (parseInt(input.value, 10) || 0) > 0); }
+      markWeight();
+      input.addEventListener('input', markWeight);
       cell.appendChild(caption);
       cell.appendChild(input);
       weightsWrap.appendChild(cell);

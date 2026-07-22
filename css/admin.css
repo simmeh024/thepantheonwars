@@ -3147,12 +3147,23 @@
   background: rgba(255,255,255,0.015);
 }
 .quiz-option-row-head { display: flex; align-items: flex-start; gap: 12px; }
+/* These controls sit outside .admin-field, so they declare the console's field
+   appearance themselves rather than inheriting it -- the same self-contained
+   approach .admin-search uses. Without this they fall back to the browser
+   default: a white box with black monospace text on a dark panel. */
 .quiz-option-text {
-  flex: 1 1 auto;
-  min-height: 62px;
-  resize: vertical;
+  flex: 1 1 auto; min-height: 62px; resize: vertical;
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 10px 12px; font-family: 'Jost', sans-serif; font-size: 0.88rem; line-height: 1.5;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.quiz-option-text:hover { border-color: var(--gold-dim); }
+.quiz-option-text:focus {
+  outline: none; border-color: var(--purple-bright);
+  box-shadow: 0 0 0 3px rgba(124,79,214,0.28);
 }
 .quiz-option-remove { flex-shrink: 0; }
+.quiz-option-remove:hover { border-color: #e05a4a; color: #e05a4a; }
 .quiz-option-remove[hidden] { display: none; }
 
 .quiz-option-weights {
@@ -3171,7 +3182,21 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.quiz-weight-input { width: 100%; text-align: center; }
+.quiz-weight-input {
+  width: 100%; text-align: center;
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 8px 6px; font-family: 'Jost', sans-serif; font-size: 0.9rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.quiz-weight-input:hover { border-color: var(--gold-dim); }
+.quiz-weight-input:focus {
+  outline: none; border-color: var(--purple-bright);
+  box-shadow: 0 0 0 3px rgba(124,79,214,0.28);
+}
+/* A weight above zero is the thing worth seeing at a glance across six columns.
+   Toggled from JS rather than an attribute selector: the value is set as a
+   property, so [value] would never reflect what is actually in the field. */
+.quiz-weight-input.has-weight { border-color: var(--gold-dim); color: var(--gold-bright); }
 .quiz-weight-input:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .quiz-option-responses {
