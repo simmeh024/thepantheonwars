@@ -16,6 +16,28 @@ if ($dispatchId <= 0) {
 }
 
 $db = pw_db();
+
+// Preview mode writes nothing at all. It exists so an editor can re-run the
+// engine over a dispatch that already has an approved translation and see the
+// proposed wording in the editor, while the live public text stays untouched
+// until they explicitly save. Previously the only route was to delete the
+// published translation first, which took the public page down in between.
+if (!empty($input['preview'])) {
+    $preview = pw_dispatch_preview_translation_draft($db, $dispatchId);
+    if (empty($preview['ok'])) {
+        pw_error('That dispatch no longer exists.', 404);
+    }
+    pw_json([
+        'ok' => true,
+        'preview' => true,
+        'draft' => $preview['draft'],
+        'confidence' => $preview['confidence'],
+        'auto_published' => false,
+        'requires_editor_review' => !empty($preview['requires_editor_review']),
+        'best_semantic_match' => $preview['best_semantic_match'] ?? [],
+    ]);
+}
+
 try {
     $result = pw_create_dispatch_translation_draft($db, $dispatchId);
 } catch (PDOException $e) {

@@ -7699,8 +7699,11 @@
     modalStatus.classList.remove('show');
     var canEditTranslation = pwHasPermission('dispatch_translations.edit');
     deleteBtn.hidden = !entry.has_translation || !canEditTranslation;
-    generateDraftBtn.hidden = entry.has_translation || !canEditTranslation;
-    setGenerateDraftButton(entry.has_draft ? 'Regenerate Draft' : 'Generate Draft', false);
+    // A published translation can be regenerated too. That runs in preview
+    // mode, which writes nothing -- the proposed wording lands in the editor
+    // while the live public text stays as it is until an explicit save.
+    generateDraftBtn.hidden = !canEditTranslation;
+    setGenerateDraftButton((entry.has_draft || entry.has_translation) ? 'Regenerate Draft' : 'Generate Draft', false);
     saveBtn.textContent = entry.has_translation ? 'Save Changes' : 'Approve & Publish';
     saveBtn.disabled = !canEditTranslation;
     textarea.disabled = !canEditTranslation;
@@ -7806,18 +7809,37 @@
 
   generateDraftBtn.addEventListener('click', function () {
     if (!currentEntry || !pwHasPermission('dispatch_translations.edit')) return;
-    var idleLabel = currentEntry.has_draft ? 'Regenerate Draft' : 'Generate Draft';
+    // Regenerating an already-published dispatch must never touch the live
+    // text, so it runs as a preview: the endpoint writes nothing and the
+    // proposed wording only becomes public if the editor then saves it.
+    var isPreview = !!currentEntry.has_translation;
+    var idleLabel = (currentEntry.has_draft || currentEntry.has_translation) ? 'Regenerate Draft' : 'Generate Draft';
     setGenerateDraftButton('Generating Draft', true);
     modalError.classList.remove('show');
-    modalStatus.textContent = 'BH-4 is preparing a reader-friendly draft…';
+    modalStatus.textContent = isPreview
+      ? 'Preparing a fresh draft. The published text stays live until you save.'
+      : 'BH-4 is preparing a reader-friendly draft…';
     modalStatus.classList.add('show');
     fetch('/api/admin/dispatch-translations/generate-draft.php', {
       method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dispatch_id: currentEntry.id, csrf: window.PW_AUTH.csrf }),
+      body: JSON.stringify({ dispatch_id: currentEntry.id, preview: isPreview ? 1 : 0, csrf: window.PW_AUTH.csrf }),
     })
       .then(function (r) { return r.json(); })
       .then(function (data) {
         if (!data.ok) throw new Error(data.error || 'Could not generate draft.');
+        if (data.preview) {
+          // Nothing was stored. Leave has_translation alone so Delete and the
+          // "Save Changes" label stay correct, and do not refresh the list --
+          // there is no server-side change for it to reflect.
+          textarea.value = data.draft || '';
+          currentEntry.confidence = data.confidence || currentEntry.confidence;
+          setGenerateDraftButton(idleLabel, false);
+          modalStatus.textContent = 'New draft ready below. The published version is unchanged until you choose Save Changes.';
+          modalStatus.classList.add('show');
+          updateDraftConfidence(currentEntry.confidence);
+          updateSemanticMatch(data.best_semantic_match);
+          return;
+        }
         textarea.value = data.translation || data.draft || '';
         currentEntry.confidence = data.confidence || currentEntry.confidence;
         if (data.auto_published) {

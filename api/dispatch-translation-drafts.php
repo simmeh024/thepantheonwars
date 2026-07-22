@@ -1534,7 +1534,13 @@ function pw_dispatch_log_translation_edit_event(PDO $db, int $dispatchId, string
     }
 }
 
-function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
+/**
+ * Load the one dispatch row both the draft generator and the preview need,
+ * including the category metadata the translator now consumes. Kept in one
+ * place so the two callers cannot drift apart on which columns they read or
+ * on the fallback for an unmigrated database.
+ */
+function pw_dispatch_load_entry_for_draft(PDO $db, int $dispatchId)
 {
     // category_confidence/category_source come from sql/migration_dispatch_
     // category_confidence.sql. Fall back to the original column list if that
@@ -1542,13 +1548,53 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
     // cannot break translation entirely -- the same defensive pattern used for
     // the newer columns in api/track-visit.php.
     try {
-        $entryStmt = $db->prepare('SELECT id, sha, subject, body, tag, category_confidence, category_source FROM dispatch_entries WHERE id = ?');
-        $entryStmt->execute([$dispatchId]);
+        $stmt = $db->prepare('SELECT id, sha, subject, body, tag, category_confidence, category_source FROM dispatch_entries WHERE id = ?');
+        $stmt->execute([$dispatchId]);
     } catch (Throwable $e) {
-        $entryStmt = $db->prepare('SELECT id, sha, subject, body, tag FROM dispatch_entries WHERE id = ?');
-        $entryStmt->execute([$dispatchId]);
+        $stmt = $db->prepare('SELECT id, sha, subject, body, tag FROM dispatch_entries WHERE id = ?');
+        $stmt->execute([$dispatchId]);
     }
-    $entry = $entryStmt->fetch();
+    return $stmt->fetch();
+}
+
+/**
+ * Generate draft text for a dispatch and write nothing at all -- no draft row,
+ * no publication, no embedding, no audit entry. This is what lets an editor
+ * regenerate a dispatch that already has an approved translation: the proposed
+ * wording appears in the editor while the live public text stays exactly as it
+ * was, and only an explicit save replaces it. Before this existed the only way
+ * to re-run the engine over a published dispatch was to delete the published
+ * translation first, which took the public page down in between.
+ */
+function pw_dispatch_preview_translation_draft(PDO $db, int $dispatchId): array
+{
+    $entry = pw_dispatch_load_entry_for_draft($db, $dispatchId);
+    if (!$entry) {
+        return ['ok' => false, 'reason' => 'missing'];
+    }
+
+    $draftOptions = pw_dispatch_draft_options_for_dispatch($db, $dispatchId, (string)$entry['subject'], (string)$entry['body']);
+    $draftOptions['category_confidence'] = isset($entry['category_confidence']) ? (int)$entry['category_confidence'] : null;
+    $draftOptions['category_source'] = isset($entry['category_source']) ? (string)$entry['category_source'] : '';
+    $result = pw_dispatch_end_user_draft(
+        $entry['subject'],
+        (string)$entry['body'],
+        $entry['tag'],
+        $draftOptions
+    );
+
+    return [
+        'ok' => true,
+        'draft' => $result['draft'],
+        'confidence' => $result['confidence'],
+        'requires_editor_review' => !empty($result['requires_editor_review']),
+        'best_semantic_match' => $result['best_semantic_match'] ?? [],
+    ];
+}
+
+function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
+{
+    $entry = pw_dispatch_load_entry_for_draft($db, $dispatchId);
     if (!$entry) {
         return ['ok' => false, 'reason' => 'missing'];
     }

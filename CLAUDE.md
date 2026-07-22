@@ -584,6 +584,32 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Regenerate a published translation without deleting it first.**
+  `api/admin/dispatch-translations/generate-draft.php` returned **409** when a
+  dispatch already had an approved translation, so the only way to re-run the
+  engine over published text was Delete Translation -> Generate Draft -- which
+  removes the public explanation from `dev-dispatches.html` in between, and
+  loses the row (and with it any Good/Bad feedback attached to it). That was
+  the workflow behind every "regenerate it by hand" note in the entries below.
+  Added an explicit **preview mode** (`preview: 1`): it calls the new
+  `pw_dispatch_preview_translation_draft()`, which generates text and **writes
+  nothing at all** -- no draft row, no publication, no embedding upsert, no
+  audit entry. The proposed wording lands in the modal's editor while the live
+  public text stays exactly as it was; only pressing Save Changes replaces it,
+  through the existing save path (so the edit-similarity quality signal is
+  still recorded normally). Nothing is destructive, so no confirm dialog is
+  needed -- closing the modal simply discards it.
+  In the admin modal the Generate/Regenerate button is no longer hidden once a
+  translation exists (it is still gated on `dispatch_translations.edit`, per
+  the standing permission-aware-UI convention), reads "Regenerate Draft" for
+  both drafts and published rows, and the preview branch deliberately does
+  **not** touch `has_translation` or reload the list, since there is no
+  server-side change for either to reflect.
+  Entry loading was extracted into `pw_dispatch_load_entry_for_draft()` so the
+  generator and the preview cannot drift on which columns they read or on the
+  unmigrated-database fallback. No draft-hash bump: engine output is
+  unchanged, only the workflow around it.
+
 - **The category now feeds the translator; spaCy entities generalize the
   proper-noun list (dispatch-draft-v34).** Audit finding: the categoriser and
   the domain classifier were **two classifiers over the same commit with
