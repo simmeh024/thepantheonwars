@@ -71,6 +71,11 @@ CREATE TABLE IF NOT EXISTS users (
   -- Offline is derived from inactive/revoked sessions. Signed-in members can
   -- choose one of the three visible states below.
   presence_status ENUM('online','away','inactive') NOT NULL DEFAULT 'online',
+  -- Which world the header weather widget is pointed at. NULL means never
+  -- chosen, which renders as the default. Deliberately not a foreign key: a
+  -- world being renamed or locked must fall back quietly, and the widget
+  -- re-validates the slug against the live available set on every render.
+  weather_world_slug VARCHAR(50) NULL,
   -- Reputation points: +1 per topic/comment authored, +2 per like received
   -- (reversed on unlike). Drives the reputation bar against reputation_levels.
   reputation INT UNSIGNED NOT NULL DEFAULT 0,
@@ -1287,6 +1292,11 @@ CREATE TABLE IF NOT EXISTS worlds (
   map_thumb_image_url VARCHAR(255) NOT NULL DEFAULT '',
   map_full_image_url VARCHAR(255) NOT NULL DEFAULT '',
   map_caption VARCHAR(255) NOT NULL DEFAULT '',
+  -- This world's signal colour as bare "R, G, B" components, not a CSS colour,
+  -- so one value serves both a solid fill and a translucent glow -- the same
+  -- --node-accent convention the timeline markers use. Seeded from the atlas's
+  -- established per-world tones; drives the header weather widget's theming.
+  accent_rgb VARCHAR(20) NOT NULL DEFAULT '',
   sort_order INT NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

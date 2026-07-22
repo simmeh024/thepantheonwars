@@ -286,6 +286,322 @@ function initMain() {
       });
     });
   });
+
+  initWeatherWidget();
+}
+
+/* ---------------------------------------------------------------------------
+   Header weather widget
+
+   A compact bar in the header showing one world's current conditions, pointable
+   at any unlocked world, linking through to that world's record.
+
+   Built here in JS rather than as markup, because the header is hand-duplicated
+   across 26 public pages -- the same reason js/members.js renders the
+   authenticated profile chip itself instead of every page carrying a copy.
+--------------------------------------------------------------------------- */
+
+var PW_WEATHER_CACHE_KEY = 'pw_weather_glance';
+var PW_WEATHER_CHOICE_KEY = 'pw_weather_world';
+var PW_WEATHER_DEFAULT_SLUG = 'neoh';
+// The current condition and temperature are admin-authored and only change when
+// Weather Control is saved; the rest of the forecast is deterministic for a
+// whole UTC day. Half an hour therefore bounds staleness without re-fetching on
+// every page view -- roughly one request per visitor per half hour, not one per
+// page, per the initial-load request discipline this codebase already follows.
+var PW_WEATHER_TTL_MS = 30 * 60 * 1000;
+
+function weatherIconSvg(icon) {
+  // Same five-icon vocabulary as the World Record's weather card
+  // (js/world-detail.js), so the header and the record never disagree.
+  var paths = {
+    'acid-rain': '<path d="M13 35h34a10 10 0 0 0 1-20 16 16 0 0 0-30-3 12 12 0 0 0-5 23z"/><path d="m20 43-4 9m15-9-4 9m15-9-4 9"/><path d="M18 55h22"/>',
+    storm: '<path d="M13 34h34a10 10 0 0 0 1-20 16 16 0 0 0-30-3 12 12 0 0 0-5 23z"/><path d="m34 38-8 11h7l-4 10 13-15h-8z"/>',
+    smog: '<path d="M13 31h34a10 10 0 0 0 1-20 16 16 0 0 0-30-3 12 12 0 0 0-5 23z"/><path d="M10 40h36M18 47h34M8 54h31"/>',
+    clear: '<circle cx="32" cy="32" r="11"/><path d="M32 8v8m0 32v8M8 32h8m32 0h8M15 15l6 6m22 22 6 6m0-34-6 6M21 43l-6 6"/>',
+    overcast: '<path d="M13 37h34a10 10 0 0 0 1-20 16 16 0 0 0-30-3 12 12 0 0 0-5 23z"/>'
+  };
+  return '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + (paths[icon] || paths.overcast) + '</svg>';
+}
+
+function weatherEscape(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function initWeatherWidget() {
+  var utility = document.querySelector('.nav-utility');
+  if (!utility || document.getElementById('pw-weather-widget')) return;
+
+  var worlds = [];
+  var activeSlug = null;
+  var open = false;
+
+  // --- markup ---------------------------------------------------------------
+  var root = document.createElement('div');
+  root.className = 'pw-weather';
+  root.id = 'pw-weather-widget';
+  root.hidden = true;   // stays hidden until there is something real to show
+  root.innerHTML =
+    '<a class="pw-weather-bar" href="#" aria-label="World weather">'
+    + '<span class="pw-weather-icon"></span>'
+    + '<span class="pw-weather-temp"></span>'
+    + '<span class="pw-weather-condition"></span>'
+    + '</a>'
+    + '<button type="button" class="pw-weather-toggle" aria-expanded="false" aria-haspopup="true" aria-label="Choose a world">'
+    + '<span class="pw-weather-caret" aria-hidden="true">&#8964;</span>'
+    + '</button>'
+    + '<div class="pw-weather-menu" role="menu" hidden></div>';
+  utility.insertBefore(root, utility.firstChild);
+
+  var barEl = root.querySelector('.pw-weather-bar');
+  var iconEl = root.querySelector('.pw-weather-icon');
+  var tempEl = root.querySelector('.pw-weather-temp');
+  var condEl = root.querySelector('.pw-weather-condition');
+  var toggleEl = root.querySelector('.pw-weather-toggle');
+  var menuEl = root.querySelector('.pw-weather-menu');
+
+  // --- preference -----------------------------------------------------------
+
+  function storedChoice() {
+    // A signed-in member's choice follows them across devices; a guest's is
+    // per-browser. PW_AUTH may not have resolved yet on first paint, which is
+    // why render() runs again on pw-auth-ready.
+    var auth = window.PW_AUTH;
+    if (auth && auth.loggedIn && auth.user && auth.user.weather_world_slug) {
+      return auth.user.weather_world_slug;
+    }
+    try { return window.localStorage.getItem(PW_WEATHER_CHOICE_KEY); } catch (e) { return null; }
+  }
+
+  function rememberChoice(slug) {
+    try { window.localStorage.setItem(PW_WEATHER_CHOICE_KEY, slug); } catch (e) {}
+    var auth = window.PW_AUTH;
+    if (!auth || !auth.loggedIn || !auth.csrf) return;
+    if (auth.user) auth.user.weather_world_slug = slug;
+    fetch('/api/weather-widget/select.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slug: slug, csrf: auth.csrf })
+    }).catch(function () {
+      // The localStorage copy above already holds the choice for this browser.
+    });
+  }
+
+  function resolveWorld() {
+    if (!worlds.length) return null;
+    var wanted = activeSlug || storedChoice() || PW_WEATHER_DEFAULT_SLUG;
+    var found = null;
+    worlds.forEach(function (world) { if (world.slug === wanted) found = world; });
+    // A stored world that has since been locked, or a default that is not
+    // unlocked yet, falls back to the first available one rather than to
+    // nothing.
+    if (!found) {
+      worlds.forEach(function (world) { if (!found && world.slug === PW_WEATHER_DEFAULT_SLUG) found = world; });
+    }
+    return found || worlds[0];
+  }
+
+  // --- rendering ------------------------------------------------------------
+
+  function render() {
+    var world = resolveWorld();
+    if (!world) { root.hidden = true; return; }
+
+    var current = world.current || {};
+    iconEl.innerHTML = weatherIconSvg(current.icon);
+    // The unit is its own element so the compact bar can drop it. Degrees alone
+    // are unambiguous on a weather bar, and it buys ~10px -- which decides
+    // whether the widget survives beside a signed-in profile chip at all.
+    tempEl.innerHTML = (current.temperature_c != null ? weatherEscape(current.temperature_c) : '--')
+      + '°<span class="pw-weather-temp-unit">C</span>';
+    condEl.textContent = current.condition || '';
+    barEl.href = 'world.html?slug=' + encodeURIComponent(world.slug);
+    barEl.setAttribute('aria-label', world.name + ': ' + (current.condition || 'conditions')
+      + ', ' + (current.temperature_c != null ? current.temperature_c + ' degrees' : 'unknown') + '. Open the World Record.');
+    barEl.title = world.name + ' — ' + (world.location || '');
+
+    // Bare "R, G, B" from World Control, so one value drives both the solid
+    // accent and its translucent glow. Removed rather than set empty when
+    // absent: an empty custom property still counts as set and would defeat
+    // the var() fallback.
+    if (world.accent) root.style.setProperty('--pw-weather-accent', world.accent);
+    else root.style.removeProperty('--pw-weather-accent');
+
+    renderMenu(world.slug);
+    root.hidden = false;
+    fitToHeader();
+  }
+
+  // Give up space only when the header actually runs out of it.
+  //
+  // A viewport breakpoint cannot do this job: .nav-inner is capped at
+  // max-width 1180px, so the room left over never grows past ~154px however
+  // wide the screen gets -- and that is exactly what the full bar wants. The
+  // amount left also depends on whether the visitor is signed in, since the
+  // profile chip is far wider than a "Login" link, which no media query can
+  // distinguish.
+  //
+  // So measure the symptom instead. When the header runs out of room its links
+  // wrap and .nav-inner grows taller, so compare against its height with the
+  // widget removed: drop the condition text first, and only hide the widget
+  // outright if even the compact bar does not fit.
+  function fitToHeader() {
+    var inner = root.closest('.nav-inner');
+    if (!inner || !worlds.length) return;
+    root.hidden = false;
+
+    // Height of the header with the widget taken out of the flow.
+    var previous = root.style.display;
+    root.style.display = 'none';
+    var baseline = inner.getBoundingClientRect().height;
+    root.style.display = previous;
+
+    var utility = root.parentElement;
+
+    // Two separate failure modes, and neither alone is enough:
+    //  - the header grew taller, i.e. the nav links wrapped to make room;
+    //  - the header runs past its own content box, which happens between the
+    //    780px breakpoint and roughly 1090px where the desktop nav is still
+    //    shown but no longer fits. That band overruns even without this widget,
+    //    so the widget stands down there rather than adding to it.
+    //
+    // The width test compares .nav-utility's right edge against the content
+    // box, NOT inner.scrollWidth: the nav's mega-menu panels are absolutely
+    // positioned and still count towards scrollWidth even while invisible, so
+    // that reading is inflated and reports an overflow that is not real.
+    function doesNotFit() {
+      if (inner.getBoundingClientRect().height > baseline) return true;
+      var innerRect = inner.getBoundingClientRect();
+      var contentRight = innerRect.right - parseFloat(getComputedStyle(inner).paddingRight);
+      return utility.getBoundingClientRect().right > contentRight + 1;
+    }
+
+    root.classList.remove('is-compact');
+    if (!doesNotFit()) return;
+    root.classList.add('is-compact');
+    if (!doesNotFit()) return;
+    root.hidden = true;
+  }
+
+  var fitTimer = null;
+  window.addEventListener('resize', function () {
+    if (fitTimer) window.clearTimeout(fitTimer);
+    // fitToHeader un-hides before measuring, so a widened header wins its
+    // space back rather than staying hidden from an earlier narrow pass.
+    fitTimer = window.setTimeout(fitToHeader, 150);
+  });
+
+  function renderMenu(currentSlug) {
+    menuEl.innerHTML = worlds.map(function (world) {
+      var current = world.current || {};
+      return '<button type="button" role="menuitem" class="pw-weather-option'
+        + (world.slug === currentSlug ? ' is-current' : '')
+        + '" data-slug="' + weatherEscape(world.slug) + '"'
+        + (world.accent ? ' style="--pw-weather-accent: ' + weatherEscape(world.accent) + '"' : '')
+        + (world.slug === currentSlug ? ' aria-current="true"' : '')
+        + '>'
+        + '<span class="pw-weather-option-dot" aria-hidden="true"></span>'
+        + '<span class="pw-weather-option-name">' + weatherEscape(world.name) + '</span>'
+        + '<span class="pw-weather-option-temp">'
+        + weatherEscape(current.temperature_c != null ? current.temperature_c + '°' : '--')
+        + '</span>'
+        + '</button>';
+    }).join('');
+  }
+
+  // --- picker ---------------------------------------------------------------
+  // Mirrors the notification dropdown's contract: aria-expanded, outside-click
+  // and Escape closing, with Escape returning focus to the trigger.
+
+  function setOpen(next) {
+    open = next;
+    menuEl.hidden = !next;
+    root.classList.toggle('is-open', next);
+    toggleEl.setAttribute('aria-expanded', next ? 'true' : 'false');
+  }
+
+  toggleEl.addEventListener('click', function (event) {
+    event.preventDefault();
+    setOpen(!open);
+    if (open) {
+      var first = menuEl.querySelector('.pw-weather-option.is-current') || menuEl.querySelector('.pw-weather-option');
+      if (first) first.focus();
+    }
+  });
+
+  menuEl.addEventListener('click', function (event) {
+    var option = event.target.closest ? event.target.closest('.pw-weather-option') : null;
+    if (!option) return;
+    activeSlug = option.dataset.slug;
+    rememberChoice(activeSlug);
+    render();
+    setOpen(false);
+    toggleEl.focus();
+  });
+
+  document.addEventListener('click', function (event) {
+    if (open && !root.contains(event.target)) setOpen(false);
+  });
+
+  root.addEventListener('keydown', function (event) {
+    if (event.key !== 'Escape' || !open) return;
+    setOpen(false);
+    toggleEl.focus();
+  });
+
+  // --- data -----------------------------------------------------------------
+
+  function applyWorlds(list) {
+    if (!list || !list.length) return;
+    worlds = list;
+    render();
+  }
+
+  function readCache() {
+    try {
+      var raw = window.localStorage.getItem(PW_WEATHER_CACHE_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.worlds) || !parsed.fetchedAt) return null;
+      return parsed;
+    } catch (e) { return null; }
+  }
+
+  function fetchWorlds() {
+    fetch('/api/worlds-weather-glance.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data || !data.ok || !Array.isArray(data.worlds)) return;
+        try {
+          window.localStorage.setItem(PW_WEATHER_CACHE_KEY,
+            JSON.stringify({ fetchedAt: Date.now(), worlds: data.worlds }));
+        } catch (e) {}
+        applyWorlds(data.worlds);
+      })
+      .catch(function () {
+        // The header is fully usable without this; the widget just stays hidden.
+      });
+  }
+
+  // Paint instantly from cache so there is no flash and no layout shift, then
+  // refresh in the background only when the cache has actually aged out.
+  var cached = readCache();
+  if (cached) applyWorlds(cached.worlds);
+  if (!cached || (Date.now() - cached.fetchedAt) > PW_WEATHER_TTL_MS) {
+    if ('requestIdleCallback' in window) window.requestIdleCallback(fetchWorlds, { timeout: 3000 });
+    else setTimeout(fetchWorlds, 1500);
+  }
+
+  // members.js resolves the session after this runs, so a member's stored world
+  // only becomes known here. Re-render then, but only while they have not
+  // already picked something in this page view.
+  document.addEventListener('pw-auth-ready', function () {
+    if (!activeSlug) render();
+  });
 }
 
 // Index loads this non-critical enhancement bundle after the first mobile

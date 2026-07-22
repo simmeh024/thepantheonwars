@@ -405,6 +405,13 @@ function initMembers() {
       };
       applyOauthButtonVisibility();
       applyMaintenanceMode();
+      // Signals that window.PW_AUTH is populated, for header chrome that loads
+      // before the session resolves and needs to reconcile afterwards (the
+      // weather widget's stored world). Same CustomEvent approach as
+      // pw-presence-updated rather than another script polling for PW_AUTH.
+      document.dispatchEvent(new CustomEvent('pw-auth-ready', {
+        detail: { loggedIn: window.PW_AUTH.loggedIn }
+      }));
     });
   }
 

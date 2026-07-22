@@ -473,15 +473,15 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=270`, community `css/community-bundle.css?v=262`, and admin
-  `css/admin-bundle.css?v=273`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=271`, community `css/community-bundle.css?v=263`, and admin
+  `css/admin-bundle.css?v=275`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=11), `js/members.js?v=N` (current: v=39)
+  than once): `js/main.js?v=N` (current: v=13), `js/members.js?v=N` (current: v=40)
   and `js/notifications.js?v=N` (loaded dynamically), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
@@ -600,6 +600,59 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Header weather widget** (`js/main.js?v=13`, `.pw-weather*` in
+  `css/components.css`). **Run `sql/migration_weather_widget.sql` once.** A
+  compact bar in `.nav-utility` showing one world's current conditions, default
+  Neoh, pointable at any unlocked world, clicking through to that World Record.
+  **No header markup was added to any page.** The header is hand-duplicated
+  across 26 pages, so the widget is built and injected by JS, exactly as
+  `js/members.js` already renders the authenticated profile chip. Any future
+  header chrome should do the same rather than editing 26 files.
+  **It reuses `api/worlds-weather-glance.php` unchanged** — that endpoint
+  already returns condition/icon/temp for every world that is both `available`
+  and weather-enabled, which is also precisely the picker's "unlocked" set. Only
+  an accent was added. Response is cached in `localStorage` for **30 minutes**
+  and fetched through `requestIdleCallback`, so this costs about one request per
+  visitor per half hour rather than one per page; it paints from cache first, so
+  there is no flash.
+  **Per-world colour now lives in the database**: `worlds.accent_rgb`, seeded
+  from the atlas's existing `ATLAS_TONES`, stored as bare `"R, G, B"` components
+  (not a CSS colour) so one value drives both a solid fill and a translucent
+  glow — the `--node-accent` convention the timeline markers use. Editable in
+  World Control. `ATLAS_TONES` deliberately stays in JS: it drives the atlas
+  canvas effects and must render before any fetch.
+  Member choice is `users.weather_world_slug`, returned by `api/session-check.php`
+  (which every page already calls, so reading it costs no request) and written by
+  `api/weather-widget/select.php`. Guests use `localStorage`. **The read is
+  deliberately NOT in `pw_current_user()`'s SELECT** — that runs on every
+  authenticated request site-wide, so a pre-migration deploy would fatal the
+  whole site rather than one value; it is a guarded query in session-check's
+  signed-in branch instead. The write re-checks the world is actually available,
+  since it is a separate entry point from the glance endpoint.
+  **The header has less room than it looks, and this is the part worth
+  remembering.** `.nav-inner` is capped at `max-width: 1180px`, so the spare
+  space beside the nav **never grows past ~154px however wide the screen gets**,
+  and how much is left depends on whether the visitor is signed in — a ~115px
+  profile chip versus a ~45px "Login" link. No media query can distinguish those,
+  so `fitToHeader()` measures the header instead and steps the widget down:
+  full bar → drop the condition text and the °C unit → hide. Two signals, both
+  needed: the header growing taller (nav links wrapping), and `.nav-utility`
+  running past the content box.
+  **Do not use `inner.scrollWidth` for that width test** — the nav's mega-menu
+  panels are absolutely positioned and count towards `scrollWidth` even while
+  invisible, so it reports an overflow that is not real. Compare
+  `.nav-utility`'s right edge against the content box instead.
+  **Found while measuring:** the header already overruns its content box between
+  the 780px breakpoint and roughly 1090px, where the desktop nav is still shown
+  but no longer fits. That is pre-existing and was left alone; the widget simply
+  stands down in that band rather than adding to it.
+  Verified by measuring computed geometry against a harness built from the real
+  header block and the real profile-chip markup — an earlier hand-made chip was
+  ~25px too wide and produced a wrong conclusion (that the widget could never
+  fit signed in). Build the fixture from the real markup, not an approximation.
+  `components.css?v=210` / `public.css?v=271` / `community-bundle.css?v=263` /
+  `admin-bundle.css?v=275`.
 
 - **Timeline desktop layout fix; nav link renamed to "The Timeline".**
   Reported as the page looking "funky": every marker's date, title and era ran

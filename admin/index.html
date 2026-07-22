@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=274">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=275">
 </head>
 <body>
 
@@ -2914,6 +2914,11 @@
         <label for="world-map-caption-input">Map caption</label>
         <input type="text" id="world-map-caption-input" maxlength="255">
       </div>
+      <div class="admin-field">
+        <label for="world-accent-rgb-input">Signal colour</label>
+        <input type="text" id="world-accent-rgb-input" maxlength="20" placeholder="154, 96, 238">
+        <p class="admin-field-hint">This world&rsquo;s signal colour as three numbers, red, green then blue &mdash; for example <code>154, 96, 238</code>. Stored as components rather than a colour code so one value can tint both a solid accent and its glow. Drives the header weather bar when this world is selected. Leave blank to use the default purple.</p>
+      </div>
 
       <hr class="admin-modal-divider">
 
@@ -3758,7 +3763,7 @@
   </div>
 </div>
 
-<script src="../js/members.js?v=39"></script>
+<script src="../js/members.js?v=40"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -11419,6 +11424,7 @@
   var worldMapThumbImageInput = document.getElementById('world-map-thumb-image-input');
   var worldMapFullImageInput = document.getElementById('world-map-full-image-input');
   var worldMapCaptionInput = document.getElementById('world-map-caption-input');
+  var worldAccentRgbInput = document.getElementById('world-accent-rgb-input');
 
   var worldLayerListEl = document.getElementById('world-layer-list');
   var worldLayerCreateBtn = document.getElementById('world-layer-create-btn');
@@ -11688,6 +11694,7 @@
     worldMapThumbImageInput.value = world.map_thumb_image_url || '';
     worldMapFullImageInput.value = world.map_full_image_url || '';
     worldMapCaptionInput.value = world.map_caption || '';
+    worldAccentRgbInput.value = world.accent_rgb || '';
     updateWorldDetailFieldsVisibility();
     refreshAllWorldImageThumbs();
     renderWorldLayerList();
@@ -11753,6 +11760,7 @@
       map_thumb_image_url: worldMapThumbImageInput.value.trim(),
       map_full_image_url: worldMapFullImageInput.value.trim(),
       map_caption: worldMapCaptionInput.value.trim(),
+      accent_rgb: worldAccentRgbInput.value.trim(),
       csrf: window.PW_AUTH.csrf
     };
 

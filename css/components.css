@@ -733,6 +733,141 @@ button.auth-profile-chip { color: inherit; cursor: pointer; font: inherit; }
    behind the hamburger, but these two never do. */
 .nav-utility { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
 
+/* --- Header weather widget ------------------------------------------------
+   A compact bar showing one world's current conditions, pointable at any
+   unlocked world. Built and injected into .nav-utility by js/main.js, because
+   the header markup is hand-duplicated across 26 pages.
+
+   --pw-weather-accent is that world's signal colour as bare "R, G, B"
+   components (worlds.accent_rgb), so one value drives both the solid accent
+   and its translucent glow -- the same convention the timeline markers use.
+   The fallback keeps the widget legible before the migration has been run. */
+.pw-weather {
+  --pw-weather-accent: 162, 121, 236;
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+/* .pw-weather sets its own display, which ties with the browser's
+   [hidden] { display: none } rule and wins by being declared later -- the same
+   cascade trap the OAuth buttons hit. The widget is hidden until it has real
+   data, so this override is load-bearing, not defensive. */
+.pw-weather[hidden] { display: none; }
+
+.pw-weather-bar {
+  display: flex;
+  align-items: center;
+  /* Kept tight on purpose. Measured against a signed-in header there is only
+     ~89px of spare room at the capped 1180px .nav-inner width, so every few
+     pixels here decide whether the bar survives beside the profile chip. */
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid rgba(var(--pw-weather-accent), 0.32);
+  border-radius: 999px;
+  background: rgba(var(--pw-weather-accent), 0.09);
+  text-decoration: none;
+  transition: border-color var(--transition-base), background var(--transition-base);
+}
+.pw-weather-bar:hover {
+  border-color: rgba(var(--pw-weather-accent), 0.62);
+  background: rgba(var(--pw-weather-accent), 0.16);
+}
+.pw-weather-bar:focus-visible { outline: 1px solid var(--gold-bright); outline-offset: 3px; }
+
+.pw-weather-icon { display: flex; align-items: center; color: rgb(var(--pw-weather-accent)); }
+.pw-weather-icon svg {
+  width: 15px; height: 15px;
+  filter: drop-shadow(0 0 6px rgba(var(--pw-weather-accent), 0.45));
+}
+.pw-weather-temp {
+  font-family: 'Jost', sans-serif;
+  font-size: 0.74rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--text);
+  /* Equal-width digits, so the bar does not jog as the temperature changes. */
+  font-variant-numeric: tabular-nums;
+}
+.pw-weather-condition {
+  font-family: 'Jost', sans-serif;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-faint);
+  /* Condition names vary a lot in length ("Clear tide" vs "Tidal storm surge"),
+     so this is capped rather than allowed to resize the whole header. */
+  max-width: 108px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pw-weather-toggle {
+  background: none; border: none; cursor: pointer; padding: 4px 0 4px 3px;
+  display: flex; align-items: center;
+  color: var(--text-faint);
+  transition: color var(--transition-base);
+}
+.pw-weather-toggle:hover, .pw-weather.is-open .pw-weather-toggle { color: rgb(var(--pw-weather-accent)); }
+.pw-weather-toggle:focus-visible { outline: 1px solid var(--gold-bright); outline-offset: 3px; border-radius: var(--radius-sm); }
+.pw-weather-caret { font-size: 0.7rem; line-height: 1; transition: transform var(--transition-base); }
+.pw-weather.is-open .pw-weather-caret { transform: rotate(180deg); }
+
+/* Picker. Same shape and motion as the notification dropdown so the two pieces
+   of header chrome read as one system. */
+.pw-weather-menu {
+  position: absolute; top: 100%; right: 0; margin-top: 10px;
+  width: 218px; max-width: 90vw;
+  padding: 6px;
+  background: var(--bg-alt); border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-popover);
+  z-index: 20;
+  animation: notif-dropdown-in 0.18s ease-out both;
+}
+.pw-weather-menu[hidden] { display: none; }
+
+.pw-weather-option {
+  --pw-weather-accent: 162, 121, 236;
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 8px 10px;
+  background: none; border: none; cursor: pointer; text-align: left;
+  font-family: 'Jost', sans-serif; font-size: 0.78rem;
+  color: var(--text-dim);
+  transition: background var(--transition-base), color var(--transition-base);
+}
+.pw-weather-option:hover { background: rgba(var(--pw-weather-accent), 0.14); color: var(--text); }
+.pw-weather-option:focus-visible { outline: 1px solid var(--gold-bright); outline-offset: -2px; }
+.pw-weather-option.is-current { color: var(--text); background: rgba(var(--pw-weather-accent), 0.1); }
+.pw-weather-option-dot {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  background: rgb(var(--pw-weather-accent));
+  box-shadow: 0 0 7px rgba(var(--pw-weather-accent), 0.75);
+}
+.pw-weather-option-name { flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pw-weather-option-temp {
+  flex-shrink: 0; color: var(--text-faint); font-size: 0.72rem; font-variant-numeric: tabular-nums;
+}
+
+/* The condition text is the first thing to go when the header runs short of
+   room. This is driven by fitToHeader() in js/main.js measuring the header
+   rather than by a width breakpoint: .nav-inner is capped at 1180px so the
+   spare room never grows past what the full bar wants, and how much is left
+   depends on whether the visitor is signed in -- a far wider profile chip than
+   a "Login" link, which no media query can tell apart. */
+.pw-weather.is-compact .pw-weather-condition,
+.pw-weather.is-compact .pw-weather-temp-unit { display: none; }
+
+/* Below the hamburger breakpoint the widget leaves entirely: .nav-utility is
+   already carrying the avatar and the bell at that width. */
+@media (max-width: 780px) {
+  .pw-weather { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pw-weather-menu { animation: none; }
+  .pw-weather-caret { transition: none; }
+}
+
 @media (max-width: 780px) {
   nav.main-nav {
     position: absolute;

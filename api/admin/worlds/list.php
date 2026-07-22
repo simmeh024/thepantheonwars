@@ -7,16 +7,21 @@
  * admin list/modals never need a separate per-world fetch.
  */
 require_once __DIR__ . '/../../helpers.php';
+// For pw_worlds_has_accent_column(), so this read degrades the same way the
+// create/update endpoints do when the weather-widget migration is pending.
+require_once __DIR__ . '/worlds-helpers.php';
 
 pw_require_permission('worlds.view');
 $db = pw_db();
 
+$hasAccent = pw_worlds_has_accent_column();
 $worlds = $db->query(
     'SELECT w.id, w.slug, w.name, w.tagline, w.card_blurb, w.thumb_image_url, w.portrait_image_url,
             w.status, w.lore_status_label,
             w.intro_paragraph_1, w.intro_paragraph_2, w.layout_orientation,
             w.altitude_top_label, w.altitude_bottom_label,
-            w.map_thumb_image_url, w.map_full_image_url, w.map_caption, w.sort_order,
+            w.map_thumb_image_url, w.map_full_image_url, w.map_caption, w.sort_order,'
+    . ($hasAccent ? ' w.accent_rgb,' : " '' AS accent_rgb,") . '
             o.name AS overlord_name, o.epithet AS overlord_epithet, o.slug AS overlord_slug
      FROM worlds w LEFT JOIN overlords o ON o.id = w.overlord_id ORDER BY w.sort_order ASC'
 )->fetchAll();

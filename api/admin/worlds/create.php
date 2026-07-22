@@ -25,16 +25,18 @@ if ($dupStmt->fetch()) {
 $maxSort = $db->query('SELECT COALESCE(MAX(sort_order), 0) AS m FROM worlds')->fetch();
 $sortOrder = (int)$maxSort['m'] + 1;
 
+$hasAccent = pw_worlds_has_accent_column();
 $stmt = $db->prepare(
     'INSERT INTO worlds (
         slug, name, tagline, card_blurb, thumb_image_url, portrait_image_url,
         status, lore_status_label,
         intro_paragraph_1, intro_paragraph_2, layout_orientation,
         altitude_top_label, altitude_bottom_label,
-        map_thumb_image_url, map_full_image_url, map_caption, sort_order
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+        map_thumb_image_url, map_full_image_url, map_caption, sort_order'
+    . ($hasAccent ? ', accent_rgb' : '') . '
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?' . ($hasAccent ? ', ?' : '') . ')'
 );
-$stmt->execute([
+$params = [
     $slug, $data['name'], $data['tagline'], $data['card_blurb'],
     $data['thumb_image_url'], $data['portrait_image_url'],
     $data['status'], $data['lore_status_label'],
@@ -42,7 +44,11 @@ $stmt->execute([
     $data['altitude_top_label'], $data['altitude_bottom_label'],
     $data['map_thumb_image_url'], $data['map_full_image_url'], $data['map_caption'],
     $sortOrder,
-]);
+];
+if ($hasAccent) {
+    $params[] = $data['accent_rgb'];
+}
+$stmt->execute($params);
 $worldId = (int)$db->lastInsertId();
 
 pw_log_admin_activity('world_created', 'Added world "' . $data['name'] . '".', $adminUser);

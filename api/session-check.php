@@ -3,6 +3,7 @@ require_once __DIR__ . '/oauth.php';
 
 $user = pw_current_user();
 $roleColor = '#c7ccd6';
+$weatherWorldSlug = null;
 
 if ($user) {
     // Heartbeat: this endpoint runs on page load and every two minutes in an
@@ -27,6 +28,26 @@ if ($user) {
     if ($roleRow) {
         $roleColor = $roleRow['color'];
     }
+
+    // Which world the header weather widget is pointed at. Read here, in the
+    // signed-in branch of an endpoint every page already calls, so the widget
+    // costs no request of its own to learn the member's choice.
+    //
+    // Deliberately NOT folded into pw_current_user()'s SELECT: that runs on
+    // every authenticated request site-wide, so a deploy landing before
+    // sql/migration_weather_widget.sql would fatal the whole site rather than
+    // just this one value (the mistake newsletter_subscribed had to guard
+    // against). Scoped and guarded here, a missing column costs nothing.
+    try {
+        $stmt = pw_db()->prepare('SELECT weather_world_slug FROM users WHERE id = ?');
+        $stmt->execute([$user['id']]);
+        $weatherRow = $stmt->fetch();
+        if ($weatherRow && $weatherRow['weather_world_slug'] !== null && $weatherRow['weather_world_slug'] !== '') {
+            $weatherWorldSlug = (string)$weatherRow['weather_world_slug'];
+        }
+    } catch (PDOException $e) {
+        // Migration pending; the widget falls back to its default world.
+    }
 }
 
 pw_json([
@@ -43,6 +64,7 @@ pw_json([
         'reputation' => pw_reputation_info((int)($user['reputation'] ?? 0)),
         'selected_icon' => $user['selected_icon'] ?? null,
         'is_staff_messenger' => pw_is_staff_messenger($user),
+        'weather_world_slug' => $weatherWorldSlug,
     ] : null,
     // Frontend uses this (not the raw role string) to decide what to show --
     // '*' means every permission (superuser role, e.g. admin).
