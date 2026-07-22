@@ -51,6 +51,7 @@
         <li data-requires-permission="weather.view"><button type="button" class="admin-nav-link" data-section="weather-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M7 17a4 4 0 1 1 1-7.87A6 6 0 0 1 19 12a3 3 0 0 1-1 5H7z"/><path d="M8 20l-1 2M12 20l-1 2M16 20l-1 2"/></svg>Weather Control</button></li>
         <li data-requires-permission="overlords.view"><button type="button" class="admin-nav-link" data-section="overlord-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><circle cx="12" cy="10" r="2.5"/></svg>Overlord Control</button></li>
         <li data-requires-permission="known_figures.view"><button type="button" class="admin-nav-link" data-section="known-figures-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Known Figures Control</button></li>
+        <li data-requires-permission="timeline.view"><button type="button" class="admin-nav-link" data-section="timeline-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><circle cx="7" cy="12" r="2"/><circle cx="13" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><path d="M7 10V6M13 14v4"/></svg>Timeline Control</button></li>
         <li data-requires-permission="soundtracks.view"><button type="button" class="admin-nav-link" data-section="soundtrack-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9 16V8l7-2v8"/><circle cx="8" cy="16" r="1.6"/><circle cx="15" cy="14" r="1.6"/></svg>Soundtrack Control</button></li>
       </ul>
     </div>
@@ -2044,6 +2045,22 @@
       </div>
     </section>
 
+    <section class="admin-section" id="section-timeline-control" hidden>
+      <div class="admin-section-head">
+        <h1>Timeline Control</h1>
+        <p>Manage the public Lore Timeline. Drag to reorder &mdash; in-world dates are free text and cannot be sorted, so this order is what decides where an event sits on the bar. An event with a reputation level set stays sealed on the public page until a member reaches that level.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <button type="button" class="btn btn-solid" id="timeline-create-btn">+ Add Timeline Event</button>
+        <span class="admin-count" id="timeline-count"></span>
+      </div>
+
+      <div class="admin-list" id="timeline-list">
+        <div class="admin-list-empty">Loading timeline events&hellip;</div>
+      </div>
+    </section>
+
     <section class="admin-section" id="section-soundtrack-control" hidden>
       <div class="admin-section-head">
         <h1>Soundtrack Control</h1>
@@ -3177,6 +3194,99 @@
   </div>
 </div>
 
+<div class="admin-modal" id="timeline-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="timeline-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="timeline-modal-title">Edit Timeline Event</h3>
+    <p class="admin-modal-sub" id="timeline-modal-sub"></p>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="timeline-title-input">Title</label>
+        <input type="text" id="timeline-title-input" maxlength="150">
+      </div>
+      <div class="admin-field" id="timeline-slug-field">
+        <label for="timeline-slug-input">Slug</label>
+        <p class="admin-field-hint">Lowercase letters, numbers, and hyphens only. Can&rsquo;t be changed after the event is created.</p>
+        <input type="text" id="timeline-slug-input" maxlength="100" placeholder="e.g. the-sundering">
+      </div>
+    </div>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="timeline-era-input">Era label</label>
+        <p class="admin-field-hint">Optional grouping shown above the title, e.g. &ldquo;The Long Silence&rdquo;.</p>
+        <input type="text" id="timeline-era-input" maxlength="100">
+      </div>
+      <div class="admin-field">
+        <label for="timeline-date-input">In-world date</label>
+        <p class="admin-field-hint">Free text &mdash; anything from &ldquo;Cycle 4.207&rdquo; to &ldquo;Before the Sundering&rdquo;. Never sorted; drag the list to set the order.</p>
+        <input type="text" id="timeline-date-input" maxlength="100">
+      </div>
+    </div>
+
+    <div class="admin-field admin-image-field">
+      <label for="timeline-image-input">Event image</label>
+      <p class="admin-field-hint">Shown in the hover panel on the public timeline. The library also lists existing site artwork, so a world map or figure portrait can be reused.</p>
+      <div class="admin-image-field-row">
+        <div class="admin-image-thumb" id="timeline-image-thumb">
+          <img id="timeline-image-preview" alt="" hidden>
+          <span class="admin-image-thumb-empty">No image</span>
+        </div>
+        <div class="admin-image-field-controls">
+          <input type="text" id="timeline-image-input" maxlength="255" placeholder="images/twelve-worlds-atlas.png">
+          <div class="admin-image-field-btns">
+            <button type="button" class="btn admin-image-upload-btn" data-image-type="timeline_event">Upload</button>
+            <button type="button" class="btn admin-image-browse-btn" data-image-type="timeline_event">Choose from Library</button>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="timeline-image-file" accept="image/png,image/jpeg,image/webp" hidden>
+    </div>
+
+    <div class="admin-field">
+      <label for="timeline-summary-input">Summary</label>
+      <p class="admin-field-hint">The text shown in the hover panel. Keep it short &mdash; 400 characters max.</p>
+      <textarea id="timeline-summary-input" maxlength="400"></textarea>
+    </div>
+
+    <div class="admin-field">
+      <label for="timeline-body-input">Full account (optional)</label>
+      <p class="admin-field-hint">Longer text shown when an event is opened rather than hovered.</p>
+      <textarea id="timeline-body-input" maxlength="4000"></textarea>
+    </div>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="timeline-accent-color-input">Accent color</label>
+        <p class="admin-field-hint">Drives this event&rsquo;s node glow and hover-panel edge.</p>
+        <input type="color" id="timeline-accent-color-input" value="#a279ec">
+      </div>
+      <div class="admin-field">
+        <label for="timeline-level-select">Requires reputation level</label>
+        <p class="admin-field-hint">Leave as &ldquo;Always visible&rdquo; for open lore. Otherwise the event stays sealed on the public page &mdash; its text and image are never sent to a member below this level &mdash; until they reach it.</p>
+        <select id="timeline-level-select">
+          <option value="">Always visible</option>
+        </select>
+      </div>
+    </div>
+
+    <label class="admin-field news-comments-toggle" for="timeline-published-input">
+      <span><strong>Published</strong><small>Visible on the public Timeline page. Unpublish to keep an event in progress without deleting it.</small></span>
+      <input type="checkbox" id="timeline-published-input" checked>
+    </label>
+
+    <p class="admin-modal-error" id="timeline-modal-error"></p>
+    <p class="admin-modal-status" id="timeline-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="timeline-save-btn">Save</button>
+      <button type="button" class="btn" id="timeline-cancel-btn">Cancel</button>
+      <button type="button" class="admin-delete-btn" id="timeline-delete-btn" hidden>Delete Event</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-modal" id="soundtrack-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner admin-modal-inner-wide">
@@ -3893,6 +4003,7 @@
       if (name === 'weather-control') loadWeatherControl();
       if (name === 'overlord-control') loadOverlordList();
       if (name === 'known-figures-control') loadKnownFigureList();
+      if (name === 'timeline-control') loadTimelineList();
       if (name === 'soundtrack-control') loadSoundtrackList();
       if (name === 'roles-permissions') loadRoles();
       if (name === 'visitor-stats') loadVisitorStats();
@@ -12659,6 +12770,311 @@
         knownFigureDeleteBtn.disabled = false; knownFigureDeleteBtn.classList.remove('is-busy');
         knownFigureModalError.textContent = 'Could not delete this known figure. Please try again.';
         knownFigureModalError.classList.add('show');
+      });
+  });
+
+  // Timeline Control: flat entity powering timeline.html, same list/modal/
+  // reorder pattern as Known Figures Control above. Ordering matters more here
+  // than elsewhere -- the in-world date is free text that cannot be sorted, so
+  // this list's order is the only thing deciding where an event sits on the
+  // public bar. required_level_id is populated from the existing Reputation
+  // Levels endpoint rather than a second copy of the ladder.
+  var timelineListEl = document.getElementById('timeline-list');
+  var timelineCountEl = document.getElementById('timeline-count');
+  var timelineCreateBtn = document.getElementById('timeline-create-btn');
+
+  var timelineModal = document.getElementById('timeline-modal');
+  var timelineModalTitle = document.getElementById('timeline-modal-title');
+  var timelineModalSub = document.getElementById('timeline-modal-sub');
+  var timelineModalError = document.getElementById('timeline-modal-error');
+  var timelineModalStatus = document.getElementById('timeline-modal-status');
+  var timelineCloseBtn = document.getElementById('timeline-modal-close');
+  var timelineCancelBtn = document.getElementById('timeline-cancel-btn');
+  var timelineSaveBtn = document.getElementById('timeline-save-btn');
+  var timelineDeleteBtn = document.getElementById('timeline-delete-btn');
+
+  var timelineTitleInput = document.getElementById('timeline-title-input');
+  var timelineSlugField = document.getElementById('timeline-slug-field');
+  var timelineSlugInput = document.getElementById('timeline-slug-input');
+  var timelineEraInput = document.getElementById('timeline-era-input');
+  var timelineDateInput = document.getElementById('timeline-date-input');
+  var timelineImageInput = document.getElementById('timeline-image-input');
+  var timelineSummaryInput = document.getElementById('timeline-summary-input');
+  var timelineBodyInput = document.getElementById('timeline-body-input');
+  var timelineAccentColorInput = document.getElementById('timeline-accent-color-input');
+  var timelineLevelSelect = document.getElementById('timeline-level-select');
+  var timelinePublishedInput = document.getElementById('timeline-published-input');
+
+  var lastTimelineEntries = [];
+  var timelineModalMode = 'create';
+  var currentTimelineEvent = null;
+  var timelineLevelsLoaded = false;
+
+  IMAGE_FIELDS.timeline_event = {
+    urlInput: timelineImageInput,
+    thumbImg: document.getElementById('timeline-image-preview'),
+    thumbEmpty: document.querySelector('#timeline-image-thumb .admin-image-thumb-empty'),
+    fileInput: document.getElementById('timeline-image-file'),
+    uploadEndpoint: '/api/admin/timeline/upload-image.php',
+    listEndpoint: '/api/admin/timeline/list-images.php',
+    apiType: 'timeline', label: 'event image',
+    errorEl: timelineModalError, statusEl: timelineModalStatus
+  };
+  wireImageField('timeline_event');
+
+  // Loaded once per session. Failing here must not block the modal: an event
+  // can still be edited without changing its gate, and the select simply keeps
+  // its "Always visible" option.
+  function loadTimelineLevels() {
+    if (timelineLevelsLoaded) return Promise.resolve();
+    return fetch('/api/admin/reputation-levels/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        var levels = (data.ok && data.levels) || [];
+        levels.forEach(function (level) {
+          var opt = document.createElement('option');
+          opt.value = level.id;
+          opt.textContent = level.name + ' (' + level.threshold + ' pts)';
+          timelineLevelSelect.appendChild(opt);
+        });
+        timelineLevelsLoaded = true;
+      })
+      .catch(function () { /* select keeps "Always visible" only */ });
+  }
+
+  function loadTimelineList() {
+    timelineCreateBtn.hidden = !pwHasPermission('timeline.edit');
+    timelineListEl.innerHTML = '<div class="admin-list-empty">Loading timeline events&hellip;</div>';
+    loadTimelineLevels();
+    return fetch('/api/admin/timeline/list.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        lastTimelineEntries = (data.ok && data.events) || [];
+        timelineCountEl.textContent = lastTimelineEntries.length + (lastTimelineEntries.length === 1 ? ' event' : ' events');
+        renderTimelineList(lastTimelineEntries);
+      })
+      .catch(function () {
+        timelineListEl.innerHTML = '<div class="admin-list-empty">Could not load timeline events. The timeline migration may still need to be run.</div>';
+      });
+  }
+
+  function renderTimelineList(entries) {
+    if (!entries.length) {
+      timelineListEl.innerHTML = '<div class="admin-list-empty">No timeline events yet.</div>';
+      return;
+    }
+    timelineListEl.innerHTML = '';
+    entries.forEach(function (entry, i) {
+      var row = document.createElement('div');
+      row.className = 'admin-row world-row';
+      row.tabIndex = 0;
+      row.innerHTML =
+        (entry.image_url ? '<img class="admin-row-cover" src="' + resolveSiteImageUrl(entry.image_url) + '" alt="">' : '') +
+        '<div class="admin-row-main">' +
+          '<p class="world-row-title">' + escapeHtml(entry.title) +
+            (entry.date_label ? ' <span class="admin-row-sep">&bull;</span> ' + escapeHtml(entry.date_label) : '') + '</p>' +
+          (entry.era_label ? '<div class="admin-row-meta"><span>' + escapeHtml(entry.era_label) + '</span></div>' : '') +
+        '</div>' +
+        '<div class="world-row-status">' +
+          '<span class="world-overlord-pill">' +
+            (entry.required_level_name ? 'Needs ' + escapeHtml(entry.required_level_name) : 'Always visible') +
+          '</span>' +
+          '<span class="world-status-pill ' + (entry.is_published ? 'is-available' : 'is-locked') + '">' +
+            (entry.is_published ? 'Published' : 'Unpublished') +
+          '</span>' +
+        '</div>';
+
+      var actions = document.createElement('div');
+      actions.className = 'role-row-actions';
+      actions.innerHTML =
+        '<button type="button" class="permission-mini-btn" data-timeline-action="up"' + (i === 0 ? ' disabled' : '') + '>Move Up</button>' +
+        '<button type="button" class="permission-mini-btn" data-timeline-action="down"' + (i === entries.length - 1 ? ' disabled' : '') + '>Move Down</button>' +
+        '<button type="button" class="permission-mini-btn" data-timeline-action="edit">Edit</button>';
+      row.appendChild(actions);
+
+      actions.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-timeline-action]');
+        if (!btn || btn.disabled) return;
+        e.stopPropagation();
+        var act = btn.getAttribute('data-timeline-action');
+        if (act === 'edit') { openTimelineModal(entry); return; }
+        reorderTimelineEvent(entry, act === 'up' ? i - 1 : i + 1);
+      });
+      row.addEventListener('click', function () { openTimelineModal(entry); });
+      row.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTimelineModal(entry); }
+      });
+      timelineListEl.appendChild(row);
+    });
+  }
+
+  function reorderTimelineEvent(entry, targetIndex) {
+    if (targetIndex < 0 || targetIndex >= lastTimelineEntries.length) return;
+    if (!pwHasPermission('timeline.edit')) return;
+    var ids = lastTimelineEntries.map(function (f) { return f.id; });
+    var fromIndex = ids.indexOf(entry.id);
+    ids.splice(fromIndex, 1);
+    ids.splice(targetIndex, 0, entry.id);
+    fetch('/api/admin/timeline/reorder.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: ids, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function () { loadTimelineList(); });
+  }
+
+  function populateTimelineForm(t) {
+    timelineTitleInput.value = t.title || '';
+    timelineSlugInput.value = t.slug || '';
+    timelineEraInput.value = t.era_label || '';
+    timelineDateInput.value = t.date_label || '';
+    timelineImageInput.value = t.image_url || '';
+    timelineSummaryInput.value = t.summary || '';
+    timelineBodyInput.value = t.body || '';
+    timelineAccentColorInput.value = t.accent_color || '#a279ec';
+    timelineLevelSelect.value = t.required_level_id ? String(t.required_level_id) : '';
+    timelinePublishedInput.checked = t.is_published !== false;
+    refreshImageThumb('timeline_event');
+  }
+
+  function openTimelineModal(entry) {
+    timelineModalMode = 'edit';
+    currentTimelineEvent = entry;
+    timelineModalTitle.textContent = 'Edit Timeline Event';
+    timelineModalSub.textContent = entry.slug;
+    timelineSlugInput.disabled = true;
+    timelineDeleteBtn.hidden = !pwHasPermission('timeline.delete');
+    timelineModalError.classList.remove('show');
+    timelineModalStatus.classList.remove('show');
+    // The level list may still be in flight on a first open; set the value
+    // again once it resolves so an existing gate is not shown as "Always
+    // visible" simply because its entry had not been appended yet.
+    loadTimelineLevels().then(function () {
+      timelineLevelSelect.value = entry.required_level_id ? String(entry.required_level_id) : '';
+    });
+    populateTimelineForm(entry);
+    timelineModal.hidden = false;
+    timelineSaveBtn.disabled = !pwHasPermission('timeline.edit');
+  }
+
+  function openCreateTimelineModal() {
+    if (!pwHasPermission('timeline.edit')) return;
+    timelineModalMode = 'create';
+    currentTimelineEvent = null;
+    timelineModalTitle.textContent = 'Add Timeline Event';
+    timelineModalSub.textContent = '';
+    timelineSlugInput.disabled = false;
+    timelineDeleteBtn.hidden = true;
+    timelineModalError.classList.remove('show');
+    timelineModalStatus.classList.remove('show');
+    loadTimelineLevels();
+    populateTimelineForm({ is_published: true });
+    timelineModal.hidden = false;
+    timelineSaveBtn.disabled = false;
+    setTimeout(function () { timelineTitleInput.focus(); }, 30);
+  }
+
+  function closeTimelineModal() {
+    timelineModal.hidden = true;
+    currentTimelineEvent = null;
+  }
+
+  timelineCreateBtn.addEventListener('click', openCreateTimelineModal);
+  timelineCloseBtn.addEventListener('click', closeTimelineModal);
+  timelineCancelBtn.addEventListener('click', closeTimelineModal);
+  timelineModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeTimelineModal);
+
+  timelineSaveBtn.addEventListener('click', function () {
+    if (!pwHasPermission('timeline.edit')) return;
+    var payload = {
+      title: timelineTitleInput.value.trim(),
+      era_label: timelineEraInput.value.trim(),
+      date_label: timelineDateInput.value.trim(),
+      image_url: timelineImageInput.value.trim(),
+      summary: timelineSummaryInput.value.trim(),
+      body: timelineBodyInput.value.trim(),
+      accent_color: timelineAccentColorInput.value,
+      required_level_id: timelineLevelSelect.value || null,
+      is_published: timelinePublishedInput.checked,
+      csrf: window.PW_AUTH.csrf
+    };
+
+    if (!payload.title) {
+      timelineModalError.textContent = 'Give the timeline event a title.';
+      timelineModalError.classList.add('show');
+      return;
+    }
+
+    var url = '/api/admin/timeline/update.php';
+    if (timelineModalMode === 'create') {
+      url = '/api/admin/timeline/create.php';
+      payload.slug = timelineSlugInput.value.trim();
+      if (!/^[a-z0-9-]{1,100}$/.test(payload.slug)) {
+        timelineModalError.textContent = 'Slug must be lowercase letters, numbers, and hyphens only.';
+        timelineModalError.classList.add('show');
+        return;
+      }
+    } else if (currentTimelineEvent) {
+      payload.id = currentTimelineEvent.id;
+    }
+
+    timelineModalError.classList.remove('show');
+    timelineSaveBtn.disabled = true; timelineSaveBtn.classList.add('is-busy');
+    fetch(url, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        timelineSaveBtn.disabled = !pwHasPermission('timeline.edit'); timelineSaveBtn.classList.remove('is-busy');
+        if (!data.ok) {
+          timelineModalError.textContent = data.error || 'Could not save this timeline event.';
+          timelineModalError.classList.add('show');
+          return;
+        }
+        timelineModalStatus.textContent = 'Saved.';
+        timelineModalStatus.classList.add('show');
+        loadTimelineList();
+        setTimeout(closeTimelineModal, 700);
+      })
+      .catch(function () {
+        timelineSaveBtn.disabled = !pwHasPermission('timeline.edit'); timelineSaveBtn.classList.remove('is-busy');
+        timelineModalError.textContent = 'Could not save this timeline event. Please try again.';
+        timelineModalError.classList.add('show');
+      });
+  });
+
+  timelineDeleteBtn.addEventListener('click', function () {
+    if (!currentTimelineEvent || !pwHasPermission('timeline.delete')) return;
+    var confirmMsg = 'Permanently delete the timeline event "' + currentTimelineEvent.title + '"? '
+      + 'Members who already discovered it keep their reputation, but the discovery record is removed. This cannot be undone.';
+    if (!window.confirm(confirmMsg)) return;
+    timelineDeleteBtn.disabled = true; timelineDeleteBtn.classList.add('is-busy');
+    fetch('/api/admin/timeline/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: currentTimelineEvent.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        timelineDeleteBtn.disabled = false; timelineDeleteBtn.classList.remove('is-busy');
+        if (!data.ok) {
+          timelineModalError.textContent = data.error || 'Could not delete this timeline event.';
+          timelineModalError.classList.add('show');
+          return;
+        }
+        loadTimelineList();
+        closeTimelineModal();
+      })
+      .catch(function () {
+        timelineDeleteBtn.disabled = false; timelineDeleteBtn.classList.remove('is-busy');
+        timelineModalError.textContent = 'Could not delete this timeline event. Please try again.';
+        timelineModalError.classList.add('show');
       });
   });
 
