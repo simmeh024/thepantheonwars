@@ -481,7 +481,7 @@ at that time.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=13), `js/members.js?v=N` (current: v=40)
+  than once): `js/main.js?v=N` (current: v=14), `js/members.js?v=N` (current: v=40)
   and `js/notifications.js?v=N` (loaded dynamically), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
@@ -601,7 +601,7 @@ at that time.
 
 ## Recent history (most recent first)
 
-- **Header weather widget** (`js/main.js?v=13`, `.pw-weather*` in
+- **Header weather widget** (`js/main.js?v=14`, `.pw-weather*` in
   `css/components.css`). **Run `sql/migration_weather_widget.sql` once.** A
   compact bar in `.nav-utility` showing one world's current conditions, default
   Neoh, pointable at any unlocked world, clicking through to that World Record.

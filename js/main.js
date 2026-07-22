@@ -354,7 +354,9 @@ function initWeatherWidget() {
     + '<span class="pw-weather-caret" aria-hidden="true">&#8964;</span>'
     + '</button>'
     + '<div class="pw-weather-menu" role="menu" hidden></div>';
-  utility.insertBefore(root, utility.firstChild);
+  // Appended, so the pill sits at the far right of the nav bar, after the
+  // profile chip and the notification bell.
+  utility.appendChild(root);
 
   var barEl = root.querySelector('.pw-weather-bar');
   var iconEl = root.querySelector('.pw-weather-icon');
