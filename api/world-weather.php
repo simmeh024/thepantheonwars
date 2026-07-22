@@ -36,5 +36,7 @@ if ($profile['status'] !== 'available' || $profile['enabled'] === null || (int)$
 pw_json([
     'ok' => true,
     'available' => true,
-    'weather' => pw_build_weather_forecast($profile, $slug),
+    // With hours: the World Record's five-day strip opens an hourly panel per
+    // day, and carrying them in this one request avoids a fetch on every hover.
+    'weather' => pw_build_weather_forecast($profile, $slug, null, true),
 ]);

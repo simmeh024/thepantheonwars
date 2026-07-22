@@ -69,8 +69,119 @@ function pw_weather_precipitation($condition, $seed, $minimum, $maximum) {
     return $value;
 }
 
-function pw_build_weather_forecast($profile, $worldSlug, $today = null) {
+/**
+ * One day's hourly readings, as [{hour, label, condition, icon, temperature_c}].
+ *
+ * Times are UTC throughout, matching how the whole forecast is generated. That
+ * is deliberate: an hourly card resolved in the visitor's own zone would sit
+ * under a day card whose boundaries are UTC, and the two would disagree about
+ * which hours belong to "today".
+ *
+ * Temperature follows a diurnal curve between the day's own low_c and high_c
+ * and is clamped to them, so the hourly panel can never contradict the daily
+ * card above it. Day 0's curve peaks at the current hour rather than
+ * mid-afternoon, because for day 0 high_c IS the administrator's authored
+ * "right now" temperature -- so peaking at the current hour makes the hourly
+ * row for now agree exactly with the big current-conditions figure.
+ *
+ * @param int $fromHour  First hour to emit. Day 0 passes the current hour so
+ *                       elapsed hours are dropped; other days pass 0.
+ */
+function pw_weather_day_hours($profile, $worldSlug, DateTimeImmutable $date, $dayOffset, array $day, $revision, $nowHour, $fromHour = 0) {
+    $high = (int)$day['high_c'];
+    $low = (int)$day['low_c'];
+    if ($low > $high) {
+        $low = $high;
+    }
+    $mid = ($high + $low) / 2;
+    $amplitude = ($high - $low) / 2;
+    $peakHour = $dayOffset === 0 ? (int)$nowHour : 15;
+
+    $conditions = pw_weather_conditions($profile);
+    $headline = (string)$day['condition'];
+    $dateKey = $date->format('Y-m-d');
+    $hours = [];
+
+    for ($hour = max(0, (int)$fromHour); $hour < 24; $hour++) {
+        $seed = $worldSlug . '|' . $dateKey . '|r' . $revision . '|hour-' . $hour;
+
+        // How far into the five-day window this hour sits. Deviation widens
+        // with it, so a projection genuinely loosens the further out it
+        // reaches. Measured from the start of day 0 rather than from "now", so
+        // a given hour keeps the same value all day instead of shifting under
+        // the reader every time the clock ticks over.
+        $windowIndex = ($dayOffset * 24) + $hour;
+
+        $curve = $mid + ($amplitude * cos(2 * M_PI * ($hour - $peakHour) / 24));
+        $spread = min(5, 1 + (int)floor($windowIndex / 16));
+        $temperature = (int)round($curve) + pw_weather_range($seed . '|jitter', -$spread, $spread);
+        $temperature = max($low, min($high, $temperature));
+
+        // The row for the current hour must read exactly what the big
+        // current-conditions figure says, so it takes the administrator's
+        // authored value directly. The curve already peaks here, but jitter
+        // would otherwise pull it a degree or two under on some hours.
+        if ($dayOffset === 0 && $hour === (int)$nowHour) {
+            $temperature = $high;
+        }
+
+        // The day's headline condition dominates; deviations become more likely
+        // further out, and are drawn from the world's own condition pool.
+        $deviationChance = min(45, 10 + (int)floor($windowIndex * 0.6));
+        $condition = $headline;
+        if (count($conditions) > 1 && pw_weather_range($seed . '|deviates', 0, 99) < $deviationChance) {
+            $condition = $conditions[pw_weather_range($seed . '|condition', 0, count($conditions) - 1)];
+        }
+
+        $hours[] = [
+            'hour' => $hour,
+            'label' => sprintf('%02d:00', $hour),
+            'condition' => $condition,
+            'icon' => pw_weather_icon_key($condition),
+            'temperature_c' => $temperature,
+        ];
+    }
+
+    return $hours;
+}
+
+/**
+ * A rolling projection of the next $count hours from the current UTC hour,
+ * crossing midnight into the following day.
+ *
+ * Values come from the same per-day series the forecast panel uses, so the two
+ * surfaces can never disagree about an hour they both show.
+ */
+function pw_weather_rolling_hours($profile, $worldSlug, DateTimeImmutable $today, array $forecast, $nowHour, $revision, $count = 12) {
+    $rolling = [];
+    $nowHour = (int)$nowHour;
+
+    for ($dayOffset = 0; $dayOffset < count($forecast) && count($rolling) < $count; $dayOffset++) {
+        $date = $today->modify('+' . $dayOffset . ' days');
+        $from = $dayOffset === 0 ? $nowHour : 0;
+        $hours = pw_weather_day_hours($profile, $worldSlug, $date, $dayOffset, $forecast[$dayOffset], $revision, $nowHour, $from);
+        foreach ($hours as $entry) {
+            if (count($rolling) >= $count) {
+                break;
+            }
+            $entry['date'] = $date->format('Y-m-d');
+            $entry['is_now'] = ($dayOffset === 0 && $entry['hour'] === $nowHour);
+            $rolling[] = $entry;
+        }
+    }
+
+    return $rolling;
+}
+
+/**
+ * @param bool $withHours  Include each day's hourly breakdown. Off by default so
+ *                         the twelve-world glance strip, which only ever shows
+ *                         current conditions, does not carry ~110 unused rows
+ *                         per world.
+ */
+function pw_build_weather_forecast($profile, $worldSlug, $today = null, $withHours = false) {
     $timezone = new DateTimeZone('UTC');
+    $nowHour = (int)(new DateTimeImmutable('now', $timezone))->format('G');
     if (!$today instanceof DateTimeImmutable) {
         $today = new DateTimeImmutable('today', $timezone);
     } else {
@@ -118,9 +229,20 @@ function pw_build_weather_forecast($profile, $worldSlug, $today = null) {
         ];
     }
 
+    if ($withHours) {
+        foreach ($forecast as $offset => $day) {
+            $date = $today->modify('+' . $offset . ' days');
+            // Day 0 drops the hours that have already elapsed, so "Today" shrinks
+            // as the day goes on and never repeats hours the Tomorrow card owns.
+            $from = $offset === 0 ? $nowHour : 0;
+            $forecast[$offset]['hours'] = pw_weather_day_hours($profile, $worldSlug, $date, $offset, $day, $revision, $nowHour, $from);
+        }
+    }
+
     return [
         'generated_for' => $dateKey,
         'timezone' => 'UTC',
+        'now_hour' => $nowHour,
         'location' => (string)$profile['location_label'],
         'climate' => (string)$profile['climate_label'],
         'hazard_note' => (string)$profile['hazard_note'],

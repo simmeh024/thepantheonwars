@@ -75,18 +75,98 @@ document.addEventListener('DOMContentLoaded', function () {
     'vermillia-xi': 'Vermillia XI Dome Watch'
   };
 
+  /**
+   * The hourly projection that opens off a day in the five-day strip.
+   *
+   * Times are UTC, matching how the forecast is generated, and the panel says
+   * so: resolving these in the visitor's own zone would put hours under a day
+   * heading whose boundaries are UTC, and the two would disagree.
+   *
+   * Today lists only the hours still to come, so it shrinks through the day and
+   * never repeats hours the Tomorrow card owns. The server has already dropped
+   * the elapsed ones, so this renders whatever it was given.
+   */
+  function hourlyPanelHtml(day, isToday, index) {
+    var hours = day.hours || [];
+    if (!hours.length) return '';
+    var rows = hours.map(function (entry, position) {
+      var isNow = isToday && position === 0;
+      return '<li class="world-weather-hour' + (isNow ? ' is-now' : '') + '">' +
+        '<span class="world-weather-hour-time">' + escapeHtml(entry.label) + '</span>' +
+        '<span class="world-weather-hour-icon">' + weatherIconHtml(entry.icon) + '</span>' +
+        '<span class="world-weather-hour-temp">' + escapeHtml(entry.temperature_c) + '&deg;</span>' +
+        (isNow ? '<span class="world-weather-hour-now">now</span>' : '') +
+      '</li>';
+    }).join('');
+    return '<div class="world-weather-hourly" id="world-weather-hourly-' + index + '" hidden>' +
+      '<span class="world-weather-hourly-head">' +
+        escapeHtml(isToday ? 'Remaining today' : day.day) +
+        '<i>times in UTC</i>' +
+      '</span>' +
+      '<ul class="world-weather-hour-list">' + rows + '</ul>' +
+    '</div>';
+  }
+
+  /**
+   * Opens a day's hourly panel on hover, focus, or tap. Only one is ever open.
+   * Touch devices get an explicit toggle because they have no hover at all, and
+   * Escape closes and hands focus back to the day.
+   */
+  function wireHourlyPanels(scope) {
+    var days = Array.prototype.slice.call(scope.querySelectorAll('.world-weather-day'));
+    if (!days.length) return;
+    var canHover = window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+
+    function setOpen(day, open) {
+      var panel = day.querySelector('.world-weather-hourly');
+      if (!panel) return;
+      panel.hidden = !open;
+      day.classList.toggle('is-open', open);
+      day.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    function closeAll(except) {
+      days.forEach(function (day) { if (day !== except) setOpen(day, false); });
+    }
+
+    days.forEach(function (day) {
+      if (!day.querySelector('.world-weather-hourly')) return;
+      if (canHover) {
+        day.addEventListener('mouseenter', function () { closeAll(day); setOpen(day, true); });
+        day.addEventListener('mouseleave', function () { setOpen(day, false); });
+      }
+      day.addEventListener('focus', function () { closeAll(day); setOpen(day, true); });
+      day.addEventListener('blur', function () { setOpen(day, false); });
+      day.addEventListener('click', function () {
+        var open = day.getAttribute('aria-expanded') === 'true';
+        closeAll(day);
+        setOpen(day, !open);
+      });
+      day.addEventListener('keydown', function (event) {
+        if (event.key !== 'Escape') return;
+        setOpen(day, false);
+        day.blur();
+      });
+    });
+  }
+
   function weatherCardHtml(weather, worldSlug, worldName) {
     var current = weather.current || {};
     var forecast = weather.forecast || [];
     var serviceLabel = WEATHER_SERVICE_LABELS[worldSlug] || (worldName + ' Atmospheric Service');
-    var forecastHtml = forecast.map(function (day) {
-      return '<div class="world-weather-day' + (day.day === 'Today' ? ' is-today' : '') + '">' +
+    var forecastHtml = forecast.map(function (day, index) {
+      var isToday = day.day === 'Today';
+      // A button, not a div: the hourly panel has to be reachable by keyboard
+      // and on touch, where there is no hover at all.
+      return '<button type="button" class="world-weather-day' + (isToday ? ' is-today' : '') + '"' +
+        ' aria-expanded="false" aria-label="' + escapeHtml(day.day) + ', ' + escapeHtml(day.condition) +
+        ', high ' + escapeHtml(day.high_c) + ' degrees. Show hourly projection.">' +
         '<span class="world-weather-day-name">' + escapeHtml(day.day_short) + '</span>' +
         '<span class="world-weather-day-icon">' + weatherIconHtml(day.icon) + '</span>' +
         '<strong>' + escapeHtml(day.high_c) + '&deg;</strong>' +
         '<small>' + escapeHtml(day.low_c) + '&deg;</small>' +
         '<span class="world-weather-day-condition">' + escapeHtml(day.condition) + '</span>' +
-      '</div>';
+        hourlyPanelHtml(day, isToday, index) +
+      '</button>';
     }).join('');
     return '<div class="world-weather-card-scan" aria-hidden="true"></div>' +
       '<header class="world-weather-head"><div><span>' + escapeHtml(serviceLabel) + '</span><h2>' + escapeHtml(weather.location) + '</h2></div><span class="world-weather-live"><i></i>Live archive</span></header>' +
@@ -114,6 +194,7 @@ document.addEventListener('DOMContentLoaded', function () {
     slot.className = 'world-weather-card world-weather-card--' + worldSlug;
     slot.innerHTML = weatherCardHtml(data.weather, worldSlug, worldName);
     slot.hidden = false;
+    wireHourlyPanels(slot);
   }
 
   function landmarkHtml(landmark) {

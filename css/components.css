@@ -908,6 +908,50 @@ button.auth-profile-chip { color: inherit; cursor: pointer; font: inherit; }
   flex-shrink: 0; color: var(--text-faint); font-size: 0.72rem; font-variant-numeric: tabular-nums;
 }
 
+/* Rolling twelve-hour projection, on hover over the pill. Shares the picker's
+   shape and anchoring so the two read as the same surface; only one is ever
+   visible, since opening the picker dismisses this. */
+.pw-weather-hours {
+  position: absolute; top: 100%; right: 0; margin-top: 10px;
+  width: 190px; max-width: 90vw;
+  padding: 8px 10px 9px;
+  background: var(--bg-alt); border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow-popover);
+  z-index: 20;
+  animation: notif-dropdown-in 0.18s ease-out both;
+}
+.pw-weather-hours[hidden] { display: none; }
+.pw-weather-hours-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  margin-bottom: 6px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-soft);
+  color: rgb(var(--pw-weather-accent)); font-family: 'Jost', sans-serif;
+  font-size: 0.62rem; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+}
+.pw-weather-hours-head i { color: var(--text-faint); font-size: 0.56rem; font-style: normal; letter-spacing: 0.06em; }
+.pw-weather-hour-list { display: flex; flex-direction: column; gap: 1px; margin: 0; padding: 0; list-style: none; }
+.pw-weather-hour {
+  display: grid; grid-template-columns: 38px 16px 1fr; align-items: center; gap: 7px;
+  padding: 1px 0; color: var(--text-dim); font-family: 'Jost', sans-serif;
+}
+.pw-weather-hour-time { font-size: 0.66rem; font-variant-numeric: tabular-nums; letter-spacing: 0.03em; }
+.pw-weather-hour-icon { display: grid; place-items: center; color: rgb(var(--pw-weather-accent)); }
+.pw-weather-hour-icon svg { width: 12px; height: 12px; }
+.pw-weather-hour-temp { color: var(--text); font-size: 0.7rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+/* The now row is pinned fully opaque, overriding the inline fade the rest of
+   the list carries, so the reader always has a solid anchor at the top. */
+.pw-weather-hour.is-now { opacity: 1 !important; }
+.pw-weather-hour.is-now .pw-weather-hour-time { color: var(--gold-bright); }
+.pw-weather-hours-note {
+  display: block; margin-top: 7px; padding-top: 6px;
+  border-top: 1px solid var(--border-soft);
+  color: var(--text-faint); font-family: 'Jost', sans-serif;
+  font-size: 0.54rem; letter-spacing: 0.09em; text-transform: uppercase;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pw-weather-hours { animation: none; }
+}
+
 /* The condition text is the first thing to go when the header runs short of
    room. This is driven by fitToHeader() in js/main.js measuring the header
    rather than by a width breakpoint: .nav-inner is capped at 1180px so the

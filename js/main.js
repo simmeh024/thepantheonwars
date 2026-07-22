@@ -353,7 +353,8 @@ function initWeatherWidget() {
     + '<button type="button" class="pw-weather-toggle" aria-expanded="false" aria-haspopup="true" aria-label="Choose a world">'
     + '<span class="pw-weather-caret" aria-hidden="true">&#8964;</span>'
     + '</button>'
-    + '<div class="pw-weather-menu" role="menu" hidden></div>';
+    + '<div class="pw-weather-menu" role="menu" hidden></div>'
+    + '<div class="pw-weather-hours" hidden></div>';
   // Appended, so the pill sits at the far right of the nav bar, after the
   // profile chip and the notification bell.
   utility.appendChild(root);
@@ -364,6 +365,12 @@ function initWeatherWidget() {
   var condEl = root.querySelector('.pw-weather-condition');
   var toggleEl = root.querySelector('.pw-weather-toggle');
   var menuEl = root.querySelector('.pw-weather-menu');
+  var hoursEl = root.querySelector('.pw-weather-hours');
+  // Keyed by slug + the UTC hour it was fetched in, so the roll refreshes when
+  // the clock ticks over instead of going stale behind the glance cache.
+  var hourCache = {};
+  var hoursPending = null;
+  var hoursWanted = false;
 
   // --- preference -----------------------------------------------------------
 
@@ -528,6 +535,77 @@ function initWeatherWidget() {
     }).join('');
   }
 
+  // --- rolling twelve-hour projection ---------------------------------------
+  // Opens on hover over the pill. Fetched on first hover rather than bundled
+  // into the glance response, which serves every available world and would
+  // otherwise carry twelve unused rows apiece.
+
+  function currentUtcHourKey(slug) {
+    return slug + '@' + new Date().getUTCHours();
+  }
+
+  function renderHours(slug, hours) {
+    if (!hours || !hours.length) { hoursEl.hidden = true; return; }
+    var world = resolveWorld();
+    var total = hours.length;
+    hoursEl.innerHTML =
+      '<span class="pw-weather-hours-head">' + weatherEscape(world ? world.name : '') +
+        '<i>next ' + total + 'h &middot; UTC</i></span>' +
+      '<ul class="pw-weather-hour-list">' +
+        hours.map(function (entry, index) {
+          // Rows fade with distance: the projection is meant to read as
+          // degrading the further out it reaches, not as twelve equally
+          // trustworthy readings.
+          var strength = Math.max(0.28, 1 - (index / total) * 0.8).toFixed(2);
+          return '<li class="pw-weather-hour' + (entry.is_now ? ' is-now' : '') + '" style="opacity:' + strength + '">' +
+            '<span class="pw-weather-hour-time">' + weatherEscape(entry.label) + '</span>' +
+            '<span class="pw-weather-hour-icon">' + weatherIconSvg(entry.icon) + '</span>' +
+            '<span class="pw-weather-hour-temp">' + weatherEscape(entry.temperature_c) + '&deg;</span>' +
+          '</li>';
+        }).join('') +
+      '</ul>' +
+      '<span class="pw-weather-hours-note">Confidence degrades beyond 6h</span>';
+    hoursEl.hidden = false;
+  }
+
+  function showHours() {
+    var world = resolveWorld();
+    if (!world || open) return;   // the picker owns the space when it is open
+    // Tracked explicitly rather than read back off :hover when the response
+    // lands: :hover is false for a keyboard user, so testing it there would
+    // mean the panel never appeared on focus before the cache was warm.
+    hoursWanted = true;
+    var key = currentUtcHourKey(world.slug);
+    if (hourCache[key]) { renderHours(world.slug, hourCache[key]); return; }
+    if (hoursPending === key) return;
+    hoursPending = key;
+    fetch('/api/world-weather-hours.php?slug=' + encodeURIComponent(world.slug), { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        hoursPending = null;
+        if (!data || !data.ok || !data.available || !Array.isArray(data.hours)) return;
+        hourCache[key] = data.hours;
+        // Only render if the visitor is still on the pill and has not switched
+        // world while the request was in flight.
+        var latest = resolveWorld();
+        if (hoursWanted && latest && latest.slug === world.slug) renderHours(world.slug, data.hours);
+      })
+      .catch(function () {
+        hoursPending = null;
+        // The pill itself stays perfectly usable without the projection.
+      });
+  }
+
+  function hideHours() {
+    hoursWanted = false;
+    hoursEl.hidden = true;
+  }
+
+  root.addEventListener('mouseenter', showHours);
+  root.addEventListener('mouseleave', hideHours);
+  barEl.addEventListener('focus', showHours);
+  barEl.addEventListener('blur', hideHours);
+
   // --- picker ---------------------------------------------------------------
   // Mirrors the notification dropdown's contract: aria-expanded, outside-click
   // and Escape closing, with Escape returning focus to the trigger.
@@ -537,6 +615,9 @@ function initWeatherWidget() {
     menuEl.hidden = !next;
     root.classList.toggle('is-open', next);
     toggleEl.setAttribute('aria-expanded', next ? 'true' : 'false');
+    // The picker and the projection occupy the same spot, so opening one
+    // dismisses the other rather than stacking them.
+    if (next) hideHours();
   }
 
   toggleEl.addEventListener('click', function (event) {

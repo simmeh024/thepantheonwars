@@ -1711,7 +1711,16 @@
 .world-weather-divider::after { content: ''; height: 1px; flex: 1; background: linear-gradient(90deg, transparent, rgba(113, 196, 215, 0.3)); }
 .world-weather-divider::after { background: linear-gradient(90deg, rgba(113, 196, 215, 0.3), transparent); }
 .world-weather-forecast { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
-.world-weather-day { min-width: 0; padding: 8px 3px 9px; border: 1px solid transparent; background: rgba(10, 8, 24, 0.48); text-align: center; }
+/* position: relative anchors each day's hourly panel; the day is a <button> so
+   the panel is reachable by keyboard and on touch, hence the reset of the
+   button's own font and colour. */
+.world-weather-day {
+  position: relative; min-width: 0; padding: 8px 3px 9px;
+  border: 1px solid transparent; background: rgba(10, 8, 24, 0.48); text-align: center;
+  font: inherit; color: inherit; cursor: pointer;
+}
+.world-weather-day:hover, .world-weather-day.is-open { border-color: rgba(113, 196, 215, 0.35); }
+.world-weather-day:focus-visible { outline: 1px solid var(--gold-bright); outline-offset: 2px; }
 .world-weather-day.is-today { border-color: rgba(210, 169, 84, 0.28); background: linear-gradient(180deg, rgba(210, 169, 84, 0.08), rgba(88, 45, 155, 0.08)); }
 .world-weather-day-name { display: block; overflow: hidden; color: var(--text-dim); font-size: 0.56rem; text-overflow: ellipsis; white-space: nowrap; }
 .world-weather-day-icon { display: grid; width: 28px; height: 28px; margin: 5px auto 3px; place-items: center; color: #70ccdf; }
@@ -1719,6 +1728,77 @@
 .world-weather-day strong { color: var(--text); font-family: 'Cinzel', serif; font-size: 0.78rem; }
 .world-weather-day small { margin-left: 2px; color: var(--text-faint); font-size: 0.63rem; }
 .world-weather-day-condition { display: block; min-height: 22px; margin-top: 4px; overflow: hidden; color: var(--text-faint); font-size: 0.49rem; line-height: 1.25; }
+
+/* --- Hourly projection panel ---------------------------------------------
+   Opens off a day in the five-day strip. Anchored to the day and centred on
+   it, then nudged back inside the card by the edge rules below so the first
+   and last day do not open off the side. */
+.world-weather-hourly {
+  position: absolute; z-index: 12; bottom: calc(100% + 8px); left: 50%;
+  width: 168px; transform: translateX(-50%);
+  padding: 9px 10px 10px;
+  border: 1px solid rgba(113, 196, 215, 0.32);
+  border-radius: var(--radius-sm);
+  background: rgba(8, 6, 20, 0.98);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
+  text-align: left;
+  animation: world-weather-hourly-in 0.16s ease-out both;
+}
+.world-weather-hourly[hidden] { display: none; }
+/* Opacity only, deliberately. An animation's fill state outranks normal
+   declarations, so a keyframe that also set `transform` would override the
+   edge rules below and drag the first and last day's panel back to centre --
+   which is exactly what it did, opening Today's panel 60px outside the card. */
+@keyframes world-weather-hourly-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+/* The outer two days would otherwise open past the card's edge. */
+.world-weather-day:first-child .world-weather-hourly { left: 0; transform: none; }
+.world-weather-day:first-child .world-weather-hourly[hidden] { display: none; }
+.world-weather-day:last-child .world-weather-hourly { left: auto; right: 0; transform: none; }
+.world-weather-day:last-child .world-weather-hourly[hidden] { display: none; }
+
+.world-weather-hourly-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+  margin-bottom: 7px; padding-bottom: 6px;
+  border-bottom: 1px solid rgba(113, 196, 215, 0.18);
+  color: #8fd4e2; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.world-weather-hourly-head i { color: var(--text-faint); font-size: 0.5rem; font-style: normal; letter-spacing: 0.06em; }
+
+.world-weather-hour-list {
+  display: flex; flex-direction: column; gap: 1px;
+  max-height: 232px; overflow-y: auto;
+  margin: 0; padding: 0; list-style: none;
+}
+.world-weather-hour {
+  display: grid; grid-template-columns: 34px 18px 1fr auto; align-items: center; gap: 6px;
+  padding: 2px 2px; color: var(--text-dim);
+}
+.world-weather-hour-time { font-size: 0.6rem; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.world-weather-hour-icon { display: grid; place-items: center; color: #70ccdf; }
+.world-weather-hour-icon svg { width: 13px; height: 13px; }
+.world-weather-hour-temp { color: var(--text); font-size: 0.66rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.world-weather-hour.is-now { color: var(--text); }
+.world-weather-hour.is-now .world-weather-hour-time { color: var(--gold-bright); }
+.world-weather-hour-now {
+  color: var(--gold-bright); font-size: 0.48rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .world-weather-hourly { animation: none; }
+}
+/* The card is narrow on a phone and the strip is only ~60px per day, so the
+   panel spans the whole card instead of trying to sit over one column. */
+@media (max-width: 560px) {
+  .world-weather-hourly,
+  .world-weather-day:first-child .world-weather-hourly,
+  .world-weather-day:last-child .world-weather-hourly {
+    left: 0; right: 0; width: auto; transform: none;
+  }
+}
 .world-weather-hazard { display: flex; align-items: flex-start; gap: 9px; margin: 16px 0 0; padding: 10px 11px; border-left: 2px solid var(--gold); background: rgba(209, 169, 85, 0.07); color: #c9bddb; font-size: 0.66rem; line-height: 1.45; }
 .world-weather-hazard > span { display: grid; width: 16px; height: 16px; flex: 0 0 16px; place-items: center; border: 1px solid rgba(209, 169, 85, 0.55); border-radius: 50%; color: var(--gold-bright); font-size: 0.58rem; font-weight: 700; }
 .world-weather-card footer { margin-top: 12px; color: rgba(164, 148, 188, 0.55); font-size: 0.54rem; letter-spacing: 0.05em; text-align: right; text-transform: uppercase; }

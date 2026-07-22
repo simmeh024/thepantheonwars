@@ -473,15 +473,15 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=274`, community `css/community-bundle.css?v=266`, and admin
-  `css/admin-bundle.css?v=278`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=276`, community `css/community-bundle.css?v=268`, and admin
+  `css/admin-bundle.css?v=279`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=16), `js/members.js?v=N` (current: v=40)
+  than once): `js/main.js?v=N` (current: v=17), `js/members.js?v=N` (current: v=40)
   and `js/notifications.js?v=N` (loaded dynamically), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.
@@ -600,6 +600,54 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Hourly weather projections.** Two new surfaces over the existing
+  deterministic generator, no schema change and no migration.
+  **The World Record's five-day strip** now opens an hourly panel per day.
+  Each day became a `<button>` so it is reachable by keyboard and on touch,
+  where there is no hover at all. **Today lists only the hours still to come**,
+  so it shrinks through the day (16 rows at 08:00, 2 at 22:00) and never
+  repeats hours the Tomorrow card owns; later days list all 24. The server
+  drops the elapsed hours, so the client renders whatever it was handed.
+  **The header pill** gains a rolling twelve hours on hover, crossing midnight,
+  with rows fading by distance and a "confidence degrades beyond 6h" line.
+  **Times are UTC everywhere and the panels say so.** Resolving them in the
+  visitor's own zone would put hours under a day heading whose boundaries are
+  UTC and the two would disagree -- at UTC+10 "Today" would show two rows in
+  the visitor's morning.
+  **Two consistency rules the generator must keep**, both worth re-checking if
+  it is ever touched: every hour is clamped to that day's own `low_c`/`high_c`,
+  so the hourly panel can never contradict the card above it; and day 0's curve
+  **peaks at the current hour** (rather than mid-afternoon) because for day 0
+  `high_c` IS the administrator's authored "right now" temperature -- so the
+  now row matches the big current-conditions figure exactly. The peak alone was
+  not enough: jitter still pulled it a degree under on 7 of 24 hours, so the
+  now row takes the authored value directly.
+  Deviation from the day's headline condition, and temperature spread, both
+  widen with distance into the five-day window -- measured **from the start of
+  day 0, not from "now"**, so a given hour keeps its value all day instead of
+  shifting under the reader every time the clock ticks.
+  The pill's roll comes from `api/world-weather-hours.php`, a small separate
+  endpoint fetched on first hover and cached per UTC hour. Deliberately not
+  folded into `api/worlds-weather-glance.php`, which serves every available
+  world and would have carried twelve unused rows apiece. Both surfaces read
+  the same generator, so they always agree on an hour they both show
+  (asserted).
+  **Verified by porting the generator to Python** and asserting the invariants
+  across all 24 possible current hours -- there is no PHP CLI in this sandbox,
+  and that port is what caught the jitter bug above. Then in a browser against
+  a harness built from the real `world.html`.
+  **Two bugs found in the browser pass, both worth remembering.** A
+  `@keyframes` that animates `transform` outranks normal declarations through
+  its fill state, so it overrode the edge rule holding the first day's panel
+  inside the card -- Today's panel opened 60px outside it. Animate opacity only
+  when a positioning transform must survive. And reading `:hover` back when the
+  response lands is wrong for a keyboard user: `:hover` is false on focus, so
+  the panel would never have appeared on first focus before the cache warmed.
+  Track the intent in a flag instead.
+  `content.css?v=236` / `components.css?v=214` / `public.css?v=276` /
+  `community-bundle.css?v=268` / `admin-bundle.css?v=279` / `main.js?v=17` /
+  `world-detail.js?v=6`.
 
 - **Header weather widget** (`js/main.js?v=14`, `.pw-weather*` in
   `css/components.css`). **Run `sql/migration_weather_widget.sql` once.** A
