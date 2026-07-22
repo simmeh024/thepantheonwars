@@ -584,6 +584,36 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Hide a Dispatch from the public site (Dispatch Control).** New
+  `dispatch_entries.is_hidden` (`sql/migration_dispatch_visibility.sql` --
+  **run it once in phpMyAdmin**) plus a checkbox in the Dispatch Control edit
+  modal. Nothing is deleted: the commit record, category, approved
+  translation, reactions and quality feedback all survive, so hiding is fully
+  reversible and does not lose data the way "delete the translation" does.
+  **Every public surface is covered, not just the feed** -- this was checked
+  by grepping every consumer of `dispatch_entries` rather than assuming:
+  `api/dispatches/list.php` (which also backs the `?dispatch=<id>` deep link,
+  so hiding cannot be defeated by knowing the id, **and** `dev-metrics.html`,
+  so a hidden dispatch drops out of public metrics too),
+  `api/dispatches/react.php` (a separate endpoint that only ever received an
+  id -- without its own check, a stale open page could still react), and
+  `pw_composer_attached_dispatches()` in `api/admin/news/news-helpers.php`,
+  which feeds the public "Related Development" sidecard on News articles.
+  That last one required `news-helpers.php` to require `dispatch-helpers.php`,
+  since the public article path reaches it through `api/news/get.php`.
+  **A missing column is a hard SQL error, not NULL**, so `COALESCE` cannot
+  make this migration-safe -- `pw_dispatch_has_visibility_column()` does a
+  request-cached `SHOW COLUMNS` instead, and every read and write path falls
+  back to its previous behaviour when the migration has not been run. Deploy
+  order is therefore not load-bearing.
+  Hiding and restoring get their own audit actions (`dispatch_hidden` /
+  `dispatch_unhidden`) with labels, icons and Audit Log filter options, since
+  an action that removes something the public could already read should not be
+  folded into the title/category entries. The admin list shows a muted
+  "Hidden" pill. The modal checkbox reuses the existing `.site-settings-toggle`
+  styling rather than adding a near-duplicate rule. `admin.css?v=231` /
+  `admin-bundle.css?v=272`.
+
 - **Regenerate a published translation without deleting it first.**
   `api/admin/dispatch-translations/generate-draft.php` returned **409** when a
   dispatch already had an approved translation, so the only way to re-run the

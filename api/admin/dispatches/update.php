@@ -17,7 +17,10 @@ if ($dispatchId <= 0) {
 }
 
 $db = pw_db();
-$stmt = $db->prepare('SELECT id, subject, tag, category_confidence, category_source FROM dispatch_entries WHERE id = ?');
+$visibilityAvailable = pw_dispatch_has_visibility_column($db);
+$stmt = $db->prepare($visibilityAvailable
+    ? 'SELECT id, subject, tag, category_confidence, category_source, is_hidden FROM dispatch_entries WHERE id = ?'
+    : 'SELECT id, subject, tag, category_confidence, category_source FROM dispatch_entries WHERE id = ?');
 $stmt->execute([$dispatchId]);
 $existing = $stmt->fetch();
 if (!$existing) {
@@ -52,17 +55,50 @@ if (array_key_exists('tag', $input)) {
     $categoryReviewed = true;
 }
 
+// Visibility is only touched when the client actually sent the field and the
+// migration has been run, so an older client or an unmigrated database keeps
+// saving title/category exactly as before.
+$hasVisibility = $visibilityAvailable;
+$visibilityChanged = false;
+$isHidden = isset($existing['is_hidden']) ? (int)$existing['is_hidden'] : 0;
+if ($hasVisibility && array_key_exists('is_hidden', $input)) {
+    $requested = !empty($input['is_hidden']) ? 1 : 0;
+    $visibilityChanged = $requested !== $isHidden;
+    $isHidden = $requested;
+}
+
 if ($categoryReviewed) {
     $db->prepare(
         'INSERT INTO dispatch_category_overrides (dispatch_id, previous_tag, previous_confidence, previous_source, new_tag, changed_by)
          VALUES (?, ?, ?, ?, ?, ?)'
     )->execute([$dispatchId, $existing['tag'], $existing['category_confidence'], $existing['category_source'], $tag, (int)$adminUser['id']]);
 
-    $stmt = $db->prepare('UPDATE dispatch_entries SET subject = ?, tag = ?, category_confidence = 100, category_source = ? WHERE id = ?');
-    $stmt->execute([$subject, $tag, 'manual', $dispatchId]);
+    if ($hasVisibility) {
+        $stmt = $db->prepare('UPDATE dispatch_entries SET subject = ?, tag = ?, category_confidence = 100, category_source = ?, is_hidden = ? WHERE id = ?');
+        $stmt->execute([$subject, $tag, 'manual', $isHidden, $dispatchId]);
+    } else {
+        $stmt = $db->prepare('UPDATE dispatch_entries SET subject = ?, tag = ?, category_confidence = 100, category_source = ? WHERE id = ?');
+        $stmt->execute([$subject, $tag, 'manual', $dispatchId]);
+    }
 } else {
-    $stmt = $db->prepare('UPDATE dispatch_entries SET subject = ?, tag = ? WHERE id = ?');
-    $stmt->execute([$subject, $tag, $dispatchId]);
+    if ($hasVisibility) {
+        $stmt = $db->prepare('UPDATE dispatch_entries SET subject = ?, tag = ?, is_hidden = ? WHERE id = ?');
+        $stmt->execute([$subject, $tag, $isHidden, $dispatchId]);
+    } else {
+        $stmt = $db->prepare('UPDATE dispatch_entries SET subject = ?, tag = ? WHERE id = ?');
+        $stmt->execute([$subject, $tag, $dispatchId]);
+    }
+}
+
+// Hiding removes something the public could already read, so it gets its own
+// audit entry rather than being folded into the title/category ones below.
+if ($visibilityChanged) {
+    pw_log_admin_activity(
+        $isHidden ? 'dispatch_hidden' : 'dispatch_unhidden',
+        ($isHidden ? 'Hid' : 'Restored') . ' dispatch "' . $subject . '" '
+            . ($isHidden ? 'from' : 'on') . ' the public Development Dispatches page.',
+        $adminUser
+    );
 }
 
 if ($tag !== $existing['tag']) {
@@ -88,4 +124,4 @@ if ($tag !== $existing['tag']) {
     );
 }
 
-pw_json(['ok' => true, 'subject' => $subject, 'tag' => $tag]);
+pw_json(['ok' => true, 'subject' => $subject, 'tag' => $tag, 'is_hidden' => (bool)$isHidden]);

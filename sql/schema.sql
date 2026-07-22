@@ -342,9 +342,13 @@ CREATE TABLE IF NOT EXISTS dispatch_entries (
   author VARCHAR(100) NOT NULL,
   committed_at DATETIME NOT NULL,
   url VARCHAR(255) DEFAULT NULL,
+  -- Hidden dispatches keep every row, category, translation and reaction;
+  -- only public visibility changes. See sql/migration_dispatch_visibility.sql.
+  is_hidden TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_sha (sha),
-  KEY idx_committed_at (committed_at)
+  KEY idx_committed_at (committed_at),
+  KEY idx_hidden_committed (is_hidden, committed_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- One row per admin category correction -- an evidence trail for future

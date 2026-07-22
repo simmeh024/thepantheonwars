@@ -1,4 +1,8 @@
 <?php
+// Loaded for pw_dispatch_has_visibility_column(): the public News article
+// path (api/news/get.php) reaches the attached-dispatch sidecard through this
+// file, so the visibility check has to be available here too.
+require_once __DIR__ . '/../../dispatch-helpers.php';
 /**
  * Shared validation and slug utilities for News Management.
  *
@@ -266,11 +270,18 @@ function pw_news_unique_slug($db, $title, $exceptId = null) {
 // Deliberately excludes admin_note (private, never published) and every
 // other Composer-only field -- only what the public sidecard needs.
 function pw_composer_attached_dispatches($db, $composerPostId) {
+    // This feeds the public "Related Development" sidecard on a News article,
+    // so a dispatch hidden after that article was published must drop out of
+    // it too -- otherwise hiding would still leak the subject line, and the
+    // card's links would point at a dispatch the feed no longer serves.
+    $hiddenFilter = (function_exists('pw_dispatch_has_visibility_column') && pw_dispatch_has_visibility_column($db))
+        ? ' AND d.is_hidden = 0'
+        : '';
     $stmt = $db->prepare(
         'SELECT d.id, d.sha, d.subject, d.tag, d.committed_at
          FROM dispatch_composer_items ci
          JOIN dispatch_entries d ON d.id = ci.dispatch_id
-         WHERE ci.composer_post_id = ?
+         WHERE ci.composer_post_id = ?' . $hiddenFilter . '
          ORDER BY ci.sort_order ASC, ci.id ASC'
     );
     $stmt->execute([$composerPostId]);

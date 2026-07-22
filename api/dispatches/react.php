@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/../dispatch-helpers.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     pw_error('Method not allowed.', 405);
@@ -21,7 +22,15 @@ if (!in_array($type, $validTypes, true)) {
 }
 
 $db = pw_db();
-$stmt = $db->prepare('SELECT id FROM dispatch_entries WHERE id = ?');
+// A hidden dispatch must not be reactable either. The public list already
+// excludes it, but a reaction is a separate endpoint that only ever received
+// an id -- without this check, hiding would be defeatable by anyone who had
+// the page open before it was hidden, or who simply guessed the id.
+if (pw_dispatch_has_visibility_column($db)) {
+    $stmt = $db->prepare('SELECT id FROM dispatch_entries WHERE id = ? AND is_hidden = 0');
+} else {
+    $stmt = $db->prepare('SELECT id FROM dispatch_entries WHERE id = ?');
+}
 $stmt->execute([$dispatchId]);
 if (!$stmt->fetch()) {
     pw_error('That dispatch no longer exists.', 404);

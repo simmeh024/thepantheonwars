@@ -3127,3 +3127,10 @@
   border: 1px solid rgba(224,178,74,0.5); background: rgba(224,178,74,0.1);
 }
 .admin-field-hint-warn { color: var(--gold-bright); }
+/* Sits inline in a dispatch row's meta line. Deliberately muted rather than
+   alarm-coloured: hiding is a routine editorial choice, not a fault state. */
+.admin-row-hidden-flag {
+  display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 999px;
+  font-size: 0.64rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text-faint); border: 1px solid var(--border-soft); background: rgba(255,255,255,0.03);
+}

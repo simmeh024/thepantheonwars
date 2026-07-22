@@ -43,6 +43,7 @@ if ($needsReview) {
 }
 $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
+$visibilityAvailable = pw_dispatch_has_visibility_column($db);
 $countStmt = $db->prepare('SELECT COUNT(*) AS c FROM dispatch_entries d ' . $whereSql);
 foreach ($params as $k => $v) {
     $countStmt->bindValue($k, $v);
@@ -57,7 +58,7 @@ $offset = ($page - 1) * $perPage;
 
 $stmt = $db->prepare(
     'SELECT d.id, d.sha, d.subject, d.body, d.tag, d.category_confidence, d.category_source,
-            d.author, d.committed_at, d.url,
+            d.author, d.committed_at, d.url, ' . ($visibilityAvailable ? 'd.is_hidden,' : '0 AS is_hidden,') . '
             (dt.id IS NOT NULL) AS has_translation
      FROM dispatch_entries d
      LEFT JOIN dispatch_translations dt ON dt.dispatch_id = d.id
@@ -87,6 +88,7 @@ $out = array_map(function ($r) {
         'author' => $r['author'],
         'committed_at' => $r['committed_at'],
         'url' => $r['url'],
+        'is_hidden' => !empty($r['is_hidden']),
         'has_translation' => (bool)$r['has_translation'],
     ];
 }, $rows);

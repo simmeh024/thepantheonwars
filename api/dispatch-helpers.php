@@ -42,6 +42,30 @@ function pw_dispatch_clean_subject($subject) {
 // the Conventional Commits prefix / bare-"fix"-prefix rule below) and
 // 'feature' (the zero-evidence fallback every other category is scored
 // against).
+/**
+ * Whether dispatch_entries carries the is_hidden column yet
+ * (sql/migration_dispatch_visibility.sql). Checked rather than assumed so a
+ * deploy that lands before the migration keeps serving Dispatches normally
+ * instead of failing every public request with an unknown-column error. A
+ * COALESCE cannot do this job: a missing column is a hard SQL error, not NULL.
+ *
+ * Cached for the request -- one SHOW COLUMNS per request at most, and only on
+ * the paths that actually filter by visibility.
+ */
+function pw_dispatch_has_visibility_column($db) {
+    static $exists = null;
+    if ($exists !== null) {
+        return $exists;
+    }
+    try {
+        $stmt = $db->query("SHOW COLUMNS FROM dispatch_entries LIKE 'is_hidden'");
+        $exists = (bool)$stmt->fetch();
+    } catch (Throwable $e) {
+        $exists = false;
+    }
+    return $exists;
+}
+
 function pw_dispatch_category_keywords() {
     return [
         'experimental' => ['experimental', 'beta test', 'early access', 'prototype', 'proof of concept'],

@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/../dispatch-helpers.php';
 
 $page = isset($_GET['page']) ? max(1, (int)$_GET['page']) : 1;
 $perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10;
@@ -25,8 +26,14 @@ if (isset($_GET['tags']) && trim($_GET['tags']) !== '') {
     $tags = array_values(array_intersect($validTags, $requested));
 }
 
+// A hidden dispatch is invisible to every end user, including through the
+// ?dispatch=<id> deep link below -- hiding must not be defeatable by knowing
+// the id.
 $where = [];
 $params = [];
+if (pw_dispatch_has_visibility_column($db)) {
+    $where[] = 'd.is_hidden = 0';
+}
 if ($q !== '') {
     $where[] = '(d.subject LIKE :q1 OR d.body LIKE :q2)';
     $params[':q1'] = '%' . $q . '%';
