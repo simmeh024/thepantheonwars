@@ -562,6 +562,20 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **`lcfirst()` mangled acronym-led objects (dispatch-draft-v29).** Seen live
+  as "BH-4 has refined the reader-facing presentation of **bH-4**". An object
+  phrase is dropped mid-sentence so it normally needs `lcfirst()`, but that
+  damages any object starting with a name or acronym -- BH-4, CSS, API, SQL,
+  UTC. All four object-facing call sites now go through
+  `pw_dispatch_lcfirst_object()`, which leaves the value untouched when its
+  first token carries a second capital, or a capital followed by a digit or
+  hyphen, and otherwise behaves exactly as `lcfirst()` did. Note this was two
+  bugs stacked: the object being `BH-4` *at all* came from the body-leak fixed
+  in v28 below, while the `bH-4` casing is independent and would still have
+  affected a legitimately acronym-led subject. Single-capital proper nouns
+  (Asmecu) are deliberately still lowercased -- unchanged behaviour, and the
+  world-release path has its own override that preserves them.
+
 - **Commit body could reach public reader copy verbatim (dispatch-draft-v28).**
   Caught from a live published Dispatch immediately after the domain fix
   below: the commit *"Score Dispatch draft domains instead of first match"*
@@ -2018,7 +2032,7 @@ at that time.
   at most eight recent translations, and uses that score to begin with a
   different stable wording variant for near-duplicate updates. Raw prior translations never
   leave the PHP/Python process boundary. The draft-format hash is
-  `dispatch-draft-v28`, so regeneration refreshes unapproved local drafts
+  `dispatch-draft-v29`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
   Before rendering prose, PHP builds a reader-safe plan from recognized commit

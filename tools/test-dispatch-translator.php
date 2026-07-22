@@ -193,6 +193,15 @@ $cases = [
         'options' => ['spacy_analysis' => ['entities' => ['tazwick subsystem']]],
         'contains' => ['tazwick subsystem'],
     ],
+    // An object phrase is dropped mid-sentence and so is normally lowercased,
+    // but a bare lcfirst() published "BH-4" as "bH-4". Any acronym-led object
+    // (BH-4, CSS, API, SQL, UTC) has the same problem.
+    [
+        'subject' => 'Improve BH-4 status imagery on the Admin Home page',
+        'body' => '',
+        'tag' => 'improvement',
+        'forbidden' => ['bH-4'],
+    ],
 ];
 
 foreach ($cases as $case) {

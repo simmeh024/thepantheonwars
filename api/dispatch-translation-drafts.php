@@ -157,6 +157,27 @@ function pw_dispatch_draft_nearest_similarity(array $spacyAnalysis): float
 }
 
 /**
+ * Lowercase the first letter only when doing so cannot damage a name. An
+ * object phrase is dropped mid-sentence, so it normally needs lcfirst() --
+ * but a bare lcfirst() turned "BH-4" into "bH-4" in published copy, and would
+ * do the same to any acronym-led object (CSS, API, SQL, UTC). A leading token
+ * carrying a second capital, or a capital followed by a digit or hyphen, is
+ * treated as a name and left exactly as written.
+ */
+function pw_dispatch_lcfirst_object(string $value): string
+{
+    $trimmed = ltrim($value);
+    if ($trimmed === '') {
+        return $value;
+    }
+    $firstWord = preg_split('/\s/', $trimmed, 2)[0];
+    if (preg_match('/[A-Z].*[A-Z]|[A-Z][0-9\-]/', $firstWord)) {
+        return $value;
+    }
+    return lcfirst($value);
+}
+
+/**
  * The single list of recognized commit action verbs, shared by the
  * action-opening test and the object-phrase guard below so the two can never
  * drift apart. Multi-word entries are intentional ("speed up", "cross link").
@@ -730,7 +751,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     if ($rulesMatched === 0 && preg_match_all('/[A-Za-z]{3,}/', $clean) >= 3) {
         $rulesMatched++;
     }
-    $object = lcfirst($clean);
+    $object = pw_dispatch_lcfirst_object($clean);
     $draft = '';
     $actionTemplates = [
         '/^add\s+(.+)\s+and\s+fix\s+(.+)$/i' => 'This update adds %s and corrects %s.',
@@ -828,10 +849,10 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         $evidence['commit_intent'] = true;
         $evidence['recognized_subject'] = true;
         $arguments = array_map(static function ($value): string {
-            return rtrim(lcfirst(trim($value)), '.');
+            return rtrim(pw_dispatch_lcfirst_object(trim($value)), '.');
         }, array_slice($matches, 1));
         if ($matchedSource === 'original' && substr_count($template, '%s') === 1) {
-            $arguments = [rtrim(lcfirst(trim($clean)), '.')];
+            $arguments = [rtrim(pw_dispatch_lcfirst_object(trim($clean)), '.')];
         }
         $object = $arguments[0];
         $draft = vsprintf($template, $arguments);
@@ -860,7 +881,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         // spaCy sees the body too, and an entity match inside a body (a quoted
         // title, an internal note) must never become published reader copy.
         if ($spacyObject !== '' && pw_dispatch_spacy_object_is_grounded($spacyObject, $contextSource . ' ' . $clean)) {
-            $object = lcfirst($spacyObject);
+            $object = pw_dispatch_lcfirst_object($spacyObject);
         }
         $object = pw_dispatch_strip_leading_action_verb($object, $spacyAnalysis);
         $draft = sprintf($template, rtrim($object, '.'));
@@ -1184,7 +1205,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v28\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v29\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array
