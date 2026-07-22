@@ -5414,6 +5414,7 @@
   // Opens the Warnings section pre-filtered to one member -- used by the
   // Member edit modal's "View All" link.
   function pwShowWarningsForMember(userId, displayName) {
+    if (memberModal) memberModal.hidden = true;
     warningFilterUserId = userId;
     warningMemberFilterName.textContent = displayName;
     warningMemberFilterChip.hidden = false;
@@ -5520,6 +5521,9 @@
 
   function pwOpenIssueWarningModal(targetUser) {
     if (!pwHasPermission('warnings.manage')) return;
+    // Called from within the still-open Member edit modal too -- close it
+    // first so its full-screen overlay doesn't stack behind this one.
+    if (memberModal) memberModal.hidden = true;
     warningIssueErrorEl.classList.remove('show');
     warningIssueReasonInput.value = '';
     warningIssueSeveritySelect.value = 'minor';
