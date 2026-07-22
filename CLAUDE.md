@@ -473,7 +473,7 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=279`, community `css/community-bundle.css?v=271`, and admin
+  `css/public.css?v=280`, community `css/community-bundle.css?v=272`, and admin
   `css/admin-bundle.css?v=279`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
@@ -649,16 +649,26 @@ at that time.
   under the five-day grid, not a popup per day. Two reasons it had to move out
   of the day element: a ten-column strip cannot live inside a 60px column, and
   the scroll arrows are buttons -- nesting those inside the day, which is
-  itself a button, is invalid. Exactly ten columns show at a time
-  (`calc((100% - 18px) / 10)`, ~34px each in the 456px sidecard) and the rest
+  itself a button, is invalid. Six columns show at a time
+  (`calc((100% - 10px) / 6)`, ~59px each in the 456px sidecard) and the rest
   scroll. **`min-width` on those columns is a trap**: set anywhere near the
   computed width it wins the calc and silently caps the rail at eight or nine,
   which happened twice. Keep it well below.
   The arrows call `scrollBy` **without a `behavior`**, deliberately, so the CSS
   `scroll-behavior` governs and the reduced-motion override actually takes
   effect -- passing `behavior: 'smooth'` in JS overrides CSS and defeats it.
-  `content.css?v=239` / `components.css?v=214` / `public.css?v=279` /
-  `community-bundle.css?v=271` / `admin-bundle.css?v=279` / `main.js?v=17` /
+  **Icon colour is one custom property, not a list of classes.** Each of the
+  eleven `.world-weather-card--<slug>` variants used to recolour by naming
+  `.world-weather-current-icon` and `.world-weather-day-icon` explicitly, so
+  the hourly rail was born stuck on the default teal while the day icons above
+  it were correctly tinted. They now set `--world-weather-icon` /
+  `--world-weather-icon-current` on the card once, and every icon class reads
+  those -- a new icon type is tinted automatically. The two defaults differ
+  (`#70ccdf` small, `#78d8ee` large) only because they always have, which
+  matters for the worlds with no variant such as Neoh; every variant sets both
+  to the same value.
+  `content.css?v=240` / `components.css?v=214` / `public.css?v=280` /
+  `community-bundle.css?v=272` / `admin-bundle.css?v=279` / `main.js?v=17` /
   `world-detail.js?v=8`.
   **Browser-pane limit worth knowing:** a smooth scroll never advances when the
   Browser pane is not displayed, because it needs frames the pane is not
