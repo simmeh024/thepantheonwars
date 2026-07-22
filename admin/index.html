@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=272">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=273">
 </head>
 <body>
 
@@ -3744,16 +3744,15 @@
   <div class="admin-modal-inner admin-modal-inner-wide">
     <button type="button" class="admin-modal-close" id="quiz-question-modal-close" aria-label="Close">&times;</button>
     <h3 class="admin-modal-title" id="quiz-question-modal-title">Edit Quiz Question</h3>
-    <p class="admin-modal-sub">Each answer is permanently mapped to the named Overlord&rsquo;s resonance score.</p>
+    <p class="admin-modal-sub" id="quiz-question-modal-sub">Give each answer a weight against one or more Overlords. A higher weight pulls the result harder towards that Overlord; leave a column at 0 if the answer says nothing about them.</p>
     <div class="admin-field"><label for="quiz-question-text-input">Question</label><textarea id="quiz-question-text-input" maxlength="500"></textarea></div>
     <div class="admin-field-row"><div class="admin-field"><label for="quiz-question-order-input">Display order</label><input type="number" id="quiz-question-order-input" min="0" step="1"></div><label class="member-ban-toggle"><span><strong>Active</strong><small>Inactive questions remain saved but do not appear publicly.</small></span><input type="checkbox" id="quiz-question-active-input" checked></label></div>
     <p class="admin-field-group-label">Answer options</p>
-    <div class="admin-field"><label for="quiz-option-0">Syn Dravus</label><textarea id="quiz-option-0" maxlength="1000"></textarea></div>
-    <div class="admin-field"><label for="quiz-option-1">Malric Thorne</label><textarea id="quiz-option-1" maxlength="1000"></textarea></div>
-    <div class="admin-field"><label for="quiz-option-2">Korrus Vale</label><textarea id="quiz-option-2" maxlength="1000"></textarea></div>
-    <div class="admin-field"><label for="quiz-option-3">Lysara Venthe</label><textarea id="quiz-option-3" maxlength="1000"></textarea></div>
-    <div class="admin-field"><label for="quiz-option-4">Zura Kaleth</label><textarea id="quiz-option-4" maxlength="1000"></textarea></div>
-    <div class="admin-field"><label for="quiz-option-5">Maerion Thal</label><textarea id="quiz-option-5" maxlength="1000"></textarea></div>
+    <div class="quiz-option-editor" id="quiz-option-editor"></div>
+    <div class="quiz-option-editor-actions">
+      <button type="button" class="btn" id="quiz-option-add-btn">+ Add answer</button>
+      <span class="admin-field-hint" id="quiz-option-hint"></span>
+    </div>
     <p class="admin-modal-error" id="quiz-question-modal-error"></p><p class="admin-modal-status" id="quiz-question-modal-status"></p>
     <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="quiz-question-save-btn">Save</button><button type="button" class="btn" id="quiz-question-cancel-btn">Cancel</button><button type="button" class="admin-delete-btn" id="quiz-question-delete-btn" hidden>Delete Question</button></div>
   </div>
@@ -15432,10 +15431,100 @@
   var quizQuestionTextInput = document.getElementById('quiz-question-text-input');
   var quizQuestionOrderInput = document.getElementById('quiz-question-order-input');
   var quizQuestionActiveInput = document.getElementById('quiz-question-active-input');
-  var quizQuestionOptionInputs = [0, 1, 2, 3, 4, 5].map(function (i) { return document.getElementById('quiz-option-' + i); });
+  var quizOptionEditorEl = document.getElementById('quiz-option-editor');
+  var quizOptionAddBtn = document.getElementById('quiz-option-add-btn');
+  var quizOptionHintEl = document.getElementById('quiz-option-hint');
+  var quizQuestionModalSub = document.getElementById('quiz-question-modal-sub');
   var quizQuestionModalError = document.getElementById('quiz-question-modal-error');
   var quizQuestionModalStatus = document.getElementById('quiz-question-modal-status');
   var quizQuestionCurrent = null;
+  // Cast and capabilities come from the list endpoint so the weight columns are
+  // labelled with the live Overlord names, and so the editor falls back to the
+  // fixed six-answer form until the weights migration has been run.
+  var quizCast = [];
+  var quizCaps = { weights: false, answers: false };
+  var QUIZ_MIN_OPTIONS = 2;
+  var QUIZ_MAX_OPTIONS = 12;
+
+  function quizOptionRows() {
+    return Array.prototype.slice.call(quizOptionEditorEl.querySelectorAll('.quiz-option-row'));
+  }
+
+  function updateQuizOptionControls() {
+    var rows = quizOptionRows();
+    var editable = pwHasPermission('quiz.edit');
+    // The legacy form is exactly six answers, one per Overlord, and neither
+    // adding nor removing is meaningful there.
+    quizOptionAddBtn.hidden = !quizCaps.weights || !editable || rows.length >= QUIZ_MAX_OPTIONS;
+    rows.forEach(function (row) {
+      var removeBtn = row.querySelector('.quiz-option-remove');
+      if (removeBtn) removeBtn.hidden = !quizCaps.weights || !editable || rows.length <= QUIZ_MIN_OPTIONS;
+    });
+    if (!quizCaps.weights) {
+      quizOptionHintEl.textContent = 'Run the quiz enhancements migration to use weighted answers.';
+    } else {
+      quizOptionHintEl.textContent = rows.length + ' of ' + QUIZ_MAX_OPTIONS + ' answers.';
+    }
+  }
+
+  function addQuizOptionRow(option) {
+    option = option || { id: 0, text: '', weights: [0, 0, 0, 0, 0, 0], responses: 0 };
+    var row = document.createElement('div');
+    row.className = 'quiz-option-row';
+    row.dataset.optionId = option.id || 0;
+
+    var head = document.createElement('div');
+    head.className = 'quiz-option-row-head';
+    var textarea = document.createElement('textarea');
+    textarea.className = 'quiz-option-text';
+    textarea.maxLength = 1000;
+    textarea.value = option.text || '';
+    head.appendChild(textarea);
+    var removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'admin-delete-btn quiz-option-remove';
+    removeBtn.textContent = 'Remove';
+    removeBtn.addEventListener('click', function () {
+      if (quizOptionRows().length <= QUIZ_MIN_OPTIONS) return;
+      row.remove();
+      updateQuizOptionControls();
+    });
+    head.appendChild(removeBtn);
+    row.appendChild(head);
+
+    var weightsWrap = document.createElement('div');
+    weightsWrap.className = 'quiz-option-weights';
+    for (var i = 0; i < 6; i++) {
+      var cell = document.createElement('label');
+      cell.className = 'quiz-weight-cell';
+      var caption = document.createElement('span');
+      caption.textContent = quizCast[i] ? quizCast[i].name : 'Overlord ' + (i + 1);
+      var input = document.createElement('input');
+      input.type = 'number';
+      input.className = 'quiz-weight-input';
+      input.min = '0';
+      input.max = '9';
+      input.step = '1';
+      input.value = String((option.weights && option.weights[i]) || 0);
+      input.disabled = !quizCaps.weights;
+      cell.appendChild(caption);
+      cell.appendChild(input);
+      weightsWrap.appendChild(cell);
+    }
+    row.appendChild(weightsWrap);
+
+    // How often readers actually picked this answer. An answer nobody chooses,
+    // or one everybody chooses, is the signal that the question needs a rewrite.
+    if (quizCaps.answers && typeof option.responses === 'number') {
+      var responsesEl = document.createElement('span');
+      responsesEl.className = 'quiz-option-responses';
+      responsesEl.textContent = option.responses === 1 ? '1 response' : option.responses + ' responses';
+      row.appendChild(responsesEl);
+    }
+
+    quizOptionEditorEl.appendChild(row);
+    return row;
+  }
 
   function quizRequest(url, payload) {
     return fetch(url, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ csrf: window.PW_AUTH.csrf }, payload || {})) })
@@ -15447,12 +15536,24 @@
     return fetch('/api/admin/quiz/list.php', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (data) {
       if (!data.ok) throw new Error();
       var questions = data.questions || [];
+      quizCast = Array.isArray(data.overlords) ? data.overlords : [];
+      quizCaps = data.capabilities || quizCaps;
       quizQuestionCountEl.textContent = questions.length + (questions.length === 1 ? ' question' : ' questions');
       if (!questions.length) { quizQuestionListEl.innerHTML = '<div class="admin-list-empty">No managed questions yet. The public quiz is still using its original questions.</div>'; return; }
       quizQuestionListEl.innerHTML = '';
       questions.forEach(function (question) {
+        var meta = '<span>Order ' + question.sort_order + '</span><span class="admin-row-sep">&bull;</span><span>' + question.options.length + ' answers</span>';
+        // A question where nearly everyone picks the same answer separates no
+        // one and is worth rewriting. Only shown once enough people have
+        // answered for the share to mean anything.
+        if (question.responses >= 20 && question.top_share !== null) {
+          meta += '<span class="admin-row-sep">&bull;</span><span>' + question.responses + ' responses</span>';
+          if (question.top_share >= 70) {
+            meta += '<span class="admin-row-sep">&bull;</span><span class="quiz-lowsignal-pill">' + question.top_share + '% pick one answer</span>';
+          }
+        }
         var row = document.createElement('div'); row.className = 'admin-row';
-        row.innerHTML = '<div class="admin-row-main"><p class="admin-row-subject">' + escapeHtml(question.question_text) + (question.is_active ? '' : ' <span class="report-status report-status-resolved">Inactive</span>') + '</p><div class="admin-row-meta"><span>Order ' + question.sort_order + '</span><span class="admin-row-sep">&bull;</span><span>' + question.options.filter(Boolean).length + ' / 6 answers configured</span></div></div><button type="button" class="permission-mini-btn">Edit</button>';
+        row.innerHTML = '<div class="admin-row-main"><p class="admin-row-subject">' + escapeHtml(question.question_text) + (question.is_active ? '' : ' <span class="report-status report-status-resolved">Inactive</span>') + '</p><div class="admin-row-meta">' + meta + '</div></div><button type="button" class="permission-mini-btn">Edit</button>';
         row.querySelector('button').addEventListener('click', function () { openQuizQuestionModal(question); });
         quizQuestionListEl.appendChild(row);
       });
@@ -15465,7 +15566,35 @@
     quizQuestionTextInput.value = question ? question.question_text : '';
     quizQuestionOrderInput.value = question ? question.sort_order : '';
     quizQuestionActiveInput.checked = question ? question.is_active : true;
-    quizQuestionOptionInputs.forEach(function (input, index) { input.value = question && question.options ? (question.options[index] || '') : ''; });
+
+    quizQuestionModalSub.textContent = quizCaps.weights
+      ? 'Give each answer a weight against one or more Overlords. A higher weight pulls the result harder towards that Overlord; leave a column at 0 if the answer says nothing about them.'
+      : 'Each answer is permanently mapped to the named Overlord’s resonance score.';
+
+    quizOptionEditorEl.innerHTML = '';
+    var existing = question && Array.isArray(question.options) ? question.options : [];
+    if (quizCaps.weights) {
+      if (existing.length) {
+        existing.forEach(function (option) { addQuizOptionRow(option); });
+      } else {
+        // A new question starts with one answer per Overlord, each already
+        // weighted to it -- the shape most questions still want.
+        for (var i = 0; i < 6; i++) {
+          var seed = [0, 0, 0, 0, 0, 0];
+          seed[i] = 1;
+          addQuizOptionRow({ id: 0, text: '', weights: seed, responses: 0 });
+        }
+      }
+    } else {
+      // Pre-migration: exactly six positional answers, as before.
+      for (var j = 0; j < 6; j++) {
+        var legacy = [0, 0, 0, 0, 0, 0];
+        legacy[j] = 1;
+        addQuizOptionRow({ id: existing[j] ? existing[j].id : 0, text: existing[j] ? existing[j].text : '', weights: legacy, responses: existing[j] ? existing[j].responses : 0 });
+      }
+    }
+    updateQuizOptionControls();
+
     quizQuestionModalError.textContent = ''; quizQuestionModalError.classList.remove('show');
     quizQuestionModalStatus.textContent = ''; quizQuestionModalStatus.classList.remove('show');
     document.getElementById('quiz-question-delete-btn').hidden = !question || !pwHasPermission('quiz.delete');
@@ -15478,10 +15607,33 @@
   document.getElementById('quiz-question-modal-close').addEventListener('click', closeQuizQuestionModal);
   document.getElementById('quiz-question-cancel-btn').addEventListener('click', closeQuizQuestionModal);
   quizQuestionModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeQuizQuestionModal);
+  quizOptionAddBtn.addEventListener('click', function () {
+    if (!pwHasPermission('quiz.edit') || quizOptionRows().length >= QUIZ_MAX_OPTIONS) return;
+    var row = addQuizOptionRow(null);
+    updateQuizOptionControls();
+    row.querySelector('.quiz-option-text').focus();
+  });
   document.getElementById('quiz-question-save-btn').addEventListener('click', function () {
-    var payload = { id: quizQuestionCurrent ? quizQuestionCurrent.id : 0, question_text: quizQuestionTextInput.value.trim(), sort_order: quizQuestionOrderInput.value, is_active: quizQuestionActiveInput.checked, options: quizQuestionOptionInputs.map(function (input) { return input.value.trim(); }) };
+    var saveBtn = this;
+    // Option ids are sent back so the server updates rows in place. Recreating
+    // them would cascade away the per-answer response history behind the
+    // distribution figures shown above.
+    var options = quizOptionRows().map(function (row) {
+      return {
+        id: parseInt(row.dataset.optionId, 10) || 0,
+        text: row.querySelector('.quiz-option-text').value.trim(),
+        weights: Array.prototype.slice.call(row.querySelectorAll('.quiz-weight-input')).map(function (input) {
+          return parseInt(input.value, 10) || 0;
+        })
+      };
+    });
+    var payload = { id: quizQuestionCurrent ? quizQuestionCurrent.id : 0, question_text: quizQuestionTextInput.value.trim(), sort_order: quizQuestionOrderInput.value, is_active: quizQuestionActiveInput.checked, options: options };
     quizQuestionModalError.classList.remove('show');
-    quizRequest('/api/admin/quiz/save.php', payload).then(function () { closeQuizQuestionModal(); loadQuizQuestionList(); }).catch(function (error) { quizQuestionModalError.textContent = error.message; quizQuestionModalError.classList.add('show'); });
+    saveBtn.disabled = true; saveBtn.classList.add('is-busy');
+    quizRequest('/api/admin/quiz/save.php', payload)
+      .then(function () { closeQuizQuestionModal(); loadQuizQuestionList(); })
+      .catch(function (error) { quizQuestionModalError.textContent = error.message; quizQuestionModalError.classList.add('show'); })
+      .then(function () { saveBtn.disabled = !pwHasPermission('quiz.edit'); saveBtn.classList.remove('is-busy'); });
   });
   document.getElementById('quiz-question-delete-btn').addEventListener('click', function () {
     if (!quizQuestionCurrent || !window.confirm('Delete this quiz question? This cannot be undone.')) return;

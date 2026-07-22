@@ -574,13 +574,42 @@ CREATE TABLE IF NOT EXISTS quiz_questions (
   KEY idx_quiz_questions_active_order (is_active, sort_order, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- A question may carry any number of answers (2-12 in Quiz Control). score_index
+-- is the answer's dominant Overlord, kept in step with quiz_option_weights for
+-- legacy readers; the weights below are what actually score a result.
 CREATE TABLE IF NOT EXISTS quiz_options (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   question_id INT UNSIGNED NOT NULL,
-  score_index TINYINT UNSIGNED NOT NULL,
+  score_index TINYINT UNSIGNED NULL,
   option_text VARCHAR(1000) NOT NULL,
-  UNIQUE KEY uq_quiz_option_score (question_id, score_index),
+  sort_order INT NOT NULL DEFAULT 0,
+  KEY idx_quiz_options_question (question_id, sort_order, id),
   CONSTRAINT fk_quiz_options_question FOREIGN KEY (question_id) REFERENCES quiz_questions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- How strongly one answer resonates with each Overlord. One answer may weight
+-- several at once, so a blended answer produces a blended result rather than the
+-- flat one-point-per-question model this replaced.
+CREATE TABLE IF NOT EXISTS quiz_option_weights (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  option_id INT UNSIGNED NOT NULL,
+  score_index TINYINT UNSIGNED NOT NULL,
+  weight TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  UNIQUE KEY uq_quiz_option_weight (option_id, score_index),
+  CONSTRAINT fk_quiz_option_weights_option FOREIGN KEY (option_id) REFERENCES quiz_options(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Which answer each result actually chose, backing Quiz Control's per-question
+-- answer distribution. quiz_results only ever stored the six final totals.
+CREATE TABLE IF NOT EXISTS quiz_result_answers (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  result_id INT UNSIGNED NOT NULL,
+  question_id INT UNSIGNED NOT NULL,
+  option_id INT UNSIGNED NOT NULL,
+  UNIQUE KEY uq_quiz_result_answer (result_id, question_id),
+  KEY idx_quiz_result_answers_question (question_id, option_id),
+  CONSTRAINT fk_quiz_result_answers_result FOREIGN KEY (result_id) REFERENCES quiz_results(id) ON DELETE CASCADE,
+  CONSTRAINT fk_quiz_result_answers_option FOREIGN KEY (option_id) REFERENCES quiz_options(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Private one-to-one member conversations. The participant ids are always
@@ -1360,6 +1389,9 @@ CREATE TABLE IF NOT EXISTS overlords (
   decrees TEXT NULL,
   accent_color VARCHAR(20) NOT NULL DEFAULT '',
   accent_glow VARCHAR(20) NOT NULL DEFAULT '',
+  -- Result-screen copy for the "Which Overlord Are You?" quiz. Separate from
+  -- card_teaser, which is roster-card copy and reads differently.
+  quiz_result_blurb VARCHAR(400) NOT NULL DEFAULT '',
   meta_title VARCHAR(150) NOT NULL DEFAULT '',
   meta_description VARCHAR(300) NOT NULL DEFAULT '',
   sort_order INT NOT NULL DEFAULT 0,

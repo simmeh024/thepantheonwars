@@ -3134,3 +3134,64 @@
   font-size: 0.64rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
   color: var(--text-faint); border: 1px solid var(--border-soft); background: rgba(255,255,255,0.03);
 }
+
+/* --- Quiz Control: weighted answer editor -------------------------------- */
+/* Replaces the six fixed answer slots. An answer now carries a weight per
+   Overlord, so a question can have any number of answers and one answer can
+   resonate with several Overlords at once. */
+.quiz-option-editor { display: flex; flex-direction: column; gap: 14px; margin-bottom: 14px; }
+.quiz-option-row {
+  border: 1px solid var(--border-soft);
+  border-radius: 4px;
+  padding: 14px;
+  background: rgba(255,255,255,0.015);
+}
+.quiz-option-row-head { display: flex; align-items: flex-start; gap: 12px; }
+.quiz-option-text {
+  flex: 1 1 auto;
+  min-height: 62px;
+  resize: vertical;
+}
+.quiz-option-remove { flex-shrink: 0; }
+.quiz-option-remove[hidden] { display: none; }
+
+.quiz-option-weights {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+.quiz-weight-cell { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.quiz-weight-cell span {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.quiz-weight-input { width: 100%; text-align: center; }
+.quiz-weight-input:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.quiz-option-responses {
+  display: block;
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+.quiz-option-editor-actions { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.quiz-option-editor-actions .admin-field-hint { margin: 0; }
+#quiz-option-add-btn[hidden] { display: none; }
+
+/* Flags a question nearly everyone answers the same way -- it separates no
+   one, so it carries no signal and is worth rewriting. */
+.quiz-lowsignal-pill {
+  display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 999px;
+  font-size: 0.64rem; font-weight: 600; letter-spacing: 0.06em;
+  color: #e2984a; border: 1px solid rgba(226,152,74,0.4); background: rgba(226,152,74,0.1);
+}
+
+@media (max-width: 720px) {
+  .quiz-option-weights { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

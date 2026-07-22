@@ -457,8 +457,8 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=266`, community `css/community-bundle.css?v=258`, and admin
-  `css/admin-bundle.css?v=267`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=269`, community `css/community-bundle.css?v=261`, and admin
+  `css/admin-bundle.css?v=273`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
@@ -584,6 +584,95 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Quiz overhaul: server-side scoring, weighted answers, DB-driven cast,
+  answer analytics, and resumable play** (`quiz.html`, Lore Management ->
+  Quiz Control). **Run `sql/migration_quiz_enhancements.sql` once**; every
+  statement is idempotent and `pw_quiz_capabilities()` detects each piece, so
+  deploy order is not load-bearing.
+  **The security fix is the headline.** `api/save-quiz-result.php` accepted
+  the client's own `scores` array *and* its own winning `overlord`, stored
+  both unchecked, and awarded a **Pure Resonance icon unlock** off them --
+  `{"overlord":"Syn Dravus","scores":[1]}` minted the rarest reward in the
+  system and overwrote `users.overlord_affinity`. Nothing validated the array
+  length, sign, or that the named Overlord was even the argmax. The client now
+  posts *answer option ids*; `pw_quiz_score_answers()` scores them against the
+  active questions, requires every question answered exactly once, and rejects
+  an option that does not belong to its question. This is the same class of
+  boundary as the Timeline discovery endpoint re-checking its own gate.
+  **A consequence worth knowing:** the client is no longer sent each answer's
+  Overlord weights, so it *cannot* compute a result -- which also means a
+  reader can no longer read off which answer belongs to which Overlord. A
+  signed-out visitor therefore needs somewhere to send answers, hence
+  `api/quiz/score.php`: public, no CSRF (it changes no state and forcing a
+  token would create a session for every anonymous taker), and it writes
+  nothing at all -- no result row, affinity, icon or reputation.
+  **Weighted answers** (`quiz_option_weights`) replace the one-option-per-
+  Overlord model. `uq_quiz_option_score` forced exactly six answers per
+  question, one per Overlord, which was brutal to author; questions may now
+  carry 2-12 answers and one answer may weight several Overlords. The
+  migration backfills every legacy option as a weight-1 vote, so scoring is
+  byte-identical until someone edits a weight.
+  **`api/admin/quiz/save.php` no longer deletes and recreates options** -- it
+  matches by id and updates in place. `quiz_result_answers.option_id` cascades
+  from `quiz_options`, so the old delete-all-then-reinsert would have wiped the
+  answer history behind the new distribution report every time an admin fixed a
+  typo.
+  **The cast comes from Overlord Control now.** `quiz.html` hardcoded all six
+  Overlords (name, epithet, portrait, blurb) in a *fifth* copy of that list, so
+  an edited portrait or epithet never reached the quiz. `pw_quiz_overlord_cast()`
+  joins `overlords`->`worlds`, with built-in fallbacks so an empty table still
+  renders. The result blurb became `overlords.quiz_result_blurb` (its own
+  column -- `card_teaser` is roster-card copy and reads differently).
+  **Order is `pw_overlord_icon_keys()`, never `overlords.sort_order`**: the
+  index is baked into every stored `scores_json`, every `score_index` and the
+  icon catalog, so a roster reorder must never change what an index means --
+  the same reasoning as the Worlds atlas mapping medallions by slug.
+  **Found while doing this:** `quiz.html`'s result card carries
+  `class="affinity-themed"`, but those rules live in `community.css` and
+  `public.css` never imports it -- the per-Overlord result theming had been
+  **dead on the quiz page entirely**. Fixed by having the API supply
+  `accent_color`/`accent_glow` (Overlord Control, with fallbacks matching
+  community.css's six colours) which JS sets as `--ov-accent`/`--ov-glow`, plus
+  consuming rules in `content.css`. The six colour definitions are deliberately
+  **not** duplicated into a second stylesheet.
+  **Analytics from data that was already there.** `quiz_results` had every
+  attempt's `scores_json` and nothing read it in aggregate. Public: a rarity
+  line on the result ("one of the 12% who resonate with..."), computed from
+  `users.overlord_affinity` rather than counting `quiz_results` rows, so a
+  member who retakes ten times counts once; hidden under 20 members, where a
+  percentage says more about sample size than the reader. Admin: new
+  `quiz_result_answers` captures the per-question choice (the totals alone
+  could never show *which* option people picked), surfacing an amber
+  "N% pick one answer" pill on any question where ≥70% converge -- that
+  question separates nobody and is worth rewriting.
+  **Play fixes:** a Previous-question button, `localStorage` resume keyed by a
+  question-set signature (an edit in Quiz Control discards stale progress), and
+  progress that deliberately **survives until the result is actually scored**,
+  so a failed request no longer throws away twenty answers -- a restored
+  complete set goes straight back to scoring. `prefers-reduced-motion` skips
+  the fixed 4.4s terminal wait instead of sitting through it. Arrow-key roving
+  focus across answers, `role="status"`/`aria-live` on the counter, and the
+  previously-chosen answer marked when revisited.
+  Changing an earlier answer keeps the later ones (`current = answers.length`):
+  the questions are independent, so invalidating them would force pointless
+  re-answering.
+  **The twenty built-in questions are seeded into Quiz Control** by the
+  migration (only when `quiz_questions` is empty), which is what lets scoring
+  move server-side unconditionally. `quiz.html` keeps them as an offline
+  fallback; a result played against that copy has no ids, cannot be scored or
+  saved, and says so. The seed SQL was **generated from `quiz.html` rather than
+  hand-transcribed** -- worth repeating for any similar seed, because the first
+  attempt piped it through a shell redirect and silently mangled every em-dash
+  into a cp1252 `0x97` byte. Generate and verify with explicit UTF-8.
+  `content.css?v=233` / `admin.css?v=232` / `public.css?v=269` /
+  `community-bundle.css?v=261` / `admin-bundle.css?v=273`.
+  **Sandbox note:** this session had **no node and no PHP CLI** (past sessions
+  had node). The verification checklist was run with Python stand-ins; the JS
+  balance checker was calibrated against `js/worlds.js` and
+  `js/known-figures.js` first, per the warning above. `admin/index.html`'s
+  pre-existing checker failures (`section 33/32`, `select 29/28`, JS-built ids)
+  were confirmed identical against the committed baseline before trusting them.
 
 - **Lore Timeline with reputation-gated events** (`timeline.html`,
   `js/timeline.js?v=1`, Lore Management -> Timeline Control). New

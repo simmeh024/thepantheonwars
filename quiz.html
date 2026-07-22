@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=268">
+<link rel="stylesheet" href="css/public.css?v=269">
 </head>
 <body>
 
@@ -85,9 +85,13 @@
         <div class="quiz-progress"><div class="quiz-progress-bar"></div></div>
 
         <div class="quiz-card">
-          <span class="quiz-counter">Question 1 of 20</span>
-          <h2 class="quiz-question">Loading...</h2>
-          <div class="quiz-options"></div>
+          <span class="quiz-counter" role="status" aria-live="polite">Question 1 of 20</span>
+          <h2 class="quiz-question" id="quiz-question-text">Loading...</h2>
+          <div class="quiz-options" role="group" aria-labelledby="quiz-question-text"></div>
+          <div class="quiz-nav">
+            <button type="button" class="quiz-back" hidden>&larr; Previous question</button>
+            <span class="quiz-resume-note" hidden>Picked up where you left off.</span>
+          </div>
         </div>
 
         <div class="quiz-terminal" hidden>
@@ -104,6 +108,7 @@
           <span class="overlord-epithet result-epithet"></span>
           <span class="overlord-domain-tag result-domain"></span>
           <p class="result-blurb"></p>
+          <p class="result-rarity" hidden></p>
           <div class="result-actions">
             <a href="#" class="btn btn-solid result-link">Learn more →</a>
             <button type="button" class="btn quiz-retry">Retake the Quiz</button>
@@ -210,7 +215,11 @@ document.addEventListener('DOMContentLoaded', function () {
   var quizApp = document.querySelector('.quiz-app');
   if (!quizApp) return;
 
-  var questions = [
+  // Fallback only. Quiz Control is the source of truth (these same twenty are
+  // seeded into it by sql/migration_quiz_enhancements.sql); this copy keeps the
+  // page playable if the questions endpoint is unreachable. A result played
+  // against it carries no database ids, so it cannot be scored or saved.
+  var BUILT_IN_QUESTIONS = [
     { q: "Someone crosses you badly. What's your first move?", options: [
       "I find out everything about them before I decide anything.",
       "I make an example of them, publicly, so no one else tries.",
@@ -373,32 +382,93 @@ document.addEventListener('DOMContentLoaded', function () {
     ]}
   ];
 
-  var overlords = [
-    { name: "Syn Dravus", epithet: "The Mindweaver", domain: "Overlord of Neoh", img: "images/char-syn.jpg", href: "overlord.html?slug=syn-dravus",
+  // Fallback cast, used only when the questions endpoint is unreachable. The
+  // live values come from Overlord Control via that endpoint, so editing an
+  // Overlord's portrait, epithet or result blurb now reaches the quiz.
+  var FALLBACK_CAST = [
+    { slug: "syn-dravus", name: "Syn Dravus", epithet: "The Mindweaver", domain: "Overlord of Neoh", portrait: "images/char-syn.jpg", href: "overlord.html?slug=syn-dravus",
       blurb: "You rule through knowledge no one else has. People fear what you might already know about them — and they're right to." },
-    { name: "Malric Thorne", epithet: "The Black Regent", domain: "Overlord of Cerius", img: "images/char-malric.jpg", href: "overlord.html?slug=malric-thorne",
+    { slug: "malric-thorne", name: "Malric Thorne", epithet: "The Black Regent", domain: "Overlord of Cerius", portrait: "images/char-malric.jpg", href: "overlord.html?slug=malric-thorne",
       blurb: "You rule through control, seized and never loosened. Order is the only mercy you believe in." },
-    { name: "Korrus Vale", epithet: "The Reactor King", domain: "Overlord of Reanium", img: "images/char-korrus.jpg", href: "overlord.html?slug=korrus-vale",
+    { slug: "korrus-vale", name: "Korrus Vale", epithet: "The Reactor King", domain: "Overlord of Reanium", portrait: "images/char-korrus.jpg", href: "overlord.html?slug=korrus-vale",
       blurb: "You rule through efficiency, even when the numbers are grim. The system survives — that's the point." },
-    { name: "Lysara Venthe", epithet: "The Tidekeeper", domain: "Overlord of Asmecu", img: "images/char-lysara.jpg", href: "overlord.html?slug=lysara-venthe",
+    { slug: "lysara-venthe", name: "Lysara Venthe", epithet: "The Tidekeeper", domain: "Overlord of Asmecu", portrait: "images/char-lysara.jpg", href: "overlord.html?slug=lysara-venthe",
       blurb: "You rule through care that looks like softness and isn't. Everyone feels safe near you. Not everyone should." },
-    { name: "Zura Kaleth", epithet: "The Rootbinder", domain: "Overlord of Babki Prime", img: "images/char-zura.jpg", href: "overlord.html?slug=zura-kaleth",
+    { slug: "zura-kaleth", name: "Zura Kaleth", epithet: "The Rootbinder", domain: "Overlord of Babki Prime", portrait: "images/char-zura.jpg", href: "overlord.html?slug=zura-kaleth",
       blurb: "You rule through patience, letting things take the shape they need to. Nothing near you stays the same for long." },
-    { name: "Maerion Thal", epithet: "The Sky Duke", domain: "Overlord of High Hammer", img: "images/char-maerion.jpg", href: "overlord.html?slug=maerion-thal",
+    { slug: "maerion-thal", name: "Maerion Thal", epithet: "The Sky Duke", domain: "Overlord of High Hammer", portrait: "images/char-maerion.jpg", href: "overlord.html?slug=maerion-thal",
       blurb: "You rule through honor and reputation, staged as carefully as any duel. Your word is the one currency you never let devalue." }
   ];
 
+  var PROGRESS_KEY = 'pw_quiz_progress';
+
+  var questions = BUILT_IN_QUESTIONS;
+  var cast = FALLBACK_CAST;
+  var distribution = null;
+  // True once the server has supplied the managed question set. Only then do
+  // answers carry database ids, and only then can a result be scored at all --
+  // the client no longer knows which Overlord an answer belongs to.
+  var managed = false;
+
   var current = 0;
+  var answers = [];   // one entry per answered question, in question order
   var scores = [0, 0, 0, 0, 0, 0];
+
+  var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   var counterEl = quizApp.querySelector('.quiz-counter');
   var questionEl = quizApp.querySelector('.quiz-question');
   var optionsEl = quizApp.querySelector('.quiz-options');
   var barEl = quizApp.querySelector('.quiz-progress-bar');
   var cardEl = quizApp.querySelector('.quiz-card');
+  var backBtn = quizApp.querySelector('.quiz-back');
+  var resumeNoteEl = quizApp.querySelector('.quiz-resume-note');
   var terminalEl = quizApp.querySelector('.quiz-terminal');
   var resultEl = quizApp.querySelector('.quiz-result');
   var retryBtn = quizApp.querySelector('.quiz-retry');
+
+  // --- progress persistence ------------------------------------------------
+  // A refresh used to lose every answer. The signature ties saved progress to
+  // the exact question set it was given, so an edit in Quiz Control discards
+  // stale progress instead of restoring answers to questions that moved.
+
+  function questionSignature() {
+    if (!managed) return 'builtin:' + questions.length;
+    return 'managed:' + questions.map(function (q) { return q.id; }).join(',');
+  }
+
+  function saveProgress() {
+    try {
+      if (!answers.length) { window.localStorage.removeItem(PROGRESS_KEY); return; }
+      window.localStorage.setItem(PROGRESS_KEY, JSON.stringify({
+        signature: questionSignature(), answers: answers, current: current
+      }));
+    } catch (e) { /* private mode or a full quota -- progress is a nicety */ }
+  }
+
+  function clearProgress() {
+    try { window.localStorage.removeItem(PROGRESS_KEY); } catch (e) {}
+  }
+
+  // Returns 'partial', 'complete' or false. A complete set means the answers
+  // were all given but never successfully scored -- a refresh during the
+  // terminal sequence, or a failed request -- so those go straight back to
+  // scoring rather than making someone answer twenty questions again.
+  function restoreProgress() {
+    var saved = null;
+    try { saved = JSON.parse(window.localStorage.getItem(PROGRESS_KEY) || 'null'); } catch (e) { return false; }
+    if (!saved || saved.signature !== questionSignature() || !Array.isArray(saved.answers)) return false;
+    if (!saved.answers.length || saved.answers.length > questions.length) return false;
+    answers = saved.answers;
+    if (answers.length === questions.length) {
+      current = questions.length;
+      return 'complete';
+    }
+    current = answers.length;
+    return 'partial';
+  }
+
+  // --- question rendering --------------------------------------------------
 
   function renderQuestion() {
     var q = questions[current];
@@ -406,37 +476,138 @@ document.addEventListener('DOMContentLoaded', function () {
     barEl.style.width = ((current / questions.length) * 100) + '%';
     questionEl.textContent = q.q;
     optionsEl.innerHTML = '';
+
+    var chosen = answers[current];
     q.options.forEach(function (opt, idx) {
+      var isObject = typeof opt !== 'string';
       var btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'quiz-option';
-      btn.textContent = typeof opt === 'string' ? opt : opt.text;
-      btn.addEventListener('click', function () { selectAnswer(typeof opt === 'string' ? idx : opt.score_index); });
+      btn.textContent = isObject ? opt.text : opt;
+      // Revisiting an answered question shows what was picked last time.
+      if (chosen && ((isObject && chosen.option_id === opt.id) || (!isObject && chosen.index === idx))) {
+        btn.classList.add('is-chosen');
+        btn.setAttribute('aria-pressed', 'true');
+      }
+      btn.addEventListener('click', function () {
+        selectAnswer(isObject ? { question_id: q.id, option_id: opt.id } : { index: idx });
+      });
+      btn.addEventListener('keydown', onOptionKeydown);
       optionsEl.appendChild(btn);
     });
+
+    backBtn.hidden = current === 0;
   }
 
-  function selectAnswer(idx) {
-    scores[idx]++;
-    current++;
+  // Roving arrow-key navigation across the answers; the options were
+  // previously reachable only by tabbing through them one at a time.
+  function onOptionKeydown(event) {
+    var keys = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
+    var step = keys[event.key];
+    if (!step) return;
+    var buttons = Array.prototype.slice.call(optionsEl.querySelectorAll('.quiz-option'));
+    var index = buttons.indexOf(event.target);
+    if (index < 0) return;
+    event.preventDefault();
+    var next = (index + step + buttons.length) % buttons.length;
+    buttons[next].focus();
+  }
+
+  function selectAnswer(answer) {
+    answers[current] = answer;
+    // Jump to the first still-unanswered question. Answering forward this is
+    // simply the next one; after going Back to change an earlier answer it
+    // returns to where you were, since the later answers are to independent
+    // questions and are not invalidated by the change.
+    current = answers.length;
+    resumeNoteEl.hidden = true;
+    saveProgress();
     if (current < questions.length) {
       renderQuestion();
     } else {
+      // Progress deliberately survives until the result is actually scored, so
+      // a failed request does not throw away twenty answers.
       barEl.style.width = '100%';
       cardEl.style.display = 'none';
       runTerminal();
     }
   }
 
+  backBtn.addEventListener('click', function () {
+    if (current === 0) return;
+    current--;
+    resumeNoteEl.hidden = true;
+    saveProgress();
+    renderQuestion();
+    var chosenBtn = optionsEl.querySelector('.quiz-option.is-chosen') || optionsEl.querySelector('.quiz-option');
+    if (chosenBtn) chosenBtn.focus();
+  });
+
   function runTerminal() {
     terminalEl.hidden = false;
     var lines = terminalEl.querySelectorAll('.term-line');
     lines.forEach(function (l) { l.classList.remove('show'); });
+    // Reduced motion gets the result immediately rather than sitting through a
+    // fixed four-and-a-half second wait it never asked for.
+    if (reduceMotion) {
+      lines.forEach(function (l) { l.classList.add('show'); });
+      submitAnswers();
+      return;
+    }
     var delays = [200, 1100, 2200, 3200];
     lines.forEach(function (line, i) {
       setTimeout(function () { line.classList.add('show'); }, delays[i] || i * 1000);
     });
-    setTimeout(showResult, 4400);
+    setTimeout(submitAnswers, 4400);
+  }
+
+  // --- scoring -------------------------------------------------------------
+  // Scoring is the server's job now: the client no longer receives each
+  // answer's Overlord weights, so it cannot compute (or forge) a result.
+
+  function submitAnswers() {
+    if (!managed) { showLocalResult(); return; }
+
+    var signedIn = window.PW_AUTH && window.PW_AUTH.loggedIn;
+    var endpoint = signedIn ? '/api/save-quiz-result.php' : '/api/quiz/score.php';
+    var body = { answers: answers };
+    if (signedIn && window.PW_AUTH.csrf) body.csrf = window.PW_AUTH.csrf;
+
+    fetch(endpoint, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error(data && data.error ? data.error : 'Could not score the quiz.');
+        clearProgress();
+        scores = Array.isArray(data.scores) ? data.scores : scores;
+        if (data.distribution) distribution = data.distribution;
+        showResult(data.score_index || 0, signedIn ? 'saved' : 'guest');
+      })
+      .catch(function () {
+        // Progress is left in place so reloading retries scoring the same
+        // answers instead of starting the quiz over.
+        showResult(0, 'error');
+      });
+  }
+
+  // Fallback path: the built-in questions map one option per Overlord by
+  // position, so they can still be scored locally for display. Nothing is
+  // saved, because these answers have no database ids behind them.
+  function showLocalResult() {
+    clearProgress();
+    scores = [0, 0, 0, 0, 0, 0];
+    answers.forEach(function (answer) {
+      if (answer && typeof answer.index === 'number') scores[answer.index]++;
+    });
+    var winner = 0;
+    for (var i = 1; i < scores.length; i++) {
+      if (scores[i] > scores[winner]) winner = i;
+    }
+    showResult(winner, 'unavailable');
   }
 
   function renderResonance() {
@@ -445,7 +616,7 @@ document.addEventListener('DOMContentLoaded', function () {
     listEl.innerHTML = '';
     var total = scores.reduce(function (a, b) { return a + b; }, 0) || 1;
     var ranked = scores.map(function (s, i) {
-      return { name: overlords[i] ? overlords[i].name : ('Overlord ' + (i + 1)), pct: Math.round((s / total) * 100) };
+      return { name: cast[i] ? cast[i].name : ('Overlord ' + (i + 1)), pct: Math.round((s / total) * 100) };
     });
     ranked.sort(function (a, b) { return b.pct - a.pct; });
 
@@ -496,18 +667,27 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  function showResult() {
+  function showResult(winnerIndex, saveState) {
     terminalEl.hidden = true;
-    var maxIdx = 0;
-    for (var i = 1; i < scores.length; i++) {
-      if (scores[i] > scores[maxIdx]) maxIdx = i;
-    }
-    var ov = overlords[maxIdx];
+    var ov = cast[winnerIndex] || cast[0];
     resultEl.hidden = false;
     resultEl.className = resultEl.className.replace(/\boverlord-[a-z-]+\b/g, '').replace(/\s+/g, ' ').trim();
-    resultEl.classList.add('overlord-' + ov.href.split('slug=')[1]);
+    resultEl.classList.add('overlord-' + ov.slug);
+
+    // Per-Overlord accent, sourced from Overlord Control (with a built-in
+    // fallback) rather than a hardcoded stylesheet list. These are the same
+    // custom properties .affinity-themed already uses elsewhere on the site --
+    // that class is on this card but its rules live in community.css, which the
+    // public bundle never imports, so the theming had no effect here at all.
+    // Removed rather than set to an empty string when absent: an empty custom
+    // property still counts as set and would defeat the var() fallback.
+    if (ov.accent_color) resultEl.style.setProperty('--ov-accent', ov.accent_color);
+    else resultEl.style.removeProperty('--ov-accent');
+    if (ov.accent_glow) resultEl.style.setProperty('--ov-glow', ov.accent_glow);
+    else resultEl.style.removeProperty('--ov-glow');
+
     var img = resultEl.querySelector('.result-portrait img');
-    img.src = ov.img;
+    img.src = ov.portrait;
     img.alt = ov.name;
     resultEl.querySelector('.result-name').textContent = ov.name;
     resultEl.querySelector('.result-epithet').textContent = ov.epithet;
@@ -517,6 +697,7 @@ document.addEventListener('DOMContentLoaded', function () {
     link.href = ov.href;
     link.textContent = 'Learn more about ' + ov.name + ' →';
 
+    renderRarity(ov);
     renderResonance();
 
     var shareText = "I got " + ov.name + ", " + ov.epithet + " \u2014 which Overlord are you?";
@@ -540,39 +721,73 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var saveStatus = resultEl.querySelector('.result-save-status');
     var saveLoginBtn = resultEl.querySelector('.result-save-login');
-    if (window.PW_AUTH && window.PW_AUTH.loggedIn) {
+    saveLoginBtn.hidden = true;
+    if (saveState === 'saved') {
       saveStatus.textContent = 'Saved to your profile.';
-      saveLoginBtn.hidden = true;
-      fetch('/api/save-quiz-result.php', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ overlord: ov.name, scores: scores, csrf: window.PW_AUTH.csrf }),
-      }).catch(function () {});
-    } else {
+    } else if (saveState === 'guest') {
       saveStatus.textContent = 'Want to keep track of your results?';
       saveLoginBtn.hidden = false;
+    } else if (saveState === 'error') {
+      saveStatus.textContent = 'Your result could not be scored just now. Retake the quiz to try again.';
+    } else {
+      saveStatus.textContent = 'This result could not be saved — the quiz is running from its offline questions.';
     }
+  }
+
+  // Share of members currently resonating with the same Overlord. Rarity is the
+  // most shareable thing a result can carry, and users.overlord_affinity
+  // already held exactly this -- nothing read it before.
+  function renderRarity(ov) {
+    var rarityEl = resultEl.querySelector('.result-rarity');
+    var share = distribution && distribution.shares ? distribution.shares[ov.slug] : null;
+    // Below a handful of members a percentage says more about sample size than
+    // about the reader, so it stays hidden until it means something.
+    if (!share || !distribution.total || distribution.total < 20 || !share.pct) {
+      rarityEl.hidden = true;
+      return;
+    }
+    rarityEl.textContent = 'You are one of the ' + share.pct + '% who resonate with ' + ov.name + '.';
+    rarityEl.hidden = false;
   }
 
   retryBtn.addEventListener('click', function () {
     current = 0;
+    answers = [];
     scores = [0, 0, 0, 0, 0, 0];
+    clearProgress();
     resultEl.hidden = true;
+    resumeNoteEl.hidden = true;
     cardEl.style.display = '';
     renderQuestion();
   });
 
-  // Quiz Control can publish a fully managed set of questions. Until it has
-  // six-option records in the database, the original in-page quiz remains a
-  // safe fallback so a migration or first admin visit never breaks play.
+  // Quiz Control is the source of truth for questions, the Overlord cast and
+  // the resonance distribution, all in one request. Until it has publishable
+  // questions the built-in set above keeps the page playable.
   fetch('/api/quiz/questions.php', { credentials: 'same-origin' })
     .then(function (response) { return response.json(); })
     .then(function (data) {
-      if (data.ok && Array.isArray(data.questions) && data.questions.length) questions = data.questions;
-      renderQuestion();
+      if (!data || !data.ok) return;
+      if (data.managed && Array.isArray(data.questions) && data.questions.length) {
+        questions = data.questions;
+        managed = true;
+      }
+      if (Array.isArray(data.overlords) && data.overlords.length === 6) cast = data.overlords;
+      if (data.distribution) distribution = data.distribution;
     })
-    .catch(function () { renderQuestion(); });
+    .catch(function () { /* keep the built-in question set and cast */ })
+    .then(function () {
+      var restored = restoreProgress();
+      if (restored === 'complete') {
+        // Every answer was given but never scored. Go straight to the result.
+        barEl.style.width = '100%';
+        cardEl.style.display = 'none';
+        runTerminal();
+        return;
+      }
+      if (restored === 'partial') resumeNoteEl.hidden = false;
+      renderQuestion();
+    });
 });
 </script>
 </body>

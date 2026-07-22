@@ -1,32 +1,34 @@
 <?php
-require_once __DIR__ . '/../helpers.php';
+/**
+ * Public quiz bootstrap: the active question set, the Overlord cast, and the
+ * current resonance distribution, in one request.
+ *
+ * Deliberately does NOT return each option's Overlord weights. Scoring happens
+ * in api/save-quiz-result.php, so the mapping is no longer needed on the
+ * client -- and withholding it means a reader can no longer read off which
+ * answer belongs to which Overlord before choosing.
+ */
 
-$db = pw_db();
-try {
-    $rows = $db->query(
-        'SELECT q.id, q.question_text, q.sort_order, o.score_index, o.option_text
-         FROM quiz_questions q
-         JOIN quiz_options o ON o.question_id = q.id
-         WHERE q.is_active = 1
-         ORDER BY q.sort_order ASC, q.id ASC, o.score_index ASC'
-    )->fetchAll();
-} catch (PDOException $e) {
-    // The public quiz keeps its legacy questions until its optional content
-    // migration has been run.
-    pw_json(['ok' => true, 'questions' => []]);
-}
+require_once __DIR__ . '/quiz-helpers.php';
 
-$questions = [];
-foreach ($rows as $row) {
-    $id = (int)$row['id'];
-    if (!isset($questions[$id])) {
-        $questions[$id] = ['id' => $id, 'q' => $row['question_text'], 'options' => []];
+$questions = pw_quiz_active_questions();
+
+$payload = [];
+foreach ($questions as $question) {
+    $options = [];
+    foreach ($question['options'] as $option) {
+        $options[] = ['id' => $option['id'], 'text' => $option['text']];
     }
-    $questions[$id]['options'][] = ['text' => $row['option_text'], 'score_index' => (int)$row['score_index']];
+    $payload[] = ['id' => $question['id'], 'q' => $question['text'], 'options' => $options];
 }
-// Ignore incomplete records: Quiz Control only publishes questions with the
-// full six-option score mapping.
-$questions = array_values(array_filter($questions, function ($question) {
-    return count($question['options']) === 6;
-}));
-pw_json(['ok' => true, 'questions' => $questions]);
+
+pw_json([
+    'ok'           => true,
+    // False means Quiz Control has nothing publishable and the client should
+    // keep using its built-in questions. Those carry no database ids, so a
+    // result played against them cannot be scored or saved server-side.
+    'managed'      => count($payload) > 0,
+    'questions'    => $payload,
+    'overlords'    => pw_quiz_overlord_cast(),
+    'distribution' => pw_quiz_affinity_distribution(),
+]);
