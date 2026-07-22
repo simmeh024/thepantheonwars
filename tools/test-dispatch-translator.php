@@ -126,17 +126,22 @@ $cases = [
     ],
     // The dictionary is ONE formatter rule regardless of how many terms it
     // rewrites. This subject matches three separate entries (modal, dropdown,
-    // tooltip) and has no verb, no scope prefix, no body, no diff context and
+    // viewport) and has no verb, no scope prefix, no body, no diff context and
     // no semantic support -- so its only evidence is recognized subject (25)
     // plus reader-safe dictionary (10) = 35%, which is medium. If each swap
     // incremented $rulesMatched separately it would reach the >= 2 rule gate,
     // be forced to 65%, and auto-publish without review on vocabulary alone.
+    // None of these three words may appear in $contextLibrary, which is an
+    // independent rule that also increments $rulesMatched: an earlier version
+    // of this case used "tooltip", which is a contextLibrary keyword, so it
+    // reached 2 rules legitimately and could never have caught a regression
+    // here. Check that list before changing this subject.
     [
-        'subject' => 'Tooltip and dropdown and modal',
+        'subject' => 'Modal and dropdown and viewport',
         'body' => '',
         'tag' => 'ui_ux',
-        'contains' => ['hover label', 'expanding menu', 'pop-up panel'],
-        'forbidden' => ['tooltip', 'dropdown', 'modal'],
+        'contains' => ['pop-up panel', 'expanding menu', 'visible screen area'],
+        'forbidden' => ['modal', 'dropdown', 'viewport'],
         'evidence' => ['reader safe dictionary'],
         'level' => 'medium',
     ],
