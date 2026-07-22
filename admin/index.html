@@ -755,6 +755,12 @@
                 <div class="site-stat"><div class="site-stat-value" id="vstats-today-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
               </div>
               <div class="traffic-snapshot-col">
+                <h3>Yesterday</h3>
+                <div class="site-stat"><div class="site-stat-value" id="vstats-yesterday-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
+                <div class="site-stat"><div class="site-stat-value" id="vstats-yesterday-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
+                <div class="site-stat"><div class="site-stat-value" id="vstats-yesterday-split">&hellip;</div><div class="site-stat-label">Members / Guests</div></div>
+              </div>
+              <div class="traffic-snapshot-col">
                 <h3>Last 7 Days</h3>
                 <div class="site-stat"><div class="site-stat-value" id="vstats-7d-views">&hellip;</div><div class="site-stat-label">Page Views</div></div>
                 <div class="site-stat"><div class="site-stat-value" id="vstats-7d-unique">&hellip;</div><div class="site-stat-label">Unique Visitors</div></div>
@@ -5780,6 +5786,9 @@
   var vstatsTodayViewsEl = document.getElementById('vstats-today-views');
   var vstatsTodayUniqueEl = document.getElementById('vstats-today-unique');
   var vstatsTodaySplitEl = document.getElementById('vstats-today-split');
+  var vstatsYesterdayViewsEl = document.getElementById('vstats-yesterday-views');
+  var vstatsYesterdayUniqueEl = document.getElementById('vstats-yesterday-unique');
+  var vstatsYesterdaySplitEl = document.getElementById('vstats-yesterday-split');
   var vstats7dViewsEl = document.getElementById('vstats-7d-views');
   var vstats7dUniqueEl = document.getElementById('vstats-7d-unique');
   var vstats7dSplitEl = document.getElementById('vstats-7d-split');
@@ -5853,6 +5862,7 @@
         if (!data.ok) return;
         var windows = [
           [data.today, vstatsTodayViewsEl, vstatsTodayUniqueEl, vstatsTodaySplitEl],
+          [data.yesterday, vstatsYesterdayViewsEl, vstatsYesterdayUniqueEl, vstatsYesterdaySplitEl],
           [data.last_7_days, vstats7dViewsEl, vstats7dUniqueEl, vstats7dSplitEl],
           [data.last_30_days, vstats30dViewsEl, vstats30dUniqueEl, vstats30dSplitEl],
         ];
