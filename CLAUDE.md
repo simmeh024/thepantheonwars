@@ -473,7 +473,7 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=269`, community `css/community-bundle.css?v=261`, and admin
+  `css/public.css?v=270`, community `css/community-bundle.css?v=262`, and admin
   `css/admin-bundle.css?v=273`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
@@ -600,6 +600,36 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Timeline desktop layout fix; nav link renamed to "The Timeline".**
+  Reported as the page looking "funky": every marker's date, title and era ran
+  together on one line (`0YEAR 0First cycle`) and the dots sat at different
+  heights, off the spine.
+  **Root cause is worth remembering: a rule that existed only inside a media
+  query.** `.timeline-node-inner` is a `<span>` wrapping three more `<span>`s,
+  and its `display: flex; flex-direction: column` lived *only* in the
+  `@media (max-width: 780px)` block. On desktop it stayed inline, so the three
+  spans flowed together. The narrow layout looked right, which is exactly why
+  this survived review -- when a component only renders correctly at one
+  breakpoint, check whether the rule doing the work is inside a media query
+  rather than assuming the desktop rule is being overridden. The stack is now a
+  base rule and the narrow block keeps only what genuinely differs
+  (`align-items: flex-start`, to hug the left-hand rule instead of centring).
+  Second, independent defect: `.timeline-rail` used `align-items: center`, so a
+  marker whose title wrapped to two lines was taller and its dot floated off
+  the spine. Now `flex-start`, and the spine's position is derived from shared
+  `--rail-top` / `--timeline-dot` custom properties on `.timeline-rail-wrap`
+  instead of a `top: 50%` that only lined up while every marker happened to be
+  the same height.
+  Verified by measuring computed geometry in a browser against a static harness
+  reproducing `js/timeline.js`'s exact markup, not by eye: all four dot centres
+  equal, spine centre equal to them, and date/title/era on three distinct rows;
+  then re-measured at 375px to confirm the vertical layout still stacks at
+  x=30 with no horizontal overflow. Prefer this over a screenshot for layout
+  bugs -- it states the invariant rather than showing a picture of it.
+  Nav/footer link text is now **"The Timeline"** (43 occurrences across the 23
+  pages carrying it, including its own `class="active"` instance).
+  `content.css?v=234` / `public.css?v=270` / `community-bundle.css?v=262`.
 
 - **Quiz overhaul: server-side scoring, weighted answers, DB-driven cast,
   answer analytics, and resumable play** (`quiz.html`, Lore Management ->
