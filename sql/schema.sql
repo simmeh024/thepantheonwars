@@ -1361,6 +1361,23 @@ CREATE TABLE IF NOT EXISTS world_layer_sublocations (
 -- specific layer, e.g. Vault 17 inside Neoh's Spires -- layer_id set) and
 -- "distant" (attached to the world itself, outside any layer, e.g. Lios --
 -- layer_id NULL).
+-- Weather-varying pull quotes for a district (and later, a landmark). Keyed by
+-- the five condition icons pw_weather_icon_key() produces, not by a world's own
+-- condition names, which can be edited and would orphan a quote.
+-- Polymorphic, so no foreign key can cascade: World Control's layer delete
+-- clears these explicitly, otherwise a recycled AUTO_INCREMENT id would hand a
+-- future layer someone else's quotes.
+CREATE TABLE IF NOT EXISTS world_quote_variants (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  entity_type ENUM('layer','landmark') NOT NULL DEFAULT 'layer',
+  entity_id INT UNSIGNED NOT NULL,
+  condition_key VARCHAR(20) NOT NULL,
+  quote_text VARCHAR(400) NOT NULL,
+  quote_cite VARCHAR(150) NOT NULL DEFAULT '',
+  UNIQUE KEY uq_world_quote_variant (entity_type, entity_id, condition_key),
+  KEY idx_world_quote_variant_entity (entity_type, entity_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS world_landmarks (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   world_id INT UNSIGNED NOT NULL,

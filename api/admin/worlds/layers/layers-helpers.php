@@ -50,6 +50,69 @@ function pw_validate_layer_input($input) {
     return $out;
 }
 
+/**
+ * The five condition keys a district quote can vary by. Fixed vocabulary,
+ * matching pw_weather_icon_key(), so every world's editor is identical and a
+ * quote cannot be orphaned by an admin editing a condition pool's wording.
+ */
+function pw_world_quote_condition_keys() {
+    return ['clear', 'overcast', 'smog', 'acid-rain', 'storm'];
+}
+
+/**
+ * Validates the optional per-condition quote variants on a layer payload.
+ * Every one is optional: a condition with no variant falls back to the layer's
+ * own quote, so these can be written one at a time.
+ */
+function pw_validate_layer_quote_variants($input) {
+    $raw = isset($input['quote_variants']) && is_array($input['quote_variants']) ? $input['quote_variants'] : [];
+    $out = [];
+    foreach (pw_world_quote_condition_keys() as $key) {
+        $entry = isset($raw[$key]) && is_array($raw[$key]) ? $raw[$key] : [];
+        $text = isset($entry['quote_text']) ? trim((string)$entry['quote_text']) : '';
+        $cite = isset($entry['quote_cite']) ? trim((string)$entry['quote_cite']) : '';
+        if ($text === '') {
+            // A blank quote clears that condition rather than storing an empty
+            // row, so removing a variant is just clearing the field.
+            continue;
+        }
+        if (mb_strlen($text) > 400) {
+            pw_error('Each weather quote must be 400 characters or fewer.');
+        }
+        if (mb_strlen($cite) > 150) {
+            pw_error('Each weather quote attribution must be 150 characters or fewer.');
+        }
+        $out[$key] = ['quote_text' => $text, 'quote_cite' => $cite];
+    }
+    return $out;
+}
+
+/**
+ * Replaces a layer's stored variants with the submitted set.
+ *
+ * Fails soft: sql/migration_world_quote_variants.sql may not have been run, and
+ * a missing table must not block saving the district itself.
+ */
+function pw_save_layer_quote_variants(PDO $db, $layerId, array $variants) {
+    try {
+        $db->prepare('DELETE FROM world_quote_variants WHERE entity_type = \'layer\' AND entity_id = ?')
+           ->execute([(int)$layerId]);
+        if (!$variants) {
+            return;
+        }
+        $insert = $db->prepare(
+            'INSERT INTO world_quote_variants (entity_type, entity_id, condition_key, quote_text, quote_cite)
+             VALUES (\'layer\', ?, ?, ?, ?)'
+        );
+        foreach ($variants as $key => $variant) {
+            $insert->execute([(int)$layerId, $key, $variant['quote_text'], $variant['quote_cite']]);
+        }
+    } catch (PDOException $e) {
+        // Migration pending; the district saved normally and the variants can
+        // be entered again once the table exists.
+    }
+}
+
 function pw_parse_sublocations_textarea($raw) {
     $lines = preg_split('/\r\n|\r|\n/', (string)$raw);
     $out = [];

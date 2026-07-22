@@ -26,6 +26,7 @@ if (!$world) {
 
 $data = pw_validate_layer_input($input);
 $sublocations = pw_parse_sublocations_textarea(isset($input['sublocations_text']) ? $input['sublocations_text'] : '');
+$quoteVariants = pw_validate_layer_quote_variants($input);
 
 $maxSort = $db->prepare('SELECT COALESCE(MAX(sort_order), 0) AS m FROM world_layers WHERE world_id = ?');
 $maxSort->execute([$worldId]);
@@ -47,6 +48,8 @@ $subStmt = $db->prepare('INSERT INTO world_layer_sublocations (layer_id, sort_or
 foreach ($sublocations as $i => $label) {
     $subStmt->execute([$layerId, $i + 1, $label]);
 }
+
+pw_save_layer_quote_variants($db, $layerId, $quoteVariants);
 
 $db->commit();
 

@@ -474,7 +474,7 @@ at that time.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
   `css/public.css?v=282`, community `css/community-bundle.css?v=274`, and admin
-  `css/admin-bundle.css?v=279`. Public pages use `css/public.css`, community pages
+  `css/admin-bundle.css?v=280`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
@@ -600,6 +600,39 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Weather-varying district quotes** (`world_quote_variants`, **run
+  `sql/migration_world_quote_variants.sql` once**). A World Record district can
+  carry up to five alternate pull quotes, one per condition icon, and shows the
+  one matching that world's weather today. Entirely authored -- the system only
+  chooses between lines the author wrote. Generating them would hit the same
+  ceiling the Dispatch Translator spent v26-v34 proving.
+  **Keyed by the five icon keys, never by a world's own condition names**: those
+  live in `condition_pool_json` and can be edited, which would orphan any quote
+  keyed to the old wording. Every world therefore has the same five keys.
+  **Resolved server-side in `api/worlds.php`, on the single-world path only.**
+  Client-side selection would paint one quote and visibly swap it when the
+  separate weather request landed; and running the generator on the twelve-world
+  atlas path would cost twelve profile loads for quotes that page never shows.
+  Silent by design (no "recorded during a storm" cite) -- a returning reader
+  just finds a different remark. Any layer with no variant for today keeps its
+  own `quote_text`, so these can be written one at a time.
+  `world_quote_variants` is polymorphic so landmarks can reuse it with no
+  migration, which also means **no foreign key can cascade it** --
+  `layers/delete.php` clears them explicitly, or a recycled AUTO_INCREMENT id
+  would hand a future layer someone else's quotes.
+  **Two verification lessons, both cost real time:**
+  1. **Bash heredocs in this sandbox silently eat backslashes**, even quoted
+     `<<'PY'` ones. That flattened `'layer'` to `'layer'` in two PHP files,
+     terminating a SQL string early. **Write files containing escapes with the
+     Write tool, never a heredoc.**
+  2. The brace/paren checker **strips strings, so it is structurally blind to a
+     broken string delimiter**. Quote *parity* does not catch it either --
+     `a = 'layer''` is balanced, parsing as string/bareword/string. The signal
+     is an identifier hard against a closing quote; `tools`-style check added at
+     `scratchpad/php_quotes.py`, calibrated to fail on that exact pattern and
+     pass every existing file including `dispatch-translation-drafts.php`.
+  `admin.css?v=234` / `admin-bundle.css?v=280`.
 
 - **Weather: ambient effects, severity, season, and a witnessable event.**
   **Run `sql/migration_weather_severe.sql` once.**

@@ -29,6 +29,7 @@ if (!$existing) {
 
 $data = pw_validate_layer_input($input);
 $sublocations = pw_parse_sublocations_textarea(isset($input['sublocations_text']) ? $input['sublocations_text'] : '');
+$quoteVariants = pw_validate_layer_quote_variants($input);
 
 $db->beginTransaction();
 
@@ -49,6 +50,9 @@ $subStmt = $db->prepare('INSERT INTO world_layer_sublocations (layer_id, sort_or
 foreach ($sublocations as $i => $label) {
     $subStmt->execute([$id, $i + 1, $label]);
 }
+
+// Replaced wholesale on every save, same as the sublocations above.
+pw_save_layer_quote_variants($db, $id, $quoteVariants);
 
 $db->commit();
 

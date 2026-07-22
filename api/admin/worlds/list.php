@@ -35,6 +35,24 @@ $sublocations = $db->query(
     'SELECT id, layer_id, sort_order, label FROM world_layer_sublocations ORDER BY sort_order ASC'
 )->fetchAll();
 
+// Weather-varying district quotes. Guarded: this table arrives with
+// sql/migration_world_quote_variants.sql, and World Control must keep loading
+// before that has been run.
+$quoteVariantsByLayer = [];
+try {
+    foreach ($db->query(
+        'SELECT entity_id, condition_key, quote_text, quote_cite FROM world_quote_variants
+         WHERE entity_type = \'layer\''
+    )->fetchAll() as $variant) {
+        $quoteVariantsByLayer[(int)$variant['entity_id']][$variant['condition_key']] = [
+            'quote_text' => $variant['quote_text'],
+            'quote_cite' => $variant['quote_cite'],
+        ];
+    }
+} catch (PDOException $e) {
+    $quoteVariantsByLayer = [];
+}
+
 $landmarks = $db->query(
     'SELECT id, world_id, layer_id, sort_order, kind, name, tag_label, description, quote_text, quote_cite
      FROM world_landmarks ORDER BY sort_order ASC'
@@ -77,6 +95,7 @@ foreach ($layers as $l) {
         'description' => $l['description'],
         'quote_text' => $l['quote_text'],
         'quote_cite' => $l['quote_cite'],
+        'quote_variants' => isset($quoteVariantsByLayer[$id]) ? $quoteVariantsByLayer[$id] : [],
         'tint_key' => $l['tint_key'],
         'sublocations' => isset($subsByLayer[$id]) ? $subsByLayer[$id] : [],
         'landmarks' => isset($landmarksByLayer[$id]) ? $landmarksByLayer[$id] : [],

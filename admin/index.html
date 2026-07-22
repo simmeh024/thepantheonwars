@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=279">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=280">
 </head>
 <body>
 
@@ -3373,6 +3373,37 @@
         <input type="text" id="world-layer-quote-cite-input" maxlength="150" placeholder="Optional">
       </div>
     </div>
+
+    <p class="admin-field-group-label">Weather quotes</p>
+    <p class="admin-field-hint world-quote-variants-hint">Optional. When this world&rsquo;s weather matches one of these, the district shows that quote instead of the one above. Every field is optional &mdash; write one and leave the rest blank, and the quote above covers everything else. Leave the attribution empty to keep the one above. Readers are not told a quote is weather-linked; they simply find a different line on a different day.</p>
+    <div class="world-quote-variants" id="world-layer-quote-variants">
+      <div class="world-quote-variant" data-condition="clear">
+        <span class="world-quote-variant-key">Clear<i>clear skies, sun, open tide</i></span>
+        <textarea class="world-quote-variant-text" maxlength="400" placeholder="Optional"></textarea>
+        <input type="text" class="world-quote-variant-cite" maxlength="150" placeholder="Attribution (optional)">
+      </div>
+      <div class="world-quote-variant" data-condition="overcast">
+        <span class="world-quote-variant-key">Overcast<i>cloud, grey, still air</i></span>
+        <textarea class="world-quote-variant-text" maxlength="400" placeholder="Optional"></textarea>
+        <input type="text" class="world-quote-variant-cite" maxlength="150" placeholder="Attribution (optional)">
+      </div>
+      <div class="world-quote-variant" data-condition="smog">
+        <span class="world-quote-variant-key">Smog &amp; fog<i>haze, sea fog, ash veil</i></span>
+        <textarea class="world-quote-variant-text" maxlength="400" placeholder="Optional"></textarea>
+        <input type="text" class="world-quote-variant-cite" maxlength="150" placeholder="Attribution (optional)">
+      </div>
+      <div class="world-quote-variant" data-condition="acid-rain">
+        <span class="world-quote-variant-key">Rain<i>acid rain, drizzle, black rain</i></span>
+        <textarea class="world-quote-variant-text" maxlength="400" placeholder="Optional"></textarea>
+        <input type="text" class="world-quote-variant-cite" maxlength="150" placeholder="Attribution (optional)">
+      </div>
+      <div class="world-quote-variant" data-condition="storm">
+        <span class="world-quote-variant-key">Storm<i>tidal storm, static storm, ash storm</i></span>
+        <textarea class="world-quote-variant-text" maxlength="400" placeholder="Optional"></textarea>
+        <input type="text" class="world-quote-variant-cite" maxlength="150" placeholder="Attribution (optional)">
+      </div>
+    </div>
+
     <div class="admin-field">
       <label for="world-layer-tint-select">Accent tint</label>
       <select id="world-layer-tint-select">
@@ -11907,6 +11938,35 @@
     });
   }
 
+  // The five weather-quote rows are read and written by their data-condition
+  // key rather than by fixed ids, so the key list lives in the markup alone and
+  // adding one later needs no change here.
+  function worldQuoteVariantRows() {
+    return Array.prototype.slice.call(document.querySelectorAll('#world-layer-quote-variants .world-quote-variant'));
+  }
+  function populateWorldQuoteVariants(variants) {
+    variants = variants || {};
+    worldQuoteVariantRows().forEach(function (row) {
+      var entry = variants[row.dataset.condition] || {};
+      row.querySelector('.world-quote-variant-text').value = entry.quote_text || '';
+      row.querySelector('.world-quote-variant-cite').value = entry.quote_cite || '';
+    });
+  }
+  function collectWorldQuoteVariants() {
+    var out = {};
+    worldQuoteVariantRows().forEach(function (row) {
+      var text = row.querySelector('.world-quote-variant-text').value.trim();
+      // A blank quote clears that condition rather than storing an empty row,
+      // so removing a variant is simply emptying the field.
+      if (!text) return;
+      out[row.dataset.condition] = {
+        quote_text: text,
+        quote_cite: row.querySelector('.world-quote-variant-cite').value.trim()
+      };
+    });
+    return out;
+  }
+
   function populateWorldLayerForm(layer) {
     worldLayerNameInput.value = layer.name || '';
     worldLayerThemeTagsInput.value = layer.theme_tags || '';
@@ -11967,6 +12027,7 @@
       quote_cite: worldLayerQuoteCiteInput.value.trim(),
       tint_key: worldLayerTintSelect.value,
       sublocations_text: worldLayerSublocationsInput.value,
+      quote_variants: collectWorldQuoteVariants(),
       csrf: window.PW_AUTH.csrf
     };
     if (!payload.name || !payload.description) {

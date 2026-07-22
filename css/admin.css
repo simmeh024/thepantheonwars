@@ -3220,3 +3220,56 @@
 @media (max-width: 720px) {
   .quiz-option-weights { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* --- World Control: weather-varying district quotes -----------------------
+   Five optional quotes per district, keyed to the condition icons the weather
+   system already speaks. Each row is a key, a quote and an optional
+   attribution; blank means that condition falls back to the district's own
+   quote above. */
+.world-quote-variants-hint { margin-bottom: 12px; }
+.world-quote-variants { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+.world-quote-variant {
+  display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 8px 12px;
+  align-items: start;
+  padding: 11px 12px;
+  border: 1px solid var(--border-soft); border-radius: 4px;
+  background: rgba(255,255,255,0.015);
+}
+.world-quote-variant-key {
+  display: flex; flex-direction: column; gap: 3px;
+  color: var(--text); font-family: 'Jost', sans-serif;
+  font-size: 0.74rem; font-weight: 600; letter-spacing: 0.04em;
+}
+.world-quote-variant-key i {
+  color: var(--text-faint); font-size: 0.62rem; font-style: normal;
+  font-weight: 400; letter-spacing: 0.02em; line-height: 1.35;
+}
+/* These sit outside .admin-field, so they declare the console's field
+   appearance themselves -- the same reason .admin-search does. */
+.world-quote-variant-text,
+.world-quote-variant-cite {
+  width: 100%;
+  background: var(--bg); border: 1px solid var(--border); color: var(--text);
+  padding: 9px 11px; font-family: 'Jost', sans-serif; font-size: 0.88rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.world-quote-variant-text { min-height: 58px; line-height: 1.5; resize: vertical; }
+.world-quote-variant-cite { grid-column: 2; }
+.world-quote-variant-text:hover,
+.world-quote-variant-cite:hover { border-color: var(--gold-dim); }
+.world-quote-variant-text:focus,
+.world-quote-variant-cite:focus {
+  outline: none; border-color: var(--purple-bright);
+  box-shadow: 0 0 0 3px rgba(124,79,214,0.28);
+}
+/* A row carrying a quote is marked, so a district's coverage reads at a glance
+   without opening every field. */
+.world-quote-variant:has(.world-quote-variant-text:not(:placeholder-shown)) {
+  border-color: rgba(224,178,74,0.34);
+  background: rgba(224,178,74,0.05);
+}
+
+@media (max-width: 720px) {
+  .world-quote-variant { grid-template-columns: minmax(0, 1fr); }
+  .world-quote-variant-cite { grid-column: 1; }
+}

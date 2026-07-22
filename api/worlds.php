@@ -110,6 +110,78 @@ function pw_format_world($r) {
     return $out;
 }
 
+/**
+ * Swaps each district's pull quote for the variant matching today's weather.
+ *
+ * Resolved here, server-side, rather than on the client after the separate
+ * weather request lands -- otherwise the record would paint one quote and
+ * visibly replace it a moment later.
+ *
+ * Deliberately only called on the single-world path. The twelve-world atlas
+ * would have to run the generator once per world for quotes nothing on that
+ * page displays.
+ *
+ * Silent by design: a reader who returns on a different day simply finds a
+ * different remark. A layer with no variant for today keeps its own
+ * quote_text, so these can be written one at a time.
+ */
+function pw_apply_layer_quote_variants(PDO $db, array $world) {
+    if (empty($world['layers'])) {
+        return $world;
+    }
+    $layerIds = array_map(function ($layer) { return (int)$layer['id']; }, $world['layers']);
+    if (!$layerIds) {
+        return $world;
+    }
+
+    try {
+        // Today's condition for this world, from the same generator the weather
+        // card uses, so the quote and the card can never disagree.
+        $profileStmt = $db->prepare(
+            'SELECT p.* FROM world_weather_profiles p
+             WHERE p.world_id = ? AND p.enabled = 1'
+        );
+        $profileStmt->execute([(int)$world['id']]);
+        $profile = $profileStmt->fetch();
+        if (!$profile) {
+            return $world;
+        }
+        require_once __DIR__ . '/weather-forecast.php';
+        $conditionKey = pw_weather_icon_key($profile['current_condition']);
+
+        $placeholders = implode(',', array_fill(0, count($layerIds), '?'));
+        $variantStmt = $db->prepare(
+            'SELECT entity_id, quote_text, quote_cite FROM world_quote_variants
+             WHERE entity_type = \'layer\' AND condition_key = ?
+               AND entity_id IN (' . $placeholders . ')'
+        );
+        $variantStmt->execute(array_merge([$conditionKey], $layerIds));
+        $variants = [];
+        foreach ($variantStmt->fetchAll() as $variant) {
+            $variants[(int)$variant['entity_id']] = $variant;
+        }
+    } catch (PDOException $e) {
+        // sql/migration_world_quote_variants.sql may not have been run, or this
+        // world may have no weather profile. Either way the authored quotes
+        // stand on their own.
+        return $world;
+    }
+
+    foreach ($world['layers'] as $index => $layer) {
+        $variant = isset($variants[(int)$layer['id']]) ? $variants[(int)$layer['id']] : null;
+        if (!$variant || trim((string)$variant['quote_text']) === '') {
+            continue;
+        }
+        $world['layers'][$index]['quote_text'] = $variant['quote_text'];
+        // An empty cite on the variant keeps the layer's own attribution, so a
+        // variant only has to restate the speaker when it is a different one.
+        if (trim((string)$variant['quote_cite']) !== '') {
+            $world['layers'][$index]['quote_cite'] = $variant['quote_cite'];
+        }
+    }
+    return $world;
+}
+
 $slug = isset($_GET['slug']) ? trim($_GET['slug']) : '';
 
 if ($slug !== '') {
@@ -123,6 +195,7 @@ if ($slug !== '') {
     $detailsByWorld = $world['status'] === 'available' ? pw_load_world_details($db, [$world['id']]) : [];
     if (isset($detailsByWorld[$world['id']])) {
         $world = array_merge($world, $detailsByWorld[$world['id']]);
+        $world = pw_apply_layer_quote_variants($db, $world);
     }
     pw_json(['ok' => true, 'world' => $world]);
 }

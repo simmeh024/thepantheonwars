@@ -26,6 +26,16 @@ if (!$existing) {
     pw_error('Layer not found.', 404);
 }
 
+// world_quote_variants is polymorphic, so no foreign key can cascade it --
+// cleared explicitly. Without this a recycled AUTO_INCREMENT id would hand a
+// future layer this one's weather quotes, the same hazard the timeline
+// discovery rows carry.
+try {
+    $db->prepare('DELETE FROM world_quote_variants WHERE entity_type = \'layer\' AND entity_id = ?')->execute([$id]);
+} catch (PDOException $e) {
+    // migration_world_quote_variants.sql may not have been run yet.
+}
+
 // Cascades to world_layer_sublocations and any nested (restricted)
 // world_landmarks via their FK ON DELETE CASCADE constraints.
 $db->prepare('DELETE FROM world_layers WHERE id = ?')->execute([$id]);
