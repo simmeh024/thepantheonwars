@@ -255,6 +255,38 @@ $cases = [
         'tag' => 'improvement',
         'plan_domain' => 'tooling',
         'forbidden' => ['reported incorrectly', 'matches what actually changed'],
+        // Ranked pool: with nothing recent to avoid, the strongest line in the
+        // pair must win rather than losing a hash coin flip, which is what
+        // happened on the commit that introduced it.
+        'contains_exact' => ['This changes how updates are written, not what the site does.'],
+    ],
+    // An author-written Dispatch: trailer is published verbatim and nothing is
+    // inferred -- no domain voice, no benefit sentence, no object phrase.
+    [
+        'subject' => 'Rewrite Dispatch summaries in first person',
+        'body' => "Dispatch: Development updates are now written in plain, first-person language.\n\nA long technical body that must not appear anywhere in the published text.",
+        'tag' => 'improvement',
+        'options' => ['diff_context' => ['files_changed' => 4, 'areas' => ['site services']]],
+        'expected' => "Development updates are now written in plain, first-person language.\n\nTotal files edited: 4 in site services.",
+        'level' => 'high',
+        'evidence' => ['author-written summary'],
+    ],
+    // A trailer carrying a path or filename is not publishable, so the engine
+    // must fall back rather than print it to readers.
+    [
+        'subject' => 'Refine Dispatch translation output',
+        'body' => 'Dispatch: Rewrote api/dispatch-translation-drafts.php to fix this.',
+        'tag' => 'improvement',
+        'forbidden' => ['api/dispatch-translation-drafts.php'],
+        'plan_domain' => 'tooling',
+    ],
+    // Too short to be a real summary; also falls back.
+    [
+        'subject' => 'Refine Dispatch translation output',
+        'body' => 'Dispatch: wip',
+        'tag' => 'improvement',
+        'forbidden' => ['wip'],
+        'plan_domain' => 'tooling',
     ],
     // The counterpart: genuine in-world material must still read as content,
     // so splitting tooling out cannot quietly strip the lore voice.

@@ -213,6 +213,27 @@ separately would let a jargon-heavy commit auto-publish without review on
 vocabulary alone. The `reader_safe_dictionary` evidence flag was already a
 single boolean for exactly this reason; `$rulesMatched` now matches it.
 
+## Author-written summaries: the `Dispatch:` trailer
+
+Everything else in this pipeline infers reader-facing wording from a subject
+written for developers. That is a hard ceiling -- "in first person" reached
+readers because the commit title said it, and no template can remove it.
+
+A line `Dispatch: <one sentence>` anywhere in the commit body is published
+**verbatim** at 100% confidence, short-circuiting the entire formatter: no
+domain voice, no benefit sentence, no object phrase, nothing inferred. Absent,
+the normal engine runs unchanged, so adoption is per-commit and incremental.
+
+The line still passes the same safety floor as any generated object -- no
+path, hash or source filename -- and a trailer failing it (or shorter than 10
+characters, or longer than 400) is discarded so the engine falls back rather
+than publishing something unsafe. A trailing period is added if missing.
+
+`pw_dispatch_draft_confidence()` short-circuits on this too: an author-written
+line is not inferred, so scoring it against evidence weights would be
+meaningless. It reports 100% with a single `author-written summary` evidence
+entry, and auto-publishes for that reason.
+
 ## Voice, domains, and when a benefit sentence is published
 
 Generated summaries are written in the **first person plural** ("We have
@@ -252,6 +273,15 @@ therefore carrying no information. `$mode` comes from
 reads differently from a new capability. The remaining `$plan` signals
 (`scopes`, `files_changed`) are still unused for wording; intent was taken
 first because it is the strongest of the three.
+
+Pools whose order is deliberate pass `$rankedPool = true` to `$pickVariant()`:
+selection starts at the best line and only walks forward when
+`pw_dispatch_draft_phrase_is_recent()` says it was just used, making variety a
+repetition-avoidance mechanism rather than a randomiser. Hash selection across
+a two-item pool is a coin flip -- that is how the sharpest tooling line ("This
+changes how updates are written, not what the site does.") lost to its blander
+alternative on the very commit that introduced it. `$domainBenefits` is ranked;
+pools whose order carries no quality meaning keep hash distribution.
 
 The second sentence is **only published when something specific supports it**.
 It is a hash-selected line from a fixed per-domain pool, with no connection to

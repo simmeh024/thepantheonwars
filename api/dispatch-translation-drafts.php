@@ -217,6 +217,45 @@ function pw_dispatch_lcfirst_object(string $value): string
 }
 
 /**
+ * An author-written reader-facing line, taken verbatim from a `Dispatch:`
+ * trailer in the commit body:
+ *
+ *     Match the benefit sentence to the commit intent
+ *
+ *     Dispatch: Development updates are now written in plain, first-person language.
+ *
+ *     <the normal detailed body follows>
+ *
+ * Everything else in this file infers reader-facing wording from a subject
+ * written for developers, which is a hard ceiling -- "in first person" reaches
+ * readers because that is what the commit title says, and no template can
+ * remove it. This trailer is the escape hatch: when an author states the line
+ * outright, it is published as written and nothing is guessed at. Absent, the
+ * normal engine runs exactly as before, so adopting it is incremental.
+ *
+ * The line still passes the same safety floor as any generated object -- never
+ * a path, a hash or a source filename -- and falls back to the engine rather
+ * than publishing something unsafe.
+ */
+function pw_dispatch_author_summary(string $body): string
+{
+    if (trim($body) === '' || !preg_match('/^[ \t]*Dispatch:[ \t]*(.+?)[ \t]*$/mi', $body, $matches)) {
+        return '';
+    }
+    $line = trim(preg_replace('/\s+/', ' ', $matches[1]));
+    if (strlen($line) < 10 || strlen($line) > 400) {
+        return '';
+    }
+    if (preg_match('/(?:\b[0-9a-f]{7,40}\b|[\\\\\/]|\.php\b|\.js\b|\.css\b)/i', $line)) {
+        return '';
+    }
+    if (!preg_match('/[.!?]$/', $line)) {
+        $line .= '.';
+    }
+    return $line;
+}
+
+/**
  * The single list of recognized commit action verbs, shared by the
  * action-opening test and the object-phrase guard below so the two can never
  * drift apart. Multi-word entries are intentional ("speed up", "cross link").
@@ -294,6 +333,21 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // harness can test with a synthetic value -- see tools/test-dispatch-translator.php.
     $embeddingMatch = is_array($options['embedding_match'] ?? null) ? $options['embedding_match'] : [];
     $embeddingSimilarity = isset($embeddingMatch['score']) ? (float)$embeddingMatch['score'] : 0.0;
+    // An explicit author-written line short-circuits the whole formatter.
+    // Nothing below it can improve on a summary the author stated outright,
+    // and every inference step is a chance to make it worse.
+    $authorSummary = pw_dispatch_author_summary($body);
+    if ($authorSummary !== '') {
+        $diffSentence = pw_dispatch_draft_diff_sentence($diffContext);
+        return [
+            'draft' => $authorSummary . ($diffSentence !== '' ? "\n\n" . $diffSentence : ''),
+            'confidence' => pw_dispatch_draft_confidence(2, ['author_summary' => true]),
+            'plan' => pw_dispatch_draft_plan($subject, $tag, $diffContext, $spacyAnalysis, $subject, $body),
+            'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
+            'requires_editor_review' => false,
+            'best_semantic_match' => $embeddingMatch,
+        ];
+    }
     $clean = trim($subject);
     $clean = preg_replace('/^(?:feat(?:ure)?|fix|perf(?:ormance)?|refactor|chore|docs?|style|test)(?:\([^)]*\))?!?:\s*/i', '', $clean);
     $clean = preg_replace('/\s*\(?#[0-9]+\)?\s*$/', '', $clean);
@@ -662,12 +716,22 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // repeated categories from reading like boilerplate while ensuring that a
     // regenerate action does not make the same source commit drift randomly.
     $nearestSimilarity = pw_dispatch_draft_nearest_similarity($spacyAnalysis);
-    $pickVariant = static function (array $variants, string $salt) use ($subject, $recentTranslations, $nearestSimilarity): string {
+    // $rankedPool marks a pool whose order is deliberate, best line first. For
+    // those, variety is a repetition-avoidance mechanism rather than a
+    // randomiser: start at the best line and only move on when it was used
+    // recently. Hash selection across a two-item pool is a coin flip, which is
+    // how the sharpest tooling line ("This changes how updates are written,
+    // not what the site does.") lost to its blander alternative on the very
+    // commit that introduced it. Pools whose order carries no quality meaning
+    // keep the original subject-hash distribution.
+    $pickVariant = static function (array $variants, string $salt, bool $rankedPool = false) use ($subject, $recentTranslations, $nearestSimilarity): string {
         $count = count($variants);
         // A highly similar recent translation starts at a different stable
         // variant. Exact phrase checks below still provide the final guard.
         $shift = $nearestSimilarity >= 0.80 && $count > 1 ? 1 : 0;
-        $index = ((int) sprintf('%u', crc32($subject . '|' . $salt)) + $shift) % $count;
+        $index = $rankedPool
+            ? $shift % $count
+            : ((int) sprintf('%u', crc32($subject . '|' . $salt)) + $shift) % $count;
         for ($offset = 0; $offset < $count; $offset++) {
             $candidate = $variants[($index + $offset) % $count];
             if (!pw_dispatch_draft_phrase_is_recent($candidate, $recentTranslations)) {
@@ -1143,8 +1207,9 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
             'refinement' => ['Routine operations now rest on a steadier foundation.', 'This makes the supporting systems easier to maintain without changing normal use.'],
         ],
     ];
+    // Every pair above is written strongest-first, so this pool is ranked.
     if (!$naturalOverrideApplied && isset($domainBenefits[$domain][$mode])) {
-        $benefit = $pickVariant($domainBenefits[$domain][$mode], 'voice-' . $domain . '-' . $mode);
+        $benefit = $pickVariant($domainBenefits[$domain][$mode], 'voice-' . $domain . '-' . $mode, true);
     }
 
     $diffSentence = pw_dispatch_draft_diff_sentence($diffContext);
@@ -1188,6 +1253,19 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
  */
 function pw_dispatch_draft_confidence(int $rulesMatched, array $evidence = []): array
 {
+    // An author-written summary is not inferred at all, so scoring it against
+    // evidence weights would be meaningless. It is the one input this engine
+    // never has to guess about, and it auto-publishes for that reason.
+    if (!empty($evidence['author_summary'])) {
+        return [
+            'level' => 'high',
+            'label' => 'High confidence',
+            'rules_matched' => $rulesMatched,
+            'score' => 100,
+            'evidence' => ['author-written summary'],
+            'explanation' => 'The commit supplied its own reader-facing summary through a Dispatch: trailer, published as written (100% evidence score).',
+        ];
+    }
     $weights = [
         'recognized_subject' => 25,
         'reader_safe_dictionary' => 10,
@@ -1306,7 +1384,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v32\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v33\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array

@@ -551,6 +551,28 @@ at that time.
   line and a real, detailed body explaining what changed and why -- detail
   belongs there, not crammed into the subject. Never a bare single-line
   commit with no body.
+- **`Dispatch:` trailer -- use it whenever a commit is reader-facing.** A line
+  in the commit body of the form `Dispatch: <one sentence>` is published to
+  the public Development Dispatches page **verbatim**, at 100% confidence,
+  skipping the whole inference engine (domain voice, benefit sentence, object
+  phrase). Put it on its own line, anywhere in the body:
+
+  ```
+  Match the benefit sentence to the commit intent
+
+  Dispatch: Development updates are now written in plain, first-person language.
+
+  <normal detailed body follows>
+  ```
+
+  Write it as a complete reader-facing sentence with no jargon, no file
+  paths and no commit hashes -- a trailer containing any of those is rejected
+  and the engine falls back silently, as is one shorter than 10 characters.
+  A trailing period is added if missing. Omit the trailer for internal work
+  and the engine behaves exactly as before. This exists because everything
+  else in the translator infers reader wording from a developer-written
+  subject, which is a hard ceiling: "in first person" reached readers purely
+  because a commit title said it.
 - Always commit and push finished, verified changes to `main` without waiting to be
   asked -- the user handles the cPanel deploy step and any SQL migrations themselves,
   so git push is the one action that should happen proactively. Still stage only the
@@ -561,6 +583,43 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **`Dispatch:` commit trailer, and quality-ordered variant pools
+  (dispatch-draft-v33).** Two changes, one raising the ceiling and one the
+  floor.
+  1. **A `Dispatch: <sentence>` line in a commit body is now published
+     verbatim** at 100% confidence, short-circuiting the entire formatter --
+     no domain voice, no benefit sentence, no object phrase, nothing
+     inferred. See the standing instruction near the top of this file for
+     the exact format. This exists because every other part of the
+     translator infers reader wording from a developer-written subject,
+     which is a hard ceiling no template work can lift: "in first person"
+     reached readers purely because a commit title said so. The trailer is
+     the escape hatch, adopted per-commit; absent, the engine runs exactly
+     as before, so it carries no risk. It passes the same safety floor as
+     any generated object (no path, hash or source filename) and is
+     discarded -- silently falling back to the engine -- if it fails that,
+     is under 10 characters, or exceeds 400. `pw_dispatch_draft_confidence()`
+     short-circuits on it too: an author-written line is not inferred, so
+     scoring it against evidence weights is meaningless.
+  2. **`$pickVariant()` gained a `$rankedPool` flag.** Selection was
+     `crc32(subject) % count` -- uniform -- so across a two-item pool the
+     better line won only half the time. That is exactly how the sharpest
+     new tooling line ("This changes how updates are written, not what the
+     site does.") lost to its blander alternative *on the very commit that
+     introduced it*, visible in the published Dispatch. A ranked pool starts
+     at index 0 and only walks forward when
+     `pw_dispatch_draft_phrase_is_recent()` says that line was just used, so
+     variety becomes repetition-avoidance rather than a randomiser.
+     `$domainBenefits` is ranked (all 48 sentences were authored
+     strongest-first); pools whose order carries no quality meaning keep
+     hash distribution, deliberately, since promoting an arbitrary first
+     element is not an improvement.
+  Five regression cases added, including the two trailer-rejection paths
+  (path/filename, too short) which must fall back rather than publish.
+  **Sequencing note:** this was done *before* starting to collect Good/Bad
+  ratings, on purpose -- rating a known-weak baseline would waste the first
+  week of the quality report described below.
 
 - **Benefit sentence follows commit intent; product names survive lcfirst
   (dispatch-draft-v32).** Two refinements to summary quality.
@@ -2132,7 +2191,7 @@ at that time.
   at most eight recent translations, and uses that score to begin with a
   different stable wording variant for near-duplicate updates. Raw prior translations never
   leave the PHP/Python process boundary. The draft-format hash is
-  `dispatch-draft-v32`, so regeneration refreshes unapproved local drafts
+  `dispatch-draft-v33`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
   Before rendering prose, PHP builds a reader-safe plan from recognized commit
