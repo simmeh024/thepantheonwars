@@ -213,6 +213,40 @@ separately would let a jargon-heavy commit auto-publish without review on
 vocabulary alone. The `reader_safe_dictionary` evidence flag was already a
 single boolean for exactly this reason; `$rulesMatched` now matches it.
 
+## The reader-facing object slot
+
+Three code paths can supply the object phrase a BH-4 sentence is built around,
+and each has a rule:
+
+1. **An action template's capture group.** Verb-free by construction -- the
+   template consumes the leading verb and captures only what follows.
+2. **The cleaned commit title**, when no action template matched.
+3. **A spaCy-extracted entity or noun chunk**, when the local action library
+   found no object at all.
+
+Paths 2 and 3 are both passed through
+`pw_dispatch_strip_leading_action_verb()`, because neither removes a leading
+verb on its own. Recognized verbs come from `pw_dispatch_action_verbs()` --
+the single shared list that also drives the action-opening test, so the two
+can never drift -- plus any lemma spaCy itself tagged as a `VERB`, which
+covers verbs the static list has never seen without hardcoding more English.
+When spaCy is unavailable the static list still applies, so behaviour degrades
+safely rather than changing.
+
+Path 3 additionally **must be grounded in the subject**
+(`pw_dispatch_spacy_object_is_grounded()`). spaCy analyses subject *and* body
+together, and its entity labels (`WORK_OF_ART`, `PRODUCT`, `ORG`) readily match
+a quoted title sitting inside a body. This is not hypothetical: the commit
+*"Score Dispatch draft domains instead of first match"* published the object
+**"expand the Dispatch"**, lifted verbatim from a sentence in its own body that
+quoted the previous commit's title. `Score` has no action template, so the
+draft fell through to the spaCy path, which had no rule stopping it.
+
+That was a straight violation of the contract stated where `$bodyContext` is
+built: *the body shapes confidence only and is never copied verbatim into
+reader copy*. Treat that as binding -- a commit body may contain internal
+notes, quoted text or paths, and none of it may reach the public page.
+
 ## Domain selection is scored, not a first-match cascade
 
 `pw_dispatch_draft_domain()` picks which BH-4 vocabulary a draft speaks in

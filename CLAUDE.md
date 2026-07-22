@@ -562,6 +562,46 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Commit body could reach public reader copy verbatim (dispatch-draft-v28).**
+  Caught from a live published Dispatch immediately after the domain fix
+  below: the commit *"Score Dispatch draft domains instead of first match"*
+  published as "BH-4 has made the record around **expand the Dispatch** easier
+  to explore." The domain was now correct (content voice), so this was a
+  second, independent bug the first fix merely revealed. Chain: `Score` is not
+  in the action-verb list and has **no action template**, so `$draft` stayed
+  empty and fell through to the spaCy fallback; `pw_dispatch_spacy_reader_object()`
+  returns the first entity or noun chunk from spaCy's analysis of **subject
+  *and* body** (`pw_dispatch_spacy_analyze($subject, $body, ...)`); that
+  commit's own body opened by quoting the previous commit's title, and spaCy
+  labels a quoted title `WORK_OF_ART`/`PRODUCT`/`ORG`, all of which are in the
+  allowed set -- so the phrase was lifted verbatim into published copy.
+  **This violated a contract the file already stated** in the comment where
+  `$bodyContext` is built: the body "shapes confidence only and is never
+  copied verbatim into reader copy". It is also a real disclosure risk, not
+  just an awkward sentence -- a commit body can hold internal notes, paths or
+  quoted text, and any of it could reach the public Dispatches page.
+  Two guards added. `pw_dispatch_spacy_object_is_grounded()` requires a
+  spaCy-supplied object to actually appear in the subject before it may be
+  used. `pw_dispatch_strip_leading_action_verb()` removes a leading verb from
+  the two fallback object paths (raw cleaned title, spaCy phrase) -- the
+  action-template path was already verb-free via its capture group, which is
+  why this went unnoticed. It recognizes the shared static verb list **plus
+  any lemma spaCy tagged as a VERB**, so it handles verbs like "score" that
+  the static list never had, and degrades to the static list alone when spaCy
+  is down. The 150-verb alternation was extracted into
+  `pw_dispatch_action_verbs()` and is now shared with the action-opening test
+  so the two cannot drift; verified byte-identical to the original (1153
+  chars, regex reconstructs exactly) rather than retyped.
+  Two regression cases added: the real commit (asserting the quoted body
+  phrase never appears and the bare verb is stripped) and a counterpart where
+  a spaCy phrase that *is* grounded in the subject must still be used, so the
+  fix cannot be satisfied by ignoring spaCy's object entirely.
+  **Worth knowing for future debugging:** the cause was invisible from the
+  subject alone. Statically simulating the subject showed the dictionary never
+  touches it and every action-opening verb has a consuming template (verified:
+  zero gap), which appeared to make the observed output impossible -- the
+  missing piece was that the offending text came from the *body*, via spaCy.
+
 - **Dispatch domain selection is now scored, not a first-match cascade
   (dispatch-draft-v27).** Caught from a live published Dispatch: the commit
   *"Expand the Dispatch translation dictionary"* rendered in the **security**
@@ -1978,7 +2018,7 @@ at that time.
   at most eight recent translations, and uses that score to begin with a
   different stable wording variant for near-duplicate updates. Raw prior translations never
   leave the PHP/Python process boundary. The draft-format hash is
-  `dispatch-draft-v27`, so regeneration refreshes unapproved local drafts
+  `dispatch-draft-v28`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
   Before rendering prose, PHP builds a reader-safe plan from recognized commit

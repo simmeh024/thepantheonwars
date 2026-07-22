@@ -156,6 +156,73 @@ function pw_dispatch_draft_nearest_similarity(array $spacyAnalysis): float
     return max($semanticSimilarity, $fuzzySimilarity);
 }
 
+/**
+ * The single list of recognized commit action verbs, shared by the
+ * action-opening test and the object-phrase guard below so the two can never
+ * drift apart. Multi-word entries are intentional ("speed up", "cross link").
+ */
+function pw_dispatch_action_verbs(): string
+{
+    return 'add|create|introduce|include|fix|resolve|repair|restore|improve|enhance|refine|polish|streamline|redesign|rework|restructure|expand|keep|show|align|widen|enlarge|split|stack|make|throttle|reduce|defer|slow|prevent|reserve|use|switch|load|deliver|cross link|connect|unlock|bump|optimi[sz]e|speed up|update|refresh|remove|retire|delete|move|reorganize|reorganise|reposition|secure|protect|harden|strengthen|color code|give|respect|clear|place|confine|pin|anchor|animate|preserve|preload|tighten|elevate|complete|alert|index|bundle|limit|pause|cache|pre aggregate|bulk load|track|collapse|graph|log|group|mask|rename|surface|reorder|finalize|swap|render|force|mirror|theme|store|merge|replace|auto refresh|always refresh|right align|put|pull|un float|paginate|increase|version|trim|revert|relative|sortable|styled|subtle|tiered|full|compact|label|highlight|explore|sharpen|hide|implement|enable|allow|expose|adjust|correct|clarify|consolidate|standardize|standardise|simplify|migrate|integrate|validate|verify|review|audit|diagnose|stabilize|stabilise|modernize|modernise|address|ensure|support|avoid|guard|isolate|measure|monitor|prepare|document|describe';
+}
+
+/**
+ * Remove a leading action verb from a phrase about to be used as the
+ * reader-facing object. The action-template path strips the verb implicitly
+ * through its own capture group, but the two fallback paths (the raw cleaned
+ * title, and a spaCy-extracted phrase) did not -- so a subject whose verb has
+ * no template, such as "Score Dispatch draft domains...", put that bare verb
+ * straight into the noun slot. Recognized verbs come from the shared list
+ * above, plus any lemma spaCy itself tagged as a VERB, which generalizes to
+ * verbs the static list has never seen without hardcoding more of English.
+ * The original phrase is kept whenever stripping would leave nothing useful.
+ */
+function pw_dispatch_strip_leading_action_verb(string $phrase, array $spacyAnalysis = []): string
+{
+    $phrase = trim($phrase);
+    if ($phrase === '' || !preg_match('/^([A-Za-z]+)\s+(.+)$/', $phrase, $matches)) {
+        return $phrase;
+    }
+    $first = strtolower($matches[1]);
+    $rest = trim($matches[2]);
+    if (strlen($rest) < 3) {
+        return $phrase;
+    }
+    if (preg_match('/^(?:' . pw_dispatch_action_verbs() . ')$/i', $first)) {
+        return $rest;
+    }
+    $lemmas = is_array($spacyAnalysis['actions'] ?? null) ? $spacyAnalysis['actions'] : [];
+    foreach ($lemmas as $lemma) {
+        if (is_string($lemma) && strtolower(trim($lemma)) === $first) {
+            return $rest;
+        }
+    }
+    return $phrase;
+}
+
+/**
+ * A spaCy-extracted phrase may only be used as the reader-facing object when
+ * it actually comes from the commit *subject*. spaCy analyses subject and body
+ * together, and its entity labels (WORK_OF_ART, PRODUCT, ORG) readily match a
+ * quoted title inside a body -- which is how the commit "Score Dispatch draft
+ * domains instead of first match" published the object "expand the Dispatch",
+ * lifted verbatim out of a sentence in its own body that quoted the previous
+ * commit's title. The body is a confidence signal only and must never reach
+ * reader-facing copy, per the contract stated where $bodyContext is built.
+ */
+function pw_dispatch_spacy_object_is_grounded(string $candidate, string $subjectText): bool
+{
+    $normalize = static function (string $value): string {
+        return strtolower(trim(preg_replace('/\s+/', ' ', $value)));
+    };
+    $candidate = $normalize($candidate);
+    $subjectText = $normalize($subjectText);
+    if ($candidate === '' || $subjectText === '') {
+        return false;
+    }
+    return strpos($subjectText, $candidate) !== false;
+}
+
 function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, array $options = []): array
 {
     $diffContext = is_array($options['diff_context'] ?? null) ? $options['diff_context'] : [];
@@ -196,7 +263,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // Separating that area from the actual change gives the draft formatter
     // a reliable description to work with, even when the title has no verb.
     $scopedCommit = '/^[A-Za-z][A-Za-z0-9 .&\/()\-]{1,60}:\s+(.+)$/';
-    $actionOpening = '/^(?:add|create|introduce|include|fix|resolve|repair|restore|improve|enhance|refine|polish|streamline|redesign|rework|restructure|expand|keep|show|align|widen|enlarge|split|stack|make|throttle|reduce|defer|slow|prevent|reserve|use|switch|load|deliver|cross link|connect|unlock|bump|optimi[sz]e|speed up|update|refresh|remove|retire|delete|move|reorganize|reorganise|reposition|secure|protect|harden|strengthen|color code|give|respect|clear|place|confine|pin|anchor|animate|preserve|preload|tighten|elevate|complete|alert|index|bundle|limit|pause|cache|pre aggregate|bulk load|track|collapse|graph|log|group|mask|rename|surface|reorder|finalize|swap|render|force|mirror|theme|store|merge|replace|auto refresh|always refresh|right align|put|pull|un float|paginate|increase|version|trim|revert|relative|sortable|styled|subtle|tiered|full|compact|label|highlight|explore|sharpen|hide|implement|enable|allow|expose|adjust|correct|clarify|consolidate|standardize|standardise|simplify|migrate|integrate|validate|verify|review|audit|diagnose|stabilize|stabilise|modernize|modernise|address|ensure|support|avoid|guard|isolate|measure|monitor|prepare|document|describe)\b/i';
+    $actionOpening = '/^(?:' . pw_dispatch_action_verbs() . ')\b/i';
     if (!preg_match($actionOpening, $clean) && preg_match($scopedCommit, $clean, $scopeMatches)) {
         $rulesMatched++;
         $evidence['recognized_subject'] = true;
@@ -789,9 +856,13 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // score or publication threshold; those remain explainable PHP rules.
     if ($draft === '') {
         $spacyObject = pw_dispatch_spacy_reader_object($spacyAnalysis);
-        if ($spacyObject !== '') {
+        // Only accept it when the phrase genuinely comes from the subject --
+        // spaCy sees the body too, and an entity match inside a body (a quoted
+        // title, an internal note) must never become published reader copy.
+        if ($spacyObject !== '' && pw_dispatch_spacy_object_is_grounded($spacyObject, $contextSource . ' ' . $clean)) {
             $object = lcfirst($spacyObject);
         }
+        $object = pw_dispatch_strip_leading_action_verb($object, $spacyAnalysis);
         $draft = sprintf($template, rtrim($object, '.'));
     }
 
@@ -1113,7 +1184,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v27\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v28\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array

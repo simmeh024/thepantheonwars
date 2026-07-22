@@ -163,6 +163,36 @@ $cases = [
         'tag' => 'improvement',
         'plan_domain' => 'security',
     ],
+    // A spaCy-extracted phrase may only be used when it comes from the
+    // subject. spaCy analyses subject and body together, and its entity
+    // labels (WORK_OF_ART, PRODUCT, ORG) readily match a quoted title sitting
+    // inside a body. This is the real commit that published the object
+    // "expand the Dispatch": its own body quoted the previous commit's title,
+    // and because "Score" has no action template the draft fell through to the
+    // spaCy path, which lifted that quoted phrase into public copy verbatim.
+    // "score" is then stripped as a leading verb via spaCy's own VERB lemmas,
+    // which the static verb list has never contained.
+    [
+        'subject' => 'Score Dispatch draft domains instead of first match',
+        'body' => 'The published Dispatch for "Expand the Dispatch translation dictionary" rendered in the security voice.',
+        'tag' => 'improvement',
+        'options' => ['spacy_analysis' => [
+            'entities' => ['Expand the Dispatch'],
+            'actions' => ['score', 'render'],
+        ]],
+        'contains' => ['Dispatch draft domains instead of first match'],
+        'forbidden' => ['expand the Dispatch', 'around score', 'of score'],
+    ],
+    // The counterpart guard: a spaCy phrase that IS grounded in the subject
+    // must still be used, so the fix above cannot be satisfied by simply
+    // ignoring spaCy's reader object altogether.
+    [
+        'subject' => 'Zqlm plexor for the tazwick subsystem',
+        'body' => '',
+        'tag' => 'improvement',
+        'options' => ['spacy_analysis' => ['entities' => ['tazwick subsystem']]],
+        'contains' => ['tazwick subsystem'],
+    ],
 ];
 
 foreach ($cases as $case) {
