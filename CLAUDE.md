@@ -473,15 +473,15 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=272`, community `css/community-bundle.css?v=264`, and admin
-  `css/admin-bundle.css?v=276`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=274`, community `css/community-bundle.css?v=266`, and admin
+  `css/admin-bundle.css?v=278`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
 - Same pattern, separate counters, each easy to miss since `.htaccess`'s no-cache
   headers only cover `.html$` -- a stale cached JS file can silently serve old code
   after a deploy even though the HTML/CSS look right (confirmed the hard way more
-  than once): `js/main.js?v=N` (current: v=14), `js/members.js?v=N` (current: v=40)
+  than once): `js/main.js?v=N` (current: v=16), `js/members.js?v=N` (current: v=40)
   and `js/notifications.js?v=N` (loaded dynamically), across the public pages
   (not admin). The notification script is now loaded dynamically for
   authenticated visitors rather than referenced in every page's HTML.

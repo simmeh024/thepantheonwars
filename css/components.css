@@ -414,13 +414,20 @@ a.nav-parent { cursor: pointer; }
   position: relative; cursor: pointer;
   color: var(--text-dim);
   padding: 5px; display: flex; align-items: center; justify-content: center;
-  border: 1px solid rgba(162,121,236,0.33);
+  /* Tinted by the selected world, inherited from .nav-utility. The var()
+     fallback carries the original purple as three bare components, so the
+     control still renders if the weather data never arrives. */
+  border: 1px solid rgba(var(--pw-weather-accent, 162,121,236), 0.33);
   border-radius: 999px;
-  background: rgba(124,79,214,0.08);
+  background: rgba(var(--pw-weather-accent, 162,121,236), 0.09);
   transition: color var(--transition-base), border-color var(--transition-base), background-color var(--transition-base);
 }
 .notif-bell-btn svg { width: 19px; height: 19px; }
-.notif-bell-btn:hover { color: var(--gold); border-color: var(--gold-dim); background: rgba(124,79,214,0.14); }
+.notif-bell-btn:hover {
+  color: var(--gold);
+  border-color: rgba(var(--pw-weather-accent, 162,121,236), 0.62);
+  background: rgba(var(--pw-weather-accent, 162,121,236), 0.16);
+}
 .notif-bell-btn:focus-visible { color: var(--gold-bright); outline: 1px solid var(--gold-bright); outline-offset: 3px; }
 .notif-badge {
   /* Pulled onto the rim: the containing block is now the button's padding box,
@@ -720,9 +727,14 @@ nav.main-nav > a:hover::before, nav.main-nav > a.active::before,
 .nav-dropdown-aside::after { content: attr(data-watermark); position: absolute; z-index: 0; right: -12px; bottom: -9px; color: rgba(224,178,74,0.1); font: 700 1.45rem/1 'Cinzel', serif; letter-spacing: 0.08em; white-space: nowrap; pointer-events: none; }
 .nav-dropdown-eyebrow { position: relative; z-index: 1; color: var(--gold-bright); font-size: 0.61rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
 .nav-dropdown-copy { position: relative; z-index: 1; color: var(--text-faint); font-size: 0.72rem; line-height: 1.45; }
-.auth-profile-chip { gap: 7px; padding: 4px 8px 4px 4px; border: 1px solid rgba(162,121,236,0.33); border-radius: 999px; background: rgba(124,79,214,0.08); transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; }
+/* The pill itself is tinted by the selected world (--pw-weather-accent,
+   inherited from .nav-utility) so it matches the bell and the weather bar. The
+   avatar ring below keeps --auth-role-color: that one carries the member's
+   role, which is information rather than decoration and must not be recoloured
+   by an unrelated weather choice. */
+.auth-profile-chip { gap: 7px; padding: 4px 8px 4px 4px; border: 1px solid rgba(var(--pw-weather-accent, 162,121,236), 0.33); border-radius: 999px; background: rgba(var(--pw-weather-accent, 162,121,236), 0.09); transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease; }
 button.auth-profile-chip { color: inherit; cursor: pointer; font: inherit; }
-.auth-nav-item:hover .auth-profile-chip, .auth-nav-item:focus-within .auth-profile-chip { border-color: var(--auth-role-color, var(--gold-dim)); background: rgba(124,79,214,0.14); box-shadow: 0 0 16px rgba(162,121,236,0.16); }
+.auth-nav-item:hover .auth-profile-chip, .auth-nav-item:focus-within .auth-profile-chip { border-color: rgba(var(--pw-weather-accent, 162,121,236), 0.62); background: rgba(var(--pw-weather-accent, 162,121,236), 0.16); box-shadow: 0 0 16px rgba(var(--pw-weather-accent, 162,121,236), 0.16); }
 .auth-profile-chip-avatar { position: relative; display: grid; width: 22px; height: 22px; flex: 0 0 22px; overflow: hidden; place-items: center; border: 1px solid var(--auth-role-color, var(--purple-bright)); border-radius: 50%; background: rgba(8,5,19,0.88); box-shadow: 0 0 8px color-mix(in srgb, var(--auth-role-color, var(--purple-bright)) 48%, transparent); }
 .auth-profile-chip-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .auth-profile-chip-avatar img[hidden] + .auth-profile-chip-avatar-fallback { display: grid; }
@@ -745,8 +757,32 @@ button.auth-profile-chip { color: inherit; cursor: pointer; font: inherit; }
 /* The three controls on the right of the header -- profile chip, notification
    bell, weather pill -- are one visual set, so they share a height rather than
    each landing on whatever their own contents happen to measure (32 / 31 / 30
-   before this). Only a floor, so a chip with a taller avatar still grows. */
-.nav-utility { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; --nav-pill-height: 32px; }
+   before this). Only a floor, so a chip with a taller avatar still grows.
+
+   They also share a colour: --pw-weather-accent is the selected world's signal
+   tone, and js/main.js sets it on THIS element rather than on the weather pill,
+   so the chip and the bell inherit it too and the whole group re-tints when a
+   different world is chosen. The default here is the purple the group used
+   before, so nothing changes until a world resolves. Declared on the ancestor
+   deliberately: a matching rule on .pw-weather itself would beat the inherited
+   value and the tint would never reach its neighbours. */
+.nav-utility {
+  display: flex; align-items: center; gap: 14px; flex: 0 0 auto;
+  --nav-pill-height: 32px;
+  --pw-weather-accent: 162, 121, 236;
+}
+/* Applied for one forced reflow while the accent is swapped.
+   These pills transition border-color and background-color so hover fades
+   smoothly, but a transitioned colour that resolves through a custom property
+   does not reliably restart when that property changes -- the element keeps
+   its previous colour indefinitely even though the variable has updated
+   (verified: the chip and bell stayed on the old world's tone while their
+   resolved --pw-weather-accent was already the new one). Suppressing the
+   transition across the swap makes the new value be adopted directly, and
+   normal hover transitions resume immediately afterwards. */
+.nav-utility.is-accent-swap .auth-profile-chip,
+.nav-utility.is-accent-swap .notif-bell-btn,
+.nav-utility.is-accent-swap .pw-weather-bar { transition: none; }
 .nav-utility .auth-profile-chip,
 .nav-utility .pw-weather-bar { min-height: var(--nav-pill-height, 32px); }
 .nav-utility .notif-bell-btn {
@@ -763,8 +799,10 @@ button.auth-profile-chip { color: inherit; cursor: pointer; font: inherit; }
    components (worlds.accent_rgb), so one value drives both the solid accent
    and its translucent glow -- the same convention the timeline markers use.
    The fallback keeps the widget legible before the migration has been run. */
+/* --pw-weather-accent is inherited from .nav-utility, not set here: declaring
+   it on this element would shadow the value and stop the chip and bell from
+   picking up the selected world's colour. */
 .pw-weather {
-  --pw-weather-accent: 162, 121, 236;
   position: relative;
   display: flex;
   align-items: center;
@@ -784,7 +822,7 @@ button.auth-profile-chip { color: inherit; cursor: pointer; font: inherit; }
      pixels here decide whether the bar survives beside the profile chip. */
   gap: 6px;
   padding: 4px 8px;
-  border: 1px solid rgba(var(--pw-weather-accent), 0.32);
+  border: 1px solid rgba(var(--pw-weather-accent), 0.33);
   border-radius: 999px;
   background: rgba(var(--pw-weather-accent), 0.09);
   text-decoration: none;

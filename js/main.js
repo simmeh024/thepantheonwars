@@ -427,11 +427,24 @@ function initWeatherWidget() {
     barEl.title = world.name + ' — ' + (world.location || '');
 
     // Bare "R, G, B" from World Control, so one value drives both the solid
-    // accent and its translucent glow. Removed rather than set empty when
-    // absent: an empty custom property still counts as set and would defeat
-    // the var() fallback.
-    if (world.accent) root.style.setProperty('--pw-weather-accent', world.accent);
-    else root.style.removeProperty('--pw-weather-accent');
+    // accent and its translucent glow.
+    //
+    // Set on .nav-utility rather than on the widget, so the profile chip and
+    // the notification bell inherit it too and the whole right-hand group
+    // re-tints to the chosen world. Removed rather than set empty when absent:
+    // an empty custom property still counts as set and would defeat the CSS
+    // fallback that keeps the group its original purple.
+    // The class suppresses the pills' colour transitions across the swap. A
+    // transitioned colour resolved through a custom property does not reliably
+    // restart when that property changes, so without this the chip and bell
+    // keep the previous world's tone even though the variable has updated.
+    // The forced reflow is what makes the new value take effect while the
+    // transition is off; see the .is-accent-swap rule in css/components.css.
+    utility.classList.add('is-accent-swap');
+    if (world.accent) utility.style.setProperty('--pw-weather-accent', world.accent);
+    else utility.style.removeProperty('--pw-weather-accent');
+    void utility.offsetWidth;
+    utility.classList.remove('is-accent-swap');
 
     renderMenu(world.slug);
     root.hidden = false;
