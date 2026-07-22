@@ -81,6 +81,11 @@ CREATE TABLE IF NOT EXISTS users (
   selected_icon VARCHAR(40) NULL,
   banned_at DATETIME DEFAULT NULL,
   banned_until DATETIME DEFAULT NULL,
+  -- Fixed-duration mute (see member_warnings below): no "permanent" option,
+  -- so NULL or a past timestamp both mean "not muted". Blocks new forum
+  -- topics/replies/News comments and direct messages to non-staff members.
+  muted_until DATETIME DEFAULT NULL,
+  mute_reason VARCHAR(255) DEFAULT NULL,
   UNIQUE KEY uniq_username (username),
   UNIQUE KEY uniq_email (email),
   CONSTRAINT fk_users_role FOREIGN KEY (role) REFERENCES roles(slug)
@@ -1083,7 +1088,7 @@ CREATE TABLE IF NOT EXISTS page_view_daily_transitions (
 CREATE TABLE IF NOT EXISTS notifications (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,
-  type ENUM('like','mention','quote','report_resolved','world_available','news_published','topic_reply','icon_unlocked','direct_message','new_device_login') NOT NULL,
+  type ENUM('like','mention','quote','report_resolved','world_available','news_published','topic_reply','icon_unlocked','direct_message','new_device_login','warning_issued') NOT NULL,
   actor_user_id INT UNSIGNED NULL,
   topic_id INT UNSIGNED NULL,
   comment_id INT UNSIGNED NULL,
@@ -1124,7 +1129,34 @@ CREATE TABLE IF NOT EXISTS notification_preferences (
   notif_topic_reply TINYINT(1) NOT NULL DEFAULT 1,
   notif_icon_unlocked TINYINT(1) NOT NULL DEFAULT 1,
   notif_new_device_login TINYINT(1) NOT NULL DEFAULT 1,
+  notif_warning_issued TINYINT(1) NOT NULL DEFAULT 1,
   CONSTRAINT fk_notification_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- One row per issued member warning (see migration_member_warnings.sql).
+-- status='revoked' keeps the row for the audit trail; only warnings.delete
+-- permanently removes one. Optionally accompanied by a fixed-duration mute
+-- (mute_minutes is a display record only -- live enforcement always reads
+-- users.muted_until).
+CREATE TABLE IF NOT EXISTS member_warnings (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  reason TEXT NOT NULL,
+  severity ENUM('minor','moderate','severe') NOT NULL DEFAULT 'minor',
+  source_type ENUM('manual','topic','comment','news_comment') NOT NULL DEFAULT 'manual',
+  source_id INT UNSIGNED NULL,
+  status ENUM('active','revoked') NOT NULL DEFAULT 'active',
+  issued_by_user_id INT UNSIGNED NULL,
+  issued_by_username VARCHAR(50) NOT NULL,
+  revoked_by_user_id INT UNSIGNED NULL,
+  revoked_by_username VARCHAR(50) NULL,
+  revoke_reason TEXT NULL,
+  revoked_at DATETIME NULL,
+  mute_minutes INT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_member_warnings_user_status (user_id, status),
+  KEY idx_member_warnings_created (created_at),
+  CONSTRAINT fk_member_warnings_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Manual backup log for System Status's "Last Backup" row -- cPanel's own

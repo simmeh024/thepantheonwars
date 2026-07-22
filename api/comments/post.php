@@ -8,6 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $user = pw_require_login();
 $input = pw_input();
 pw_require_csrf($input);
+pw_require_not_muted($user);
 
 $topicId = isset($input['topic_id']) ? (int)$input['topic_id'] : 0;
 if ($topicId <= 0) {

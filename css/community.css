@@ -1242,7 +1242,29 @@
 .msg-like-btn.active svg { fill: var(--purple-bright); fill-opacity: 0.25; }
 .msg-report-btn { width: 28px; padding: 0; justify-content: center; }
 .msg-report-btn:hover { color: #e05a4a; }
+.msg-warn-btn { width: 28px; padding: 0; justify-content: center; }
+.msg-warn-btn:hover { color: var(--gold-bright); }
 .msg-like-count { font-variant-numeric: tabular-nums; }
+
+/* Staff Warnings modal (Warn icon on forum posts/replies) */
+.warning-modal-view-label {
+  font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); margin: 0 0 8px;
+}
+#warning-modal-view-section, #warning-modal-issue-section { margin-bottom: 1.2em; }
+#warning-modal-view-list { max-height: 200px; overflow-y: auto; }
+.warning-modal-empty { color: var(--text-faint); font-size: 0.82rem; margin: 0; }
+.warning-modal-item {
+  padding: 8px 10px; margin-bottom: 6px; border-radius: 3px; font-size: 0.82rem; color: var(--text-dim);
+  background: var(--panel-2); border-left: 3px solid rgba(170,161,190,0.5);
+}
+.warning-modal-item-minor { border-left-color: rgba(170,161,190,0.5); }
+.warning-modal-item-moderate { border-left-color: var(--gold-bright); }
+.warning-modal-item-severe { border-left-color: #e05a4a; }
+.warning-modal-item-meta { color: var(--text-faint); font-size: 0.74rem; }
+.warning-modal-mute-toggle {
+  display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; color: var(--text);
+}
+.warning-modal-mute-toggle input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--gold-bright); cursor: pointer; }
 
 /* [quote] BBCode rendering */
 .comment-quote {

@@ -714,6 +714,23 @@
         openReportModal(comment.id);
       });
       actions.appendChild(report);
+
+      // Staff-only: issue/view a warning against this reply's author,
+      // mirroring community.html's per-post Warn icon. Never shown for your
+      // own replies.
+      var canSeeWarnings = window.pwHasPermission && (window.pwHasPermission('warnings.manage') || window.pwHasPermission('warnings.view'));
+      var isSelfComment = window.PW_AUTH && window.PW_AUTH.user && comment.user_id === window.PW_AUTH.user.id;
+      if (canSeeWarnings && !isSelfComment) {
+        var warn = document.createElement('button');
+        warn.type = 'button';
+        warn.className = 'news-comment-warn';
+        warn.textContent = 'Warnings';
+        warn.addEventListener('click', function () {
+          openWarningModal(comment.user_id, comment.display_name || comment.username || 'Member', comment.id);
+        });
+        actions.appendChild(warn);
+      }
+
       copy.appendChild(actions);
       item.appendChild(copy);
       commentsList.appendChild(item);
@@ -818,6 +835,117 @@
       reportSubmit.disabled = false; reportSubmit.classList.remove('is-busy');
       reportError.textContent = error.message || 'Could not submit that report.';
       reportError.classList.add('show');
+    });
+  });
+
+  // ---------- Warnings modal (staff-only, hand-duplicated from community.html) ----------
+  var warningModal = document.getElementById('news-warning-modal');
+  var warningModalName = document.getElementById('news-warning-modal-name');
+  var warningModalViewSection = document.getElementById('news-warning-modal-view-section');
+  var warningModalViewList = document.getElementById('news-warning-modal-view-list');
+  var warningModalIssueSection = document.getElementById('news-warning-modal-issue-section');
+  var warningModalReason = document.getElementById('news-warning-modal-reason');
+  var warningModalSeverity = document.getElementById('news-warning-modal-severity');
+  var warningModalMuteToggle = document.getElementById('news-warning-modal-mute-toggle');
+  var warningModalMuteDuration = document.getElementById('news-warning-modal-mute-duration');
+  var warningModalError = document.getElementById('news-warning-modal-error');
+  var warningModalStatus = document.getElementById('news-warning-modal-status');
+  var warningModalSubmit = document.getElementById('news-warning-modal-submit');
+  var warningModalCancel = document.getElementById('news-warning-modal-cancel');
+  var warningModalClose = document.getElementById('news-warning-modal-close');
+  var warningModalTarget = null; // { userId, commentId }
+
+  function openWarningModal(userId, displayName, commentId) {
+    warningModalTarget = { userId: userId, commentId: commentId };
+    warningModalName.textContent = displayName;
+    warningModalError.classList.remove('show');
+    warningModalStatus.classList.remove('show');
+    warningModalReason.value = '';
+    warningModalSeverity.value = 'minor';
+    warningModalMuteToggle.checked = false;
+    warningModalMuteDuration.hidden = true;
+    warningModalSubmit.hidden = false;
+    warningModalSubmit.disabled = false; warningModalSubmit.classList.remove('is-busy');
+
+    var canView = window.pwHasPermission && window.pwHasPermission('warnings.view');
+    var canManage = window.pwHasPermission && window.pwHasPermission('warnings.manage');
+    warningModalViewSection.hidden = !canView;
+    warningModalIssueSection.hidden = !canManage;
+    warningModalSubmit.hidden = !canManage;
+
+    warningModal.hidden = false;
+
+    if (canView) {
+      warningModalViewList.innerHTML = '<p class="warning-modal-empty">Loading…</p>';
+      fetch('/api/admin/warnings/list.php?user_id=' + encodeURIComponent(userId) + '&status=active', { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (!data.ok || !data.warnings.length) {
+            warningModalViewList.innerHTML = '<p class="warning-modal-empty">No active warnings.</p>';
+            return;
+          }
+          warningModalViewList.innerHTML = '';
+          data.warnings.forEach(function (w) {
+            var item = document.createElement('div');
+            item.className = 'warning-modal-item warning-modal-item-' + w.severity;
+            item.innerHTML = '<strong>' + escapeHtml(w.severity) + '</strong> — ' + escapeHtml(w.reason) +
+              ' <span class="warning-modal-item-meta">(' + escapeHtml(w.issued_by_username) + ', ' + escapeHtml(dateLabel(w.created_at)) + ')</span>';
+            warningModalViewList.appendChild(item);
+          });
+        })
+        .catch(function () {
+          warningModalViewList.innerHTML = '<p class="warning-modal-empty">Could not load warnings.</p>';
+        });
+    }
+  }
+
+  function closeWarningModal() {
+    warningModal.hidden = true;
+    warningModalTarget = null;
+  }
+
+  warningModalClose.addEventListener('click', closeWarningModal);
+  warningModalCancel.addEventListener('click', closeWarningModal);
+  warningModal.querySelector('.auth-modal-backdrop').addEventListener('click', closeWarningModal);
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && !warningModal.hidden) closeWarningModal();
+  });
+  warningModalMuteToggle.addEventListener('change', function () {
+    warningModalMuteDuration.hidden = !warningModalMuteToggle.checked;
+  });
+
+  warningModalSubmit.addEventListener('click', function () {
+    warningModalError.classList.remove('show');
+    var reason = warningModalReason.value.trim();
+    if (!reason) {
+      warningModalError.textContent = 'Enter a reason for this warning.';
+      warningModalError.classList.add('show');
+      return;
+    }
+    if (!warningModalTarget || !window.PW_AUTH || !window.PW_AUTH.csrf) return;
+    var payload = {
+      user_id: warningModalTarget.userId,
+      reason: reason,
+      severity: warningModalSeverity.value,
+      source_type: 'news_comment',
+      source_id: warningModalTarget.commentId,
+      csrf: window.PW_AUTH.csrf,
+    };
+    if (warningModalMuteToggle.checked) payload.mute_minutes = warningModalMuteDuration.value;
+    warningModalSubmit.disabled = true; warningModalSubmit.classList.add('is-busy');
+    fetch('/api/admin/warnings/issue.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'Could not issue that warning.');
+      warningModalStatus.textContent = 'Warning issued.';
+      warningModalStatus.classList.add('show');
+      warningModalSubmit.hidden = true;
+      setTimeout(closeWarningModal, 1200);
+    }).catch(function (error) {
+      warningModalSubmit.disabled = false; warningModalSubmit.classList.remove('is-busy');
+      warningModalError.textContent = error.message || 'Could not issue that warning.';
+      warningModalError.classList.add('show');
     });
   });
 

@@ -21,7 +21,7 @@ if (mb_strlen($body) > 2000) {
 }
 
 $db = pw_db();
-$recipientStmt = $db->prepare('SELECT id, banned_at, banned_until FROM users WHERE id = ?');
+$recipientStmt = $db->prepare('SELECT id, role, banned_at, banned_until FROM users WHERE id = ?');
 $recipientStmt->execute([$recipientId]);
 $recipient = $recipientStmt->fetch();
 // Staff may leave an essential message for a suspended account as well; it
@@ -29,6 +29,11 @@ $recipient = $recipientStmt->fetch();
 // active accounts.
 if (!$recipient || (!pw_is_staff_messenger($user) && pw_is_banned($recipient))) {
     pw_error('That member is not available for messaging.', 404);
+}
+// A muted sender may still reach staff (to ask about the mute); everyone
+// else is blocked the same way a muted member is blocked from posting.
+if (pw_is_muted($user) && !pw_is_staff_messenger($recipient)) {
+    pw_require_not_muted($user);
 }
 if (pw_direct_messages_blocked($user, $recipientId)) {
     pw_error('This conversation is not available.');

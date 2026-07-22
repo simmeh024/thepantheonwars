@@ -873,15 +873,34 @@
 }
 .editor-preview-empty { color: var(--text-faint); font-style: italic; }
 .news-comment:target { margin-inline: -10px; padding-inline: 10px; background: rgba(124,79,214,0.11); box-shadow: inset 2px 0 0 var(--purple-bright); }
-.news-comment-actions { display: flex; justify-content: flex-end; margin-top: 9px; }
+.news-comment-actions { display: flex; justify-content: flex-end; align-items: center; gap: 14px; margin-top: 9px; }
 .news-comment-report { padding: 0; border: 0; background: transparent; color: var(--text-faint); cursor: pointer; font: 600 0.63rem 'Jost', sans-serif; letter-spacing: 0.07em; text-transform: uppercase; transition: color 160ms ease; }
 .news-comment-report:hover { color: #f08b6e; }
+.news-comment-warn { padding: 0; border: 0; background: transparent; color: var(--text-faint); cursor: pointer; font: 600 0.63rem 'Jost', sans-serif; letter-spacing: 0.07em; text-transform: uppercase; transition: color 160ms ease; }
+.news-comment-warn:hover { color: var(--gold-bright); }
 .news-report-modal .auth-field textarea { box-sizing: border-box; width: 100%; min-height: 110px; padding: 12px 14px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font: 400 0.9rem/1.5 'Jost', sans-serif; resize: vertical; }
 .news-report-modal .auth-field textarea:focus { border-color: var(--purple-bright); outline: none; }
 .news-report-modal .report-modal-sub { margin: -0.6em 0 1.2em; color: var(--text-faint); font-size: 0.8rem; }
 .news-report-modal .report-modal-status { display: none; margin: 0.6em 0 0; color: #3ecf8e; font-size: 0.85rem; }
 .news-report-modal .report-modal-status.show { display: block; }
 .news-report-modal .report-modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+
+/* Staff Warnings modal (mirrors community.css's warning-modal-* rules; this
+   page uses content.css/public.css, never community.css, per css/SOURCES.md). */
+.warning-modal-view-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-faint); margin: 0 0 8px; }
+#news-warning-modal-view-section, #news-warning-modal-issue-section { margin-bottom: 1.2em; }
+#news-warning-modal-view-list { max-height: 200px; overflow-y: auto; }
+.warning-modal-empty { color: var(--text-faint); font-size: 0.82rem; margin: 0; }
+.warning-modal-item { padding: 8px 10px; margin-bottom: 6px; border-radius: 3px; font-size: 0.82rem; color: var(--text-dim); background: var(--panel-2); border-left: 3px solid rgba(170,161,190,0.5); }
+.warning-modal-item-minor { border-left-color: rgba(170,161,190,0.5); }
+.warning-modal-item-moderate { border-left-color: var(--gold-bright); }
+.warning-modal-item-severe { border-left-color: #e05a4a; }
+.warning-modal-item-meta { color: var(--text-faint); font-size: 0.74rem; }
+.warning-modal-mute-toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 0.9rem; color: var(--text); }
+.warning-modal-mute-toggle input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--gold-bright); cursor: pointer; }
+#news-warning-modal-reason, #news-warning-modal-severity { box-sizing: border-box; width: 100%; }
+#news-warning-modal-reason { min-height: 90px; padding: 12px 14px; border: 1px solid var(--border); background: var(--bg); color: var(--text); font: 400 0.9rem/1.5 'Jost', sans-serif; resize: vertical; }
+#news-warning-modal-reason:focus, #news-warning-modal-severity:focus { border-color: var(--purple-bright); outline: none; }
 .news-comments-login { padding: 20px 0 0; }
 .news-comments-login p { color: var(--text-faint); font-size: 0.87rem; }
 .news-comments-login .btn { padding: 10px 16px; font-size: 0.68rem; }

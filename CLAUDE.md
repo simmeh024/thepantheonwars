@@ -562,6 +562,70 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Member Warning System, with an optional temporary mute.** Staff with the
+  right role can now issue a warning (reason + minor/moderate/severe
+  severity) against a member, from either a new **Community -> Warnings**
+  admin page or a small **Warn** icon that appears next to the Report icon
+  on every forum post/reply and News comment (never on your own content).
+  One icon serves both "issue" and "see" per the original request: it opens
+  a compact modal with a view section (that member's active warnings, shown
+  only with `warnings.view`) and an issue section (shown only with
+  `warnings.manage`). New `member_warnings` table
+  (`sql/migration_member_warnings.sql`) with `status='active'/'revoked'` --
+  revoking keeps the row for the audit trail; only the separate
+  `warnings.delete` permission permanently removes one, mirroring Topic
+  Reports' resolve-vs-delete split rather than the ban toggle's single-state
+  model. Three new permissions: `warnings.view` / `warnings.manage` /
+  `warnings.delete`.
+  **Mute, bundled into the same Issue Warning flow:** a fixed duration (1
+  hour / 12 hours / 1 day / 3 days / 1 week, chosen by staff judgment --
+  the mute-duration `<select>`'s initial highlight nudges toward the chosen
+  severity as a suggestion only, never a hard rule) blocks new forum
+  topics/replies and News comments outright
+  (`pw_require_not_muted()` in `api/helpers.php`, one added line in
+  `api/topics/create.php` / `api/comments/post.php` /
+  `api/news/comments/post.php`) and blocks direct messages to anyone except
+  staff (`api/direct-messages/send.php` -- reuses the existing
+  `pw_is_staff_messenger()` recipient check already used there for banned
+  senders). Mute state lives on `users.muted_until`/`mute_reason`,
+  deliberately mirroring `banned_at`/`banned_until`'s simplicity (no
+  "permanent" option, just NULL-or-past means not muted) rather than a
+  separate table, since every authenticated request's already-loaded
+  `$user` row can then check it with zero extra queries. Unlike a ban, a
+  mute never touches the session -- a muted member stays fully logged in
+  and can keep browsing/reading, only specific write actions are rejected
+  with a clear reason + expiry message.
+  New endpoints: `api/admin/warnings/{list,issue,revoke,delete}.php` and
+  `api/admin/members/unmute.php`. The Issue Warning modal's member picker
+  reuses the existing `api/direct-messages/member-search.php` rather than a
+  new search endpoint. `api/admin/members/list.php` gained
+  `active_warning_count`/`muted`/`muted_until` per row, resolved server-side
+  to `null` for a viewer without `warnings.view` (same pattern as
+  `dashboards.view_ip_addresses` gating `last_login_ip`) -- the Members list
+  gets a warning-count pill and a Muted-until pill, and the Member edit
+  modal gets a Warnings status line, View All / Issue Warning buttons, and
+  an Unmute Now button, all following the standing permission-aware-UI
+  convention (built only when the permission holds, never hidden-but-present).
+  The warned member is notified via a new `warning_issued` notification type
+  (reason + severity + mute expiry if any, but never the issuer's identity --
+  matching the anonymous topic-report-resolution precedent), which touched
+  every file that convention requires: the ENUM/preference-column migration,
+  `pw_notifications_enabled()`, both `notification-prefs` endpoints, both
+  `notifications/{stats,list}.php`, a new Notification Settings toggle in
+  `profile.html`, and hand-duplicated icon/link/text entries in
+  `js/notifications.js` and `notifications.html` (plus its filter chip).
+  Every action (`warning_issued`/`warning_revoked`/`warning_deleted`/
+  `member_muted`/`member_unmuted`) is audited via `pw_log_admin_activity()`
+  with matching Audit Log labels/icons/filter options. The per-post Warn
+  icon and its modal are hand-duplicated between `community.html` (forum
+  posts/replies) and `js/news-post.js`+`news-post.html` (News comments), per
+  this codebase's established no-shared-JS-module convention -- both needed
+  a new `authorUserId` field added to the message-actions `ctx` object
+  (previously only `authorName` was passed, insufficient to target a
+  warning). Run `sql/migration_member_warnings.sql` once in phpMyAdmin after
+  deploy; it also adds the `notif_warning_issued` column and
+  `users.muted_until`/`mute_reason`.
+
 - **Visitor Statistics: content popularity, bounce/session-depth, a real
   country map, and new-vs-returning visitors.** Four additions to the
   admin Visitor Statistics page, each its own new endpoint under

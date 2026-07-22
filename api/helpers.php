@@ -184,19 +184,43 @@ function pw_is_banned($user) {
     return strtotime($user['banned_until']) > time();
 }
 
+// A mute has no "permanent" option (unlike a ban) -- only the fixed
+// durations offered in the Issue Warning UI -- so muted_until alone fully
+// describes the state: NULL or a passed timestamp both mean "not muted".
+function pw_is_muted($user) {
+    if (empty($user['muted_until'])) {
+        return false;
+    }
+    return strtotime($user['muted_until']) > time();
+}
+
+// Blocks a write action (new topic/reply/News comment, or a direct message
+// to a non-staff recipient -- see that call site's own extra check) with a
+// clear reason + expiry. Does not touch the session the way a ban does: a
+// muted member stays fully logged in and can keep browsing/reading.
+function pw_require_not_muted($user) {
+    if (!pw_is_muted($user)) {
+        return;
+    }
+    $until = date('M j, Y g:i A', strtotime($user['muted_until'])) . ' UTC';
+    $reason = !empty($user['mute_reason']) ? (' Reason: ' . $user['mute_reason']) : '';
+    pw_error('You are temporarily muted until ' . $until . '.' . $reason, 403);
+}
+
 function pw_current_user() {
     if (empty($_SESSION['user_id'])) {
         return null;
     }
     try {
-        $stmt = pw_db()->prepare('SELECT id, username, email, newsletter_subscribed, display_name, overlord_affinity, role, presence_status, reputation, selected_icon, created_at, banned_at, banned_until FROM users WHERE id = ?');
+        $stmt = pw_db()->prepare('SELECT id, username, email, newsletter_subscribed, display_name, overlord_affinity, role, presence_status, reputation, selected_icon, created_at, banned_at, banned_until, muted_until, mute_reason FROM users WHERE id = ?');
         $stmt->execute([$_SESSION['user_id']]);
         $user = $stmt->fetch();
     } catch (Throwable $e) {
-        // newsletter_subscribed/reputation/selected_icon arrive via manual
-        // migrations after deploy (migration_newsletter_subscription.sql,
-        // migration_reputation.sql, migration_reputation_icons.sql) -- this
-        // function runs on every authenticated request, so it must keep
+        // newsletter_subscribed/reputation/selected_icon/muted_until/
+        // mute_reason arrive via manual migrations after deploy
+        // (migration_newsletter_subscription.sql, migration_reputation.sql,
+        // migration_reputation_icons.sql, migration_member_warnings.sql) --
+        // this function runs on every authenticated request, so it must keep
         // working during that window rather than fatal on a missing column.
         $stmt = pw_db()->prepare('SELECT id, username, email, display_name, overlord_affinity, role, presence_status, created_at, banned_at, banned_until FROM users WHERE id = ?');
         $stmt->execute([$_SESSION['user_id']]);
@@ -205,6 +229,8 @@ function pw_current_user() {
             $user['newsletter_subscribed'] = 1;
             $user['reputation'] = 0;
             $user['selected_icon'] = null;
+            $user['muted_until'] = null;
+            $user['mute_reason'] = null;
         }
     }
     if (!$user) {
@@ -860,7 +886,7 @@ function pw_log_admin_activity($action, $description, $user = null) {
 // newly introduced ones, so this only ever needs to read, never backfill on
 // account creation.
 function pw_notifications_enabled($userId, $type) {
-    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved', 'world_available' => 'notif_world_available', 'news_published' => 'notif_news_published', 'topic_reply' => 'notif_topic_reply', 'icon_unlocked' => 'notif_icon_unlocked', 'new_device_login' => 'notif_new_device_login'];
+    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved', 'world_available' => 'notif_world_available', 'news_published' => 'notif_news_published', 'topic_reply' => 'notif_topic_reply', 'icon_unlocked' => 'notif_icon_unlocked', 'new_device_login' => 'notif_new_device_login', 'warning_issued' => 'notif_warning_issued'];
     if (!isset($columns[$type])) {
         return true;
     }

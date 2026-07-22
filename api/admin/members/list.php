@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../helpers.php';
 
 $adminUser = pw_require_permission('members.view');
 $canViewIp = pw_has_permission($adminUser, 'dashboards.view_ip_addresses');
+$canViewWarnings = pw_has_permission($adminUser, 'warnings.view');
 
 $db = pw_db();
 
@@ -96,10 +97,33 @@ try {
     // No migration yet: every row presents as subscribed (see comment above).
 }
 
+// muted_until/mute_reason arrive via migration_member_warnings.sql; keep the
+// Members list usable during the deploy-then-migrate window, same pattern
+// as verification/2FA/newsletter above.
+$muteSelect = 'NULL AS muted_until, NULL AS mute_reason';
+try {
+    $db->query('SELECT muted_until FROM users LIMIT 1');
+    $muteSelect = 'u.muted_until AS muted_until, u.mute_reason AS mute_reason';
+} catch (Throwable $e) {
+    // No migration yet: every row presents as not muted.
+}
+
+// The member_warnings table arrives with the same migration. Falls back to
+// zero active warnings during that window rather than fatal-ing the list.
+$warningCountSelect = '0';
+try {
+    $db->query('SELECT id FROM member_warnings LIMIT 1');
+    $warningCountSelect = "(SELECT COUNT(*) FROM member_warnings mw WHERE mw.user_id = u.id AND mw.status = 'active')";
+} catch (Throwable $e) {
+    // No migration yet: every row presents as zero active warnings.
+}
+
 $stmt = $db->prepare(
     "SELECT u.id, u.username, u.email, $verificationSelect AS email_verified_at, u.display_name, u.role, u.created_at, u.last_login_at, u.last_login_ip, u.banned_at, u.banned_until,
             $twoFactorSelect AS two_factor_enabled,
             $newsletterSelect AS newsletter_subscribed,
+            $muteSelect,
+            $warningCountSelect AS active_warning_count,
             EXISTS(
                 SELECT 1
                 FROM oauth_identities oi
@@ -133,7 +157,7 @@ foreach ($db->query('SELECT user_id, role_slug FROM user_roles') as $row) {
     $otherRolesByUser[$row['user_id']][] = $row['role_slug'];
 }
 
-$out = array_map(function ($r) use ($otherRolesByUser, $canViewIp) {
+$out = array_map(function ($r) use ($otherRolesByUser, $canViewIp, $canViewWarnings) {
     return [
         'id' => (int)$r['id'],
         'username' => $r['username'],
@@ -152,6 +176,10 @@ $out = array_map(function ($r) use ($otherRolesByUser, $canViewIp) {
         'banned' => pw_is_banned($r),
         'banned_at' => $r['banned_at'],
         'banned_until' => $r['banned_until'],
+        'active_warning_count' => $canViewWarnings ? (int)$r['active_warning_count'] : null,
+        'muted' => $canViewWarnings ? pw_is_muted($r) : null,
+        'muted_until' => $canViewWarnings ? $r['muted_until'] : null,
+        'mute_reason' => $canViewWarnings ? $r['mute_reason'] : null,
     ];
 }, $rows);
 

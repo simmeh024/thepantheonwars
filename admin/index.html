@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=270">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=271">
 </head>
 <body>
 
@@ -86,6 +86,7 @@
         <li data-requires-permission="members.view"><button type="button" class="admin-nav-link" data-section="members"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>Members</button></li>
         <li data-requires-permission="roles.manage"><button type="button" class="admin-nav-link" data-section="roles-permissions"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>Roles &amp; Permissions</button></li>
         <li data-requires-permission="topic_reports.view"><button type="button" class="admin-nav-link" data-section="topic-reports"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V4s-1-1-4-1-5 2-8 2-4-1-4-1z"/><path d="M4 22V4"/></svg>Topic Reports</button></li>
+        <li data-requires-permission="warnings.view"><button type="button" class="admin-nav-link" data-section="warnings"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>Warnings</button></li>
         <li data-requires-permission="privacy_requests.view"><button type="button" class="admin-nav-link" data-section="privacy-requests"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 8.7 8 11 4.6-2.3 8-6 8-11V5l-8-3z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>Privacy Requests</button></li>
         <li data-requires-permission="forum_boards.view"><button type="button" class="admin-nav-link" data-section="forum-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Forum Control</button></li>
         <li data-requires-permission="reputation.view"><button type="button" class="admin-nav-link" data-section="reputation-levels"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/><path d="M8.5 13.5 7 22l5-3 5 3-1.5-8.5"/></svg>Reputation Control</button></li>
@@ -1415,6 +1416,13 @@
             <option value="member_deleted">Member deleted</option>
             <option value="member_avatar_reset">Avatar reset</option>
             <option value="member_password_reset">Password reset</option>
+            <option value="member_muted">Member muted</option>
+            <option value="member_unmuted">Member unmuted</option>
+          </optgroup>
+          <optgroup label="Warnings">
+            <option value="warning_issued">Warning issued</option>
+            <option value="warning_revoked">Warning revoked</option>
+            <option value="warning_deleted">Warning deleted</option>
           </optgroup>
           <optgroup label="Sessions">
             <option value="session_created">Session created</option>
@@ -1845,6 +1853,37 @@
 
       <div class="admin-list" id="report-list">
         <div class="admin-list-empty">Loading reports&hellip;</div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-warnings" hidden>
+      <div class="admin-section-head">
+        <h1>Warnings</h1>
+        <p>Formal warnings issued to members, with an optional temporary mute. Every action here is audited.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <div class="admin-filter-tabs" id="warning-filter-tabs">
+          <button type="button" class="admin-filter-tab active" data-filter="active">Active</button>
+          <button type="button" class="admin-filter-tab" data-filter="revoked">Revoked</button>
+          <button type="button" class="admin-filter-tab" data-filter="all">All</button>
+        </div>
+        <select class="admin-search admin-tag-select" id="warning-severity-filter" aria-label="Filter by severity">
+          <option value="">All severities</option>
+          <option value="minor">Minor</option>
+          <option value="moderate">Moderate</option>
+          <option value="severe">Severe</option>
+        </select>
+        <button type="button" class="btn btn-solid" id="warning-create-btn" data-requires-permission="warnings.manage">+ Issue Warning</button>
+        <span class="admin-count" id="warning-count"></span>
+      </div>
+      <div class="warning-member-filter-chip" id="warning-member-filter-chip" hidden>
+        Filtered to <strong id="warning-member-filter-name"></strong>
+        <button type="button" id="warning-member-filter-clear">Clear</button>
+      </div>
+
+      <div class="admin-list" id="warning-list">
+        <div class="admin-list-empty">Loading warnings&hellip;</div>
       </div>
     </section>
 
@@ -2331,6 +2370,17 @@
         <input type="datetime-local" id="member-banned-until-input" disabled>
       </div>
       <p class="member-ban-hint">Banned accounts can&rsquo;t log in, and any active session ends immediately.</p>
+    </div>
+
+    <div class="admin-field member-warnings-field" id="member-warnings-field" hidden>
+      <label>Warnings</label>
+      <p class="member-warnings-status" id="member-warnings-status">&mdash;</p>
+      <p class="member-mute-status" id="member-mute-status" hidden></p>
+      <div class="member-warnings-actions">
+        <button type="button" class="btn" id="member-warnings-view-btn" data-requires-permission="warnings.view">View All</button>
+        <button type="button" class="btn" id="member-warnings-issue-btn" data-requires-permission="warnings.manage">Issue Warning</button>
+        <button type="button" class="btn" id="member-warnings-unmute-btn" data-requires-permission="warnings.manage" hidden>Unmute Now</button>
+      </div>
     </div>
 
     <div class="member-modal-meta" id="member-modal-meta">
@@ -3454,6 +3504,71 @@
 <div class="admin-modal" id="reputation-ledger-modal" hidden><div class="admin-modal-backdrop"></div><div class="admin-modal-card wide"><button type="button" class="admin-modal-close" id="reputation-ledger-modal-close" aria-label="Close">&times;</button><h3 class="admin-modal-title">Reputation Ledger</h3><p class="admin-modal-sub">Every recorded award, reversal, and staff adjustment.</p><div id="reputation-ledger-list" class="admin-list"><div class="admin-list-empty">Loading ledger&hellip;</div></div><div class="admin-modal-actions"><button type="button" class="btn" id="reputation-ledger-modal-done-btn">Done</button></div></div></div>
 <div class="admin-modal" id="reputation-adjust-modal" hidden><div class="admin-modal-backdrop"></div><div class="admin-modal-card"><button type="button" class="admin-modal-close" id="reputation-adjust-modal-close" aria-label="Close">&times;</button><h3 class="admin-modal-title">Adjust Member Reputation</h3><p class="admin-modal-sub">This change is permanently recorded in the reputation ledger.</p><div class="admin-field"><label for="reputation-adjust-member-id">Member ID</label><input id="reputation-adjust-member-id" type="number" min="1" step="1" placeholder="Find this in Members"></div><div class="admin-field"><label for="reputation-adjust-points">Points</label><input id="reputation-adjust-points" type="number" min="-1000" max="1000" step="1" placeholder="e.g. 10 or -5"></div><div class="admin-field"><label for="reputation-adjust-reason">Reason</label><textarea id="reputation-adjust-reason" maxlength="255" placeholder="Explain this staff adjustment"></textarea></div><p class="admin-modal-error" id="reputation-adjust-error"></p><div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="reputation-adjust-save-btn">Save Adjustment</button><button type="button" class="btn" id="reputation-adjust-cancel-btn">Cancel</button></div></div></div>
 
+<div class="admin-modal" id="warning-issue-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-card">
+    <button type="button" class="admin-modal-close" id="warning-issue-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title">Issue Warning</h3>
+    <p class="admin-modal-sub" id="warning-issue-modal-sub">Search for a member, then describe the incident.</p>
+
+    <div class="admin-field" id="warning-issue-member-search-field">
+      <label for="warning-issue-member-search">Member</label>
+      <input type="text" id="warning-issue-member-search" placeholder="Search by name or username&hellip;" autocomplete="off">
+      <div class="member-lookup-results" id="warning-issue-member-results"></div>
+    </div>
+    <div class="warning-issue-target" id="warning-issue-target" hidden>
+      Warning: <strong id="warning-issue-target-name"></strong>
+      <button type="button" class="warning-issue-target-clear" id="warning-issue-target-clear">Change</button>
+    </div>
+
+    <div class="admin-field">
+      <label for="warning-issue-reason">Reason</label>
+      <textarea id="warning-issue-reason" maxlength="1000" placeholder="Describe the incident"></textarea>
+    </div>
+    <div class="admin-field">
+      <label for="warning-issue-severity">Severity</label>
+      <select id="warning-issue-severity">
+        <option value="minor">Minor</option>
+        <option value="moderate">Moderate</option>
+        <option value="severe">Severe</option>
+      </select>
+    </div>
+    <div class="admin-field">
+      <label class="warning-mute-toggle"><input type="checkbox" id="warning-issue-mute-toggle"> <span>Also mute this member</span></label>
+      <select id="warning-issue-mute-duration" hidden>
+        <option value="60">1 hour</option>
+        <option value="720">12 hours</option>
+        <option value="1440">1 day</option>
+        <option value="4320">3 days</option>
+        <option value="10080">1 week</option>
+      </select>
+    </div>
+
+    <p class="admin-modal-error" id="warning-issue-error"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="warning-issue-save-btn">Issue Warning</button>
+      <button type="button" class="btn" id="warning-issue-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal" id="warning-revoke-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-card">
+    <button type="button" class="admin-modal-close" id="warning-revoke-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title">Revoke Warning</h3>
+    <div class="admin-field">
+      <label for="warning-revoke-reason">Reason</label>
+      <textarea id="warning-revoke-reason" maxlength="1000" placeholder="Why is this warning being revoked?"></textarea>
+    </div>
+    <p class="admin-modal-error" id="warning-revoke-error"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="warning-revoke-save-btn">Revoke</button>
+      <button type="button" class="btn" id="warning-revoke-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-modal" id="mail-template-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner admin-modal-inner-wide">
@@ -3763,6 +3878,7 @@
       if (name === 'translation-quality') loadQualityReports();
       if (name === 'members') loadMembers();
       if (name === 'topic-reports') loadTopicReports();
+      if (name === 'warnings') loadWarnings();
       if (name === 'privacy-requests') loadPrivacyRequests();
       if (name === 'forum-control') { loadForumCategories(); loadForumBoards(); }
       if (name === 'reputation-levels') loadReputationLevelList();
@@ -5183,6 +5299,367 @@
     });
   }
 
+  // ===== Warnings ===============================================================
+  var warningListEl = document.getElementById('warning-list');
+  var warningCountEl = document.getElementById('warning-count');
+  var warningFilterTabs = document.getElementById('warning-filter-tabs');
+  var warningSeverityFilterEl = document.getElementById('warning-severity-filter');
+  var warningCreateBtn = document.getElementById('warning-create-btn');
+  var warningMemberFilterChip = document.getElementById('warning-member-filter-chip');
+  var warningMemberFilterName = document.getElementById('warning-member-filter-name');
+  var warningMemberFilterClear = document.getElementById('warning-member-filter-clear');
+  var SEVERITY_LABELS = { minor: 'Minor', moderate: 'Moderate', severe: 'Severe' };
+  var warningFilter = 'active';
+  var warningFilterUserId = null;
+
+  function loadWarnings() {
+    warningListEl.innerHTML = '<div class="admin-list-empty">Loading warnings&hellip;</div>';
+    var url = '/api/admin/warnings/list.php?status=' + encodeURIComponent(warningFilter);
+    if (warningSeverityFilterEl.value) url += '&severity=' + encodeURIComponent(warningSeverityFilterEl.value);
+    if (warningFilterUserId) url += '&user_id=' + encodeURIComponent(warningFilterUserId);
+    fetch(url, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) {
+          warningListEl.innerHTML = '<div class="admin-list-empty">Could not load warnings.</div>';
+          return;
+        }
+        warningCountEl.textContent = data.warnings.length + (data.warnings.length === 1 ? ' warning' : ' warnings');
+        renderWarningList(data.warnings);
+      })
+      .catch(function () {
+        warningListEl.innerHTML = '<div class="admin-list-empty">Could not load warnings.</div>';
+      });
+  }
+
+  function renderWarningList(warnings) {
+    if (!warnings.length) {
+      warningListEl.innerHTML = '<div class="admin-list-empty">No warnings match this filter.</div>';
+      return;
+    }
+    warningListEl.innerHTML = '';
+    var canManageWarnings = pwHasPermission('warnings.manage');
+    var canDeleteWarnings = pwHasPermission('warnings.delete');
+    warnings.forEach(function (w) {
+      var row = document.createElement('div');
+      row.className = 'admin-row warning-row';
+
+      var main = document.createElement('div');
+      main.className = 'admin-row-main';
+      main.innerHTML =
+        '<p class="admin-row-subject">' +
+          escapeHtml(w.user.display_name) +
+          ' <span class="warning-severity-badge warning-severity-' + w.severity + '">' + SEVERITY_LABELS[w.severity] + '</span>' +
+          ' <span class="warning-status warning-status-' + w.status + '">' + (w.status === 'active' ? 'Active' : 'Revoked') + '</span>' +
+          (w.mute_minutes ? ' <span class="warning-mute-badge">Muted</span>' : '') +
+        '</p>' +
+        '<div class="admin-row-meta">' +
+          '<span>issued by ' + escapeHtml(w.issued_by_username) + '</span>' +
+          '<span class="admin-row-sep">&bull;</span>' +
+          '<span>' + escapeHtml(fmtDate(w.created_at)) + '</span>' +
+          (w.source_type !== 'manual' ? '<span class="admin-row-sep">&bull;</span><span>from a ' + w.source_type.replace('_', ' ') + '</span>' : '') +
+        '</div>' +
+        '<p class="report-reason">' + escapeHtml(w.reason) + '</p>' +
+        (w.status === 'revoked'
+          ? '<p class="report-resolution"><strong>Revoked</strong> (by ' + escapeHtml(w.revoked_by_username || 'unknown') + ', ' + escapeHtml(fmtDate(w.revoked_at)) + '): ' + escapeHtml(w.revoke_reason || '') + '</p>'
+          : '');
+      row.appendChild(main);
+
+      var actions = document.createElement('div');
+      actions.className = 'report-row-actions';
+
+      if (canManageWarnings && w.status === 'active') {
+        var revokeBtn = document.createElement('button');
+        revokeBtn.type = 'button';
+        revokeBtn.className = 'report-action-btn';
+        revokeBtn.textContent = 'Revoke';
+        revokeBtn.addEventListener('click', function () { openWarningRevokeModal(w); });
+        actions.appendChild(revokeBtn);
+      }
+      if (canDeleteWarnings) {
+        var deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'report-action-btn report-action-btn-danger';
+        deleteBtn.textContent = 'Delete';
+        deleteBtn.addEventListener('click', function () { deleteWarning(w); });
+        actions.appendChild(deleteBtn);
+      }
+
+      row.appendChild(actions);
+      warningListEl.appendChild(row);
+    });
+  }
+
+  if (warningFilterTabs) {
+    warningFilterTabs.addEventListener('click', function (e) {
+      var btn = e.target.closest('.admin-filter-tab');
+      if (!btn) return;
+      warningFilterTabs.querySelectorAll('.admin-filter-tab').forEach(function (t) { t.classList.remove('active'); });
+      btn.classList.add('active');
+      warningFilter = btn.getAttribute('data-filter');
+      loadWarnings();
+    });
+  }
+  if (warningSeverityFilterEl) {
+    warningSeverityFilterEl.addEventListener('change', loadWarnings);
+  }
+  if (warningMemberFilterClear) {
+    warningMemberFilterClear.addEventListener('click', function () {
+      warningFilterUserId = null;
+      warningMemberFilterChip.hidden = true;
+      loadWarnings();
+    });
+  }
+
+  // Opens the Warnings section pre-filtered to one member -- used by the
+  // Member edit modal's "View All" link.
+  function pwShowWarningsForMember(userId, displayName) {
+    warningFilterUserId = userId;
+    warningMemberFilterName.textContent = displayName;
+    warningMemberFilterChip.hidden = false;
+    showSection('warnings');
+  }
+
+  // Used by the Member edit modal's "Unmute Now" button.
+  function pwUnmuteMember(userId, displayName) {
+    if (!window.confirm('Unmute ' + displayName + ' now?')) return;
+    fetch('/api/admin/members/unmute.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, csrf: window.PW_AUTH.csrf }),
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) { window.alert(data.error || 'Could not unmute that member.'); return; }
+      memberModal.hidden = true;
+      loadMembers();
+    }).catch(function () { window.alert('Could not reach the server.'); });
+  }
+
+  function deleteWarning(w) {
+    if (!window.confirm('Permanently delete this warning on ' + w.user.display_name + '? This cannot be undone.')) return;
+    fetch('/api/admin/warnings/delete.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: w.id, csrf: window.PW_AUTH.csrf }),
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data.ok) { window.alert(data.error || 'Could not delete that warning.'); return; }
+      loadWarnings();
+    }).catch(function () { window.alert('Could not reach the server.'); });
+  }
+
+  // --- Revoke modal ---
+  var warningRevokeModal = document.getElementById('warning-revoke-modal');
+  var warningRevokeReasonInput = document.getElementById('warning-revoke-reason');
+  var warningRevokeErrorEl = document.getElementById('warning-revoke-error');
+  var warningRevokeSaveBtn = document.getElementById('warning-revoke-save-btn');
+  var pendingRevokeWarning = null;
+
+  function openWarningRevokeModal(w) {
+    if (!pwHasPermission('warnings.manage')) return;
+    pendingRevokeWarning = w;
+    warningRevokeReasonInput.value = '';
+    warningRevokeErrorEl.classList.remove('show');
+    warningRevokeModal.hidden = false;
+  }
+  function closeWarningRevokeModal() { warningRevokeModal.hidden = true; }
+  document.getElementById('warning-revoke-modal-close').addEventListener('click', closeWarningRevokeModal);
+  document.getElementById('warning-revoke-cancel-btn').addEventListener('click', closeWarningRevokeModal);
+  warningRevokeModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeWarningRevokeModal);
+
+  warningRevokeSaveBtn.addEventListener('click', function () {
+    warningRevokeErrorEl.classList.remove('show');
+    if (!pendingRevokeWarning || !window.PW_AUTH.csrf) return;
+    var reason = warningRevokeReasonInput.value.trim();
+    if (!reason) {
+      warningRevokeErrorEl.textContent = 'Enter a reason for revoking this warning.';
+      warningRevokeErrorEl.classList.add('show');
+      return;
+    }
+    warningRevokeSaveBtn.disabled = true; warningRevokeSaveBtn.classList.add('is-busy');
+    fetch('/api/admin/warnings/revoke.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: pendingRevokeWarning.id, revoke_reason: reason, csrf: window.PW_AUTH.csrf }),
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      warningRevokeSaveBtn.disabled = false; warningRevokeSaveBtn.classList.remove('is-busy');
+      if (!data.ok) {
+        warningRevokeErrorEl.textContent = data.error || 'Could not revoke that warning.';
+        warningRevokeErrorEl.classList.add('show');
+        return;
+      }
+      closeWarningRevokeModal();
+      loadWarnings();
+    }).catch(function () {
+      warningRevokeSaveBtn.disabled = false; warningRevokeSaveBtn.classList.remove('is-busy');
+      warningRevokeErrorEl.textContent = 'Could not reach the server. Try again in a moment.';
+      warningRevokeErrorEl.classList.add('show');
+    });
+  });
+
+  // --- Issue Warning modal (reused by the Warnings toolbar and the Member
+  // edit modal's "Issue Warning" button; the public-site Warn icon posts to
+  // the same endpoint from its own compact modal in community.html/news-post.js) ---
+  var warningIssueModal = document.getElementById('warning-issue-modal');
+  var warningIssueModalSub = document.getElementById('warning-issue-modal-sub');
+  var warningIssueMemberSearchField = document.getElementById('warning-issue-member-search-field');
+  var warningIssueMemberSearchInput = document.getElementById('warning-issue-member-search');
+  var warningIssueMemberResults = document.getElementById('warning-issue-member-results');
+  var warningIssueTargetEl = document.getElementById('warning-issue-target');
+  var warningIssueTargetNameEl = document.getElementById('warning-issue-target-name');
+  var warningIssueTargetClearBtn = document.getElementById('warning-issue-target-clear');
+  var warningIssueReasonInput = document.getElementById('warning-issue-reason');
+  var warningIssueSeveritySelect = document.getElementById('warning-issue-severity');
+  var warningIssueMuteToggle = document.getElementById('warning-issue-mute-toggle');
+  var warningIssueMuteDurationSelect = document.getElementById('warning-issue-mute-duration');
+  var warningIssueErrorEl = document.getElementById('warning-issue-error');
+  var warningIssueSaveBtn = document.getElementById('warning-issue-save-btn');
+  var warningIssueTarget = null; // { id, display_name }
+  var warningIssueSearchTimer = null;
+
+  function pwOpenIssueWarningModal(targetUser) {
+    if (!pwHasPermission('warnings.manage')) return;
+    warningIssueErrorEl.classList.remove('show');
+    warningIssueReasonInput.value = '';
+    warningIssueSeveritySelect.value = 'minor';
+    warningIssueMuteToggle.checked = false;
+    warningIssueMuteDurationSelect.hidden = true;
+    warningIssueMemberResults.innerHTML = '';
+    warningIssueMemberResults.hidden = true;
+    warningIssueMemberSearchInput.value = '';
+    if (targetUser) {
+      warningIssueTarget = targetUser;
+      warningIssueTargetNameEl.textContent = targetUser.display_name;
+      warningIssueTargetEl.hidden = false;
+      warningIssueMemberSearchField.hidden = true;
+    } else {
+      warningIssueTarget = null;
+      warningIssueTargetEl.hidden = true;
+      warningIssueMemberSearchField.hidden = false;
+    }
+    warningIssueModal.hidden = false;
+  }
+  function closeWarningIssueModal() { warningIssueModal.hidden = true; }
+  if (warningCreateBtn) warningCreateBtn.addEventListener('click', function () { pwOpenIssueWarningModal(null); });
+  document.getElementById('warning-issue-modal-close').addEventListener('click', closeWarningIssueModal);
+  document.getElementById('warning-issue-cancel-btn').addEventListener('click', closeWarningIssueModal);
+  warningIssueModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeWarningIssueModal);
+
+  if (warningIssueTargetClearBtn) {
+    warningIssueTargetClearBtn.addEventListener('click', function () {
+      warningIssueTarget = null;
+      warningIssueTargetEl.hidden = true;
+      warningIssueMemberSearchField.hidden = false;
+      warningIssueMemberSearchInput.focus();
+    });
+  }
+
+  if (warningIssueMemberSearchInput) {
+    warningIssueMemberSearchInput.addEventListener('input', function () {
+      clearTimeout(warningIssueSearchTimer);
+      var query = warningIssueMemberSearchInput.value.trim();
+      if (!query) {
+        warningIssueMemberResults.hidden = true;
+        warningIssueMemberResults.innerHTML = '';
+        return;
+      }
+      warningIssueSearchTimer = setTimeout(function () {
+        fetch('/api/direct-messages/member-search.php?q=' + encodeURIComponent(query), { credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            var members = data.members || [];
+            if (!members.length) {
+              warningIssueMemberResults.innerHTML = '<p class="member-lookup-hint">No members found.</p>';
+              warningIssueMemberResults.hidden = false;
+              return;
+            }
+            warningIssueMemberResults.innerHTML = '';
+            members.forEach(function (m) {
+              var item = document.createElement('button');
+              item.type = 'button';
+              item.className = 'member-lookup-row';
+              item.innerHTML = '<span class="member-lookup-row-name">' + escapeHtml(m.display_name) + '</span><span class="member-lookup-row-meta" style="color:' + escapeHtml(m.role_color || '#c7ccd6') + '">' + escapeHtml(m.role) + '</span>';
+              item.addEventListener('click', function () {
+                warningIssueTarget = { id: m.id, display_name: m.display_name };
+                warningIssueTargetNameEl.textContent = m.display_name;
+                warningIssueTargetEl.hidden = false;
+                warningIssueMemberSearchField.hidden = true;
+                warningIssueMemberResults.hidden = true;
+              });
+              warningIssueMemberResults.appendChild(item);
+            });
+            warningIssueMemberResults.hidden = false;
+          })
+          .catch(function () {});
+      }, 250);
+    });
+  }
+
+  if (warningIssueMuteToggle) {
+    warningIssueMuteToggle.addEventListener('change', function () {
+      warningIssueMuteDurationSelect.hidden = !warningIssueMuteToggle.checked;
+    });
+  }
+  if (warningIssueSeveritySelect) {
+    // Nudges the mute duration toward the chosen severity -- a suggestion
+    // only, staff can still pick any duration regardless.
+    warningIssueSeveritySelect.addEventListener('change', function () {
+      var suggestion = { minor: '60', moderate: '1440', severe: '10080' }[warningIssueSeveritySelect.value];
+      if (suggestion) warningIssueMuteDurationSelect.value = suggestion;
+    });
+  }
+
+  warningIssueSaveBtn.addEventListener('click', function () {
+    warningIssueErrorEl.classList.remove('show');
+    if (!window.PW_AUTH.csrf) return;
+    if (!warningIssueTarget) {
+      warningIssueErrorEl.textContent = 'Choose a member to warn.';
+      warningIssueErrorEl.classList.add('show');
+      return;
+    }
+    var reason = warningIssueReasonInput.value.trim();
+    if (!reason) {
+      warningIssueErrorEl.textContent = 'Enter a reason for this warning.';
+      warningIssueErrorEl.classList.add('show');
+      return;
+    }
+    var payload = {
+      user_id: warningIssueTarget.id,
+      reason: reason,
+      severity: warningIssueSeveritySelect.value,
+      csrf: window.PW_AUTH.csrf,
+    };
+    if (warningIssueTarget.source_type) {
+      payload.source_type = warningIssueTarget.source_type;
+      payload.source_id = warningIssueTarget.source_id;
+    }
+    if (warningIssueMuteToggle.checked) {
+      payload.mute_minutes = warningIssueMuteDurationSelect.value;
+    }
+    warningIssueSaveBtn.disabled = true; warningIssueSaveBtn.classList.add('is-busy');
+    fetch('/api/admin/warnings/issue.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).then(function (r) { return r.json(); }).then(function (data) {
+      warningIssueSaveBtn.disabled = false; warningIssueSaveBtn.classList.remove('is-busy');
+      if (!data.ok) {
+        warningIssueErrorEl.textContent = data.error || 'Could not issue that warning.';
+        warningIssueErrorEl.classList.add('show');
+        return;
+      }
+      closeWarningIssueModal();
+      if (document.getElementById('section-warnings') && !document.getElementById('section-warnings').hidden) loadWarnings();
+      if (typeof loadMembers === 'function' && document.getElementById('section-members') && !document.getElementById('section-members').hidden) loadMembers();
+    }).catch(function () {
+      warningIssueSaveBtn.disabled = false; warningIssueSaveBtn.classList.remove('is-busy');
+      warningIssueErrorEl.textContent = 'Could not reach the server. Try again in a moment.';
+      warningIssueErrorEl.classList.add('show');
+    });
+  });
+
   // ===== Privacy Requests =====================================================
   var privacyRequestListEl = document.getElementById('privacy-request-list');
   var privacyRequestCountEl = document.getElementById('privacy-request-count');
@@ -5410,6 +5887,11 @@
     member_deleted: 'Member deleted',
     member_avatar_reset: 'Avatar reset',
     member_password_reset: 'Password reset',
+    warning_issued: 'Warning issued',
+    warning_revoked: 'Warning revoked',
+    warning_deleted: 'Warning deleted',
+    member_muted: 'Member muted',
+    member_unmuted: 'Member unmuted',
     reputation_level_created: 'Reputation level created',
     reputation_level_updated: 'Reputation level updated',
     reputation_level_deleted: 'Reputation level deleted',
@@ -5511,6 +5993,11 @@
     member_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>',
     member_avatar_reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>',
     member_password_reset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>',
+    warning_issued: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>',
+    warning_revoked: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3 2 20h20L12 3z"/><path d="m9.5 12.5 2 2 3-3"/></svg>',
+    warning_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+    member_muted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="3" y1="3" x2="21" y2="21"/></svg>',
+    member_unmuted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v1a7 7 0 0 1-14 0v-1"/><line x1="12" y1="18" x2="12" y2="22"/></svg>',
     reputation_level_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/><path d="M8.5 13.5 7 22l5-3 5 3-1.5-8.5"/></svg>',
     reputation_level_updated: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/><path d="m15.5 15.5 2 2 4-4"/></svg>',
     reputation_level_deleted: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10z"/><path d="M8.5 13.5 7 22l5-3 5 3-1.5-8.5"/><line x1="3" y1="3" x2="21" y2="21"/></svg>',
@@ -5598,6 +6085,7 @@
     if (action.indexOf('mail_') === 0) return { key: 'mail', label: 'Mail', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="m3 7 9 6 9-6"/></svg>' };
     if (action.indexOf('translation_') === 0 || action === 'category_edited' || action.indexOf('dispatch') === 0 || action.indexOf('development_') === 0) return { key: 'development', label: 'Development', icon: ACTIVITY_ICONS.dispatches_resynced };
     if (action.indexOf('member_') === 0) return { key: 'members', label: 'Members', icon: ACTIVITY_ICONS.member_updated };
+    if (action.indexOf('warning_') === 0) return { key: 'community', label: 'Warnings', icon: ACTIVITY_ICONS.warning_issued };
     if (action.indexOf('topic_') === 0 || action.indexOf('comment_') === 0 || action.indexOf('content_') === 0 || action.indexOf('user_') === 0 || action.indexOf('report_') === 0) return { key: 'community', label: 'Community', icon: ACTIVITY_ICONS.forum_board_created };
     if (action.indexOf('privacy_') === 0) return { key: 'community', label: 'Privacy', icon: ACTIVITY_ICONS.privacy_request_updated };
     if (action.indexOf('role_') === 0) return { key: 'roles', label: 'Roles', icon: ACTIVITY_ICONS.role_updated };
@@ -8209,6 +8697,12 @@
   var memberBanPermanentRadio = document.getElementById('member-ban-permanent');
   var memberBanTemporaryRadio = document.getElementById('member-ban-temporary');
   var memberBannedUntilInput = document.getElementById('member-banned-until-input');
+  var memberWarningsField = document.getElementById('member-warnings-field');
+  var memberWarningsStatusEl = document.getElementById('member-warnings-status');
+  var memberMuteStatusEl = document.getElementById('member-mute-status');
+  var memberWarningsViewBtn = document.getElementById('member-warnings-view-btn');
+  var memberWarningsIssueBtn = document.getElementById('member-warnings-issue-btn');
+  var memberWarningsUnmuteBtn = document.getElementById('member-warnings-unmute-btn');
   var memberModalMetaEl = document.getElementById('member-modal-meta');
   var memberModalLastLogin = document.getElementById('member-modal-last-login');
   var memberModalJoined = document.getElementById('member-modal-joined');
@@ -8385,7 +8879,9 @@
       role.className = 'member-role-column';
       role.innerHTML =
         '<span class="member-role-badge" style="--role-color:' + escapeHtml(roleColorFor(entry.role)) + '">' + escapeHtml(roleLabelFor(entry.role)) + '</span>' +
-        (entry.banned ? '<span class="member-banned-badge">' + (entry.banned_until ? 'Banned until ' + escapeHtml(fmtDate(entry.banned_until)) : 'Banned') + '</span>' : '');
+        (entry.banned ? '<span class="member-banned-badge">' + (entry.banned_until ? 'Banned until ' + escapeHtml(fmtDate(entry.banned_until)) : 'Banned') + '</span>' : '') +
+        (entry.active_warning_count ? '<span class="member-warning-count-badge">' + entry.active_warning_count + (entry.active_warning_count === 1 ? ' warning' : ' warnings') + '</span>' : '') +
+        (entry.muted ? '<span class="member-muted-badge">Muted until ' + escapeHtml(fmtDate(entry.muted_until)) + '</span>' : '');
       row.appendChild(role);
 
       row.addEventListener('click', function () { openMemberModal(entry); });
@@ -8501,6 +8997,28 @@
     memberBanTemporaryRadio.checked = hasFutureExpiry;
     memberBannedUntilInput.value = hasFutureExpiry ? toDatetimeLocalValue(entry.banned_until) : '';
     updateBanOptionsVisibility();
+
+    // active_warning_count/muted are null when the viewer lacks warnings.view
+    // (server-resolved in api/admin/members/list.php), matching the
+    // dashboards.view_ip_addresses precedent just above.
+    memberWarningsField.hidden = entry.active_warning_count === null || entry.active_warning_count === undefined;
+    if (!memberWarningsField.hidden) {
+      var warningCount = entry.active_warning_count || 0;
+      memberWarningsStatusEl.textContent = warningCount + (warningCount === 1 ? ' active warning' : ' active warnings');
+      memberWarningsViewBtn.hidden = !pwHasPermission('warnings.view');
+      memberWarningsIssueBtn.hidden = !pwHasPermission('warnings.manage');
+      memberWarningsViewBtn.onclick = function () { pwShowWarningsForMember(entry.id, entry.display_name); };
+      memberWarningsIssueBtn.onclick = function () { pwOpenIssueWarningModal({ id: entry.id, display_name: entry.display_name }); };
+      if (entry.muted) {
+        memberMuteStatusEl.hidden = false;
+        memberMuteStatusEl.textContent = 'Muted until ' + fmtDate(entry.muted_until) + (entry.mute_reason ? ' -- ' + entry.mute_reason : '');
+        memberWarningsUnmuteBtn.hidden = !pwHasPermission('warnings.manage');
+        memberWarningsUnmuteBtn.onclick = function () { pwUnmuteMember(entry.id, entry.display_name); };
+      } else {
+        memberMuteStatusEl.hidden = true;
+        memberWarningsUnmuteBtn.hidden = true;
+      }
+    }
 
     memberModalMetaEl.hidden = false;
     memberModalLastLogin.textContent = entry.last_login_at ?

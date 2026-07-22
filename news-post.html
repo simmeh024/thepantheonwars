@@ -10,7 +10,7 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=266">
+<link rel="stylesheet" href="css/public.css?v=267">
 </head>
 <body>
 <header class="site-header">
@@ -60,9 +60,55 @@
     <div class="report-modal-actions"><button type="button" class="btn btn-solid" id="news-report-submit">Submit report</button><button type="button" class="btn" id="news-report-cancel">Cancel</button></div>
   </div>
 </div>
+
+<div class="auth-modal" id="news-warning-modal" hidden>
+  <div class="auth-modal-backdrop"></div>
+  <div class="auth-modal-inner">
+    <button type="button" class="auth-modal-close" id="news-warning-modal-close" aria-label="Close">&times;</button>
+    <h3 class="auth-modal-title">Warnings &mdash; <span id="news-warning-modal-name"></span></h3>
+
+    <div id="news-warning-modal-view-section">
+      <p class="warning-modal-view-label">Active warnings</p>
+      <div id="news-warning-modal-view-list"><p class="warning-modal-empty">Loading&hellip;</p></div>
+    </div>
+
+    <div id="news-warning-modal-issue-section">
+      <p class="warning-modal-view-label">Issue a new warning</p>
+      <div class="auth-field">
+        <label for="news-warning-modal-reason">Reason</label>
+        <textarea id="news-warning-modal-reason" maxlength="1000" placeholder="Describe the incident"></textarea>
+      </div>
+      <div class="auth-field">
+        <label for="news-warning-modal-severity">Severity</label>
+        <select id="news-warning-modal-severity">
+          <option value="minor">Minor</option>
+          <option value="moderate">Moderate</option>
+          <option value="severe">Severe</option>
+        </select>
+      </div>
+      <div class="auth-field">
+        <label class="warning-modal-mute-toggle"><input type="checkbox" id="news-warning-modal-mute-toggle"> <span>Also mute this member</span></label>
+        <select id="news-warning-modal-mute-duration" hidden>
+          <option value="60">1 hour</option>
+          <option value="720">12 hours</option>
+          <option value="1440">1 day</option>
+          <option value="4320">3 days</option>
+          <option value="10080">1 week</option>
+        </select>
+      </div>
+    </div>
+
+    <p class="auth-error" id="news-warning-modal-error"></p>
+    <p class="report-modal-status" id="news-warning-modal-status"></p>
+    <div class="report-modal-actions">
+      <button type="button" class="btn btn-solid" id="news-warning-modal-submit">Issue Warning</button>
+      <button type="button" class="btn" id="news-warning-modal-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
 <footer class="site-footer"><div class="container"><div class="footer-grid"><div><h4>The Pantheon Wars</h4><p>A fourteen-book saga by Pascal Slettenaar — twelve worlds, twelve tyrants, and the prophecy that could end them all.</p></div><div><h4>Explore</h4><ul><li><a href="books.html">The Books</a></li><li><a href="worlds.html">Worlds</a></li><li><a href="news.html">News</a></li><li><a href="community.html">Community</a></li></ul></div><div><h4>Stay Connected</h4><ul><li><a href="privacy.html">Privacy</a></li><li><a href="about.html">About the Author</a></li></ul></div></div><div class="footer-bottom">© 2026 Pascal Slettenaar. All rights reserved.</div></div></footer>
 <script src="js/main.js?v=12"></script>
 <script src="js/members.js?v=39"></script>
-<script src="js/news-post.js?v=13"></script>
+<script src="js/news-post.js?v=14"></script>
 </body>
 </html>

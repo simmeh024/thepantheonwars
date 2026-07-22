@@ -8,6 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $user = pw_require_login();
 $input = pw_input();
 pw_require_csrf($input);
+pw_require_not_muted($user);
 
 $board = isset($input['board']) ? trim($input['board']) : '';
 if (!preg_match('/^[a-z0-9\-]{1,50}$/', $board)) {
