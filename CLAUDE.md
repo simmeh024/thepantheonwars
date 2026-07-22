@@ -562,6 +562,49 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Dispatch domain selection is now scored, not a first-match cascade
+  (dispatch-draft-v27).** Caught from a live published Dispatch: the commit
+  *"Expand the Dispatch translation dictionary"* rendered in the **security**
+  voice -- "BH-4 has reinforced the safeguards around the Dispatch translation
+  dictionary. The affected account or data path now carries a more deliberate
+  safeguard." Root cause was not the dictionary but
+  `pw_dispatch_draft_domain()`, which returned the **first** matching domain in
+  a fixed array where `security` sat earliest. Subject and body were also
+  concatenated into one haystack and weighted identically, so a single
+  incidental body mention of CSRF (that commit's body listed the newly added
+  acronyms) outranked a subject that said "Dispatch" and "translation"
+  outright. Reproduced exactly before changing anything: subject alone
+  classified as `content`, subject+body as `security`.
+  **This is the identical bug class already fixed once in this codebase** --
+  `pw_dispatch_categorize()` was rewritten from an if/elif cascade to
+  independent scoring for exactly this reason (infrastructure always beating
+  performance/lore purely by running first). The domain classifier, which
+  picks the reader-facing template wording, never got the same treatment.
+  Fixed by mirroring that function's precedent: subject match 50,
+  changed-file scope label 30, body match 20, boolean presence per domain so a
+  longer keyword list cannot win on chances alone, highest score wins, ties
+  falling back to the original array order so tied records resolve exactly as
+  before. `pw_dispatch_draft_plan()` and `pw_dispatch_draft_domain()` now take
+  the body as a separate trailing parameter (defaulted, so a 3-argument call
+  keeps the old single-text behaviour). The named-world/map/book override
+  stays a hard pre-check ahead of all scoring, per the standing rule that
+  worldbuilding cues are decisive.
+  Replaying the last 60 commits through both versions reclassified 13:
+  eleven clear corrections (member warning system security -> community,
+  GitHub webhook interface -> operations, Apple sign-in button database ->
+  interface, and so on), and two that merely trade one wrong answer for
+  another because of **keyword ambiguity, not ordering**: `report` in the
+  community list also catches "quality report", and `index` in the database
+  list also catches "the public index" page. Those two lists are deliberately
+  left alone -- re-curating them is a separate change with its own regression
+  surface. Two regression cases added (the real misclassified commit, plus a
+  genuine security subject that must still resolve to `security`, so the fix
+  cannot be satisfied by just demoting that domain) along with a new
+  `plan_domain` assertion type in the harness.
+  **Already-published translations are not rewritten by a hash bump**, so the
+  one Dispatch that shipped in the wrong voice needs a manual
+  regenerate/edit in Admin -> Dispatch Translations.
+
 - **Translation-engine audit + dictionary expansion (dispatch-draft-v26).**
   A frequency audit of all 626 commit subjects against the live dictionary
   found that 41 of the last 50 commits matched no entry at all, and that
@@ -1935,7 +1978,7 @@ at that time.
   at most eight recent translations, and uses that score to begin with a
   different stable wording variant for near-duplicate updates. Raw prior translations never
   leave the PHP/Python process boundary. The draft-format hash is
-  `dispatch-draft-v26`, so regeneration refreshes unapproved local drafts
+  `dispatch-draft-v27`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
   Before rendering prose, PHP builds a reader-safe plan from recognized commit

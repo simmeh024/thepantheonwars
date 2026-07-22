@@ -140,6 +140,29 @@ $cases = [
         'evidence' => ['reader safe dictionary'],
         'level' => 'medium',
     ],
+    // Domain selection must weigh a deliberate subject mention above an
+    // incidental one in the body. This is the real commit that published with
+    // the wrong voice: its subject says "Dispatch" and "translation" outright,
+    // but its body listed CSRF among the newly added dictionary entries, and
+    // the old first-match cascade returned 'security' because that domain
+    // simply sat earliest in the array. Both security benefit variants are
+    // forbidden so the case does not depend on which one $pickVariant picks.
+    [
+        'subject' => 'Expand the Dispatch translation dictionary',
+        'body' => 'Added sign-in and safeguard acronyms (OAuth, CSP, CSRF, 2FA, TOTP) to the reader-safe dictionary.',
+        'tag' => 'improvement',
+        'plan_domain' => 'content',
+        'forbidden' => ['account or data path', 'layer of protection'],
+    ],
+    // The counterpart guard: a genuine security subject must still resolve to
+    // the security voice, so the fix above cannot be satisfied by simply
+    // demoting that domain.
+    [
+        'subject' => 'Add a dedicated rate limit for the login endpoint itself',
+        'body' => '',
+        'tag' => 'improvement',
+        'plan_domain' => 'security',
+    ],
 ];
 
 foreach ($cases as $case) {
@@ -175,6 +198,11 @@ foreach ($cases as $case) {
     }
     if (isset($case['best_semantic_match']) && ($result['best_semantic_match'] ?? []) !== $case['best_semantic_match']) {
         fwrite(STDERR, "Unexpected best_semantic_match payload:\n" . print_r($result['best_semantic_match'] ?? null, true) . "\n");
+        exit(1);
+    }
+    if (isset($case['plan_domain']) && ($result['plan']['domain'] ?? '') !== $case['plan_domain']) {
+        fwrite(STDERR, "Unexpected plan domain: expected " . $case['plan_domain']
+            . ", got " . ($result['plan']['domain'] ?? 'missing') . " for: " . $case['subject'] . "\n");
         exit(1);
     }
     if (isset($case['level']) && ($result['confidence']['level'] ?? '') !== $case['level']) {

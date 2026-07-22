@@ -25,14 +25,16 @@ function pw_dispatch_draft_phrase_is_recent(string $candidate, array $recentTran
     return false;
 }
 
-function pw_dispatch_draft_domain(string $text, string $tag, array $diffContext): string
+function pw_dispatch_draft_domain(string $subjectText, string $tag, array $diffContext, string $bodyText = ''): string
 {
-    $haystack = $text . ' ' . implode(' ', $diffContext['areas'] ?? []) . ' ' . implode(' ', $diffContext['extensions'] ?? []);
+    $scopeText = implode(' ', $diffContext['areas'] ?? []) . ' ' . implode(' ', $diffContext['extensions'] ?? []);
     // A named world, a district map, or an explicit worldbuilding scope is a
     // decisive reader-facing cue. Do this before broad technical vocabulary:
     // a world record can legitimately mention image loading or responsive
-    // behaviour without becoming a performance Dispatch.
-    if (preg_match('/\b(?:Asmecu|Cerius|Neoh|High Hammer|worlds?|worldbuilding|district(?:s)?|map|overlord|lore|book|chapter)\b/i', $haystack)) {
+    // behaviour without becoming a performance Dispatch. This one stays a hard
+    // pre-check rather than a score, per the documented rule that named
+    // worlds, maps, districts and books are decisive content signals.
+    if (preg_match('/\b(?:Asmecu|Cerius|Neoh|High Hammer|worlds?|worldbuilding|district(?:s)?|map|overlord|lore|book|chapter)\b/i', $subjectText . ' ' . $bodyText . ' ' . $scopeText)) {
         return 'content';
     }
     $domains = [
@@ -44,10 +46,46 @@ function pw_dispatch_draft_domain(string $text, string $tag, array $diffContext)
         'content' => '/\b(?:dispatch|translation|story|character|quiz)\b/i',
         'operations' => '/\b(?:admin|backup|system status|audit log|github|webhook|cron|deploy|monitor|analytics)\b/i',
     ];
+    // Score every domain independently instead of returning the first pattern
+    // that happens to match. A flat cascade made array position outrank
+    // evidence: "security" sat first, so a single incidental body mention of a
+    // security word beat an unambiguous subject line. That is exactly how the
+    // commit "Expand the Dispatch translation dictionary" published with the
+    // security voice ("The affected account or data path now carries a more
+    // deliberate safeguard") -- its body listed CSRF among the new dictionary
+    // entries, while its subject said "Dispatch" and "translation" outright.
+    // This mirrors the identical fix already made to pw_dispatch_categorize()
+    // in api/dispatch-helpers.php; the weights follow that function's
+    // precedent, with the subject weighted well above the body because a
+    // subject-line mention is deliberate and a body mention is often just
+    // supporting detail. Presence is boolean per domain so a domain with a
+    // longer keyword list cannot win merely by having more chances to match.
+    $scores = [];
     foreach ($domains as $domain => $pattern) {
-        if (preg_match($pattern, $haystack)) {
-            return $domain;
+        $score = 0;
+        if (preg_match($pattern, $subjectText)) {
+            $score += 50;
         }
+        if (trim($scopeText) !== '' && preg_match($pattern, $scopeText)) {
+            $score += 30;
+        }
+        if (trim($bodyText) !== '' && preg_match($pattern, $bodyText)) {
+            $score += 20;
+        }
+        $scores[$domain] = $score;
+    }
+    // Strictly-greater keeps the original array order as the tie-break, so a
+    // genuinely tied record resolves exactly as it did before this change.
+    $best = '';
+    $bestScore = 0;
+    foreach ($scores as $domain => $score) {
+        if ($score > $bestScore) {
+            $best = $domain;
+            $bestScore = $score;
+        }
+    }
+    if ($best !== '') {
+        return $best;
     }
     return $tag === 'infrastructure' ? 'operations' : 'general';
 }
@@ -80,11 +118,15 @@ function pw_dispatch_draft_diff_sentence(array $diffContext): string
  * deliberately contains only allow-listed scopes and evidence labels: raw
  * paths, source code, and commit-body text never become reader-facing copy.
  */
-function pw_dispatch_draft_plan(string $text, string $tag, array $diffContext, array $spacyAnalysis, string $intentText = ''): array
+function pw_dispatch_draft_plan(string $text, string $tag, array $diffContext, array $spacyAnalysis, string $intentText = '', string $bodyText = ''): array
 {
     $areas = is_array($diffContext['areas'] ?? null) ? array_values(array_filter($diffContext['areas'], 'is_string')) : [];
     $extensions = is_array($diffContext['extensions'] ?? null) ? array_values(array_filter($diffContext['extensions'], 'is_string')) : [];
-    $domain = pw_dispatch_draft_domain($text, $tag, $diffContext);
+    // $text is the subject-derived wording; the body is kept separate so the
+    // domain scorer can weight a deliberate subject mention above incidental
+    // supporting detail. Callers that pass no body get the old single-text
+    // behaviour, with everything treated at subject weight.
+    $domain = pw_dispatch_draft_domain($text, $tag, $diffContext, $bodyText);
     $semanticDomain = pw_dispatch_spacy_semantic_domain($spacyAnalysis);
     // Vectors may resolve only a genuinely unclassified commit. A clear local
     // domain match (for example, a named world or map) must never be replaced
@@ -757,7 +799,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // The title still supplies the object, while the domain determines the
     // reader-facing intent: security work reads differently from community,
     // database, content, interface, or performance work.
-    $plan = pw_dispatch_draft_plan($contextSource . ' ' . $clean . ' ' . $bodyContext, $tag, $diffContext, $spacyAnalysis, $intentSource);
+    $plan = pw_dispatch_draft_plan($contextSource . ' ' . $clean, $tag, $diffContext, $spacyAnalysis, $intentSource, $bodyContext);
     $domain = $plan['domain'];
     $mode = $plan['intent'];
     $evidence['path_scope'] = $plan['has_path_scope'];
@@ -1071,7 +1113,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v26\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v27\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array

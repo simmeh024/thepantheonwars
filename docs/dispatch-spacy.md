@@ -213,6 +213,41 @@ separately would let a jargon-heavy commit auto-publish without review on
 vocabulary alone. The `reader_safe_dictionary` evidence flag was already a
 single boolean for exactly this reason; `$rulesMatched` now matches it.
 
+## Domain selection is scored, not a first-match cascade
+
+`pw_dispatch_draft_domain()` picks which BH-4 vocabulary a draft speaks in
+(security, database, community, interface, performance, content, operations).
+A named world, map, district, book or chapter is still a decisive hard
+pre-check that returns `content` immediately, per the standing rule that
+worldbuilding cues outrank broad technical terms.
+
+Everything below that override is **scored, and the highest score wins** --
+subject match 50, changed-file scope label 30, body match 20, presence boolean
+per domain so a longer keyword list cannot win by having more chances to
+match. Ties fall back to the original array order, so a genuinely tied record
+resolves as it always did.
+
+This replaced a flat first-match cascade in which array position outranked
+evidence. Because `security` sat first, a single incidental body mention of a
+security word beat an unambiguous subject line. The commit *"Expand the
+Dispatch translation dictionary"* published in the security voice ("The
+affected account or data path now carries a more deliberate safeguard") purely
+because its body listed CSRF among the newly added dictionary entries, while
+its subject said "Dispatch" and "translation" outright. Replaying the last 60
+commits through both versions reclassified 13, all but two of them clear
+corrections.
+
+This is the same bug class, and the same fix, already applied to
+`pw_dispatch_categorize()` in `api/dispatch-helpers.php`; the weights follow
+that function's precedent deliberately. **If you add a third classifier, score
+it -- do not add another ordered cascade.**
+
+Two keyword ambiguities remain and are deliberately *not* fixed here, because
+re-curating the keyword lists is a separate change with its own regression
+surface: `report` in the community list also catches "quality report", and
+`index` in the database list also catches a page called "the public index".
+Both currently resolve by tie-break rather than by meaning.
+
 When a safe changed-file aggregate is available, the formatter adds it as a
 separate final paragraph: `Total files edited: N in <allow-listed scope>.`
 This keeps the main BH-4 explanation readable while retaining a concise,
