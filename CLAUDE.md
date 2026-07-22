@@ -186,6 +186,22 @@ migration runner). Actual migrations against production are run by hand via
 phpMyAdmin's SQL tab (cPanel -> phpMyAdmin -> `pantheonwars` DB -> SQL tab), using a
 one-off `migration_*.sql` file committed alongside the feature for the record.
 
+**Dropping an index that a foreign key leans on: create the replacement first.**
+InnoDB requires an index whose leftmost column is the FK column, and it refuses
+to drop the only one that qualifies -- `#1553 - Cannot drop index '<name>':
+needed in a foreign key constraint`. This is easy to miss because the index
+doing the work is often a *unique key added for an unrelated reason* that just
+happens to lead with the FK column. It bit `migration_quiz_enhancements.sql`
+live in phpMyAdmin (2026-07-22): `uq_quiz_option_score (question_id,
+score_index)` was silently serving `fk_quiz_options_question`. Order the
+statements `ADD KEY` (also leading with the FK column) **then** `DROP INDEX`.
+Note this class of error is invisible to the parse-level checks used when there
+is no MySQL in the sandbox -- quote/paren/encoding balance cannot see a
+constraint dependency, so an untested migration is structurally valid, not
+proven to run. Keep every statement idempotent (`IF NOT EXISTS` / `IF EXISTS` /
+`INSERT IGNORE`) so a migration that fails partway can just be re-run from the
+top; phpMyAdmin stops at the first error and executes nothing after it.
+
 Known schema quirk (fixed): the `books` table used to have a stray
 `latin1_swedish_ci` collation while every other table uses `utf8mb4_unicode_ci` --
 this was found via the System Status page's "Largest Tables" list (which flags any
