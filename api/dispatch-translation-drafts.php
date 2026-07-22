@@ -25,7 +25,23 @@ function pw_dispatch_draft_phrase_is_recent(string $candidate, array $recentTran
     return false;
 }
 
-function pw_dispatch_draft_domain(string $subjectText, string $tag, array $diffContext, string $bodyText = ''): string
+/**
+ * How strongly a resolved category implies a reader-facing voice. Only the
+ * four tags that describe *subject matter* appear here; feature, improvement,
+ * fix, refactor and experimental describe intent instead and say nothing about
+ * which vocabulary a summary should use.
+ */
+function pw_dispatch_category_domain_affinity(): array
+{
+    return [
+        'lore' => 'content',
+        'ui_ux' => 'interface',
+        'performance' => 'performance',
+        'infrastructure' => 'operations',
+    ];
+}
+
+function pw_dispatch_draft_domain(string $subjectText, string $tag, array $diffContext, string $bodyText = '', int $categoryConfidence = 0, string $categorySource = ''): string
 {
     $scopeText = implode(' ', $diffContext['areas'] ?? []) . ' ' . implode(' ', $diffContext['extensions'] ?? []);
     $loreCue = '/\b(?:Asmecu|Cerius|Neoh|High Hammer|worlds?|worldbuilding|district(?:s)?|map|overlord|lore|book|chapter)\b/i';
@@ -95,6 +111,22 @@ function pw_dispatch_draft_domain(string $subjectText, string $tag, array $diffC
         }
         $scores[$domain] = $score;
     }
+    // The resolved category is a fifth signal, worth up to 40 -- above a body
+    // mention, below a subject mention. It is scaled by how much that category
+    // is actually trusted, so an administrator's hand-corrected tag (source
+    // 'manual', confidence 100) steers the voice decisively while a 20%
+    // keyword guess barely nudges it. Deliberately not decisive on its own:
+    // the category is itself partly derived from this same subject and body,
+    // so treating it as independent proof would double-count that evidence.
+    // What it adds that the patterns above cannot see is the Conventional
+    // Commits prefix and the diff-context file-scope map.
+    $affinity = pw_dispatch_category_domain_affinity();
+    if (isset($affinity[$tag], $scores[$affinity[$tag]])) {
+        $trust = $categorySource === 'manual'
+            ? 100
+            : max(0, min(100, $categoryConfidence));
+        $scores[$affinity[$tag]] += (int)round(40 * ($trust / 100));
+    }
     // Strictly-greater keeps the original array order as the tie-break, so a
     // genuinely tied record resolves exactly as it did before this change.
     $best = '';
@@ -139,7 +171,7 @@ function pw_dispatch_draft_diff_sentence(array $diffContext): string
  * deliberately contains only allow-listed scopes and evidence labels: raw
  * paths, source code, and commit-body text never become reader-facing copy.
  */
-function pw_dispatch_draft_plan(string $text, string $tag, array $diffContext, array $spacyAnalysis, string $intentText = '', string $bodyText = ''): array
+function pw_dispatch_draft_plan(string $text, string $tag, array $diffContext, array $spacyAnalysis, string $intentText = '', string $bodyText = '', int $categoryConfidence = 0, string $categorySource = ''): array
 {
     $areas = is_array($diffContext['areas'] ?? null) ? array_values(array_filter($diffContext['areas'], 'is_string')) : [];
     $extensions = is_array($diffContext['extensions'] ?? null) ? array_values(array_filter($diffContext['extensions'], 'is_string')) : [];
@@ -147,7 +179,7 @@ function pw_dispatch_draft_plan(string $text, string $tag, array $diffContext, a
     // domain scorer can weight a deliberate subject mention above incidental
     // supporting detail. Callers that pass no body get the old single-text
     // behaviour, with everything treated at subject weight.
-    $domain = pw_dispatch_draft_domain($text, $tag, $diffContext, $bodyText);
+    $domain = pw_dispatch_draft_domain($text, $tag, $diffContext, $bodyText, $categoryConfidence, $categorySource);
     $semanticDomain = pw_dispatch_spacy_semantic_domain($spacyAnalysis);
     // Vectors may resolve only a genuinely unclassified commit. A clear local
     // domain match (for example, a named world or map) must never be replaced
@@ -200,7 +232,7 @@ function pw_dispatch_proper_nouns(): string
         . '|Google|Apple|Spotify|Reddit';
 }
 
-function pw_dispatch_lcfirst_object(string $value): string
+function pw_dispatch_lcfirst_object(string $value, array $spacyAnalysis = [], string $subjectText = ''): string
 {
     $trimmed = ltrim($value);
     if ($trimmed === '') {
@@ -212,6 +244,23 @@ function pw_dispatch_lcfirst_object(string $value): string
     $firstWord = preg_split('/\s/', $trimmed, 2)[0];
     if (preg_match('/[A-Z].*[A-Z]|[A-Z][0-9\-]/', $firstWord)) {
         return $value;
+    }
+    // spaCy already tags ORG/PRODUCT/PERSON/GPE/WORK_OF_ART plus acronyms, so
+    // it generalizes the hand-written list above to names nobody has thought
+    // to add -- a new world or feature is protected without a code change.
+    // Only entities that appear in the subject are trusted: spaCy analyses the
+    // body too, and body text must never influence reader copy.
+    foreach (($spacyAnalysis['entities'] ?? []) as $entity) {
+        if (!is_string($entity) || strlen(trim($entity)) < 2) {
+            continue;
+        }
+        $entity = trim($entity);
+        if ($subjectText !== '' && !pw_dispatch_spacy_object_is_grounded($entity, $subjectText)) {
+            continue;
+        }
+        if (stripos($trimmed, $entity) === 0) {
+            return $value;
+        }
     }
     return lcfirst($value);
 }
@@ -333,6 +382,8 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // harness can test with a synthetic value -- see tools/test-dispatch-translator.php.
     $embeddingMatch = is_array($options['embedding_match'] ?? null) ? $options['embedding_match'] : [];
     $embeddingSimilarity = isset($embeddingMatch['score']) ? (float)$embeddingMatch['score'] : 0.0;
+    $categoryConfidence = isset($options['category_confidence']) ? (int)$options['category_confidence'] : 0;
+    $categorySource = isset($options['category_source']) ? (string)$options['category_source'] : '';
     // An explicit author-written line short-circuits the whole formatter.
     // Nothing below it can improve on a summary the author stated outright,
     // and every inference step is a chance to make it worse.
@@ -342,7 +393,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         return [
             'draft' => $authorSummary . ($diffSentence !== '' ? "\n\n" . $diffSentence : ''),
             'confidence' => pw_dispatch_draft_confidence(2, ['author_summary' => true]),
-            'plan' => pw_dispatch_draft_plan($subject, $tag, $diffContext, $spacyAnalysis, $subject, $body),
+            'plan' => pw_dispatch_draft_plan($subject, $tag, $diffContext, $spacyAnalysis, $subject, $body, $categoryConfidence, $categorySource),
             'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
             'requires_editor_review' => false,
             'best_semantic_match' => $embeddingMatch,
@@ -729,8 +780,14 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         // A highly similar recent translation starts at a different stable
         // variant. Exact phrase checks below still provide the final guard.
         $shift = $nearestSimilarity >= 0.80 && $count > 1 ? 1 : 0;
+        // A ranked pool ignores that shift. When every variant was equal it
+        // was a harmless nudge toward variety, but with a quality order it
+        // becomes a penalty: a near-duplicate commit would deliberately start
+        // at the weaker line even when the best one had not been used at all.
+        // Repetition is already handled by the recency walk below, which is
+        // evidence of actual reuse rather than a similarity proxy for it.
         $index = $rankedPool
-            ? $shift % $count
+            ? 0
             : ((int) sprintf('%u', crc32($subject . '|' . $salt)) + $shift) % $count;
         for ($offset = 0; $offset < $count; $offset++) {
             $candidate = $variants[($index + $offset) % $count];
@@ -854,7 +911,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     if ($rulesMatched === 0 && preg_match_all('/[A-Za-z]{3,}/', $clean) >= 3) {
         $rulesMatched++;
     }
-    $object = pw_dispatch_lcfirst_object($clean);
+    $object = pw_dispatch_lcfirst_object($clean, $spacyAnalysis, $contextSource);
     $draft = '';
     $actionTemplates = [
         '/^add\s+(.+)\s+and\s+fix\s+(.+)$/i' => 'This update adds %s and corrects %s.',
@@ -951,11 +1008,11 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         $rulesMatched++;
         $evidence['commit_intent'] = true;
         $evidence['recognized_subject'] = true;
-        $arguments = array_map(static function ($value): string {
-            return rtrim(pw_dispatch_lcfirst_object(trim($value)), '.');
+        $arguments = array_map(static function ($value) use ($spacyAnalysis, $contextSource): string {
+            return rtrim(pw_dispatch_lcfirst_object(trim($value), $spacyAnalysis, $contextSource), '.');
         }, array_slice($matches, 1));
         if ($matchedSource === 'original' && substr_count($template, '%s') === 1) {
-            $arguments = [rtrim(pw_dispatch_lcfirst_object(trim($clean)), '.')];
+            $arguments = [rtrim(pw_dispatch_lcfirst_object(trim($clean), $spacyAnalysis, $contextSource), '.')];
         }
         $object = $arguments[0];
         $draft = vsprintf($template, $arguments);
@@ -984,7 +1041,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         // spaCy sees the body too, and an entity match inside a body (a quoted
         // title, an internal note) must never become published reader copy.
         if ($spacyObject !== '' && pw_dispatch_spacy_object_is_grounded($spacyObject, $contextSource . ' ' . $clean)) {
-            $object = pw_dispatch_lcfirst_object($spacyObject);
+            $object = pw_dispatch_lcfirst_object($spacyObject, $spacyAnalysis, $contextSource);
         }
         $object = pw_dispatch_strip_leading_action_verb($object, $spacyAnalysis);
         $draft = sprintf($template, rtrim($object, '.'));
@@ -994,7 +1051,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // The title still supplies the object, while the domain determines the
     // reader-facing intent: security work reads differently from community,
     // database, content, interface, or performance work.
-    $plan = pw_dispatch_draft_plan($contextSource . ' ' . $clean, $tag, $diffContext, $spacyAnalysis, $intentSource, $bodyContext);
+    $plan = pw_dispatch_draft_plan($contextSource . ' ' . $clean, $tag, $diffContext, $spacyAnalysis, $intentSource, $bodyContext, $categoryConfidence, $categorySource);
     $domain = $plan['domain'];
     $mode = $plan['intent'];
     $evidence['path_scope'] = $plan['has_path_scope'];
@@ -1384,7 +1441,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v33\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v34\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array
@@ -1479,8 +1536,18 @@ function pw_dispatch_log_translation_edit_event(PDO $db, int $dispatchId, string
 
 function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
 {
-    $entryStmt = $db->prepare('SELECT id, sha, subject, body, tag FROM dispatch_entries WHERE id = ?');
-    $entryStmt->execute([$dispatchId]);
+    // category_confidence/category_source come from sql/migration_dispatch_
+    // category_confidence.sql. Fall back to the original column list if that
+    // migration has not been run yet, so a deploy landing ahead of the SQL
+    // cannot break translation entirely -- the same defensive pattern used for
+    // the newer columns in api/track-visit.php.
+    try {
+        $entryStmt = $db->prepare('SELECT id, sha, subject, body, tag, category_confidence, category_source FROM dispatch_entries WHERE id = ?');
+        $entryStmt->execute([$dispatchId]);
+    } catch (Throwable $e) {
+        $entryStmt = $db->prepare('SELECT id, sha, subject, body, tag FROM dispatch_entries WHERE id = ?');
+        $entryStmt->execute([$dispatchId]);
+    }
     $entry = $entryStmt->fetch();
     if (!$entry) {
         return ['ok' => false, 'reason' => 'missing'];
@@ -1493,6 +1560,13 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
     }
 
     $draftOptions = pw_dispatch_draft_options_for_dispatch($db, $dispatchId, (string)$entry['subject'], (string)$entry['body']);
+    // The categoriser already scored this commit against signals the domain
+    // classifier never sees -- a Conventional Commits prefix and the
+    // diff-context file-scope map -- and an administrator may since have
+    // corrected the result by hand. Passing that through means the translator
+    // stops re-deriving a parallel classification from scratch.
+    $draftOptions['category_confidence'] = isset($entry['category_confidence']) ? (int)$entry['category_confidence'] : null;
+    $draftOptions['category_source'] = isset($entry['category_source']) ? (string)$entry['category_source'] : '';
     $result = pw_dispatch_end_user_draft(
         $entry['subject'],
         (string)$entry['body'],

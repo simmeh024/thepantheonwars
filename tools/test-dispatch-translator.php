@@ -280,6 +280,50 @@ $cases = [
         'forbidden' => ['api/dispatch-translation-drafts.php'],
         'plan_domain' => 'tooling',
     ],
+    // The resolved category is a fifth domain signal. With no domain keyword
+    // anywhere, an administrator's hand-corrected tag decides the voice.
+    [
+        'subject' => 'Zqlm plexor for the tazwick subsystem',
+        'body' => '',
+        'tag' => 'ui_ux',
+        'options' => ['category_confidence' => 100, 'category_source' => 'manual'],
+        'plan_domain' => 'interface',
+    ],
+    // Same commit with no category metadata at all must behave exactly as
+    // before, since that is what every caller sends until the migration and
+    // the plumbing are both live.
+    [
+        'subject' => 'Zqlm plexor for the tazwick subsystem',
+        'body' => '',
+        'tag' => 'ui_ux',
+        'plan_domain' => 'general',
+    ],
+    // Trust scaling: a 20%-confidence auto guess is worth 8 and must lose to a
+    // body keyword worth 20 ...
+    [
+        'subject' => 'Zqlm plexor for the tazwick subsystem',
+        'body' => 'This affects cache loading performance.',
+        'tag' => 'ui_ux',
+        'options' => ['category_confidence' => 20, 'category_source' => 'auto'],
+        'plan_domain' => 'performance',
+    ],
+    // ... while the same tag corrected by hand is worth 40 and must win.
+    [
+        'subject' => 'Zqlm plexor for the tazwick subsystem',
+        'body' => 'This affects cache loading performance.',
+        'tag' => 'ui_ux',
+        'options' => ['category_confidence' => 100, 'category_source' => 'manual'],
+        'plan_domain' => 'interface',
+    ],
+    // A subject keyword is worth 50 and still outranks any category, so a
+    // wrong tag can never override what the commit plainly says.
+    [
+        'subject' => 'Harden the login session password path',
+        'body' => '',
+        'tag' => 'lore',
+        'options' => ['category_confidence' => 100, 'category_source' => 'manual'],
+        'plan_domain' => 'security',
+    ],
     // Too short to be a real summary; also falls back.
     [
         'subject' => 'Refine Dispatch translation output',

@@ -213,6 +213,38 @@ separately would let a jargon-heavy commit auto-publish without review on
 vocabulary alone. The `reader_safe_dictionary` evidence flag was already a
 single boolean for exactly this reason; `$rulesMatched` now matches it.
 
+## The category is a domain signal
+
+`pw_dispatch_categorize()` (`api/dispatch-helpers.php`) and
+`pw_dispatch_draft_domain()` are two classifiers over the same commit, with
+heavily overlapping keyword lists, that used to share nothing but a
+last-resort `infrastructure -> operations` fallback. The categoriser scores
+two signals the domain classifier cannot see: the **Conventional Commits
+prefix** (65) and the **diff-context file-scope map** (45). An administrator
+may also have corrected the tag by hand, which is ground truth.
+
+The resolved category is now a fifth domain signal worth up to **40** -- above
+a body mention (20), below a subject mention (50) -- scaled by how much it is
+trusted: `manual` source counts as 100, otherwise `category_confidence` is
+used directly. So a hand-corrected tag steers the voice decisively while a 20%
+keyword guess contributes 8 and loses to a single body keyword.
+
+Only the four tags describing *subject matter* map to a domain
+(`pw_dispatch_category_domain_affinity()`): lore, ui_ux, performance,
+infrastructure. Feature, improvement, fix, refactor and experimental describe
+*intent* and say nothing about which vocabulary a summary should use.
+
+It is deliberately **not** decisive on its own. The category is itself partly
+derived from the same subject and body, so treating it as independent proof
+would double-count that evidence -- a subject keyword still outranks any
+category, and a wrong tag can never override what the commit plainly says.
+
+`category_confidence` / `category_source` are read with a try/catch fallback to
+the original column list, so a deploy landing ahead of
+`sql/migration_dispatch_category_confidence.sql` cannot break translation. With
+no category metadata supplied the contribution is zero and behaviour is
+identical to before.
+
 ## Author-written summaries: the `Dispatch:` trailer
 
 Everything else in this pipeline infers reader-facing wording from a subject

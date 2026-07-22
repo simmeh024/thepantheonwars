@@ -584,6 +584,47 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **The category now feeds the translator; spaCy entities generalize the
+  proper-noun list (dispatch-draft-v34).** Audit finding: the categoriser and
+  the domain classifier were **two classifiers over the same commit with
+  overlapping keyword lists that shared nothing** but a last-resort
+  `infrastructure -> operations` fallback, and the translator loaded only
+  `id, sha, subject, body, tag` -- it never saw `category_confidence` or
+  `category_source`, so an administrator's hand-corrected tag counted for
+  exactly as much as a 20% keyword guess.
+  - **Category as a fifth domain signal**, worth up to 40 (above a body
+    mention at 20, below a subject mention at 50), **scaled by trust**:
+    `manual` counts as 100, otherwise `category_confidence` is used. Only the
+    four subject-matter tags map to a domain
+    (`pw_dispatch_category_domain_affinity()`: lore, ui_ux, performance,
+    infrastructure); feature/improvement/fix/refactor/experimental describe
+    intent, not vocabulary. Deliberately not decisive -- the category is
+    partly derived from the same subject and body, so treating it as
+    independent proof would double-count that evidence. Verified: a subject
+    keyword still beats a wrong manual tag. Reads the two columns with a
+    try/catch fallback to the old column list, so a deploy landing ahead of
+    the migration cannot break translation; with no metadata the contribution
+    is zero and behaviour is byte-identical to before.
+  - **spaCy `entities` now back the proper-noun guard**, generalizing the
+    ~35-name hardcoded list to any ORG/PRODUCT/PERSON/WORK_OF_ART or acronym
+    spaCy tags -- a new world or feature keeps its capital with no code
+    change. Grounded in the subject, per the body-leak rule.
+  - **Fixed a regression from v33:** `$shift` (near-duplicate detected) moved
+    selection by one, which was harmless when variants were equal but became
+    a *penalty* once pools were quality-ordered -- a near-duplicate commit
+    deliberately started at the weaker line even when the best one had never
+    been used. Ranked pools now ignore `$shift` and rely on the recency walk,
+    which is evidence of actual reuse rather than a proxy for it.
+  **Dropped after investigation:** using spaCy `phrases` (noun chunks) to trim
+  implementation tails like "in first person". The chunk structure of
+  "Dispatch summaries | in first person" and "a dedicated rate limit | for the
+  login endpoint" is *identical*, so no syntactic rule separates a manner
+  phrase from the actual target; trimming would have improved the first and
+  broken the second. The `Dispatch:` trailer is the real answer for those.
+  **Still unused and worth doing next:** `dispatch_category_overrides` is
+  write-only -- every admin correction is a labelled example of the scorer
+  being wrong, and nothing reads it. Pair it with the weekly quality report.
+
 - **`Dispatch:` commit trailer, and quality-ordered variant pools
   (dispatch-draft-v33).** Two changes, one raising the ceiling and one the
   floor.
@@ -2191,7 +2232,7 @@ at that time.
   at most eight recent translations, and uses that score to begin with a
   different stable wording variant for near-duplicate updates. Raw prior translations never
   leave the PHP/Python process boundary. The draft-format hash is
-  `dispatch-draft-v33`, so regeneration refreshes unapproved local drafts
+  `dispatch-draft-v34`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
   Before rendering prose, PHP builds a reader-safe plan from recognized commit
