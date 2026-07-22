@@ -562,6 +562,55 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Translation-engine audit + dictionary expansion (dispatch-draft-v26).**
+  A frequency audit of all 626 commit subjects against the live dictionary
+  found that 41 of the last 50 commits matched no entry at all, and that
+  several recurring words reached readers verbatim through `$object` (line
+  ~578, `$object = lcfirst($clean)`): **modal appeared in 13 commit subjects,
+  dropdown in 12, tooltip in 9, embedding in 9 (all recent), stale in 6,
+  OAuth in 4, viewport in 4, backfill in 4** -- none of which had any entry.
+  Added 21 entries in four documented groups (interface surfaces, sign-in and
+  safeguard acronyms, translation-pipeline vocabulary, and recent operational
+  jargon). After the change, zero jargon leaks remain across the last 50
+  commit subjects. Two conventions are now written down in
+  `docs/dispatch-spacy.md`, both learned the hard way here: replacements are
+  **article-free** (`pop-up panel`, so "the modal" -> "the pop-up panel" and
+  not "the a pop-up panel" -- the pre-existing `'/\bstubs?\b/i' => 'a
+  placeholder'` entry still has this bug, as does `'/\bflaky\b/i'`, which
+  renders "a flaky test" as "a inconsistent test"), and patterns must match
+  the **de-hyphenated** form because the letter-hyphen-letter rule at line
+  ~132 runs before the dictionary (`sentence-embedding` arrives as `sentence
+  embedding`, `proc_open` as `proc open`).
+  **Two real engine bugs found and fixed along the way:**
+  1. **Nine dictionary entries were unreachable duplicate array keys.** PHP
+     array literals silently overwrite on a duplicate string key, keeping the
+     *first* position but the *last* value -- so the live dictionary was 184
+     entries, not the 193 written, and four entries' earlier wording (e.g.
+     "a more polished forum presentation") had been dead for a long time
+     while the later wording silently won. De-duplicated by moving the
+     surviving (live) value onto the first occurrence's position, so runtime
+     behaviour is byte-identical.
+  2. **The dictionary could auto-publish a jargon-heavy commit with no
+     review.** `$rulesMatched` was incremented once *per matched entry*, and
+     `pw_dispatch_draft_confidence()` treats `$rulesMatched >= 2` as enough on
+     its own to force a 65% score *and* satisfy the high-confidence gate.
+     Whole-title entries rarely stack, but word-level swaps do: "Replace
+     persistent embeddings service with one-shot proc_open worker (fixes
+     OOM-killing spaCy)" would have matched three new entries and
+     auto-published on vocabulary alone. The dictionary now counts as **one**
+     formatter rule regardless of how many terms it rewrites, matching the
+     `reader_safe_dictionary` evidence flag which was already a single
+     boolean. This only ever makes auto-publication stricter, never looser.
+  Four regression cases added to `tools/test-dispatch-translator.php`,
+  including one asserting that a three-term subject with no other signal
+  stays **medium** confidence -- that case fails if fix 2 is ever reverted.
+  Draft hash bumped `v25` -> `v26` so unapproved local drafts regenerate;
+  published translations are untouched. No SQL migration, no asset version
+  bump (PHP/docs only). Verified by static simulation of the pre-processing
+  and dictionary loop against real commit history -- **this sandbox has no
+  PHP CLI**, so `php tools/test-dispatch-translator.php` still needs to be
+  run once on the server to confirm.
+
 - **Member Warning System, with an optional temporary mute.** Staff with the
   right role can now issue a warning (reason + minor/moderate/severe
   severity) against a member, from either a new **Community -> Warnings**
@@ -1886,7 +1935,7 @@ at that time.
   at most eight recent translations, and uses that score to begin with a
   different stable wording variant for near-duplicate updates. Raw prior translations never
   leave the PHP/Python process boundary. The draft-format hash is
-  `dispatch-draft-v25`, so regeneration refreshes unapproved local drafts
+  `dispatch-draft-v26`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
   Before rendering prose, PHP builds a reader-safe plan from recognized commit

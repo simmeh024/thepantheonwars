@@ -195,7 +195,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         '/\bAuto-publish high-confidence Dispatch translations\b/i' => 'faster publication of well-supported development summaries',
         '/\bAdd Translation Confidence Statistics to Admin Home\b/i' => 'a clearer overview of development-summary confidence',
         '/\bKeep the dispatches sidebar label on one line\b/i' => 'a clearer Development Dispatches label in the sidebar',
-        '/\bPolish the admin sidebar and add personal navigation settings\b/i' => 'a more flexible Admin Console sidebar',
+        '/\bPolish the admin sidebar and add personal navigation settings\b/i' => 'the Admin Console sidebar and personal navigation settings',
         '/\bLoad CSS bundles by page audience\b/i' => 'page-specific styling delivery',
         '/\bIntroduce shared CSS design tokens\b/i' => 'a more consistent visual foundation',
         '/\bRespect reduced-motion preferences site-wide\b/i' => 'a steadier experience for visitors who reduce motion',
@@ -214,13 +214,13 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         '/\bFill missing audit activity icons\b/i' => 'complete visual markers for Audit Log activity',
         '/\bRecognize more low-confidence Dispatch drafts\b/i' => 'clearer recognition of reader-safe development updates',
         '/\bShorten the Dispatch developer record label\b/i' => 'a clearer label for the technical development record',
-        '/\bGraphical polish pass on the forum\b/i' => 'a more polished forum presentation',
-        '/\bAdmin Members: avatar and role ring in list rows, generate password button\b/i' => 'clearer member records and safer account-management tools',
+        '/\bGraphical polish pass on the forum\b/i' => 'a visual refinement pass for forum discussions',
+        '/\bAdmin Members: avatar and role ring in list rows, generate password button\b/i' => 'clearer member administration controls',
         '/\bBH-4 welcome card: bigger portrait, stack the stat rows\b/i' => 'a clearer BH-4 status presentation on the Admin Home page',
         '/\bTopic Reports View link 404s\b/i' => 'the Topic Reports review link',
         '/\bban Permanent\/Temporary radios visible before checkbox is checked\b/i' => 'the member-ban controls',
         '/\bavatar row and meta panel staying visible in Create Member modal\b/i' => 'the Create Member form',
-        '/\bAdmin sidebar: collapsible nav categories, System group for Audit Log, tighter spacing\b/i' => 'a more focused Admin Console navigation',
+        '/\bAdmin sidebar: collapsible nav categories, System group for Audit Log, tighter spacing\b/i' => 'a more focused Admin Console sidebar',
         '/\bAdmin Home: terminal-style activity log and refresh button\b/i' => 'a clearer activity view on the Admin Home page',
         '/\bAdmin console: Home page with activity log\b/i' => 'the Admin Home activity view',
         '/\bMetric cards: clickable modal with Latest dispatches, Trend vs previous period, BH-4 verified badge\b/i' => 'a detailed view of current metrics and recent Dispatches',
@@ -246,14 +246,10 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         '/\bshow match % on each Quiz History row\b/i' => 'the match percentage on each Quiz History entry',
         '/\bSharpen High Hammer map \(unsharp mask and higher quality JPEG\) to reduce blur\b/i' => 'a sharper High Hammer map for easier exploration',
         '/\bHide default scrollbar arrow buttons for cleaner themed look\b/i' => 'a cleaner themed scrollbar',
-        '/\bGraphical polish pass on the forum\b/i' => 'a visual refinement pass for forum discussions',
         '/\bRestructure admin sidebar nav: Home category, moved Roles and Permissions, larger category labels\b/i' => 'a clearer Admin Console navigation structure',
         '/\bTemporary diagnostic endpoint: explore CPU\/DB introspection options\b/i' => 'a focused review of system monitoring options',
-        '/\bAdmin Members: avatar and role ring in list rows, generate password button\b/i' => 'clearer member administration controls',
-        '/\bAdmin sidebar: collapsible nav categories, System group for Audit Log, tighter spacing\b/i' => 'a more focused Admin Console sidebar',
         '/\bAdmin Home: compact Recent Activity widget \(5 entries\) and new Audit Log page\b/i' => 'a compact recent-activity view and direct Audit Log access',
         '/\bMetric cards: clickable modal with Latest dispatches, Trend vs previous period, BH 4 verified badge\b/i' => 'a detailed view of current metrics and recent Dispatches',
-        '/\bLanguage history: 24h refresh cadence, stacked bar chart with day\/week\/month\/year filter\b/i' => 'a clearer language-history view with flexible time ranges',
         '/\bCreate deploy\.production\.yml\b/i' => 'the production deployment process',
         '/\breposition BH 4 badge beside the log, popup closes only via X\b/i' => 'the BH-4 status badge and its review panel',
         '/\baction type filter to the Audit Log page\b/i' => 'a clearer way to filter activity in the Audit Log',
@@ -261,9 +257,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         '/\bPending Work card \(dispatches awaiting translation\)\b/i' => 'a Pending Work overview for Dispatches awaiting translation',
         '/\bbrowser security headers\b/i' => 'additional browser-level protections for site services',
         '/\bhover tooltips explaining each of the 15 writing phases on book progress bars\b/i' => 'clearer explanations for book-writing progress',
-        '/\bMetric cards: clickable modal with Latest dispatches, Trend vs previous period, BH 4 verified badge\b/i' => 'a detailed view of current metrics and recent Dispatches',
         '/\bCerius as a fully built world \(below Asmecu\)\b/i' => 'Cerius as a fully developed world to explore',
-        '/\bCascade delete a topic\'s replies when the topic itself is deleted\b/i' => 'cleaner removal of forum discussions',
         '/\bSettings link to the logged in user\'s nav dropdown\b/i' => 'a direct link to member settings',
         '/\bDevelopment Dispatches page with GitHub webhook auto sync\b/i' => 'a synchronized Development Dispatches page',
         '/\bWorld Control list rows: large title, Edit button, status\/overlord pills\b/i' => 'clearer World Control entries with status information',
@@ -274,7 +268,6 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         '/\bIP throttling, CSRF, HIBP, idle timeout, security headers\b/i' => 'stronger safeguards for member sign-in and sessions',
         '/\bfooter "Explore" list collapsible on mobile\b/i' => 'a more compact Explore menu on mobile screens',
         '/\bmetrics link \/ BH 4 badge overlapping pagination on mobile\b/i' => 'the mobile layout around metrics and BH-4 status',
-        '/\bLanguage history: 24h refresh cadence, stacked bar chart with day\/week\/month\/year filter\b/i' => 'a clearer language-history view with flexible time ranges',
         '/\bvisible divider between world detail sections\b/i' => 'clearer separation between world detail sections',
         '/\bSQL performance diagnostics to System Status\b/i' => 'performance diagnostics in System Status',
         '/\bBH 4 welcome card: bigger portrait, stack the stat rows\b/i' => 'a clearer BH-4 welcome overview',
@@ -320,7 +313,6 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         '/\bpersonal navigation settings\b/i' => 'personal navigation settings',
         '/\bpresence heartbeat writes\b/i' => 'how often online status is recorded',
         '/\bCSS bundles by page audience\b/i' => 'page-specific styling delivery',
-        '/\bPolish the admin sidebar and add personal navigation settings\b/i' => 'the Admin Console sidebar and personal navigation settings',
         '/\bTotal Lines of Code tile with a daily delta\b/i' => 'a daily codebase progress indicator',
         '/\bBH 4 Task Advisor\b/i' => 'the BH-4 priority advisor on the Home dashboard',
         '/\bCommunity Metrics card\b/i' => 'the Community Metrics overview on the Home dashboard',
@@ -370,10 +362,62 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         '/\bdeprecat(?:e|ed|es|ing|ion)\b/i' => 'phased out',
         '/\bregressions?\b/i' => 'a reintroduced issue',
         '/\brollback(?:s|ed)?\b/i' => 'a reversal of a recent change',
+        // Interface-surface vocabulary. These are the names developers use for
+        // parts of the Admin Console and public site that readers only ever
+        // see, never name: across this repository's history "modal" appears in
+        // 13 commit subjects, "dropdown" in 12, "tooltip" in 9 and "viewport"
+        // in 4, none of which had any entry here -- so each one reached
+        // reader-facing prose verbatim through $object. Replacements are
+        // deliberately article-free ('pop-up panel', not 'a pop-up panel') so
+        // they read correctly after whatever determiner the commit already
+        // used ("the modal" -> "the pop-up panel"). Plural forms come first
+        // because the loop rewrites $clean in place and the singular pattern
+        // would otherwise leave a plural subject reading as singular.
+        '/\bmodals\b/i' => 'pop-up panels',
+        '/\bmodal\b/i' => 'pop-up panel',
+        '/\bdrop ?downs\b/i' => 'expanding menus',
+        '/\bdrop ?down\b/i' => 'expanding menu',
+        '/\btooltips\b/i' => 'hover labels',
+        '/\btooltip\b/i' => 'hover label',
+        '/\bviewports?\b/i' => 'visible screen area',
+        // Sign-in and safeguard acronyms. Each has exactly one stable meaning
+        // in this project, so none of them can silently reinterpret an
+        // unrelated record the way a broad word swap could.
+        '/\bOAuth\b/i' => 'third-party sign-in',
+        '/\bCSP\b/i' => 'browser content protections',
+        '/\bCSRF\b/i' => 'request-forgery protection',
+        '/\b2FA\b/i' => 'two-factor authentication',
+        '/\bTOTP\b/i' => 'authenticator app codes',
+        // Translation-pipeline vocabulary. "embedding(s)" appears in 9 commit
+        // subjects, all of them recent, because the sentence-embedding
+        // similarity feature is actively being worked on. The full
+        // "sentence embedding semantic similarity" phrase is matched first so
+        // the shorter patterns cannot stack into a redundant sentence. Note
+        // these match the de-hyphenated form: the letter-hyphen-letter rule
+        // near the top of this function has already turned "sentence-embedding"
+        // into "sentence embedding" by the time the dictionary runs.
+        '/\bsentence embedding semantic similarity\b/i' => 'meaning-based text comparison',
+        '/\bsemantic embeddings?\b/i' => 'meaning-based text comparison',
+        '/\bembeddings?\b/i' => 'meaning-based text comparison',
+        // Operational jargon seen in recent maintenance commits.
+        '/\bback ?fill(?:s|ed|ing)?\b/i' => 'past-record fill-in',
+        '/\bstale\b/i' => 'out-of-date',
+        '/\bdebug logging\b/i' => 'diagnostic recording',
+        '/\bOOM\b/i' => 'running out of memory',
+        '/\bproc[ _]open\b/i' => 'short-lived helper process',
     ];
     foreach ($replacements as $pattern => $replacement) {
         if (preg_match($pattern, $clean)) {
-            $rulesMatched++;
+            // The dictionary counts as one formatter rule no matter how many
+            // terms it rewrites. A subject containing several known words is
+            // denser vocabulary, not independent corroborating evidence, and
+            // $rulesMatched >= 2 is enough on its own to force a 65% score and
+            // satisfy the high-confidence gate in pw_dispatch_draft_confidence()
+            // -- so counting every word-level swap separately would let a
+            // jargon-heavy subject auto-publish on vocabulary alone.
+            if (!$evidence['reader_safe_dictionary']) {
+                $rulesMatched++;
+            }
             $evidence['recognized_subject'] = true;
             // A narrow, reviewed dictionary entry is separate evidence from a
             // generic subject match: it confirms that this exact technical
@@ -389,7 +433,9 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         // because every entry is reviewed project vocabulary; stop at the
         // first (most specific) scoped match to avoid stacking substitutions.
         if (preg_match($pattern, $contextSource)) {
-            $rulesMatched++;
+            if (!$evidence['reader_safe_dictionary']) {
+                $rulesMatched++;
+            }
             $evidence['recognized_subject'] = true;
             $evidence['reader_safe_dictionary'] = true;
             $clean = $replacement;
@@ -1025,7 +1071,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v25\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v26\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array

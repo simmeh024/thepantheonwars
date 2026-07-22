@@ -105,6 +105,41 @@ $cases = [
         'forbidden' => ['tech debt', 'boilerplate'],
         'evidence' => ['reader safe dictionary'],
     ],
+    // Interface-surface vocabulary. "modal" appeared in 13 commit subjects
+    // with no dictionary entry at all, so it reached readers verbatim through
+    // the reader-facing object phrase.
+    [
+        'subject' => 'Fix Issue Warning modal stacking over the open Member modal',
+        'body' => '',
+        'tag' => 'fix',
+        'contains' => ['pop-up panel'],
+        'forbidden' => ['modal'],
+        'evidence' => ['reader safe dictionary'],
+    ],
+    [
+        'subject' => 'Fix disabled OAuth provider button not actually hiding',
+        'body' => '',
+        'tag' => 'fix',
+        'contains' => ['third-party sign-in'],
+        'forbidden' => ['OAuth'],
+        'evidence' => ['reader safe dictionary'],
+    ],
+    // The dictionary is ONE formatter rule regardless of how many terms it
+    // rewrites. This subject matches three separate entries (modal, dropdown,
+    // tooltip) and has no verb, no scope prefix, no body, no diff context and
+    // no semantic support -- so its only evidence is recognized subject (25)
+    // plus reader-safe dictionary (10) = 35%, which is medium. If each swap
+    // incremented $rulesMatched separately it would reach the >= 2 rule gate,
+    // be forced to 65%, and auto-publish without review on vocabulary alone.
+    [
+        'subject' => 'Tooltip and dropdown and modal',
+        'body' => '',
+        'tag' => 'ui_ux',
+        'contains' => ['hover label', 'expanding menu', 'pop-up panel'],
+        'forbidden' => ['tooltip', 'dropdown', 'modal'],
+        'evidence' => ['reader safe dictionary'],
+        'level' => 'medium',
+    ],
 ];
 
 foreach ($cases as $case) {

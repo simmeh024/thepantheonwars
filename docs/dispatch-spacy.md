@@ -186,6 +186,33 @@ here. Add a slang entry only for a term with one clear, stable, reader-safe
 meaning -- the same review bar as every other dictionary entry -- and add a
 regression case in `tools/test-dispatch-translator.php` alongside it.
 
+Alongside that glossary sit three more word-level groups, all added from a
+frequency audit of this repository's own commit history rather than guessed
+at: **interface-surface vocabulary** (modal, dropdown, tooltip, viewport --
+the names developers use for parts of the site that readers only ever see and
+never name), **sign-in and safeguard acronyms** (OAuth, CSP, CSRF, 2FA, TOTP),
+and **translation-pipeline vocabulary** (embedding / semantic embedding).
+Two conventions matter when adding to any of these:
+
+- **Write replacements article-free** (`pop-up panel`, not `a pop-up panel`)
+  so the substitution reads correctly after whatever determiner the commit
+  already used: "the modal" becomes "the pop-up panel", not "the a pop-up
+  panel".
+- **Match the de-hyphenated form.** A letter-hyphen-letter rule near the top
+  of `pw_dispatch_end_user_draft()` runs *before* the dictionary and has
+  already turned `sentence-embedding` into `sentence embedding` and
+  `drop-down` into `drop down`. Underscores are flattened to spaces there too,
+  so `proc_open` arrives as `proc open`.
+
+**The dictionary as a whole counts as one formatter rule**, no matter how many
+terms it rewrites in a single subject. This matters because `$rulesMatched >= 2`
+is on its own enough to force a 65% score and satisfy the high-confidence gate
+in `pw_dispatch_draft_confidence()`. Several known words in one subject is
+denser vocabulary, not independent corroborating evidence -- counting each swap
+separately would let a jargon-heavy commit auto-publish without review on
+vocabulary alone. The `reader_safe_dictionary` evidence flag was already a
+single boolean for exactly this reason; `$rulesMatched` now matches it.
+
 When a safe changed-file aggregate is available, the formatter adds it as a
 separate final paragraph: `Total files edited: N in <allow-listed scope>.`
 This keeps the main BH-4 explanation readable while retaining a concise,
