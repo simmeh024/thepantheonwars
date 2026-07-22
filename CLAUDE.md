@@ -562,6 +562,34 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Benefit sentence follows commit intent; product names survive lcfirst
+  (dispatch-draft-v32).** Two refinements to summary quality.
+  1. **`$domainBenefits` is keyed by domain AND intent**, not domain alone
+     (8 domains x addition/correction/refinement x 2 variants = 48 sentences,
+     all distinct). One pool per domain meant the same hash-picked line
+     described an addition, a repair and a cosmetic tidy-up alike -- true of
+     every commit in that domain, so it carried no information and read as
+     filler. `$mode` is already computed by
+     `pw_dispatch_draft_action_mode()` from the commit's own verb, so this
+     needed no new signal. The best of the new lines is tooling/refinement's
+     **"This changes how updates are written, not what the site does."** --
+     a genuinely useful distinction for a reader that the old pool could not
+     express. `scopes` and `files_changed` remain unused for wording;
+     intent was taken first as the strongest of the three, keeping the
+     quality shift attributable.
+  2. **`pw_dispatch_proper_nouns()`** protects single-capital product names
+     from the `lcfirst()` applied to every object phrase -- "Dispatch
+     summaries" had published as "dispatch summaries". The v29 acronym rule
+     only catches multi-capital tokens (BH-4, CSS), so it could not see
+     these. Multi-word names are matched **in full** rather than by first
+     word, so a generic leading "World", "Admin" or "System" is still
+     lowercased and only the real product name ("World Record", "Admin
+     Console") is preserved -- verified both directions.
+  Harness gained a `contains_exact` assertion: `contains`/`forbidden` both
+  use `stripos`, so neither could ever have caught a capitalisation bug.
+  Three regression cases added, including two commits differing only in their
+  verb, each forbidding the other mode's sentence pair.
+
 - **Lore pre-check no longer reads the commit body (dispatch-draft-v31).**
   The v30 tooling split below did not take effect on the very first commit
   that needed it: "Rewrite Dispatch summaries in first person" still published
@@ -2104,7 +2132,7 @@ at that time.
   at most eight recent translations, and uses that score to begin with a
   different stable wording variant for near-duplicate updates. Raw prior translations never
   leave the PHP/Python process boundary. The draft-format hash is
-  `dispatch-draft-v31`, so regeneration refreshes unapproved local drafts
+  `dispatch-draft-v32`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
   Before rendering prose, PHP builds a reader-safe plan from recognized commit

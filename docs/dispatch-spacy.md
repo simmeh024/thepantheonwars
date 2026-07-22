@@ -244,6 +244,15 @@ pre-check); `tooling` covers the development record itself (`dispatch`,
 plural -- "the confidence checks behind ..." -- so a template like "how %s
 reaches readers" produces "the confidence checks ... reaches readers".
 
+The second sentence is keyed by **domain and recognized intent**, not domain
+alone. One pool per domain meant the same line described an addition, a repair
+and a cosmetic tidy-up alike -- true of every commit in that domain, and
+therefore carrying no information. `$mode` comes from
+`pw_dispatch_draft_action_mode()`, i.e. the commit's own verb, so a fix now
+reads differently from a new capability. The remaining `$plan` signals
+(`scopes`, `files_changed`) are still unused for wording; intent was taken
+first because it is the strongest of the three.
+
 The second sentence is **only published when something specific supports it**.
 It is a hash-selected line from a fixed per-domain pool, with no connection to
 what actually changed, so on an unclassified (`general`) domain or a

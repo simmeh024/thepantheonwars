@@ -233,6 +233,28 @@ $cases = [
         'plan_domain' => 'tooling',
         'contains' => ['Dispatch summaries in first person'],
         'forbidden' => ['rewrite Dispatch', 'Pantheon Wars record', 'established setting'],
+        // "Dispatch" is a product name here and must survive the lcfirst()
+        // applied to every object phrase; it published as "dispatch summaries".
+        'contains_exact' => ['Dispatch summaries'],
+    ],
+    // The benefit sentence must follow the commit's own intent. These two
+    // differ only in their verb, so if the benefit were still one hash-picked
+    // pool per domain they would receive interchangeable sentences. Each case
+    // forbids the other mode's pair outright, which is stable regardless of
+    // which of the two variants $pickVariant selects.
+    [
+        'subject' => 'Fix Dispatch translation output',
+        'body' => '',
+        'tag' => 'fix',
+        'plan_domain' => 'tooling',
+        'forbidden' => ['This changes how updates are written', 'read more clearly without the technical detail'],
+    ],
+    [
+        'subject' => 'Refine Dispatch translation output',
+        'body' => '',
+        'tag' => 'improvement',
+        'plan_domain' => 'tooling',
+        'forbidden' => ['reported incorrectly', 'matches what actually changed'],
     ],
     // The counterpart: genuine in-world material must still read as content,
     // so splitting tooling out cannot quietly strip the lore voice.
@@ -270,6 +292,15 @@ foreach ($cases as $case) {
     foreach ($case['contains'] ?? [] as $fragment) {
         if (stripos($draft, $fragment) === false) {
             fwrite(STDERR, "Expected reader-facing context is missing: " . $draft . "\n");
+            exit(1);
+        }
+    }
+    // Case-sensitive: 'contains' and 'forbidden' both use stripos, so neither
+    // can assert capitalisation. Use this for product names that must survive
+    // the lcfirst() applied to every object phrase.
+    foreach ($case['contains_exact'] ?? [] as $fragment) {
+        if (strpos($draft, $fragment) === false) {
+            fwrite(STDERR, "Expected exact-case text is missing (" . $fragment . "): " . $draft . "\n");
             exit(1);
         }
     }

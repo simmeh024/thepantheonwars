@@ -184,11 +184,29 @@ function pw_dispatch_draft_nearest_similarity(array $spacyAnalysis): float
  * do the same to any acronym-led object (CSS, API, SQL, UTC). A leading token
  * carrying a second capital, or a capital followed by a digit or hyphen, is
  * treated as a name and left exactly as written.
+ *
+ * Single-capital product names need naming, since the rule above cannot see
+ * them: "Dispatch summaries" was published as "dispatch summaries". Multi-word
+ * names are matched in full rather than by their first word, so a generic
+ * leading "World", "Admin" or "System" is still lowercased normally and only
+ * the real product name ("World Record", "Admin Console") is preserved.
  */
+function pw_dispatch_proper_nouns(): string
+{
+    return 'Development Dispatch(?:es)?|Dispatch(?:es)?|Overlord(?:s)?|Nexus Veil|Pantheon Wars|Saga Complete'
+        . '|Admin Console|Audit Log|System Status|Topic Reports|Known Figures|Privacy Requests'
+        . '|World Record|World Control|Weather Control|Book Control|Forum Control|Dispatch Control'
+        . '|Asmecu|Cerius|Neoh|High Hammer|Reanium|Babki Prime|Geof V|Beoctica|Terek II|Valerium Prime|Vermillia XI'
+        . '|Google|Apple|Spotify|Reddit';
+}
+
 function pw_dispatch_lcfirst_object(string $value): string
 {
     $trimmed = ltrim($value);
     if ($trimmed === '') {
+        return $value;
+    }
+    if (preg_match('/^(?:' . pw_dispatch_proper_nouns() . ')\b/', $trimmed)) {
         return $value;
     }
     $firstWord = preg_split('/\s/', $trimmed, 2)[0];
@@ -1074,18 +1092,59 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     // stay factual and never claim a result that the commit evidence cannot
     // support; they simply avoid a security, performance, or community change
     // all sounding like the same generic maintenance note.
+    // Keyed by domain AND recognized intent. Previously one pool per domain
+    // was hash-selected from the subject, so the same sentence described an
+    // addition, a repair and a cosmetic tidy-up alike -- true of every commit
+    // in that domain, and therefore carrying no information. $mode comes from
+    // pw_dispatch_draft_action_mode(), i.e. the commit's own verb, so a fix
+    // now reads differently from a new capability. The remaining $plan signals
+    // (scopes, files_changed) are still unused for wording; intent was taken
+    // first because it is the strongest of the three and keeps this pass's
+    // quality shift attributable to one change.
     $domainBenefits = [
-        'security' => ['Member activity has a clearer layer of protection around this path.', 'The affected account or data path now carries a more deliberate safeguard.'],
-        'database' => ['The supporting data work is now clearer and easier to maintain.', 'This gives the affected records a more dependable foundation.'],
-        'performance' => ['The affected path now avoids work that visitors do not need to wait for.', 'This supports a steadier experience as routine activity grows.'],
-        'community' => ['Members and moderators should find the affected interaction easier to follow.', 'The change supports clearer participation without adding noise to community activity.'],
-        'content' => ['Readers have a clearer route into the affected part of the Pantheon Wars record.', 'The added context supports exploration while preserving the established setting.'],
-        'tooling' => ['Development updates should now read more clearly without the technical detail behind them.', 'This keeps the public record of development work accurate and easier to follow.'],
-        'interface' => ['The surrounding controls should now be easier to read and use at a glance.', 'The established visual language remains intact while the path becomes clearer.'],
-        'operations' => ['The routine service behind this update now has a clearer operational foundation.', 'We record a more dependable path for the systems supporting future releases.'],
+        'security' => [
+            'addition' => ['A further safeguard now sits in front of member activity on this path.', 'This adds protection without changing how the path is normally used.'],
+            'correction' => ['A weak point in that protection has been closed.', 'The affected path no longer behaves in a way that could be relied on incorrectly.'],
+            'refinement' => ['Existing protection on this path is now applied more consistently.', 'The safeguards behave as before, with less room for an unintended gap.'],
+        ],
+        'database' => [
+            'addition' => ['The site can now store and retrieve this information reliably.', 'This gives the affected records a dependable home.'],
+            'correction' => ['Data that was handled incorrectly is now stored and read as intended.', 'The affected records should be accurate again.'],
+            'refinement' => ['The same data is handled with less avoidable work behind the scenes.', 'This keeps the stored information easier to maintain as it grows.'],
+        ],
+        'performance' => [
+            'addition' => ['A lighter path is now available for this work.', 'This adds a faster route without changing what visitors see.'],
+            'correction' => ['An avoidable delay on this path has been removed.', 'Pages affected by that delay should respond normally again.'],
+            'refinement' => ['The same result now costs less work behind the scenes.', 'This should hold steady as routine activity grows.'],
+        ],
+        'community' => [
+            'addition' => ['Members and moderators have a new way to take part.', 'This opens a route through community activity that did not exist before.'],
+            'correction' => ['An interaction that was not behaving correctly now works as members expect.', 'The affected conversation path should be dependable again.'],
+            'refinement' => ['The same interaction is now easier to follow.', 'This reduces friction in everyday community activity without changing what it does.'],
+        ],
+        'content' => [
+            'addition' => ['There is more of the setting available to explore.', 'Readers gain material that was not published before.'],
+            'correction' => ['Information that was inaccurate has been put right.', 'The affected record now reflects the established setting correctly.'],
+            'refinement' => ['The same material is now easier to read and navigate.', 'This clarifies existing detail without changing the established setting.'],
+        ],
+        'tooling' => [
+            'addition' => ['There is now a record of development work that was not published before.', 'This adds detail to how the project reports its own progress.'],
+            'correction' => ['Development updates that were reported incorrectly now read accurately.', 'The public record now matches what actually changed.'],
+            'refinement' => ['This changes how updates are written, not what the site does.', 'Development updates should read more clearly without the technical detail behind them.'],
+        ],
+        'interface' => [
+            'addition' => ['There is a new control available where it is needed.', 'This adds a view that was not there before.'],
+            'correction' => ['A control that was not displaying correctly now behaves as intended.', 'The affected view should render as expected again.'],
+            'refinement' => ['The same controls are now easier to read at a glance.', 'This adjusts presentation without changing what the controls do.'],
+        ],
+        'operations' => [
+            'addition' => ['A new piece of routine site operation is now in place.', 'This adds operational cover that was missing.'],
+            'correction' => ['A routine service that was misbehaving now runs as intended.', 'The affected background work should complete normally again.'],
+            'refinement' => ['Routine operations now rest on a steadier foundation.', 'This makes the supporting systems easier to maintain without changing normal use.'],
+        ],
     ];
-    if (!$naturalOverrideApplied && isset($domainBenefits[$domain])) {
-        $benefit = $pickVariant($domainBenefits[$domain], 'voice-' . $domain);
+    if (!$naturalOverrideApplied && isset($domainBenefits[$domain][$mode])) {
+        $benefit = $pickVariant($domainBenefits[$domain][$mode], 'voice-' . $domain . '-' . $mode);
     }
 
     $diffSentence = pw_dispatch_draft_diff_sentence($diffContext);
@@ -1247,7 +1306,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v31\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v32\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array
