@@ -1676,7 +1676,12 @@
   pointer-events: none;
   background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(145, 216, 235, 0.022) 4px 5px);
 }
-.world-weather-card > *:not(.world-weather-card-scan) { position: relative; z-index: 1; }
+/* The two background layers are excluded by name. Without the second
+   exclusion this rule (class + universal, so higher specificity than the
+   layer's own class) forced the effect canvas to position: relative with
+   z-index 1 -- putting it in flow, sizing it to the whole card, and stacking
+   it level with the content instead of behind it. */
+.world-weather-card > *:not(.world-weather-card-scan):not(.world-weather-fx) { position: relative; z-index: 1; }
 .world-weather-card-scan {
   position: absolute;
   z-index: 0;
@@ -3146,3 +3151,78 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
   .timeline-node.is-new .timeline-node-title { -webkit-text-fill-color: var(--gold-bright); color: var(--gold-bright); }
   .timeline-panel { transition: none; }
 }
+
+/* --- Weather: ambient effect layer ---------------------------------------
+   Canvas painted by js/weather-effects.js, keyed by the current condition
+   rather than the world. Sits behind everything; the card's existing rule
+   already lifts its real content above it. */
+.world-weather-fx {
+  position: absolute; inset: 0; z-index: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) { .world-weather-fx { display: none; } }
+
+/* --- Weather: season phase ----------------------------------------------- */
+.world-weather-season {
+  display: flex; align-items: baseline; gap: 7px;
+  margin: 0 0 12px; font-size: 0.62rem; letter-spacing: 0.06em;
+}
+.world-weather-season b { color: var(--text-dim); font-weight: 600; text-transform: uppercase; }
+.world-weather-season i { color: var(--text-faint); font-style: normal; font-variant-numeric: tabular-nums; }
+.world-weather-season-mark {
+  width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  background: var(--world-weather-icon); box-shadow: 0 0 7px var(--world-weather-icon);
+}
+/* The two extremes read hot and cold; the transitions stay neutral. */
+.world-weather-season.is-high .world-weather-season-mark { background: #e8935f; box-shadow: 0 0 7px #e8935f; }
+.world-weather-season.is-low .world-weather-season-mark { background: #8fd4e2; box-shadow: 0 0 7px #8fd4e2; }
+
+/* --- Weather: severe alert ----------------------------------------------- */
+.world-weather-severe {
+  display: flex; align-items: center; gap: 9px;
+  margin: 0 0 14px; padding: 9px 12px;
+  border: 1px solid rgba(224, 90, 74, 0.45);
+  border-left-width: 3px;
+  border-radius: var(--radius-sm);
+  background: rgba(224, 90, 74, 0.1);
+  font-size: 0.66rem;
+}
+.world-weather-severe > span {
+  display: grid; place-items: center; flex-shrink: 0;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: #e05a4a; color: #12080a; font-size: 0.62rem; font-weight: 700;
+}
+.world-weather-severe b { color: #f0a090; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.world-weather-severe i { color: var(--text-dim); font-style: normal; }
+
+/* --- Weather: five-day range band ---------------------------------------- */
+.world-weather-range { display: flex; align-items: stretch; gap: 6px; height: 42px; margin-bottom: 6px; }
+.world-weather-range-scale {
+  display: flex; flex-direction: column; justify-content: space-between; flex: 0 0 auto;
+  color: var(--text-faint); font-size: 0.5rem; font-variant-numeric: tabular-nums;
+}
+.world-weather-range-cols { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; flex: 1 1 auto; }
+.world-weather-range-col { position: relative; }
+.world-weather-range-col i {
+  position: absolute; left: 50%; width: 5px; transform: translateX(-50%);
+  border-radius: 999px;
+  background: linear-gradient(180deg, var(--world-weather-icon), rgba(255, 255, 255, 0.12));
+  opacity: 0.75;
+}
+
+/* --- Weather: hourly temperature arc and night shading ------------------- */
+.world-weather-hour-list { position: relative; }
+.world-weather-arc-layer {
+  position: absolute; left: 0; top: 4px; bottom: 4px;
+  pointer-events: none; list-style: none;
+}
+.world-weather-arc { width: 100%; height: 100%; overflow: visible; }
+.world-weather-arc polyline { stroke: var(--world-weather-icon); stroke-width: 1.2; opacity: 0.55; }
+.world-weather-arc-fill { fill: var(--world-weather-icon); opacity: 0.07; stroke: none; }
+/* Above the arc so the readings stay legible over it. */
+.world-weather-hour { position: relative; z-index: 1; }
+.world-weather-hour.is-night { background: rgba(8, 10, 28, 0.5); }
+.world-weather-hour.is-night .world-weather-hour-time { color: var(--text-faint); }
+/* The current hour keeps its gold treatment even at night. */
+.world-weather-hour.is-night.is-now { background: linear-gradient(180deg, rgba(210, 169, 84, 0.08), rgba(88, 45, 155, 0.14)); }

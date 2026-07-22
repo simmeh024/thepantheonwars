@@ -886,7 +886,7 @@ function pw_log_admin_activity($action, $description, $user = null) {
 // newly introduced ones, so this only ever needs to read, never backfill on
 // account creation.
 function pw_notifications_enabled($userId, $type) {
-    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved', 'world_available' => 'notif_world_available', 'news_published' => 'notif_news_published', 'topic_reply' => 'notif_topic_reply', 'icon_unlocked' => 'notif_icon_unlocked', 'new_device_login' => 'notif_new_device_login', 'warning_issued' => 'notif_warning_issued'];
+    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved', 'world_available' => 'notif_world_available', 'news_published' => 'notif_news_published', 'topic_reply' => 'notif_topic_reply', 'icon_unlocked' => 'notif_icon_unlocked', 'new_device_login' => 'notif_new_device_login', 'warning_issued' => 'notif_warning_issued', 'weather_alert' => 'notif_weather_alert'];
     if (!isset($columns[$type])) {
         return true;
     }
@@ -1062,6 +1062,10 @@ function pw_reputation_achievement_catalog(): array {
         ['key' => 'shelf_seeker', 'name' => 'Shelf Seeker', 'description' => 'Started three books.', 'points' => 5, 'tier' => 'bronze', 'category' => 'Reading', 'progress_type' => 'books_started', 'target' => 3, 'icon' => '▰'],
         ['key' => 'seven_books_finished', 'name' => 'Seven Worlds Read', 'description' => 'Finished seven books.', 'points' => 50, 'tier' => 'gold', 'category' => 'Reading', 'progress_type' => 'books_finished', 'target' => 7, 'icon' => '◫'],
         ['key' => 'saga_finisher', 'name' => 'Saga Finisher', 'description' => 'Finished all fourteen books.', 'points' => 100, 'tier' => 'prismatic', 'category' => 'Reading', 'progress_type' => 'books_finished', 'target' => 14, 'icon' => '◆'],
+        // Severe weather cannot be sought out on demand -- the generator has to
+        // actually roll it -- so these sit higher than their counts suggest.
+        ['key' => 'storm_witness', 'name' => 'Storm Witness', 'description' => 'Stood through severe weather on a world.', 'points' => 10, 'tier' => 'bronze', 'category' => 'Lore', 'progress_type' => 'severe_weather', 'target' => 1, 'icon' => '◇', 'track' => 'severe_weather', 'track_label' => 'Severe Weather', 'track_order' => 1],
+        ['key' => 'stormchaser', 'name' => 'Stormchaser', 'description' => 'Stood through severe weather on five worlds.', 'points' => 60, 'tier' => 'gold', 'category' => 'Lore', 'progress_type' => 'severe_weather', 'target' => 5, 'icon' => '◈', 'track' => 'severe_weather', 'track_label' => 'Severe Weather', 'track_order' => 2],
     ];
 }
 
@@ -1072,6 +1076,15 @@ function pw_evaluate_reputation_achievements(PDO $db, int $userId): void {
     $quizStmt = $db->prepare('SELECT COUNT(*) FROM quiz_results WHERE user_id = ?'); $quizStmt->execute([$userId]);
     $bookStmt = $db->prepare('SELECT COUNT(*) FROM user_book_progress WHERE user_id = ? AND started_at IS NOT NULL'); $bookStmt->execute([$userId]);
     $finishStmt = $db->prepare('SELECT COUNT(*) FROM user_book_progress WHERE user_id = ? AND finished_at IS NOT NULL'); $finishStmt->execute([$userId]);
+    $severeCount = 0;
+    try {
+        $severeStmt = $db->prepare("SELECT COUNT(*) FROM user_lore_discoveries WHERE user_id = ? AND entity_type = 'severe_weather'");
+        $severeStmt->execute([$userId]);
+        $severeCount = (int)$severeStmt->fetchColumn();
+    } catch (Throwable $e) {
+        // migration_weather_severe.sql may not have been run yet; every other
+        // achievement must still evaluate normally.
+    }
     $topicCount = (int)$topicStmt->fetchColumn(); $postCount = (int)$postStmt->fetchColumn(); $quizCount = (int)$quizStmt->fetchColumn(); $bookCount = (int)$bookStmt->fetchColumn(); $finishCount = (int)$finishStmt->fetchColumn();
     $unlocks = [
         'first_signal' => $topicCount >= 1,
@@ -1083,6 +1096,8 @@ function pw_evaluate_reputation_achievements(PDO $db, int $userId): void {
         'shelf_seeker' => $bookCount >= 3,
         'seven_books_finished' => $finishCount >= 7,
         'saga_finisher' => $finishCount >= 14,
+        'storm_witness' => $severeCount >= 1,
+        'stormchaser' => $severeCount >= 5,
     ];
     $insert = $db->prepare('INSERT IGNORE INTO user_reputation_achievements (user_id, achievement_key) VALUES (?, ?)');
     $alreadyRewarded = $db->prepare('SELECT 1 FROM reputation_ledger WHERE user_id = ? AND reward_key = ? LIMIT 1');

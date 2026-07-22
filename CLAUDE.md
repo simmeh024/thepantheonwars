@@ -473,7 +473,7 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=280`, community `css/community-bundle.css?v=272`, and admin
+  `css/public.css?v=282`, community `css/community-bundle.css?v=274`, and admin
   `css/admin-bundle.css?v=279`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
@@ -600,6 +600,56 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Weather: ambient effects, severity, season, and a witnessable event.**
+  **Run `sql/migration_weather_severe.sql` once.**
+  **Severity is judged against each world's own configured bounds, never an
+  absolute figure** -- 43°C is an ordinary afternoon on Sed and an event on
+  Beoctica (asserted both ways). Storm conditions always qualify; wind and
+  precipitation trigger at 0.9 / 0.95 of the profile's own range, and
+  temperature at the range edge. Those two fractions were tuned by measurement:
+  at 0.85 / 0.9 roughly a third of generated days flagged severe, which makes
+  "severe" ordinary. They now land near a quarter.
+  **Witnessing severe weather is awarded once per world, not once per storm**
+  (`api/weather/witness.php`, `user_lore_discoveries.entity_type =
+  'severe_weather'`). The endpoint **recomputes the severity itself** rather
+  than trusting the caller, exactly as the Timeline discovery endpoint
+  re-checks its gate -- it is a separate entry point, so without that a crafted
+  POST could claim the award on a calm day. Two achievements sit on it
+  (`storm_witness`, `stormchaser`) and it sends a `weather_alert` notification;
+  the full notification checklist in this file was worked through and audited.
+  **The season phase surfaces `pw_weather_seasonal_bias()`**, which had been
+  shaping temperatures with a per-world phase offset since it shipped and was
+  invisible to readers. Labels are derived, not authored, by comparing today's
+  bias with a fortnight ahead so a world reads as warming or cooling rather
+  than only warm or cold.
+  **`js/weather-effects.js` is a new module, NOT the atlas engine.** The
+  earlier assumption that `js/world-atlas-effects.js` could be reused was
+  wrong: its drawers are private to that IIFE, keyed by world slug, and bound
+  to the atlas's fixed 1672x941 medallion geometry. This is the same technique
+  at card scale, keyed by the five condition icons instead, so a card changes
+  with its weather rather than its identity.
+  **Three bugs worth remembering, all found in the browser pass:**
+  1. `.world-weather-card > *:not(.world-weather-card-scan)` (class + universal)
+     outranks a background layer's own single class, so the new effect canvas
+     was forced to `position: relative; z-index: 1` -- in flow, sized to the
+     whole card, and level with the content. Background layers must be named in
+     that exclusion.
+  2. `world-detail.js` has no `global` binding; it is a plain DOMContentLoaded
+     handler. `global.PW_AUTH` would have thrown and taken the whole card with
+     it. Use `window.` there.
+  3. The witness call checked `PW_AUTH` once and gave up, so a signed-in member
+     arriving before session-check resolved never recorded anything. It waits
+     for `pw-auth-ready` like the lore-discovery call beside it.
+  **Browser-pane limits, now confirmed three times over:** `requestAnimationFrame`,
+  smooth scrolling, and `ResizeObserver` all fail to deliver when the pane is
+  not displayed, because `document.hidden` is true and the rendering lifecycle
+  never runs. A control probe confirmed ResizeObserver gets zero callbacks for
+  a real size change. **The particle rendering itself is therefore unverified
+  locally** -- structure, sizing, stacking and tint were checked, but not a
+  painted frame.
+  `content.css?v=242` / `public.css?v=282` / `community-bundle.css?v=274` /
+  `world-detail.js?v=11` / `weather-effects.js?v=2`.
 
 - **Hourly weather projections.** Two new surfaces over the existing
   deterministic generator, no schema change and no migration.

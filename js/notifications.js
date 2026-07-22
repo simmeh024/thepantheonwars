@@ -37,6 +37,7 @@ function initNotifications() {
     news_published: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
     new_device_login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/><path d="m9 10 2 2 4-4"/></svg>',
     warning_issued: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>',
+    weather_alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16a4 4 0 0 1 .4-8 6 6 0 0 1 11.3 2A3.5 3.5 0 0 1 17.5 16z"/><path d="m13 13-2.5 4h3L11 21"/></svg>',
   };
   var EMPTY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
 
@@ -125,6 +126,8 @@ function initNotifications() {
         return 'New sign-in detected' + (excerpt ? ': <strong>' + excerpt + '</strong>' : '') + '. If this wasn\'t you, review your sessions.';
       case 'warning_issued':
         return excerpt || 'You have received a warning.';
+      case 'weather_alert':
+        return 'Severe weather recorded' + (excerpt ? ': <strong>' + excerpt + '</strong>' : '') + '.';
       default:
         return 'You have a new notification.';
     }

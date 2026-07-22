@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=280">
+<link rel="stylesheet" href="css/public.css?v=282">
 </head>
 <body>
 
@@ -157,6 +157,7 @@
           <button type="button" class="notif-filter-btn" data-filter="icon_unlocked">Icons Unlocked <span class="notif-filter-count" id="notif-filter-count-icon_unlocked">0</span></button>
           <button type="button" class="notif-filter-btn" data-filter="new_device_login">New Sign-ins <span class="notif-filter-count" id="notif-filter-count-new_device_login">0</span></button>
           <button type="button" class="notif-filter-btn" data-filter="warning_issued">Warnings <span class="notif-filter-count" id="notif-filter-count-warning_issued">0</span></button>
+          <button type="button" class="notif-filter-btn" data-filter="weather_alert">Weather <span class="notif-filter-count" id="notif-filter-count-weather_alert">0</span></button>
           <label class="notif-unread-toggle">
             <input type="checkbox" id="notif-unread-toggle-input">
             <span class="notif-unread-toggle-track"><span class="notif-unread-toggle-thumb"></span></span>
@@ -266,6 +267,7 @@
     news_published: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h14v16H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>',
     new_device_login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/><path d="m9 10 2 2 4-4"/></svg>',
     warning_issued: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>',
+    weather_alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16a4 4 0 0 1 .4-8 6 6 0 0 1 11.3 2A3.5 3.5 0 0 1 17.5 16z"/><path d="m13 13-2.5 4h3L11 21"/></svg>',
   };
 
   function escapeHtml(s) {
@@ -336,6 +338,8 @@
         return 'New sign-in detected' + (excerpt ? ': <strong>' + excerpt + '</strong>' : '') + '. If this wasn\'t you, review your sessions.';
       case 'warning_issued':
         return excerpt || 'You have received a warning.';
+      case 'weather_alert':
+        return 'Severe weather recorded' + (excerpt ? ': <strong>' + excerpt + '</strong>' : '') + '.';
       default:
         return 'You have a new notification.';
     }
@@ -439,6 +443,7 @@
         document.getElementById('notif-filter-count-icon_unlocked').textContent = data.counts.icon_unlocked;
         document.getElementById('notif-filter-count-new_device_login').textContent = data.counts.new_device_login;
         document.getElementById('notif-filter-count-warning_issued').textContent = data.counts.warning_issued;
+        document.getElementById('notif-filter-count-weather_alert').textContent = data.counts.weather_alert;
 
         var topType = null, topCount = 0;
         Object.keys(STAT_LABELS).forEach(function (t) {

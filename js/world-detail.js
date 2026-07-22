@@ -95,16 +95,53 @@ document.addEventListener('DOMContentLoaded', function () {
       '</span>' +
       '<div class="world-weather-hourly-rail">' +
         '<button type="button" class="world-weather-hourly-nav is-prev" aria-label="Earlier hours">&lsaquo;</button>' +
-        '<ul class="world-weather-hour-list"></ul>' +
+        // The arc lives inside the scrolling list so it travels with the
+        // columns it belongs to. It is an <li> because only <li> is valid
+        // inside <ul>, and absolutely positioned so it takes no flex slot.
+        '<ul class="world-weather-hour-list">' +
+          '<li class="world-weather-arc-layer" aria-hidden="true"></li>' +
+        '</ul>' +
         '<button type="button" class="world-weather-hourly-nav is-next" aria-label="Later hours">&rsaquo;</button>' +
       '</div>' +
     '</div>';
   }
 
+  /**
+   * The temperature arc behind the hourly columns.
+   *
+   * Hand-built inline SVG that computes its own scale from the day's real
+   * range, the same approach as the System Status CPU chart -- there is no
+   * chart library anywhere in this codebase and this does not add one.
+   * preserveAspectRatio="none" lets one path stretch across however many
+   * columns the rail holds, so it stays aligned while the rail scrolls.
+   */
+  function hourlyArcSvg(hours) {
+    if (!hours || hours.length < 2) return '';
+    var temps = hours.map(function (h) { return h.temperature_c; });
+    var min = Math.min.apply(null, temps);
+    var max = Math.max.apply(null, temps);
+    var span = (max - min) || 1;
+    var width = hours.length * 10;
+    var points = temps.map(function (t, i) {
+      // Inset vertically so the line never touches the box edges.
+      return (i * 10 + 5) + ',' + (22 - ((t - min) / span) * 16).toFixed(2);
+    });
+    return '<svg class="world-weather-arc" viewBox="0 0 ' + width + ' 26" preserveAspectRatio="none" aria-hidden="true">' +
+      '<polyline points="' + points.join(' ') + '" fill="none" vector-effect="non-scaling-stroke"/>' +
+      '<polygon points="' + points.join(' ') + ' ' + (width - 5) + ',26 5,26" class="world-weather-arc-fill"/>' +
+    '</svg>';
+  }
+
+  // Hours the world spends in darkness. The generator's own curve troughs at
+  // 03:00 and peaks at 15:00, so this shades the half of the cycle that curve
+  // already treats as night rather than inventing a second notion of one.
+  function isNightHour(hour) { return hour >= 19 || hour < 6; }
+
   function hourlyItemsHtml(day, isToday) {
     return (day.hours || []).map(function (entry, position) {
       var isNow = isToday && position === 0;
-      return '<li class="world-weather-hour' + (isNow ? ' is-now' : '') + '">' +
+      return '<li class="world-weather-hour' + (isNow ? ' is-now' : '') +
+        (isNightHour(entry.hour) ? ' is-night' : '') + '">' +
         '<span class="world-weather-hour-time">' + escapeHtml(entry.short_label != null ? entry.short_label : entry.label) + '</span>' +
         '<span class="world-weather-hour-icon">' + weatherIconHtml(entry.icon) + '</span>' +
         '<span class="world-weather-hour-temp">' + escapeHtml(entry.temperature_c) + '&deg;</span>' +
@@ -127,6 +164,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!days.length || !panel) return;
 
     var list = panel.querySelector('.world-weather-hour-list');
+    var arc = panel.querySelector('.world-weather-arc-layer');
     var dayLabel = panel.querySelector('.world-weather-hourly-day');
     var prev = panel.querySelector('.is-prev');
     var next = panel.querySelector('.is-next');
@@ -143,7 +181,18 @@ document.addEventListener('DOMContentLoaded', function () {
       var day = forecast[index];
       if (!day || !day.hours || !day.hours.length) return;
       if (shown !== index) {
-        list.innerHTML = hourlyItemsHtml(day, day.day === 'Today');
+        // Rebuilt rather than replaced wholesale, so the arc layer survives.
+        list.innerHTML = '<li class="world-weather-arc-layer" aria-hidden="true"></li>' +
+          hourlyItemsHtml(day, day.day === 'Today');
+        arc = list.querySelector('.world-weather-arc-layer');
+        arc.innerHTML = hourlyArcSvg(day.hours);
+        // Spans the whole scroll width rather than the visible window, so the
+        // curve stays registered with its columns as the rail moves.
+        // Must mirror .world-weather-hour's own width exactly: six columns
+        // share the list width minus its five 2px gaps, then the arc spans all
+        // N of them plus the N-1 gaps between. Carrying a stale gap total here
+        // leaves the curve short of its own columns.
+        arc.style.width = 'calc((100% - 10px) / 6 * ' + day.hours.length + ' + ' + ((day.hours.length - 1) * 2) + 'px)';
         list.scrollLeft = 0;
         dayLabel.textContent = day.day === 'Today' ? 'Remaining today' : day.day;
         shown = index;
@@ -203,6 +252,68 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addEventListener('resize', syncArrows);
   }
 
+  /**
+   * Where this world sits in its own yearly cycle.
+   *
+   * The seasonal drift has always been shaping these temperatures with a
+   * per-world phase offset and has never been visible to a reader. This states
+   * the phase and the actual degrees it is worth, rather than a vague mood.
+   */
+  function seasonLineHtml(season) {
+    if (!season || !season.label) return '';
+    var shift = season.shift_c;
+    var effect = shift === 0
+      ? 'holding at this world&rsquo;s mean'
+      : (shift > 0 ? '+' : '') + escapeHtml(shift) + '&deg; against this world&rsquo;s mean';
+    return '<p class="world-weather-season is-' + escapeHtml(season.key) + '">' +
+      '<span class="world-weather-season-mark" aria-hidden="true"></span>' +
+      '<b>' + escapeHtml(season.label) + '</b>' +
+      '<i>' + effect + '</i>' +
+    '</p>';
+  }
+
+  /**
+   * Severe-weather banner. Severity is judged against each world's own
+   * configured bounds server-side, so 43 degrees is routine on Sed and an
+   * event on Beoctica.
+   */
+  function severeAlertHtml(severity) {
+    if (!severity || !severity.severe) return '';
+    var reasons = (severity.reasons || []).map(function (r) { return escapeHtml(r.label); }).join(' &middot; ');
+    return '<p class="world-weather-severe" role="status">' +
+      '<span aria-hidden="true">!</span>' +
+      '<b>Severe conditions</b>' +
+      '<i>' + reasons + '</i>' +
+    '</p>';
+  }
+
+  /**
+   * A band showing each day's high/low against the whole week's spread, so a
+   * day that is far out of step reads immediately instead of being five
+   * unrelated numbers. Same flat-div technique as dev-metrics' language chart;
+   * still no chart library anywhere in this codebase.
+   */
+  function rangeBandHtml(forecast) {
+    if (!forecast || forecast.length < 2) return '';
+    var lows = forecast.map(function (d) { return d.low_c; });
+    var highs = forecast.map(function (d) { return d.high_c; });
+    var floor = Math.min.apply(null, lows);
+    var ceiling = Math.max.apply(null, highs);
+    var span = (ceiling - floor) || 1;
+    var bars = forecast.map(function (day) {
+      var bottom = ((day.low_c - floor) / span) * 100;
+      var height = ((day.high_c - day.low_c) / span) * 100;
+      return '<span class="world-weather-range-col"' +
+        ' title="' + escapeHtml(day.day) + ': ' + escapeHtml(day.high_c) + '&deg; / ' + escapeHtml(day.low_c) + '&deg;">' +
+        '<i style="bottom:' + bottom.toFixed(1) + '%;height:' + Math.max(4, height).toFixed(1) + '%"></i>' +
+      '</span>';
+    }).join('');
+    return '<div class="world-weather-range" aria-hidden="true">' +
+      '<span class="world-weather-range-scale"><b>' + escapeHtml(ceiling) + '&deg;</b><b>' + escapeHtml(floor) + '&deg;</b></span>' +
+      '<div class="world-weather-range-cols">' + bars + '</div>' +
+    '</div>';
+  }
+
   function weatherCardHtml(weather, worldSlug, worldName) {
     var current = weather.current || {};
     var forecast = weather.forecast || [];
@@ -235,7 +346,10 @@ document.addEventListener('DOMContentLoaded', function () {
         '<div><span>Precipitation</span><strong>' + escapeHtml(current.precipitation) + '%</strong></div>' +
         '<div><span>Wind</span><strong>' + escapeHtml(current.wind_kph) + ' km/h</strong></div>' +
       '</div>' +
+      seasonLineHtml(weather.season) +
+      severeAlertHtml(current.severity) +
       '<div class="world-weather-divider"><span>5-day atmospheric projection</span></div>' +
+      rangeBandHtml(forecast) +
       // Wrapped together so the rail can close on leaving the whole region
       // rather than on leaving an individual day, which would dismiss it the
       // moment the pointer moved down to scroll it.
@@ -254,6 +368,41 @@ document.addEventListener('DOMContentLoaded', function () {
     slot.innerHTML = weatherCardHtml(data.weather, worldSlug, worldName);
     slot.hidden = false;
     wireHourlyPanels(slot, data.weather.forecast || []);
+
+    // Ambient weather matched to the condition, not the world.
+    if (window.WorldWeatherEffects) {
+      window.WorldWeatherEffects.create(slot, (data.weather.current || {}).icon);
+    }
+
+    recordSevereWitness(data.weather, worldSlug);
+  }
+
+  /**
+   * Records that this member was present for severe weather here.
+   *
+   * The client's say-so is not trusted: witness.php recomputes the severity
+   * from the world's own profile before awarding anything, the same way the
+   * Timeline discovery endpoint re-checks its gate. This call is only a nudge,
+   * so a signed-out visitor or a failed request costs nothing.
+   */
+  function recordSevereWitness(weather, worldSlug) {
+    var severity = (weather.current || {}).severity;
+    if (!severity || !severity.severe) return;
+    function send() {
+      var auth = window.PW_AUTH;
+      if (!auth || !auth.loggedIn || !auth.csrf) return;
+      fetch('/api/weather/witness.php', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug: worldSlug, csrf: auth.csrf })
+      }).catch(function () {});
+    }
+    // The weather can render before session-check resolves, so checking
+    // PW_AUTH once and giving up would silently skip a signed-in member who
+    // simply arrived early. Same wait the lore-discovery call above uses.
+    if (window.PW_AUTH && window.PW_AUTH.loggedIn) send();
+    else document.addEventListener('pw-auth-ready', send, { once: true });
   }
 
   function landmarkHtml(landmark) {

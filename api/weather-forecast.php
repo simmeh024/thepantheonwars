@@ -57,6 +57,102 @@ function pw_weather_seasonal_bias($worldSlug, DateTimeImmutable $date) {
     return sin($phase);
 }
 
+/**
+ * Whether a reading counts as severe, judged against this world's own
+ * configured bounds rather than any absolute figure.
+ *
+ * That matters: 43°C is an ordinary afternoon on Sed and an unprecedented
+ * event on Beoctica. Every threshold below is a fraction of the profile's own
+ * range, so a world is only ever severe relative to itself.
+ *
+ * Returns the reasons as well as the flag, so the alert can say what is wrong
+ * instead of only that something is.
+ */
+function pw_weather_severity($profile, $condition, $temperature, $wind, $precipitation) {
+    $reasons = [];
+
+    if (pw_weather_icon_key($condition) === 'storm') {
+        $reasons[] = ['key' => 'storm', 'label' => 'Storm front'];
+    }
+
+    $windMin = (int)$profile['wind_min_kph'];
+    $windMax = (int)$profile['wind_max_kph'];
+    // 0.9 / 0.95 rather than something looser: at 0.85 / 0.9 these two alone
+    // flagged about a third of generated days, which makes "severe" ordinary.
+    // These land nearer a quarter, still often enough to be seen.
+    if ($windMax > $windMin && $wind >= $windMin + (($windMax - $windMin) * 0.9)) {
+        $reasons[] = ['key' => 'wind', 'label' => 'Extreme wind'];
+    }
+
+    $precipMin = (int)$profile['precipitation_min'];
+    $precipMax = (int)$profile['precipitation_max'];
+    if ($precipMax > $precipMin && $precipitation >= $precipMin + (($precipMax - $precipMin) * 0.95)) {
+        $reasons[] = ['key' => 'precipitation', 'label' => 'Torrential fall'];
+    }
+
+    // Day 0 and 1 temperatures are administrator-authored and may sit outside
+    // the generated range entirely, so these compare with >= / <= rather than
+    // a fraction: an authored value beyond the world's own stated bounds is
+    // exactly the kind of exceptional day worth flagging.
+    $tempMin = (int)$profile['forecast_min_c'];
+    $tempMax = (int)$profile['forecast_max_c'];
+    if ($tempMax > $tempMin) {
+        if ($temperature >= $tempMax) {
+            $reasons[] = ['key' => 'heat', 'label' => 'Peak heat'];
+        } elseif ($temperature <= $tempMin) {
+            $reasons[] = ['key' => 'cold', 'label' => 'Deep cold'];
+        }
+    }
+
+    return [
+        'severe' => count($reasons) > 0,
+        'reasons' => $reasons,
+        'label' => $reasons ? $reasons[0]['label'] : '',
+    ];
+}
+
+/**
+ * Names where this world sits in its own yearly cycle.
+ *
+ * pw_weather_seasonal_bias() has been quietly shifting temperatures since the
+ * seasonal drift shipped, with a per-world phase offset, and nothing has ever
+ * shown it to a reader. This turns that existing signal into a line of copy.
+ *
+ * The phase is read by comparing today's bias with a fortnight ahead, so a
+ * world reads as warming or cooling rather than only as warm or cold. Labels
+ * are deliberately world-agnostic: naming twelve worlds' seasons would be
+ * authored content, and this is derived.
+ */
+function pw_weather_season_phase($worldSlug, DateTimeImmutable $date, $profile) {
+    $bias = pw_weather_seasonal_bias($worldSlug, $date);
+    $ahead = pw_weather_seasonal_bias($worldSlug, $date->modify('+15 days'));
+    $rising = $ahead > $bias;
+
+    if ($bias >= 0.55) {
+        $key = 'high';
+        $label = 'Height of the warm cycle';
+    } elseif ($bias <= -0.55) {
+        $key = 'low';
+        $label = 'Depth of the cold cycle';
+    } elseif ($rising) {
+        $key = 'warming';
+        $label = 'Warming through the cycle';
+    } else {
+        $key = 'cooling';
+        $label = 'Cooling through the cycle';
+    }
+
+    // The same expression the generator applies to days 2-4, reported so the
+    // line can state the actual effect rather than a vague mood.
+    $range = (int)$profile['forecast_max_c'] - (int)$profile['forecast_min_c'];
+    return [
+        'key' => $key,
+        'label' => $label,
+        'bias' => round($bias, 3),
+        'shift_c' => (int)round($bias * $range * 0.15),
+    ];
+}
+
 function pw_weather_precipitation($condition, $seed, $minimum, $maximum) {
     $conditionKey = strtolower((string)$condition);
     $value = pw_weather_range($seed, $minimum, $maximum);
@@ -221,6 +317,10 @@ function pw_build_weather_forecast($profile, $worldSlug, $today = null, $withHou
             $temperature = max($profile['forecast_min_c'], min($profile['forecast_max_c'], $rawTemperature + $seasonalShift));
         }
 
+        $dayHumidity = pw_weather_range($seed . '|humidity', $profile['humidity_min'], $profile['humidity_max']);
+        $dayPrecipitation = pw_weather_precipitation($condition, $seed . '|precipitation', $profile['precipitation_min'], $profile['precipitation_max']);
+        $dayWind = pw_weather_range($seed . '|wind', $profile['wind_min_kph'], $profile['wind_max_kph']);
+
         $forecast[] = [
             'date' => $date->format('Y-m-d'),
             'day' => $offset === 0 ? 'Today' : ($offset === 1 ? 'Tomorrow' : $date->format('l')),
@@ -233,9 +333,10 @@ function pw_build_weather_forecast($profile, $worldSlug, $today = null, $withHou
             // tomorrow) instead of quietly adding a generated offset to them.
             'high_c' => $temperature,
             'low_c' => $temperature - pw_weather_range($seed . '|low', 3, 6),
-            'humidity' => pw_weather_range($seed . '|humidity', $profile['humidity_min'], $profile['humidity_max']),
-            'precipitation' => pw_weather_precipitation($condition, $seed . '|precipitation', $profile['precipitation_min'], $profile['precipitation_max']),
-            'wind_kph' => pw_weather_range($seed . '|wind', $profile['wind_min_kph'], $profile['wind_max_kph']),
+            'humidity' => $dayHumidity,
+            'precipitation' => $dayPrecipitation,
+            'wind_kph' => $dayWind,
+            'severity' => pw_weather_severity($profile, $condition, $temperature, $dayWind, $dayPrecipitation),
         ];
     }
 
@@ -256,6 +357,10 @@ function pw_build_weather_forecast($profile, $worldSlug, $today = null, $withHou
         'location' => (string)$profile['location_label'],
         'climate' => (string)$profile['climate_label'],
         'hazard_note' => (string)$profile['hazard_note'],
+        // Where this world sits in its own yearly cycle. Derived from the
+        // seasonal drift that has always shaped these temperatures but has
+        // never been shown to a reader.
+        'season' => pw_weather_season_phase($worldSlug, $today, $profile),
         'current' => [
             'condition' => (string)$profile['current_condition'],
             'secondary' => (string)$profile['current_secondary'],
@@ -265,6 +370,9 @@ function pw_build_weather_forecast($profile, $worldSlug, $today = null, $withHou
             'humidity' => $forecast[0]['humidity'],
             'precipitation' => $forecast[0]['precipitation'],
             'wind_kph' => $forecast[0]['wind_kph'],
+            // Today's severity is the one the witness endpoint re-checks before
+            // awarding, so it is computed from exactly these values.
+            'severity' => $forecast[0]['severity'],
         ],
         'forecast' => $forecast,
     ];
