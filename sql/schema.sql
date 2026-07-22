@@ -554,7 +554,7 @@ CREATE TABLE IF NOT EXISTS user_reputation_achievement_showcase (
 CREATE TABLE IF NOT EXISTS user_lore_discoveries (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,
-  entity_type ENUM('world','overlord') NOT NULL,
+  entity_type ENUM('world','overlord','timeline_event') NOT NULL,
   entity_id INT UNSIGNED NOT NULL,
   discovered_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uq_lore_discovery_member_record (user_id, entity_type, entity_id),
@@ -1391,6 +1391,30 @@ CREATE TABLE IF NOT EXISTS known_figures (
   is_published TINYINT(1) NOT NULL DEFAULT 1,
   sort_order INT NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Lore Timeline: flat entity powering timeline.html. date_label is a string,
+-- not a DATE -- in-world time has no real calendar, so sort_order is the
+-- authoritative ordering. required_level_id gates an event behind a reputation
+-- level (NULL = always visible); ON DELETE SET NULL so removing a level
+-- unlocks its events rather than orphaning them. See migration_timeline.sql.
+CREATE TABLE IF NOT EXISTS timeline_events (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  slug VARCHAR(100) NOT NULL UNIQUE,
+  title VARCHAR(150) NOT NULL,
+  era_label VARCHAR(100) NOT NULL DEFAULT '',
+  date_label VARCHAR(100) NOT NULL DEFAULT '',
+  summary VARCHAR(400) NOT NULL DEFAULT '',
+  body TEXT NULL,
+  image_url VARCHAR(255) NOT NULL DEFAULT '',
+  accent_color VARCHAR(20) NOT NULL DEFAULT '#a279ec',
+  required_level_id INT UNSIGNED NULL DEFAULT NULL,
+  is_published TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_timeline_published_order (is_published, sort_order),
+  CONSTRAINT fk_timeline_required_level FOREIGN KEY (required_level_id)
+    REFERENCES reputation_levels(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Soundtrack Control: flat entity powering soundtracks.html. spotify_embed_type

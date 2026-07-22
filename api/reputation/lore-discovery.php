@@ -8,15 +8,36 @@ $input = pw_input();
 pw_require_csrf($input);
 $entityType = isset($input['entity_type']) ? (string)$input['entity_type'] : '';
 $entityId = isset($input['entity_id']) ? (int)$input['entity_id'] : 0;
-if (!in_array($entityType, ['world', 'overlord'], true) || $entityId <= 0) pw_error('Unknown discovery.', 422);
+if (!in_array($entityType, ['world', 'overlord', 'timeline_event'], true) || $entityId <= 0) pw_error('Unknown discovery.', 422);
 
 $db = pw_db();
 try {
-    $targetTable = $entityType === 'world' ? 'worlds' : 'overlords';
-    $target = $db->prepare("SELECT name FROM $targetTable WHERE id = ? AND status = 'available'");
-    $target->execute([$entityId]);
-    $row = $target->fetch();
-    if (!$row) pw_error('That lore record is unavailable.', 404);
+    if ($entityType === 'timeline_event') {
+        // A timeline event is only discoverable once it is actually unlocked
+        // for THIS member. Without re-checking the reputation gate here, a
+        // crafted POST could claim the discovery award for a sealed event --
+        // the public endpoint withholding its text is not by itself a
+        // permission check, and this is a separate entry point.
+        $target = $db->prepare(
+            'SELECT t.title AS name, r.threshold AS required_threshold
+             FROM timeline_events t
+             LEFT JOIN reputation_levels r ON r.id = t.required_level_id
+             WHERE t.id = ? AND t.is_published = 1'
+        );
+        $target->execute([$entityId]);
+        $row = $target->fetch();
+        if (!$row) pw_error('That lore record is unavailable.', 404);
+        $threshold = $row['required_threshold'] !== null ? (int)$row['required_threshold'] : null;
+        if ($threshold !== null && (int)($user['reputation'] ?? 0) < $threshold) {
+            pw_error('That lore record is unavailable.', 404);
+        }
+    } else {
+        $targetTable = $entityType === 'world' ? 'worlds' : 'overlords';
+        $target = $db->prepare("SELECT name FROM $targetTable WHERE id = ? AND status = 'available'");
+        $target->execute([$entityId]);
+        $row = $target->fetch();
+        if (!$row) pw_error('That lore record is unavailable.', 404);
+    }
 
     $db->beginTransaction();
     $discover = $db->prepare('INSERT IGNORE INTO user_lore_discoveries (user_id, entity_type, entity_id) VALUES (?, ?, ?)');
