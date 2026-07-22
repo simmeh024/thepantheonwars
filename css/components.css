@@ -405,16 +405,27 @@ a.nav-parent { cursor: pointer; }
    open while the visitor reads it. */
 .notif-nav-item { position: relative; display: flex; align-items: center; }
 .notif-nav-item[hidden] { display: none; }
+/* The bell is a pill like its two neighbours (.auth-profile-chip and
+   .pw-weather-bar), so the right-hand group reads as one set of controls
+   rather than a bare glyph between two bordered chips. Same border, fill and
+   999px radius as those; round rather than oblong only because its content is
+   a single icon. */
 .notif-bell-btn {
-  position: relative; background: none; border: none; cursor: pointer;
-  color: var(--text-dim); padding: 6px; display: flex; align-items: center;
-  transition: color var(--transition-base);
+  position: relative; cursor: pointer;
+  color: var(--text-dim);
+  padding: 5px; display: flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(162,121,236,0.33);
+  border-radius: 999px;
+  background: rgba(124,79,214,0.08);
+  transition: color var(--transition-base), border-color var(--transition-base), background-color var(--transition-base);
 }
 .notif-bell-btn svg { width: 19px; height: 19px; }
-.notif-bell-btn:hover { color: var(--gold); }
-.notif-bell-btn:focus-visible { color: var(--gold-bright); outline: 1px solid var(--gold-bright); outline-offset: 3px; border-radius: var(--radius-sm); }
+.notif-bell-btn:hover { color: var(--gold); border-color: var(--gold-dim); background: rgba(124,79,214,0.14); }
+.notif-bell-btn:focus-visible { color: var(--gold-bright); outline: 1px solid var(--gold-bright); outline-offset: 3px; }
 .notif-badge {
-  position: absolute; top: 0; right: 0; min-width: 15px; height: 15px; padding: 0 3px;
+  /* Pulled onto the rim: the containing block is now the button's padding box,
+     so the previous top/right of 0 would tuck the badge inside the border. */
+  position: absolute; top: -3px; right: -3px; min-width: 15px; height: 15px; padding: 0 3px;
   border-radius: 20px; background: #d1483f; color: #fff; font-size: 0.62rem; font-weight: 700;
   display: flex; align-items: center; justify-content: center; line-height: 1;
   font-family: 'Jost', sans-serif;
@@ -731,7 +742,17 @@ button.auth-profile-chip { color: inherit; cursor: pointer; font: inherit; }
 /* Profile chip + notification bell live outside nav.main-nav so they stay
    reachable in the top bar at every width -- on mobile that panel collapses
    behind the hamburger, but these two never do. */
-.nav-utility { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; }
+/* The three controls on the right of the header -- profile chip, notification
+   bell, weather pill -- are one visual set, so they share a height rather than
+   each landing on whatever their own contents happen to measure (32 / 31 / 30
+   before this). Only a floor, so a chip with a taller avatar still grows. */
+.nav-utility { display: flex; align-items: center; gap: 14px; flex: 0 0 auto; --nav-pill-height: 32px; }
+.nav-utility .auth-profile-chip,
+.nav-utility .pw-weather-bar { min-height: var(--nav-pill-height, 32px); }
+.nav-utility .notif-bell-btn {
+  min-height: var(--nav-pill-height, 32px);
+  min-width: var(--nav-pill-height, 32px);
+}
 
 /* --- Header weather widget ------------------------------------------------
    A compact bar showing one world's current conditions, pointable at any
@@ -938,6 +959,13 @@ button.auth-profile-chip { color: inherit; cursor: pointer; font: inherit; }
   .auth-profile-chip { gap: 0; padding: 0; border: 0; background: none; box-shadow: none; }
   .auth-profile-name, .auth-nav-item .nav-caret { display: none; }
   .auth-profile-chip-avatar { width: 28px; height: 28px; flex-basis: 28px; }
+  /* The bell sheds its pill here for the same reason the chip does: at this
+     width the two sit directly beside the logo and a bordered control next to
+     a bare avatar reads as clutter rather than as a set. The shared pill
+     height goes with it, since nothing is a pill at this width. */
+  .notif-bell-btn { padding: 6px; border: 0; background: none; }
+  .nav-utility .auth-profile-chip,
+  .nav-utility .notif-bell-btn { min-height: 0; min-width: 0; }
   /* The account menu is outside main-nav. Keep it hidden until the avatar is
      tapped, then anchor an opaque, bounded card below that control. */
   .auth-nav-item { position: relative; flex-direction: row; width: auto; }

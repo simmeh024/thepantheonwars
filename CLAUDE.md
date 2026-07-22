@@ -473,8 +473,8 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=271`, community `css/community-bundle.css?v=263`, and admin
-  `css/admin-bundle.css?v=275`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=272`, community `css/community-bundle.css?v=264`, and admin
+  `css/admin-bundle.css?v=276`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
