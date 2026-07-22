@@ -136,9 +136,19 @@ function pw_weather_day_hours($profile, $worldSlug, DateTimeImmutable $date, $da
         $hours[] = [
             'hour' => $hour,
             'label' => sprintf('%02d:00', $hour),
+            'short_label' => (string)$hour,
             'condition' => $condition,
             'icon' => pw_weather_icon_key($condition),
             'temperature_c' => $temperature,
+            // Driven by this hour's own condition rather than the day's, so a
+            // dry hour inside a wet day reads as dry. pw_weather_precipitation()
+            // already floors rain-like conditions and caps hazy ones.
+            'precipitation' => pw_weather_precipitation(
+                $condition,
+                $seed . '|precipitation',
+                $profile['precipitation_min'],
+                $profile['precipitation_max']
+            ),
         ];
     }
 

@@ -1729,75 +1729,96 @@
 .world-weather-day small { margin-left: 2px; color: var(--text-faint); font-size: 0.63rem; }
 .world-weather-day-condition { display: block; min-height: 22px; margin-top: 4px; overflow: hidden; color: var(--text-faint); font-size: 0.49rem; line-height: 1.25; }
 
-/* --- Hourly projection panel ---------------------------------------------
-   Opens off a day in the five-day strip. Anchored to the day and centred on
-   it, then nudged back inside the card by the edge rules below so the first
-   and last day do not open off the side. */
+/* --- Hourly rail ----------------------------------------------------------
+   One shared strip under the five-day grid, filled from whichever day is
+   hovered, focused or tapped. Full card width rather than a popup over a
+   single 60px column, so around ten hours read at once; the rest scroll under
+   the arrows either side. */
+.world-weather-forecast-region { position: relative; }
 .world-weather-hourly {
-  position: absolute; z-index: 12; bottom: calc(100% + 8px); left: 50%;
-  width: 168px; transform: translateX(-50%);
-  padding: 9px 10px 10px;
-  border: 1px solid rgba(113, 196, 215, 0.32);
-  border-radius: var(--radius-sm);
-  background: rgba(8, 6, 20, 0.98);
-  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.55);
-  text-align: left;
+  margin-top: 8px; padding: 9px 2px 4px;
+  border-top: 1px solid rgba(113, 196, 215, 0.18);
   animation: world-weather-hourly-in 0.16s ease-out both;
 }
 .world-weather-hourly[hidden] { display: none; }
-/* Opacity only, deliberately. An animation's fill state outranks normal
-   declarations, so a keyframe that also set `transform` would override the
-   edge rules below and drag the first and last day's panel back to centre --
-   which is exactly what it did, opening Today's panel 60px outside the card. */
 @keyframes world-weather-hourly-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-/* The outer two days would otherwise open past the card's edge. */
-.world-weather-day:first-child .world-weather-hourly { left: 0; transform: none; }
-.world-weather-day:first-child .world-weather-hourly[hidden] { display: none; }
-.world-weather-day:last-child .world-weather-hourly { left: auto; right: 0; transform: none; }
-.world-weather-day:last-child .world-weather-hourly[hidden] { display: none; }
 
 .world-weather-hourly-head {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
-  margin-bottom: 7px; padding-bottom: 6px;
-  border-bottom: 1px solid rgba(113, 196, 215, 0.18);
+  display: flex; align-items: baseline; gap: 8px; margin-bottom: 7px;
   color: #8fd4e2; font-size: 0.55rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
 }
-.world-weather-hourly-head i { color: var(--text-faint); font-size: 0.5rem; font-style: normal; letter-spacing: 0.06em; }
+.world-weather-hourly-head em { color: var(--text-dim); font-style: normal; font-weight: 600; }
+.world-weather-hourly-head i {
+  margin-left: auto; color: var(--text-faint);
+  font-size: 0.5rem; font-style: normal; font-weight: 600; letter-spacing: 0.06em;
+}
+
+.world-weather-hourly-rail { display: flex; align-items: stretch; gap: 2px; }
+.world-weather-hourly-nav {
+  flex: 0 0 auto; width: 20px; padding: 0;
+  border: 1px solid rgba(113, 196, 215, 0.22); border-radius: var(--radius-sm);
+  background: rgba(10, 8, 24, 0.6); color: #8fd4e2;
+  font-size: 0.95rem; line-height: 1; cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+.world-weather-hourly-nav:hover:not(:disabled) { border-color: rgba(113, 196, 215, 0.55); color: var(--text); }
+.world-weather-hourly-nav:disabled { opacity: 0.25; cursor: default; }
+.world-weather-hourly-nav:focus-visible { outline: 1px solid var(--gold-bright); outline-offset: 1px; }
 
 .world-weather-hour-list {
-  display: flex; flex-direction: column; gap: 1px;
-  max-height: 232px; overflow-y: auto;
+  display: flex; flex-direction: row; gap: 2px; flex: 1 1 auto;
+  min-width: 0; overflow-x: auto; scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
   margin: 0; padding: 0; list-style: none;
+  /* The arrows are the affordance; a scrollbar under ten narrow columns just
+     eats vertical space. Dragging and wheel-scrolling still work. */
+  scrollbar-width: none;
 }
+.world-weather-hour-list::-webkit-scrollbar { display: none; }
+
+/* Exactly ten across the rail: ten columns plus the nine 2px gaps between
+   them. The weather card is a 456px sidecard, which leaves the list about
+   362px and each column about 34px -- tight, hence the small type below.
+   min-width is only a floor for a card too narrow for that to stay legible,
+   and is deliberately well under the computed width: set it any higher and it
+   wins the calc, which is what first capped the rail at eight columns. */
 .world-weather-hour {
-  display: grid; grid-template-columns: 34px 18px 1fr auto; align-items: center; gap: 6px;
-  padding: 2px 2px; color: var(--text-dim);
+  flex: 0 0 auto; width: calc((100% - 18px) / 10); min-width: 30px;
+  scroll-snap-align: start;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 6px 1px 7px; border: 1px solid transparent; border-radius: var(--radius-sm);
+  color: var(--text-dim); white-space: nowrap;
 }
-.world-weather-hour-time { font-size: 0.6rem; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.world-weather-hour-time { font-size: 0.62rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .world-weather-hour-icon { display: grid; place-items: center; color: #70ccdf; }
-.world-weather-hour-icon svg { width: 13px; height: 13px; }
-.world-weather-hour-temp { color: var(--text); font-size: 0.66rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-.world-weather-hour.is-now { color: var(--text); }
+.world-weather-hour-icon svg { width: 20px; height: 20px; }
+.world-weather-hour-temp { color: var(--text); font-family: 'Cinzel', serif; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.world-weather-hour-precip {
+  display: inline-flex; align-items: center; gap: 2px;
+  color: var(--text-faint); font-size: 0.52rem; font-variant-numeric: tabular-nums;
+}
+.world-weather-hour-precip svg { width: 8px; height: 8px; }
+.world-weather-hour.is-now {
+  border-color: rgba(210, 169, 84, 0.35);
+  background: linear-gradient(180deg, rgba(210, 169, 84, 0.08), rgba(88, 45, 155, 0.08));
+  color: var(--text);
+}
 .world-weather-hour.is-now .world-weather-hour-time { color: var(--gold-bright); }
 .world-weather-hour-now {
-  color: var(--gold-bright); font-size: 0.48rem; font-weight: 700;
-  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--gold-bright); font-size: 0.44rem; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .world-weather-hourly { animation: none; }
+  .world-weather-hour-list { scroll-behavior: auto; }
 }
-/* The card is narrow on a phone and the strip is only ~60px per day, so the
-   panel spans the whole card instead of trying to sit over one column. */
+/* Fewer, wider columns on a phone, where a tenth of the card is unreadable. */
 @media (max-width: 560px) {
-  .world-weather-hourly,
-  .world-weather-day:first-child .world-weather-hourly,
-  .world-weather-day:last-child .world-weather-hourly {
-    left: 0; right: 0; width: auto; transform: none;
-  }
+  .world-weather-hour { width: calc((100% - 10px) / 6); }
 }
 .world-weather-hazard { display: flex; align-items: flex-start; gap: 9px; margin: 16px 0 0; padding: 10px 11px; border-left: 2px solid var(--gold); background: rgba(209, 169, 85, 0.07); color: #c9bddb; font-size: 0.66rem; line-height: 1.45; }
 .world-weather-hazard > span { display: grid; width: 16px; height: 16px; flex: 0 0 16px; place-items: center; border: 1px solid rgba(209, 169, 85, 0.55); border-radius: 50%; color: var(--gold-bright); font-size: 0.58rem; font-weight: 700; }
