@@ -213,6 +213,44 @@ separately would let a jargon-heavy commit auto-publish without review on
 vocabulary alone. The `reader_safe_dictionary` evidence flag was already a
 single boolean for exactly this reason; `$rulesMatched` now matches it.
 
+## Voice, domains, and when a benefit sentence is published
+
+Generated summaries are written in the **first person plural** ("We have
+refined...") rather than the older third-person BH-4 narration. BH-4 remains
+the console persona -- the avatar, the verified badge, the Technical Analysis
+transcript label, and the `admin_activity_log` actor for an automatic
+publication are all unchanged. Only the generated prose changed voice.
+
+`tooling` is a separate domain from `content`. Both used to share the
+`content` pool, so a change to the Dispatch pipeline itself was described in
+the worldbuilding voice -- one commit about internal confidence checks
+published as *"Readers have a clearer route into the affected part of the
+Pantheon Wars record"*, having added no lore whatsoever. `content` now covers
+in-world material (`story`, `character`, `quiz`, plus the named-world
+pre-check); `tooling` covers the development record itself (`dispatch`,
+`translation`, `translator`, `changelog`, `release notes`). Replaying the last
+60 commits moved 9 into `tooling`, all genuinely pipeline work.
+
+**No verb in a domain template may agree with `%s`.** The object is often
+plural -- "the confidence checks behind ..." -- so a template like "how %s
+reaches readers" produces "the confidence checks ... reaches readers".
+
+The second sentence is **only published when something specific supports it**.
+It is a hash-selected line from a fixed per-domain pool, with no connection to
+what actually changed, so on an unclassified (`general`) domain or a
+low-confidence draft it pads the summary without adding a reader-facing fact.
+A natural override keeps its benefit, because that text is written against
+specific recognized content. This follows the conclusion already reached for
+the `contextLibrary` benefit further up, which was removed for the same
+reason: *"a second generic benefit sentence often repeated the title without
+adding a reader-facing fact."*
+
+A stronger future step, deliberately not taken yet: derive the benefit from
+the signals `$plan` already computes (`intent`, `scopes`, `files_changed`)
+instead of a hash, so a correction and an addition read differently. That is a
+larger design change and was held back so this pass's quality shift stays
+attributable to the domain split and the suppression alone.
+
 ## The reader-facing object slot
 
 Three code paths can supply the object phrase a BH-4 sentence is built around,

@@ -43,7 +43,16 @@ function pw_dispatch_draft_domain(string $subjectText, string $tag, array $diffC
         'community' => '/\b(?:forum|community|topic|reply|comment|member|moderator|notification|report|reaction|profile)\b/i',
         'interface' => '/\b(?:css|ui|ux|interface|layout|sidebar|card|modal|button|icon|image|hero|responsive|focus|animation)\b/i',
         'performance' => '/\b(?:performance|faster|speed|cache|loading|lcp|lighthouse|lazy|preload|defer|bandwidth|core web vitals)\b/i',
-        'content' => '/\b(?:dispatch|translation|story|character|quiz)\b/i',
+        // In-world material a reader explores. Deliberately separate from
+        // 'tooling' below: both used to share this one domain, so a change to
+        // the Dispatch pipeline itself was described with the lore voice
+        // ("Readers have a clearer route into the affected part of the
+        // Pantheon Wars record") even though it added no lore at all.
+        'content' => '/\b(?:story|character|quiz)\b/i',
+        // The development-record machinery itself. A large share of this
+        // repository's commits are about this pipeline, so it needs its own
+        // voice rather than borrowing the one written for worldbuilding.
+        'tooling' => '/\b(?:dispatch|translation|translator|changelog|release notes?)\b/i',
         'operations' => '/\b(?:admin|backup|system status|audit log|github|webhook|cron|deploy|monitor|analytics)\b/i',
     ];
     // Score every domain independently instead of returning the first pattern
@@ -601,7 +610,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
             $rulesMatched++;
             $diffSentence = pw_dispatch_draft_diff_sentence($diffContext);
             return [
-                'draft' => 'BH-4 has completed a focused maintenance update to a supporting site service. '
+                'draft' => 'We have completed a focused maintenance update to a supporting site service. '
                     . 'It reduces avoidable friction behind the scenes while keeping the reader-facing experience steady.'
                     . ($diffSentence !== '' ? "\n\n" . $diffSentence : ''),
                 'confidence' => pw_dispatch_draft_confidence($rulesMatched, ['recognized_subject' => true, 'path_scope' => !empty($diffContext)]),
@@ -707,7 +716,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     ], 'category');
     $contextLibrary = [
         '/\b(?:security|sign in|sign out|session|password|CSRF|IP throttling|IP address|login|account|privacy|GDPR|data request)\b/i' => [
-            'BH-4 notes that the change also narrows an avoidable point of risk for member activity.',
+            'We note that the change also narrows an avoidable point of risk for member activity.',
             'The affected path is now better prepared to protect normal member activity.',
         ],
         '/\b(?:forum|community|topic|reply|member|notification|like|quote|mention|reaction|moderator|profile|settings|email|nav)\b/i' => [
@@ -727,12 +736,12 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
             'The added detail is framed to support exploration without obscuring established information.',
         ],
         '/\b(?:database|performance|loading|cache|CSS|visual styling|image|metrics|query|page view|CPU|asset|font|rollup|webhook|sync|visitor|statistics|Sankey|journey|traffic|feed)\b/i' => [
-            'BH-4 expects the affected path to handle routine demand with less overhead.',
+            'We expect the affected path to handle routine demand with less overhead.',
             'The improvement supports a more responsive experience as activity increases.',
         ],
         '/\b(?:presence|heartbeat|storage|error log|Site Errors|documentation|CLAUDE|README|deploy|cPanel|Git|htaccess)\b/i' => [
             'The maintenance gives routine site operations a clearer and more dependable foundation.',
-            'BH-4 records a useful improvement to the systems that support future releases.',
+            'We record a useful improvement to the systems that support future releases.',
         ],
     ];
     foreach ($contextLibrary as $pattern => $options) {
@@ -887,7 +896,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         $draft = sprintf($template, rtrim($object, '.'));
     }
 
-    // Commit-type templates give recurring domains their own BH-4 vocabulary.
+    // Commit-type templates give recurring domains their own reader-facing vocabulary.
     // The title still supplies the object, while the domain determines the
     // reader-facing intent: security work reads differently from community,
     // database, content, interface, or performance work.
@@ -906,8 +915,8 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     $naturalOverrides = [
         '/\b(?:action intent|Dispatch title rewrites|translator regression|reader-facing development summaries|Dispatch Draft Translator)\b/i' => [
             'draft' => [
-                'BH-4 refined how development updates are prepared for readers.',
-                'BH-4 strengthened the local process that prepares development updates for readers.',
+                'We refined how development updates are prepared for readers.',
+                'We strengthened the local process that prepares development updates for readers.',
             ],
             'benefit' => [
                 'The original purpose of a change is now less likely to be lost when it is explained in plain language.',
@@ -916,8 +925,8 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         ],
         '/\b(?:Google OAuth|sign in or register with Google|Google sign-in)\b/i' => [
             'draft' => [
-                'BH-4 added a more direct Google sign-in path for members.',
-                'BH-4 improved how members can use Google to enter their account.',
+                'We added a more direct Google sign-in path for members.',
+                'We improved how members can use Google to enter their account.',
             ],
             'benefit' => [
                 'Existing account safeguards and member settings remain part of the same familiar experience.',
@@ -926,8 +935,8 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         ],
         '/\b(?:revocable user session|active sessions?|session management)\b/i' => [
             'draft' => [
-                'BH-4 added clearer control over active member sessions.',
-                'BH-4 made it easier for members to review where their account is active.',
+                'We added clearer control over active member sessions.',
+                'We made it easier for members to review where their account is active.',
             ],
             'benefit' => [
                 'Members can now remove sessions they no longer recognise or need.',
@@ -936,8 +945,8 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         ],
         '/\b(?:crawler labels?|search crawlers?|visitor statistics)\b/i' => [
             'draft' => [
-                'BH-4 clarified which recent visits come from recognised search crawlers.',
-                'BH-4 separated known indexing traffic from ordinary visitor records.',
+                'We clarified which recent visits come from recognised search crawlers.',
+                'We separated known indexing traffic from ordinary visitor records.',
             ],
             'benefit' => [
                 'Visitor Statistics can now present human activity with clearer context.',
@@ -946,8 +955,8 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         ],
         '/\b(?:spaCy|spacy)\s+(?:worker|translation).*\b(?:launch|start|hosting|shared host)\b/i' => [
             'draft' => [
-                'BH-4 improved how the Dispatch translation worker starts on the shared host.',
-                'BH-4 restored the local start-up path for the Dispatch translation worker.',
+                'We improved how the Dispatch translation worker starts on the shared host.',
+                'We restored the local start-up path for the Dispatch translation worker.',
             ],
             'benefit' => [
                 'It can now load the language tools it needs before preparing reader-facing summaries.',
@@ -956,8 +965,8 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         ],
         '/\b(?:proc_open|virtualenv|Python environment|language model)\b/i' => [
             'draft' => [
-                'BH-4 repaired a supporting path used by the local Dispatch translation service.',
-                'BH-4 restored the local runtime that prepares Dispatch translation drafts.',
+                'We repaired a supporting path used by the local Dispatch translation service.',
+                'We restored the local runtime that prepares Dispatch translation drafts.',
             ],
             'benefit' => [
                 'Reader-facing summaries can continue to receive their intended language enrichment.',
@@ -986,7 +995,7 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
             $districtCount = $districtMatch[1];
         }
         $hasLandmarks = (bool)preg_match('/\blandmarks?\b/i', $worldText);
-        $draft = 'BH-4 has opened ' . $worldName . ' for exploration on the Worlds page.';
+        $draft = 'We have opened ' . $worldName . ' for exploration on the Worlds page.';
         if ($hasMap && $districtCount !== '') {
             $benefit = 'Visitors can now follow a full district map through ' . $districtCount . ' clickable districts' . ($hasLandmarks ? ' and key landmarks.' : '.');
         } elseif ($hasMap) {
@@ -1002,39 +1011,47 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
     }
     $domainTemplates = [
         'security' => [
-            'addition' => ['BH-4 has added an extra safeguard for %s.', 'BH-4 has extended protection around %s.'],
-            'correction' => ['BH-4 has repaired a protection issue around %s.', 'BH-4 has restored a safer path through %s.'],
-            'refinement' => ['BH-4 has reinforced the safeguards around %s.', 'BH-4 has tightened the protection supporting %s.'],
+            'addition' => ['We have added an extra safeguard for %s.', 'We have extended protection around %s.'],
+            'correction' => ['We have repaired a protection issue around %s.', 'We have restored a safer path through %s.'],
+            'refinement' => ['We have reinforced the safeguards around %s.', 'We have tightened the protection supporting %s.'],
         ],
         'database' => [
-            'addition' => ['BH-4 has expanded database support for %s.', 'BH-4 has added clearer database coverage for %s.'],
-            'correction' => ['BH-4 has corrected database work affecting %s.', 'BH-4 has repaired a data-service issue around %s.'],
-            'refinement' => ['BH-4 has strengthened the database path behind %s.', 'BH-4 has made the data work supporting %s more deliberate.'],
+            'addition' => ['We have expanded database support for %s.', 'We have added clearer database coverage for %s.'],
+            'correction' => ['We have corrected database work affecting %s.', 'We have repaired a data-service issue around %s.'],
+            'refinement' => ['We have strengthened the database path behind %s.', 'We have made the data work supporting %s more deliberate.'],
         ],
         'performance' => [
-            'addition' => ['BH-4 has added a lighter delivery path for %s.', 'BH-4 has introduced a more efficient route for %s.'],
-            'correction' => ['BH-4 has removed avoidable delay around %s.', 'BH-4 has corrected a performance issue affecting %s.'],
-            'refinement' => ['BH-4 has reduced avoidable work behind %s.', 'BH-4 has refined %s for a steadier response.'],
+            'addition' => ['We have added a lighter delivery path for %s.', 'We have introduced a more efficient route for %s.'],
+            'correction' => ['We have removed avoidable delay around %s.', 'We have corrected a performance issue affecting %s.'],
+            'refinement' => ['We have reduced avoidable work behind %s.', 'We have refined %s for a steadier response.'],
         ],
         'community' => [
-            'addition' => ['BH-4 has opened a clearer community path for %s.', 'BH-4 has added a more useful community tool around %s.'],
-            'correction' => ['BH-4 has repaired a community interaction around %s.', 'BH-4 has restored the expected community path for %s.'],
-            'refinement' => ['BH-4 has made the community experience around %s easier to follow.', 'BH-4 has refined how members move through %s.'],
+            'addition' => ['We have opened a clearer community path for %s.', 'We have added a more useful community tool around %s.'],
+            'correction' => ['We have repaired a community interaction around %s.', 'We have restored the expected community path for %s.'],
+            'refinement' => ['We have made the community experience around %s easier to follow.', 'We have refined how members move through %s.'],
         ],
         'content' => [
-            'addition' => ['BH-4 has made %s available for readers to explore.', 'BH-4 has opened a new reader route into %s.'],
-            'correction' => ['BH-4 has corrected the reader-facing record for %s.', 'BH-4 has restored clearer context around %s.'],
-            'refinement' => ['BH-4 has refined the reader-facing presentation of %s.', 'BH-4 has made the record around %s easier to explore.'],
+            'addition' => ['We have made %s available for readers to explore.', 'We have opened a new reader route into %s.'],
+            'correction' => ['We have corrected the reader-facing record for %s.', 'We have restored clearer context around %s.'],
+            'refinement' => ['We have refined the reader-facing presentation of %s.', 'We have made the record around %s easier to explore.'],
+        ],
+        // No verb here may agree with %s: the object is sometimes plural
+        // ("the confidence checks behind ..."), so "how %s reaches readers"
+        // would read as "the confidence checks ... reaches readers".
+        'tooling' => [
+            'addition' => ['We have added a clearer public explanation of %s.', 'We have extended the development record covering %s.'],
+            'correction' => ['We have corrected the public explanation of %s.', 'We have fixed how %s appears in the development record.'],
+            'refinement' => ['We have refined the public explanation of %s.', 'We have made the development record around %s clearer.'],
         ],
         'interface' => [
-            'addition' => ['BH-4 has added a clearer interface path for %s.', 'BH-4 has introduced a more legible view for %s.'],
-            'correction' => ['BH-4 has repaired the interface behaviour around %s.', 'BH-4 has restored the intended presentation of %s.'],
-            'refinement' => ['BH-4 has refined the interface around %s.', 'BH-4 has made %s clearer at a glance.'],
+            'addition' => ['We have added a clearer interface path for %s.', 'We have introduced a more legible view for %s.'],
+            'correction' => ['We have repaired the interface behaviour around %s.', 'We have restored the intended presentation of %s.'],
+            'refinement' => ['We have refined the interface around %s.', 'We have made %s clearer at a glance.'],
         ],
         'operations' => [
-            'addition' => ['BH-4 has added a clearer operational record for %s.', 'BH-4 has expanded the site operations supporting %s.'],
-            'correction' => ['BH-4 has repaired an operational issue around %s.', 'BH-4 has restored a dependable operational path for %s.'],
-            'refinement' => ['BH-4 has clarified the operational support for %s.', 'BH-4 has strengthened the routine systems behind %s.'],
+            'addition' => ['We have added a clearer operational record for %s.', 'We have expanded the site operations supporting %s.'],
+            'correction' => ['We have repaired an operational issue around %s.', 'We have restored a dependable operational path for %s.'],
+            'refinement' => ['We have clarified the operational support for %s.', 'We have strengthened the routine systems behind %s.'],
         ],
     ];
     if (!$naturalOverrideApplied && isset($domainTemplates[$domain][$mode])) {
@@ -1051,8 +1068,9 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         'performance' => ['The affected path now avoids work that visitors do not need to wait for.', 'This supports a steadier experience as routine activity grows.'],
         'community' => ['Members and moderators should find the affected interaction easier to follow.', 'The change supports clearer participation without adding noise to community activity.'],
         'content' => ['Readers have a clearer route into the affected part of the Pantheon Wars record.', 'The added context supports exploration while preserving the established setting.'],
+        'tooling' => ['Development updates should now read more clearly without the technical detail behind them.', 'This keeps the public record of development work accurate and easier to follow.'],
         'interface' => ['The surrounding controls should now be easier to read and use at a glance.', 'The established visual language remains intact while the path becomes clearer.'],
-        'operations' => ['The routine service behind this update now has a clearer operational foundation.', 'BH-4 records a more dependable path for the systems supporting future releases.'],
+        'operations' => ['The routine service behind this update now has a clearer operational foundation.', 'We record a more dependable path for the systems supporting future releases.'],
     ];
     if (!$naturalOverrideApplied && isset($domainBenefits[$domain])) {
         $benefit = $pickVariant($domainBenefits[$domain], 'voice-' . $domain);
@@ -1064,9 +1082,21 @@ function pw_dispatch_end_user_draft(string $subject, string $body, string $tag, 
         $evidence['path_scope'] = true;
     }
 
+    $confidence = pw_dispatch_draft_confidence($rulesMatched, $evidence);
+    // A second sentence is only worth publishing when something specific
+    // supports it. With an unclassified domain or a low-confidence draft the
+    // benefit is a hash-selected sentence from a generic pool, so it pads the
+    // summary without adding a reader-facing fact -- the same conclusion
+    // already reached for the contextLibrary benefit further up, which was
+    // removed for exactly this reason. A natural override keeps its benefit,
+    // because that text is written against specific recognized content.
+    $keepBenefit = $naturalOverrideApplied
+        || ($domain !== 'general' && ($confidence['level'] ?? '') !== 'low');
+    $summary = $draft . ($keepBenefit && trim($benefit) !== '' ? ' ' . $benefit : '');
+
     return [
-        'draft' => $draft . ' ' . $benefit . ($diffSentence !== '' ? "\n\n" . $diffSentence : ''),
-        'confidence' => pw_dispatch_draft_confidence($rulesMatched, $evidence),
+        'draft' => $summary . ($diffSentence !== '' ? "\n\n" . $diffSentence : ''),
+        'confidence' => $confidence,
         'plan' => $plan,
         'hash' => pw_dispatch_draft_hash($subject, $body, $tag, $diffContext),
         'requires_editor_review' => $fuzzyConceptUsed,
@@ -1205,7 +1235,7 @@ function pw_get_dispatch_translation_confidence_statistics(PDO $db): array
 // refreshes old unapproved drafts even when their source commit is unchanged.
 function pw_dispatch_draft_hash(string $subject, string $body, string $tag, array $diffContext = []): string
 {
-    return hash('sha256', "dispatch-draft-v29\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
+    return hash('sha256', "dispatch-draft-v30\n" . $subject . "\n" . $body . "\n" . $tag . "\n" . json_encode($diffContext));
 }
 
 function pw_dispatch_draft_options_for_dispatch(PDO $db, int $dispatchId, string $subject = '', string $body = ''): array
@@ -1343,7 +1373,7 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
             pw_log_dispatch_translation_lifecycle(
                 $db,
                 'translation_auto_published',
-                'BH-4 automatically published a high-confidence end-user translation for dispatch #' . $dispatchId . '.'
+                'We automatically published a high-confidence end-user translation for dispatch #' . $dispatchId . '.'
             );
             return [
                 'ok' => true,
@@ -1376,7 +1406,7 @@ function pw_create_dispatch_translation_draft(PDO $db, int $dispatchId): array
         pw_log_dispatch_translation_lifecycle(
             $db,
             'translation_draft_waiting_review',
-            'BH-4 created a ' . $result['confidence']['level'] . '-confidence end-user draft for dispatch #' . $dispatchId . '; editorial review is required before publication.'
+            'We created a ' . $result['confidence']['level'] . '-confidence end-user draft for dispatch #' . $dispatchId . '; editorial review is required before publication.'
         );
     }
     return [

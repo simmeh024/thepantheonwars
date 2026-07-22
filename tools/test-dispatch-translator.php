@@ -156,7 +156,7 @@ $cases = [
         'subject' => 'Expand the Dispatch translation dictionary',
         'body' => 'Added sign-in and safeguard acronyms (OAuth, CSP, CSRF, 2FA, TOTP) to the reader-safe dictionary.',
         'tag' => 'improvement',
-        'plan_domain' => 'content',
+        'plan_domain' => 'tooling',
         'forbidden' => ['account or data path', 'layer of protection'],
     ],
     // The counterpart guard: a genuine security subject must still resolve to
@@ -206,6 +206,36 @@ $cases = [
         'body' => '',
         'tag' => 'improvement',
         'forbidden' => ['bH-4'],
+    ],
+    // Work on the Dispatch pipeline itself gets the tooling voice, not the
+    // worldbuilding one. This is the commit that published "Readers have a
+    // clearer route into the affected part of the Pantheon Wars record" for a
+    // change to internal confidence checks, which added no lore at all.
+    [
+        'subject' => 'Refine the confidence checks behind Development Dispatch summaries',
+        'body' => '',
+        'tag' => 'improvement',
+        'plan_domain' => 'tooling',
+        'contains' => ['We have'],
+        'forbidden' => ['Pantheon Wars record', 'BH-4 has', 'established setting'],
+    ],
+    // The counterpart: genuine in-world material must still read as content,
+    // so splitting tooling out cannot quietly strip the lore voice.
+    [
+        'subject' => 'Add a new character to the quiz result page',
+        'body' => '',
+        'tag' => 'lore',
+        'plan_domain' => 'content',
+    ],
+    // A draft with no recognized domain has nothing specific to claim, so no
+    // second sentence is published at all -- the benefit would just be a
+    // hash-selected sentence from a generic pool. Asserted as an exact string
+    // because any appended benefit would break the match.
+    [
+        'subject' => 'Zqlm plexor for the tazwick subsystem',
+        'body' => '',
+        'tag' => 'improvement',
+        'expected' => 'This update improves zqlm plexor for the tazwick subsystem.',
     ],
 ];
 

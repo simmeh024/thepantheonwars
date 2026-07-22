@@ -562,6 +562,48 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Dispatch voice is now first person; tooling split from content; generic
+  second sentence suppressed (dispatch-draft-v30).** Three changes to how a
+  generated summary reads, prompted by a published Dispatch whose second
+  sentence was unrelated to the change.
+  1. **First-person voice.** All 62 generated prose sentences moved from
+     "BH-4 has refined..." to "We have refined...". BH-4 remains the console
+     persona -- avatar, verified badge, Technical Analysis transcript label,
+     and the `admin_activity_log` actor for an automatic publication are all
+     untouched; only the generated prose changed. Dictionary values that
+     mention BH-4 as an *object* ("a clearer BH-4 status presentation on the
+     Admin Home page") are describing the BH-4 UI feature and were correctly
+     left alone. **One public string still uses the old voice and was left
+     deliberately** for a separate decision: `dev-dispatches.html`'s "A
+     simpler explanation is not available right now. BH-4 has retained the
+     original development record below."
+  2. **`tooling` split out of `content`.** They shared one domain, so a
+     change to the Dispatch pipeline itself got the worldbuilding voice --
+     the trigger was a commit about internal confidence checks publishing
+     "Readers have a clearer route into the affected part of the Pantheon
+     Wars record", having added no lore at all. `content` now matches
+     `story|character|quiz` (plus the unchanged named-world pre-check);
+     `tooling` matches `dispatch|translation|translator|changelog|release
+     notes`. Replaying the last 60 commits moved 9 into `tooling`, all
+     genuinely pipeline work, with no lore commit swept in. **Constraint for
+     new templates: no verb may agree with `%s`**, since the object is often
+     plural ("the confidence checks behind ..." would give "... reaches
+     readers").
+  3. **The benefit sentence is suppressed when nothing supports it** -- an
+     unclassified (`general`) domain or a low-confidence draft. It is a
+     hash-selected line from a fixed pool with no relationship to the commit,
+     so in those cases it padded the summary without adding a fact. A natural
+     override keeps its benefit, since that text is written against specific
+     recognized content. This follows the same conclusion already reached and
+     commented for the `contextLibrary` benefit further up. Required moving
+     the `pw_dispatch_draft_confidence()` call above the return so the level
+     can gate the sentence.
+  Four regression cases added. **Not done, deliberately:** deriving the
+  benefit from the signals `$plan` already computes (`intent`, `scopes`,
+  `files_changed`) rather than a hash, which is the real fix for "the second
+  sentence feels random" -- held back so this pass's quality shift stays
+  attributable to the split and the suppression alone.
+
 - **`lcfirst()` mangled acronym-led objects (dispatch-draft-v29).** Seen live
   as "BH-4 has refined the reader-facing presentation of **bH-4**". An object
   phrase is dropped mid-sentence so it normally needs `lcfirst()`, but that
@@ -2032,7 +2074,7 @@ at that time.
   at most eight recent translations, and uses that score to begin with a
   different stable wording variant for near-duplicate updates. Raw prior translations never
   leave the PHP/Python process boundary. The draft-format hash is
-  `dispatch-draft-v29`, so regeneration refreshes unapproved local drafts
+  `dispatch-draft-v30`, so regeneration refreshes unapproved local drafts
   without overwriting published text. If the optional migration is absent,
   the translator safely falls back to subject/body/tag-only behavior.
   Before rendering prose, PHP builds a reader-safe plan from recognized commit
