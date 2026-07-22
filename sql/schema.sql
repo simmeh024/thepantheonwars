@@ -831,6 +831,12 @@ CREATE TABLE IF NOT EXISTS login_rate_limit_hits (
 CREATE TABLE IF NOT EXISTS page_views (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   path VARCHAR(255) NOT NULL,
+  -- Which specific World/Book/Overlord a visit to a shared template page
+  -- (world.html, overlord.html, chapter-one.html) was actually about.
+  -- Deliberately separate from `path`, which stays pathname-only so
+  -- existing path-grouped aggregates (Top Pages, journeys, heatmap) never
+  -- fragment. Only populated from the day this column shipped onward.
+  query_string VARCHAR(255) NULL,
   referrer_host VARCHAR(255) NULL,
   visitor_id CHAR(36) NOT NULL,
   user_id INT UNSIGNED NULL,

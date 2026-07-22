@@ -159,6 +159,7 @@ function initMain() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             path: location.pathname,
+            query_string: location.search || null,
             referrer: document.referrer,
             visitor_id: vid,
           }),

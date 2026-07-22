@@ -562,6 +562,57 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Visitor Statistics: content popularity, bounce/session-depth, a real
+  country map, and new-vs-returning visitors.** Four additions to the
+  admin Visitor Statistics page, each its own new endpoint under
+  `api/admin/visitor-stats/`:
+  - **Content Popularity** (`content-popularity.php`): which specific
+    World/Book/Overlord a visitor actually looked at, not just the shared
+    template page (`world.html`, `overlord.html`, `chapter-one.html`).
+    Required a new nullable `page_views.query_string` column
+    (`sql/migration_visitor_stats_content_tracking.sql`) -- the existing
+    `path` column stays pathname-only on purpose (Top Pages, journeys, and
+    the heatmap all group by it already; changing its meaning would
+    fragment those). `js/main.js` now also sends `location.search`;
+    `api/track-visit.php` stores it with a try/catch fallback to the old
+    INSERT shape if the migration hasn't run yet. Only visits recorded
+    after this shipped are counted -- there is no historical backfill,
+    since the query string was never captured before.
+  - **Bounce Rate & Session Depth** (`session-depth.php`): a deliberately
+    simplified per-UTC-day proxy for true timeout-based sessionization
+    (which this codebase has no session-boundary concept for outside of
+    login sessions) -- a "session" here is one visitor's page views within
+    a single UTC day. Bounce rate is the share of visitor-days with
+    exactly one page view; session depth is the average views per
+    visitor-day. Computed live from raw `page_views`, not a cron rollup;
+    flagged as a candidate for a `page_view_daily_stats`-style rollup if
+    it proves slow at scale, same as any other direct query in this
+    codebase that started this way.
+  - **Country map** (`country-map.php` + vendored
+    `images/vendor/world-map.svg`): the existing "Traffic by Country"
+    ranked list gained a List/Map toggle. The map is
+    `flekschas/simple-world-map` (CC BY-SA 3.0, attribution in
+    `images/vendor/README.md`), fetched once and injected inline (not an
+    `<img>`) so individual `<path id="xx">` country shapes -- ISO 3166-1
+    alpha-2, lowercase -- can be recolored by visit volume and hover-
+    tooltipped. `country-map.php` is a separate endpoint from
+    `top-countries.php` (same data, no `LIMIT 10`) so the ranked list's
+    existing top-10 contract never changes.
+  - **New vs Returning Visitors** (`new-vs-returning.php`): a visitor is
+    "new" on a given day only if they have no `page_views` row before that
+    day anywhere in history, not just within the chart's own window -- a
+    visitor who first appeared months ago and returns today is still
+    "returning" even if that first visit predates the queried range.
+    Rendered as a stat-pair plus a stacked daily bar, reusing the same
+    hand-rolled div-based stacked-bar technique as `dev-metrics.html`'s
+    language-history chart -- still no chart library anywhere in this
+    codebase.
+  Run `sql/migration_visitor_stats_content_tracking.sql` for the Content
+  Popularity card to start collecting data; the other three work
+  immediately against existing `page_views` columns. `admin.css?v=229` /
+  `admin-bundle.css?v=270`, `js/main.js?v=12` (all 25 public-page
+  references bumped).
+
 - **Weekly self-tuning quality report, built on the feedback below:**
   `api/dispatch-quality-report.php`'s `pw_dispatch_generate_quality_report()`
   reads the past week's `dispatch_translation_feedback`/

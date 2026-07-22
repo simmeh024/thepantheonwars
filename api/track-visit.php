@@ -23,6 +23,15 @@ if ($path === '') {
     pw_error('Missing path.', 400);
 }
 
+// Optional -- which specific World/Book/Overlord this visit was about, kept
+// separate from $path itself (see schema.sql). Absent entirely on older
+// deployments until the migration runs, so this degrades to NULL rather
+// than failing the whole beacon.
+$queryString = isset($input['query_string']) ? substr((string)$input['query_string'], 0, 255) : null;
+if ($queryString === '') {
+    $queryString = null;
+}
+
 $visitorId = isset($input['visitor_id']) ? (string)$input['visitor_id'] : '';
 if (!preg_match('/^[a-f0-9-]{36}$/i', $visitorId)) {
     pw_error('Invalid visitor id.', 400);
@@ -43,19 +52,38 @@ $userAgent = isset($_SERVER['HTTP_USER_AGENT']) ? substr($_SERVER['HTTP_USER_AGE
 $ip = pw_client_ip();
 list($countryCode, $countryName) = pw_resolve_country($ip);
 
-$stmt = pw_db()->prepare(
-    'INSERT INTO page_views (path, referrer_host, visitor_id, user_id, ip_address, country_code, country_name, user_agent)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
-);
-$stmt->execute([
-    $path,
-    $referrerHost,
-    $visitorId,
-    $user ? (int)$user['id'] : null,
-    $ip,
-    $countryCode,
-    $countryName,
-    $userAgent,
-]);
+try {
+    $stmt = pw_db()->prepare(
+        'INSERT INTO page_views (path, query_string, referrer_host, visitor_id, user_id, ip_address, country_code, country_name, user_agent)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    $stmt->execute([
+        $path,
+        $queryString,
+        $referrerHost,
+        $visitorId,
+        $user ? (int)$user['id'] : null,
+        $ip,
+        $countryCode,
+        $countryName,
+        $userAgent,
+    ]);
+} catch (PDOException $e) {
+    // The query_string migration may not be applied yet on this deployment.
+    $stmt = pw_db()->prepare(
+        'INSERT INTO page_views (path, referrer_host, visitor_id, user_id, ip_address, country_code, country_name, user_agent)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    $stmt->execute([
+        $path,
+        $referrerHost,
+        $visitorId,
+        $user ? (int)$user['id'] : null,
+        $ip,
+        $countryCode,
+        $countryName,
+        $userAgent,
+    ]);
+}
 
 pw_json(['ok' => true]);

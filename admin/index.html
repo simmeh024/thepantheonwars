@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=269">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=270">
 </head>
 <body>
 
@@ -775,10 +775,17 @@
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg>
                 <span>Traffic by Country</span>
               </div>
+              <div class="visits-chart-range-toggle" id="country-view-toggle">
+                <button type="button" class="visits-range-btn is-active" data-view="list">List</button>
+                <button type="button" class="visits-range-btn" data-view="map">Map</button>
+              </div>
             </div>
             <ul class="ranked-list" id="top-countries-list">
               <li class="admin-list-empty">Loading&hellip;</li>
             </ul>
+            <div class="country-map-wrap" id="country-map-wrap" hidden>
+              <div class="country-map-tooltip" id="country-map-tooltip" hidden></div>
+            </div>
           </div>
         </div>
 
@@ -819,6 +826,66 @@
         <div class="visits-chart-wrap" id="visits-chart-wrap">
           <p class="visits-chart-empty">Collecting data&hellip; the chart fills in as visits come in.</p>
         </div>
+      </div>
+
+      <div class="admin-home-grid admin-home-grid-secondary">
+        <div class="activity-widget admin-home-grid-half">
+          <div class="activity-widget-head">
+            <div class="activity-widget-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              <span>New vs Returning Visitors</span>
+            </div>
+          </div>
+          <div class="new-returning-stat-row" id="new-returning-stat-row">
+            <div class="quality-stat-card"><span class="quality-stat-value" id="new-returning-new-pct">&mdash;</span><span class="quality-stat-label">New</span></div>
+            <div class="quality-stat-card"><span class="quality-stat-value" id="new-returning-returning-pct">&mdash;</span><span class="quality-stat-label">Returning</span></div>
+          </div>
+          <div class="stacked-bar-chart" id="new-returning-chart">
+            <p class="visits-chart-empty">Collecting data&hellip;</p>
+          </div>
+          <div class="stacked-bar-legend">
+            <span class="stacked-bar-legend-item"><span class="stacked-bar-legend-swatch" style="background:#5b9cf5"></span>New</span>
+            <span class="stacked-bar-legend-item"><span class="stacked-bar-legend-swatch" style="background:var(--gold-bright)"></span>Returning</span>
+          </div>
+        </div>
+
+        <div class="activity-widget admin-home-grid-half">
+          <div class="activity-widget-head">
+            <div class="activity-widget-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 12v5"/><path d="M12 8v9"/><path d="M17 5v12"/></svg>
+              <span>Bounce Rate &amp; Session Depth</span>
+            </div>
+          </div>
+          <p class="visitor-journey-note">A "session" here is one visitor's page views within a single UTC day, not a timed session window. Bounce rate is the share of those visitor-days with only one page view.</p>
+          <div class="session-depth-mini-charts">
+            <div>
+              <p class="session-depth-mini-label">Bounce rate</p>
+              <div class="session-depth-mini-wrap" id="bounce-rate-chart-wrap"><p class="visits-chart-empty">Collecting data&hellip;</p></div>
+            </div>
+            <div>
+              <p class="session-depth-mini-label">Avg. pages / visitor-day</p>
+              <div class="session-depth-mini-wrap" id="session-depth-chart-wrap"><p class="visits-chart-empty">Collecting data&hellip;</p></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="activity-widget">
+        <div class="activity-widget-head">
+          <div class="activity-widget-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            <span>Content Popularity</span>
+          </div>
+          <div class="visits-chart-range-toggle" id="content-popularity-tabs">
+            <button type="button" class="visits-range-btn is-active" data-content-type="worlds">Worlds</button>
+            <button type="button" class="visits-range-btn" data-content-type="books">Books</button>
+            <button type="button" class="visits-range-btn" data-content-type="overlords">Overlords</button>
+          </div>
+        </div>
+        <p class="visitor-journey-note">Which specific World/Book/Overlord page visitors actually opened, not just the shared template page. Only counts visits recorded since this feature shipped.</p>
+        <ul class="ranked-list" id="content-popularity-list">
+          <li class="admin-list-empty">Loading&hellip;</li>
+        </ul>
       </div>
 
       <div class="activity-widget visitor-journey-card">
@@ -5965,6 +6032,10 @@
       loadTopPages();
       loadTopReferrers();
       loadTopCountries();
+      loadCountryMap();
+      loadContentPopularity();
+      loadNewVsReturning();
+      loadSessionDepth();
     });
   }
 
@@ -6089,6 +6160,223 @@
       .catch(function () {});
   }
 
+  // ===== Country map (List/Map toggle on the Traffic by Country card) =========
+  // The vendored SVG (images/vendor/world-map.svg, flekschas/simple-world-map,
+  // CC BY-SA 3.0 -- see images/vendor/README.md) is fetched once and injected
+  // inline so individual <path id="xx"> country shapes can be recolored per
+  // refresh; an <img> tag can't be styled per-element like this.
+  var countryMapWrapEl = document.getElementById('country-map-wrap');
+  var countryMapTooltipEl = document.getElementById('country-map-tooltip');
+  var countryViewToggleEl = document.getElementById('country-view-toggle');
+  var countryMapSvgLoaded = false;
+  var countryMapView = 'list';
+  var countryMapLatestData = null;
+
+  function paintCountryMap(countries) {
+    if (!countryMapWrapEl) return;
+    var svg = countryMapWrapEl.querySelector('svg');
+    if (!svg) return;
+    svg.querySelectorAll('path').forEach(function (path) {
+      path.classList.remove('country-map-has-data');
+      path.style.fill = '';
+      path.removeAttribute('data-views');
+    });
+    if (!countries || !countries.length) return;
+    var maxViews = Math.max.apply(null, countries.map(function (c) { return c.views; }));
+    countries.forEach(function (c) {
+      var path = svg.querySelector('path[id="' + c.country_code + '"]');
+      if (!path) return;
+      var intensity = maxViews > 0 ? 0.15 + (c.views / maxViews) * 0.85 : 0.15;
+      path.style.fill = 'rgba(176,95,255,' + intensity.toFixed(2) + ')';
+      path.classList.add('country-map-has-data');
+      path.setAttribute('data-views', c.views);
+      path.setAttribute('data-country-name', c.country_name);
+    });
+  }
+
+  function ensureCountryMapSvg(callback) {
+    if (countryMapSvgLoaded) { callback(); return; }
+    fetch('../images/vendor/world-map.svg')
+      .then(function (r) { return r.text(); })
+      .then(function (svgText) {
+        countryMapWrapEl.insertAdjacentHTML('afterbegin', svgText);
+        countryMapSvgLoaded = true;
+        var svg = countryMapWrapEl.querySelector('svg');
+        svg.addEventListener('mousemove', function (e) {
+          var path = e.target.closest('path.country-map-has-data');
+          if (!path) { countryMapTooltipEl.hidden = true; return; }
+          var views = path.getAttribute('data-views');
+          var name = path.getAttribute('data-country-name');
+          countryMapTooltipEl.textContent = name + ': ' + Number(views).toLocaleString() + ' view' + (views === '1' ? '' : 's');
+          countryMapTooltipEl.style.left = e.offsetX + 'px';
+          countryMapTooltipEl.style.top = e.offsetY + 'px';
+          countryMapTooltipEl.hidden = false;
+        });
+        svg.addEventListener('mouseleave', function () { countryMapTooltipEl.hidden = true; });
+        callback();
+      })
+      .catch(function () {});
+  }
+
+  function loadCountryMap() {
+    fetch('/api/admin/visitor-stats/country-map.php?range=' + vstatsChartRange + vstatsAdminQS('&'), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        countryMapLatestData = data.countries || [];
+        if (countryMapView === 'map') {
+          ensureCountryMapSvg(function () { paintCountryMap(countryMapLatestData); });
+        }
+      })
+      .catch(function () {});
+  }
+
+  if (countryViewToggleEl) {
+    countryViewToggleEl.addEventListener('click', function (e) {
+      var btn = e.target.closest('.visits-range-btn');
+      if (!btn) return;
+      countryMapView = btn.getAttribute('data-view');
+      countryViewToggleEl.querySelectorAll('.visits-range-btn').forEach(function (b) {
+        b.classList.toggle('is-active', b === btn);
+      });
+      topCountriesListEl.hidden = countryMapView !== 'list';
+      countryMapWrapEl.hidden = countryMapView !== 'map';
+      if (countryMapView === 'map') {
+        ensureCountryMapSvg(function () { paintCountryMap(countryMapLatestData || []); });
+      }
+    });
+  }
+
+  // ===== Content Popularity (World/Book/Overlord breakdown) ===================
+  var contentPopularityListEl = document.getElementById('content-popularity-list');
+  var contentPopularityTabsEl = document.getElementById('content-popularity-tabs');
+  var contentPopularityLatestData = null;
+  var contentPopularityType = 'worlds';
+
+  function renderContentPopularity() {
+    if (!contentPopularityLatestData) return;
+    var items = contentPopularityLatestData[contentPopularityType] || [];
+    var emptyMessages = {
+      worlds: 'No World page visits recorded yet.',
+      books: 'No first-chapter preview visits recorded yet.',
+      overlords: 'No Overlord page visits recorded yet.',
+    };
+    renderRankedList(contentPopularityListEl, items, 'label', emptyMessages[contentPopularityType]);
+  }
+
+  function loadContentPopularity() {
+    fetch('/api/admin/visitor-stats/content-popularity.php?range=' + vstatsChartRange + vstatsAdminQS('&'), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        contentPopularityLatestData = { worlds: data.worlds, books: data.books, overlords: data.overlords };
+        renderContentPopularity();
+      })
+      .catch(function () {});
+  }
+
+  if (contentPopularityTabsEl) {
+    contentPopularityTabsEl.addEventListener('click', function (e) {
+      var btn = e.target.closest('.visits-range-btn');
+      if (!btn) return;
+      contentPopularityType = btn.getAttribute('data-content-type');
+      contentPopularityTabsEl.querySelectorAll('.visits-range-btn').forEach(function (b) {
+        b.classList.toggle('is-active', b === btn);
+      });
+      renderContentPopularity();
+    });
+  }
+
+  // ===== New vs Returning Visitors ==============================================
+  var newReturningChartEl = document.getElementById('new-returning-chart');
+  var newReturningNewPctEl = document.getElementById('new-returning-new-pct');
+  var newReturningReturningPctEl = document.getElementById('new-returning-returning-pct');
+
+  function renderStackedBarChart(container, points, seriesA, seriesB, colorA, colorB) {
+    if (!container) return;
+    if (!points || !points.length) {
+      container.innerHTML = '<p class="visits-chart-empty">Collecting data&hellip;</p>';
+      return;
+    }
+    var recent = points.slice(-30);
+    var html = '';
+    recent.forEach(function (p) {
+      var a = p[seriesA] || 0, b = p[seriesB] || 0;
+      var total = a + b;
+      var aPct = total > 0 ? (a / total) * 100 : 0;
+      var bPct = total > 0 ? (b / total) * 100 : 0;
+      var d = new Date(p.date + 'T00:00:00Z');
+      var label = (d.getUTCMonth() + 1) + '/' + d.getUTCDate();
+      html += '<div class="stacked-bar-col" title="' + escapeHtml(label + ': ' + a.toLocaleString() + ' / ' + b.toLocaleString()) + '">' +
+        '<div class="stacked-bar-segment" style="height:' + aPct.toFixed(1) + '%;background:' + colorA + '"></div>' +
+        '<div class="stacked-bar-segment" style="height:' + bPct.toFixed(1) + '%;background:' + colorB + '"></div>' +
+      '</div>';
+    });
+    container.innerHTML = '<div class="stacked-bar-cols">' + html + '</div>';
+  }
+
+  function loadNewVsReturning() {
+    fetch('/api/admin/visitor-stats/new-vs-returning.php?range=' + vstatsChartRange + vstatsAdminQS('&'), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        var points = data.points || [];
+        renderStackedBarChart(newReturningChartEl, points, 'new_visitors', 'returning_visitors', '#5b9cf5', 'var(--gold-bright)');
+        var totalNew = 0, totalReturning = 0;
+        points.forEach(function (p) { totalNew += p.new_visitors; totalReturning += p.returning_visitors; });
+        var total = totalNew + totalReturning;
+        newReturningNewPctEl.textContent = total > 0 ? Math.round(totalNew / total * 100) + '%' : '—';
+        newReturningReturningPctEl.textContent = total > 0 ? Math.round(totalReturning / total * 100) + '%' : '—';
+      })
+      .catch(function () {});
+  }
+
+  // ===== Bounce Rate & Session Depth ============================================
+  var bounceRateChartWrapEl = document.getElementById('bounce-rate-chart-wrap');
+  var sessionDepthChartWrapEl = document.getElementById('session-depth-chart-wrap');
+
+  function renderMiniLineChart(container, points, key, formatValue) {
+    if (!container) return;
+    if (!points || points.length < 2) {
+      container.innerHTML = '<p class="visits-chart-empty">Collecting data&hellip;</p>';
+      return;
+    }
+    var width = 340, height = 110;
+    var padLeft = 34, padRight = 8, padTop = 10, padBottom = 20;
+    var plotW = width - padLeft - padRight;
+    var plotH = height - padTop - padBottom;
+    var values = points.map(function (p) { return p[key]; });
+    var maxV = Math.max.apply(null, values.concat([0.001])) * 1.2;
+
+    function xForI(i) { return padLeft + (i / (points.length - 1)) * plotW; }
+    function yForV(v) { return padTop + (1 - (v / maxV)) * plotH; }
+
+    var coords = points.map(function (p, i) { return [xForI(i), yForV(p[key])]; });
+    var line = 'M ' + coords.map(function (c) { return c[0].toFixed(1) + ',' + c[1].toFixed(1); }).join(' L ');
+    var last = coords[coords.length - 1];
+
+    container.innerHTML =
+      '<svg viewBox="0 0 ' + width + ' ' + height + '">' +
+        '<text class="visits-chart-axis-label" x="' + (padLeft - 4) + '" y="' + (padTop + 4) + '" text-anchor="end">' + formatValue(maxV) + '</text>' +
+        '<text class="visits-chart-axis-label" x="' + (padLeft - 4) + '" y="' + (padTop + plotH) + '" text-anchor="end">0</text>' +
+        '<path class="visits-chart-line" d="' + line + '"/>' +
+        '<circle class="visits-chart-now-dot" cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="3"/>' +
+        '<text class="visits-chart-axis-label" x="' + last[0].toFixed(1) + '" y="' + (height - 4) + '" text-anchor="end">' + formatValue(points[points.length - 1][key]) + '</text>' +
+      '</svg>';
+  }
+
+  function loadSessionDepth() {
+    fetch('/api/admin/visitor-stats/session-depth.php?range=' + vstatsChartRange + vstatsAdminQS('&'), { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) return;
+        var points = data.points || [];
+        renderMiniLineChart(bounceRateChartWrapEl, points, 'bounce_rate', function (v) { return Math.round(v) + '%'; });
+        renderMiniLineChart(sessionDepthChartWrapEl, points, 'avg_session_depth', function (v) { return v.toFixed(1); });
+      })
+      .catch(function () {});
+  }
+
   function renderRecentVisits(entries) {
     vstatsRecentListEl.innerHTML = '';
     if (!entries.length) {
@@ -6191,6 +6479,10 @@
     loadTopPages();
     loadTopReferrers();
     loadTopCountries();
+    loadCountryMap();
+    loadContentPopularity();
+    loadNewVsReturning();
+    loadSessionDepth();
     loadRecentVisits();
   }
 
