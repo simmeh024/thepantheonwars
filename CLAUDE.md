@@ -474,7 +474,8 @@ at that time.
   and only needs a version bump in `news.html`. `js/news-post.js?v=N` powers the
   dedicated public transmission page (current: v=13); it is only loaded by
   `news-post.html`. `js/messages.js?v=N` (current: v=6) is only loaded by
-  `messages.html`.
+  `messages.html`. `js/timeline.js?v=N` (current: v=1) is only loaded by
+  `timeline.html`.
 - Static CSS, JavaScript, font, image, and WebM video assets have a one-year
   `public, immutable` cache policy in `.htaccess`; HTML remains no-cache so
   changed version URLs reach visitors immediately. Never replace an asset at
@@ -583,6 +584,51 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Lore Timeline with reputation-gated events** (`timeline.html`,
+  `js/timeline.js?v=1`, Lore Management -> Timeline Control). New
+  `timeline_events` table (**run `sql/migration_timeline.sql` once**) plus a
+  flat admin CRUD mirroring Known Figures Control file for file.
+  Two data-model decisions worth keeping: `date_label` is a **string, not a
+  DATE** (in-world time like "Cycle 4.207" has no calendar, so nothing can
+  sort or format it -- `sort_order` alone decides bar position, and the admin
+  copy says so), and the gate is a **reputation level FK**, not a raw point
+  total, so the existing Reputation Levels admin stays the only place tiers
+  are defined. `ON DELETE SET NULL` is deliberate: removing a level must
+  **unlock** its events, never seal them behind a gate nobody can satisfy.
+  **The unlock check is a server-side security boundary, not a display rule.**
+  `api/timeline.php` omits a locked event's title, summary, body, image *and
+  slug* from the response entirely -- only its position and the required level
+  name are sent. Hiding that text client-side would hand every sealed record
+  to anyone opening the network tab, the same reason a locked world's record
+  stays sealed server-side rather than dimmed in the atlas. The discovery
+  endpoint **re-checks the gate itself** rather than trusting that: it is a
+  separate entry point, so without it a crafted POST could claim the award for
+  a sealed event.
+  Discovery reuses the existing first-visit path (`user_lore_discoveries`
+  gained a `timeline_event` enum value; the `lore_discovery` reward rule is
+  unchanged) and fires on first **open** of an event, not on page load, so
+  scrolling past does not silently bank the reward. Deleting an event clears
+  its discovery rows explicitly -- no FK covers them, and a recycled
+  AUTO_INCREMENT id would otherwise mark a future event as already discovered.
+  Public page is one DOM order with two presentations: horizontal drag/scroll
+  rail on desktop, vertical spine under 780px, switched in CSS alone. The
+  spine gradient sequences the twelve worlds' `ATLAS_TONES` in atlas order
+  (the same fixed brand sequence as the footer's top-edge strip, hardcoded so
+  it renders before any fetch). Sealed markers reuse the Known Figures glitch
+  motif and the atlas's `ERROR: LORE LOCK` language; newly-unlocked titles
+  reuse the existing `prismatic-shift` keyframe. All loops pause via
+  `IntersectionObserver` and are skipped under `prefers-reduced-motion`. This
+  is a fourth deliberate use of the vendored GSAP, not a new dependency.
+  Nav rollout touched the 23 pages carrying The Universe dropdown (22 existing
+  + the new page) and 20 footers; the 6 `overlord-*` redirect stubs and 3
+  minimal legal pages are excluded, matching the Known Figures rollout.
+  `content.css?v=232` / `public.css?v=268` / `community-bundle.css?v=260`.
+  **Verification note:** the JS balance checker used for this work is only
+  trustworthy because it strips **regex literals** as well as strings and
+  comments. An earlier version without that reported false failures on
+  `js/worlds.js` and `js/known-figures.js` -- always run a new checker against
+  known-good files first, or it will report noise as breakage.
 
 - **Hide a Dispatch from the public site (Dispatch Control).** New
   `dispatch_entries.is_hidden` (`sql/migration_dispatch_visibility.sql` --

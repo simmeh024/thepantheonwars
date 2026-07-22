@@ -2832,3 +2832,143 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
 /* utility */
 .center { text-align: center; }
 .mt-0 { margin-top: 0; }
+
+/* ============================================================
+   Lore Timeline (timeline.html, js/timeline.js)
+   One DOM order, two presentations: a horizontal drag/scroll rail on desktop
+   and a vertical spine on mobile. The spine gradient sequences the twelve
+   worlds' established atlas signal colours in atlas order, the same fixed
+   brand sequence already used by the footer's top-edge strip -- fixed values,
+   not DB-driven, so the bar renders before any fetch resolves.
+   ============================================================ */
+.timeline-section { position: relative; padding: 56px 0 72px; overflow: hidden; }
+
+.timeline-progress { display: flex; align-items: center; gap: 14px; margin: 0 0 30px; }
+.timeline-progress-label { flex: 0 0 auto; color: var(--text-faint); font: 600 0.68rem/1 'Jost', sans-serif; letter-spacing: 0.14em; text-transform: uppercase; }
+.timeline-progress-track { position: relative; flex: 1; height: 3px; border-radius: 999px; background: rgba(255,255,255,0.07); overflow: hidden; }
+.timeline-progress-fill { display: block; width: 0; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--purple-bright), var(--gold-bright)); transition: width 1.1s cubic-bezier(0.22,1,0.36,1); }
+
+.timeline-rail-wrap { position: relative; padding: 34px 0 46px; }
+/* The spine sits behind the markers and spans the full scrollable width. */
+.timeline-rail-wrap::before {
+  content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; transform: translateY(-50%);
+  background: linear-gradient(90deg,
+    rgba(154,96,238,0.85), rgba(184,111,66,0.85), rgba(204,72,80,0.85), rgba(159,224,65,0.85),
+    rgba(68,150,237,0.85), rgba(59,148,83,0.85), rgba(166,36,57,0.85), rgba(158,175,193,0.85),
+    rgba(225,232,241,0.85), rgba(121,29,40,0.85), rgba(218,176,76,0.85), rgba(210,142,72,0.85));
+  opacity: 0.5; pointer-events: none;
+}
+/* Energy sweep: runs once on first view, then stops. */
+.timeline-rail-wrap::after {
+  content: ''; position: absolute; left: 0; top: 50%; width: 22%; height: 2px; transform: translateY(-50%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.75), transparent);
+  opacity: 0; pointer-events: none;
+}
+.timeline-rail-wrap.is-sweeping::after { animation: timeline-sweep 1.9s cubic-bezier(0.4,0,0.2,1) 1 forwards; }
+@keyframes timeline-sweep { 0% { left: -22%; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
+
+.timeline-rail {
+  display: flex; align-items: center; gap: 62px; padding: 0 max(24px, calc((100vw - 1120px) / 2));
+  overflow-x: auto; overflow-y: hidden; scroll-behavior: smooth;
+  scrollbar-width: thin; cursor: grab;
+}
+.timeline-rail.is-dragging { cursor: grabbing; scroll-behavior: auto; }
+.timeline-rail::-webkit-scrollbar { height: 6px; }
+.timeline-rail::-webkit-scrollbar-thumb { background: rgba(159,119,234,0.4); border-radius: 999px; }
+.timeline-loading { color: var(--text-faint); font-size: 0.85rem; padding: 30px 0; }
+
+.timeline-node {
+  position: relative; flex: 0 0 auto; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  width: 150px; padding: 0; background: none; border: 0; color: inherit; font: inherit; text-align: center; cursor: pointer;
+  --node-accent: 162, 121, 236;
+}
+.timeline-node-dot {
+  position: relative; width: 15px; height: 15px; border-radius: 50%;
+  background: rgb(var(--node-accent)); border: 2px solid rgba(10,7,18,0.9);
+  box-shadow: 0 0 0 3px rgba(var(--node-accent), 0.22), 0 0 16px rgba(var(--node-accent), 0.5);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.timeline-node:hover .timeline-node-dot,
+.timeline-node:focus-visible .timeline-node-dot { transform: scale(1.35); box-shadow: 0 0 0 5px rgba(var(--node-accent), 0.3), 0 0 26px rgba(var(--node-accent), 0.75); }
+.timeline-node-date { color: var(--gold-dim); font: 600 0.66rem/1.2 'Jost', sans-serif; letter-spacing: 0.12em; text-transform: uppercase; }
+.timeline-node-title { color: var(--text); font: 600 0.84rem/1.3 'Cinzel', serif; }
+.timeline-node-era { color: var(--text-faint); font-size: 0.68rem; }
+
+/* Unlocked markers breathe gently; paused off-screen by IntersectionObserver. */
+.timeline-node.is-idle .timeline-node-dot { animation: timeline-pulse 3.4s ease-in-out infinite; }
+@keyframes timeline-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(var(--node-accent), 0.22), 0 0 16px rgba(var(--node-accent), 0.5); }
+  50% { box-shadow: 0 0 0 5px rgba(var(--node-accent), 0.12), 0 0 24px rgba(var(--node-accent), 0.7); }
+}
+
+/* Sealed markers reuse the Known Figures glitch vocabulary and the atlas's
+   LORE LOCK language rather than inventing a third "locked" treatment. */
+.timeline-node.is-locked { cursor: help; --node-accent: 150, 150, 165; }
+.timeline-node.is-locked .timeline-node-dot { background: rgba(150,150,165,0.35); box-shadow: 0 0 0 3px rgba(150,150,165,0.14); }
+.timeline-node.is-locked .timeline-node-title { color: var(--text-faint); font-family: 'Jost', sans-serif; font-size: 0.7rem; letter-spacing: 0.14em; text-transform: uppercase; }
+.timeline-node.is-locked.is-idle .timeline-node-dot { animation: timeline-glitch 4.2s steps(1, end) infinite; }
+@keyframes timeline-glitch {
+  0%, 88%, 100% { opacity: 0.55; transform: translateX(0); }
+  90% { opacity: 0.95; transform: translateX(-2px); }
+  93% { opacity: 0.4; transform: translateX(2px); }
+  96% { opacity: 0.85; transform: translateX(-1px); }
+}
+.timeline-node-req { color: var(--gold-dim); font: 600 0.62rem/1.2 'Jost', sans-serif; letter-spacing: 0.1em; }
+
+/* Newly unlocked since this member last looked: reuses the existing
+   prismatic-shift keyframe from components.css (Saga Complete, Nexus Veil). */
+.timeline-node.is-new .timeline-node-title {
+  background: linear-gradient(90deg, #ff5f6d, #ffc371, #7ee8fa, #a279ec, #ff5f6d);
+  background-size: 200% auto; -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; animation: prismatic-shift 4s linear infinite;
+}
+
+.timeline-hint { margin: 6px 0 0; color: var(--text-faint); font-size: 0.76rem; }
+
+/* Detail panel. Fixed-positioned and JS-placed beside the active marker, so it
+   is never clipped by the rail's own overflow. */
+.timeline-panel {
+  position: fixed; z-index: 40; width: min(330px, calc(100vw - 32px));
+  background: linear-gradient(150deg, rgba(30,20,52,0.98), rgba(14,10,26,0.99));
+  border: 1px solid rgba(162,121,236,0.5); border-radius: var(--radius-sm);
+  box-shadow: 0 18px 44px rgba(0,0,0,0.55), 0 0 26px rgba(162,121,236,0.18);
+  overflow: hidden; pointer-events: none; opacity: 0; transform: translateY(6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.timeline-panel.is-open { opacity: 1; transform: translateY(0); }
+.timeline-panel[hidden] { display: none; }
+.timeline-panel-media { position: relative; height: 132px; overflow: hidden; background: rgba(0,0,0,0.4); }
+.timeline-panel-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.timeline-panel-media::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, rgba(14,10,26,0.92)); }
+.timeline-panel-body { padding: 14px 16px 16px; }
+.timeline-panel-era { display: block; color: var(--text-faint); font: 600 0.62rem/1 'Jost', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+.timeline-panel-title { margin: 7px 0 4px; color: var(--text); font: 600 1rem/1.3 'Cinzel', serif; }
+.timeline-panel-date { display: block; margin-bottom: 9px; color: var(--gold-dim); font: 600 0.68rem/1 'Jost', sans-serif; letter-spacing: 0.1em; }
+.timeline-panel-text { margin: 0; color: var(--text-dim); font-size: 0.8rem; line-height: 1.55; }
+
+/* Vertical on mobile: same DOM, the rail becomes a column and the spine a
+   left-hand rule. The panel goes static so it can never sit off-screen. */
+@media (max-width: 780px) {
+  .timeline-rail-wrap { padding: 20px 0 30px; }
+  .timeline-rail-wrap::before { left: 30px; right: auto; top: 0; bottom: 0; width: 2px; height: auto; transform: none;
+    background: linear-gradient(180deg,
+      rgba(154,96,238,0.85), rgba(184,111,66,0.85), rgba(204,72,80,0.85), rgba(159,224,65,0.85),
+      rgba(68,150,237,0.85), rgba(59,148,83,0.85), rgba(166,36,57,0.85), rgba(158,175,193,0.85),
+      rgba(225,232,241,0.85), rgba(121,29,40,0.85), rgba(218,176,76,0.85), rgba(210,142,72,0.85)); }
+  .timeline-rail-wrap::after { display: none; }
+  .timeline-rail { flex-direction: column; align-items: flex-start; gap: 26px; overflow-x: hidden; padding: 0 20px; cursor: default; }
+  .timeline-node { flex-direction: row; align-items: center; gap: 14px; width: 100%; text-align: left; padding-left: 2px; }
+  .timeline-node-inner { display: flex; flex-direction: column; gap: 3px; }
+  .timeline-panel { position: static; width: auto; margin: 10px 20px 0 64px; opacity: 1; transform: none; pointer-events: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timeline-progress-fill { transition: none; }
+  .timeline-rail { scroll-behavior: auto; }
+  .timeline-rail-wrap.is-sweeping::after { animation: none; opacity: 0; }
+  .timeline-node.is-idle .timeline-node-dot,
+  .timeline-node.is-locked.is-idle .timeline-node-dot,
+  .timeline-node.is-new .timeline-node-title { animation: none; }
+  .timeline-node.is-new .timeline-node-title { -webkit-text-fill-color: var(--gold-bright); color: var(--gold-bright); }
+  .timeline-panel { transition: none; }
+}

@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>The Overlords — The Pantheon Wars</title>
-<meta name="description" content="Twelve god-cores. Twelve Overlords who rule as living gods. Meet the five whose stories have been told so far.">
+<title>Timeline — The Pantheon Wars</title>
+<meta name="description" content="The recorded history of the Pantheon — the events that shaped twelve worlds, and the sealed records that only reveal themselves to those who have earned them.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="The Overlords — The Pantheon Wars">
-<meta property="og:description" content="Twelve god-cores. Twelve Overlords who rule as living gods. Meet the five whose stories have been told so far.">
-<meta property="og:url" content="https://thepantheonwars.com/overlords.html">
+<meta property="og:title" content="Timeline — The Pantheon Wars">
+<meta property="og:description" content="The recorded history of the Pantheon, and the sealed records still waiting to be earned.">
+<meta property="og:url" content="https://thepantheonwars.com/timeline.html">
 <meta property="og:image" content="https://thepantheonwars.com/images/hero-main.jpg">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="The Overlords — The Pantheon Wars">
-<meta name="twitter:description" content="Twelve god-cores. Twelve Overlords who rule as living gods. Meet the five whose stories have been told so far.">
+<meta name="twitter:title" content="Timeline — The Pantheon Wars">
+<meta name="twitter:description" content="The recorded history of the Pantheon, and the sealed records still waiting to be earned.">
 <meta name="twitter:image" content="https://thepantheonwars.com/images/hero-main.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -38,9 +38,9 @@
         <div class="nav-dropdown">
           <a href="books.html">The Books</a>
           <a href="worlds.html">The Worlds</a>
-          <a href="overlords.html" class="active">The Overlords</a>
+          <a href="overlords.html">The Overlords</a>
           <a href="known-figures.html">Known Figures</a>
-          <a href="timeline.html">Timeline</a>
+          <a href="timeline.html" class="active">Timeline</a>
           <a href="soundtracks.html">The Soundtracks</a>
         </div>
       </div>
@@ -68,43 +68,46 @@
 <main>
 
   <div class="page-banner ornate">
-    <div class="hero-bg" style="background-image: url('images/world-nexusveil.jpg');"></div>
+    <div class="hero-bg" style="background-image: url('images/twelve-worlds-atlas.png'); opacity: 0.22;"></div>
     <div class="hero-veil"></div>
     <span class="orn-bl"></span><span class="orn-br"></span>
     <div class="container">
-      <span class="eyebrow">The Pantheon</span>
-      <h1>Twelve God-Cores, Twelve Overlords</h1>
-      <p class="lede">Every Overlord rules through a different cruelty, and a different kind of devotion. Meet the six whose stories have been told so far.</p>
+      <span class="eyebrow">The Universe</span>
+      <h1>Timeline</h1>
+      <p class="lede">Every age the Overcode kept a record of &mdash; and a few it tried not to. Some entries stay sealed until your standing in the Nexus is enough to open them.</p>
     </div>
   </div>
 
-  <section class="throne-ring-section" aria-labelledby="throne-ring-heading">
+  <section class="timeline-section" id="timeline-section">
     <div class="container">
-      <div class="throne-ring-intro">
-        <span class="eyebrow">The Inner Pantheon</span>
-        <h2 id="throne-ring-heading">The Throne Ring</h2>
-        <p class="lede">Every throne leaves a different mark on the worlds beneath it. Enter the ring and choose the ruler whose signal you wish to follow.</p>
+      <div class="timeline-progress" id="timeline-progress" hidden>
+        <span class="timeline-progress-label" id="timeline-progress-label"></span>
+        <div class="timeline-progress-track"><span class="timeline-progress-fill" id="timeline-progress-fill"></span></div>
       </div>
-      <div class="throne-ring" id="throne-ring" aria-busy="true">
-        <div class="admin-list-empty">The thrones are assembling&hellip;</div>
+    </div>
+
+    <div class="timeline-rail-wrap" id="timeline-rail-wrap">
+      <div class="timeline-rail" id="timeline-rail" role="list">
+        <div class="timeline-loading" id="timeline-loading">Recovering the record&hellip;</div>
       </div>
-      <div class="throne-ring-sealed" id="throne-ring-sealed" hidden>
-        <span class="eyebrow">Beyond the Veil</span>
-        <h3>Sealed Thrones</h3>
-        <div class="throne-ring-sealed-grid" id="throne-ring-sealed-grid"></div>
-      </div>
-      <p class="overlords-note" id="overlords-note" hidden></p>
+    </div>
+
+    <div class="container">
+      <p class="timeline-hint" id="timeline-hint" hidden>Hover or focus a marker to read its record. Drag the rail to move through the ages.</p>
     </div>
   </section>
 
-  <section class="section-alt">
-    <div class="container" style="text-align:center;">
-      <span class="eyebrow">Curious Which Throne Is Yours?</span>
-      <h2>Which Overlord Are You?</h2>
-      <p class="lede" style="margin: 0 auto 1.4em;">Answer twenty questions and find out which of the Pantheon's rulers you'd become.</p>
-      <a href="quiz.html" class="btn btn-solid">Take the Quiz</a>
+  <div class="timeline-panel" id="timeline-panel" hidden role="dialog" aria-live="polite" aria-label="Timeline event detail">
+    <div class="timeline-panel-media" id="timeline-panel-media" hidden>
+      <img id="timeline-panel-image" alt="" loading="lazy" decoding="async">
     </div>
-  </section>
+    <div class="timeline-panel-body">
+      <span class="timeline-panel-era" id="timeline-panel-era"></span>
+      <h3 class="timeline-panel-title" id="timeline-panel-title"></h3>
+      <span class="timeline-panel-date" id="timeline-panel-date"></span>
+      <p class="timeline-panel-text" id="timeline-panel-text"></p>
+    </div>
+  </div>
 
   <section class="newsletter">
       <img src="images/bh4-dispatch.jpg" alt="" class="newsletter-bh4" aria-hidden="true">
@@ -176,9 +179,10 @@
   </div>
 </footer>
 
+<script src="js/vendor/gsap-3.15.0.min.js"></script>
+<script src="js/vendor/ScrollTrigger-3.15.0.min.js"></script>
 <script src="js/main.js?v=12"></script>
 <script src="js/members.js?v=39"></script>
-<script src="js/vendor/gsap-3.15.0.min.js"></script>
-    <script src="js/overlords.js?v=16"></script>
+<script src="js/timeline.js?v=1"></script>
 </body>
 </html>
