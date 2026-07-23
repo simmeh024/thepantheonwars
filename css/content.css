@@ -3034,24 +3034,259 @@
 }
 .world-weather-card--reanium footer { color: rgba(160, 178, 146, 0.6); }
 
+/* --- Babki Prime: the canopy-line temple stela ----------------------------
+   The Jungle That Feels Pain. A sentient rainforest, so its object is not
+   another instrument but a carved stone stela on the canopy line -- a Tulum
+   temple frieze -- and the jungle is quietly taking it back. Living green over
+   dead stone is what makes this the world it is rather than a generic ruin.
+
+   Restraint is the whole brief here. The carving stays crisp and the readings
+   read as cut into stone; the reclamation is kept to the edges and the low
+   corners and never crosses a glyph. Moss along the foot, one root at a
+   corner, a little more overgrowth the deeper down the card you look -- no
+   more than that.
+
+   Nothing digital: the type is incised rather than printed, the day tags are
+   cut cartouches, and the advisory marker is a daubed pigment glyph, not an
+   icon. Colours are this world's own -- the atlas signal rgb(59, 148, 83) and
+   the green-and-gold leaves of drawBabki(), whose leaf-fall the card reuses so
+   it and the medallion agree.
+
+   The stone reacts to the living weather through the is-weather-* class already
+   on every card, held to a whisper: a faint charge after thunder, warm light
+   on a clear break, the stone half-swallowed on a root-mist day. */
 .world-weather-card--babki-prime {
-  border-color: rgba(150, 210, 100, 0.4);
+  --world-weather-icon: #c8d98a;
+  --world-weather-icon-current: #d8e79a;
+  --wx-muted: #a7ad8c;
+  --bab-moss: 120, 168, 74;
+  --bab-cut-shadow: rgba(0, 0, 0, 0.55);
+  --bab-cut-lip: rgba(210, 224, 180, 0.14);
+  /* Incised: a hard shadow down in the cut, a lit lip along the top. Softer
+     than High Hammer's struck metal, as if chiselled by hand. */
+  --bab-carve: 0 1px 0 var(--bab-cut-lip), 0 -1px 1px var(--bab-cut-shadow);
+  border-color: rgba(92, 104, 70, 0.72);
+  border-width: 2px;
   background:
-    radial-gradient(circle at 95% 0%, rgba(110, 180, 80, 0.28), transparent 36%),
-    radial-gradient(circle at 7% 92%, rgba(150, 130, 40, 0.22), transparent 38%),
-    linear-gradient(155deg, rgba(14, 24, 10, 0.98), rgba(10, 16, 6, 0.98));
+    /* Weathered granite: a faint mottling, warm above and cool-damp below. */
+    radial-gradient(150% 120% at 20% 0%, rgba(150, 160, 120, 0.05), transparent 55%),
+    radial-gradient(120% 90% at 82% 100%, rgba(var(--bab-moss), 0.06), transparent 60%),
+    repeating-linear-gradient(94deg, rgba(0, 0, 0, 0.05) 0 2px, transparent 2px 5px),
+    linear-gradient(168deg, rgba(48, 52, 42, 0.985), rgba(33, 37, 31, 0.985));
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.46),
+    inset 0 1px 0 rgba(214, 224, 190, 0.08),
+    inset 0 -2px 3px rgba(0, 0, 0, 0.45),
+    inset 0 0 60px rgba(0, 0, 0, 0.3);
 }
-.world-weather-card--babki-prime::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(150, 210, 100, 0.028) 4px 5px); }
-.world-weather-card--babki-prime .world-weather-live { border-color: rgba(150, 210, 100, 0.4); background: rgba(150, 210, 100, 0.12); color: #b8e08a; }
-.world-weather-card--babki-prime .world-weather-live i { background: #9ad066; box-shadow: 0 0 7px #9ad066; }
-.world-weather-card--babki-prime { --world-weather-icon: #a6d873; --world-weather-icon-current: #a6d873; }
-.world-weather-card--babki-prime .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(150, 210, 100, 0.35)); }
-.world-weather-card--babki-prime .world-weather-metrics { border-color: rgba(150, 130, 40, 0.2); background: rgba(150, 130, 40, 0.1); }
-.world-weather-card--babki-prime .world-weather-metrics div { border-right-color: rgba(150, 130, 40, 0.16); }
-.world-weather-card--babki-prime .world-weather-day.is-today { border-color: rgba(150, 210, 100, 0.32); background: linear-gradient(180deg, rgba(150, 210, 100, 0.12), rgba(150, 130, 40, 0.1)); }
-.world-weather-card--babki-prime .world-weather-divider { color: #c8dc98; }
-.world-weather-card--babki-prime .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(150, 210, 100, 0.32)); }
-.world-weather-card--babki-prime .world-weather-divider::after { background: linear-gradient(90deg, rgba(150, 210, 100, 0.32), transparent); }
+/* Weathering across the face, and moss taking the very foot of the stone --
+   heaviest along the bottom edge and thinning upward, so the reclamation has a
+   direction rather than being an even wash. */
+.world-weather-card--babki-prime::after {
+  background:
+    repeating-linear-gradient(58deg, transparent 0 3px, rgba(0, 0, 0, 0.035) 3px 4px),
+    linear-gradient(0deg, rgba(var(--bab-moss), 0.14), transparent 18%),
+    radial-gradient(90px 24px at 12% 100%, rgba(var(--bab-moss), 0.16), transparent 74%),
+    radial-gradient(120px 30px at 74% 100%, rgba(var(--bab-moss), 0.1), transparent 74%);
+}
+/* One root splitting the top-left corner, and a soft dapple of canopy light
+   over the stone. Both are a whisper -- the root is a single hairline with a
+   little moss where it meets the edge, the dapple two slow-moving pools. */
+.world-weather-card--babki-prime::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(126deg, transparent calc(38px - 1px), rgba(40, 30, 18, 0.6) 38px, rgba(70, 56, 34, 0.5) calc(38px + 1.4px), transparent calc(38px + 2.4px)) 0 0 / 92px 92px no-repeat,
+    radial-gradient(10px 8px at 20px 20px, rgba(var(--bab-moss), 0.28), transparent 70%),
+    radial-gradient(180px 150px at 30% 22%, rgba(198, 214, 150, 0.05), transparent 66%),
+    radial-gradient(200px 170px at 76% 70%, rgba(198, 214, 150, 0.04), transparent 66%);
+  animation: babki-dapple 34s ease-in-out infinite alternate;
+}
+@keyframes babki-dapple {
+  from { background-position: 0 0, 0 0, -12px -6px, 10px 8px; }
+  to { background-position: 0 0, 0 0, 14px 8px, -12px -10px; }
+}
+/* Leaf-fall replaces the CRT sweep: a few green-and-gold leaves settling down
+   the stone, matching drawBabki(). Two leaf shapes, low opacity, slow. */
+.world-weather-card--babki-prime .world-weather-card-scan {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: auto;
+  opacity: 0.5;
+  background-image:
+    radial-gradient(2.4px 5px at 30px 24px, rgba(139, 222, 105, 0.4), transparent 70%),
+    radial-gradient(2px 4px at 96px 70px, rgba(226, 198, 91, 0.34), transparent 70%),
+    radial-gradient(2.2px 4.6px at 150px 40px, rgba(139, 222, 105, 0.3), transparent 70%);
+  background-size: 190px 220px;
+  animation: babki-leaffall 30s linear infinite;
+}
+@keyframes babki-leaffall {
+  to { background-position: 26px 220px, -18px 220px, 12px 220px; }
+}
+.world-weather-card--babki-prime .world-weather-head > div > span { color: #b7c98a; text-shadow: var(--bab-carve); }
+.world-weather-card--babki-prime .world-weather-head h2 { color: #e4ecce; text-shadow: var(--bab-carve); }
+/* A small carved cartouche rather than a lit pill. */
+.world-weather-card--babki-prime .world-weather-live {
+  border-color: rgba(120, 140, 90, 0.5);
+  border-radius: 1px;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.24), rgba(210, 224, 180, 0.05));
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(210, 224, 180, 0.1);
+  color: #cade79;
+  letter-spacing: 0.14em;
+  text-shadow: var(--bab-carve);
+}
+.world-weather-card--babki-prime .world-weather-live i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #9ad066;
+  box-shadow: 0 0 6px rgba(var(--bab-moss), 0.7);
+}
+.world-weather-card--babki-prime .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(var(--bab-moss), 0.32)); }
+.world-weather-card--babki-prime .world-weather-current > strong {
+  color: #e8efd4;
+  text-shadow: 0 1px 0 rgba(214, 224, 190, 0.12), 0 -1px 2px rgba(0, 0, 0, 0.6);
+}
+.world-weather-card--babki-prime .world-weather-current b { color: #dbe4c4; }
+/* Readings cut into a recessed band of the stone. */
+.world-weather-card--babki-prime .world-weather-metrics {
+  border-color: rgba(92, 104, 70, 0.42);
+  background: rgba(20, 24, 16, 0.4);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.42);
+}
+.world-weather-card--babki-prime .world-weather-metrics div {
+  border-right-color: rgba(92, 104, 70, 0.32);
+  background: rgba(24, 28, 18, 0.4);
+}
+.world-weather-card--babki-prime .world-weather-metrics span { text-shadow: var(--bab-carve); }
+.world-weather-card--babki-prime .world-weather-metrics strong { color: #e4ecce; }
+.world-weather-card--babki-prime .world-weather-season b { color: #b3bd94; text-shadow: var(--bab-carve); }
+.world-weather-card--babki-prime .world-weather-divider { color: #bcce86; text-shadow: var(--bab-carve); }
+.world-weather-card--babki-prime .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(120, 140, 90, 0.5)); }
+.world-weather-card--babki-prime .world-weather-divider::after { background: linear-gradient(90deg, rgba(120, 140, 90, 0.5), transparent); }
+/* Day tags as cut cartouches: a recessed panel inside a raised border, a lit
+   top lip and a shadowed foot, like a frieze block. */
+.world-weather-card--babki-prime .world-weather-day {
+  border-color: rgba(92, 104, 70, 0.4);
+  background: linear-gradient(180deg, rgba(20, 24, 16, 0.5), rgba(30, 34, 22, 0.35));
+  box-shadow: inset 0 1px 0 rgba(214, 224, 190, 0.09), inset 0 -1px 2px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+.world-weather-card--babki-prime .world-weather-day:hover,
+.world-weather-card--babki-prime .world-weather-day.is-open { border-color: rgba(var(--bab-moss), 0.6); }
+.world-weather-card--babki-prime .world-weather-day.is-today {
+  border-color: rgba(var(--bab-moss), 0.55);
+  background: linear-gradient(180deg, rgba(var(--bab-moss), 0.14), rgba(20, 24, 16, 0.4));
+  box-shadow: inset 0 1px 0 rgba(214, 224, 190, 0.12), inset 0 -1px 2px rgba(0, 0, 0, 0.5), inset 0 0 12px rgba(var(--bab-moss), 0.14);
+}
+/* A fleck of moss in the low corner of the nearest tag, and no further -- the
+   reclamation touching the readings only at their edge. */
+.world-weather-card--babki-prime .world-weather-day.is-today::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 12px;
+  height: 6px;
+  background: radial-gradient(8px 5px at 2px 6px, rgba(var(--bab-moss), 0.4), transparent 72%);
+}
+.world-weather-card--babki-prime .world-weather-day-name { color: #b3bd94; text-shadow: var(--bab-carve); }
+.world-weather-card--babki-prime .world-weather-day strong { color: #e4ecce; }
+.world-weather-card--babki-prime .world-weather-hourly { border-top-color: rgba(92, 104, 70, 0.5); }
+.world-weather-card--babki-prime .world-weather-hourly-head { color: #bcce86; text-shadow: var(--bab-carve); }
+.world-weather-card--babki-prime .world-weather-hourly-nav {
+  border-color: rgba(92, 104, 70, 0.5);
+  background: rgba(20, 24, 16, 0.6);
+  color: #b3bd94;
+}
+.world-weather-card--babki-prime .world-weather-hourly-nav:hover:not(:disabled) { border-color: rgba(var(--bab-moss), 0.7); color: #e4ecce; }
+.world-weather-card--babki-prime .world-weather-hour { color: #b3bd94; }
+.world-weather-card--babki-prime .world-weather-hour-temp { color: #e4ecce; }
+.world-weather-card--babki-prime .world-weather-hour.is-now {
+  border-color: rgba(var(--bab-moss), 0.55);
+  background: linear-gradient(180deg, rgba(var(--bab-moss), 0.14), rgba(20, 24, 16, 0.16));
+  color: #eef3de;
+}
+.world-weather-card--babki-prime .world-weather-hour.is-now .world-weather-hour-time { color: #d8e79a; }
+.world-weather-card--babki-prime .world-weather-hour-now { color: #d8e79a; }
+.world-weather-card--babki-prime .world-weather-hour.is-night { background: rgba(9, 12, 8, 0.5); }
+.world-weather-card--babki-prime .world-weather-hour.is-night.is-now { background: linear-gradient(180deg, rgba(var(--bab-moss), 0.13), rgba(9, 12, 8, 0.45)); }
+/* The advisory is a warning stele leaned against the card: its text pressed
+   into the stone, a mossed foot, and a hand-daubed ochre glyph where the box
+   was. The mark stays behind and beside the copy, as on every card. */
+.world-weather-card--babki-prime .world-weather-hazard {
+  padding: 12px 14px 12px 16px;
+  border: 1px solid rgba(92, 104, 70, 0.5);
+  border-left: 0;
+  background:
+    radial-gradient(50px 10px at 20% 100%, rgba(var(--bab-moss), 0.16), transparent 72%),
+    linear-gradient(180deg, rgba(30, 34, 22, 0.5), rgba(0, 0, 0, 0.28));
+  box-shadow: inset 0 1px 0 rgba(214, 224, 190, 0.08), inset 0 -1px 2px rgba(0, 0, 0, 0.5), 0 2px 7px rgba(0, 0, 0, 0.4);
+  color: #d3d9bf;
+}
+/* A carved channel down the leading edge rather than a painted rule. */
+.world-weather-card--babki-prime .world-weather-hazard::before {
+  content: '';
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: 4px;
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.6), rgba(120, 140, 90, 0.5));
+  box-shadow: inset -1px 0 0 rgba(214, 224, 190, 0.12);
+}
+/* The daubed pigment glyph: ochre, uneven, pressed on by hand. */
+.world-weather-card--babki-prime .world-weather-hazard > span {
+  width: 17px;
+  height: 17px;
+  flex-basis: 17px;
+  border: 0;
+  border-radius: 46% 54% 52% 48% / 50% 46% 54% 50%;
+  /* Burnt ochre. The dark stop is kept light enough that the near-black daub
+     mark clears AA even at the edge of the pigment -- 3.55:1 on the old
+     #a5641f, 5.1:1 here. */
+  background: radial-gradient(circle at 40% 36%, #e2ad58, #c07e2c 78%);
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.4);
+  color: #241505;
+  text-shadow: none;
+}
+.world-weather-card--babki-prime footer { color: rgba(170, 178, 150, 0.6); }
+
+/* --- Reactions to the living weather, all a whisper ---------------------- */
+/* After thunder the canopy stays agitated, so the stone carries a faint
+   charge: the glyphs rimlit green and a slow shimmer over the surface. */
+.world-weather-card--babki-prime.is-weather-storm .world-weather-current > strong {
+  text-shadow: 0 1px 0 rgba(214, 224, 190, 0.12), 0 -1px 2px rgba(0, 0, 0, 0.6), 0 0 12px rgba(var(--bab-moss), 0.5);
+}
+.world-weather-card--babki-prime.is-weather-storm .world-weather-card-scan {
+  animation: babki-leaffall 30s linear infinite, babki-charge 3.3s ease-in-out infinite;
+}
+@keyframes babki-charge {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.68; }
+}
+/* A clear canopy break lets warm light onto the stone. */
+.world-weather-card--babki-prime.is-weather-clear {
+  background:
+    radial-gradient(150% 120% at 30% -10%, rgba(226, 214, 140, 0.09), transparent 52%),
+    radial-gradient(120% 90% at 82% 100%, rgba(var(--bab-moss), 0.06), transparent 60%),
+    repeating-linear-gradient(94deg, rgba(0, 0, 0, 0.05) 0 2px, transparent 2px 5px),
+    linear-gradient(168deg, rgba(52, 54, 42, 0.985), rgba(35, 37, 30, 0.985));
+}
+/* Root-mist fog half-swallows the lower stone. */
+.world-weather-card--babki-prime.is-weather-smog .world-weather-card-scan::after,
+.world-weather-card--babki-prime.is-weather-overcast .world-weather-card-scan::after {
+  content: '';
+  position: absolute;
+  inset: 40% 0 0;
+  pointer-events: none;
+  background: linear-gradient(0deg, rgba(150, 160, 140, 0.16), transparent 78%);
+}
+
 .world-weather-card--sed {
   border-color: rgba(255, 150, 60, 0.4);
   background:
