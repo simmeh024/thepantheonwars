@@ -1880,6 +1880,9 @@
   font-family: 'Jost', sans-serif; font-size: 0.85rem; text-transform: uppercase;
   letter-spacing: 0.14em; color: var(--text-faint); margin-top: 6px;
 }
+.metrics-period-summary { margin: 10px 0 0; font-size: 0.82rem; color: var(--text-faint); }
+.metrics-period-summary .is-up { color: var(--status-success); font-weight: 600; }
+.metrics-period-summary .is-down { color: var(--status-critical); font-weight: 600; }
 .metrics-loading { padding: 40px 0; text-align: center; color: var(--text-faint); }
 .metrics-grid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
@@ -1906,6 +1909,29 @@
   letter-spacing: 0.1em; color: var(--text-dim); margin-top: 10px;
 }
 .metric-box-pct { font-family: 'Jost', sans-serif; font-size: 0.72rem; color: var(--text-faint); margin-top: 6px; }
+
+.metrics-insights { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 24px; margin-top: 32px; }
+.metrics-insight-panel, .code-growth-section { padding: 23px; background: rgba(28,19,54,0.62); border: 1px solid var(--border-soft); border-radius: 8px; }
+.metrics-panel-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 16px; }
+.metrics-panel-heading h3 { margin: 0 0 3px; font-family: 'Cinzel', serif; font-size: 1rem; }
+.metrics-panel-heading p { margin: 0; font-size: 0.76rem; color: var(--text-faint); }
+.metrics-panel-link { padding-top: 2px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; white-space: nowrap; }
+.dispatch-heatmap { display: grid; grid-template-columns: repeat(auto-fit, minmax(14px, 1fr)); gap: 5px; min-height: 28px; }
+.dispatch-heatmap-cell { display: block; aspect-ratio: 1; min-height: 14px; border-radius: 3px; background: rgba(162,121,236,0.12); outline: 1px solid transparent; cursor: default; }
+.dispatch-heatmap-cell.level-0 { background: rgba(122,107,158,0.09); }
+.dispatch-heatmap-cell:focus-visible { outline-color: var(--gold-bright); outline-offset: 2px; }
+.dispatch-heatmap-cell.level-1 { background: rgba(162,121,236,0.30); }
+.dispatch-heatmap-cell.level-2 { background: rgba(162,121,236,0.48); }
+.dispatch-heatmap-cell.level-3 { background: rgba(162,121,236,0.68); box-shadow: 0 0 8px rgba(162,121,236,0.25); }
+.dispatch-heatmap-cell.level-4 { background: var(--gold-bright); box-shadow: 0 0 10px rgba(236,201,135,0.45); }
+.metrics-latest-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 11px; }
+.metrics-latest-list li { display: flex; flex-direction: column; gap: 2px; padding-bottom: 10px; border-bottom: 1px solid rgba(122,107,158,0.18); }
+.metrics-latest-list li:last-child { padding-bottom: 0; border: 0; }
+.metrics-latest-list a { overflow: hidden; color: var(--text-dim); font-size: 0.84rem; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
+.metrics-latest-list a:hover { color: var(--gold-bright); }
+.metrics-latest-list span { color: var(--text-faint); font-size: 0.68rem; }
+.metrics-panel-empty { margin: 0; color: var(--text-faint); font-size: 0.82rem; font-style: italic; }
+@media (max-width: 760px) { .metrics-insights { grid-template-columns: 1fr; } }
 
 @keyframes metric-glow {
   0%, 100% { box-shadow: 0 0 16px 0 var(--glow-soft), inset 0 0 20px 0 var(--glow-soft); }
@@ -2043,6 +2069,13 @@
   .lang-history-col { min-width: 24px; }
 }
 
+.code-growth-section { margin-top: 44px; }
+.code-growth-total { color: var(--gold-bright); font-family: 'Cinzel', serif; font-size: 0.95rem; white-space: nowrap; }
+.code-growth-chart { min-height: 160px; }
+.code-growth-chart svg { display: block; width: 100%; height: 160px; overflow: visible; }
+.code-growth-area { fill: url(#code-growth-fill); stroke: none; }
+.code-growth-line { fill: none; stroke: var(--purple-bright); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 5px rgba(162,121,236,0.45)); }
+
 .metric-modal {
   position: fixed; inset: 0; z-index: 700;
   display: flex; align-items: center; justify-content: center; padding: 24px;
@@ -2086,6 +2119,8 @@
   display: flex; align-items: flex-start; gap: 9px;
   font-family: 'Jost', sans-serif; font-size: 0.85rem; color: var(--text-dim); line-height: 1.45;
 }
+.metric-modal-latest-content { display: flex; min-width: 0; flex-direction: column; gap: 2px; }
+.metric-modal-latest-meta { color: var(--text-faint); font-size: 0.68rem; }
 .metric-modal-latest-item a { color: var(--text-dim); text-decoration: none; }
 .metric-modal-latest-item a:hover { color: var(--gold-bright); text-decoration: underline; }
 .metric-modal-check {

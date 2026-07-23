@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=282">
+<link rel="stylesheet" href="css/community-bundle.css?v=284">
 </head>
 <body>
 
@@ -110,8 +110,10 @@
               <div class="bh4-status-tooltip-head">BH-4:</div>
               <p class="bh4-status-tooltip-line">These counts are live &mdash; pulled straight from the database, no caching in between.</p>
               <div class="bh4-status-tooltip-row"><span>Last commit</span><strong id="stats-bh4-last-commit">&mdash;</strong></div>
+              <div class="bh4-status-tooltip-row"><span>Last dispatch sync</span><strong id="stats-bh4-last-sync">&mdash;</strong></div>
+              <div class="bh4-status-tooltip-row"><span>Commit SHA</span><strong id="stats-bh4-commit-sha">&mdash;</strong></div>
               <div class="bh4-status-tooltip-row"><span>Repository status</span><strong class="bh4-status-ok" id="stats-bh4-repo-status">Connected</strong></div>
-              <p class="bh4-status-tooltip-footnote">All figures above reflect the latest commit.</p>
+              <p class="bh4-status-tooltip-footnote">All figures above reflect the latest recorded dispatch sync.</p>
             </div>
           </div>
         </div>
@@ -120,10 +122,34 @@
       <div class="metrics-total" id="metrics-total">
         <span class="metrics-total-num" id="metrics-total-num">&mdash;</span>
         <span class="metrics-total-label">Total Dispatches Logged</span>
+        <p class="metrics-period-summary" id="metrics-period-summary" aria-live="polite"></p>
       </div>
 
       <div class="metrics-grid" id="metrics-grid">
         <p class="metrics-loading">Crunching the numbers&hellip;</p>
+      </div>
+
+      <div class="metrics-insights">
+        <section class="metrics-insight-panel" aria-labelledby="dispatch-activity-title">
+          <div class="metrics-panel-heading">
+            <div>
+              <h3 id="dispatch-activity-title">Dispatch Activity</h3>
+              <p id="dispatch-activity-subtitle">Daily dispatch volume in the selected period.</p>
+            </div>
+          </div>
+          <div class="dispatch-heatmap" id="dispatch-heatmap" aria-label="Daily dispatch activity heatmap"></div>
+        </section>
+
+        <section class="metrics-insight-panel" aria-labelledby="latest-dispatches-title">
+          <div class="metrics-panel-heading">
+            <div>
+              <h3 id="latest-dispatches-title">Latest Dispatches</h3>
+              <p>Fresh from the build log.</p>
+            </div>
+            <a class="metrics-panel-link" href="dev-dispatches.html">View all</a>
+          </div>
+          <ol class="metrics-latest-list" id="metrics-latest-list"></ol>
+        </section>
       </div>
 
       <div class="metrics-divider"></div>
@@ -178,6 +204,17 @@
           <p class="metrics-loading">Loading language history&hellip;</p>
         </div>
         <div class="lang-legend lang-history-legend" id="lang-history-legend"></div>
+      </div>
+
+      <div class="code-growth-section" id="code-growth-section">
+        <div class="metrics-panel-heading">
+          <div>
+            <h3>Codebase Growth</h3>
+            <p id="code-growth-subtitle">Daily snapshot of tracked source lines.</p>
+          </div>
+          <strong class="code-growth-total" id="code-growth-total">&mdash;</strong>
+        </div>
+        <div class="code-growth-chart" id="code-growth-chart" aria-label="Tracked source lines over time"></div>
       </div>
 
     </div>
@@ -429,10 +466,13 @@ function pwWireBh4Toggle(el) {
     return box;
   }
 
-  var allEntries = [];
+  var currentEntries = [];
+  var currentMetrics = null;
 
   var statsBh4El = document.getElementById('stats-bh4');
   var statsBh4LastCommit = document.getElementById('stats-bh4-last-commit');
+  var statsBh4LastSync = document.getElementById('stats-bh4-last-sync');
+  var statsBh4CommitSha = document.getElementById('stats-bh4-commit-sha');
   var statsBh4RepoStatus = document.getElementById('stats-bh4-repo-status');
 
   function formatLastCommitLabel(committedAt) {
@@ -444,15 +484,18 @@ function pwWireBh4Toggle(el) {
     return dateStr + ' at ' + timeStr;
   }
 
-  function updateStatsBh4(entries) {
+  function updateStatsBh4(status) {
     if (!statsBh4LastCommit) return;
-    if (entries.length) {
-      // entries are ordered newest-first by the API, so entries[0] is the latest commit
-      statsBh4LastCommit.textContent = formatLastCommitLabel(entries[0].committed_at);
-      statsBh4RepoStatus.textContent = 'Connected';
+    if (status && status.state === 'current') {
+      statsBh4LastCommit.textContent = formatLastCommitLabel(status.latest_committed_at);
+      statsBh4LastSync.textContent = formatLastCommitLabel(status.last_synced_at);
+      statsBh4CommitSha.textContent = status.latest_sha || '—';
+      statsBh4RepoStatus.textContent = 'Data current';
       statsBh4RepoStatus.className = 'bh4-status-ok';
     } else {
       statsBh4LastCommit.textContent = '—';
+      statsBh4LastSync.textContent = '—';
+      statsBh4CommitSha.textContent = '—';
       statsBh4RepoStatus.textContent = 'Reconnecting';
       statsBh4RepoStatus.className = 'bh4-status-warn';
     }
@@ -474,13 +517,7 @@ function pwWireBh4Toggle(el) {
   var metricModalTrend = document.getElementById('metric-modal-trend');
 
   function openMetricModal(tag) {
-    var range = currentRange || pwGetRangeBounds(dateSelect.value);
-
-    var inRange = allEntries.filter(function (e) {
-      if (e.tag !== tag) return false;
-      var d = new Date(String(e.committed_at).replace(' ', 'T') + 'Z');
-      return d >= range.start && d <= range.end;
-    });
+    var inRange = currentEntries.filter(function (e) { return e.tag === tag; });
     var count = inRange.length;
 
     metricModalIcon.style.color = TAG_COLORS[tag] || '';
@@ -492,28 +529,28 @@ function pwWireBh4Toggle(el) {
     if (!inRange.length) {
       metricModalLatest.innerHTML = '<li class="metric-modal-empty">No dispatches in this filter yet.</li>';
     } else {
-      // allEntries (and therefore inRange) are already ordered newest-first by the API
       inRange.slice(0, 5).forEach(function (entry) {
         var li = document.createElement('li');
         li.className = 'metric-modal-latest-item';
         var check = '<svg class="metric-modal-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
-        var subjectHtml = entry.url ?
-          '<a href="' + escapeHtml(entry.url) + '" target="_blank" rel="noopener">' + escapeHtml(entry.subject) + '</a>' :
-          '<span>' + escapeHtml(entry.subject) + '</span>';
-        li.innerHTML = check + subjectHtml;
+        var date = formatLastCommitLabel(entry.committed_at);
+        li.innerHTML = check;
+        var content = document.createElement('div');
+        content.className = 'metric-modal-latest-content';
+        var link = document.createElement('a');
+        link.href = 'dev-dispatches.html?dispatch=' + encodeURIComponent(entry.id);
+        link.textContent = entry.subject;
+        content.appendChild(link);
+        var meta = document.createElement('span');
+        meta.className = 'metric-modal-latest-meta';
+        meta.textContent = (entry.author || 'BH-4') + ' · ' + date + ' · ' + (entry.short_sha || '—');
+        content.appendChild(meta);
+        li.appendChild(content);
         metricModalLatest.appendChild(li);
       });
     }
 
-    // Trend: compare the active window against the immediately preceding window of equal length
-    var durationMs = range.end.getTime() - range.start.getTime();
-    var prevStart = new Date(range.start.getTime() - durationMs);
-    var prevEnd = range.start;
-    var prevCount = allEntries.filter(function (e) {
-      if (e.tag !== tag) return false;
-      var d = new Date(String(e.committed_at).replace(' ', 'T') + 'Z');
-      return d >= prevStart && d < prevEnd;
-    }).length;
+    var prevCount = currentMetrics && currentMetrics.previous_counts ? (currentMetrics.previous_counts[tag] || 0) : 0;
     var delta = count - prevCount;
     var periodPhrase = DATE_FILTER_LABELS[dateSelect.value] || 'in this period';
 
@@ -543,48 +580,123 @@ function pwWireBh4Toggle(el) {
     if (e.key === 'Escape' && metricModal && !metricModal.hidden) closeMetricModal();
   });
 
-  function renderMetrics(entries) {
-    var counts = {};
-    TAG_ORDER.forEach(function (t) { counts[t] = 0; });
-    entries.forEach(function (e) {
-      if (counts.hasOwnProperty(e.tag)) counts[e.tag]++;
-    });
-    var total = entries.length;
+  function renderMetrics(data) {
+    var counts = data.counts || {};
+    var total = data.total || 0;
 
     animateCount(totalNumEl, total, 900);
 
     gridEl.innerHTML = '';
     TAG_ORDER.forEach(function (tag) {
-      gridEl.appendChild(buildBox(tag, counts[tag], total));
+      gridEl.appendChild(buildBox(tag, counts[tag] || 0, total));
     });
   }
 
-  function applyDateFilter() {
+  function renderPeriodSummary(data) {
+    var summary = document.getElementById('metrics-period-summary');
+    var delta = (data.total || 0) - (data.previous_total || 0);
+    var label = DATE_FILTER_LABELS[dateSelect.value] || 'this period';
+    if (delta > 0) summary.innerHTML = '<span class="is-up">▲ +' + delta + '</span> dispatches versus the preceding period';
+    else if (delta < 0) summary.innerHTML = '<span class="is-down">▼ ' + delta + '</span> dispatches versus the preceding period';
+    else summary.textContent = 'No change versus the preceding period for ' + label + '.';
+  }
+
+  function renderActivity(activity) {
+    var heatmap = document.getElementById('dispatch-heatmap');
+    var subtitle = document.getElementById('dispatch-activity-subtitle');
+    heatmap.innerHTML = '';
+    if (!activity || !activity.length) {
+      heatmap.innerHTML = '<p class="metrics-panel-empty">No dispatch activity in this period yet.</p>';
+      return;
+    }
+    var max = Math.max.apply(null, activity.map(function (item) { return item.count; }));
+    var byDay = {};
+    activity.forEach(function (item) { byDay[item.day] = item.count; });
+    var first = new Date(activity[0].day + 'T00:00:00Z');
+    var last = new Date(activity[activity.length - 1].day + 'T00:00:00Z');
+    subtitle.textContent = activity.length + ' active day' + (activity.length === 1 ? '' : 's') + ' in the selected period.';
+    for (var cursor = new Date(first); cursor <= last; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
+      var day = cursor.toISOString().slice(0, 10);
+      var count = byDay[day] || 0;
+      var cell = document.createElement('span');
+      var level = count ? Math.max(1, Math.ceil((count / max) * 4)) : 0;
+      cell.className = 'dispatch-heatmap-cell level-' + level;
+      cell.title = day + ': ' + count + ' dispatch' + (count === 1 ? '' : 'es');
+      cell.setAttribute('aria-label', cell.title);
+      cell.tabIndex = 0;
+      heatmap.appendChild(cell);
+    }
+  }
+
+  function renderLatest(entries) {
+    var list = document.getElementById('metrics-latest-list');
+    list.innerHTML = '';
+    if (!entries || !entries.length) {
+      list.innerHTML = '<li class="metrics-panel-empty">No dispatches in this period yet.</li>';
+      return;
+    }
+    entries.forEach(function (entry) {
+      var li = document.createElement('li');
+      var link = document.createElement('a');
+      link.href = 'dev-dispatches.html?dispatch=' + encodeURIComponent(entry.id);
+      link.textContent = entry.subject;
+      var meta = document.createElement('span');
+      meta.textContent = (TAG_LABELS[entry.tag] || entry.tag) + ' · ' + formatLastCommitLabel(entry.committed_at);
+      li.appendChild(link);
+      li.appendChild(meta);
+      list.appendChild(li);
+    });
+  }
+
+  function renderCodeGrowth(growth) {
+    var chart = document.getElementById('code-growth-chart');
+    var total = document.getElementById('code-growth-total');
+    var subtitle = document.getElementById('code-growth-subtitle');
+    var history = growth && growth.history ? growth.history : [];
+    chart.innerHTML = '';
+    if (!history.length) {
+      total.textContent = 'Awaiting snapshot';
+      chart.innerHTML = '<p class="metrics-panel-empty">Tracked-line history will appear after the first daily snapshot.</p>';
+      return;
+    }
+    total.textContent = Number(growth.latest_lines || 0).toLocaleString() + ' lines';
+    subtitle.textContent = history.length + ' tracked-source snapshots.';
+    var values = history.map(function (item) { return item.total_lines; });
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values), span = Math.max(1, max - min);
+    var width = 760, height = 160, pad = 8;
+    var points = history.map(function (item, index) {
+      var x = pad + ((width - pad * 2) * (history.length === 1 ? 0 : index / (history.length - 1)));
+      var y = max === min ? height / 2 : height - pad - (((item.total_lines - min) / span) * (height - pad * 2));
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    });
+    chart.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" role="img" aria-label="Tracked source lines grew from ' + min.toLocaleString() + ' to ' + max.toLocaleString() + '"><defs><linearGradient id="code-growth-fill" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#a279ec" stop-opacity=".45"/><stop offset="1" stop-color="#a279ec" stop-opacity="0"/></linearGradient></defs><polyline class="code-growth-area" points="' + pad + ',' + (height - pad) + ' ' + points.join(' ') + ' ' + (width - pad) + ',' + (height - pad) + '"/><polyline class="code-growth-line" points="' + points.join(' ') + '"/></svg>';
+  }
+
+  function loadMetrics() {
     var range = pwGetRangeBounds(dateSelect.value);
     currentRange = range;
-    var filtered = allEntries.filter(function (e) {
-      var d = new Date(String(e.committed_at).replace(' ', 'T') + 'Z');
-      return d >= range.start && d <= range.end;
-    });
-    renderMetrics(filtered);
+    gridEl.innerHTML = '<p class="metrics-loading">Crunching the numbers&hellip;</p>';
+    var qs = 'start=' + encodeURIComponent(range.start.toISOString()) + '&end=' + encodeURIComponent(range.end.toISOString());
+    fetch('/api/dev-metrics.php?' + qs, { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error('Metrics request failed');
+        currentMetrics = data;
+        currentEntries = data.entries || [];
+        updateStatsBh4(data.status);
+        renderMetrics(data);
+        renderPeriodSummary(data);
+        renderActivity(data.activity);
+        renderLatest(data.latest);
+        renderCodeGrowth(data.code_growth);
+      })
+      .catch(function () {
+        gridEl.innerHTML = '<p class="metrics-loading">Could not load metrics right now.</p>';
+      });
   }
 
-  dateSelect.addEventListener('change', applyDateFilter);
-
-  fetch('/api/dispatches/list.php?page=1&per_page=100000', { credentials: 'same-origin' })
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-      if (!data.ok) {
-        gridEl.innerHTML = '<p class="metrics-loading">Could not load metrics right now.</p>';
-        return;
-      }
-      allEntries = data.entries || [];
-      updateStatsBh4(allEntries);
-      applyDateFilter();
-    })
-    .catch(function () {
-      gridEl.innerHTML = '<p class="metrics-loading">Could not load metrics right now.</p>';
-    });
+  dateSelect.addEventListener('change', loadMetrics);
+  loadMetrics();
 })();
 
 (function () {
@@ -622,6 +734,13 @@ function pwWireBh4Toggle(el) {
 
   function reasonFor(name) {
     return LANG_REASONS[name] || 'Part of what keeps this site running.';
+  }
+
+  function formatBytes(bytes) {
+    var value = Number(bytes || 0);
+    if (value < 1024) return value + ' B';
+    if (value < 1024 * 1024) return (value / 1024).toFixed(1) + ' KB';
+    return (value / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
   function parseUtcSqlDate(sqlDate) {
@@ -690,6 +809,7 @@ function pwWireBh4Toggle(el) {
       seg.style.width = lang.pct + '%';
       seg.style.background = color;
       seg.title = lang.name + ' — ' + lang.pct + '%';
+      seg.title = lang.name + ': ' + lang.pct + '% (' + formatBytes(lang.bytes) + ')';
       barEl.appendChild(seg);
 
       var item = document.createElement('div');
@@ -700,6 +820,7 @@ function pwWireBh4Toggle(el) {
       var dot = document.createElement('span');
       dot.className = 'lang-legend-dot';
       dot.style.background = color;
+      item.setAttribute('aria-label', lang.name + ', ' + lang.pct + ' percent, ' + formatBytes(lang.bytes) + '. ' + reasonFor(lang.name));
       item.appendChild(dot);
 
       var nameEl = document.createElement('span');
@@ -715,6 +836,7 @@ function pwWireBh4Toggle(el) {
       var tooltip = document.createElement('div');
       tooltip.className = 'lang-legend-tooltip';
       tooltip.textContent = reasonFor(lang.name);
+      tooltip.textContent = formatBytes(lang.bytes) + ' · ' + reasonFor(lang.name);
       item.appendChild(tooltip);
 
       legendEl.appendChild(item);
