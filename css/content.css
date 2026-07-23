@@ -2067,6 +2067,104 @@
 }
 .world-weather-card--asmecu footer { color: rgba(172, 160, 144, 0.55); }
 
+/* --- Neoh: the surveillance city's own feed -------------------------------
+   Neoh deliberately keeps the shared console shell rather than replacing it,
+   the way Asmecu does. Every wall in this city hums with surveillance, so a
+   screen is the honest object here -- the console reads as Neoh's identity,
+   not as a default it happens to inherit. What it was missing is that Syn's
+   feed should not be a clean one.
+
+   Neoh's atlas motif is glitch (js/world-atlas-effects.js), so this reuses
+   that idea at card scale rather than inventing a second visual language for
+   the same world. All CSS, scoped to the variant. Both animations stop under
+   prefers-reduced-motion through base.css's global override, and both settle
+   to their resting state when they do: the tear band is transparent at rest,
+   and the caret is simply a solid block. */
+
+/* The current condition is the one live reading on the card, so it is the
+   thing that fails. Mostly still -- the burst occupies about a tenth of the
+   cycle, the same restraint the atlas medallions use for their signature
+   flare, so it reads as a fault in the feed rather than as decoration.
+   steps(1, end) so the frames cut rather than tween; a smoothly interpolated
+   glitch just looks like a wobble. */
+.world-weather-card--neoh .world-weather-current-icon { position: relative; }
+.world-weather-card--neoh .world-weather-current-icon svg {
+  animation: neoh-weather-glitch 6.5s steps(1, end) infinite;
+}
+@keyframes neoh-weather-glitch {
+  0%, 88% { transform: none; filter: none; }
+  /* Channels separating, as a failing signal does. */
+  89% { transform: translate(-2px, 1px); filter: drop-shadow(2px 0 rgba(255, 40, 110, 0.85)) drop-shadow(-2px 0 rgba(60, 240, 255, 0.85)); }
+  90.5% { transform: translate(3px, -1px); filter: drop-shadow(-3px 0 rgba(255, 40, 110, 0.8)) drop-shadow(3px 0 rgba(60, 240, 255, 0.8)); }
+  92% { transform: none; filter: none; }
+  93.5% { transform: translate(-1px, 0) scaleY(1.06); filter: drop-shadow(2px 0 rgba(255, 40, 110, 0.7)) drop-shadow(-2px 0 rgba(60, 240, 255, 0.7)); }
+  95% { transform: none; filter: none; }
+  96% { transform: translate(2px, 0); filter: drop-shadow(-2px 0 rgba(60, 240, 255, 0.6)); }
+  97%, 100% { transform: none; filter: none; }
+}
+/* A torn scan band crossing the icon during the same burst. */
+.world-weather-card--neoh .world-weather-current-icon::after {
+  content: '';
+  position: absolute;
+  inset: -4px 0;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(180deg, transparent 42%, rgba(140, 226, 246, 0.55) 44%, transparent 47%);
+  animation: neoh-weather-tear 6.5s steps(1, end) infinite;
+}
+@keyframes neoh-weather-tear {
+  0%, 88% { opacity: 0; transform: translateY(0); }
+  89.5% { opacity: 0.9; transform: translateY(-9px); }
+  91% { opacity: 0; transform: translateY(0); }
+  94% { opacity: 0.7; transform: translateY(10px); }
+  95.5%, 100% { opacity: 0; transform: translateY(0); }
+}
+
+/* The advisory is not a notice pinned up by anyone here -- nobody in Neoh
+   maintains this by hand. It is a line the city's own monitoring printed, so
+   it is fixed-pitch, squared off, and still holding the cursor it stopped on.
+   The monospace stack is generic and downloads nothing, so this adds no font
+   dependency and no request. */
+.world-weather-card--neoh .world-weather-hazard {
+  align-items: center;
+  padding: 9px 12px;
+  border-left-color: #78d8ee;
+  background: rgba(6, 14, 26, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(120, 216, 238, 0.16);
+  color: #9fe4f2;
+  font-family: ui-monospace, 'Cascadia Mono', 'Consolas', monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.01em;
+}
+/* The severity flag, reversed out the way a log highlights one. */
+.world-weather-card--neoh .world-weather-hazard > span {
+  width: 14px;
+  height: 14px;
+  flex-basis: 14px;
+  border: 0;
+  border-radius: 0;
+  background: #78d8ee;
+  color: #061020;
+  font-family: inherit;
+  font-size: 0.62rem;
+}
+/* The cursor the line was left sitting on. Aligned to the foot of the block
+   so it lands with the last line rather than floating mid-height. */
+.world-weather-card--neoh .world-weather-hazard::after {
+  content: '';
+  width: 6px;
+  height: 0.9em;
+  flex: 0 0 6px;
+  align-self: flex-end;
+  margin-bottom: 0.15em;
+  background: #78d8ee;
+  animation: neoh-weather-caret 1.1s steps(1, end) infinite;
+}
+@keyframes neoh-weather-caret {
+  0%, 55% { opacity: 1; }
+  56%, 100% { opacity: 0; }
+}
+
 /* Every other calibrated world (except The Nexus Veil, neutral ground with
    no per-medallion atlas motif) gets the same treatment: reuse that world's
    existing js/world-atlas-effects.js glow color rather than inventing a new
