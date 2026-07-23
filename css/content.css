@@ -2721,24 +2721,289 @@
 }
 .world-weather-card--cerius footer { color: rgba(178, 162, 150, 0.6); }
 
+/* --- Reanium: the Glass Flats survey plate --------------------------------
+   The Wasteland That Remembers. The flats were fused to glass by whatever
+   happened here, so the card is that glass: a sheet crazed right through,
+   with contamination light living inside the material rather than under it.
+   That is the distinction from Cerius, which is three fractures with a fire
+   beneath a plate -- here the light is in the glass, and the crazing runs
+   across the readings themselves, which nothing else in the set does.
+
+   The organising idea is that radiation is stochastic. Every other card here
+   pulses smoothly or drifts steadily; this one must not, because a regular
+   rhythm reads as a heartbeat and a Geiger count is the opposite of one. The
+   arrhythmia is what makes this feel radioactive, so it carries the energy
+   and everything else is deliberately held back: the trefoil is a watermark,
+   the rings are sparse, the edges only seep. Four green light sources at full
+   strength would be soup rather than a card.
+
+   Colours are this world's own: the atlas signal rgb(159, 224, 65) and the
+   glow and motes of drawReanium(), whose expanding rings the card reuses so
+   it and the medallion agree.
+
+   Static by choice: --heat and the is-weather-* class are both already set on
+   this card and neither is read here, so tying the dose to the real reading
+   later needs no new plumbing. */
 .world-weather-card--reanium {
-  border-color: rgba(151, 255, 75, 0.4);
+  --world-weather-icon: #9fe041;
+  --world-weather-icon-current: #b6f25c;
+  --wx-muted: #a3b492;
+  --rea-glow: 130, 255, 49;
+  --rea-signal: 159, 224, 65;
+  border-color: rgba(120, 176, 64, 0.42);
   background:
-    radial-gradient(circle at 95% 0%, rgba(120, 200, 60, 0.28), transparent 36%),
-    radial-gradient(circle at 7% 92%, rgba(50, 90, 30, 0.22), transparent 38%),
-    linear-gradient(155deg, rgba(14, 26, 10, 0.98), rgba(8, 18, 6, 0.98));
+    /* Contamination sitting in the glass. */
+    radial-gradient(90% 60% at 30% 6%, rgba(var(--rea-signal), 0.1), transparent 60%),
+    radial-gradient(70% 50% at 78% 94%, rgba(var(--rea-glow), 0.08), transparent 62%),
+    linear-gradient(168deg, rgba(22, 30, 20, 0.985), rgba(11, 16, 12, 0.985));
+  /* Seeping inward rather than stopping at a frame. Contamination does not
+     respect an edge, so there is no crisp one anywhere on this card. */
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.5),
+    inset 0 0 0 1px rgba(var(--rea-signal), 0.08),
+    inset 0 0 22px rgba(var(--rea-glow), 0.1),
+    inset 0 0 56px rgba(var(--rea-glow), 0.07),
+    inset 0 0 92px rgba(90, 180, 40, 0.05);
 }
-.world-weather-card--reanium::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(151, 255, 75, 0.028) 4px 5px); }
-.world-weather-card--reanium .world-weather-live { border-color: rgba(151, 255, 75, 0.4); background: rgba(151, 255, 75, 0.12); color: #a8f277; }
-.world-weather-card--reanium .world-weather-live i { background: #8cf24a; box-shadow: 0 0 7px #8cf24a; }
-.world-weather-card--reanium { --world-weather-icon: #94f050; --world-weather-icon-current: #94f050; }
-.world-weather-card--reanium .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(151, 255, 75, 0.35)); }
-.world-weather-card--reanium .world-weather-metrics { border-color: rgba(50, 90, 30, 0.2); background: rgba(50, 90, 30, 0.1); }
-.world-weather-card--reanium .world-weather-metrics div { border-right-color: rgba(50, 90, 30, 0.16); }
-.world-weather-card--reanium .world-weather-day.is-today { border-color: rgba(151, 255, 75, 0.32); background: linear-gradient(180deg, rgba(151, 255, 75, 0.12), rgba(50, 90, 30, 0.1)); }
-.world-weather-card--reanium .world-weather-divider { color: #b0e888; }
-.world-weather-card--reanium .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(151, 255, 75, 0.32)); }
-.world-weather-card--reanium .world-weather-divider::after { background: linear-gradient(90deg, rgba(151, 255, 75, 0.32), transparent); }
+/* The trefoil, as a watermark and no more. */
+.world-weather-card--reanium::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  top: 46%;
+  left: 50%;
+  width: 210px;
+  height: 210px;
+  margin: -105px 0 0 -105px;
+  pointer-events: none;
+  opacity: 0.55;
+  background:
+    conic-gradient(from 30deg,
+      rgba(var(--rea-signal), 0.09) 0 60deg, transparent 60deg 120deg,
+      rgba(var(--rea-signal), 0.09) 120deg 180deg, transparent 180deg 240deg,
+      rgba(var(--rea-signal), 0.09) 240deg 300deg, transparent 300deg 360deg),
+    radial-gradient(circle, rgba(var(--rea-signal), 0.1) 0 7%, transparent 7.5%);
+  /* Punches the ring out of the blades and keeps the centre disc. */
+  -webkit-mask-image: radial-gradient(circle, #000 0 6.5%, transparent 7% 15%, #000 15.5% 48%, transparent 48.5%);
+  mask-image: radial-gradient(circle, #000 0 6.5%, transparent 7% 15%, #000 15.5% 48%, transparent 48.5%);
+}
+/* The crazing. Above the content rather than behind it, so the sheet reads as
+   one cracked pane with the readings underneath -- and blended with screen,
+   which can only add light, so a hairline crossing a glyph cannot darken it.
+   That is what makes running the web over live text safe. */
+.world-weather-card--reanium::after {
+  z-index: 2;
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(70px 40px at 30% 16%, rgba(var(--rea-glow), 0.05), transparent 72%),
+    radial-gradient(60px 36px at 62% 74%, rgba(var(--rea-glow), 0.045), transparent 72%),
+    linear-gradient(63deg, transparent calc(50% - 0.4px), rgba(var(--rea-glow), 0.17) 50%, transparent calc(50% + 0.4px)) 30% 12% / 92px 140px no-repeat,
+    linear-gradient(118deg, transparent calc(50% - 0.4px), rgba(var(--rea-glow), 0.14) 50%, transparent calc(50% + 0.4px)) 66% 20% / 120px 112px no-repeat,
+    linear-gradient(21deg, transparent calc(50% - 0.4px), rgba(var(--rea-glow), 0.15) 50%, transparent calc(50% + 0.4px)) 14% 52% / 140px 92px no-repeat,
+    linear-gradient(96deg, transparent calc(50% - 0.4px), rgba(var(--rea-glow), 0.12) 50%, transparent calc(50% + 0.4px)) 82% 58% / 82px 150px no-repeat,
+    linear-gradient(143deg, transparent calc(50% - 0.4px), rgba(var(--rea-glow), 0.14) 50%, transparent calc(50% + 0.4px)) 40% 44% / 112px 120px no-repeat,
+    linear-gradient(74deg, transparent calc(50% - 0.4px), rgba(var(--rea-glow), 0.13) 50%, transparent calc(50% + 0.4px)) 55% 78% / 130px 100px no-repeat,
+    linear-gradient(160deg, transparent calc(50% - 0.4px), rgba(var(--rea-glow), 0.11) 50%, transparent calc(50% + 0.4px)) 20% 86% / 100px 82px no-repeat,
+    linear-gradient(38deg, transparent calc(50% - 0.4px), rgba(var(--rea-glow), 0.12) 50%, transparent calc(50% + 0.4px)) 88% 88% / 92px 92px no-repeat;
+}
+/* Two contamination rings pushing out from the flats, straight off
+   drawReanium(). The scan layer itself is static and only hosts them, so
+   neither ring inherits the other's transform. */
+.world-weather-card--reanium .world-weather-card-scan {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: auto;
+  background: none;
+  animation: none;
+}
+.world-weather-card--reanium .world-weather-card-scan::before,
+.world-weather-card--reanium .world-weather-card-scan::after {
+  content: '';
+  position: absolute;
+  bottom: 6%;
+  left: 50%;
+  width: 300px;
+  height: 300px;
+  margin-left: -150px;
+  border: 1px solid rgba(151, 255, 75, 0.4);
+  border-radius: 50%;
+  animation: reanium-ring 7.4s linear infinite;
+}
+.world-weather-card--reanium .world-weather-card-scan::after { animation-delay: -3.7s; }
+@keyframes reanium-ring {
+  from { transform: scale(0.12); opacity: 0.5; }
+  to { transform: scale(1.55); opacity: 0; }
+}
+
+/* --- The count ------------------------------------------------------------
+   Three arrhythmic animations on deliberately unrelated durations, so nothing
+   on this card ever falls into step with anything else. steps(1, end) so each
+   stop cuts: an interpolated count would read as a pulse, which is the one
+   thing this must not be. */
+@keyframes reanium-count {
+  0%, 1.8% { opacity: 1; }
+  1.9%, 8.3% { opacity: 0.2; }
+  8.4%, 9.6% { opacity: 1; }
+  9.7%, 11.2% { opacity: 0.2; }
+  11.3%, 12.1% { opacity: 1; }
+  12.2%, 31.4% { opacity: 0.2; }
+  31.5%, 32.8% { opacity: 1; }
+  32.9%, 37.5% { opacity: 0.2; }
+  37.6%, 38.4% { opacity: 1; }
+  38.5%, 54.2% { opacity: 0.2; }
+  54.3%, 55.9% { opacity: 1; }
+  56%, 61.7% { opacity: 0.2; }
+  61.8%, 62.6% { opacity: 1; }
+  62.7%, 79.1% { opacity: 0.2; }
+  79.2%, 80.9% { opacity: 1; }
+  81%, 88.6% { opacity: 0.2; }
+  88.7%, 89.5% { opacity: 1; }
+  89.6%, 100% { opacity: 0.2; }
+}
+@keyframes reanium-dose-glow {
+  0%, 6.2% { text-shadow: 0 0 14px rgba(130, 255, 49, 0.32); }
+  6.3%, 7.4% { text-shadow: 0 0 30px rgba(150, 255, 70, 0.72); }
+  7.5%, 23.8% { text-shadow: 0 0 14px rgba(130, 255, 49, 0.32); }
+  23.9%, 24.6% { text-shadow: 0 0 26px rgba(150, 255, 70, 0.58); }
+  24.7%, 46.1% { text-shadow: 0 0 14px rgba(130, 255, 49, 0.32); }
+  46.2%, 47.9% { text-shadow: 0 0 34px rgba(160, 255, 80, 0.78); }
+  48%, 71.3% { text-shadow: 0 0 14px rgba(130, 255, 49, 0.32); }
+  71.4%, 72.2% { text-shadow: 0 0 24px rgba(150, 255, 70, 0.54); }
+  72.3%, 100% { text-shadow: 0 0 14px rgba(130, 255, 49, 0.32); }
+}
+@keyframes reanium-dose-icon {
+  0%, 4.6% { filter: drop-shadow(0 0 10px rgba(130, 255, 49, 0.34)); }
+  4.7%, 5.8% { filter: drop-shadow(0 0 22px rgba(160, 255, 80, 0.8)); }
+  5.9%, 29.3% { filter: drop-shadow(0 0 10px rgba(130, 255, 49, 0.34)); }
+  29.4%, 30.1% { filter: drop-shadow(0 0 18px rgba(150, 255, 70, 0.62)); }
+  30.2%, 58.7% { filter: drop-shadow(0 0 10px rgba(130, 255, 49, 0.34)); }
+  58.8%, 60.4% { filter: drop-shadow(0 0 26px rgba(170, 255, 90, 0.85)); }
+  60.5%, 84.9% { filter: drop-shadow(0 0 10px rgba(130, 255, 49, 0.34)); }
+  85%, 85.8% { filter: drop-shadow(0 0 16px rgba(150, 255, 70, 0.5)); }
+  85.9%, 100% { filter: drop-shadow(0 0 10px rgba(130, 255, 49, 0.34)); }
+}
+.world-weather-card--reanium .world-weather-head > div > span { color: #a8e050; }
+.world-weather-card--reanium .world-weather-head h2 { color: #e2f0d2; }
+.world-weather-card--reanium .world-weather-live {
+  border-color: rgba(var(--rea-signal), 0.45);
+  border-radius: 2px;
+  background: rgba(var(--rea-signal), 0.09);
+  color: #bce86e;
+  letter-spacing: 0.13em;
+}
+/* The live dot stops being a status light and becomes the count. */
+.world-weather-card--reanium .world-weather-live i {
+  border-radius: 0;
+  background: #b6f25c;
+  box-shadow: 0 0 8px rgba(var(--rea-glow), 0.9);
+  animation: reanium-count 4.3s steps(1, end) infinite;
+}
+.world-weather-card--reanium .world-weather-current-icon {
+  animation: reanium-dose-icon 6.9s steps(1, end) infinite;
+}
+.world-weather-card--reanium .world-weather-current > strong {
+  color: #eaf7dc;
+  animation: reanium-dose-glow 5.7s steps(1, end) infinite;
+}
+.world-weather-card--reanium .world-weather-current b { color: #d8e8c6; }
+.world-weather-card--reanium .world-weather-metrics {
+  border-color: rgba(120, 176, 64, 0.26);
+  background: rgba(var(--rea-signal), 0.05);
+}
+.world-weather-card--reanium .world-weather-metrics div {
+  border-right-color: rgba(120, 176, 64, 0.2);
+  background: rgba(10, 16, 10, 0.46);
+}
+.world-weather-card--reanium .world-weather-metrics strong { color: #e2f0d2; }
+.world-weather-card--reanium .world-weather-season b { color: #b3c7a0; }
+.world-weather-card--reanium .world-weather-divider { color: #a8e050; }
+.world-weather-card--reanium .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(var(--rea-signal), 0.42)); }
+.world-weather-card--reanium .world-weather-divider::after { background: linear-gradient(90deg, rgba(var(--rea-signal), 0.42), transparent); }
+.world-weather-card--reanium .world-weather-day {
+  border-color: rgba(120, 176, 64, 0.22);
+  background: linear-gradient(180deg, rgba(var(--rea-signal), 0.05), rgba(0, 0, 0, 0.24));
+}
+.world-weather-card--reanium .world-weather-day:hover,
+.world-weather-card--reanium .world-weather-day.is-open { border-color: rgba(var(--rea-signal), 0.6); }
+.world-weather-card--reanium .world-weather-day.is-today {
+  border-color: rgba(var(--rea-signal), 0.55);
+  background: linear-gradient(180deg, rgba(var(--rea-glow), 0.14), rgba(0, 0, 0, 0.2));
+}
+.world-weather-card--reanium .world-weather-day-name { color: #b3c7a0; }
+.world-weather-card--reanium .world-weather-day strong { color: #e2f0d2; }
+.world-weather-card--reanium .world-weather-hourly { border-top-color: rgba(120, 176, 64, 0.3); }
+.world-weather-card--reanium .world-weather-hourly-head { color: #a8e050; }
+.world-weather-card--reanium .world-weather-hourly-nav {
+  border-color: rgba(120, 176, 64, 0.35);
+  background: rgba(10, 16, 10, 0.6);
+  color: #b3c7a0;
+}
+.world-weather-card--reanium .world-weather-hourly-nav:hover:not(:disabled) { border-color: rgba(var(--rea-signal), 0.7); color: #e2f0d2; }
+.world-weather-card--reanium .world-weather-hour { color: #b3c7a0; }
+.world-weather-card--reanium .world-weather-hour-temp { color: #e2f0d2; }
+.world-weather-card--reanium .world-weather-hour.is-now {
+  border-color: rgba(var(--rea-signal), 0.55);
+  background: linear-gradient(180deg, rgba(var(--rea-glow), 0.14), rgba(0, 0, 0, 0.16));
+  color: #eef8e2;
+}
+.world-weather-card--reanium .world-weather-hour.is-now .world-weather-hour-time { color: #b6f25c; }
+.world-weather-card--reanium .world-weather-hour-now { color: #b6f25c; }
+.world-weather-card--reanium .world-weather-hour.is-night { background: rgba(7, 11, 8, 0.5); }
+.world-weather-card--reanium .world-weather-hour.is-night.is-now { background: linear-gradient(180deg, rgba(var(--rea-glow), 0.13), rgba(7, 11, 8, 0.45)); }
+
+/* The advisory is a contamination survey tag: a hazard band across its head,
+   a grommet punched through the corner it hangs from, and a glowing trefoil
+   roundel in place of the box. Not gilt like Cerius and not a chevron like
+   High Hammer -- the band runs along the top here rather than down the edge,
+   so the four advisories stay distinguishable side by side.
+
+   Same rule as Cerius: every mark is behind or beside the copy. This block
+   tells a reader the ground will hurt them, so it is the one thing on the
+   card that must stay fully legible, and its contrast is asserted. */
+.world-weather-card--reanium .world-weather-hazard {
+  padding: 14px 24px 12px 14px;
+  border: 1px solid rgba(120, 176, 64, 0.38);
+  border-left: 0;
+  background: linear-gradient(180deg, rgba(var(--rea-signal), 0.05), rgba(0, 0, 0, 0.32));
+  box-shadow: inset 0 0 18px rgba(var(--rea-signal), 0.06), 0 2px 7px rgba(0, 0, 0, 0.45);
+  color: #cfe0bd;
+}
+.world-weather-card--reanium .world-weather-hazard::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  left: -1px;
+  right: -1px;
+  height: 4px;
+  opacity: 0.85;
+  background: repeating-linear-gradient(-45deg, #9fe041 0 5px, #12200c 5px 10px);
+}
+/* The grommet the tag hangs from, out in the padding so no word sits under it. */
+.world-weather-card--reanium .world-weather-hazard::after {
+  content: '';
+  position: absolute;
+  top: 11px;
+  right: 8px;
+  width: 8px;
+  height: 8px;
+  border: 1px solid rgba(var(--rea-signal), 0.5);
+  border-radius: 50%;
+  background: rgba(4, 8, 4, 0.9);
+}
+.world-weather-card--reanium .world-weather-hazard > span {
+  width: 18px;
+  height: 18px;
+  flex-basis: 18px;
+  border: 2px solid #9fe041;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(var(--rea-signal), 0.2), rgba(6, 12, 6, 0.9) 70%);
+  box-shadow: 0 0 8px rgba(var(--rea-signal), 0.45), inset 0 0 6px rgba(var(--rea-signal), 0.3);
+  color: #c8f57a;
+}
+.world-weather-card--reanium footer { color: rgba(160, 178, 146, 0.6); }
+
 .world-weather-card--babki-prime {
   border-color: rgba(150, 210, 100, 0.4);
   background:
