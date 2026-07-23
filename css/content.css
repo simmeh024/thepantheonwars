@@ -1836,29 +1836,167 @@
 .world-weather-hazard > span { display: grid; width: 16px; height: 16px; flex: 0 0 16px; place-items: center; border: 1px solid rgba(209, 169, 85, 0.55); border-radius: 50%; color: var(--gold-bright); font-size: 0.58rem; font-weight: 700; }
 .world-weather-card footer { margin-top: 12px; color: rgba(164, 148, 188, 0.55); font-size: 0.54rem; letter-spacing: 0.05em; text-align: right; text-transform: uppercase; }
 
-/* Asmecu variant: warms the default archive palette toward sea-worn timber
-   and coral -- the same terracotta already used for the Coral Palace layer
-   (.world-layer-tint--orange, rgba(210,120,50)) -- rather than the cool
-   mint-green "Live archive" pill and icy-blue icon tinting used by every
-   other calibrated world. */
+/* --- Asmecu: the Tideglass Bureau's harbour noticeboard --------------------
+   The first weather card that is not the shared console template recoloured.
+   Every other world reads as a screen -- fine scanlines and a vertical CRT
+   sweep -- and a warmer tint never changed that, which is why this one never
+   felt like the harbour it describes. The screen signals are replaced rather
+   than retinted: a paper tooth instead of scanlines, a slow horizontal tide
+   sheen instead of the sweep, posted slips instead of glowing wells, and a
+   framed board instead of a bezel.
+
+   Both colours were already established for this world rather than invented.
+   The coral comes from the Coral Palace layer tint (.world-layer-tint--orange)
+   pushed from terracotta toward true coral: the previous #e8935f sat one digit
+   from High Hammer's #e89a5f, so the sea world and the forge world were
+   reading almost identically. The cool secondary is rgb(68, 150, 237), which
+   is Asmecu's own atlas signal colour.
+
+   CSS only, and every selector is scoped to this variant, so nothing here can
+   reach another world's card. The tide sheen needs no reduced-motion rule of
+   its own -- base.css already disables every animation globally with
+   !important. The severe-weather alert is deliberately left on the shared red:
+   it must read the same on every world, whatever that world's palette is. */
 .world-weather-card--asmecu {
-  border-color: rgba(224, 141, 92, 0.4);
+  --world-weather-icon: #e8746a;
+  --world-weather-icon-current: #ff9077;
+  border-color: rgba(214, 122, 104, 0.42);
+  border-width: 2px;
   background:
-    radial-gradient(circle at 95% 0%, rgba(196, 122, 66, 0.28), transparent 36%),
-    radial-gradient(circle at 7% 92%, rgba(120, 78, 45, 0.22), transparent 38%),
-    linear-gradient(155deg, rgba(38, 24, 15, 0.98), rgba(26, 15, 9, 0.98));
+    /* Coral bloom over the board, and the tide reaching the far corner. */
+    radial-gradient(circle at 92% -6%, rgba(255, 138, 114, 0.2), transparent 42%),
+    radial-gradient(circle at 4% 104%, rgba(68, 150, 237, 0.16), transparent 44%),
+    /* Plank seams: a board rather than a panel. */
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 84px),
+    linear-gradient(168deg, rgba(46, 32, 30, 0.985), rgba(28, 19, 19, 0.985));
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.42),
+    /* The mount inside the frame. */
+    inset 0 0 0 1px rgba(244, 231, 219, 0.06),
+    inset 0 0 70px rgba(0, 0, 0, 0.34);
 }
-.world-weather-card--asmecu::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(224, 158, 110, 0.028) 4px 5px); }
-.world-weather-card--asmecu .world-weather-live { border-color: rgba(224, 141, 92, 0.4); background: rgba(224, 141, 92, 0.12); color: #f0a875; }
-.world-weather-card--asmecu .world-weather-live i { background: #e8875a; box-shadow: 0 0 7px #e8875a; }
-.world-weather-card--asmecu { --world-weather-icon: #e8935f; --world-weather-icon-current: #e8935f; }
-.world-weather-card--asmecu .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(224, 141, 92, 0.35)); }
-.world-weather-card--asmecu .world-weather-metrics { border-color: rgba(191, 140, 99, 0.2); background: rgba(158, 108, 68, 0.1); }
-.world-weather-card--asmecu .world-weather-metrics div { border-right-color: rgba(191, 140, 99, 0.16); }
-.world-weather-card--asmecu .world-weather-day.is-today { border-color: rgba(224, 141, 92, 0.32); background: linear-gradient(180deg, rgba(224, 141, 92, 0.12), rgba(120, 78, 45, 0.1)); }
-.world-weather-card--asmecu .world-weather-divider { color: #d9a06a; }
-.world-weather-card--asmecu .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(224, 141, 92, 0.32)); }
-.world-weather-card--asmecu .world-weather-divider::after { background: linear-gradient(90deg, rgba(224, 141, 92, 0.32), transparent); }
+/* Paper tooth: two faint crossing rules read as a weave, where the shared
+   card's single horizontal repeat reads as a raster. */
+.world-weather-card--asmecu::after {
+  background:
+    repeating-linear-gradient(58deg, transparent 0 2px, rgba(244, 231, 219, 0.016) 2px 3px),
+    repeating-linear-gradient(-58deg, transparent 0 2px, rgba(244, 231, 219, 0.013) 2px 3px);
+}
+/* The CRT sweep becomes a slow tide crossing the foot of the board. */
+.world-weather-card--asmecu .world-weather-card-scan {
+  top: auto;
+  bottom: -4%;
+  left: -30%;
+  right: -30%;
+  height: 44%;
+  background: linear-gradient(102deg, transparent 22%, rgba(255, 178, 154, 0.05) 50%, transparent 78%);
+  animation: world-weather-tide 19s ease-in-out infinite alternate;
+}
+@keyframes world-weather-tide {
+  from { transform: translateX(-7%); }
+  to { transform: translateX(7%); }
+}
+.world-weather-card--asmecu .world-weather-head > div > span { color: #e8746a; }
+.world-weather-card--asmecu .world-weather-head h2 { color: #f4e7db; }
+.world-weather-card--asmecu .world-weather-climate { color: #a89384; }
+/* Stamped rather than lit: squared corners, a heavier rule, and a small ink
+   lozenge in place of the glowing status dot. */
+.world-weather-card--asmecu .world-weather-live {
+  border-color: rgba(214, 122, 104, 0.55);
+  border-radius: 2px;
+  background: rgba(214, 122, 104, 0.1);
+  color: #ff9077;
+  letter-spacing: 0.14em;
+}
+.world-weather-card--asmecu .world-weather-live i {
+  width: 4px;
+  height: 4px;
+  border-radius: 0;
+  background: #e8746a;
+  box-shadow: none;
+  transform: rotate(45deg);
+}
+.world-weather-card--asmecu .world-weather-current-icon { filter: drop-shadow(0 0 12px rgba(255, 138, 114, 0.32)); }
+.world-weather-card--asmecu .world-weather-current > strong { color: #f8ece2; }
+/* A ruled ledger band, tinted with the tide rather than the coral so the two
+   readings do not compete for the same attention. */
+.world-weather-card--asmecu .world-weather-metrics {
+  border-color: rgba(244, 231, 219, 0.14);
+  background: rgba(68, 150, 237, 0.07);
+}
+.world-weather-card--asmecu .world-weather-metrics div {
+  border-right-color: rgba(244, 231, 219, 0.1);
+  background: rgba(20, 14, 15, 0.5);
+}
+.world-weather-card--asmecu .world-weather-metrics span { color: #a89384; }
+.world-weather-card--asmecu .world-weather-metrics strong { color: #ecdccf; }
+.world-weather-card--asmecu .world-weather-season b { color: #c9b4a4; }
+.world-weather-card--asmecu .world-weather-season i { color: #a89384; }
+.world-weather-card--asmecu .world-weather-season.is-low .world-weather-season-mark { background: #4496ed; box-shadow: 0 0 7px #4496ed; }
+.world-weather-card--asmecu .world-weather-divider { color: #e8917f; }
+.world-weather-card--asmecu .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(214, 122, 104, 0.42)); }
+.world-weather-card--asmecu .world-weather-divider::after { background: linear-gradient(90deg, rgba(214, 122, 104, 0.42), transparent); }
+/* Posted slips: pale paper on the board, not dark wells cut into a panel. */
+.world-weather-card--asmecu .world-weather-day {
+  border-color: rgba(244, 231, 219, 0.08);
+  background: rgba(244, 231, 219, 0.035);
+}
+.world-weather-card--asmecu .world-weather-day:hover,
+.world-weather-card--asmecu .world-weather-day.is-open { border-color: rgba(214, 122, 104, 0.5); }
+.world-weather-card--asmecu .world-weather-day.is-today {
+  border-color: rgba(214, 122, 104, 0.45);
+  background: linear-gradient(180deg, rgba(255, 138, 114, 0.13), rgba(244, 231, 219, 0.04));
+}
+/* The pin holding today's slip to the board. The day is already
+   position: relative to anchor its hourly panel, so this needs no markup. */
+.world-weather-card--asmecu .world-weather-day.is-today::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  transform: translateX(-50%) rotate(45deg);
+  background: #ff9077;
+  box-shadow: 0 0 6px rgba(255, 144, 119, 0.6);
+}
+.world-weather-card--asmecu .world-weather-day-name { color: #c9b4a4; }
+.world-weather-card--asmecu .world-weather-day strong { color: #f2e4d8; }
+.world-weather-card--asmecu .world-weather-day-condition { color: #a89384; }
+.world-weather-card--asmecu .world-weather-hourly { border-top-color: rgba(244, 231, 219, 0.14); }
+.world-weather-card--asmecu .world-weather-hourly-head { color: #e8917f; }
+.world-weather-card--asmecu .world-weather-hourly-nav {
+  border-color: rgba(214, 122, 104, 0.3);
+  background: rgba(20, 14, 15, 0.6);
+  color: #e8917f;
+}
+.world-weather-card--asmecu .world-weather-hourly-nav:hover:not(:disabled) { border-color: rgba(214, 122, 104, 0.6); color: #f8ece2; }
+.world-weather-card--asmecu .world-weather-hour { color: #c9b4a4; }
+.world-weather-card--asmecu .world-weather-hour-temp { color: #f2e4d8; }
+.world-weather-card--asmecu .world-weather-hour.is-now {
+  border-color: rgba(214, 122, 104, 0.5);
+  background: linear-gradient(180deg, rgba(255, 138, 114, 0.14), rgba(244, 231, 219, 0.03));
+  color: #f8ece2;
+}
+.world-weather-card--asmecu .world-weather-hour.is-now .world-weather-hour-time { color: #ff9077; }
+.world-weather-card--asmecu .world-weather-hour-now { color: #ff9077; }
+/* Night on a board is a shadow across the paper, not a blue screen. */
+.world-weather-card--asmecu .world-weather-hour.is-night { background: rgba(14, 10, 12, 0.5); }
+.world-weather-card--asmecu .world-weather-hour.is-night.is-now { background: linear-gradient(180deg, rgba(255, 138, 114, 0.13), rgba(14, 10, 12, 0.45)); }
+/* The advisory is a slip pinned under the notice: paper ground and a coral
+   rule in place of the shared gold. */
+.world-weather-card--asmecu .world-weather-hazard {
+  border-left-color: #e8746a;
+  border-left-width: 3px;
+  background: rgba(244, 231, 219, 0.05);
+  color: #d6c2b2;
+}
+.world-weather-card--asmecu .world-weather-hazard > span {
+  border-color: rgba(214, 122, 104, 0.6);
+  border-radius: 0;
+  color: #ff9077;
+}
+.world-weather-card--asmecu footer { color: rgba(200, 172, 154, 0.5); }
 
 /* Every other calibrated world (except The Nexus Veil, neutral ground with
    no per-medallion atlas motif) gets the same treatment: reuse that world's
