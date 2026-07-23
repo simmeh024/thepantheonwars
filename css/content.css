@@ -2005,17 +2005,65 @@
 /* Night on a board is a shadow across the timber, not a blue screen. */
 .world-weather-card--asmecu .world-weather-hour.is-night { background: rgba(12, 12, 13, 0.5); }
 .world-weather-card--asmecu .world-weather-hour.is-night.is-now { background: linear-gradient(180deg, rgba(255, 138, 112, 0.1), rgba(12, 12, 13, 0.45)); }
-/* The advisory is the one thing on the board written in warning paint. */
+/* The advisory is the one notice on this board a person writes out and re-pins
+   by hand, so nothing about it is drawn straight. It is a slip of laid card
+   tacked up slightly crooked and standing off the plank on its own shadow;
+   the warning rule beside it is brushed rather than ruled, running thin at
+   both ends where the stroke was started and lifted; and the marker is
+   stencilled and set askew. Nothing here is a border the machine drew. */
 .world-weather-card--asmecu .world-weather-hazard {
-  border-left-color: #ff7e6a;
-  border-left-width: 3px;
-  background: rgba(228, 216, 198, 0.045);
-  color: #ccc0ae;
+  margin-top: 20px;
+  padding: 13px 13px 13px 16px;
+  border: 1px solid rgba(228, 216, 198, 0.16);
+  /* Replaced by the brushed stroke below, which no border can do. */
+  border-left: 0;
+  background:
+    /* Laid card: the fibre lines you get holding cheap stock to the light. */
+    repeating-linear-gradient(0deg, transparent 0 3px, rgba(0, 0, 0, 0.05) 3px 4px),
+    linear-gradient(178deg, rgba(236, 226, 208, 0.075), rgba(214, 204, 188, 0.05));
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+  color: #d3c7b4;
+  transform: rotate(-0.45deg);
 }
+/* Brushed on: heavy where the brush was pressed, thin at the ends. */
+.world-weather-card--asmecu .world-weather-hazard::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: 0;
+  width: 3px;
+  background: linear-gradient(180deg,
+    rgba(255, 126, 106, 0.3) 0%,
+    rgba(255, 126, 106, 0.95) 17%,
+    rgba(255, 126, 106, 0.78) 54%,
+    rgba(255, 126, 106, 1) 79%,
+    rgba(255, 126, 106, 0.36) 100%);
+}
+/* The tack holding the slip to the plank. */
+.world-weather-card--asmecu .world-weather-hazard::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  right: 15px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #ffb6a4, #b8503f 72%);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+/* Stencilled through a plate rather than drawn: squared, heavy, and never
+   quite square to the card. */
 .world-weather-card--asmecu .world-weather-hazard > span {
-  border-color: rgba(255, 126, 106, 0.7);
+  width: 17px;
+  height: 17px;
+  flex-basis: 17px;
+  border: 2px solid rgba(255, 126, 106, 0.85);
   border-radius: 0;
-  color: #ff8a70;
+  background: rgba(255, 126, 106, 0.12);
+  color: #ff9077;
+  font-family: 'Cinzel', serif;
+  transform: rotate(-3deg);
 }
 .world-weather-card--asmecu footer { color: rgba(172, 160, 144, 0.55); }
 
