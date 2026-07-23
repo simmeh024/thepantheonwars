@@ -7,6 +7,7 @@
  */
 require_once __DIR__ . '/helpers.php';
 require_once __DIR__ . '/dispatch-helpers.php';
+require_once __DIR__ . '/dispatch-diff-context.php';
 
 date_default_timezone_set('UTC');
 
@@ -72,6 +73,15 @@ $entries = array_map(function ($row) {
         'url' => $row['url'],
     ];
 }, $entryStmt->fetchAll());
+
+// Diff context is optional until its migration has been run; the helper
+// safely returns an empty map in that case. The public page receives only the
+// aggregate file count, never source paths or diff content.
+$contexts = pw_get_dispatch_diff_contexts($db, array_column($entries, 'id'));
+foreach ($entries as &$entry) {
+    $entry['files_changed'] = isset($contexts[$entry['id']]) ? (int)$contexts[$entry['id']]['files_changed'] : null;
+}
+unset($entry);
 
 $latest = array_slice($entries, 0, 5);
 

@@ -1956,6 +1956,24 @@
 .metrics-panel-empty { margin: 0; color: var(--text-faint); font-size: 0.82rem; font-style: italic; }
 @media (max-width: 760px) { .metrics-insights { grid-template-columns: 1fr; } }
 
+.metrics-analytics { display: grid; grid-template-columns: 1.1fr 0.95fr 0.95fr; gap: 24px; margin-top: 24px; }
+.metrics-radar-chart { width: 100%; max-width: 275px; margin: -6px auto 0; }
+.metrics-radar-chart svg { display: block; width: 100%; overflow: visible; }
+.metrics-radar-ring { fill: rgba(162,121,236,0.025); stroke: rgba(162,121,236,0.18); stroke-width: 1; }
+.metrics-radar-axis { stroke: rgba(122,107,158,0.24); stroke-width: 1; }
+.metrics-radar-chart text { fill: var(--text-faint); font: 500 7px 'Jost', sans-serif; letter-spacing: 0.04em; text-transform: uppercase; }
+.metrics-radar-current { fill: rgba(236,201,135,0.25); stroke: var(--gold-bright); stroke-width: 2; filter: drop-shadow(0 0 4px rgba(236,201,135,0.35)); }
+.metrics-radar-previous { fill: rgba(162,121,236,0.10); stroke: var(--purple-bright); stroke-width: 1.5; stroke-dasharray: 4 3; }
+.metrics-radar-key { display: flex; justify-content: center; gap: 14px; margin-top: -4px; color: var(--text-faint); font-size: 0.66rem; }
+.metrics-radar-key span { display: inline-flex; align-items: center; gap: 5px; }.metrics-radar-key i { width: 8px; height: 8px; border-radius: 50%; }.metrics-radar-key .is-current { background: var(--gold-bright); }.metrics-radar-key .is-previous { border: 1px dashed var(--purple-bright); }
+.project-pulse { display: flex; align-items: center; gap: 18px; min-height: 190px; }
+.project-pulse-score { --pulse-score: 0%; position: relative; display: flex; flex: 0 0 104px; width: 104px; height: 104px; flex-direction: column; align-items: center; justify-content: center; border-radius: 50%; background: conic-gradient(var(--purple-bright) var(--pulse-score), rgba(162,121,236,0.12) 0); box-shadow: 0 0 18px rgba(162,121,236,0.22); }
+.project-pulse-score::before { content: ''; position: absolute; inset: 7px; border-radius: 50%; background: var(--panel); }.project-pulse-score strong, .project-pulse-score span { position: relative; z-index: 1; }.project-pulse-score strong { color: var(--gold-bright); font: 700 1.45rem/1 'Cinzel', serif; }.project-pulse-score span { color: var(--text-faint); font-size: 0.6rem; }
+.project-pulse-breakdown { display: flex; flex: 1; flex-direction: column; gap: 9px; }.project-pulse-breakdown div { display: grid; grid-template-columns: 55px 1fr; align-items: center; gap: 8px; }.project-pulse-breakdown span { color: var(--text-faint); font-size: 0.66rem; }.project-pulse-breakdown i { display: block; height: 5px; overflow: hidden; border-radius: 999px; background: rgba(122,107,158,0.2); }.project-pulse-breakdown b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--purple-bright), var(--gold-bright)); box-shadow: 0 0 7px rgba(236,201,135,0.35); }
+.commit-size-chart { display: flex; position: relative; align-items: flex-end; justify-content: space-around; min-height: 175px; padding: 18px 0 23px; border-bottom: 1px solid var(--border-soft); }.commit-size-bar { display: flex; align-items: center; min-width: 42px; flex-direction: column; gap: 4px; }.commit-size-column { display: flex; height: 106px; width: 20px; align-items: flex-end; border-radius: 4px 4px 0 0; background: rgba(162,121,236,0.10); }.commit-size-column b { display: block; width: 100%; border-radius: inherit; background: linear-gradient(180deg, var(--gold-bright), var(--purple-bright)); box-shadow: 0 0 12px rgba(162,121,236,0.35); }.commit-size-bar strong { color: var(--text); font: 600 0.78rem 'Cinzel', serif; }.commit-size-bar span { color: var(--text-faint); font-size: 0.62rem; }.commit-size-note { position: absolute; bottom: -2px; left: 0; right: 0; margin: 0; color: var(--text-faint); font-size: 0.62rem; text-align: center; }
+@media (max-width: 920px) { .metrics-analytics { grid-template-columns: 1fr 1fr; }.metrics-size-panel { grid-column: span 2; } }
+@media (max-width: 600px) { .metrics-analytics { grid-template-columns: 1fr; }.metrics-size-panel { grid-column: auto; }.project-pulse { justify-content: center; }.metrics-radar-chart { max-width: 250px; } }
+
 @keyframes metric-glow {
   0%, 100% { box-shadow: 0 0 16px 0 var(--glow-soft), inset 0 0 20px 0 var(--glow-soft); }
   50% { box-shadow: 0 0 34px 4px var(--glow-strong), inset 0 0 26px 0 var(--glow-soft); }

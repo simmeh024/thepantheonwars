@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=286">
+<link rel="stylesheet" href="css/community-bundle.css?v=287">
 </head>
 <body>
 
@@ -166,6 +166,24 @@
             <a class="metrics-panel-link" href="dev-dispatches.html">View all</a>
           </div>
           <ol class="metrics-latest-list" id="metrics-latest-list"></ol>
+        </section>
+      </div>
+
+      <div class="metrics-analytics">
+        <section class="metrics-insight-panel metrics-radar-panel" aria-labelledby="metrics-radar-title">
+          <div class="metrics-panel-heading"><div><h3 id="metrics-radar-title">Work Mix Comparison</h3><p>Selected period against its preceding window.</p></div></div>
+          <div class="metrics-radar-chart" id="metrics-radar-chart" aria-label="Category comparison radar chart"></div>
+          <div class="metrics-radar-key"><span><i class="is-current"></i> Selected period</span><span><i class="is-previous"></i> Previous period</span></div>
+        </section>
+
+        <section class="metrics-insight-panel metrics-pulse-panel" aria-labelledby="project-pulse-title">
+          <div class="metrics-panel-heading"><div><h3 id="project-pulse-title">Project Pulse</h3><p>Velocity, diversity, growth, and lore activity.</p></div></div>
+          <div class="project-pulse" id="project-pulse"></div>
+        </section>
+
+        <section class="metrics-insight-panel metrics-size-panel" aria-labelledby="commit-size-title">
+          <div class="metrics-panel-heading"><div><h3 id="commit-size-title">Commit Size Distribution</h3><p>Dispatches by changed-file count.</p></div></div>
+          <div class="commit-size-chart" id="commit-size-chart" aria-label="Commit size distribution"></div>
         </section>
       </div>
 
@@ -694,6 +712,57 @@ function pwWireBh4Toggle(el) {
     callout.innerHTML = '<span class="metrics-focus-dot tag-' + leading + '"></span><strong>' + escapeHtml(TAG_LABELS[leading]) + '</strong> leads this period with ' + count + ' dispatch' + (count === 1 ? '' : 'es') + ' (' + share + '%).';
   }
 
+  function radarPoints(values, max, center, radius) {
+    return values.map(function (value, index) {
+      var angle = (-Math.PI / 2) + ((Math.PI * 2 * index) / values.length);
+      var distance = max ? (value / max) * radius : 0;
+      return (center + Math.cos(angle) * distance).toFixed(1) + ',' + (center + Math.sin(angle) * distance).toFixed(1);
+    }).join(' ');
+  }
+
+  function renderRadar(data) {
+    var el = document.getElementById('metrics-radar-chart');
+    var current = TAG_ORDER.map(function (tag) { return data.counts[tag] || 0; });
+    var previous = TAG_ORDER.map(function (tag) { return data.previous_counts[tag] || 0; });
+    var max = Math.max.apply(null, current.concat(previous)) || 1;
+    var center = 132, radius = 92;
+    var rings = [0.25, 0.5, 0.75, 1].map(function (scale) {
+      return '<polygon class="metrics-radar-ring" points="' + radarPoints(TAG_ORDER.map(function () { return max * scale; }), max, center, radius) + '"/>';
+    }).join('');
+    var axes = TAG_ORDER.map(function (_, index) {
+      var angle = (-Math.PI / 2) + ((Math.PI * 2 * index) / TAG_ORDER.length);
+      var x = center + Math.cos(angle) * radius;
+      var y = center + Math.sin(angle) * radius;
+      var labelX = center + Math.cos(angle) * (radius + 22);
+      var labelY = center + Math.sin(angle) * (radius + 22);
+      return '<line class="metrics-radar-axis" x1="' + center + '" y1="' + center + '" x2="' + x.toFixed(1) + '" y2="' + y.toFixed(1) + '"/><text x="' + labelX.toFixed(1) + '" y="' + labelY.toFixed(1) + '" text-anchor="middle">' + escapeHtml(TAG_LABELS[TAG_ORDER[index]]) + '</text>';
+    }).join('');
+    el.innerHTML = '<svg viewBox="0 0 264 264" role="img" aria-label="Category work mix compared with the previous period">' + rings + axes + '<polygon class="metrics-radar-previous" points="' + radarPoints(previous, max, center, radius) + '"/><polygon class="metrics-radar-current" points="' + radarPoints(current, max, center, radius) + '"/></svg>';
+  }
+
+  function renderProjectPulse(data) {
+    var el = document.getElementById('project-pulse');
+    var duration = Math.max(1, currentRange.end.getTime() - currentRange.start.getTime());
+    var velocity = Math.min(100, ((data.total || 0) / (duration / 86400000)) * 35);
+    var diversity = (TAG_ORDER.filter(function (tag) { return (data.counts[tag] || 0) > 0; }).length / TAG_ORDER.length) * 100;
+    var history = data.code_growth && data.code_growth.history ? data.code_growth.history : [];
+    var codeGrowth = history.length > 1 ? Math.min(100, Math.max(0, ((history[history.length - 1].total_lines - history[0].total_lines) / 1000) * 100)) : 50;
+    var loreShare = data.total ? ((data.counts.lore || 0) / data.total) * 300 : 0;
+    var score = Math.round((velocity * 0.3) + (diversity * 0.25) + (codeGrowth * 0.25) + (Math.min(100, loreShare) * 0.2));
+    var parts = [['Velocity', velocity], ['Diversity', diversity], ['Growth', codeGrowth], ['Lore', Math.min(100, loreShare)]];
+    el.innerHTML = '<div class="project-pulse-score" style="--pulse-score:' + score + '%"><strong>' + score + '</strong><span>/ 100</span></div><div class="project-pulse-breakdown">' + parts.map(function (part) { return '<div><span>' + part[0] + '</span><i><b style="width:' + Math.round(part[1]) + '%"></b></i></div>'; }).join('') + '</div>';
+  }
+
+  function renderCommitSizeDistribution() {
+    var el = document.getElementById('commit-size-chart');
+    var buckets = [{ label: '1 file', min: 1, max: 1 }, { label: '2–3', min: 2, max: 3 }, { label: '4–7', min: 4, max: 7 }, { label: '8+', min: 8, max: Infinity }];
+    var measured = currentEntries.filter(function (entry) { return typeof entry.files_changed === 'number' && entry.files_changed > 0; });
+    if (!measured.length) { el.innerHTML = '<p class="metrics-panel-empty">Changed-file context will appear as new dispatches arrive.</p>'; return; }
+    var counts = buckets.map(function (bucket) { return measured.filter(function (entry) { return entry.files_changed >= bucket.min && entry.files_changed <= bucket.max; }).length; });
+    var max = Math.max.apply(null, counts) || 1;
+    el.innerHTML = buckets.map(function (bucket, index) { return '<div class="commit-size-bar"><div class="commit-size-column"><b style="height:' + Math.max(5, (counts[index] / max) * 100) + '%"></b></div><strong>' + counts[index] + '</strong><span>' + bucket.label + '</span></div>'; }).join('') + '<p class="commit-size-note">Based on ' + measured.length + ' dispatches with recorded diff context.</p>';
+  }
+
   function renderPeriodSummary(data) {
     var summary = document.getElementById('metrics-period-summary');
     var delta = (data.total || 0) - (data.previous_total || 0);
@@ -796,6 +865,9 @@ function pwWireBh4Toggle(el) {
         renderVelocity(data);
         renderPeriodSummary(data);
         renderFocus(data);
+        renderRadar(data);
+        renderProjectPulse(data);
+        renderCommitSizeDistribution();
         renderActivity(data.activity);
         renderLatest(data.latest);
         renderCodeGrowth(data.code_growth);
