@@ -4,127 +4,60 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Development Timeline — The Pantheon Wars</title>
-<meta name="description" content="A visual timeline of the development milestones behind The Pantheon Wars.">
+<meta name="description" content="A filterable visual record of development milestones behind The Pantheon Wars.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=287">
+<link rel="stylesheet" href="css/community-bundle.css?v=288">
 </head>
 <body>
-<header class="site-header">
-  <div class="nav-inner">
-    <button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button>
-    <a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a>
-    <nav class="main-nav">
-      <a href="index.html">Home</a>
-      <a href="dev-dispatches.html">Development Dispatches</a>
-      <a href="dev-metrics.html">Development Metrics</a>
-      <a href="timeline.html">The Timeline</a>
-    </nav>
-    <span class="nav-utility"><span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span></span>
-  </div>
-</header>
-
+<header class="site-header"><div class="nav-inner"><button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button><a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a><nav class="main-nav"><a href="index.html">Home</a><a href="dev-dispatches.html">Development Dispatches</a><a href="dev-metrics.html">Development Metrics</a><a href="timeline.html">The Timeline</a></nav><span class="nav-utility"><span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span></span></div></header>
 <main>
-  <div class="page-banner ornate">
-    <div class="hero-bg" style="background-image: url('images/world-reanium.jpg');"></div>
-    <div class="hero-veil"></div>
-    <span class="orn-bl"></span><span class="orn-br"></span>
-    <div class="container">
-      <span class="eyebrow">The Build Record</span>
-      <h1>Development Timeline</h1>
-      <p class="lede">A cinematic record of the commits, lore drops, and systems that bring the Pantheon closer to life.</p>
+  <div class="page-banner ornate"><div class="hero-bg" style="background-image:url('images/world-reanium.jpg');"></div><div class="hero-veil"></div><span class="orn-bl"></span><span class="orn-br"></span><div class="container"><span class="eyebrow">The Build Record</span><h1>Development Timeline</h1><p class="lede">A cinematic record of the commits, lore drops, and systems that bring the Pantheon closer to life.</p></div></div>
+  <section><div class="container">
+    <div class="dev-timeline-controls">
+      <a href="dev-metrics.html" class="btn metrics-back-btn">&larr; Back to Development Metrics</a>
+      <div class="timeline-control-group"><label class="timeline-control-label" for="timeline-range">Showing</label><select class="metrics-date-select" id="timeline-range"><option value="this_week">This Week</option><option value="this_month">This Month</option><option value="this_quarter">This Quarter</option><option value="this_year">This Year</option><option value="all_time" selected>All Time</option></select></div>
+      <label class="timeline-highlight-toggle"><input type="checkbox" id="timeline-highlights"><span></span> Highlights only</label>
+      <div class="timeline-search"><label class="sr-only" for="timeline-search-input">Search timeline</label><input id="timeline-search-input" type="search" placeholder="Search dispatches or authors"></div>
+      <div class="timeline-control-group"><label class="timeline-control-label" for="timeline-view">View</label><select class="metrics-date-select" id="timeline-view"><option value="chronicle" selected>Chronicle</option><option value="lanes">Workstream lanes</option></select></div>
+      <div class="timeline-filter"><button type="button" class="btn metrics-back-btn timeline-filter-btn" id="timeline-filter-btn" aria-expanded="false" aria-controls="timeline-filter-panel"><span>Filter categories</span><span class="timeline-filter-count" id="timeline-filter-count">0</span><span aria-hidden="true">⌄</span></button><div class="timeline-filter-panel" id="timeline-filter-panel" hidden><p class="timeline-filter-heading">Show categories</p><div class="timeline-filter-options" id="timeline-filter-options"></div><div class="timeline-filter-actions"><button type="button" id="timeline-filter-clear">Clear</button><button type="button" id="timeline-filter-close">Done</button></div></div></div>
     </div>
-  </div>
-
-  <section>
-    <div class="container">
-      <div class="dev-timeline-controls">
-        <a href="dev-metrics.html" class="btn metrics-back-btn">&larr; Back to Development Metrics</a>
-        <div class="timeline-filter">
-          <button type="button" class="btn metrics-back-btn timeline-filter-btn" id="timeline-filter-btn" aria-expanded="false" aria-controls="timeline-filter-panel">
-            <span>Filter categories</span><span class="timeline-filter-count" id="timeline-filter-count">0</span><span aria-hidden="true">⌄</span>
-          </button>
-          <div class="timeline-filter-panel" id="timeline-filter-panel" hidden>
-            <p class="timeline-filter-heading">Show categories</p>
-            <div class="timeline-filter-options" id="timeline-filter-options"></div>
-            <div class="timeline-filter-actions"><button type="button" id="timeline-filter-clear">Clear</button><button type="button" id="timeline-filter-close">Done</button></div>
-          </div>
-        </div>
-      </div>
-      <p class="dev-timeline-summary" id="dev-timeline-summary">Opening the build record…</p>
-      <div class="dev-timeline-track" id="dev-timeline-track" aria-live="polite"><p class="dev-timeline-empty">Loading milestones…</p></div>
-    </div>
-  </section>
+    <p class="dev-timeline-summary" id="dev-timeline-summary">Opening the build record...</p>
+    <div class="dev-timeline-track" id="dev-timeline-track" aria-live="polite"><p class="dev-timeline-empty">Loading milestones...</p></div>
+    <div class="timeline-minimap" id="timeline-minimap" hidden><label for="timeline-scrubber">Navigate timeline</label><input type="range" id="timeline-scrubber" min="0" max="100" value="0"></div>
+  </div></section>
 </main>
-
+<div class="timeline-detail" id="timeline-detail" hidden><div class="timeline-detail-backdrop" id="timeline-detail-backdrop"></div><aside class="timeline-detail-panel" role="dialog" aria-modal="true" aria-labelledby="timeline-detail-title"><button type="button" class="timeline-detail-close" id="timeline-detail-close" aria-label="Close details">&times;</button><span class="timeline-detail-tag" id="timeline-detail-tag"></span><h2 id="timeline-detail-title"></h2><p class="timeline-detail-meta" id="timeline-detail-meta"></p><p class="timeline-detail-body" id="timeline-detail-body"></p><div class="timeline-detail-context" id="timeline-detail-context"></div><a class="btn metrics-back-btn" id="timeline-detail-link" href="dev-dispatches.html">Open dispatch</a></aside></div>
 <footer class="site-footer"><div class="container"><div class="footer-bottom">© 2026 Pascal Slettenaar. All rights reserved. &nbsp;•&nbsp; “Twelve thrones will fall. One will rise.”</div></div></footer>
-
 <script src="js/main.js?v=17"></script>
 <script src="js/members.js?v=40"></script>
 <script>
 (function () {
-  var TAGS = ['feature', 'improvement', 'fix', 'performance', 'ui_ux', 'lore', 'infrastructure', 'refactor', 'experimental'];
-  var LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
-  var COLORS = { feature: '#ecc987', improvement: '#a279ec', fix: '#e14b5a', performance: '#e2984f', ui_ux: '#45d1c9', lore: '#3ecf8e', infrastructure: '#9aa0ac', refactor: '#6f76e8', experimental: '#e074b0' };
-  var selected = [];
-  var entries = [];
-  var track = document.getElementById('dev-timeline-track');
-  var summary = document.getElementById('dev-timeline-summary');
-  var filterBtn = document.getElementById('timeline-filter-btn');
-  var filterPanel = document.getElementById('timeline-filter-panel');
-  var filterOptions = document.getElementById('timeline-filter-options');
-  var filterCount = document.getElementById('timeline-filter-count');
-
-  function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]; }); }
-  function formatDate(value) { var d = new Date(String(value).replace(' ', 'T') + 'Z'); return isNaN(d) ? value : d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }); }
-
-  function renderFilters() {
-    filterOptions.innerHTML = '';
-    TAGS.forEach(function (tag) {
-      var label = document.createElement('label');
-      label.className = 'timeline-filter-option';
-      var input = document.createElement('input');
-      input.type = 'checkbox'; input.checked = selected.indexOf(tag) !== -1;
-      input.addEventListener('change', function () {
-        if (input.checked) selected.push(tag); else selected = selected.filter(function (item) { return item !== tag; });
-        renderFilters(); renderTimeline();
-      });
-      var dot = document.createElement('span'); dot.style.cssText = 'width:7px;height:7px;border-radius:50%;background:' + COLORS[tag] + ';box-shadow:0 0 7px ' + COLORS[tag];
-      label.appendChild(input); label.appendChild(dot); label.appendChild(document.createTextNode(LABELS[tag])); filterOptions.appendChild(label);
-    });
-    filterCount.textContent = selected.length;
-    filterCount.classList.toggle('is-visible', selected.length > 0);
-  }
-
-  function renderTimeline() {
-    var visible = selected.length ? entries.filter(function (entry) { return selected.indexOf(entry.tag) !== -1; }) : entries;
-    var maxEvents = 36;
-    var stride = Math.max(1, Math.ceil(visible.length / maxEvents));
-    var milestones = visible.filter(function (_, index) { return index % stride === 0; }).slice(0, maxEvents);
-    summary.innerHTML = selected.length ? '<strong>' + visible.length + '</strong> matching dispatches across ' + selected.length + ' selected categor' + (selected.length === 1 ? 'y' : 'ies') + '.' : '<strong>' + visible.length + '</strong> dispatches across the complete build record.';
-    track.innerHTML = '';
-    if (!milestones.length) { track.innerHTML = '<p class="dev-timeline-empty">No milestones match this category selection.</p>'; return; }
-    milestones.forEach(function (entry) {
-      var card = document.createElement('article');
-      card.className = 'dev-timeline-event'; card.style.setProperty('--timeline-color', COLORS[entry.tag] || '#ecc987');
-      card.innerHTML = '<p class="dev-timeline-date">' + escapeHtml(formatDate(entry.committed_at)) + '</p><div><span class="dev-timeline-tag">' + escapeHtml(LABELS[entry.tag] || entry.tag) + '</span><h2><a href="dev-dispatches.html?dispatch=' + encodeURIComponent(entry.id) + '">' + escapeHtml(entry.subject) + '</a></h2></div><p class="dev-timeline-meta">' + escapeHtml(entry.author || 'BH-4') + ' · ' + escapeHtml(entry.short_sha || '—') + '</p>';
-      track.appendChild(card);
-    });
-  }
-
-  filterBtn.addEventListener('click', function () { var open = filterPanel.hidden; filterPanel.hidden = !open; filterBtn.setAttribute('aria-expanded', open ? 'true' : 'false'); });
-  document.getElementById('timeline-filter-clear').addEventListener('click', function () { selected = []; renderFilters(); renderTimeline(); });
-  document.getElementById('timeline-filter-close').addEventListener('click', function () { filterPanel.hidden = true; filterBtn.setAttribute('aria-expanded', 'false'); });
-  document.addEventListener('click', function (event) { if (!event.target.closest('.timeline-filter')) { filterPanel.hidden = true; filterBtn.setAttribute('aria-expanded', 'false'); } });
-  renderFilters();
-  var now = new Date();
-  fetch('/api/dev-metrics.php?start=' + encodeURIComponent(new Date(1970, 0, 1).toISOString()) + '&end=' + encodeURIComponent(now.toISOString()), { credentials: 'same-origin' })
-    .then(function (response) { return response.json(); })
-    .then(function (data) { if (!data.ok) throw new Error('Timeline request failed'); entries = data.entries || []; renderTimeline(); })
-    .catch(function () { track.innerHTML = '<p class="dev-timeline-empty">Could not load the build record right now.</p>'; summary.textContent = 'The development timeline is temporarily unavailable.'; });
+  var TAGS = ['feature','improvement','fix','performance','ui_ux','lore','infrastructure','refactor','experimental'];
+  var LABELS = {feature:'Feature',improvement:'Improvement',fix:'Fix',performance:'Performance',ui_ux:'UI / UX',lore:'Lore',infrastructure:'Infrastructure',refactor:'Refactor',experimental:'Experimental'};
+  var COLORS = {feature:'#ecc987',improvement:'#a279ec',fix:'#e14b5a',performance:'#e2984f',ui_ux:'#45d1c9',lore:'#3ecf8e',infrastructure:'#9aa0ac',refactor:'#6f76e8',experimental:'#e074b0'};
+  var ICONS = {feature:'✦',improvement:'↗',fix:'⚒',performance:'ϟ',ui_ux:'◌',lore:'⌘',infrastructure:'▣',refactor:'↻',experimental:'◈'};
+  var selected = [], entries = [], renderedEntries = [];
+  var track = document.getElementById('dev-timeline-track'), summary = document.getElementById('dev-timeline-summary'), filterBtn = document.getElementById('timeline-filter-btn'), filterPanel = document.getElementById('timeline-filter-panel'), filterOptions = document.getElementById('timeline-filter-options'), filterCount = document.getElementById('timeline-filter-count'), rangeSelect = document.getElementById('timeline-range'), highlightToggle = document.getElementById('timeline-highlights'), searchInput = document.getElementById('timeline-search-input'), viewSelect = document.getElementById('timeline-view'), minimap = document.getElementById('timeline-minimap'), scrubber = document.getElementById('timeline-scrubber'), detail = document.getElementById('timeline-detail');
+  function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function date(v) { var d=new Date(String(v).replace(' ','T')+'Z'); return isNaN(d) ? v : d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); }
+  function month(v) { var d=new Date(String(v).replace(' ','T')+'Z'); return isNaN(d) ? v : d.toLocaleDateString('en-US',{year:'numeric',month:'long'}); }
+  function range(value) { var now=new Date(), y=now.getFullYear(),m=now.getMonth(), start; if(value==='this_week')start=new Date(y,m,now.getDate()-((now.getDay()+6)%7)); else if(value==='this_month')start=new Date(y,m,1); else if(value==='this_quarter')start=new Date(y,Math.floor(m/3)*3,1); else if(value==='this_year')start=new Date(y,0,1); else start=new Date(1970,0,1); return {start:start,end:now}; }
+  function renderFilters() { filterOptions.innerHTML=''; TAGS.forEach(function(tag){var label=document.createElement('label'),input=document.createElement('input'),dot=document.createElement('span'); label.className='timeline-filter-option';input.type='checkbox';input.checked=selected.indexOf(tag)!==-1;input.addEventListener('change',function(){selected=input.checked?selected.concat(tag):selected.filter(function(x){return x!==tag;});renderFilters();renderTimeline();});dot.style.cssText='width:7px;height:7px;border-radius:50%;background:'+COLORS[tag]+';box-shadow:0 0 7px '+COLORS[tag];label.appendChild(input);label.appendChild(dot);label.appendChild(document.createTextNode(LABELS[tag]));filterOptions.appendChild(label);});filterCount.textContent=selected.length;filterCount.classList.toggle('is-visible',selected.length>0); }
+  function visibleEntries() { var term=searchInput.value.trim().toLowerCase();return entries.filter(function(e){if(selected.length&&selected.indexOf(e.tag)===-1)return false;if(highlightToggle.checked&&e.tag!=='feature'&&e.tag!=='lore'&&!(e.files_changed>=5))return false;return !term||(e.subject||'').toLowerCase().indexOf(term)!==-1||(e.author||'').toLowerCase().indexOf(term)!==-1;}); }
+  function sample(list) { var max=viewSelect.value==='lanes'?54:42,stride=Math.max(1,Math.ceil(list.length/max));return list.filter(function(_,i){return i%stride===0;}).slice(0,max); }
+  function card(e) { var el=document.createElement('article');el.className='dev-timeline-event';el.style.setProperty('--timeline-color',COLORS[e.tag]||'#ecc987');el.innerHTML='<p class="dev-timeline-date">'+esc(date(e.committed_at))+'</p><span class="dev-timeline-icon" aria-hidden="true">'+(ICONS[e.tag]||'✦')+'</span><div><span class="dev-timeline-tag">'+esc(LABELS[e.tag]||e.tag)+'</span><h2>'+esc(e.subject)+'</h2></div><p class="dev-timeline-meta">'+esc(e.author||'BH-4')+' · '+esc(e.short_sha||'—')+(e.files_changed?' · '+e.files_changed+' file'+(e.files_changed===1?'':'s'):'')+'</p><button type="button" class="dev-timeline-detail-btn" data-id="'+e.id+'">Inspect milestone</button>';return el; }
+  function renderChronicle(list) { var last='';list.forEach(function(e){var current=month(e.committed_at);if(current!==last){var divider=document.createElement('div');divider.className='dev-timeline-month';divider.textContent=current;track.appendChild(divider);last=current;}track.appendChild(card(e));}); }
+  function renderLanes(list) { var lanes=document.createElement('div');lanes.className='dev-timeline-lanes';TAGS.forEach(function(tag){var set=list.filter(function(e){return e.tag===tag;});if(!set.length)return;var lane=document.createElement('section');lane.className='dev-timeline-lane';lane.style.setProperty('--timeline-color',COLORS[tag]);lane.innerHTML='<h2><span>'+ICONS[tag]+'</span>'+LABELS[tag]+'<small>'+set.length+'</small></h2><div class="dev-timeline-lane-events"></div>';var wrap=lane.querySelector('.dev-timeline-lane-events');set.forEach(function(e){wrap.appendChild(card(e));});lanes.appendChild(lane);});track.appendChild(lanes); }
+  function observe() { if(!('IntersectionObserver' in window))return;var observer=new IntersectionObserver(function(items){items.forEach(function(item){if(item.isIntersecting){item.target.classList.add('is-revealed');observer.unobserve(item.target);}});},{root:track,threshold:0.15});track.querySelectorAll('.dev-timeline-event').forEach(function(e){observer.observe(e);}); }
+  function renderTimeline() { var all=visibleEntries(),milestones=sample(all);renderedEntries=all;summary.innerHTML='<strong>'+all.length+'</strong>'+(highlightToggle.checked?' highlighted':'')+' dispatch'+(all.length===1?'':'es')+(selected.length?' across '+selected.length+' selected categor'+(selected.length===1?'y':'ies'):'')+'.';track.innerHTML='';if(!milestones.length){track.innerHTML='<p class="dev-timeline-empty">No milestones match the current filters.</p>';minimap.hidden=true;return;}if(viewSelect.value==='lanes')renderLanes(milestones);else renderChronicle(milestones);minimap.hidden=false;scrubber.value=0;observe(); }
+  function openDetail(id) { var e=renderedEntries.filter(function(x){return x.id===id;})[0];if(!e)return;document.getElementById('timeline-detail-tag').textContent=LABELS[e.tag]||e.tag;document.getElementById('timeline-detail-tag').style.color=COLORS[e.tag]||'#ecc987';document.getElementById('timeline-detail-title').textContent=e.subject;document.getElementById('timeline-detail-meta').textContent=date(e.committed_at)+' · '+(e.author||'BH-4')+' · '+(e.short_sha||'—');document.getElementById('timeline-detail-body').textContent=e.body||'No extended dispatch summary was recorded for this milestone.';var context=[];if(e.files_changed)context.push(e.files_changed+' changed file'+(e.files_changed===1?'':'s'));if(e.affected_areas&&e.affected_areas.length)context=context.concat(e.affected_areas);document.getElementById('timeline-detail-context').innerHTML=context.length?context.map(function(item){return '<span>'+esc(item)+'</span>';}).join(''):'<span>No additional safe diff context recorded.</span>';document.getElementById('timeline-detail-link').href='dev-dispatches.html?dispatch='+encodeURIComponent(e.id);detail.hidden=false;document.getElementById('timeline-detail-close').focus(); }
+  function closeDetail(){detail.hidden=true;}
+  function load(){var bounds=range(rangeSelect.value);track.innerHTML='<p class="dev-timeline-empty">Loading milestones...</p>';minimap.hidden=true;fetch('/api/dev-metrics.php?start='+encodeURIComponent(bounds.start.toISOString())+'&end='+encodeURIComponent(bounds.end.toISOString()),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){if(!data.ok)throw Error('Timeline request failed');entries=data.entries||[];renderTimeline();}).catch(function(){track.innerHTML='<p class="dev-timeline-empty">Could not load the build record right now.</p>';summary.textContent='The development timeline is temporarily unavailable.';});}
+  filterBtn.addEventListener('click',function(){var open=filterPanel.hidden;filterPanel.hidden=!open;filterBtn.setAttribute('aria-expanded',open?'true':'false');});document.getElementById('timeline-filter-clear').addEventListener('click',function(){selected=[];renderFilters();renderTimeline();});document.getElementById('timeline-filter-close').addEventListener('click',function(){filterPanel.hidden=true;filterBtn.setAttribute('aria-expanded','false');});document.addEventListener('click',function(e){if(!e.target.closest('.timeline-filter')){filterPanel.hidden=true;filterBtn.setAttribute('aria-expanded','false');}});rangeSelect.addEventListener('change',load);highlightToggle.addEventListener('change',renderTimeline);searchInput.addEventListener('input',renderTimeline);viewSelect.addEventListener('change',renderTimeline);track.addEventListener('click',function(e){var button=e.target.closest('.dev-timeline-detail-btn');if(button)openDetail(Number(button.dataset.id));});scrubber.addEventListener('input',function(){track.scrollLeft=((track.scrollWidth-track.clientWidth)*Number(scrubber.value))/100;});track.addEventListener('scroll',function(){var max=track.scrollWidth-track.clientWidth;if(max>0)scrubber.value=Math.round((track.scrollLeft/max)*100);});document.getElementById('timeline-detail-close').addEventListener('click',closeDetail);document.getElementById('timeline-detail-backdrop').addEventListener('click',closeDetail);document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!detail.hidden)closeDetail();});renderFilters();load();
 })();
 </script>
 </body>

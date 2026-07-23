@@ -58,7 +58,7 @@ $activity = array_map(function ($row) {
 }, $activityStmt->fetchAll());
 
 $entryStmt = $db->prepare(
-    'SELECT d.id, d.sha, d.subject, d.tag, d.author, d.committed_at, d.url FROM dispatch_entries d WHERE ' . $rangeSql
+    'SELECT d.id, d.sha, d.subject, d.body, d.tag, d.author, d.committed_at, d.url FROM dispatch_entries d WHERE ' . $rangeSql
     . ' ORDER BY d.committed_at DESC, d.id DESC'
 );
 $entryStmt->execute($currentParams);
@@ -67,6 +67,7 @@ $entries = array_map(function ($row) {
         'id' => (int)$row['id'],
         'short_sha' => substr($row['sha'], 0, 7),
         'subject' => $row['subject'],
+        'body' => $row['body'],
         'tag' => $row['tag'],
         'author' => $row['author'],
         'committed_at' => $row['committed_at'],
@@ -80,6 +81,7 @@ $entries = array_map(function ($row) {
 $contexts = pw_get_dispatch_diff_contexts($db, array_column($entries, 'id'));
 foreach ($entries as &$entry) {
     $entry['files_changed'] = isset($contexts[$entry['id']]) ? (int)$contexts[$entry['id']]['files_changed'] : null;
+    $entry['affected_areas'] = isset($contexts[$entry['id']]) ? $contexts[$entry['id']]['areas'] : [];
 }
 unset($entry);
 
