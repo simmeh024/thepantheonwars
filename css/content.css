@@ -3064,7 +3064,7 @@
   /* Gold-inlay engraving: the letters read as metal set into a cut groove --
      a dark seat below and behind, a warm highlight along the top lip. */
   --bab-inlay: 0 1px 0 rgba(0, 0, 0, 0.85), 0 -1px 1px rgba(255, 226, 158, 0.35), 0 0 10px rgba(232, 196, 106, 0.22);
-  /* The carved slab is a real texture (images/babki-stone-tablet.png, a
+  /* The carved slab is a real texture (images/babki-stone-tablet.webp, a
      1190x1322 render with the glyph frieze and corner seal baked in). It is
      applied as a border-image 9-slice: the ornate corners stay pinned, the
      frieze tiles down the sides as the card grows tall, and the blank granite
@@ -3075,7 +3075,7 @@
   border-style: solid;
   border-width: 27px;
   border-color: transparent;
-  border-image: url('/images/babki-stone-tablet.png') 92 fill / 27px / 0 round;
+  border-image: url('/images/babki-stone-tablet.webp') 92 fill / 27px / 0 round;
   /* Shown only if the texture ever fails to load, so the card degrades to a
      dark granite tint rather than a bare box. */
   background:
