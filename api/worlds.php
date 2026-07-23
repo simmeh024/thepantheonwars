@@ -82,6 +82,10 @@ function pw_load_world_details($db, $worldIds) {
         $layerId = (int)$layer['id'];
         $worldId = (int)$layer['world_id'];
         $detailsByWorld[$worldId]['layers'][] = [
+            // Carried so pw_apply_layer_quote_variants() can match a district
+            // to its weather quotes. Additive to the response; nothing on the
+            // client reads it.
+            'id' => $layerId,
             'name' => $layer['name'],
             'theme_tags' => $layer['theme_tags'],
             'tagline' => $layer['tagline'],
@@ -129,7 +133,16 @@ function pw_apply_layer_quote_variants(PDO $db, array $world) {
     if (empty($world['layers'])) {
         return $world;
     }
-    $layerIds = array_map(function ($layer) { return (int)$layer['id']; }, $world['layers']);
+    // Filtered rather than mapped blindly: this previously read an 'id' the
+    // public layer array did not carry, so every lookup became entity_id 0 and
+    // silently matched nothing. A zero must drop out, never become a query.
+    $layerIds = [];
+    foreach ($world['layers'] as $layer) {
+        $layerId = isset($layer['id']) ? (int)$layer['id'] : 0;
+        if ($layerId > 0) {
+            $layerIds[] = $layerId;
+        }
+    }
     if (!$layerIds) {
         return $world;
     }
@@ -168,7 +181,8 @@ function pw_apply_layer_quote_variants(PDO $db, array $world) {
     }
 
     foreach ($world['layers'] as $index => $layer) {
-        $variant = isset($variants[(int)$layer['id']]) ? $variants[(int)$layer['id']] : null;
+        $layerId = isset($layer['id']) ? (int)$layer['id'] : 0;
+        $variant = isset($variants[$layerId]) ? $variants[$layerId] : null;
         if (!$variant || trim((string)$variant['quote_text']) === '') {
             continue;
         }
