@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=290">
+<link rel="stylesheet" href="css/community-bundle.css?v=291">
 </head>
 <body>
 
@@ -102,6 +102,15 @@
               <option value="last_9_months">Last 9 Months</option>
               <option value="this_year" selected>This Year</option>
               <option value="all_time">Total (All Time)</option>
+            </select>
+          </div>
+
+          <div class="metrics-date-filter metrics-card-sort">
+            <label for="metrics-card-sort" class="metrics-date-filter-label">Order cards</label>
+            <select id="metrics-card-sort" class="metrics-date-select">
+              <option value="count" selected>Category totals</option>
+              <option value="growth">Strongest growth</option>
+              <option value="alphabetical">Alphabetical</option>
             </select>
           </div>
 
@@ -438,6 +447,7 @@ function pwWireBh4Toggle(el) {
   var gridEl = document.getElementById('metrics-grid');
   var totalNumEl = document.getElementById('metrics-total-num');
   var dateSelect = document.getElementById('metrics-date-select');
+  var cardSortSelect = document.getElementById('metrics-card-sort');
 
   var TAG_ORDER = ['feature', 'improvement', 'fix', 'performance', 'ui_ux', 'lore', 'infrastructure', 'refactor', 'experimental'];
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -752,7 +762,19 @@ function pwWireBh4Toggle(el) {
     var ranked = TAG_ORDER.slice().sort(function (a, b) {
       return (counts[b] || 0) - (counts[a] || 0) || TAG_ORDER.indexOf(a) - TAG_ORDER.indexOf(b);
     });
-    TAG_ORDER.forEach(function (tag) {
+    var displayOrder = TAG_ORDER.slice();
+    if (cardSortSelect.value === 'growth') {
+      displayOrder.sort(function (a, b) {
+        var growthA = (counts[a] || 0) - ((data.previous_counts || {})[a] || 0);
+        var growthB = (counts[b] || 0) - ((data.previous_counts || {})[b] || 0);
+        return growthB - growthA || (counts[b] || 0) - (counts[a] || 0) || (TAG_LABELS[a] || a).localeCompare(TAG_LABELS[b] || b);
+      });
+    } else if (cardSortSelect.value === 'alphabetical') {
+      displayOrder.sort(function (a, b) { return (TAG_LABELS[a] || a).localeCompare(TAG_LABELS[b] || b); });
+    } else {
+      displayOrder = ranked.slice();
+    }
+    displayOrder.forEach(function (tag) {
       gridEl.appendChild(buildBox(tag, counts[tag] || 0, total, ranked.indexOf(tag) + 1, tag === ranked[0]));
     });
   }
@@ -954,6 +976,9 @@ function pwWireBh4Toggle(el) {
   }
 
   dateSelect.addEventListener('change', loadMetrics);
+  cardSortSelect.addEventListener('change', function () {
+    if (currentMetrics) renderMetrics(currentMetrics);
+  });
   loadMetrics();
 })();
 

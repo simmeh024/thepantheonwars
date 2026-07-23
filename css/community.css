@@ -2070,6 +2070,7 @@
   font-size: 0.72rem; color: var(--text-faint);
 }
 .metrics-date-col { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.metrics-card-sort { margin-top: 2px; }
 .stats-bh4 { position: relative; }
 @media (max-width: 480px) {
   .bh4-status-tooltip { right: -10px; width: 230px; }
