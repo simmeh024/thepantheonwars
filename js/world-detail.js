@@ -333,7 +333,15 @@ document.addEventListener('DOMContentLoaded', function () {
       '</button>';
     }).join('');
     return '<div class="world-weather-card-scan" aria-hidden="true"></div>' +
-      '<header class="world-weather-head"><div><span>' + escapeHtml(serviceLabel) + '</span><h2>' + escapeHtml(weather.location) + '</h2></div><span class="world-weather-live"><i></i>Live archive</span></header>' +
+      // The head's right column, so it can carry more than the archive pill.
+      // With nothing else in it the column behaves exactly as the bare pill
+      // did, which is why every world gets the wrapper rather than only the
+      // ones with an instrument under it.
+      '<header class="world-weather-head"><div><span>' + escapeHtml(serviceLabel) + '</span><h2>' + escapeHtml(weather.location) + '</h2></div>' +
+        '<span class="world-weather-head-side">' +
+          '<span class="world-weather-live"><i></i>Live archive</span>' +
+          doseLineHtml(worldSlug) +
+        '</span></header>' +
       '<p class="world-weather-climate">' + escapeHtml(weather.climate) + '</p>' +
       '<div class="world-weather-current">' +
         '<span class="world-weather-current-icon">' + weatherIconHtml(current.icon) + '</span>' +
@@ -359,6 +367,106 @@ document.addEventListener('DOMContentLoaded', function () {
       '</div>' +
       (weather.hazard_note ? '<p class="world-weather-hazard"><span>!</span>' + escapeHtml(weather.hazard_note) + '</p>' : '') +
       '<footer>Forecast cycle ' + escapeHtml(weather.generated_for) + ' &middot; UTC archive time</footer>';
+  }
+
+  /* --- Dosimeter -----------------------------------------------------------
+     Only worlds that would actually carry one get a dosimeter, so this is a
+     list rather than a flag on every card: Reanium is the irradiated world,
+     and a second would be one more entry here rather than a change to the
+     renderer or the markup. */
+  var DOSE_WORLDS = {
+    reanium: { label: 'Cumulative dosage', unit: 'Sv' }
+  };
+  var doseTimer = null;
+
+  function doseLineHtml(worldSlug) {
+    var cfg = DOSE_WORLDS[worldSlug];
+    if (!cfg) return '';
+    // A span, not a paragraph: this sits inside the header's right column,
+    // which is phrasing content.
+    return '<span class="world-weather-dose">' +
+      '<span class="world-weather-dose-head">' +
+        '<span class="world-weather-dose-mark" aria-hidden="true"></span>' +
+        '<b>' + escapeHtml(cfg.label) + '</b>' +
+      '</span>' +
+      '<i class="world-weather-dose-value">&mdash;</i></span>';
+  }
+
+  function doseHash(text) {
+    var h = 2166136261;
+    for (var i = 0; i < text.length; i += 1) {
+      h ^= text.charCodeAt(i);
+      h = (h * 16777619) >>> 0;
+    }
+    return h;
+  }
+
+  /**
+   * The dose this world would accumulate across a whole UTC day.
+   *
+   * Seeded from the date the forecast was generated for, so every visitor sees
+   * the same figure and it rolls over at UTC midnight with the forecast --
+   * the same "stable for a whole UTC day" rule the weather itself follows,
+   * rather than a number that differs per browser.
+   *
+   * Colder days dose harder: the reading is taken against this world's own
+   * configured bounds, so it means the same thing whatever those bounds are.
+   */
+  function doseDailyTotal(weather, worldSlug) {
+    var range = weather.range || {};
+    var min = Number(range.min_c);
+    var max = Number(range.max_c);
+    var now = Number((weather.current || {}).temperature_c);
+    var cold = 0.5;
+    if (isFinite(min) && isFinite(max) && isFinite(now) && max > min) {
+      cold = Math.max(0, Math.min(1, (max - now) / (max - min)));
+    }
+    // A seeded share on top of the temperature term, so two days at the same
+    // temperature still differ rather than reading as a broken instrument.
+    var variance = (doseHash(worldSlug + '|' + (weather.generated_for || '')) % 1000) / 1000;
+    return 340 + cold * 520 + variance * 180;
+  }
+
+  /**
+   * What the instrument shows right now: the day's accumulation so far, plus a
+   * slow wander so it behaves like a live reading rather than a printed value.
+   *
+   * It never reads zero at midnight -- background radiation does not stop --
+   * so the day opens on a residual and climbs from there. The wander is two
+   * sine terms whose periods do not divide into each other, which drifts up
+   * and down indefinitely instead of repeating a visible loop.
+   */
+  function doseReading(total) {
+    var d = new Date();
+    var progress = (d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds()) / 86400;
+    var t = Date.now() / 1000;
+    var wander = Math.sin(t / 7.3) * 0.22 + Math.sin(t / 3.1) * 0.11;
+    return Math.max(0, total * (0.06 + progress * 0.94) + wander);
+  }
+
+  function startDoseReadout(card, weather, worldSlug) {
+    if (doseTimer) {
+      window.clearInterval(doseTimer);
+      doseTimer = null;
+    }
+    var cfg = DOSE_WORLDS[worldSlug];
+    var valueEl = card.querySelector('.world-weather-dose-value');
+    if (!cfg || !valueEl) return;
+
+    var total = doseDailyTotal(weather, worldSlug);
+    function paint() {
+      valueEl.textContent = doseReading(total).toFixed(1) + ' ' + cfg.unit;
+    }
+    paint();
+
+    // A reading that changes under someone who asked for less motion is worse
+    // than a still one, so it is painted once and left.
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // No request is made here, so there is nothing to poll -- the hidden check
+    // only avoids repainting a card nobody is looking at.
+    doseTimer = window.setInterval(function () {
+      if (!document.hidden) paint();
+    }, 2000);
   }
 
   /**
@@ -400,6 +508,7 @@ document.addEventListener('DOMContentLoaded', function () {
       (conditionKey ? ' is-weather-' + conditionKey : '');
     slot.innerHTML = weatherCardHtml(data.weather, worldSlug, worldName);
     applyHeatScale(slot, data.weather);
+    startDoseReadout(slot, data.weather, worldSlug);
     slot.hidden = false;
     wireHourlyPanels(slot, data.weather.forecast || []);
 

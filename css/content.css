@@ -2917,6 +2917,18 @@
   background: rgba(10, 16, 10, 0.46);
 }
 .world-weather-card--reanium .world-weather-metrics strong { color: #e2f0d2; }
+/* The dosimeter reads off the same counter as the live dot, on its own
+   arrhythmic cycle, so the instrument and the count never fall into step. */
+.world-weather-card--reanium .world-weather-dose b { color: #b3c7a0; }
+.world-weather-card--reanium .world-weather-dose i {
+  color: #cdf58a;
+  text-shadow: 0 0 9px rgba(var(--rea-glow), 0.4);
+}
+.world-weather-card--reanium .world-weather-dose-mark {
+  background: #b6f25c;
+  box-shadow: 0 0 8px rgba(var(--rea-glow), 0.8);
+  animation: reanium-count 3.1s steps(1, end) infinite;
+}
 .world-weather-card--reanium .world-weather-season b { color: #b3c7a0; }
 .world-weather-card--reanium .world-weather-divider { color: #a8e050; }
 .world-weather-card--reanium .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(var(--rea-signal), 0.42)); }
@@ -4245,6 +4257,39 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
 @media (prefers-reduced-motion: reduce) { .world-weather-fx { display: none; } }
 
 /* --- Weather: season phase ----------------------------------------------- */
+/* --- Weather: head side column -------------------------------------------
+   Holds the archive pill and, on worlds that have one, the instrument beneath
+   it. Column rather than the bare pill the head used to end with, so a second
+   readout needs no change to the header itself. */
+.world-weather-head-side {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 7px;
+  flex-shrink: 0;
+}
+
+/* --- Weather: dosimeter --------------------------------------------------
+   Rendered only for worlds listed in DOSE_WORLDS (js/world-detail.js), which
+   today is Reanium alone. The layout is here; the colour belongs to the
+   variant, so a second irradiated world would need nothing added to this. */
+.world-weather-dose {
+  display: flex; flex-direction: column; align-items: flex-end; gap: 2px;
+  text-align: right;
+}
+.world-weather-dose-head { display: flex; align-items: center; gap: 5px; }
+.world-weather-dose b {
+  color: var(--text-dim); font-size: 0.48rem; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap;
+}
+.world-weather-dose i {
+  color: var(--text); font-family: 'Cinzel', serif; font-size: 0.82rem;
+  font-style: normal; white-space: nowrap;
+  /* Tabular figures, or every tick of the last digit would shift the line. */
+  font-variant-numeric: tabular-nums;
+}
+.world-weather-dose-mark {
+  width: 6px; height: 6px; flex-shrink: 0;
+  background: var(--world-weather-icon);
+}
+
 .world-weather-season {
   display: flex; align-items: baseline; gap: 7px;
   margin: 0 0 12px; font-size: 0.62rem; letter-spacing: 0.06em;
