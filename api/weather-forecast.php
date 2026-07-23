@@ -361,6 +361,15 @@ function pw_build_weather_forecast($profile, $worldSlug, $today = null, $withHou
         // seasonal drift that has always shaped these temperatures but has
         // never been shown to a reader.
         'season' => pw_weather_season_phase($worldSlug, $today, $profile),
+        // This world's own stated bounds -- the same two figures
+        // pw_weather_severity() judges a day against. Exposed so a card can
+        // place today's reading within its world's range instead of against an
+        // absolute temperature, which would mean nothing across twelve worlds:
+        // 43 C is an ordinary afternoon on Sed and an event on Beoctica.
+        'range' => [
+            'min_c' => (int)$profile['forecast_min_c'],
+            'max_c' => (int)$profile['forecast_max_c'],
+        ],
         'current' => [
             'condition' => (string)$profile['current_condition'],
             'secondary' => (string)$profile['current_secondary'],

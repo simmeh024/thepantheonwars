@@ -361,11 +361,40 @@ document.addEventListener('DOMContentLoaded', function () {
       '<footer>Forecast cycle ' + escapeHtml(weather.generated_for) + ' &middot; UTC archive time</footer>';
   }
 
+  /**
+   * Places today's reading within this world's own stated range as --heat, 0 to 1.
+   *
+   * Set on every card rather than only the one variant that currently reads it,
+   * exactly as --world-weather-icon works: the data is world-generic, and a
+   * variant opting in should not need a change here. Absolute temperature would
+   * be meaningless across twelve worlds -- the same figure is an ordinary
+   * afternoon on one and an event on another -- so this is always relative to
+   * the world's configured bounds.
+   */
+  function applyHeatScale(card, weather) {
+    var range = weather.range || {};
+    var min = Number(range.min_c);
+    var max = Number(range.max_c);
+    var now = Number((weather.current || {}).temperature_c);
+    // Removed rather than blanked: setting a custom property to '' still counts
+    // as set and silently kills the var() fallback every consumer relies on.
+    if (!isFinite(min) || !isFinite(max) || !isFinite(now) || max <= min) {
+      card.style.removeProperty('--heat');
+      return;
+    }
+    // An authored day 0/1 temperature may sit outside the world's stated
+    // bounds, which pw_weather_severity() treats as exceptional. Clamped, so
+    // such a day reads as the extreme rather than overshooting past it.
+    var heat = (now - min) / (max - min);
+    card.style.setProperty('--heat', Math.max(0, Math.min(1, heat)).toFixed(3));
+  }
+
   function renderWorldWeather(data, worldSlug, worldName) {
     var slot = document.getElementById('world-weather-card');
     if (!slot || !data || !data.ok || !data.available || !data.weather) return;
     slot.className = 'world-weather-card world-weather-card--' + worldSlug;
     slot.innerHTML = weatherCardHtml(data.weather, worldSlug, worldName);
+    applyHeatScale(slot, data.weather);
     slot.hidden = false;
     wireHourlyPanels(slot, data.weather.forecast || []);
 

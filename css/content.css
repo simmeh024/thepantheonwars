@@ -2243,24 +2243,231 @@
    steel-fog/ice-white glow; Terek II reuses its warfront fire-orange;
    Valerium Prime reuses its holy gold; Vermillia XI reuses its rain
    blue-grey with a gold-flecked divider. */
+/* --- High Hammer: the Forge Watch's gauge plate ---------------------------
+   The third distinct object in this set, and deliberately not a variant of
+   either of the others. Asmecu is paper a harbour watch re-pins by hand; Neoh
+   is a screen the city prints to itself; High Hammer is metal -- a plate cast,
+   struck, and bolted to a foundry wall, read off instruments rather than
+   written or rendered. Its type is engraved rather than printed, which is the
+   detail that sells the material: a dark stroke above and a warm one below, so
+   the letters sit in the surface instead of on it.
+
+   The copper comes from this world's existing atlas glow, rgb(230, 150, 80),
+   as every variant's accent does.
+
+   One thing here is not decoration. --heat is set by js/world-detail.js from
+   today's reading against this world's own configured bounds, so the plate is
+   genuinely cooler on a cold day and hotter on a hot one. Everything that
+   varies with it degrades to a sensible middle through var(--heat, 0.4), so a
+   card rendered before that script runs -- or by anything that never sets it
+   -- still looks right. */
 .world-weather-card--high-hammer {
-  border-color: rgba(230, 150, 80, 0.4);
+  --world-weather-icon: #d9a172;
+  --world-weather-icon-current: #f0a961;
+  --wx-muted: #b09c8a;
+  /* Struck into the plate rather than laid on it. */
+  --hh-engrave: 0 -1px 0 rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 198, 148, 0.11);
+  border-color: rgba(126, 108, 94, 0.62);
+  border-width: 2px;
   background:
-    radial-gradient(circle at 95% 0%, rgba(196, 110, 55, 0.28), transparent 36%),
-    radial-gradient(circle at 7% 92%, rgba(120, 70, 30, 0.22), transparent 38%),
-    linear-gradient(155deg, rgba(32, 20, 12, 0.98), rgba(20, 13, 8, 0.98));
+    /* The furnace off the top-right corner. */
+    radial-gradient(circle at 94% -8%, rgba(255, 156, 74, 0.16), transparent 44%),
+    /* Heat standing off the floor. The only background layer that moves with
+       the reading, so a cold day genuinely sits darker than a hot one. */
+    radial-gradient(circle at 50% 116%, rgba(255, 138, 60, calc(0.04 + var(--heat, 0.4) * 0.14)), transparent 56%),
+    /* Brushed grain across the face of the plate. */
+    repeating-linear-gradient(0deg, rgba(255, 232, 214, 0.014) 0 1px, transparent 1px 3px),
+    linear-gradient(168deg, rgba(46, 40, 36, 0.985), rgba(25, 21, 19, 0.985));
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.46),
+    /* A cast bevel: light catching the top edge, shadow gathering at the foot. */
+    inset 0 2px 0 rgba(255, 210, 168, 0.1),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.55),
+    inset 0 0 70px rgba(0, 0, 0, 0.34);
 }
-.world-weather-card--high-hammer::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(230, 150, 80, 0.028) 4px 5px); }
-.world-weather-card--high-hammer .world-weather-live { border-color: rgba(230, 150, 80, 0.4); background: rgba(230, 150, 80, 0.12); color: #f0b080; }
-.world-weather-card--high-hammer .world-weather-live i { background: #e8935a; box-shadow: 0 0 7px #e8935a; }
-.world-weather-card--high-hammer { --world-weather-icon: #e89a5f; --world-weather-icon-current: #e89a5f; }
-.world-weather-card--high-hammer .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(230, 150, 80, 0.35)); }
-.world-weather-card--high-hammer .world-weather-metrics { border-color: rgba(120, 70, 30, 0.2); background: rgba(120, 70, 30, 0.1); }
-.world-weather-card--high-hammer .world-weather-metrics div { border-right-color: rgba(120, 70, 30, 0.16); }
-.world-weather-card--high-hammer .world-weather-day.is-today { border-color: rgba(230, 150, 80, 0.32); background: linear-gradient(180deg, rgba(230, 150, 80, 0.12), rgba(120, 70, 30, 0.1)); }
-.world-weather-card--high-hammer .world-weather-divider { color: #d9a878; }
-.world-weather-card--high-hammer .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(230, 150, 80, 0.32)); }
-.world-weather-card--high-hammer .world-weather-divider::after { background: linear-gradient(90deg, rgba(230, 150, 80, 0.32), transparent); }
+/* Pitting rather than scanlines: two tight crossing repeats read as a cast
+   surface where the shared card's single horizontal one reads as a raster. */
+.world-weather-card--high-hammer::after {
+  background:
+    repeating-linear-gradient(37deg, transparent 0 2px, rgba(0, 0, 0, 0.05) 2px 3px),
+    repeating-linear-gradient(-37deg, transparent 0 3px, rgba(255, 224, 196, 0.012) 3px 4px);
+}
+/* Four domed rivets holding the plate to the wall. Drawn as background layers
+   on one pseudo-element, so this needs no markup -- the same technique as
+   Neoh's registration marks, which is why the two must never both apply. */
+.world-weather-card--high-hammer::before {
+  --hh-rivet: radial-gradient(circle at 36% 32%, rgba(255, 216, 178, 0.85), rgba(122, 100, 84, 0.9) 52%, rgba(20, 15, 12, 0.95) 78%, transparent 80%);
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: 7px;
+  pointer-events: none;
+  background:
+    var(--hh-rivet) 0 0 / 7px 7px no-repeat,
+    var(--hh-rivet) 100% 0 / 7px 7px no-repeat,
+    var(--hh-rivet) 0 100% / 7px 7px no-repeat,
+    var(--hh-rivet) 100% 100% / 7px 7px no-repeat;
+}
+/* The CRT sweep becomes heat standing off the forge floor. */
+.world-weather-card--high-hammer .world-weather-card-scan {
+  top: auto;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 34%;
+  background: linear-gradient(0deg, rgba(255, 150, 70, calc(0.05 + var(--heat, 0.4) * 0.09)), transparent 72%);
+  animation: high-hammer-shimmer 5.5s ease-in-out infinite alternate;
+}
+@keyframes high-hammer-shimmer {
+  from { transform: translateY(3px) scaleY(1); }
+  to { transform: translateY(-4px) scaleY(1.09); }
+}
+.world-weather-card--high-hammer .world-weather-head > div > span { color: #e8934a; text-shadow: var(--hh-engrave); }
+.world-weather-card--high-hammer .world-weather-head h2 { color: #efe0cf; text-shadow: var(--hh-engrave); }
+/* A stamped plate rather than a lit pill. */
+.world-weather-card--high-hammer .world-weather-live {
+  border-color: rgba(200, 150, 104, 0.5);
+  border-radius: 2px;
+  background: linear-gradient(180deg, rgba(255, 214, 176, 0.09), rgba(0, 0, 0, 0.22));
+  box-shadow: inset 0 1px 0 rgba(255, 214, 176, 0.14), inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+  color: #f0b378;
+  letter-spacing: 0.13em;
+  text-shadow: var(--hh-engrave);
+}
+.world-weather-card--high-hammer .world-weather-live i {
+  width: 4px;
+  height: 4px;
+  border-radius: 0;
+  background: #e8934a;
+  box-shadow: none;
+}
+/* The reading itself is the heat. Ash-grey at this world's floor through to
+   near white at its ceiling, with the bloom behind it growing to match. The
+   plain colour above is the fallback wherever color-mix is unsupported. */
+.world-weather-card--high-hammer .world-weather-current > strong {
+  color: #ecdcc9;
+  color: color-mix(in oklab, #bcafa4, #fff3d6 calc(var(--heat, 0.4) * 100%));
+  text-shadow: 0 0 calc(8px + var(--heat, 0.4) * 30px) rgba(255, 146, 56, calc(0.18 + var(--heat, 0.4) * 0.5));
+}
+.world-weather-card--high-hammer .world-weather-current-icon {
+  filter: drop-shadow(0 0 calc(8px + var(--heat, 0.4) * 14px) rgba(255, 150, 70, calc(0.28 + var(--heat, 0.4) * 0.3)));
+}
+.world-weather-card--high-hammer .world-weather-current b { color: #e6d4c2; }
+/* An instrument strip recessed into the plate. */
+.world-weather-card--high-hammer .world-weather-metrics {
+  border-color: rgba(126, 108, 94, 0.42);
+  background: rgba(255, 226, 200, 0.035);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.45);
+}
+.world-weather-card--high-hammer .world-weather-metrics div {
+  border-right-color: rgba(126, 108, 94, 0.3);
+  background: rgba(20, 17, 15, 0.44);
+}
+.world-weather-card--high-hammer .world-weather-metrics span { text-shadow: var(--hh-engrave); }
+.world-weather-card--high-hammer .world-weather-metrics strong { color: #efe0cf; }
+.world-weather-card--high-hammer .world-weather-season b { color: #c4b09c; text-shadow: var(--hh-engrave); }
+.world-weather-card--high-hammer .world-weather-divider { color: #e8a562; text-shadow: var(--hh-engrave); }
+.world-weather-card--high-hammer .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(200, 150, 104, 0.5)); }
+.world-weather-card--high-hammer .world-weather-divider::after { background: linear-gradient(90deg, rgba(200, 150, 104, 0.5), transparent); }
+/* Tags stamped from sheet and hung on the rail: a chamfered corner, a punched
+   hole, a lit top edge and shadow gathering at the foot. The chamfer is drawn
+   as a corner gradient rather than cut with clip-path, which would also clip
+   the focus ring off a control that has to stay keyboard-reachable. */
+.world-weather-card--high-hammer .world-weather-day {
+  border-color: rgba(126, 108, 94, 0.34);
+  background:
+    linear-gradient(225deg, rgba(12, 10, 9, 0.95) 0 5px, transparent 5px),
+    linear-gradient(180deg, rgba(255, 226, 200, 0.06), rgba(0, 0, 0, 0.2));
+  box-shadow: inset 0 1px 0 rgba(255, 214, 176, 0.11), inset 0 -1px 0 rgba(0, 0, 0, 0.5);
+}
+.world-weather-card--high-hammer .world-weather-day::before {
+  content: '';
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(8, 6, 5, 0.92);
+  box-shadow: 0 1px 0 rgba(255, 214, 176, 0.16);
+}
+.world-weather-card--high-hammer .world-weather-day:hover,
+.world-weather-card--high-hammer .world-weather-day.is-open { border-color: rgba(240, 160, 90, 0.55); }
+/* Today's tag has just come off the floor. */
+.world-weather-card--high-hammer .world-weather-day.is-today {
+  border-color: rgba(240, 160, 90, 0.5);
+  background:
+    linear-gradient(225deg, rgba(12, 10, 9, 0.95) 0 5px, transparent 5px),
+    linear-gradient(180deg, rgba(255, 140, 60, 0.17), rgba(0, 0, 0, 0.16));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 214, 176, 0.16),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    inset 0 0 16px rgba(255, 130, 50, 0.16);
+}
+.world-weather-card--high-hammer .world-weather-day-name { color: #c4b09c; text-shadow: var(--hh-engrave); }
+.world-weather-card--high-hammer .world-weather-day strong { color: #efe0cf; }
+.world-weather-card--high-hammer .world-weather-hourly { border-top-color: rgba(126, 108, 94, 0.4); }
+.world-weather-card--high-hammer .world-weather-hourly-head { color: #e8a562; text-shadow: var(--hh-engrave); }
+.world-weather-card--high-hammer .world-weather-hourly-nav {
+  border-color: rgba(126, 108, 94, 0.45);
+  background: linear-gradient(180deg, rgba(255, 226, 200, 0.05), rgba(0, 0, 0, 0.3));
+  color: #c4b09c;
+}
+.world-weather-card--high-hammer .world-weather-hourly-nav:hover:not(:disabled) { border-color: rgba(240, 160, 90, 0.65); color: #efe0cf; }
+.world-weather-card--high-hammer .world-weather-hour { color: #c4b09c; }
+.world-weather-card--high-hammer .world-weather-hour-temp { color: #efe0cf; }
+.world-weather-card--high-hammer .world-weather-hour.is-now {
+  border-color: rgba(240, 160, 90, 0.5);
+  background: linear-gradient(180deg, rgba(255, 140, 60, 0.16), rgba(0, 0, 0, 0.14));
+  color: #f2e6d8;
+}
+.world-weather-card--high-hammer .world-weather-hour.is-now .world-weather-hour-time { color: #f0a961; }
+.world-weather-card--high-hammer .world-weather-hour-now { color: #f0a961; }
+.world-weather-card--high-hammer .world-weather-hour.is-night { background: rgba(10, 9, 9, 0.5); }
+.world-weather-card--high-hammer .world-weather-hour.is-night.is-now { background: linear-gradient(180deg, rgba(255, 140, 60, 0.15), rgba(10, 9, 9, 0.45)); }
+/* The advisory is a warning plate bolted over the others: a chevron edge
+   instead of a rule, and two bolt heads down the right. Left padding clears
+   the chevron rather than letting the text sit on it. */
+.world-weather-card--high-hammer .world-weather-hazard {
+  padding: 11px 22px 11px 18px;
+  border: 1px solid rgba(126, 108, 94, 0.45);
+  border-left: 0;
+  background: linear-gradient(180deg, rgba(255, 226, 200, 0.055), rgba(0, 0, 0, 0.22));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 214, 176, 0.12),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55),
+    0 2px 7px rgba(0, 0, 0, 0.4);
+  color: #dbcab8;
+}
+.world-weather-card--high-hammer .world-weather-hazard::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: 0;
+  width: 6px;
+  background: repeating-linear-gradient(45deg, #e8934a 0 4px, #241a12 4px 8px);
+}
+.world-weather-card--high-hammer .world-weather-hazard::after {
+  --hh-bolt: radial-gradient(circle at 36% 32%, rgba(255, 216, 178, 0.8), rgba(112, 92, 78, 0.9) 54%, rgba(16, 12, 10, 0.95) 80%, transparent 82%);
+  content: '';
+  position: absolute;
+  top: 7px;
+  bottom: 7px;
+  right: 7px;
+  width: 6px;
+  background:
+    var(--hh-bolt) 0 0 / 6px 6px no-repeat,
+    var(--hh-bolt) 0 100% / 6px 6px no-repeat;
+}
+.world-weather-card--high-hammer .world-weather-hazard > span {
+  border-color: rgba(240, 160, 90, 0.7);
+  border-radius: 0;
+  color: #f0a961;
+  text-shadow: var(--hh-engrave);
+}
+.world-weather-card--high-hammer footer { color: rgba(186, 166, 148, 0.6); }
+
 .world-weather-card--cerius {
   border-color: rgba(233, 90, 55, 0.4);
   background:
