@@ -1927,13 +1927,15 @@
 
 .metric-box {
   position: relative; background: var(--panel); border: 1px solid var(--border);
-  border-radius: 10px; padding: 34px 22px; text-align: center; overflow: hidden;
-  transition: transform 0.25s ease; cursor: pointer;
+  border-radius: 10px; padding: 25px 22px 22px; text-align: center; overflow: hidden;
+  transition: transform 0.25s ease, border-color 0.25s ease; cursor: pointer;
 }
-.metric-box:hover { transform: translateY(-5px); }
+.metric-box:hover { transform: translateY(-5px); z-index: 1; }
 .metric-box:focus-visible { outline: 2px solid var(--purple-bright); outline-offset: 3px; }
+.metric-box-ribbon { position: absolute; top: 0; left: 0; padding: 6px 11px; border-radius: 0 0 7px 0; background: rgba(236,201,135,0.16); border-right: 1px solid rgba(236,201,135,0.32); border-bottom: 1px solid rgba(236,201,135,0.32); color: var(--gold-bright); font-size: 0.59rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; }
+.metric-box-rank { position: absolute; top: 13px; right: 15px; color: var(--text-faint); font-size: 0.61rem; letter-spacing: 0.08em; text-transform: uppercase; }
 .metric-box-icon {
-  width: 52px; height: 52px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; margin: 2px auto 13px; display: flex; align-items: center; justify-content: center;
 }
 .metric-box-icon svg { width: 100%; height: 100%; }
 .metric-box-count {
@@ -1944,9 +1946,20 @@
   letter-spacing: 0.1em; color: var(--text-dim); margin-top: 10px;
 }
 .metric-box-pct { font-family: 'Jost', sans-serif; font-size: 0.72rem; color: var(--text-faint); margin-top: 6px; }
-.metric-sparkline-wrap { height: 30px; margin: 16px -6px -14px; opacity: 0.72; }
-.metric-sparkline { display: block; width: 100%; height: 100%; overflow: visible; }
+.metric-box-share { height: 4px; margin: 8px 5px 0; overflow: hidden; border-radius: 99px; background: rgba(122,107,158,0.22); }
+.metric-box-share span { display: block; height: 100%; border-radius: inherit; background: var(--metric-color); box-shadow: 0 0 8px var(--metric-color); }
+.metric-box-trend { display: inline-flex; align-items: center; gap: 5px; margin-top: 11px; color: var(--text-faint); font-size: 0.68rem; }
+.metric-box-trend.is-up { color: var(--status-success); }.metric-box-trend.is-down { color: var(--status-critical); }.metric-box-trend.is-flat { color: var(--text-faint); }
+.metric-box-details { display: flex; justify-content: center; gap: 9px; flex-wrap: wrap; margin-top: 8px; color: var(--text-faint); font-size: 0.62rem; line-height: 1.35; }.metric-box-details span + span { padding-left: 9px; border-left: 1px solid var(--border-soft); }
+.metric-sparkline-wrap { height: 30px; margin: 13px -6px 0; opacity: 0.84; }
+.metric-sparkline { display: block; width: 100%; height: 100%; overflow: visible; color: var(--metric-color); }
 .metric-sparkline polyline { fill: none; stroke: currentColor; stroke-width: 1.7; vector-effect: non-scaling-stroke; filter: drop-shadow(0 0 4px currentColor); }
+.metric-sparkline-dot { fill: currentColor; stroke: var(--panel); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.metric-box-insight { max-height: 0; margin: 0; overflow: hidden; color: var(--text-dim); font-size: 0.71rem; line-height: 1.45; opacity: 0; transform: translateY(4px); transition: max-height 0.25s ease, margin 0.25s ease, opacity 0.2s ease, transform 0.2s ease; }
+.metric-box:hover .metric-box-insight, .metric-box:focus-within .metric-box-insight, .metric-box:focus-visible .metric-box-insight { max-height: 65px; margin: 11px 0 0; opacity: 1; transform: none; }
+.metric-box-timeline-link { display: inline-block; max-height: 0; margin: 0; overflow: hidden; color: var(--gold-bright); font-size: 0.64rem; font-weight: 600; letter-spacing: 0.07em; line-height: 1.5; text-transform: uppercase; opacity: 0; transform: translateY(4px); transition: max-height 0.25s ease, margin 0.25s ease, opacity 0.2s ease, transform 0.2s ease; }
+.metric-box:hover .metric-box-timeline-link, .metric-box:focus-within .metric-box-timeline-link, .metric-box:focus-visible .metric-box-timeline-link { max-height: 22px; margin-top: 7px; opacity: 1; transform: none; }
+.metric-box-timeline-link:hover { color: #fff0bd; }
 
 .metrics-insights { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 24px; margin-top: 32px; }
 .metrics-insight-panel, .code-growth-section { padding: 23px; background: rgba(28,19,54,0.62); border: 1px solid var(--border-soft); border-radius: 8px; }
@@ -1995,23 +2008,23 @@
   0%, 100% { box-shadow: 0 0 16px 0 var(--glow-soft), inset 0 0 20px 0 var(--glow-soft); }
   50% { box-shadow: 0 0 34px 4px var(--glow-strong), inset 0 0 26px 0 var(--glow-soft); }
 }
-.metric-box.tag-feature { --glow-soft: rgba(236,201,135,0.22); --glow-strong: rgba(236,201,135,0.55); border-color: rgba(236,201,135,0.35); animation: metric-glow 5.5s ease-in-out infinite; }
+.metric-box.tag-feature { --metric-color: var(--gold-bright); --glow-soft: rgba(236,201,135,0.22); --glow-strong: rgba(236,201,135,0.55); border-color: rgba(236,201,135,0.35); animation: metric-glow 5.5s ease-in-out infinite; }
 .metric-box.tag-feature .metric-box-icon, .metric-box.tag-feature .metric-box-count { color: var(--gold-bright); }
-.metric-box.tag-improvement { --glow-soft: rgba(162,121,236,0.22); --glow-strong: rgba(162,121,236,0.55); border-color: rgba(162,121,236,0.35); animation: metric-glow 5.5s ease-in-out infinite 0.2s; }
+.metric-box.tag-improvement { --metric-color: var(--purple-bright); --glow-soft: rgba(162,121,236,0.22); --glow-strong: rgba(162,121,236,0.55); border-color: rgba(162,121,236,0.35); animation: metric-glow 5.5s ease-in-out infinite 0.2s; }
 .metric-box.tag-improvement .metric-box-icon, .metric-box.tag-improvement .metric-box-count { color: var(--purple-bright); }
-.metric-box.tag-fix { --glow-soft: rgba(225,75,90,0.22); --glow-strong: rgba(225,75,90,0.55); border-color: rgba(225,75,90,0.35); animation: metric-glow 5.5s ease-in-out infinite 0.4s; }
+.metric-box.tag-fix { --metric-color: #e14b5a; --glow-soft: rgba(225,75,90,0.22); --glow-strong: rgba(225,75,90,0.55); border-color: rgba(225,75,90,0.35); animation: metric-glow 5.5s ease-in-out infinite 0.4s; }
 .metric-box.tag-fix .metric-box-icon, .metric-box.tag-fix .metric-box-count { color: #e14b5a; }
-.metric-box.tag-performance { --glow-soft: rgba(226,152,79,0.22); --glow-strong: rgba(226,152,79,0.55); border-color: rgba(226,152,79,0.35); animation: metric-glow 5.5s ease-in-out infinite 0.6s; }
+.metric-box.tag-performance { --metric-color: #e2984f; --glow-soft: rgba(226,152,79,0.22); --glow-strong: rgba(226,152,79,0.55); border-color: rgba(226,152,79,0.35); animation: metric-glow 5.5s ease-in-out infinite 0.6s; }
 .metric-box.tag-performance .metric-box-icon, .metric-box.tag-performance .metric-box-count { color: #e2984f; }
-.metric-box.tag-ui_ux { --glow-soft: rgba(69,209,201,0.22); --glow-strong: rgba(69,209,201,0.55); border-color: rgba(69,209,201,0.35); animation: metric-glow 5.5s ease-in-out infinite 0.8s; }
+.metric-box.tag-ui_ux { --metric-color: #45d1c9; --glow-soft: rgba(69,209,201,0.22); --glow-strong: rgba(69,209,201,0.55); border-color: rgba(69,209,201,0.35); animation: metric-glow 5.5s ease-in-out infinite 0.8s; }
 .metric-box.tag-ui_ux .metric-box-icon, .metric-box.tag-ui_ux .metric-box-count { color: #45d1c9; }
-.metric-box.tag-lore { --glow-soft: rgba(62,207,142,0.22); --glow-strong: rgba(62,207,142,0.55); border-color: rgba(62,207,142,0.35); animation: metric-glow 5.5s ease-in-out infinite 1s; }
+.metric-box.tag-lore { --metric-color: #3ecf8e; --glow-soft: rgba(62,207,142,0.22); --glow-strong: rgba(62,207,142,0.55); border-color: rgba(62,207,142,0.35); animation: metric-glow 5.5s ease-in-out infinite 1s; }
 .metric-box.tag-lore .metric-box-icon, .metric-box.tag-lore .metric-box-count { color: #3ecf8e; }
-.metric-box.tag-infrastructure { --glow-soft: rgba(154,160,172,0.2); --glow-strong: rgba(154,160,172,0.5); border-color: rgba(154,160,172,0.3); animation: metric-glow 5.5s ease-in-out infinite 1.2s; }
+.metric-box.tag-infrastructure { --metric-color: #9aa0ac; --glow-soft: rgba(154,160,172,0.2); --glow-strong: rgba(154,160,172,0.5); border-color: rgba(154,160,172,0.3); animation: metric-glow 5.5s ease-in-out infinite 1.2s; }
 .metric-box.tag-infrastructure .metric-box-icon, .metric-box.tag-infrastructure .metric-box-count { color: #9aa0ac; }
-.metric-box.tag-refactor { --glow-soft: rgba(111,118,232,0.22); --glow-strong: rgba(111,118,232,0.55); border-color: rgba(111,118,232,0.35); animation: metric-glow 5.5s ease-in-out infinite 1.4s; }
+.metric-box.tag-refactor { --metric-color: #6f76e8; --glow-soft: rgba(111,118,232,0.22); --glow-strong: rgba(111,118,232,0.55); border-color: rgba(111,118,232,0.35); animation: metric-glow 5.5s ease-in-out infinite 1.4s; }
 .metric-box.tag-refactor .metric-box-icon, .metric-box.tag-refactor .metric-box-count { color: #6f76e8; }
-.metric-box.tag-experimental { --glow-soft: rgba(224,116,176,0.22); --glow-strong: rgba(224,116,176,0.55); border-color: rgba(224,116,176,0.35); animation: metric-glow 5.5s ease-in-out infinite 1.6s; }
+.metric-box.tag-experimental { --metric-color: #e074b0; --glow-soft: rgba(224,116,176,0.22); --glow-strong: rgba(224,116,176,0.55); border-color: rgba(224,116,176,0.35); animation: metric-glow 5.5s ease-in-out infinite 1.6s; }
 .metric-box.tag-experimental .metric-box-icon, .metric-box.tag-experimental .metric-box-count { color: #e074b0; }
 
 .metrics-divider {

@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=289">
+<link rel="stylesheet" href="css/community-bundle.css?v=290">
 </head>
 <body>
 
@@ -499,18 +499,46 @@ function pwWireBh4Toggle(el) {
       values[index]++;
     });
     var max = Math.max.apply(null, values) || 1;
-    var points = values.map(function (value, index) {
+    var pointPairs = values.map(function (value, index) {
       return (index * (100 / (buckets - 1))).toFixed(1) + ',' + (27 - ((value / max) * 23)).toFixed(1);
-    }).join(' ');
-    return '<svg class="metric-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + points + '"/></svg>';
+    });
+    var points = pointPairs.join(' ');
+    var lastIndex = values.length - 1;
+    while (lastIndex > 0 && values[lastIndex] === 0) lastIndex--;
+    var gradientId = 'metric-spark-fill-' + tag;
+    return '<svg class="metric-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="' + escapeHtml((TAG_LABELS[tag] || tag) + ' activity across the selected period') + '"><defs><linearGradient id="' + gradientId + '" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".36"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs><polygon class="metric-sparkline-fill" points="0,29 ' + points + ' 100,29" fill="url(#' + gradientId + ')"/><polyline points="' + points + '"/><circle class="metric-sparkline-dot" cx="' + pointPairs[lastIndex].split(',')[0] + '" cy="' + pointPairs[lastIndex].split(',')[1] + '" r="2.1"/></svg>';
   }
 
-  function buildBox(tag, count, total) {
+  function cardInsight(tag, count, total) {
+    if (!total) return 'The next dispatch will define this workstream.';
+    var share = Math.round((count / total) * 100);
+    var copy = {
+      feature: 'New capabilities are taking shape for readers and members.',
+      improvement: 'Existing experiences are being refined with focused polish.',
+      fix: 'Reliability work is keeping the realm stable.',
+      performance: 'The site is being tuned for a faster path through the world.',
+      ui_ux: 'Interface clarity and navigation are receiving close attention.',
+      lore: 'The world record continues to expand.',
+      infrastructure: 'The systems beneath the world are being strengthened.',
+      refactor: 'Foundations are being simplified for the work ahead.',
+      experimental: 'New ideas are being explored at the edge of the build.'
+    };
+    return share >= 25 ? 'A major focus this period. ' + copy[tag] : copy[tag];
+  }
+
+  function cardTrend(count, previous) {
+    var delta = count - previous;
+    if (delta > 0) return { className: 'is-up', arrow: '▲', text: '+' + delta + ' vs previous' };
+    if (delta < 0) return { className: 'is-down', arrow: '▼', text: delta + ' vs previous' };
+    return { className: 'is-flat', arrow: '—', text: 'No change vs previous' };
+  }
+
+  function buildBox(tag, count, total, rank, isLeading) {
     var box = document.createElement('div');
-    box.className = 'metric-box tag-' + tag;
+    box.className = 'metric-box tag-' + tag + (isLeading && count ? ' is-leading' : '');
     box.tabIndex = 0;
     box.setAttribute('role', 'button');
-    box.setAttribute('aria-label', (TAG_LABELS[tag] || tag) + ': view details');
+    box.setAttribute('aria-label', (TAG_LABELS[tag] || tag) + ': view details and activity context');
     box.addEventListener('click', function () { openMetricModal(tag); });
     box.addEventListener('keydown', function (e) {
       if (e.key === 'Enter' || e.key === ' ') {
@@ -518,6 +546,18 @@ function pwWireBh4Toggle(el) {
         openMetricModal(tag);
       }
     });
+
+    if (isLeading && count) {
+      var ribbon = document.createElement('span');
+      ribbon.className = 'metric-box-ribbon';
+      ribbon.textContent = 'Leading focus';
+      box.appendChild(ribbon);
+    }
+
+    var rankEl = document.createElement('span');
+    rankEl.className = 'metric-box-rank';
+    rankEl.textContent = '#' + rank + ' of ' + TAG_ORDER.length;
+    box.appendChild(rankEl);
 
     var icon = document.createElement('div');
     icon.className = 'metric-box-icon';
@@ -540,10 +580,43 @@ function pwWireBh4Toggle(el) {
     pctEl.textContent = pct + '% of all dispatches';
     box.appendChild(pctEl);
 
+    var share = document.createElement('div');
+    share.className = 'metric-box-share';
+    share.setAttribute('aria-label', pct + '% of dispatches');
+    share.innerHTML = '<span style="width:' + pct + '%"></span>';
+    box.appendChild(share);
+
+    var previous = currentMetrics && currentMetrics.previous_counts ? (currentMetrics.previous_counts[tag] || 0) : 0;
+    var trendInfo = cardTrend(count, previous);
+    var trend = document.createElement('div');
+    trend.className = 'metric-box-trend ' + trendInfo.className;
+    trend.innerHTML = '<span aria-hidden="true">' + trendInfo.arrow + '</span>' + trendInfo.text;
+    box.appendChild(trend);
+
+    var inRange = currentEntries.filter(function (entry) { return entry.tag === tag; });
+    var measured = inRange.filter(function (entry) { return typeof entry.files_changed === 'number' && entry.files_changed > 0; });
+    var averageFiles = measured.length ? (measured.reduce(function (sum, entry) { return sum + entry.files_changed; }, 0) / measured.length) : null;
+    var details = document.createElement('div');
+    details.className = 'metric-box-details';
+    details.innerHTML = '<span>' + (inRange.length ? 'Last ' + escapeHtml(formatLastCommitLabel(inRange[0].committed_at)) : 'No dispatches yet') + '</span><span>' + (averageFiles === null ? 'File context pending' : averageFiles.toFixed(1) + ' avg. files') + '</span>';
+    box.appendChild(details);
+
     var sparkline = document.createElement('div');
     sparkline.className = 'metric-sparkline-wrap';
     sparkline.innerHTML = metricSparkline(tag);
     box.appendChild(sparkline);
+
+    var insight = document.createElement('p');
+    insight.className = 'metric-box-insight';
+    insight.textContent = cardInsight(tag, count, total);
+    box.appendChild(insight);
+
+    var timelineLink = document.createElement('a');
+    timelineLink.className = 'metric-box-timeline-link';
+    timelineLink.href = 'dev-timeline.html?tag=' + encodeURIComponent(tag);
+    timelineLink.textContent = 'Open development timeline →';
+    timelineLink.addEventListener('click', function (event) { event.stopPropagation(); });
+    box.appendChild(timelineLink);
 
     animateCount(countEl, count, 1100);
 
@@ -676,8 +749,11 @@ function pwWireBh4Toggle(el) {
     animateCount(totalNumEl, total, 900);
 
     gridEl.innerHTML = '';
+    var ranked = TAG_ORDER.slice().sort(function (a, b) {
+      return (counts[b] || 0) - (counts[a] || 0) || TAG_ORDER.indexOf(a) - TAG_ORDER.indexOf(b);
+    });
     TAG_ORDER.forEach(function (tag) {
-      gridEl.appendChild(buildBox(tag, counts[tag] || 0, total));
+      gridEl.appendChild(buildBox(tag, counts[tag] || 0, total, ranked.indexOf(tag) + 1, tag === ranked[0]));
     });
   }
 

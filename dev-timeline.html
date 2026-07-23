@@ -10,7 +10,7 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
 <noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=289">
+<link rel="stylesheet" href="css/community-bundle.css?v=290">
 </head>
 <body>
 <header class="site-header"><div class="nav-inner"><button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button><a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a><nav class="main-nav"><a href="index.html">Home</a><a href="dev-dispatches.html">Development Dispatches</a><a href="dev-metrics.html">Development Metrics</a><a href="timeline.html">The Timeline</a></nav><span class="nav-utility"><span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span></span></div></header>
@@ -40,7 +40,8 @@
   var LABELS = {feature:'Feature',improvement:'Improvement',fix:'Fix',performance:'Performance',ui_ux:'UI / UX',lore:'Lore',infrastructure:'Infrastructure',refactor:'Refactor',experimental:'Experimental'};
   var COLORS = {feature:'#ecc987',improvement:'#a279ec',fix:'#e14b5a',performance:'#e2984f',ui_ux:'#45d1c9',lore:'#3ecf8e',infrastructure:'#9aa0ac',refactor:'#6f76e8',experimental:'#e074b0'};
   var ICONS = {feature:'✦',improvement:'↗',fix:'⚒',performance:'ϟ',ui_ux:'◌',lore:'⌘',infrastructure:'▣',refactor:'↻',experimental:'◈'};
-  var selected = [], entries = [], renderedEntries = [];
+  var requestedTag = new URLSearchParams(window.location.search).get('tag');
+  var selected = TAGS.indexOf(requestedTag) !== -1 ? [requestedTag] : [], entries = [], renderedEntries = [];
   var track = document.getElementById('dev-timeline-track'), summary = document.getElementById('dev-timeline-summary'), filterBtn = document.getElementById('timeline-filter-btn'), filterPanel = document.getElementById('timeline-filter-panel'), filterOptions = document.getElementById('timeline-filter-options'), filterCount = document.getElementById('timeline-filter-count'), rangeSelect = document.getElementById('timeline-range'), highlightToggle = document.getElementById('timeline-highlights'), searchInput = document.getElementById('timeline-search-input'), viewSelect = document.getElementById('timeline-view'), minimap = document.getElementById('timeline-minimap'), scrubber = document.getElementById('timeline-scrubber'), detail = document.getElementById('timeline-detail');
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   function date(v) { var d=new Date(String(v).replace(' ','T')+'Z'); return isNaN(d) ? v : d.toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'}); }
