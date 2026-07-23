@@ -11976,6 +11976,11 @@
     worldLayerQuoteCiteInput.value = layer.quote_cite || '';
     worldLayerTintSelect.value = layer.tint_key || 'gold';
     worldLayerSublocationsInput.value = (layer.sublocations || []).map(function (s) { return s.label || s; }).join('\n');
+    // Must run on every open, including the create path (which passes no
+    // variants and therefore clears all five). These fields are outside the
+    // modal's other reset logic, so without this they keep whichever district
+    // was opened last and save that one's quotes onto this one.
+    populateWorldQuoteVariants(layer.quote_variants);
     renderWorldLayerLandmarkList();
   }
 
