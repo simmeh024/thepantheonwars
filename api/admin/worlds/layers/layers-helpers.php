@@ -92,13 +92,18 @@ function pw_validate_layer_quote_variants($input) {
  *
  * Fails soft: sql/migration_world_quote_variants.sql may not have been run, and
  * a missing table must not block saving the district itself.
+ *
+ * Returns false when the write could not happen, so the endpoint can say so.
+ * Silence here is worse than it looks -- an author writes five quotes, the
+ * district saves, and the quotes simply never appear anywhere, with nothing
+ * anywhere reporting why.
  */
 function pw_save_layer_quote_variants(PDO $db, $layerId, array $variants) {
     try {
         $db->prepare('DELETE FROM world_quote_variants WHERE entity_type = \'layer\' AND entity_id = ?')
            ->execute([(int)$layerId]);
         if (!$variants) {
-            return;
+            return true;
         }
         $insert = $db->prepare(
             'INSERT INTO world_quote_variants (entity_type, entity_id, condition_key, quote_text, quote_cite)
@@ -107,10 +112,25 @@ function pw_save_layer_quote_variants(PDO $db, $layerId, array $variants) {
         foreach ($variants as $key => $variant) {
             $insert->execute([(int)$layerId, $key, $variant['quote_text'], $variant['quote_cite']]);
         }
+        return true;
     } catch (PDOException $e) {
         // Migration pending; the district saved normally and the variants can
         // be entered again once the table exists.
+        return false;
     }
+}
+
+/**
+ * The warning an endpoint returns when weather quotes were written but could
+ * not be stored. Only ever shown when the author actually submitted some, so a
+ * district with no variants never mentions a migration nobody needs yet.
+ */
+function pw_layer_quote_variants_warning(array $variants, $saved) {
+    if ($saved || !$variants) {
+        return null;
+    }
+    return 'The district saved, but its weather quotes could not be stored. '
+         . 'Run sql/migration_world_quote_variants.sql in phpMyAdmin, then enter them again.';
 }
 
 function pw_parse_sublocations_textarea($raw) {

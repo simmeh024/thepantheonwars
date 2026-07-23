@@ -12063,6 +12063,15 @@
           worldLayerModalError.classList.add('show');
           return;
         }
+        if (data.warning) {
+          // The district itself saved, so this is not an error -- but the modal
+          // must not close on a cheerful "Saved." while part of what was typed
+          // went nowhere. Left open so the text can be copied out.
+          worldLayerModalError.textContent = data.warning;
+          worldLayerModalError.classList.add('show');
+          refreshCurrentWorldDetail();
+          return;
+        }
         worldLayerModalStatus.textContent = 'Saved.';
         worldLayerModalStatus.classList.add('show');
         refreshCurrentWorldDetail().then(function () {

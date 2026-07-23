@@ -49,7 +49,7 @@ foreach ($sublocations as $i => $label) {
     $subStmt->execute([$layerId, $i + 1, $label]);
 }
 
-pw_save_layer_quote_variants($db, $layerId, $quoteVariants);
+$quoteVariantsSaved = pw_save_layer_quote_variants($db, $layerId, $quoteVariants);
 
 $db->commit();
 
@@ -59,4 +59,8 @@ pw_log_admin_activity(
     $adminUser
 );
 
-pw_json(['ok' => true, 'id' => $layerId]);
+pw_json([
+    'ok' => true,
+    'id' => $layerId,
+    'warning' => pw_layer_quote_variants_warning($quoteVariants, $quoteVariantsSaved),
+]);

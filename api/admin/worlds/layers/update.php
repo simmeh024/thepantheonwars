@@ -52,7 +52,7 @@ foreach ($sublocations as $i => $label) {
 }
 
 // Replaced wholesale on every save, same as the sublocations above.
-pw_save_layer_quote_variants($db, $id, $quoteVariants);
+$quoteVariantsSaved = pw_save_layer_quote_variants($db, $id, $quoteVariants);
 
 $db->commit();
 
@@ -62,4 +62,7 @@ pw_log_admin_activity(
     $adminUser
 );
 
-pw_json(['ok' => true]);
+pw_json([
+    'ok' => true,
+    'warning' => pw_layer_quote_variants_warning($quoteVariants, $quoteVariantsSaved),
+]);
