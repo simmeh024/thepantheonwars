@@ -2468,24 +2468,259 @@
 }
 .world-weather-card--high-hammer footer { color: rgba(186, 166, 148, 0.6); }
 
+/* --- Cerius: the Ember Quarter's proclamation board -----------------------
+   The Throne Built on Smoke: an ash-veiled iron capital whose undercity is
+   still burning underneath it. That makes it aftermath rather than industry,
+   which is what separates it from High Hammer -- one is a forge being worked,
+   the other is a capital nobody maintains. So the object is imperial enamel
+   gone to ruin: a lacquered proclamation plate with a gilt edge that no longer
+   runs true, ash lying wherever nothing disturbs it, and firelight coming up
+   through the fractures from below.
+
+   Fire underneath rather than on the face is the deliberate inverse of High
+   Hammer, where the plate itself is hot. Colours are this world's own: the
+   atlas signal rgb(204, 72, 80), and the ash and ember of drawCerius() in
+   js/world-atlas-effects.js, so the card and the medallion agree.
+
+   --veil is how thick the air is today, set from the condition class that
+   js/world-detail.js puts on every card. It is soot, so it darkens rather
+   than washes out: on a choking-smog day the ember light through the cracks
+   and the gilt on the frame both go dull, which is the reading changing the
+   card rather than decorating it. The default covers a card rendered before
+   that script runs. */
 .world-weather-card--cerius {
-  border-color: rgba(233, 90, 55, 0.4);
+  --world-weather-icon: #cf8a6a;
+  --world-weather-icon-current: #ff7a3c;
+  --wx-muted: #b3a69c;
+  --veil: 0.4;
+  --cer-ash: 198, 187, 177;
+  --cer-ember: 255, 103, 38;
+  --cer-gilt: 206, 168, 96;
+  border-color: rgba(96, 60, 56, 0.72);
+  border-width: 2px;
   background:
-    radial-gradient(circle at 95% 0%, rgba(200, 60, 35, 0.28), transparent 36%),
-    radial-gradient(circle at 7% 92%, rgba(110, 30, 20, 0.22), transparent 38%),
-    linear-gradient(155deg, rgba(32, 12, 10, 0.98), rgba(20, 8, 7, 0.98));
+    /* Ash lying along the top of the plate, where nothing disturbs it. */
+    linear-gradient(180deg, rgba(var(--cer-ash), 0.11), transparent 26%),
+    /* Soot in the air, above the firelight so a bad day genuinely dulls it. */
+    linear-gradient(180deg, rgba(28, 24, 24, calc(var(--veil) * 0.34)), rgba(20, 17, 18, calc(var(--veil) * 0.46))),
+    /* The undercity, still burning under the floor. */
+    radial-gradient(120% 55% at 50% 108%, rgba(var(--cer-ember), 0.18), transparent 62%),
+    linear-gradient(168deg, rgba(40, 27, 27, 0.985), rgba(22, 16, 17, 0.985));
+  box-shadow:
+    0 18px 46px rgba(0, 0, 0, 0.48),
+    inset 0 0 70px rgba(0, 0, 0, 0.36);
 }
-.world-weather-card--cerius::after { background: repeating-linear-gradient(0deg, transparent 0 4px, rgba(233, 90, 55, 0.028) 4px 5px); }
-.world-weather-card--cerius .world-weather-live { border-color: rgba(233, 90, 55, 0.4); background: rgba(233, 90, 55, 0.12); color: #f2967a; }
-.world-weather-card--cerius .world-weather-live i { background: #e8623a; box-shadow: 0 0 7px #e8623a; }
-.world-weather-card--cerius { --world-weather-icon: #e86b40; --world-weather-icon-current: #e86b40; }
-.world-weather-card--cerius .world-weather-current-icon { filter: drop-shadow(0 0 10px rgba(233, 90, 55, 0.35)); }
-.world-weather-card--cerius .world-weather-metrics { border-color: rgba(110, 30, 20, 0.2); background: rgba(110, 30, 20, 0.1); }
-.world-weather-card--cerius .world-weather-metrics div { border-right-color: rgba(110, 30, 20, 0.16); }
-.world-weather-card--cerius .world-weather-day.is-today { border-color: rgba(233, 90, 55, 0.32); background: linear-gradient(180deg, rgba(233, 90, 55, 0.12), rgba(110, 30, 20, 0.1)); }
-.world-weather-card--cerius .world-weather-divider { color: #d98a68; }
-.world-weather-card--cerius .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(233, 90, 55, 0.32)); }
-.world-weather-card--cerius .world-weather-divider::after { background: linear-gradient(90deg, rgba(233, 90, 55, 0.32), transparent); }
+/* How thick the air is, per condition. The stylesheet decides what a condition
+   looks like here; the script only states which one it is. */
+.world-weather-card--cerius.is-weather-clear { --veil: 0.12; }
+.world-weather-card--cerius.is-weather-acid-rain { --veil: 0.3; }
+.world-weather-card--cerius.is-weather-overcast { --veil: 0.45; }
+.world-weather-card--cerius.is-weather-storm { --veil: 0.62; }
+.world-weather-card--cerius.is-weather-smog { --veil: 0.85; }
+
+/* The gilt edge of an imperial plate, no longer maintained: it breaks and
+   fades along its own length instead of running true. Four edges drawn as
+   background layers, so this needs no markup. */
+.world-weather-card--cerius::before {
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: 4px;
+  pointer-events: none;
+  opacity: calc(1 - var(--veil) * 0.45);
+  background:
+    linear-gradient(90deg, rgba(var(--cer-gilt), 0.05) 0%, rgba(var(--cer-gilt), 0.5) 18%, rgba(var(--cer-gilt), 0.08) 43%, rgba(var(--cer-gilt), 0.44) 71%, rgba(var(--cer-gilt), 0.05) 100%) 0 0 / 100% 1px no-repeat,
+    linear-gradient(90deg, rgba(var(--cer-gilt), 0.3) 0%, rgba(var(--cer-gilt), 0.04) 31%, rgba(var(--cer-gilt), 0.36) 67%, rgba(var(--cer-gilt), 0.04) 100%) 0 100% / 100% 1px no-repeat,
+    linear-gradient(180deg, rgba(var(--cer-gilt), 0.4) 0%, rgba(var(--cer-gilt), 0.05) 39%, rgba(var(--cer-gilt), 0.28) 81%, rgba(var(--cer-gilt), 0.04) 100%) 0 0 / 1px 100% no-repeat,
+    linear-gradient(180deg, rgba(var(--cer-gilt), 0.05) 0%, rgba(var(--cer-gilt), 0.34) 27%, rgba(var(--cer-gilt), 0.04) 63%, rgba(var(--cer-gilt), 0.3) 100%) 100% 0 / 1px 100% no-repeat;
+}
+/* Soot grain, and three fractures with the undercity showing through. Each is
+   a hairline with its own bloom behind it; both dim as the air thickens. */
+.world-weather-card--cerius::after {
+  background:
+    repeating-linear-gradient(41deg, transparent 0 2px, rgba(0, 0, 0, 0.045) 2px 3px),
+    linear-gradient(104deg, transparent calc(50% - 0.5px), rgba(var(--cer-ember), calc(0.8 * (1 - var(--veil) * 0.55))) 50%, transparent calc(50% + 0.5px)) 16% 26% / 58px 104px no-repeat,
+    radial-gradient(54px 20px at 16% 30%, rgba(var(--cer-ember), calc(0.15 * (1 - var(--veil) * 0.6))), transparent 72%),
+    linear-gradient(66deg, transparent calc(50% - 0.5px), rgba(var(--cer-ember), calc(0.7 * (1 - var(--veil) * 0.55))) 50%, transparent calc(50% + 0.5px)) 78% 56% / 44px 78px no-repeat,
+    radial-gradient(44px 18px at 78% 58%, rgba(var(--cer-ember), calc(0.13 * (1 - var(--veil) * 0.6))), transparent 72%),
+    linear-gradient(118deg, transparent calc(50% - 0.5px), rgba(var(--cer-ember), calc(0.62 * (1 - var(--veil) * 0.55))) 50%, transparent calc(50% + 0.5px)) 44% 92% / 76px 54px no-repeat,
+    radial-gradient(64px 16px at 44% 93%, rgba(var(--cer-ember), calc(0.14 * (1 - var(--veil) * 0.6))), transparent 72%);
+}
+/* Cinderfall replaces the CRT sweep, matching drawCerius(): pale ash coming
+   down the whole plate, embers going up from the floor against it. */
+.world-weather-card--cerius .world-weather-card-scan {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: auto;
+  opacity: calc(0.3 + var(--veil) * 0.6);
+  background-image:
+    radial-gradient(1.6px 1.6px at 12px 18px, rgba(var(--cer-ash), 0.5), transparent 62%),
+    radial-gradient(1.2px 1.2px at 54px 62px, rgba(var(--cer-ash), 0.38), transparent 62%),
+    radial-gradient(1.9px 1.9px at 96px 30px, rgba(var(--cer-ash), 0.3), transparent 62%),
+    radial-gradient(1.3px 1.3px at 33px 96px, rgba(var(--cer-ash), 0.42), transparent 62%);
+  background-size: 130px 130px;
+  animation: cerius-ashfall 26s linear infinite;
+}
+@keyframes cerius-ashfall {
+  to { background-position: 22px 130px, -14px 130px, 9px 130px, -20px 130px; }
+}
+.world-weather-card--cerius .world-weather-card-scan::before {
+  content: '';
+  position: absolute;
+  inset: 38% 0 0;
+  pointer-events: none;
+  opacity: calc(0.75 * (1 - var(--veil) * 0.45));
+  background-image:
+    radial-gradient(1.4px 1.4px at 20px 40px, rgba(var(--cer-ember), 0.65), transparent 62%),
+    radial-gradient(1px 1px at 70px 88px, rgba(var(--cer-ember), 0.5), transparent 62%),
+    radial-gradient(1.6px 1.6px at 110px 20px, rgba(var(--cer-ember), 0.4), transparent 62%);
+  background-size: 140px 140px;
+  /* Embers burn out as they climb rather than reaching the top of the card. */
+  -webkit-mask-image: linear-gradient(0deg, #000, transparent 86%);
+  mask-image: linear-gradient(0deg, #000, transparent 86%);
+  animation: cerius-emberrise 14s linear infinite;
+}
+@keyframes cerius-emberrise {
+  to { background-position: -10px -140px, 14px -140px, -6px -140px; }
+}
+.world-weather-card--cerius .world-weather-head > div > span { color: #dc8f74; }
+.world-weather-card--cerius .world-weather-head h2 { color: #ecd9c8; }
+/* A cartouche struck on the plate rather than a status pill. */
+.world-weather-card--cerius .world-weather-live {
+  border-color: rgba(var(--cer-gilt), 0.45);
+  border-radius: 1px;
+  background: linear-gradient(180deg, rgba(var(--cer-ash), 0.07), rgba(0, 0, 0, 0.24));
+  color: #e3a878;
+  letter-spacing: 0.15em;
+}
+.world-weather-card--cerius .world-weather-live i {
+  width: 4px;
+  height: 4px;
+  border-radius: 0;
+  background: #cc4850;
+  box-shadow: none;
+  transform: rotate(45deg);
+}
+.world-weather-card--cerius .world-weather-current-icon {
+  filter: drop-shadow(0 0 12px rgba(var(--cer-ember), calc(0.4 * (1 - var(--veil) * 0.5))));
+}
+.world-weather-card--cerius .world-weather-current > strong { color: #f0ded0; }
+.world-weather-card--cerius .world-weather-current b { color: #e2cdbd; }
+/* Ash settles on the readings too, but lightly -- these are checked daily. */
+.world-weather-card--cerius .world-weather-metrics {
+  border-color: rgba(96, 60, 56, 0.45);
+  background:
+    linear-gradient(180deg, rgba(var(--cer-ash), 0.13), transparent 42%),
+    rgba(var(--cer-ash), 0.03);
+}
+.world-weather-card--cerius .world-weather-metrics div {
+  border-right-color: rgba(96, 60, 56, 0.35);
+  background: rgba(18, 14, 15, 0.46);
+}
+.world-weather-card--cerius .world-weather-metrics strong { color: #ecd9c8; }
+.world-weather-card--cerius .world-weather-season b { color: #c3b1a4; }
+.world-weather-card--cerius .world-weather-divider { color: #dc8f74; }
+.world-weather-card--cerius .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(var(--cer-gilt), 0.4)); }
+.world-weather-card--cerius .world-weather-divider::after { background: linear-gradient(90deg, rgba(var(--cer-gilt), 0.4), transparent); }
+/* Enamel day plates with ash caught on their upper edge. */
+.world-weather-card--cerius .world-weather-day {
+  border-color: rgba(96, 60, 56, 0.4);
+  background:
+    linear-gradient(180deg, rgba(var(--cer-ash), 0.1), transparent 46%),
+    linear-gradient(180deg, rgba(60, 40, 40, 0.4), rgba(0, 0, 0, 0.22));
+}
+.world-weather-card--cerius .world-weather-day:hover,
+.world-weather-card--cerius .world-weather-day.is-open { border-color: rgba(204, 72, 80, 0.6); }
+.world-weather-card--cerius .world-weather-day.is-today {
+  border-color: rgba(204, 72, 80, 0.58);
+  background:
+    linear-gradient(180deg, rgba(var(--cer-ash), 0.1), transparent 46%),
+    linear-gradient(180deg, rgba(var(--cer-ember), 0.15), rgba(0, 0, 0, 0.2));
+}
+.world-weather-card--cerius .world-weather-day-name { color: #c3b1a4; }
+.world-weather-card--cerius .world-weather-day strong { color: #ecd9c8; }
+.world-weather-card--cerius .world-weather-hourly { border-top-color: rgba(96, 60, 56, 0.5); }
+.world-weather-card--cerius .world-weather-hourly-head { color: #dc8f74; }
+.world-weather-card--cerius .world-weather-hourly-nav {
+  border-color: rgba(96, 60, 56, 0.5);
+  background: rgba(18, 14, 15, 0.6);
+  color: #c3b1a4;
+}
+.world-weather-card--cerius .world-weather-hourly-nav:hover:not(:disabled) { border-color: rgba(204, 72, 80, 0.7); color: #ecd9c8; }
+.world-weather-card--cerius .world-weather-hour { color: #c3b1a4; }
+.world-weather-card--cerius .world-weather-hour-temp { color: #ecd9c8; }
+.world-weather-card--cerius .world-weather-hour.is-now {
+  border-color: rgba(204, 72, 80, 0.55);
+  background: linear-gradient(180deg, rgba(var(--cer-ember), 0.15), rgba(0, 0, 0, 0.16));
+  color: #f2e2d6;
+}
+.world-weather-card--cerius .world-weather-hour.is-now .world-weather-hour-time { color: #ff7a3c; }
+.world-weather-card--cerius .world-weather-hour-now { color: #ff7a3c; }
+.world-weather-card--cerius .world-weather-hour.is-night { background: rgba(11, 9, 10, 0.5); }
+.world-weather-card--cerius .world-weather-hour.is-night.is-now { background: linear-gradient(180deg, rgba(var(--cer-ember), 0.14), rgba(11, 9, 10, 0.45)); }
+
+/* The advisory is a fixed proclamation nobody has cleaned since it went up.
+   It carries the heaviest ash on the card -- deliberately more than the
+   readings above it, which are checked daily, while a sign bolted to a wall
+   is not. The enamel is chipped at two corners and the painted rule down its
+   edge has flaked away in two places.
+
+   Every one of those marks is behind or beside the text, never over it. This
+   is the block that tells a reader the air will hurt them, so it is the one
+   thing on this card that must stay fully legible; neglect you can see is
+   worth having, copy you cannot read is not. Its contrast is asserted at both
+   the clearest and the thickest air. */
+.world-weather-card--cerius .world-weather-hazard {
+  padding: 13px 15px 13px 17px;
+  border: 1px solid rgba(96, 60, 56, 0.6);
+  border-left: 0;
+  background:
+    /* Ash crusted along the top and drifted into the lower corners. */
+    linear-gradient(180deg, rgba(var(--cer-ash), 0.2), transparent 32%),
+    radial-gradient(42px 10px at 14% 100%, rgba(var(--cer-ash), 0.17), transparent 72%),
+    radial-gradient(62px 12px at 67% 100%, rgba(var(--cer-ash), 0.13), transparent 72%),
+    radial-gradient(30px 9px at 93% 0%, rgba(var(--cer-ash), 0.19), transparent 72%),
+    /* Enamel chipped off two corners. */
+    linear-gradient(135deg, rgba(14, 11, 12, 0.95) 0 6px, transparent 6px),
+    linear-gradient(315deg, rgba(14, 11, 12, 0.95) 0 5px, transparent 5px),
+    linear-gradient(180deg, rgba(58, 39, 39, 0.5), rgba(0, 0, 0, 0.3));
+  color: #d9cabc;
+}
+/* Painted on once and never repainted: the rule has flaked through in two
+   places rather than running the height of the plate. */
+.world-weather-card--cerius .world-weather-hazard::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: 0;
+  width: 4px;
+  background: linear-gradient(180deg,
+    rgba(204, 72, 80, 0.9) 0%,
+    rgba(204, 72, 80, 0.12) 21%,
+    rgba(204, 72, 80, 0.85) 33%,
+    rgba(204, 72, 80, 0.9) 61%,
+    rgba(204, 72, 80, 0.08) 69%,
+    rgba(204, 72, 80, 0.72) 100%);
+}
+/* A wax seal, cracked across. */
+.world-weather-card--cerius .world-weather-hazard > span {
+  width: 17px;
+  height: 17px;
+  flex-basis: 17px;
+  border: 0;
+  border-radius: 50%;
+  background:
+    linear-gradient(64deg, transparent calc(50% - 0.5px), rgba(20, 8, 10, 0.85) 50%, transparent calc(50% + 0.5px)),
+    radial-gradient(circle at 36% 30%, #d9605c, #8e2b2f 72%, #55181c 100%);
+  box-shadow: inset 0 -1px 2px rgba(0, 0, 0, 0.5);
+  color: #f6dcd2;
+  font-family: 'Cinzel', serif;
+}
+.world-weather-card--cerius footer { color: rgba(178, 162, 150, 0.6); }
+
 .world-weather-card--reanium {
   border-color: rgba(151, 255, 75, 0.4);
   background:

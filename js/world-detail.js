@@ -392,7 +392,12 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderWorldWeather(data, worldSlug, worldName) {
     var slot = document.getElementById('world-weather-card');
     if (!slot || !data || !data.ok || !data.available || !data.weather) return;
-    slot.className = 'world-weather-card world-weather-card--' + worldSlug;
+    // Today's condition as a class rather than a number, so the stylesheet
+    // decides what a condition looks like on a given world and this only has
+    // to state the fact. Keyed by the same five icons weather-effects.js uses.
+    var conditionKey = (data.weather.current || {}).icon;
+    slot.className = 'world-weather-card world-weather-card--' + worldSlug +
+      (conditionKey ? ' is-weather-' + conditionKey : '');
     slot.innerHTML = weatherCardHtml(data.weather, worldSlug, worldName);
     applyHeatScale(slot, data.weather);
     slot.hidden = false;
