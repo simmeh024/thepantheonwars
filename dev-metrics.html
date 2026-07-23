@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=284">
+<link rel="stylesheet" href="css/community-bundle.css?v=286">
 </head>
 <body>
 
@@ -82,7 +82,10 @@
     <div class="container">
 
       <div class="metrics-back-row">
-        <a href="dev-dispatches.html" class="btn metrics-back-btn">&larr; Back to Development Dispatches</a>
+        <div class="metrics-nav-actions">
+          <a href="dev-dispatches.html" class="btn metrics-back-btn">&larr; Back to Development Dispatches</a>
+          <a href="dev-timeline.html" class="btn metrics-back-btn metrics-timeline-btn">Development Timeline &rarr;</a>
+        </div>
 
         <div class="metrics-date-col">
           <div class="metrics-date-filter">
@@ -110,6 +113,7 @@
               </span>
             </div>
             <span class="bh4-verify-label">Verified by BH-4</span>
+            <span class="bh4-live-state" id="stats-bh4-live-state">Live feed</span>
 
             <div class="bh4-status-tooltip" id="stats-bh4-tooltip">
               <div class="bh4-status-tooltip-head">BH-4:</div>
@@ -125,10 +129,17 @@
       </div>
 
       <div class="metrics-total" id="metrics-total">
-        <span class="metrics-total-num" id="metrics-total-num">&mdash;</span>
-        <span class="metrics-total-label">Total Dispatches Logged</span>
-        <p class="metrics-period-summary" id="metrics-period-summary" aria-live="polite"></p>
+        <div class="metrics-velocity-ring" id="metrics-velocity-ring" aria-label="Dispatch velocity">
+          <span class="metrics-velocity-value" id="metrics-velocity-value">&mdash;</span>
+          <span>per day</span>
+        </div>
+        <div class="metrics-total-copy">
+          <span class="metrics-total-num" id="metrics-total-num">&mdash;</span>
+          <span class="metrics-total-label">Total Dispatches Logged</span>
+          <p class="metrics-period-summary" id="metrics-period-summary" aria-live="polite"></p>
+        </div>
       </div>
+      <p class="metrics-focus-callout" id="metrics-focus-callout" aria-live="polite"></p>
 
       <div class="metrics-grid" id="metrics-grid">
         <p class="metrics-loading">Crunching the numbers&hellip;</p>
@@ -142,6 +153,7 @@
               <p id="dispatch-activity-subtitle">Daily dispatch volume in the selected period.</p>
             </div>
           </div>
+          <div class="dispatch-heatmap-weekdays" aria-hidden="true"><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span><span>S</span></div>
           <div class="dispatch-heatmap" id="dispatch-heatmap" aria-label="Daily dispatch activity heatmap"></div>
         </section>
 
@@ -186,7 +198,10 @@
           </div>
         </div>
 
-        <div class="lang-bar" id="lang-bar"></div>
+        <div class="lang-prism">
+          <div class="lang-prism-readout" id="lang-prism-readout" aria-live="polite">Hover a language to inspect its footprint</div>
+          <div class="lang-bar" id="lang-bar"></div>
+        </div>
         <div class="lang-legend" id="lang-legend">
           <p class="metrics-loading">Loading language stats&hellip;</p>
         </div>
@@ -453,6 +468,25 @@ function pwWireBh4Toggle(el) {
     requestAnimationFrame(step);
   }
 
+  function metricSparkline(tag) {
+    var range = currentRange;
+    if (!range || !currentEntries.length) return '';
+    var buckets = 20;
+    var values = Array(buckets).fill(0);
+    var span = Math.max(1, range.end.getTime() - range.start.getTime());
+    currentEntries.forEach(function (entry) {
+      if (entry.tag !== tag) return;
+      var when = new Date(String(entry.committed_at).replace(' ', 'T') + 'Z').getTime();
+      var index = Math.min(buckets - 1, Math.max(0, Math.floor(((when - range.start.getTime()) / span) * buckets)));
+      values[index]++;
+    });
+    var max = Math.max.apply(null, values) || 1;
+    var points = values.map(function (value, index) {
+      return (index * (100 / (buckets - 1))).toFixed(1) + ',' + (27 - ((value / max) * 23)).toFixed(1);
+    }).join(' ');
+    return '<svg class="metric-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + points + '"/></svg>';
+  }
+
   function buildBox(tag, count, total) {
     var box = document.createElement('div');
     box.className = 'metric-box tag-' + tag;
@@ -488,6 +522,11 @@ function pwWireBh4Toggle(el) {
     pctEl.textContent = pct + '% of all dispatches';
     box.appendChild(pctEl);
 
+    var sparkline = document.createElement('div');
+    sparkline.className = 'metric-sparkline-wrap';
+    sparkline.innerHTML = metricSparkline(tag);
+    box.appendChild(sparkline);
+
     animateCount(countEl, count, 1100);
 
     return box;
@@ -501,6 +540,7 @@ function pwWireBh4Toggle(el) {
   var statsBh4LastSync = document.getElementById('stats-bh4-last-sync');
   var statsBh4CommitSha = document.getElementById('stats-bh4-commit-sha');
   var statsBh4RepoStatus = document.getElementById('stats-bh4-repo-status');
+  var statsBh4LiveState = document.getElementById('stats-bh4-live-state');
 
   function formatLastCommitLabel(committedAt) {
     if (!committedAt) return '—';
@@ -514,17 +554,21 @@ function pwWireBh4Toggle(el) {
   function updateStatsBh4(status) {
     if (!statsBh4LastCommit) return;
     if (status && status.state === 'current') {
+      statsBh4El.classList.add('is-current');
       statsBh4LastCommit.textContent = formatLastCommitLabel(status.latest_committed_at);
       statsBh4LastSync.textContent = formatLastCommitLabel(status.last_synced_at);
       statsBh4CommitSha.textContent = status.latest_sha || '—';
       statsBh4RepoStatus.textContent = 'Data current';
       statsBh4RepoStatus.className = 'bh4-status-ok';
+      statsBh4LiveState.textContent = 'Live feed';
     } else {
+      statsBh4El.classList.remove('is-current');
       statsBh4LastCommit.textContent = '—';
       statsBh4LastSync.textContent = '—';
       statsBh4CommitSha.textContent = '—';
       statsBh4RepoStatus.textContent = 'Reconnecting';
       statsBh4RepoStatus.className = 'bh4-status-warn';
+      statsBh4LiveState.textContent = 'Reconnecting';
     }
   }
 
@@ -619,6 +663,37 @@ function pwWireBh4Toggle(el) {
     });
   }
 
+  function renderVelocity(data) {
+    var ring = document.getElementById('metrics-velocity-ring');
+    var value = document.getElementById('metrics-velocity-value');
+    var duration = Math.max(1, currentRange.end.getTime() - currentRange.start.getTime());
+    var days = Math.max(1, duration / 86400000);
+    var velocity = (data.total || 0) / days;
+    var percent = Math.min(100, Math.max(8, Math.round(velocity * 24)));
+    ring.style.setProperty('--velocity-fill', percent + '%');
+    value.textContent = velocity < 10 ? velocity.toFixed(1) : Math.round(velocity);
+  }
+
+  function renderFocus(data) {
+    var callout = document.getElementById('metrics-focus-callout');
+    var leading = TAG_ORDER.reduce(function (best, tag) {
+      return (data.counts[tag] || 0) > (data.counts[best] || 0) ? tag : best;
+    }, TAG_ORDER[0]);
+    var count = data.counts[leading] || 0;
+    var share = data.total ? Math.round((count / data.total) * 100) : 0;
+    var glow = {
+      feature: 'rgba(236,201,135,0.22)', improvement: 'rgba(162,121,236,0.24)', fix: 'rgba(225,75,90,0.20)',
+      performance: 'rgba(226,152,79,0.20)', ui_ux: 'rgba(69,209,201,0.20)', lore: 'rgba(62,207,142,0.20)',
+      infrastructure: 'rgba(154,160,172,0.19)', refactor: 'rgba(111,118,232,0.21)', experimental: 'rgba(224,116,176,0.20)'
+    };
+    document.documentElement.style.setProperty('--metrics-focus-glow', glow[leading]);
+    if (!data.total) {
+      callout.textContent = 'The log is quiet in this period — the next dispatch will set the focus.';
+      return;
+    }
+    callout.innerHTML = '<span class="metrics-focus-dot tag-' + leading + '"></span><strong>' + escapeHtml(TAG_LABELS[leading]) + '</strong> leads this period with ' + count + ' dispatch' + (count === 1 ? '' : 'es') + ' (' + share + '%).';
+  }
+
   function renderPeriodSummary(data) {
     var summary = document.getElementById('metrics-period-summary');
     var delta = (data.total || 0) - (data.previous_total || 0);
@@ -642,6 +717,12 @@ function pwWireBh4Toggle(el) {
     var first = new Date(activity[0].day + 'T00:00:00Z');
     var last = new Date(activity[activity.length - 1].day + 'T00:00:00Z');
     subtitle.textContent = activity.length + ' active day' + (activity.length === 1 ? '' : 's') + ' in the selected period.';
+    for (var blank = 0; blank < ((first.getUTCDay() + 6) % 7); blank++) {
+      var placeholder = document.createElement('span');
+      placeholder.className = 'dispatch-heatmap-cell is-empty';
+      placeholder.setAttribute('aria-hidden', 'true');
+      heatmap.appendChild(placeholder);
+    }
     for (var cursor = new Date(first); cursor <= last; cursor.setUTCDate(cursor.getUTCDate() + 1)) {
       var day = cursor.toISOString().slice(0, 10);
       var count = byDay[day] || 0;
@@ -712,7 +793,9 @@ function pwWireBh4Toggle(el) {
         currentEntries = data.entries || [];
         updateStatsBh4(data.status);
         renderMetrics(data);
+        renderVelocity(data);
         renderPeriodSummary(data);
+        renderFocus(data);
         renderActivity(data.activity);
         renderLatest(data.latest);
         renderCodeGrowth(data.code_growth);
@@ -728,6 +811,7 @@ function pwWireBh4Toggle(el) {
 
 (function () {
   var barEl = document.getElementById('lang-bar');
+  var prismReadout = document.getElementById('lang-prism-readout');
   var legendEl = document.getElementById('lang-legend');
   var subtitleEl = document.getElementById('lang-subtitle');
   var dateSelect = document.getElementById('metrics-date-select');
@@ -837,6 +921,16 @@ function pwWireBh4Toggle(el) {
       seg.style.background = color;
       seg.title = lang.name + ' — ' + lang.pct + '%';
       seg.title = lang.name + ': ' + lang.pct + '% (' + formatBytes(lang.bytes) + ')';
+      seg.tabIndex = 0;
+      seg.setAttribute('role', 'img');
+      seg.setAttribute('aria-label', seg.title);
+      (function (language) {
+        function showPrismReadout() {
+          prismReadout.textContent = language.name + ' · ' + language.pct + '% · ' + formatBytes(language.bytes);
+        }
+        seg.addEventListener('mouseenter', showPrismReadout);
+        seg.addEventListener('focus', showPrismReadout);
+      })(lang);
       barEl.appendChild(seg);
 
       var item = document.createElement('div');
