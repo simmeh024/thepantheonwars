@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=288">
+<link rel="stylesheet" href="css/community-bundle.css?v=289">
 </head>
 <body>
 
@@ -99,14 +99,34 @@
 
       <div class="dispatch-log-toolbar">
         <div class="dispatch-log-pagination" id="dispatch-pagination-top"></div>
-        <div class="dispatch-log-pagesize">
-          <label for="dispatch-page-size">Show</label>
-          <select id="dispatch-page-size">
-            <option value="10">10</option>
-            <option value="25">25</option>
-            <option value="50">50</option>
-            <option value="all">All</option>
-          </select>
+        <div class="dispatch-log-controls">
+          <div class="dispatch-log-pagesize">
+            <label for="dispatch-sort">Sort</label>
+            <select id="dispatch-sort">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="popular">Most liked</option>
+              <option value="discussed">Most discussed</option>
+              <option value="largest">Largest change</option>
+            </select>
+          </div>
+          <div class="dispatch-log-pagesize">
+            <label for="dispatch-digest">View</label>
+            <select id="dispatch-digest">
+              <option value="list">Dispatch list</option>
+              <option value="day">Daily digest</option>
+              <option value="week">Weekly digest</option>
+            </select>
+          </div>
+          <div class="dispatch-log-pagesize">
+            <label for="dispatch-page-size">Show</label>
+            <select id="dispatch-page-size">
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="all">All</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -224,6 +244,8 @@
   var pagTop = document.getElementById('dispatch-pagination-top');
   var pagBottom = document.getElementById('dispatch-pagination-bottom');
   var pageSizeSelect = document.getElementById('dispatch-page-size');
+  var sortSelect = document.getElementById('dispatch-sort');
+  var digestSelect = document.getElementById('dispatch-digest');
   var searchInput = document.getElementById('dispatch-search');
   var searchClearBtn = document.getElementById('dispatch-search-clear');
   var tagFilterBtn = document.getElementById('dispatch-tag-filter-btn');
@@ -232,7 +254,7 @@
   var tagFilterWrap = document.getElementById('dispatch-tag-filter');
 
   var requestedDispatchId = parseInt(new URLSearchParams(location.search).get('dispatch'), 10);
-  var state = { page: 1, perPage: 10, totalPages: 1, total: 0, q: '', tags: [], dispatchId: requestedDispatchId > 0 ? requestedDispatchId : null };
+  var state = { page: 1, perPage: 10, totalPages: 1, total: 0, q: '', tags: [], sort: 'newest', digest: 'list', dispatchId: requestedDispatchId > 0 ? requestedDispatchId : null };
 
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
   var TAG_ORDER = ['feature', 'improvement', 'fix', 'performance', 'ui_ux', 'lore', 'infrastructure', 'refactor', 'experimental'];
@@ -449,6 +471,25 @@
     title.textContent = entry.subject;
     left.appendChild(title);
 
+    var areas = Array.isArray(entry.affected_areas) ? entry.affected_areas : [];
+    if (entry.files_changed || areas.length) {
+      var contextChips = document.createElement('span');
+      contextChips.className = 'dispatch-context-chips';
+      if (entry.files_changed) {
+        var filesChip = document.createElement('span');
+        filesChip.className = 'dispatch-context-chip files';
+        filesChip.textContent = entry.files_changed + (entry.files_changed === 1 ? ' file' : ' files');
+        contextChips.appendChild(filesChip);
+      }
+      areas.forEach(function (area) {
+        var areaChip = document.createElement('span');
+        areaChip.className = 'dispatch-context-chip';
+        areaChip.textContent = area;
+        contextChips.appendChild(areaChip);
+      });
+      left.appendChild(contextChips);
+    }
+
     main.appendChild(left);
 
     var right = document.createElement('div');
@@ -598,10 +639,97 @@
     container.appendChild(summary);
   }
 
+  function digestDate(entry) {
+    var date = new Date((entry.committed_at || '').replace(' ', 'T') + 'Z');
+    return isNaN(date.getTime()) ? null : date;
+  }
+
+  function digestGroupInfo(entry, mode) {
+    var date = digestDate(entry);
+    if (!date) return { key: 'undated', label: 'Undated dispatches' };
+    if (mode === 'day') {
+      return {
+        key: date.getUTCFullYear() + '-' + date.getUTCMonth() + '-' + date.getUTCDate(),
+        label: date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })
+      };
+    }
+    var monday = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
+    var day = monday.getUTCDay() || 7;
+    monday.setUTCDate(monday.getUTCDate() - day + 1);
+    var sunday = new Date(monday.getTime());
+    sunday.setUTCDate(sunday.getUTCDate() + 6);
+    return {
+      key: monday.toISOString().slice(0, 10),
+      label: 'Week of ' + monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' }) +
+        '–' + sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+    };
+  }
+
+  function digestSummary(entries) {
+    var counts = {};
+    entries.forEach(function (entry) { counts[entry.tag] = (counts[entry.tag] || 0) + 1; });
+    var leadingTag = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a]; })[0];
+    var countText = entries.length + (entries.length === 1 ? ' dispatch' : ' dispatches');
+    return leadingTag ? countText + ' · ' + (TAG_LABELS[leadingTag] || leadingTag) + ' led the work.' : countText + '.';
+  }
+
+  function revealDeepLinkedEntry(entryEl, entry) {
+    if (state.dispatchId !== entry.id) return;
+    entryEl.querySelector('.dispatch-entry-main').click();
+    setTimeout(function () {
+      entryEl.scrollIntoView({
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+        block: 'start'
+      });
+    }, 0);
+  }
+
+  function renderEntries(entries) {
+    logEl.innerHTML = '';
+    if (state.digest === 'list') {
+      entries.forEach(function (entry) {
+        var entryEl = buildEntry(entry);
+        logEl.appendChild(entryEl);
+        revealDeepLinkedEntry(entryEl, entry);
+      });
+      return;
+    }
+
+    var groups = [];
+    var groupByKey = {};
+    entries.forEach(function (entry) {
+      var info = digestGroupInfo(entry, state.digest);
+      if (!groupByKey[info.key]) {
+        groupByKey[info.key] = { label: info.label, entries: [] };
+        groups.push(groupByKey[info.key]);
+      }
+      groupByKey[info.key].entries.push(entry);
+    });
+    groups.forEach(function (group) {
+      var section = document.createElement('section');
+      section.className = 'dispatch-digest-group';
+      var heading = document.createElement('div');
+      heading.className = 'dispatch-digest-heading';
+      var title = document.createElement('h2');
+      title.textContent = group.label;
+      var summary = document.createElement('p');
+      summary.textContent = digestSummary(group.entries);
+      heading.appendChild(title);
+      heading.appendChild(summary);
+      section.appendChild(heading);
+      group.entries.forEach(function (entry) {
+        var entryEl = buildEntry(entry);
+        section.appendChild(entryEl);
+        revealDeepLinkedEntry(entryEl, entry);
+      });
+      logEl.appendChild(section);
+    });
+  }
+
   function load() {
     logEl.innerHTML = '<p class="dispatch-log-loading">Loading dispatches…</p>';
     var perPageParam = state.perPage === 'all' ? 100000 : state.perPage;
-    var params = ['page=' + state.page, 'per_page=' + perPageParam];
+    var params = ['page=' + state.page, 'per_page=' + perPageParam, 'sort=' + encodeURIComponent(state.sort)];
     if (state.q) params.push('q=' + encodeURIComponent(state.q));
     if (state.tags.length) params.push('tags=' + encodeURIComponent(state.tags.join(',')));
     if (state.dispatchId) params.push('id=' + encodeURIComponent(state.dispatchId));
@@ -622,20 +750,7 @@
             : 'No dispatches yet. Check back after the next push.';
           logEl.innerHTML = '<p class="dispatch-log-empty">' + emptyMsg + '</p>';
         } else {
-          logEl.innerHTML = '';
-          data.entries.forEach(function (entry) {
-            var entryEl = buildEntry(entry);
-            logEl.appendChild(entryEl);
-            if (state.dispatchId === entry.id) {
-              entryEl.querySelector('.dispatch-entry-main').click();
-              setTimeout(function () {
-                entryEl.scrollIntoView({
-                  behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-                  block: 'start'
-                });
-              }, 0);
-            }
-          });
+          renderEntries(data.entries);
         }
 
         buildPagination(pagTop);
@@ -649,6 +764,18 @@
   pageSizeSelect.addEventListener('change', function () {
     var v = pageSizeSelect.value;
     state.perPage = v === 'all' ? 'all' : parseInt(v, 10);
+    state.page = 1;
+    load();
+  });
+
+  sortSelect.addEventListener('change', function () {
+    state.sort = sortSelect.value;
+    state.page = 1;
+    load();
+  });
+
+  digestSelect.addEventListener('change', function () {
+    state.digest = digestSelect.value;
     state.page = 1;
     load();
   });
