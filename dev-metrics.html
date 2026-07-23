@@ -88,12 +88,17 @@
           <div class="metrics-date-filter">
             <label for="metrics-date-select" class="metrics-date-filter-label">Showing</label>
             <select id="metrics-date-select" class="metrics-date-select">
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="this_week">This Week</option>
+              <option value="last_week">Last Week</option>
               <option value="this_month">This Month</option>
               <option value="last_month">Last Month</option>
               <option value="last_3_months">Last 3 Months</option>
               <option value="last_6_months">Last 6 Months</option>
               <option value="last_9_months">Last 9 Months</option>
               <option value="this_year" selected>This Year</option>
+              <option value="all_time">Total (All Time)</option>
             </select>
           </div>
 
@@ -327,8 +332,25 @@ function pwGetRangeBounds(value) {
   var now = new Date();
   var y = now.getFullYear();
   var m = now.getMonth();
+  var todayStart = new Date(y, m, now.getDate(), 0, 0, 0);
+  var daysSinceMonday = (now.getDay() + 6) % 7;
+  var weekStart = new Date(y, m, now.getDate() - daysSinceMonday, 0, 0, 0);
   var start, end = now;
   switch (value) {
+    case 'today':
+      start = todayStart;
+      break;
+    case 'yesterday':
+      start = new Date(y, m, now.getDate() - 1, 0, 0, 0);
+      end = todayStart;
+      break;
+    case 'this_week':
+      start = weekStart;
+      break;
+    case 'last_week':
+      start = new Date(weekStart.getFullYear(), weekStart.getMonth(), weekStart.getDate() - 7, 0, 0, 0);
+      end = weekStart;
+      break;
     case 'this_month':
       start = new Date(y, m, 1, 0, 0, 0);
       break;
@@ -344,6 +366,9 @@ function pwGetRangeBounds(value) {
       break;
     case 'last_9_months':
       start = new Date(y, m - 9, now.getDate(), 0, 0, 0);
+      break;
+    case 'all_time':
+      start = new Date(1970, 0, 1, 0, 0, 0);
       break;
     case 'this_year':
     default:
@@ -402,8 +427,10 @@ function pwWireBh4Toggle(el) {
   };
 
   var DATE_FILTER_LABELS = {
+    today: 'today', yesterday: 'yesterday', this_week: 'this week', last_week: 'last week',
     this_month: 'this month', last_month: 'last month', last_3_months: 'the last 3 months',
-    last_6_months: 'the last 6 months', last_9_months: 'the last 9 months', this_year: 'this year'
+    last_6_months: 'the last 6 months', last_9_months: 'the last 9 months', this_year: 'this year',
+    all_time: 'all time'
   };
 
   function escapeHtml(s) {
