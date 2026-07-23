@@ -1658,6 +1658,15 @@
      always have; the variants below set both to the same value. */
   --world-weather-icon: #70ccdf;
   --world-weather-icon-current: #78d8ee;
+  /* The muted tone for every secondary reading on the card. Site-wide
+     --text-faint (#7a6b9e) is too dark against these grounds: an audit of all
+     twelve cards put seven elements under AA, worst 3.29:1, because the card
+     backgrounds are lighter than the page the variable was chosen for. Scoped
+     here rather than changed globally, and set once per variant instead of
+     per selector -- which is what let Asmecu's day low and hourly
+     precipitation stay on the old value while its other labels were
+     recoloured. */
+  --wx-muted: #9186b8;
   position: relative;
   min-width: 0;
   padding: 22px;
@@ -1705,18 +1714,18 @@
 .world-weather-head h2 { margin: 5px 0 0; color: var(--gold-bright); font-family: 'Cinzel', serif; font-size: 1rem; }
 .world-weather-live { display: inline-flex; align-items: center; gap: 5px; padding: 5px 8px; border: 1px solid rgba(66, 206, 151, 0.3); border-radius: 999px; background: rgba(66, 206, 151, 0.08); color: #5cdca8; font-size: 0.54rem; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; }
 .world-weather-live i { width: 5px; height: 5px; border-radius: 50%; background: #42ce97; box-shadow: 0 0 7px #42ce97; }
-.world-weather-climate { margin: 3px 0 0; color: var(--text-faint); font-size: 0.68rem; }
+.world-weather-climate { margin: 3px 0 0; color: var(--wx-muted); font-size: 0.68rem; }
 .world-weather-current { display: flex; align-items: center; gap: 13px; margin: 21px 0 18px; }
 .world-weather-current-icon { display: grid; width: 58px; height: 58px; flex: 0 0 58px; place-items: center; color: var(--world-weather-icon-current); filter: drop-shadow(0 0 10px rgba(91, 208, 232, 0.3)); }
 .world-weather-current-icon svg { width: 58px; height: 58px; }
 .world-weather-current > strong { color: #fff; font-family: 'Cinzel', serif; font-size: 3.25rem; font-weight: 500; line-height: 1; }
 .world-weather-current > span:last-child { display: flex; min-width: 0; flex-direction: column; }
 .world-weather-current b { color: var(--text); font-size: 0.88rem; font-weight: 600; }
-.world-weather-current small { margin-top: 4px; color: var(--text-faint); font-size: 0.69rem; }
+.world-weather-current small { margin-top: 4px; color: var(--wx-muted); font-size: 0.69rem; }
 .world-weather-metrics { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid rgba(108, 150, 191, 0.16); background: rgba(79, 116, 158, 0.1); }
 .world-weather-metrics div { padding: 9px 5px; border-right: 1px solid rgba(108, 150, 191, 0.12); background: rgba(7, 8, 20, 0.42); text-align: center; }
 .world-weather-metrics div:last-child { border-right: 0; }
-.world-weather-metrics span { display: block; color: var(--text-faint); font-size: 0.52rem; line-height: 1.25; text-transform: uppercase; }
+.world-weather-metrics span { display: block; color: var(--wx-muted); font-size: 0.52rem; line-height: 1.25; text-transform: uppercase; }
 .world-weather-metrics strong { display: block; margin-top: 3px; color: var(--text); font-size: 0.67rem; font-weight: 600; }
 .world-weather-divider { display: flex; align-items: center; gap: 9px; margin: 20px 0 11px; color: #8fd4e2; font-size: 0.57rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
 .world-weather-divider::before,
@@ -1738,8 +1747,8 @@
 .world-weather-day-icon { display: grid; width: 28px; height: 28px; margin: 5px auto 3px; place-items: center; color: var(--world-weather-icon); }
 .world-weather-day-icon svg { width: 28px; height: 28px; }
 .world-weather-day strong { color: var(--text); font-family: 'Cinzel', serif; font-size: 0.78rem; }
-.world-weather-day small { margin-left: 2px; color: var(--text-faint); font-size: 0.63rem; }
-.world-weather-day-condition { display: block; min-height: 22px; margin-top: 4px; overflow: hidden; color: var(--text-faint); font-size: 0.49rem; line-height: 1.25; }
+.world-weather-day small { margin-left: 2px; color: var(--wx-muted); font-size: 0.63rem; }
+.world-weather-day-condition { display: block; min-height: 22px; margin-top: 4px; overflow: hidden; color: var(--wx-muted); font-size: 0.49rem; line-height: 1.25; }
 
 /* --- Hourly rail ----------------------------------------------------------
    One shared strip under the five-day grid, filled from whichever day is
@@ -1810,7 +1819,7 @@
 .world-weather-hour-temp { color: var(--text); font-family: 'Cinzel', serif; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
 .world-weather-hour-precip {
   display: inline-flex; align-items: center; gap: 2px;
-  color: var(--text-faint); font-size: 0.52rem; font-variant-numeric: tabular-nums;
+  color: var(--wx-muted); font-size: 0.52rem; font-variant-numeric: tabular-nums;
 }
 .world-weather-hour-precip svg { width: 8px; height: 8px; }
 .world-weather-hour.is-now {
@@ -1866,6 +1875,8 @@
    The severe-weather alert is deliberately left on the shared red: it must
    read the same on every world, whatever that world's palette is. */
 .world-weather-card--asmecu {
+  --wx-muted: #a19484;
+
   /* Chalk for everything ruled onto the board, coral for the one live reading
      the watch has marked. */
   --world-weather-icon: #cdc1ae;
@@ -1913,7 +1924,6 @@
 /* Painted on: the bureau's own name at the head of its board. */
 .world-weather-card--asmecu .world-weather-head > div > span { color: #ff8a70; }
 .world-weather-card--asmecu .world-weather-head h2 { color: #e8dccb; }
-.world-weather-card--asmecu .world-weather-climate { color: #a19484; }
 /* Stamped rather than lit: squared corners, a heavier rule, and a small ink
    lozenge in place of the glowing status dot. */
 .world-weather-card--asmecu .world-weather-live {
@@ -1936,7 +1946,6 @@
 .world-weather-card--asmecu .world-weather-current-icon { filter: drop-shadow(0 0 12px rgba(255, 138, 112, 0.32)); }
 .world-weather-card--asmecu .world-weather-current > strong { color: #ece2d2; }
 .world-weather-card--asmecu .world-weather-current b { color: #ded2c0; }
-.world-weather-card--asmecu .world-weather-current small { color: #a19484; }
 /* A ruled ledger band chalked onto the plank. Deliberately colourless: it is
    four numbers somebody copied up, not a signal. */
 .world-weather-card--asmecu .world-weather-metrics {
@@ -1947,10 +1956,8 @@
   border-right-color: rgba(228, 216, 198, 0.12);
   background: rgba(21, 20, 19, 0.5);
 }
-.world-weather-card--asmecu .world-weather-metrics span { color: #a19484; }
 .world-weather-card--asmecu .world-weather-metrics strong { color: #e8dccb; }
 .world-weather-card--asmecu .world-weather-season b { color: #b3a795; }
-.world-weather-card--asmecu .world-weather-season i { color: #a19484; }
 .world-weather-card--asmecu .world-weather-season.is-low .world-weather-season-mark { background: #4496ed; box-shadow: 0 0 7px #4496ed; }
 /* A written heading over a hand-ruled line. */
 .world-weather-card--asmecu .world-weather-divider { color: #ff8a70; }
@@ -1984,7 +1991,6 @@
 }
 .world-weather-card--asmecu .world-weather-day-name { color: #b3a795; }
 .world-weather-card--asmecu .world-weather-day strong { color: #ece2d2; }
-.world-weather-card--asmecu .world-weather-day-condition { color: #a19484; }
 .world-weather-card--asmecu .world-weather-hourly { border-top-color: rgba(228, 216, 198, 0.2); }
 .world-weather-card--asmecu .world-weather-hourly-head { color: #ff8a70; }
 .world-weather-card--asmecu .world-weather-hourly-nav {
@@ -3537,7 +3543,7 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
   margin: 0 0 12px; font-size: 0.62rem; letter-spacing: 0.06em;
 }
 .world-weather-season b { color: var(--text-dim); font-weight: 600; text-transform: uppercase; }
-.world-weather-season i { color: var(--text-faint); font-style: normal; font-variant-numeric: tabular-nums; }
+.world-weather-season i { color: var(--wx-muted); font-style: normal; font-variant-numeric: tabular-nums; }
 .world-weather-season-mark {
   width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
   background: var(--world-weather-icon); box-shadow: 0 0 7px var(--world-weather-icon);
@@ -3591,6 +3597,6 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
 /* Above the arc so the readings stay legible over it. */
 .world-weather-hour { position: relative; z-index: 1; }
 .world-weather-hour.is-night { background: rgba(8, 10, 28, 0.5); }
-.world-weather-hour.is-night .world-weather-hour-time { color: var(--text-faint); }
+.world-weather-hour.is-night .world-weather-hour-time { color: var(--wx-muted); }
 /* The current hour keeps its gold treatment even at night. */
 .world-weather-hour.is-night.is-now { background: linear-gradient(180deg, rgba(210, 169, 84, 0.08), rgba(88, 45, 155, 0.14)); }
