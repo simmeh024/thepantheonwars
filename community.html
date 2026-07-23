@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=291">
+<link rel="stylesheet" href="css/community-bundle.css?v=292">
 </head>
 <body>
 
@@ -87,6 +87,7 @@
           <div class="forum-subnav" id="forum-subnav">
             <button type="button" class="forum-subnav-tab active" data-subnav="index">Forum List</button>
             <button type="button" class="forum-subnav-tab" data-subnav="active">Active Topics</button>
+            <button type="button" class="forum-subnav-tab" data-subnav="unread">New Replies</button>
             <button type="button" class="forum-subnav-tab" data-subnav="bookmarks">Bookmarks</button>
             <button type="button" class="forum-subnav-tab" data-subnav="mine">My Topics</button>
             <button type="button" class="forum-subnav-tab" data-subnav="faq">FAQ</button>
@@ -191,6 +192,18 @@
             <p class="board-heading-desc">Every topic across the forum, most recently active first.</p>
             <div id="active-topics-list"></div>
             <p id="active-topics-empty" class="lore-status" hidden>No topics yet.</p>
+          </div>
+
+          <div id="unread-topics-view" hidden>
+            <h2 class="board-heading">New Replies</h2>
+            <p class="board-heading-desc">Replies posted since you last visited each topic.</p>
+            <div id="unread-topics-gate" class="profile-gate" hidden>
+              <p>Log in to keep your unread topics synchronized across devices.</p>
+              <button type="button" class="btn btn-solid auth-trigger" data-tab="register">Create an Account</button>
+              <button type="button" class="btn auth-trigger" data-tab="login">Log In</button>
+            </div>
+            <div id="unread-topics-list"></div>
+            <p id="unread-topics-empty" class="lore-status" hidden>You&rsquo;re all caught up.</p>
           </div>
 
           <!-- Bookmarks: topics this member saved via the kebab menu -->
@@ -577,6 +590,10 @@
   var activeTopicsView = document.getElementById('active-topics-view');
   var activeTopicsList = document.getElementById('active-topics-list');
   var activeTopicsEmpty = document.getElementById('active-topics-empty');
+  var unreadTopicsView = document.getElementById('unread-topics-view');
+  var unreadTopicsGate = document.getElementById('unread-topics-gate');
+  var unreadTopicsList = document.getElementById('unread-topics-list');
+  var unreadTopicsEmpty = document.getElementById('unread-topics-empty');
   var bookmarksView = document.getElementById('bookmarks-view');
   var bookmarksGate = document.getElementById('bookmarks-gate');
   var bookmarksList = document.getElementById('bookmarks-list');
@@ -997,14 +1014,18 @@
     }).then(function (r) { return r.json(); });
   }
 
-  function toggleWatch(topicId) {
+  function updateTopicSubscription(topicId, mode) {
     if (!window.PW_AUTH.csrf) return;
     return fetch('/api/topics/watch.php', {
       method: 'POST',
       credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ topic_id: topicId, csrf: window.PW_AUTH.csrf }),
+      body: JSON.stringify({ topic_id: topicId, mode: mode, csrf: window.PW_AUTH.csrf }),
     }).then(function (r) { return r.json(); });
+  }
+
+  function toggleWatch(topicId) {
+    return updateTopicSubscription(topicId, null);
   }
 
   function closeAllModMenus() {
@@ -1063,6 +1084,7 @@
 
     function renderMainPanel() {
       panel.innerHTML = '';
+      panel.classList.remove('topic-subscription-panel');
 
       // The kebab itself is visible to everyone now -- Bookmark is what
       // makes it useful to a regular member; the actual moderation actions
@@ -1075,12 +1097,7 @@
           });
           closeMenu();
         })));
-        panel.appendChild(modMenuItem(MOD_ICONS.watch, ctx.isWatched ? 'Unwatch Topic' : 'Watch Topic', requireLoginOrRun(function () {
-          toggleWatch(ctx.topicId).then(function (data) {
-            if (data && data.ok) ctx.isWatched = data.watched;
-          });
-          closeMenu();
-        })));
+        panel.appendChild(modMenuItem(MOD_ICONS.watch, ctx.isWatched ? 'Topic Notifications' : 'Subscribe to Topic', requireLoginOrRun(renderSubscriptionPanel)));
       }
 
       if (!ctx.canModerate) return;
@@ -1114,6 +1131,45 @@
         closeMenu();
         ctx.onDelete();
       }, true));
+    }
+
+    function renderSubscriptionPanel() {
+      panel.innerHTML = '';
+      panel.classList.add('topic-subscription-panel');
+      panel.appendChild(modMenuItem(MOD_ICONS.back, 'Back', renderMainPanel));
+      var heading = document.createElement('p');
+      heading.className = 'mod-menu-subhead';
+      heading.textContent = 'Topic notifications';
+      panel.appendChild(heading);
+      var modes = [
+        { value: 'instant', label: 'Instant replies', note: 'A notification for each new reply.' },
+        { value: 'daily', label: 'Daily digest', note: 'At most one topic update every 24 hours.' },
+        { value: 'mentions', label: 'Mentions only', note: 'Only direct @mentions notify you.' }
+      ];
+      modes.forEach(function (mode) {
+        var option = document.createElement('button');
+        option.type = 'button';
+        option.className = 'mod-menu-item mod-menu-subscription-option' + (ctx.subscriptionMode === mode.value ? ' is-selected' : '');
+        option.innerHTML = '<span><strong>' + mode.label + '</strong><small>' + mode.note + '</small></span>';
+        option.addEventListener('click', requireLoginOrRun(function () {
+          updateTopicSubscription(ctx.topicId, mode.value).then(function (data) {
+            if (data && data.ok) {
+              ctx.isWatched = true;
+              ctx.subscriptionMode = data.delivery_mode || mode.value;
+              renderSubscriptionPanel();
+            }
+          });
+        }));
+        panel.appendChild(option);
+      });
+      if (ctx.isWatched) {
+        panel.appendChild(modMenuItem(MOD_ICONS.watch, 'Unsubscribe', requireLoginOrRun(function () {
+          toggleWatch(ctx.topicId).then(function (data) {
+            if (data && data.ok) ctx.isWatched = data.watched;
+            renderMainPanel();
+          });
+        })));
+      }
     }
 
     function renderMovePanel() {
@@ -1294,13 +1350,14 @@
     listView.hidden = name !== 'list';
     detailView.hidden = name !== 'detail';
     activeTopicsView.hidden = name !== 'active';
+    unreadTopicsView.hidden = name !== 'unread';
     bookmarksView.hidden = name !== 'bookmarks';
     mytopicsView.hidden = name !== 'mine';
     faqView.hidden = name !== 'faq';
     searchResultsView.hidden = name !== 'search';
 
     // Forum List's tab stays highlighted for the whole board-index/topic-list/
-    // topic-detail trio (all stem from browsing a board); the other four
+    // topic-detail trio (all stem from browsing a board); the other five
     // views each own their own tab. Search has no tab of its own (it's
     // triggered by the search form, not a subnav click), so it simply
     // leaves whichever tab was already active alone.
@@ -1653,6 +1710,29 @@
       });
   }
 
+  function loadUnreadTopics() {
+    if (!window.PW_AUTH.loggedIn) {
+      unreadTopicsGate.hidden = false;
+      unreadTopicsList.innerHTML = '';
+      unreadTopicsEmpty.hidden = true;
+      return;
+    }
+    unreadTopicsGate.hidden = true;
+    unreadTopicsList.innerHTML = '';
+    for (var i = 0; i < 4; i++) unreadTopicsList.appendChild(skeletonRow());
+    unreadTopicsEmpty.hidden = true;
+    fetch('/api/topics/unread.php', { credentials: 'same-origin' })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        renderCrossBoardTopicList(unreadTopicsList, unreadTopicsEmpty, data.ok ? data.topics : []);
+      })
+      .catch(function () {
+        unreadTopicsList.innerHTML = '';
+        unreadTopicsEmpty.textContent = 'Unread topics could not be loaded right now.';
+        unreadTopicsEmpty.hidden = false;
+      });
+  }
+
   function loadBookmarks() {
     if (!window.PW_AUTH.loggedIn) {
       bookmarksGate.hidden = false;
@@ -1816,6 +1896,9 @@
       } else if (name === 'active') {
         showView('active');
         loadActiveTopics();
+      } else if (name === 'unread') {
+        showView('unread');
+        loadUnreadTopics();
       } else if (name === 'bookmarks') {
         showView('bookmarks');
         loadBookmarks();
@@ -2281,6 +2364,7 @@
       likedByMe: !!t.likedByMe,
       isBookmarked: !!t.bookmarked,
       isWatched: !!t.watched,
+      subscriptionMode: t.subscription_mode || 'instant',
       quoteTarget: function () { return { wrap: form, textarea: body }; },
       canModerate: t.canModerate,
       topicId: t.id,

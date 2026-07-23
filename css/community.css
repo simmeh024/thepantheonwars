@@ -1187,6 +1187,9 @@
 .mod-menu-item-danger .mod-menu-item-icon { color: #e2a5a0; }
 .mod-menu-item-danger:hover .mod-menu-item-icon { color: #e14b5a; }
 .mod-menu-divider { height: 1px; background: var(--border-soft); margin: 4px 2px; }
+.topic-subscription-panel { min-width: 260px; }
+.mod-menu-subhead { margin: 4px 10px 5px; color: var(--text-faint); font-size: 0.63rem; font-weight: 600; letter-spacing: 0.09em; text-transform: uppercase; }
+.mod-menu-subscription-option { align-items: flex-start; }.mod-menu-subscription-option strong, .mod-menu-subscription-option small { display: block; }.mod-menu-subscription-option strong { font-size: 0.77rem; font-weight: 600; }.mod-menu-subscription-option small { margin-top: 2px; color: var(--text-faint); font-size: 0.65rem; line-height: 1.35; }.mod-menu-subscription-option.is-selected { background: rgba(162,121,236,0.14); color: var(--gold-bright); }
 
 /* Replies have no title above the meta row (unlike the topic post), so the
    date would otherwise sit directly under the top-right action row -- push

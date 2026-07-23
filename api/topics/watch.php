@@ -28,14 +28,28 @@ if (!$stmt->fetch()) {
     pw_error('That topic no longer exists.', 404);
 }
 
-$existsStmt = $db->prepare('SELECT id FROM topic_subscriptions WHERE topic_id = ? AND user_id = ?');
+$mode = isset($input['mode']) ? trim((string)$input['mode']) : '';
+$validModes = ['instant', 'daily', 'mentions'];
+if ($mode !== '' && !in_array($mode, $validModes, true)) {
+    pw_error('Unknown subscription setting.');
+}
+
+$existsStmt = $db->prepare('SELECT id, delivery_mode FROM topic_subscriptions WHERE topic_id = ? AND user_id = ?');
 $existsStmt->execute([$topicId, $user['id']]);
 $existing = $existsStmt->fetch();
 
+if ($mode !== '') {
+    $db->prepare(
+        'INSERT INTO topic_subscriptions (user_id, topic_id, delivery_mode) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE delivery_mode = VALUES(delivery_mode)'
+    )->execute([$user['id'], $topicId, $mode]);
+    pw_json(['ok' => true, 'watched' => true, 'delivery_mode' => $mode]);
+}
+
 if ($existing) {
     $db->prepare('DELETE FROM topic_subscriptions WHERE id = ?')->execute([$existing['id']]);
-    pw_json(['ok' => true, 'watched' => false]);
+    pw_json(['ok' => true, 'watched' => false, 'delivery_mode' => null]);
 }
 
 $db->prepare('INSERT INTO topic_subscriptions (user_id, topic_id) VALUES (?, ?)')->execute([$user['id'], $topicId]);
-pw_json(['ok' => true, 'watched' => true]);
+pw_json(['ok' => true, 'watched' => true, 'delivery_mode' => 'instant']);

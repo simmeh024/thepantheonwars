@@ -319,6 +319,7 @@ CREATE TABLE IF NOT EXISTS topic_subscriptions (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,
   topic_id INT UNSIGNED NOT NULL,
+  delivery_mode ENUM('instant','daily','mentions') NOT NULL DEFAULT 'instant',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY uniq_subscription (user_id, topic_id),
   KEY idx_subscriptions_topic (topic_id),

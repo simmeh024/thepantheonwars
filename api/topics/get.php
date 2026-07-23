@@ -54,6 +54,7 @@ $canDeleteAny = $currentUser ? pw_has_permission($currentUser, 'community.delete
 $likedByMe = false;
 $bookmarked = false;
 $watched = false;
+$subscriptionMode = null;
 if ($currentId !== null) {
     $myLikeStmt = $db->prepare("SELECT id FROM message_likes WHERE target_type = 'topic' AND target_id = ? AND user_id = ?");
     $myLikeStmt->execute([$id, $currentId]);
@@ -63,9 +64,18 @@ if ($currentId !== null) {
     $myBookmarkStmt->execute([$id, $currentId]);
     $bookmarked = (bool)$myBookmarkStmt->fetch();
 
-    $myWatchStmt = $db->prepare('SELECT id FROM topic_subscriptions WHERE topic_id = ? AND user_id = ?');
-    $myWatchStmt->execute([$id, $currentId]);
-    $watched = (bool)$myWatchStmt->fetch();
+    try {
+        $myWatchStmt = $db->prepare('SELECT id, delivery_mode FROM topic_subscriptions WHERE topic_id = ? AND user_id = ?');
+        $myWatchStmt->execute([$id, $currentId]);
+        $watchRow = $myWatchStmt->fetch();
+    } catch (PDOException $e) {
+        // The subscription-mode migration may be applied just after deploy.
+        $myWatchStmt = $db->prepare('SELECT id FROM topic_subscriptions WHERE topic_id = ? AND user_id = ?');
+        $myWatchStmt->execute([$id, $currentId]);
+        $watchRow = $myWatchStmt->fetch();
+    }
+    $watched = (bool)$watchRow;
+    $subscriptionMode = $watchRow ? (!empty($watchRow['delivery_mode']) ? $watchRow['delivery_mode'] : 'instant') : null;
 }
 
 $canEditOwn = $currentId !== null
@@ -137,6 +147,7 @@ pw_json([
         'likedByMe' => $likedByMe,
         'bookmarked' => $bookmarked,
         'watched' => $watched,
+        'subscription_mode' => $subscriptionMode,
         'poll' => $poll,
     ],
 ]);

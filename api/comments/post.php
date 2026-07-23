@@ -90,9 +90,27 @@ $commentId = (int)$db->lastInsertId();
 // the replier too so they hear about whatever comes after their own post.
 // Both best-effort: never block posting the reply itself.
 try {
-    $watcherStmt = $db->prepare('SELECT user_id FROM topic_subscriptions WHERE topic_id = ?');
+    $watcherStmt = $db->prepare('SELECT user_id, delivery_mode FROM topic_subscriptions WHERE topic_id = ?');
     $watcherStmt->execute([$topicId]);
     foreach ($watcherStmt->fetchAll() as $watcherRow) {
+        $deliveryMode = $watcherRow['delivery_mode'] ?: 'instant';
+        if ($deliveryMode === 'mentions') {
+            continue;
+        }
+        if ($deliveryMode === 'daily') {
+            $dailyStmt = $db->prepare(
+                'SELECT id FROM notifications
+                 WHERE user_id = ? AND type = "topic_reply" AND topic_id = ?
+                   AND created_at >= UTC_TIMESTAMP() - INTERVAL 1 DAY
+                 LIMIT 1'
+            );
+            $dailyStmt->execute([(int)$watcherRow['user_id'], $topicId]);
+            if ($dailyStmt->fetch()) {
+                continue;
+            }
+            pw_notify((int)$watcherRow['user_id'], 'topic_reply', $user['id'], $topicId, $commentId, null, 'Daily digest: ' . $body);
+            continue;
+        }
         pw_notify((int)$watcherRow['user_id'], 'topic_reply', $user['id'], $topicId, $commentId, null, $body);
     }
     $db->prepare('INSERT IGNORE INTO topic_subscriptions (user_id, topic_id) VALUES (?, ?)')->execute([$user['id'], $topicId]);

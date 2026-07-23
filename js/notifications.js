@@ -119,6 +119,9 @@ function initNotifications() {
       case 'news_published':
         return 'A news article has been published. Check it out: <strong>' + (excerpt || 'Latest news') + '</strong> &rarr;';
       case 'topic_reply':
+        if (excerpt && excerpt.indexOf('Daily digest:') === 0) {
+          return 'Your daily topic digest has new activity' + (n.topic_title ? ': <strong>' + escapeHtml(n.topic_title) + '</strong>' : '.');
+        }
         return '<strong>' + (actor || 'Someone') + '</strong> replied' + (n.topic_title ? ' in a topic you\'re watching: <strong>' + escapeHtml(n.topic_title) + '</strong>' : ' in a topic you\'re watching');
       case 'icon_unlocked':
         return 'Pure Resonance achieved. You unlocked the <strong>' + (excerpt || 'Overlord') + '</strong> icon &mdash; choose it in Profile Settings.';
