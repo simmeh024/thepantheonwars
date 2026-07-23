@@ -2923,6 +2923,24 @@
 .world-weather-card--reanium .world-weather-dose i {
   color: #cdf58a;
   text-shadow: 0 0 9px rgba(var(--rea-glow), 0.4);
+  transition: color 0.12s linear, text-shadow 0.12s linear;
+}
+/* Stalled: the reading dims and stops glowing, so a frozen count looks dead
+   rather than merely unchanged. */
+.world-weather-card--reanium .world-weather-dose i.is-dose-frozen {
+  color: #7f9668;
+  text-shadow: none;
+}
+/* Running away: it burns hot and jitters, an instrument overwhelmed. The
+   shake is a fraction of a pixel so the tabular figures do not reflow. */
+.world-weather-card--reanium .world-weather-dose i.is-dose-surge {
+  color: #eaffc4;
+  text-shadow: 0 0 16px rgba(var(--rea-glow), 0.95), 0 0 4px rgba(255, 255, 255, 0.6);
+  animation: reanium-dose-jitter 0.09s steps(2, end) infinite;
+}
+@keyframes reanium-dose-jitter {
+  0% { transform: translateX(-0.4px); }
+  100% { transform: translateX(0.4px); }
 }
 .world-weather-card--reanium .world-weather-dose-mark {
   background: #b6f25c;

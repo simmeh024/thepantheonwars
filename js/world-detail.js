@@ -444,9 +444,74 @@ document.addEventListener('DOMContentLoaded', function () {
     return Math.max(0, total * (0.06 + progress * 0.94) + wander);
   }
 
+  /**
+   * The instrument's own behaviour, kept apart from the clock so it can be
+   * stepped deterministically rather than only watched.
+   *
+   * A dosimeter on the Glass Flats is not a reliable instrument. It stalls,
+   * catches up in a rush that overshoots the real figure, holds there, then
+   * settles back. That is worse to read than a steady climb, which is the
+   * point: a counter you cannot trust says more about this world than a high
+   * number does.
+   *
+   * Returns what to show and how long to wait, so the cadence follows the
+   * phase -- two seconds while it behaves, eighty milliseconds while it runs
+   * away -- instead of one fixed interval fast enough for the worst case.
+   */
+  function doseInstrument() {
+    var phase = 'normal';
+    var until = 0;
+    var held = 0;
+    var peak = 0;
+
+    return function step(now, truth, rnd) {
+      if (phase === 'frozen') {
+        if (now < until) return { value: held, delay: Math.min(500, until - now), phase: 'frozen' };
+        phase = 'surge';
+        // Everything the stall missed, arriving at once and then some.
+        peak = held + 14 + rnd() * 12;
+        until = now + 1100;
+        return { value: held, delay: 80, phase: 'surge' };
+      }
+      if (phase === 'surge') {
+        var left = until - now;
+        if (left <= 0) {
+          phase = 'hold';
+          until = now + 1400;
+          return { value: peak, delay: 120, phase: 'surge' };
+        }
+        return { value: held + (peak - held) * (1 - left / 1100), delay: 80, phase: 'surge' };
+      }
+      if (phase === 'hold') {
+        if (now < until) return { value: peak, delay: Math.min(300, until - now), phase: 'surge' };
+        phase = 'ease';
+        until = now + 1500;
+        return { value: peak, delay: 90, phase: 'surge' };
+      }
+      if (phase === 'ease') {
+        var rem = until - now;
+        if (rem <= 0) {
+          phase = 'normal';
+          return { value: truth, delay: 2000, phase: 'normal' };
+        }
+        // Eased rather than snapped, so the recovery reads as an instrument
+        // correcting itself instead of the number simply flickering.
+        return { value: peak + (truth - peak) * (1 - rem / 1500), delay: 90, phase: 'surge' };
+      }
+      // Roughly one fault a minute at this cadence.
+      if (rnd() < 0.035) {
+        phase = 'frozen';
+        held = truth;
+        until = now + 4000 + rnd() * 5000;
+        return { value: held, delay: Math.min(500, until - now), phase: 'frozen' };
+      }
+      return { value: truth, delay: 2000, phase: 'normal' };
+    };
+  }
+
   function startDoseReadout(card, weather, worldSlug) {
     if (doseTimer) {
-      window.clearInterval(doseTimer);
+      window.clearTimeout(doseTimer);
       doseTimer = null;
     }
     var cfg = DOSE_WORLDS[worldSlug];
@@ -454,19 +519,39 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!cfg || !valueEl) return;
 
     var total = doseDailyTotal(weather, worldSlug);
-    function paint() {
-      valueEl.textContent = doseReading(total).toFixed(1) + ' ' + cfg.unit;
+    function paint(value, phase) {
+      valueEl.textContent = value.toFixed(1) + ' ' + cfg.unit;
+      // The stall and the run-away get their own classes so the readout can
+      // show it is misbehaving, not just move. Absent in the normal phase, so
+      // a well-behaved instrument carries no state.
+      valueEl.classList.toggle('is-dose-frozen', phase === 'frozen');
+      valueEl.classList.toggle('is-dose-surge', phase === 'surge');
     }
-    paint();
+    paint(doseReading(total), 'normal');
 
-    // A reading that changes under someone who asked for less motion is worse
-    // than a still one, so it is painted once and left.
+    // A reading that stalls and lurches under someone who asked for less
+    // motion is worse than a still one, so it is painted once and left.
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    // No request is made here, so there is nothing to poll -- the hidden check
-    // only avoids repainting a card nobody is looking at.
-    doseTimer = window.setInterval(function () {
-      if (!document.hidden) paint();
-    }, 2000);
+
+    var step = doseInstrument();
+    var delay = 2000;
+    function run() {
+      doseTimer = window.setTimeout(function () {
+        // No request is made here, so there is nothing to poll -- this only
+        // avoids repainting a card nobody is looking at. The phase is left
+        // where it was, so a hidden tab resumes rather than lurching.
+        if (document.hidden) {
+          delay = 2000;
+          run();
+          return;
+        }
+        var out = step(Date.now(), doseReading(total), Math.random);
+        paint(out.value, out.phase);
+        delay = out.delay;
+        run();
+      }, delay);
+    }
+    run();
   }
 
   /**
