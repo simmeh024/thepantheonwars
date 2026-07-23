@@ -2165,6 +2165,69 @@
   56%, 100% { opacity: 0; }
 }
 
+/* The projection loses confidence with distance, so the far end of the strip
+   is a worse picture than the near end -- the same thing the hourly panel
+   already says in words with its "confidence degrades beyond 6h" line, said
+   here in the picture instead.
+
+   Addressed from the end of the strip rather than by fixed position, so this
+   still means "the last two days" if the forecast is ever a different length.
+   The figures are deliberately left at full strength: they are the reading,
+   and dimming them would cost legibility to say something the chrome can say
+   on its own. What thins is the icon, and what degrades is the label, which
+   picks up a channel split rather than losing luminance. */
+/* The icon carries most of the falloff because it is the one part with no
+   contrast floor to respect. The day name is dimmed far more gently: at 0.68
+   the last one measured 4.30:1, under AA, so the visible degradation was
+   moved onto the icon rather than bought with legibility. */
+.world-weather-card--neoh .world-weather-day:nth-last-child(2) .world-weather-day-icon { opacity: 0.68; }
+.world-weather-card--neoh .world-weather-day:nth-last-child(1) .world-weather-day-icon { opacity: 0.44; }
+.world-weather-card--neoh .world-weather-day:nth-last-child(2) .world-weather-day-name { opacity: 0.86; }
+.world-weather-card--neoh .world-weather-day:nth-last-child(1) .world-weather-day-name { opacity: 0.78; }
+.world-weather-card--neoh .world-weather-day:nth-last-child(2) .world-weather-day-condition,
+.world-weather-card--neoh .world-weather-day:nth-last-child(1) .world-weather-day-condition {
+  text-shadow: 0.6px 0 rgba(255, 40, 110, 0.45), -0.6px 0 rgba(60, 240, 255, 0.45);
+}
+/* Deliberately different cycles: on one shared duration the far days would
+   slip together, which reads as the whole strip moving rather than as two
+   projections failing independently. Neither is a factor of the other, so
+   they stay out of phase instead of meeting every few cycles. */
+.world-weather-card--neoh .world-weather-day:nth-last-child(2) .world-weather-day-condition {
+  animation: neoh-weather-slip 8.3s steps(1, end) infinite;
+}
+.world-weather-card--neoh .world-weather-day:nth-last-child(1) .world-weather-day-condition {
+  animation: neoh-weather-slip 5.9s steps(1, end) infinite;
+}
+@keyframes neoh-weather-slip {
+  0%, 91% { transform: none; }
+  92% { transform: translateX(-1.5px); }
+  93% { transform: translateX(1.5px); }
+  94%, 100% { transform: none; }
+}
+
+/* Registration marks: the framing of a monitored feed rather than a border.
+   Eight bars drawn as background layers on one pseudo-element, which is why
+   this needs no markup -- four corners, each an L, with the card's own edge
+   left alone. Static on purpose; the icon and the caret already move, and a
+   third moving thing would read as noise rather than as surveillance. */
+.world-weather-card--neoh::before {
+  --neoh-mark: rgba(120, 216, 238, 0.45);
+  content: '';
+  position: absolute;
+  z-index: 0;
+  inset: 9px;
+  pointer-events: none;
+  background:
+    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 0 0 / 12px 1px no-repeat,
+    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 0 0 / 1px 12px no-repeat,
+    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 100% 0 / 12px 1px no-repeat,
+    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 100% 0 / 1px 12px no-repeat,
+    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 0 100% / 12px 1px no-repeat,
+    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 0 100% / 1px 12px no-repeat,
+    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 100% 100% / 12px 1px no-repeat,
+    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 100% 100% / 1px 12px no-repeat;
+}
+
 /* Every other calibrated world (except The Nexus Veil, neutral ground with
    no per-medallion atlas motif) gets the same treatment: reuse that world's
    existing js/world-atlas-effects.js glow color rather than inventing a new
