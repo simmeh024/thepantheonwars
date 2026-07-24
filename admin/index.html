@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=287">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=289">
 </head>
 <body>
 
@@ -323,7 +323,7 @@
           </div>
         </div>
 
-        <section class="community-pulse-card" aria-labelledby="community-pulse-title">
+        <section class="community-pulse-card" aria-labelledby="community-pulse-title" data-home-card="community-pulse" data-home-zone="pulse" data-home-card-label="Community Pulse">
           <div class="community-pulse-head">
             <div class="community-pulse-title-wrap">
               <span class="community-pulse-icon" aria-hidden="true">
@@ -343,7 +343,7 @@
         </div>
 
         <div class="bh4-side-col bh4-side-col--actions">
-        <div class="quick-actions-card" id="quick-actions-card">
+        <div class="quick-actions-card" id="quick-actions-card" data-home-card="quick-actions" data-home-zone="actions" data-home-card-label="Quick Actions">
           <div class="system-status-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
             <span>Quick Actions</span>
@@ -418,7 +418,7 @@
           </ul>
         </div>
 
-        <div class="activity-widget content-drafts-card" id="content-drafts-card">
+        <div class="activity-widget content-drafts-card" id="content-drafts-card" data-home-card="content-drafts" data-home-zone="actions" data-home-card-label="Content Drafts">
           <div class="activity-widget-head">
             <div class="activity-widget-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/><line x1="12" y1="8" x2="16" y2="8"/><line x1="12" y1="12" x2="16" y2="12"/></svg>
@@ -432,7 +432,7 @@
         </div>
 
         <div class="bh4-side-col bh4-side-col--status">
-        <div class="system-status-card" id="system-status-card">
+        <div class="system-status-card" id="system-status-card" data-home-card="system-status" data-home-zone="status" data-home-card-label="System Status">
           <div class="system-status-head">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
             <span>System Status</span>
@@ -506,7 +506,7 @@
           </div>
         </div>
 
-        <div class="activity-widget security-snapshot-card" id="security-snapshot-card">
+        <div class="activity-widget security-snapshot-card" id="security-snapshot-card" data-home-card="security-snapshot" data-home-zone="status" data-home-card-label="Security Snapshot">
           <div class="activity-widget-head">
             <div class="activity-widget-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><path d="M9.5 12l1.8 1.8L15 10"/></svg>
@@ -6095,6 +6095,7 @@
     try { localStorage.setItem(homeLayoutStorageKey, JSON.stringify(normaliseHomeLayout(layout))); } catch (e) {}
   }
   function homeCardTitle(card) {
+    if (card.hasAttribute('data-home-card-label')) return card.getAttribute('data-home-card-label');
     var title = card.querySelector('.activity-widget-title span');
     return title ? title.textContent.trim() : card.getAttribute('data-home-card');
   }
@@ -6130,7 +6131,7 @@
   function initialiseHomeCustomization(userId) {
     homeLayoutStorageKey = HOME_LAYOUT_KEY_PREFIX + userId;
     homeCards().forEach(function (card) {
-      var head = card.querySelector('.activity-widget-head');
+      var head = card.querySelector('.activity-widget-head, .system-status-head, .community-pulse-head');
       if (!head || head.querySelector('.home-card-tools')) return;
       head.classList.add('is-home-card-drag-handle');
       var tools = document.createElement('div');

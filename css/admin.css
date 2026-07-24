@@ -715,10 +715,12 @@
 .activity-widget.is-home-card-dragging { opacity: 0.45; }
 .activity-widget.is-home-card-drop-target { border-color: var(--purple-bright); box-shadow: 0 0 0 2px rgba(162,121,236,0.18), 0 0 20px rgba(162,121,236,0.12); }
 .home-card-control.is-active { border-color: var(--gold-bright); color: var(--gold-bright); background: rgba(236,201,135,0.1); }
-.activity-widget.is-home-card-collapsed > :not(.activity-widget-head) { display: none; }
+.is-home-card-collapsed > :not(.is-home-card-drag-handle) { display: none; }
 .activity-widget.is-home-card-collapsed .activity-widget-head { border-bottom: 0; }
 .activity-widget.is-home-card-pinned { border-color: rgba(236,201,135,0.56); box-shadow: 0 0 20px rgba(236,201,135,0.06); }
 .activity-widget.is-home-card-pinned .activity-widget-head { background: linear-gradient(90deg, rgba(236,201,135,0.08), transparent); }
+.quick-actions-card.is-home-card-pinned, .system-status-card.is-home-card-pinned, .community-pulse-card.is-home-card-pinned { border-color: rgba(236,201,135,0.56); box-shadow: 0 0 20px rgba(236,201,135,0.06); }
+.quick-actions-card.is-home-card-pinned .system-status-head, .system-status-card.is-home-card-pinned .system-status-head, .community-pulse-card.is-home-card-pinned .community-pulse-head { background: linear-gradient(90deg, rgba(236,201,135,0.08), transparent); }
 
 .activity-widget-title-pending svg { color: var(--gold-bright); }
 .activity-widget-title-metrics svg { color: #45d1c9; }
