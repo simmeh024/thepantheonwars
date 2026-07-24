@@ -473,8 +473,8 @@ at that time.
   the site-wide `prefers-reduced-motion` behavior and pause while hidden/off-screen.
 - Cache-busting: bump the query version across every HTML reference and the relevant
   bundle/import when a static source changes. Current entry versions are public
-  `css/public.css?v=282`, community `css/community-bundle.css?v=274`, and admin
-  `css/admin-bundle.css?v=280`. Public pages use `css/public.css`, community pages
+  `css/public.css?v=307`, community `css/community-bundle.css?v=308`, and admin
+  `css/admin-bundle.css?v=281`. Public pages use `css/public.css`, community pages
   use `css/community-bundle.css`, and the console uses `css/admin-bundle.css`;
   `css/style.css` remains the legacy full compatibility bundle. The ordered source
   and bundle map is in `css/SOURCES.md`.
@@ -600,6 +600,175 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Real texture on Neoh's and High Hammer's weather cards.** Both switched
+  from a CSS-drawn surface to a real user-supplied image applied as a
+  `border-image` 9-slice, the same technique Babki Prime's tablet established
+  below. Neoh (`images/Neoh-wall-background.webp`, 1122x1402) got a projected
+  hologram HUD panel -- measured corners cyan at top drifting cooler/violet at
+  the foot -- replacing the CSS-drawn registration-mark bars, plus three new
+  touches layered under its existing icon glitch: an always-on ambient bloom
+  on every reading, a hologram scan line (6.2s), and a rare whole-panel power
+  flicker (11.7s), all three durations deliberately not multiples of each
+  other or of the icon glitch's 6.5s. `stretch`, not `round`: this frame has a
+  plain glow line with no repeating glyphs to protect from a mid-tile seam.
+  High Hammer (`images/High-hammer-background.webp`, same 1122x1402 source
+  dimensions) got a real riveted iron plate, replacing the four CSS-drawn
+  corner rivets its own code comment had already flagged as "the same
+  technique as Neoh's registration marks, which is why the two must never
+  both apply" -- the real plate carries genuine bolted hardware now, so the
+  simulated set was removed rather than left duplicating it. Both use
+  `border-width: 28px`, `100 fill / 28px / 0 stretch`, and padding trimmed to
+  `13px 15px` to compensate, matching Babki's own adjustment.
+  Neoh needed a real contrast pass -- text sits over the projected texture --
+  and one was caught only by checking a *compounded* case: the far-day
+  forecast's own pre-existing opacity dimming (0.78/0.86, tuned against the
+  old muted colour) still failed AA (4.00:1) even after the base fix, because
+  a generic contrast sweep only samples the first, undimmed DOM match. Landed
+  on `#e0ecf6`, unifying `--wx-muted`, day-name and footer to one value/family,
+  clearing even the dimmed case at 4.99:1. High Hammer needed no equivalent
+  pass: its border-image sits only in the border box, never under text, so
+  swapping the frame material didn't touch any existing contrast reading.
+  As with Babki below, this sandbox cannot composite or screenshot, so each
+  frame's exact visual balance (the 100/92 slice, the 28/27px width) is
+  unverified until viewed live.
+  `content.css?v=268` / `public.css?v=307` / `community-bundle.css?v=308`.
+
+- **Auto-generate toggle for Today and Tomorrow's weather.** Two new
+  independent per-world flags, `current_auto` and `tomorrow_auto`
+  (`sql/migration_weather_auto_forecast.sql`, idempotent `ADD COLUMN IF NOT
+  EXISTS`), let either of the two previously always-fixed, admin-authored
+  days opt into the same generated path days 3-5 have always used, without
+  disturbing the other day or any world that leaves both off (default 0, so
+  nothing changes until an admin flips one). `current_secondary` (the small
+  flavour line) is blanked under `current_auto` rather than shown against a
+  condition it was never written for -- there is no generated equivalent for
+  it. A real bug was caught while wiring this, not introduced by it: the
+  top-level `current` summary object re-read the raw authored columns
+  directly instead of the day-loop's own `forecast[0]`, so even with the
+  toggle read correctly everywhere else the hero display would have kept
+  showing the stale authored figure beside a correctly generated day tile;
+  fixed by having `current` mirror `forecast[0]` throughout. All four read
+  paths that touch these columns (including `api/weather/witness.php`, which
+  independently re-derives severity to guard the storm-witness award) use the
+  established guarded-fallback pattern -- try the new columns, fall back to
+  the pre-migration list on `PDOException` -- so deploy order isn't
+  load-bearing. Weather Control's toggle greys the paired fields rather than
+  hiding them, so the last authored values stay visible and still save,
+  letting a toggle-off restore exactly what was there. Verified by porting
+  the generator branch to Python (21 assertions: both-off is byte-identical
+  to the old behaviour, each toggle only touches its own day, generated
+  values stay in-range, same inputs are deterministic, a missing-column
+  profile behaves as fully authored) and by exercising the real admin
+  functions in a browser, including the real risk that a disabled `<input>`
+  is excluded from native form submission but not from the scripted
+  `.value` read this save path actually uses.
+  `admin.css?v=235` / `admin-bundle.css?v=281`.
+
+- **Babki Prime's tablet, refined in three follow-up passes.** All three
+  build on the real-texture swap documented just below.
+  1. *Carved in, not laid over*: every panel's bevel had light on top and
+     shadow below -- the signature of a raised surface sitting on the stone,
+     when the slab's own light falls from the top-left and a real recess
+     should be dark along its top/left walls with a lit lower-right lip. A
+     shared `--bab-recess` now gives every panel that correct cut, flat fills
+     dropped from 0.34-0.42 alpha to 0.18-0.26 so granite reads through
+     rather than being hidden under a tint, and the gold inlay direction was
+     likewise inverted (dark above, lit below). Re-measured across the full
+     stone-scrim-panel stack against the texture's brightest crack: worst
+     reading (footer) 4.68:1.
+  2. *Worn gilding, not fresh gold leaf*: all 11 gold text/icon colours mixed
+     16% toward a duller stone-ash tone, with the inlay's lit lip and glow
+     both trimmed. The live-archive status dot and the advisory's daubed
+     ochre glyph were deliberately left untouched -- one is a light rather
+     than lettering, the other is meant to read as pigment freshly pressed
+     onto old stone. Re-verified worst case (climate line) still clears AA
+     at 4.66:1.
+  3. *Served as WebP*: the border-image source moved from a 3MB PNG to a
+     906KB WebP at the same 1190x1322 (slice unchanged) and the PNG was
+     removed from the repo -- per the standing cPanel gotcha, `cp -R` never
+     deletes on deploy, so the orphaned PNG needs manual removal from
+     `public_html` via File Manager once live.
+  `content.css?v=263` / `public.css?v=302` / `community-bundle.css?v=303`
+  (final state after all three).
+
+- **Babki Prime's weather tablet, as a real carved-stone texture.** The
+  first real-texture `border-image` swap in this series, replacing the
+  CSS-drawn stela below with the supplied render
+  (`images/babki-stone-tablet.png`, 1190x1322, glyph frieze and corner seal
+  baked in): a symmetric 92px slice with `fill`, `round` (not `stretch`, so
+  the frieze band repeats cleanly down a tall card instead of smearing), a
+  27px transparent border reserving the frame, padding trimmed to suit, and a
+  dark granite gradient as the load-failure fallback. The texture's own
+  cracks and moss reach luminance 138 in places -- gold on that is only
+  ~3:1 -- so a 0.62 scrim (padding-box only, so the bright frieze itself
+  stays untouched) seats every reading on consistently dark granite,
+  measured by sampling the actual texture on a canvas; this took the worst
+  reading (footer) from 1.4:1 to 4.67:1. Established the pattern every later
+  real-texture card in this file follows: symmetric slice, transparent
+  border-color, trimmed padding, a plain-gradient load-failure fallback, and
+  -- since this sandbox cannot composite or screenshot -- an explicit note
+  that the slice and frame width are the two dials to check once deployed.
+
+- **Bespoke per-world weather card materials: High Hammer, Cerius, Reanium,
+  and Babki Prime (CSS-drawn, pre-dating the real-texture passes above).**
+  Each treats its world's weather card as a different physical object rather
+  than a reskin of the shared console template, reading the same
+  `is-weather-<icon>` class `world-detail.js` puts on every card (added here)
+  so the object itself can react to the live condition without any new
+  script or migration.
+  - **High Hammer**: a cast, struck, bolted foundry gauge plate -- engraved
+    type (dark stroke above, warm below), four domed rivets, chamfered
+    stamped-sheet day tags, a chevron-and-bolts warning plate, and the CRT
+    sweep repurposed as heat standing off the forge floor. Its one live
+    signal: a new `--heat` custom property, set by `applyHeatScale()` from
+    today's reading against *this world's own configured bounds* (never an
+    absolute temperature -- 43°C is ordinary on Sed, an event on Beoctica),
+    driving the current figure's colour from ash grey to near white, its
+    bloom, and the floor's own glow. Set on every card (not just this one)
+    exactly as `--world-weather-icon` is, so a future variant opting in needs
+    no plumbing change; removed rather than blanked when the range is
+    missing, since an empty custom property still counts as set and defeats
+    a `var()` fallback -- every consumer reads `var(--heat, 0.4)`.
+  - **Cerius**: imperial enamel gone to ruin -- ash lying wherever nothing
+    disturbs it, firelight climbing through three fractures *from below*
+    (the deliberate inverse of High Hammer, where the plate itself is hot),
+    and a cinderfall CRT-sweep replacement matching the atlas's own
+    `drawCerius()`. Reads `--veil` (how thick the air is) off the condition
+    class: soot darkens rather than washes out, so firelight and gilt both
+    go dull as smog thickens. Its advisory is deliberately the most neglected
+    object in the set -- visibly more ash, chipped enamel corners, a flaked
+    rule, a cracked wax-seal marker -- since this is the card telling a
+    reader the air will hurt them, so neglect you can see is worth having
+    and copy you can't read is not.
+  - **Reanium**: irradiated glass, with contamination light living *inside*
+    the material and crazing running across the readings themselves (screen-
+    blended, so a hairline crossing a glyph can only add light, never darken
+    it below AA). Its organizing idea is that radiation is stochastic, not
+    rhythmic: a smooth pulse reads as a heartbeat, so the live dot became an
+    8-burst Geiger counter at uneven intervals (longest gap 7x the shortest),
+    cut with `steps(1, end)` rather than eased. A follow-up pass
+    (`bb0df92`) made the dosimeter itself untrustworthy: a small state
+    machine (normal/frozen/surge/hold/ease) occasionally freezes the reading,
+    then overshoots by ~20 Sv before easing back to the true value -- a
+    counter you can't trust says more about the world's danger than a high
+    number does. Both the base dose readout (`c9b0b37`, seeded from the
+    forecast's own date so every visitor sees the same figure, colder days
+    dosing harder against Reanium's own configured range) and the fault
+    state machine were verified by stepping them with a controlled clock/RNG
+    rather than by eye.
+  - **Babki Prime** (original CSS-drawn pass, since replaced by the real
+    texture above): a carved jungle-temple stela the forest is reclaiming --
+    moss thinning upward from the foot, a root splitting one corner, incised
+    (not printed) type, leaf-fall replacing the CRT sweep to match the
+    atlas's `drawBabki()`. Reclamation is held strictly to edges and low
+    corners and never crosses a glyph.
+  Each card was verified against a harness built from `world-detail.js`'s own
+  real card template, always with the *previous* card in the series as an
+  unaffected control, checking every reading clears AA against that card's
+  own worst composited state (measured, not assumed) and that nothing
+  escapes the object's bounds at any width.
+  `world-detail.js?v=15` (final state after the Reanium fault-state pass).
 
 - **Weather-varying district quotes** (`world_quote_variants`, **run
   `sql/migration_world_quote_variants.sql` once**). A World Record district can
