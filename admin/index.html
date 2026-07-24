@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=282">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=283">
 </head>
 <body>
 
@@ -153,6 +153,15 @@
       <div class="admin-section-head">
         <h1>Home</h1>
         <p>A chronological record of administrator actions, system changes, and community moderation activity.</p>
+        <button type="button" class="home-customize-btn" id="home-customize-btn" aria-expanded="false" aria-controls="home-customize-panel">Customize Home</button>
+      </div>
+      <div class="home-customize-panel" id="home-customize-panel" hidden>
+        <div>
+          <strong>Your dashboard layout</strong>
+          <p>Pin important cards, collapse quieter ones, or change their order. These preferences are saved for your account on this browser.</p>
+        </div>
+        <div class="home-customize-controls" id="home-customize-controls"></div>
+        <button type="button" class="home-customize-reset" id="home-customize-reset">Reset layout</button>
       </div>
 
       <div class="admin-home-top-row">
@@ -523,7 +532,7 @@
       </div>
 
       <div class="admin-home-grid">
-        <div class="activity-widget admin-home-grid-main" data-requires-permission="dashboards.view_audit_log">
+        <div class="activity-widget admin-home-grid-main" data-home-card="activity" data-home-zone="main" data-requires-permission="dashboards.view_audit_log">
           <div class="activity-widget-head">
             <div class="activity-widget-title">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
@@ -545,7 +554,7 @@
           </div>
         </div>
 
-        <div class="activity-widget admin-home-grid-side">
+        <div class="activity-widget admin-home-grid-side" data-home-card="pending-work" data-home-zone="main">
           <div class="activity-widget-head">
             <div class="activity-widget-title activity-widget-title-pending">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><rect x="6" y="5" width="12" height="16" rx="2"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
@@ -580,7 +589,7 @@
           </ul>
         </div>
 
-        <div class="activity-widget admin-home-grid-side">
+        <div class="activity-widget admin-home-grid-side" data-home-card="community-metrics" data-home-zone="main">
           <div class="activity-widget-head">
             <div class="activity-widget-title activity-widget-title-metrics">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 20V10"/><path d="M12 20V4"/><path d="M7 20v-6"/></svg>
@@ -618,7 +627,7 @@
 
       <div class="admin-home-grid admin-home-grid-secondary">
         <div class="admin-home-grid-half home-stats-stack">
-        <div class="activity-widget site-stats-card">
+        <div class="activity-widget site-stats-card" data-home-card="site-statistics" data-home-zone="stats">
           <div class="activity-widget-head">
             <div class="activity-widget-title activity-widget-title-stats">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
@@ -658,7 +667,7 @@
           <p class="site-stats-footnote">All time</p>
         </div>
 
-        <div class="activity-widget translation-confidence-card">
+        <div class="activity-widget translation-confidence-card" data-home-card="translation-confidence" data-home-zone="stats">
           <div class="activity-widget-head">
             <div class="activity-widget-title activity-widget-title-confidence">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l2.6 5.3L20.5 9l-4.25 4.15 1 5.85L12 16.25 6.75 19l1-5.85L3.5 9l5.9-.7L12 3z"/></svg>
@@ -687,7 +696,7 @@
         </div>
         </div>
 
-        <div class="activity-widget admin-home-grid-half dev-snapshot-card">
+        <div class="activity-widget admin-home-grid-half dev-snapshot-card" data-home-card="development-snapshot" data-home-zone="snapshot">
           <div class="activity-widget-head">
             <div class="activity-widget-title activity-widget-title-snapshot">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
@@ -6033,6 +6042,153 @@
     if (!document.hidden) updateAdminUtcClock();
   });
 
+  // Home-card layout preferences are deliberately local to the signed-in admin
+  // and this browser. They affect presentation only, never shared dashboard data.
+  var HOME_LAYOUT_KEY_PREFIX = 'pw_admin_home_layout_v1_';
+  var homeCustomizeBtn = document.getElementById('home-customize-btn');
+  var homeCustomizePanel = document.getElementById('home-customize-panel');
+  var homeCustomizeControls = document.getElementById('home-customize-controls');
+  var homeCustomizeReset = document.getElementById('home-customize-reset');
+  var homeLayoutStorageKey = null;
+
+  function homeCards() { return Array.prototype.slice.call(document.querySelectorAll('[data-home-card]')); }
+  function defaultHomeLayout() {
+    var order = {};
+    homeCards().forEach(function (card) {
+      var zone = card.getAttribute('data-home-zone');
+      if (!order[zone]) order[zone] = [];
+      order[zone].push(card.getAttribute('data-home-card'));
+    });
+    return { order: order, pinned: [], collapsed: [] };
+  }
+  function normaliseHomeLayout(candidate) {
+    var defaults = defaultHomeLayout();
+    var saved = candidate && typeof candidate === 'object' ? candidate : {};
+    var order = {};
+    Object.keys(defaults.order).forEach(function (zone) {
+      var requested = Array.isArray(saved.order && saved.order[zone]) ? saved.order[zone] : [];
+      order[zone] = requested.filter(function (id) { return defaults.order[zone].indexOf(id) !== -1; });
+      defaults.order[zone].forEach(function (id) { if (order[zone].indexOf(id) === -1) order[zone].push(id); });
+    });
+    var valid = homeCards().map(function (card) { return card.getAttribute('data-home-card'); });
+    return {
+      order: order,
+      pinned: (Array.isArray(saved.pinned) ? saved.pinned : []).filter(function (id) { return valid.indexOf(id) !== -1; }),
+      collapsed: (Array.isArray(saved.collapsed) ? saved.collapsed : []).filter(function (id) { return valid.indexOf(id) !== -1; })
+    };
+  }
+  function loadHomeLayout() {
+    try { return normaliseHomeLayout(JSON.parse(localStorage.getItem(homeLayoutStorageKey))); }
+    catch (e) { return normaliseHomeLayout(null); }
+  }
+  function saveHomeLayout(layout) {
+    try { localStorage.setItem(homeLayoutStorageKey, JSON.stringify(normaliseHomeLayout(layout))); } catch (e) {}
+  }
+  function homeCardTitle(card) {
+    var title = card.querySelector('.activity-widget-title span');
+    return title ? title.textContent.trim() : card.getAttribute('data-home-card');
+  }
+  function applyHomeLayout(layout) {
+    layout = normaliseHomeLayout(layout);
+    Object.keys(layout.order).forEach(function (zone) {
+      var ids = layout.order[zone].slice().sort(function (a, b) {
+        return (layout.pinned.indexOf(b) !== -1) - (layout.pinned.indexOf(a) !== -1);
+      });
+      ids.forEach(function (id) {
+        var card = document.querySelector('[data-home-card="' + id + '"]');
+        if (card && card.parentElement) card.parentElement.appendChild(card);
+      });
+    });
+    homeCards().forEach(function (card) {
+      var id = card.getAttribute('data-home-card');
+      card.classList.toggle('is-home-card-pinned', layout.pinned.indexOf(id) !== -1);
+      card.classList.toggle('is-home-card-collapsed', layout.collapsed.indexOf(id) !== -1);
+      var pin = card.querySelector('[data-home-card-action="pin"]');
+      var collapse = card.querySelector('[data-home-card-action="collapse"]');
+      if (pin) { pin.classList.toggle('is-active', layout.pinned.indexOf(id) !== -1); pin.setAttribute('aria-pressed', layout.pinned.indexOf(id) !== -1 ? 'true' : 'false'); }
+      if (collapse) { collapse.classList.toggle('is-active', layout.collapsed.indexOf(id) !== -1); collapse.setAttribute('aria-expanded', layout.collapsed.indexOf(id) === -1 ? 'true' : 'false'); }
+    });
+    renderHomeLayoutControls(layout);
+  }
+  function renderHomeLayoutControls(layout) {
+    if (!homeCustomizeControls) return;
+    homeCustomizeControls.textContent = '';
+    Object.keys(layout.order).forEach(function (zone) {
+      layout.order[zone].forEach(function (id, index) {
+        var card = document.querySelector('[data-home-card="' + id + '"]');
+        if (!card) return;
+        var row = document.createElement('div');
+        row.className = 'home-layout-row' + (layout.pinned.indexOf(id) !== -1 ? ' is-pinned' : '');
+        row.innerHTML = '<span>' + escapeHtml(homeCardTitle(card)) + '</span>' +
+          '<button type="button" class="home-layout-move" data-home-layout-action="up" data-home-card-id="' + id + '" aria-label="Move up"' + (index === 0 ? ' disabled' : '') + '>&uarr;</button>' +
+          '<button type="button" class="home-layout-move" data-home-layout-action="down" data-home-card-id="' + id + '" aria-label="Move down"' + (index === layout.order[zone].length - 1 ? ' disabled' : '') + '>&darr;</button>' +
+          '<button type="button" class="home-layout-move" data-home-layout-action="pin" data-home-card-id="' + id + '" aria-label="Pin card">&#9733;</button>' +
+          '<button type="button" class="home-layout-move" data-home-layout-action="collapse" data-home-card-id="' + id + '" aria-label="Toggle card">&#8211;</button>';
+        homeCustomizeControls.appendChild(row);
+      });
+    });
+  }
+  function updateHomeLayout(mutator) {
+    var layout = loadHomeLayout();
+    mutator(layout);
+    saveHomeLayout(layout);
+    applyHomeLayout(layout);
+  }
+  function initialiseHomeCustomization(userId) {
+    homeLayoutStorageKey = HOME_LAYOUT_KEY_PREFIX + userId;
+    homeCards().forEach(function (card) {
+      var head = card.querySelector('.activity-widget-head');
+      if (!head || head.querySelector('.home-card-tools')) return;
+      var tools = document.createElement('div');
+      tools.className = 'home-card-tools';
+      tools.innerHTML = '<button type="button" class="home-card-control" data-home-card-action="pin" title="Pin card" aria-label="Pin card" aria-pressed="false">&#9733;</button>' +
+        '<button type="button" class="home-card-control" data-home-card-action="collapse" title="Collapse card" aria-label="Collapse card" aria-expanded="true">&#8722;</button>';
+      head.appendChild(tools);
+    });
+    applyHomeLayout(loadHomeLayout());
+  }
+  document.addEventListener('click', function (event) {
+    var cardAction = event.target.closest('[data-home-card-action]');
+    if (cardAction) {
+      var card = cardAction.closest('[data-home-card]');
+      if (!card) return;
+      var id = card.getAttribute('data-home-card');
+      updateHomeLayout(function (layout) {
+        var key = cardAction.getAttribute('data-home-card-action') === 'pin' ? 'pinned' : 'collapsed';
+        var at = layout[key].indexOf(id);
+        if (at === -1) layout[key].push(id); else layout[key].splice(at, 1);
+      });
+    }
+  });
+  if (homeCustomizeBtn) homeCustomizeBtn.addEventListener('click', function () {
+    var show = homeCustomizePanel.hidden;
+    homeCustomizePanel.hidden = !show;
+    homeCustomizeBtn.setAttribute('aria-expanded', show ? 'true' : 'false');
+  });
+  if (homeCustomizeControls) homeCustomizeControls.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-home-layout-action]');
+    if (!button || button.disabled) return;
+    var id = button.getAttribute('data-home-card-id');
+    updateHomeLayout(function (layout) {
+      var card = document.querySelector('[data-home-card="' + id + '"]');
+      var zone = card.getAttribute('data-home-zone');
+      var action = button.getAttribute('data-home-layout-action');
+      if (action === 'pin' || action === 'collapse') {
+        var key = action === 'pin' ? 'pinned' : 'collapsed'; var at = layout[key].indexOf(id);
+        if (at === -1) layout[key].push(id); else layout[key].splice(at, 1);
+        return;
+      }
+      var index = layout.order[zone].indexOf(id); var target = action === 'up' ? index - 1 : index + 1;
+      if (target >= 0 && target < layout.order[zone].length) {
+        var swap = layout.order[zone][target]; layout.order[zone][target] = id; layout.order[zone][index] = swap;
+      }
+    });
+  });
+  if (homeCustomizeReset) homeCustomizeReset.addEventListener('click', function () {
+    try { localStorage.removeItem(homeLayoutStorageKey); } catch (e) {}
+    applyHomeLayout(defaultHomeLayout());
+  });
+
   function checkAccess() {
     if (checkedAuth) return;
     checkedAuth = true;
@@ -6043,6 +6199,7 @@
     applyNavPermissions();
     populateSidebarUser(window.PW_AUTH.user);
     initialiseSidebarCustomization(window.PW_AUTH.user.id);
+    initialiseHomeCustomization(window.PW_AUTH.user.id);
     gate.hidden = true;
     shell.classList.add('is-ready');
     startAdminUtcClock();
