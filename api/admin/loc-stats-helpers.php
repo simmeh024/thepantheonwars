@@ -74,3 +74,53 @@ function pw_get_loc_stats($db, $forceRefresh = false) {
         'delta_today' => $prevRow ? ($totalLines - (int)$prevRow['total_lines']) : null,
     ];
 }
+
+function pw_get_delivery_7d_stats($db, $currentTotalLines = null) {
+    $startDate = date('Y-m-d', strtotime('-6 days'));
+    $baselineDate = date('Y-m-d', strtotime('-7 days'));
+    $days = [];
+    for ($offset = 0; $offset < 7; $offset++) {
+        $date = date('Y-m-d', strtotime($startDate . ' +' . $offset . ' days'));
+        $days[$date] = ['date' => $date, 'dispatches' => 0];
+    }
+
+    $dispatchStmt = $db->prepare(
+        'SELECT DATE(committed_at) AS date, COUNT(*) AS dispatches '
+        . 'FROM dispatch_entries WHERE committed_at >= ? GROUP BY DATE(committed_at)'
+    );
+    $dispatchStmt->execute([$startDate . ' 00:00:00']);
+    while ($row = $dispatchStmt->fetch()) {
+        if (isset($days[$row['date']])) {
+            $days[$row['date']]['dispatches'] = (int)$row['dispatches'];
+        }
+    }
+
+    $dayList = array_values($days);
+    $totalDispatches = 0;
+    $busiestDay = null;
+    foreach ($dayList as $day) {
+        $totalDispatches += $day['dispatches'];
+        if ($day['dispatches'] > 0 && ($busiestDay === null || $day['dispatches'] > $busiestDay['dispatches'])) {
+            $busiestDay = $day;
+        }
+    }
+
+    $netLocChange = null;
+    if ($currentTotalLines !== null) {
+        $baselineStmt = $db->prepare(
+            'SELECT total_lines FROM loc_snapshots WHERE captured_at <= ? ORDER BY captured_at DESC LIMIT 1'
+        );
+        $baselineStmt->execute([$baselineDate]);
+        $baselineRow = $baselineStmt->fetch();
+        if ($baselineRow) {
+            $netLocChange = $currentTotalLines - (int)$baselineRow['total_lines'];
+        }
+    }
+
+    return [
+        'days' => $dayList,
+        'total_dispatches' => $totalDispatches,
+        'busiest_day' => $busiestDay,
+        'net_loc_change' => $netLocChange,
+    ];
+}

@@ -216,6 +216,10 @@ $loc = $locStats === null ? ['ok' => false] : array_merge(['ok' => true], $locSt
 
 pw_ensure_repo_language_snapshot($db);
 $languages = array_merge(['ok' => true], pw_latest_repo_language_snapshot($db));
+$delivery = array_merge(
+    ['ok' => true],
+    pw_get_delivery_7d_stats($db, isset($loc['total_lines']) ? $loc['total_lines'] : null)
+);
 
 $payload = [
     'ok' => true,
@@ -229,7 +233,7 @@ $payload = [
     'community_pulse' => $communityPulse,
     'site_stats' => $siteStats,
     'translation_confidence' => $translationConfidence,
-    'development_snapshot' => ['loc' => $loc, 'languages' => $languages],
+    'development_snapshot' => ['loc' => $loc, 'languages' => $languages, 'delivery' => $delivery],
     'bh4' => $bh4,
     'system_status' => $systemStatus,
     'task_advisor' => $advisor,

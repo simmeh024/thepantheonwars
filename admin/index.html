@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=281">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=282">
 </head>
 <body>
 
@@ -712,6 +712,14 @@
               <div class="dev-snapshot-lang-list" id="dev-snapshot-lang-list">&hellip;</div>
               <div class="site-stat-label">Current Languages</div>
             </div>
+          </div>
+          <div class="dev-delivery-strip" aria-label="Seven-day development delivery summary">
+            <div class="dev-delivery-strip-head">
+              <span>7-Day Delivery</span>
+              <span id="dev-delivery-summary">Loading&hellip;</span>
+            </div>
+            <div class="dev-delivery-chart" id="dev-delivery-chart" aria-hidden="true"></div>
+            <div class="dev-delivery-details" id="dev-delivery-details">Loading&hellip;</div>
           </div>
           <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; padding:2px 20px 16px;">
             <p class="site-stats-footnote" id="dev-snapshot-updated" style="padding:0;">Loading&hellip;</p>
@@ -3929,6 +3937,7 @@
     loadTranslationConfidenceStats();
     loadDevSnapshotLanguages();
     loadDevSnapshotLoc();
+    loadDevSnapshotDelivery();
     renderBh4Welcome(data.bh4);
     loadSecuritySnapshot();
     homeSummaryBatch = null;
@@ -3981,6 +3990,7 @@
         loadTranslationConfidenceStats();
         loadDevSnapshotLanguages();
         loadDevSnapshotLoc();
+        loadDevSnapshotDelivery();
         loadBh4Welcome();
         loadSecuritySnapshot();
         homeSummaryBatch = null;
@@ -5029,6 +5039,9 @@
   var devSnapshotTodayCountEl = document.getElementById('dev-snapshot-today-count');
   var devSnapshotCategoryEl = document.getElementById('dev-snapshot-category');
   var devSnapshotLangListEl = document.getElementById('dev-snapshot-lang-list');
+  var devDeliverySummaryEl = document.getElementById('dev-delivery-summary');
+  var devDeliveryChartEl = document.getElementById('dev-delivery-chart');
+  var devDeliveryDetailsEl = document.getElementById('dev-delivery-details');
   var devSnapshotUpdatedEl = document.getElementById('dev-snapshot-updated');
   var devSnapshotRefreshBtn = document.getElementById('dev-snapshot-refresh-btn');
 
@@ -5036,6 +5049,8 @@
     HTML: '#ecc987', CSS: '#a279ec', PHP: '#6f76e8', JavaScript: '#45d1c9',
     TypeScript: '#3ecf8e', Python: '#e2984f', Shell: '#9aa0ac'
   };
+
+  var DEV_DELIVERY_DAY_FORMATTER = new Intl.DateTimeFormat('en-US', { weekday: 'short' });
 
   function loadSiteStats() {
     fetchHomeCard('site_stats', '/api/admin/site-stats/summary.php')
@@ -5124,11 +5139,15 @@
           return;
         }
         var top = data.languages.slice(0, 3);
+        ['JavaScript', 'Python'].forEach(function (languageName) {
+          var language = data.languages.find(function (item) { return item.name === languageName; });
+          if (language && !top.some(function (item) { return item.name === languageName; })) top.push(language);
+        });
         devSnapshotLangListEl.innerHTML = top.map(function (l) {
           var color = DEV_SNAPSHOT_LANG_COLORS[l.name] || '#e074b0';
           return '<div class="dev-snapshot-lang-row">' +
-            '<span class="dev-snapshot-lang-dot" style="background:' + color + '"></span>' +
-            '<span>' + escapeHtml(l.name) + '</span>' +
+            '<span class="dev-snapshot-lang-bar" style="--language-color:' + color + '; --language-width:' + Math.max(l.pct, 2) + '%"></span>' +
+            '<span class="dev-snapshot-lang-name">' + escapeHtml(l.name) + '</span>' +
             '<span class="dev-snapshot-lang-pct">' + l.pct + '%</span>' +
           '</div>';
         }).join('');
@@ -5140,6 +5159,43 @@
       .catch(function () {
         devSnapshotLangListEl.textContent = '—';
         devSnapshotUpdatedEl.textContent = '';
+      });
+  }
+
+  function loadDevSnapshotDelivery() {
+    fetchHomeCard('development_snapshot.delivery', '/api/admin/delivery-stats.php')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok || !data.days || !data.days.length) throw new Error('Delivery statistics unavailable');
+        var maximum = Math.max.apply(null, data.days.map(function (day) { return day.dispatches; }).concat([1]));
+        devDeliveryChartEl.innerHTML = data.days.map(function (day) {
+          var height = day.dispatches ? Math.max(18, Math.round((day.dispatches / maximum) * 100)) : 6;
+          var labelDate = new Date(day.date + 'T12:00:00');
+          var label = DEV_DELIVERY_DAY_FORMATTER.format(labelDate);
+          return '<div class="dev-delivery-day" title="' + label + ': ' + day.dispatches + (day.dispatches === 1 ? ' dispatch' : ' dispatches') + '">' +
+            '<span class="dev-delivery-bar' + (day.dispatches ? ' has-delivery' : '') + '" style="height:' + height + '%"></span>' +
+            '<span>' + label.charAt(0) + '</span>' +
+          '</div>';
+        }).join('');
+        devDeliverySummaryEl.textContent = data.total_dispatches + (data.total_dispatches === 1 ? ' dispatch' : ' dispatches');
+        var details = [];
+        if (data.net_loc_change !== null) {
+          details.push((data.net_loc_change > 0 ? '+' : '') + data.net_loc_change.toLocaleString('en-US') + ' net LOC');
+        } else {
+          details.push('LOC trend calibrating');
+        }
+        if (data.busiest_day) {
+          var busiestDate = new Date(data.busiest_day.date + 'T12:00:00');
+          details.push('Busiest: ' + DEV_DELIVERY_DAY_FORMATTER.format(busiestDate) + ' (' + data.busiest_day.dispatches + ')');
+        } else {
+          details.push('No Dispatches yet');
+        }
+        devDeliveryDetailsEl.textContent = details.join(' · ');
+      })
+      .catch(function () {
+        devDeliverySummaryEl.textContent = 'Unavailable';
+        devDeliveryChartEl.innerHTML = '';
+        devDeliveryDetailsEl.textContent = '';
       });
   }
 

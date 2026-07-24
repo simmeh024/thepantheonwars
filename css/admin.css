@@ -753,12 +753,22 @@
 .dev-snapshot-category {
   font-family: 'Cinzel', serif; font-size: 1.1rem; font-weight: 600; line-height: 1.2; color: var(--gold-bright);
 }
-.dev-snapshot-lang-list { display: flex; flex-direction: column; gap: 4px; }
+.dev-snapshot-lang-list { display: flex; flex-direction: column; gap: 6px; min-width: 180px; }
 .dev-snapshot-lang-row {
-  display: flex; align-items: center; gap: 6px; font-family: 'Jost', sans-serif; font-size: 0.78rem; color: var(--text-dim);
+  display: grid; grid-template-columns: 72px minmax(56px, 1fr) 38px; align-items: center; gap: 6px; font-family: 'Jost', sans-serif; font-size: 0.74rem; color: var(--text-dim);
 }
-.dev-snapshot-lang-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.dev-snapshot-lang-pct { color: var(--text-faint); font-size: 0.72rem; }
+.dev-snapshot-lang-bar { display: block; position: relative; height: 6px; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,0.07); }
+.dev-snapshot-lang-bar::after { content: ''; display: block; width: var(--language-width); height: 100%; border-radius: inherit; background: var(--language-color); box-shadow: 0 0 8px var(--language-color); }
+.dev-snapshot-lang-name { white-space: nowrap; }
+.dev-snapshot-lang-pct { color: var(--text-faint); font-size: 0.72rem; text-align: right; }
+.dev-delivery-strip { margin: 0 20px 12px; padding: 10px 12px 8px; border: 1px solid rgba(162,121,236,0.22); border-radius: 6px; background: rgba(104,62,169,0.08); }
+.dev-delivery-strip-head { display: flex; justify-content: space-between; gap: 12px; font-family: 'Jost', sans-serif; font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-faint); }
+.dev-delivery-strip-head span:last-child { color: #9a7bea; }
+.dev-delivery-chart { display: flex; align-items: flex-end; gap: 7px; height: 40px; margin-top: 7px; }
+.dev-delivery-day { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: flex-end; gap: 3px; height: 100%; font-family: 'Jost', sans-serif; font-size: 0.6rem; color: var(--text-faint); }
+.dev-delivery-bar { width: 100%; max-width: 22px; min-height: 2px; border-radius: 3px 3px 1px 1px; background: rgba(255,255,255,0.12); }
+.dev-delivery-bar.has-delivery { background: linear-gradient(180deg, #45d1c9, #9a7bea); box-shadow: 0 0 8px rgba(69,209,201,0.38); }
+.dev-delivery-details { margin-top: 6px; font-family: 'Jost', sans-serif; font-size: 0.69rem; color: var(--text-faint); }
 .dev-snapshot-loc-trend { font-family: 'Jost', sans-serif; font-size: 0.78rem; margin: 0; font-weight: 500; }
 .dev-snapshot-loc-trend .trend-arrow { margin-right: 3px; }
 .dev-snapshot-loc-trend.is-up { color: #3ecf8e; }
