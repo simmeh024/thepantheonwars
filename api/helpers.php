@@ -204,6 +204,10 @@ function pw_require_site_feature($feature, $message) {
     }
 }
 
+function pw_newsletter_unsubscribe_token($userId, $email) {
+    return hash_hmac('sha256', (int)$userId . '|' . strtolower(trim($email)), DB_PASS);
+}
+
 // --- Auth guards ---------------------------------------------------------------
 // A ban is only "active" if it was set AND (it's permanent, i.e. no expiry,
 // OR the expiry hasn't passed yet). Once banned_until passes, the account is

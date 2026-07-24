@@ -304,3 +304,15 @@ function pw_send_template_email($key, $recipientEmail, $variables = [], $options
     );
     return ['sent' => (bool)$sent, 'reason' => $sent ? 'sent' : 'transport_rejected'];
 }
+
+function pw_send_campaign_email($recipientEmail, $subject, $html, $text) {
+    $settings = pw_mail_settings();
+    if (!$settings['enabled'] || !$settings['transport_available'] || !filter_var($settings['from_email'], FILTER_VALIDATE_EMAIL)) return ['sent' => false, 'reason' => 'not_ready'];
+    if (pw_mail_uses_mailersend()) $result = pw_mail_send_via_mailersend($recipientEmail, $subject, $html, $text, $settings);
+    else {
+        $headers = ['MIME-Version: 1.0','From: "'.str_replace('"','',$settings['from_name']).'" <'.$settings['from_email'].'>','Reply-To: '.(filter_var($settings['reply_to'],FILTER_VALIDATE_EMAIL)?$settings['reply_to']:$settings['from_email']),'Content-Type: text/html; charset=UTF-8'];
+        $result = ['sent' => @mail($recipientEmail, $subject, $html, implode("\r\n", $headers)), 'provider_message_id' => null, 'detail' => 'Submitted through PHP mail.'];
+    }
+    pw_mail_log_outbound($result['sent']?'accepted':'failed','campaign',$recipientEmail,$settings,$subject,$result['detail'],strlen($html)+strlen($text),$result['provider_message_id']??null);
+    return ['sent'=>(bool)$result['sent'],'reason'=>$result['sent']?'sent':'transport_rejected'];
+}

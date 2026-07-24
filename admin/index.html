@@ -66,7 +66,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="mail" data-requires-permission="mail.view,mail.manage,mail.logs">
+    <div class="admin-nav-category is-collapsed" data-category="mail" data-requires-permission="mail.view,mail.manage,mail.logs,mail.campaigns.view,mail.campaigns.manage,mail.campaigns.send">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>Mail</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -74,6 +74,7 @@
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li data-requires-permission="mail.view"><button type="button" class="admin-nav-link" data-section="mail-settings"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v14H4z"/><path d="m4 7 8 6 8-6"/></svg>Mail Settings</button></li>
         <li data-requires-permission="mail.view"><button type="button" class="admin-nav-link" data-section="mail-templates"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h14v18H5z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Mail Templates</button></li>
+        <li data-requires-permission="mail.campaigns.view"><button type="button" class="admin-nav-link" data-section="mail-campaigns"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18v14H3z"/><path d="m3 7 9 6 9-6"/><path d="M8 17h8"/></svg>Mail Campaigns</button></li>
         <li data-requires-permission="mail.logs"><button type="button" class="admin-nav-link" data-section="mail-log"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Mail Log</button></li>
       </ul>
     </div>
@@ -1065,6 +1066,22 @@
       </div>
       <div class="mail-template-variables" id="mail-template-variables">Available variables are loading&hellip;</div>
       <div class="mail-template-list" id="mail-template-list"><div class="admin-list-empty">Loading mail templates&hellip;</div></div>
+    </section>
+
+    <section class="admin-section" id="section-mail-campaigns" hidden>
+      <div class="admin-section-head"><h1>Mail Campaigns</h1><p>Draft subscriber-only campaigns, preview the audience, and send only after an explicit confirmation.</p></div>
+      <div class="admin-toolbar"><button type="button" class="btn btn-solid" id="campaign-new-btn">New Campaign</button><span class="admin-count" id="campaign-count"></span></div>
+      <div class="admin-list" id="campaign-list"><div class="admin-list-empty">Loading campaigns&hellip;</div></div>
+      <form class="admin-form-card" id="campaign-form" hidden>
+        <div class="admin-form-card-head"><div><h2 id="campaign-form-title">New Campaign</h2><p>Recipients are frozen from opted-in, non-banned members only when you explicitly begin delivery.</p><p id="campaign-audience-estimate">Checking eligible newsletter subscribers&hellip;</p></div></div>
+        <input type="hidden" id="campaign-id-input">
+        <div class="admin-field"><label for="campaign-name-input">Internal name</label><input id="campaign-name-input" maxlength="120" required></div>
+        <div class="admin-field"><label for="campaign-subject-input">Email subject</label><input id="campaign-subject-input" maxlength="180" required></div>
+        <div class="admin-field"><label for="campaign-html-input">HTML body</label><textarea id="campaign-html-input" rows="10" required></textarea></div>
+        <div class="admin-field"><label for="campaign-text-input">Plain-text body</label><textarea id="campaign-text-input" rows="7" required></textarea></div>
+        <p class="admin-modal-error" id="campaign-error"></p><p class="admin-modal-status" id="campaign-status"></p>
+        <div class="admin-modal-actions"><button class="btn btn-solid" id="campaign-save-btn">Save Draft</button><button type="button" class="btn" id="campaign-prepare-btn" hidden>Prepare Audience</button><button type="button" class="btn" id="campaign-send-btn" hidden>Send Next Batch</button><button type="button" class="btn" id="campaign-cancel-btn">Cancel</button></div>
+      </form>
     </section>
 
     <section class="admin-section" id="section-mail-log" hidden>
@@ -4055,6 +4072,7 @@
       if (name === 'news-management') loadNewsList();
       if (name === 'site-settings') loadSiteSettings();
       if (name === 'mail-settings') loadMailSettings();
+      if (name === 'mail-campaigns') loadCampaigns();
       if (name === 'mail-templates') loadMailTemplates();
       if (name === 'mail-log') { loadMailLog(); loadMailSuppressions(mailSuppressionType); }
       if (name === 'dispatch-translations') loadList();
@@ -14190,6 +14208,18 @@
   });
 
   // ===== Mail settings and templates =========================================
+  var campaignListEl = document.getElementById('campaign-list'), campaignCountEl = document.getElementById('campaign-count'), campaignForm = document.getElementById('campaign-form');
+  var campaignIdInput = document.getElementById('campaign-id-input'), campaignNameInput = document.getElementById('campaign-name-input'), campaignSubjectInput = document.getElementById('campaign-subject-input'), campaignHtmlInput = document.getElementById('campaign-html-input'), campaignTextInput = document.getElementById('campaign-text-input'), campaignPrepareBtn = document.getElementById('campaign-prepare-btn'), campaignSendBtn=document.getElementById('campaign-send-btn');
+  function loadCampaigns() { if (!campaignListEl) return; fetch('/api/admin/mail-campaigns/list.php',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){if(!d.ok)throw new Error(d.error); var rows=d.campaigns||[]; campaignCountEl.textContent=rows.length+(rows.length===1?' campaign':' campaigns'); campaignListEl.innerHTML=rows.length?rows.map(function(c){return '<button type="button" class="admin-row" data-campaign-id="'+c.id+'"><span class="admin-row-main"><strong>'+escapeHtml(c.name)+'</strong><small>'+escapeHtml(c.subject)+'</small></span><span class="admin-row-meta">'+escapeHtml(c.status)+' · '+c.recipient_count+' recipients</span></button>';}).join(''):'<div class="admin-list-empty">No campaigns yet.</div>';}).catch(function(){campaignListEl.innerHTML='<div class="admin-list-empty">Could not load campaigns.</div>';}); }
+  var campaignAudienceEstimateEl = document.getElementById('campaign-audience-estimate');
+  function loadCampaignAudience(){fetch('/api/admin/mail-campaigns/audience.php',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){if(!d.ok)throw new Error();campaignAudienceEstimateEl.textContent=d.recipients+' eligible newsletter subscriber'+(d.recipients===1?'':'s')+' will be snapshotted when sending begins.';}).catch(function(){campaignAudienceEstimateEl.textContent='Could not estimate the campaign audience.';});}
+  function openCampaign(c){campaignForm.hidden=false; campaignIdInput.value=c?c.id:'';campaignNameInput.value=c?c.name:'';campaignSubjectInput.value=c?c.subject:'';campaignHtmlInput.value=c?c.html_body:'';campaignTextInput.value=c?c.text_body:'';campaignPrepareBtn.hidden=!c;campaignSendBtn.hidden=!c||!['ready','sending','paused'].includes(c.status);loadCampaignAudience();}
+  document.getElementById('campaign-new-btn').addEventListener('click',function(){openCampaign(null);}); document.getElementById('campaign-cancel-btn').addEventListener('click',function(){campaignForm.hidden=true;});
+  campaignListEl.addEventListener('click',function(e){var row=e.target.closest('[data-campaign-id]');if(!row)return;fetch('/api/admin/mail-campaigns/get.php?id='+encodeURIComponent(row.dataset.campaignId),{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(d){if(d.ok)openCampaign(d.campaign);});});
+  campaignForm.addEventListener('submit',function(e){e.preventDefault();fetch('/api/admin/mail-campaigns/save.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:window.PW_AUTH.csrf,id:campaignIdInput.value,name:campaignNameInput.value,subject:campaignSubjectInput.value,html_body:campaignHtmlInput.value,text_body:campaignTextInput.value})}).then(function(r){return r.json();}).then(function(d){if(!d.ok)throw new Error(d.error);campaignForm.hidden=true;loadCampaigns();}).catch(function(e){document.getElementById('campaign-error').textContent=e.message||'Could not save campaign.';});});
+  campaignPrepareBtn.addEventListener('click',function(){if(!confirm('Freeze the current opted-in audience for this campaign?'))return;fetch('/api/admin/mail-campaigns/prepare.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:window.PW_AUTH.csrf,id:campaignIdInput.value})}).then(function(r){return r.json();}).then(function(d){if(!d.ok)throw new Error(d.error);document.getElementById('campaign-status').textContent=d.recipients+' recipients prepared. No email has been sent.';loadCampaigns();}).catch(function(e){document.getElementById('campaign-error').textContent=e.message||'Could not prepare audience.';});});
+  campaignSendBtn.addEventListener('click',function(){if(!confirm('Send the next campaign batch now?'))return;fetch('/api/admin/mail-campaigns/send-batch.php',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({csrf:window.PW_AUTH.csrf,id:campaignIdInput.value})}).then(function(r){return r.json();}).then(function(d){if(!d.ok)throw new Error(d.error);document.getElementById('campaign-status').textContent=d.remaining?'Batch sent. '+d.remaining+' recipients remain.':'Campaign delivery complete.';loadCampaigns();}).catch(function(e){document.getElementById('campaign-error').textContent=e.message||'Could not send batch.';});});
+
   // The console manages sender identity and copy only. The common mail helper
   // keeps delivery opt-in and never stores transport credentials in this UI.
   var mailSettingsForm = document.getElementById('mail-settings-form');
