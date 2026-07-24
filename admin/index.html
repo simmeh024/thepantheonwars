@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=293">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=294">
 </head>
 <body>
 
@@ -16021,7 +16021,7 @@
           }
         }
         var row = document.createElement('div'); row.className = 'admin-row quiz-question-management-row';
-        row.innerHTML = '<div class="quiz-question-title"><p class="admin-row-subject">' + escapeHtml(question.question_text) + (question.is_active ? '' : ' <span class="report-status report-status-resolved">Inactive</span>') + '</p></div><span class="quiz-question-order">Order ' + question.sort_order + '</span><span class="quiz-question-answers">' + answers + '</span><button type="button" class="btn btn-solid quiz-question-edit-btn">Edit question</button>';
+        row.innerHTML = '<div class="quiz-question-title"><p class="admin-row-subject">' + escapeHtml(question.question_text) + (question.is_active ? '' : ' <span class="report-status report-status-resolved">Inactive</span>') + '</p></div><span class="quiz-question-order">Order ' + question.sort_order + '</span><span class="quiz-question-answers">' + answers + '</span><button type="button" class="btn btn-solid quiz-question-edit-btn">Edit</button>';
         row.querySelector('button').addEventListener('click', function () { openQuizQuestionModal(question); });
         quizQuestionListEl.appendChild(row);
       });
