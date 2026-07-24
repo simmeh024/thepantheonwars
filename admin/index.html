@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=303">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=304">
 </head>
 <body>
 
@@ -13388,6 +13388,14 @@
   var dialogueCanvasLayout = null;
 
   dialogueTreeMapEl.addEventListener('scroll', updateDialogueTreeMinimapViewport);
+  dialogueTreeMapEl.addEventListener('pointerdown', function (event) {
+    if (event.button !== 0 || !dialogueTreeMapEl.classList.contains('is-pannable')) return;
+    var target = event.target;
+    var interactiveTarget = target && target.closest
+      ? target.closest('button, input, textarea, select, label, .dialogue-tree-branch-popover') : null;
+    if (interactiveTarget) return;
+    dialogueTreeStartCanvasPan(event);
+  });
 
   function dialogueTreeClone(tree) {
     return JSON.parse(JSON.stringify(tree || { version: 1, start_node_id: '', nodes: [] }));
@@ -13445,6 +13453,40 @@
       x: (event.clientX - rect.left + dialogueTreeMapEl.scrollLeft) / dialogueCanvasZoom,
       y: (event.clientY - rect.top + dialogueTreeMapEl.scrollTop) / dialogueCanvasZoom
     };
+  }
+
+  function dialogueTreeStartCanvasPan(event) {
+    var map = dialogueTreeMapEl;
+    var startX = event.clientX;
+    var startY = event.clientY;
+    var startScrollLeft = map.scrollLeft;
+    var startScrollTop = map.scrollTop;
+    var moved = false;
+    map.setPointerCapture(event.pointerId);
+    map.addEventListener('pointermove', panCanvas);
+    map.addEventListener('pointerup', finishCanvas);
+    map.addEventListener('pointercancel', finishCanvas);
+
+    function panCanvas(moveEvent) {
+      var deltaX = moveEvent.clientX - startX;
+      var deltaY = moveEvent.clientY - startY;
+      if (!moved && Math.abs(deltaX) + Math.abs(deltaY) < 3) return;
+      moved = true;
+      map.classList.add('is-panning');
+      map.scrollLeft = startScrollLeft - deltaX;
+      map.scrollTop = startScrollTop - deltaY;
+      moveEvent.preventDefault();
+    }
+
+    function finishCanvas(finishEvent) {
+      map.removeEventListener('pointermove', panCanvas);
+      map.removeEventListener('pointerup', finishCanvas);
+      map.removeEventListener('pointercancel', finishCanvas);
+      map.classList.remove('is-panning');
+      if (map.hasPointerCapture && map.hasPointerCapture(finishEvent.pointerId)) {
+        map.releasePointerCapture(finishEvent.pointerId);
+      }
+    }
   }
 
   function dialogueTreeSetCanvasZoom(nextZoom) {
@@ -13664,6 +13706,7 @@
     var tree = currentDialogueTree.tree;
     var nodes = dialogueTreeNodes();
     dialogueTreeMapEl.innerHTML = '';
+    dialogueTreeMapEl.classList.toggle('is-pannable', nodes.length > 0);
     var branchCount = dialogueBranchTotal(tree);
     dialogueTreeOverviewCountEl.textContent = nodes.length + (nodes.length === 1 ? ' dialogue \u00b7 ' : ' dialogues \u00b7 ') + branchCount + (branchCount === 1 ? ' branch' : ' branches');
     if (!nodes.length) {

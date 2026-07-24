@@ -3098,6 +3098,8 @@
 .dialogue-tree-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 365px; min-height: 650px; margin-top: 13px; border: 1px solid rgba(162,121,236,0.24); background: #080811; }
 .dialogue-tree-canvas-area { position: relative; min-width: 0; overflow: hidden; }
 .dialogue-tree-map { min-height: 650px; height: min(680px, calc(100vh - 210px)); max-height: none; margin: 0; border: 0; border-right: 1px solid rgba(162,121,236,0.24); }
+.dialogue-tree-map.is-pannable, .dialogue-tree-map.is-pannable .dialogue-tree-canvas-stage { cursor: grab; }
+.dialogue-tree-map.is-panning, .dialogue-tree-map.is-panning .dialogue-tree-canvas-stage { cursor: grabbing; user-select: none; }
 .dialogue-tree-canvas-stage { position: relative; min-width: 100%; min-height: 100%; }
 .dialogue-tree-canvas { transform-origin: top left; }
 .dialogue-tree-inspector { display: flex; min-height: 0; max-height: min(680px, calc(100vh - 210px)); flex-direction: column; gap: 11px; padding: 13px; overflow: auto; background: linear-gradient(180deg, rgba(19,13,33,0.98), rgba(8,7,17,0.98)); scrollbar-color: rgba(162,121,236,0.58) rgba(8,8,17,0.9); }
