@@ -3309,6 +3309,10 @@ at that time.
   is color-coded by its fixed 1-15 workflow value, and Preview always renders
   explicitly On or Off. The column header collapses into a two-line row layout
   below 900px, so all status data remains available on smaller screens.
+- World Control mirrors that scan-first approach with four columns (World,
+  Tagline, Overlord, Availability). Its thumbnail remains beside the world
+  name, empty values are explicitly shown as `No tagline` / `Unassigned`, and
+  reordering/editing actions retain their own full-width row below the data.
 - **Persistent sign-in recovery:** a 30-day PHP cookie is not sufficient by
   itself on shared hosting because PHP can garbage-collect the corresponding
   server-side session much sooner. `api/helpers.php` now aligns

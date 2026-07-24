@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=290">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=291">
 </head>
 <body>
 
@@ -2053,7 +2053,13 @@
         <span class="admin-count" id="world-count"></span>
       </div>
 
-      <div class="admin-list" id="world-list">
+      <div class="world-list-columns" aria-hidden="true">
+        <span>World</span>
+        <span>Tagline</span>
+        <span>Overlord</span>
+        <span>Availability</span>
+      </div>
+      <div class="admin-list world-management-list" id="world-list">
         <div class="admin-list-empty">Loading worlds&hellip;</div>
       </div>
     </section>
@@ -11865,19 +11871,18 @@
     worldListEl.innerHTML = '';
     entries.forEach(function (entry, i) {
       var row = document.createElement('div');
-      row.className = 'admin-row world-row';
+      row.className = 'admin-row world-management-row';
       row.tabIndex = 0;
       row.innerHTML =
-        (entry.thumb_image_url ? '<img class="admin-row-cover" src="' + resolveSiteImageUrl(entry.thumb_image_url) + '" alt="">' : '') +
-        '<div class="admin-row-main">' +
-          '<p class="world-row-title">' + escapeHtml(entry.name) + '</p>' +
-        '</div>' +
-        '<div class="world-row-status">' +
-          (entry.overlord_name ? '<span class="world-overlord-pill">' + escapeHtml(entry.overlord_name) + '</span>' : '') +
-          '<span class="world-status-pill ' + (entry.status === 'available' ? 'is-available' : 'is-locked') + '">' +
-            (entry.status === 'available' ? 'Available' : 'Locked') +
-          '</span>' +
-        '</div>';
+        '<span class="world-management-world">' +
+          (entry.thumb_image_url ? '<img class="world-management-cover" src="' + resolveSiteImageUrl(entry.thumb_image_url) + '" alt="">' : '') +
+          '<span class="world-management-name">' + escapeHtml(entry.name) + '</span>' +
+        '</span>' +
+        '<span class="world-management-tagline' + (entry.tagline ? '' : ' is-empty') + '">' + escapeHtml(entry.tagline || 'No tagline') + '</span>' +
+        '<span class="world-overlord-pill' + (entry.overlord_name ? '' : ' is-unassigned') + '">' + escapeHtml(entry.overlord_name || 'Unassigned') + '</span>' +
+        '<span class="world-status-pill ' + (entry.status === 'available' ? 'is-available' : 'is-locked') + '">' +
+          (entry.status === 'available' ? 'Available' : 'Locked') +
+        '</span>';
 
       var actions = document.createElement('div');
       actions.className = 'role-row-actions';
