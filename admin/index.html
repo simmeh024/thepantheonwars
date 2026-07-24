@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=283">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=284">
 </head>
 <body>
 
@@ -158,7 +158,7 @@
       <div class="home-customize-panel" id="home-customize-panel" hidden>
         <div>
           <strong>Your dashboard layout</strong>
-          <p>Pin important cards, collapse quieter ones, or change their order. These preferences are saved for your account on this browser.</p>
+          <p>Drag a card by its header to place it where you want. Pin and collapse controls remain available on every card. These preferences are saved for your account on this browser.</p>
         </div>
         <div class="home-customize-controls" id="home-customize-controls"></div>
         <button type="button" class="home-customize-reset" id="home-customize-reset">Reset layout</button>
@@ -6050,29 +6050,38 @@
   var homeCustomizeControls = document.getElementById('home-customize-controls');
   var homeCustomizeReset = document.getElementById('home-customize-reset');
   var homeLayoutStorageKey = null;
+  var draggingHomeCard = null;
 
   function homeCards() { return Array.prototype.slice.call(document.querySelectorAll('[data-home-card]')); }
   function defaultHomeLayout() {
-    var order = {};
+    var order = {}, zones = {};
     homeCards().forEach(function (card) {
       var zone = card.getAttribute('data-home-zone');
       if (!order[zone]) order[zone] = [];
-      order[zone].push(card.getAttribute('data-home-card'));
+      var id = card.getAttribute('data-home-card');
+      order[zone].push(id);
+      zones[id] = zone;
     });
-    return { order: order, pinned: [], collapsed: [] };
+    return { order: order, zones: zones, pinned: [], collapsed: [] };
   }
   function normaliseHomeLayout(candidate) {
     var defaults = defaultHomeLayout();
     var saved = candidate && typeof candidate === 'object' ? candidate : {};
+    var valid = homeCards().map(function (card) { return card.getAttribute('data-home-card'); });
+    var zones = {};
+    valid.forEach(function (id) {
+      var requestedZone = saved.zones && saved.zones[id];
+      zones[id] = Object.prototype.hasOwnProperty.call(defaults.order, requestedZone) ? requestedZone : defaults.zones[id];
+    });
     var order = {};
     Object.keys(defaults.order).forEach(function (zone) {
       var requested = Array.isArray(saved.order && saved.order[zone]) ? saved.order[zone] : [];
-      order[zone] = requested.filter(function (id) { return defaults.order[zone].indexOf(id) !== -1; });
-      defaults.order[zone].forEach(function (id) { if (order[zone].indexOf(id) === -1) order[zone].push(id); });
+      order[zone] = requested.filter(function (id) { return valid.indexOf(id) !== -1 && zones[id] === zone; });
+      valid.forEach(function (id) { if (zones[id] === zone && order[zone].indexOf(id) === -1) order[zone].push(id); });
     });
-    var valid = homeCards().map(function (card) { return card.getAttribute('data-home-card'); });
     return {
       order: order,
+      zones: zones,
       pinned: (Array.isArray(saved.pinned) ? saved.pinned : []).filter(function (id) { return valid.indexOf(id) !== -1; }),
       collapsed: (Array.isArray(saved.collapsed) ? saved.collapsed : []).filter(function (id) { return valid.indexOf(id) !== -1; })
     };
@@ -6091,12 +6100,14 @@
   function applyHomeLayout(layout) {
     layout = normaliseHomeLayout(layout);
     Object.keys(layout.order).forEach(function (zone) {
+      var host = document.querySelector('[data-home-zone="' + zone + '"]');
+      if (!host || !host.parentElement) return;
       var ids = layout.order[zone].slice().sort(function (a, b) {
         return (layout.pinned.indexOf(b) !== -1) - (layout.pinned.indexOf(a) !== -1);
       });
       ids.forEach(function (id) {
         var card = document.querySelector('[data-home-card="' + id + '"]');
-        if (card && card.parentElement) card.parentElement.appendChild(card);
+        if (card) { card.setAttribute('data-home-zone', zone); host.parentElement.appendChild(card); }
       });
     });
     homeCards().forEach(function (card) {
@@ -6112,21 +6123,7 @@
   }
   function renderHomeLayoutControls(layout) {
     if (!homeCustomizeControls) return;
-    homeCustomizeControls.textContent = '';
-    Object.keys(layout.order).forEach(function (zone) {
-      layout.order[zone].forEach(function (id, index) {
-        var card = document.querySelector('[data-home-card="' + id + '"]');
-        if (!card) return;
-        var row = document.createElement('div');
-        row.className = 'home-layout-row' + (layout.pinned.indexOf(id) !== -1 ? ' is-pinned' : '');
-        row.innerHTML = '<span>' + escapeHtml(homeCardTitle(card)) + '</span>' +
-          '<button type="button" class="home-layout-move" data-home-layout-action="up" data-home-card-id="' + id + '" aria-label="Move up"' + (index === 0 ? ' disabled' : '') + '>&uarr;</button>' +
-          '<button type="button" class="home-layout-move" data-home-layout-action="down" data-home-card-id="' + id + '" aria-label="Move down"' + (index === layout.order[zone].length - 1 ? ' disabled' : '') + '>&darr;</button>' +
-          '<button type="button" class="home-layout-move" data-home-layout-action="pin" data-home-card-id="' + id + '" aria-label="Pin card">&#9733;</button>' +
-          '<button type="button" class="home-layout-move" data-home-layout-action="collapse" data-home-card-id="' + id + '" aria-label="Toggle card">&#8211;</button>';
-        homeCustomizeControls.appendChild(row);
-      });
-    });
+    homeCustomizeControls.innerHTML = '<p class="home-customize-drag-note">Drag any card directly from its header and drop it before another card anywhere on the dashboard.</p>';
   }
   function updateHomeLayout(mutator) {
     var layout = loadHomeLayout();
@@ -6139,6 +6136,9 @@
     homeCards().forEach(function (card) {
       var head = card.querySelector('.activity-widget-head');
       if (!head || head.querySelector('.home-card-tools')) return;
+      head.draggable = true;
+      head.classList.add('is-home-card-drag-handle');
+      head.title = 'Drag to reorder this card';
       var tools = document.createElement('div');
       tools.className = 'home-card-tools';
       tools.innerHTML = '<button type="button" class="home-card-control" data-home-card-action="pin" title="Pin card" aria-label="Pin card" aria-pressed="false">&#9733;</button>' +
@@ -6147,6 +6147,41 @@
     });
     applyHomeLayout(loadHomeLayout());
   }
+  document.addEventListener('dragstart', function (event) {
+    var head = event.target.closest('.is-home-card-drag-handle');
+    if (!head || event.target.closest('button, a')) { if (head) event.preventDefault(); return; }
+    draggingHomeCard = head.closest('[data-home-card]');
+    if (!draggingHomeCard) return;
+    event.dataTransfer.effectAllowed = 'move';
+    event.dataTransfer.setData('text/plain', draggingHomeCard.getAttribute('data-home-card'));
+    draggingHomeCard.classList.add('is-home-card-dragging');
+  });
+  document.addEventListener('dragover', function (event) {
+    var target = event.target.closest('[data-home-card]');
+    if (!draggingHomeCard || !target || target === draggingHomeCard) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    target.classList.add('is-home-card-drop-target');
+  });
+  document.addEventListener('dragleave', function (event) {
+    var target = event.target.closest('[data-home-card]');
+    if (target) target.classList.remove('is-home-card-drop-target');
+  });
+  document.addEventListener('drop', function (event) {
+    var target = event.target.closest('[data-home-card]');
+    if (!draggingHomeCard || !target || target === draggingHomeCard) return;
+    event.preventDefault();
+    var zone = target.getAttribute('data-home-zone');
+    target.parentElement.insertBefore(draggingHomeCard, target);
+    updateHomeLayout(function (layout) {
+      layout.zones[draggingHomeCard.getAttribute('data-home-card')] = zone;
+      layout.order[zone] = Array.prototype.slice.call(target.parentElement.querySelectorAll(':scope > [data-home-card]')).map(function (card) { return card.getAttribute('data-home-card'); });
+    });
+  });
+  document.addEventListener('dragend', function () {
+    homeCards().forEach(function (card) { card.classList.remove('is-home-card-dragging', 'is-home-card-drop-target'); });
+    draggingHomeCard = null;
+  });
   document.addEventListener('click', function (event) {
     var cardAction = event.target.closest('[data-home-card-action]');
     if (cardAction) {
@@ -6164,25 +6199,6 @@
     var show = homeCustomizePanel.hidden;
     homeCustomizePanel.hidden = !show;
     homeCustomizeBtn.setAttribute('aria-expanded', show ? 'true' : 'false');
-  });
-  if (homeCustomizeControls) homeCustomizeControls.addEventListener('click', function (event) {
-    var button = event.target.closest('[data-home-layout-action]');
-    if (!button || button.disabled) return;
-    var id = button.getAttribute('data-home-card-id');
-    updateHomeLayout(function (layout) {
-      var card = document.querySelector('[data-home-card="' + id + '"]');
-      var zone = card.getAttribute('data-home-zone');
-      var action = button.getAttribute('data-home-layout-action');
-      if (action === 'pin' || action === 'collapse') {
-        var key = action === 'pin' ? 'pinned' : 'collapsed'; var at = layout[key].indexOf(id);
-        if (at === -1) layout[key].push(id); else layout[key].splice(at, 1);
-        return;
-      }
-      var index = layout.order[zone].indexOf(id); var target = action === 'up' ? index - 1 : index + 1;
-      if (target >= 0 && target < layout.order[zone].length) {
-        var swap = layout.order[zone][target]; layout.order[zone][target] = id; layout.order[zone][index] = swap;
-      }
-    });
   });
   if (homeCustomizeReset) homeCustomizeReset.addEventListener('click', function () {
     try { localStorage.removeItem(homeLayoutStorageKey); } catch (e) {}

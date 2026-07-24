@@ -698,6 +698,7 @@
 .home-customize-panel strong { font-family: 'Jost', sans-serif; font-size: 0.8rem; color: var(--text); }
 .home-customize-panel p { max-width: 470px; margin: 4px 0 0; font-size: 0.76rem; color: var(--text-faint); }
 .home-customize-controls { display: grid; flex: 1 1 390px; gap: 6px; }
+.home-customize-drag-note { margin: 0 !important; max-width: none !important; color: var(--purple-bright) !important; }
 .home-layout-row { display: grid; grid-template-columns: minmax(120px, 1fr) auto auto auto auto; align-items: center; gap: 6px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font: 0.74rem 'Jost', sans-serif; color: var(--text-dim); }
 .home-layout-row:last-child { border-bottom: 0; }
 .home-layout-row.is-pinned > span { color: var(--gold-bright); }
@@ -706,6 +707,10 @@
 .home-customize-reset { align-self: center; padding: 7px 10px; }
 .home-customize-reset:hover, .home-layout-move:hover:not(:disabled), .home-card-control:hover { border-color: var(--purple-bright); color: var(--purple-bright); }
 .home-card-tools { display: flex; gap: 5px; margin-left: auto; }
+.is-home-card-drag-handle { cursor: grab; user-select: none; }
+.is-home-card-drag-handle:active { cursor: grabbing; }
+.activity-widget.is-home-card-dragging { opacity: 0.45; }
+.activity-widget.is-home-card-drop-target { border-color: var(--purple-bright); box-shadow: 0 0 0 2px rgba(162,121,236,0.18), 0 0 20px rgba(162,121,236,0.12); }
 .home-card-control.is-active { border-color: var(--gold-bright); color: var(--gold-bright); background: rgba(236,201,135,0.1); }
 .activity-widget.is-home-card-collapsed > :not(.activity-widget-head) { display: none; }
 .activity-widget.is-home-card-collapsed .activity-widget-head { border-bottom: 0; }
