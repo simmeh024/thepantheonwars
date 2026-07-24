@@ -699,6 +699,7 @@
 .home-layout-settings-btn:hover::after, .home-layout-settings-btn:focus-visible::after { opacity: 1; }
 .home-layout-settings-btn:hover, .home-layout-settings-btn[aria-expanded="true"] { border-color: var(--purple-bright); color: var(--purple-bright); }
 .home-layout-settings-panel { position: absolute; top: calc(100% + 6px); right: 0; display: flex; gap: 6px; min-width: max-content; padding: 7px; border: 1px solid var(--border); border-radius: 7px; background: rgba(24,14,45,0.98); box-shadow: 0 10px 24px rgba(0,0,0,0.3); }
+.home-layout-settings-panel[hidden] { display: none; }
 .home-layout-edit-btn, .home-customize-reset { padding: 7px 9px; }
 .home-layout-edit-btn[aria-pressed="true"] { border-color: var(--gold-bright); color: var(--gold-bright); background: rgba(236,201,135,0.1); }
 .home-layout-row { display: grid; grid-template-columns: minmax(120px, 1fr) auto auto auto auto; align-items: center; gap: 6px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font: 0.74rem 'Jost', sans-serif; color: var(--text-dim); }
