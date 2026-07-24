@@ -40,61 +40,12 @@ try {
     $reputation = pw_reputation_info($points);
     $nextRankUnlocks = [];
     if (!empty($reputation['next_level_id'])) {
-        $nextName = (string)$reputation['next_level_name'];
-        $nextThreshold = (int)$reputation['next_level_threshold'];
-        $nextColor = (string)($reputation['next_level_color'] ?? '#a279ec');
-        // These rank distinctions are immediate, built-in rank effects. They
-        // appear before content unlocks so every next rank has a complete,
-        // truthful preview even if no timeline entry has been assigned yet.
-        $nextRankUnlocks[] = [
-            'type' => 'forum_rank',
-            'title' => 'Forum rank title',
-            'eyebrow' => 'Community identity',
-            'description' => 'Your forum standing will display as ' . $nextName . '.',
-            'accent' => $nextColor,
-        ];
-        $nextRankUnlocks[] = [
-            'type' => 'profile_aura',
-            'title' => 'Profile aura',
-            'eyebrow' => 'Profile distinction',
-            'description' => 'Your reputation bar and profile rank signal will adopt the ' . $nextName . ' aura.',
-            'accent' => $nextColor,
-        ];
-        $nextRankUnlocks[] = [
-            'type' => 'rank_marker',
-            'title' => 'Standing marker',
-            'eyebrow' => 'Community standing',
-            'description' => 'Your reputation badge advances to rank ' . (int)$reputation['next_level_number'] . ' in the community ladder.',
-            'accent' => $nextColor,
-        ];
-        try {
-            $unlockStmt = $db->prepare(
-                'SELECT title, era_label, date_label, summary, accent_color
-                 FROM timeline_events
-                 WHERE is_published = 1 AND required_level_id = ?
-                 ORDER BY sort_order ASC, id ASC'
-            );
-            $unlockStmt->execute([(int)$reputation['next_level_id']]);
-            foreach ($unlockStmt->fetchAll() as $event) {
-                $when = array_filter([trim((string)$event['era_label']), trim((string)$event['date_label'])]);
-                $detail = trim((string)$event['summary']);
-                $nextRankUnlocks[] = [
-                    'type' => 'timeline',
-                    'title' => (string)$event['title'],
-                    'eyebrow' => 'Timeline record',
-                    'description' => trim(($when ? implode(' · ', $when) . ' — ' : '') . $detail),
-                    'accent' => preg_match('/\A#[a-fA-F0-9]{6}\z/', (string)$event['accent_color']) ? $event['accent_color'] : $nextColor,
-                ];
-            }
-        } catch (PDOException $e) {
-            // Timeline Control may be deployed after Reputation; rank identity
-            // previews remain useful while that optional unlock source is absent.
-        }
-        foreach ($nextRankUnlocks as &$unlock) {
-            $unlock['threshold'] = $nextThreshold;
-            $unlock['rank_name'] = $nextName;
-        }
-        unset($unlock);
+        $nextRankUnlocks = pw_reputation_level_unlocks($db, [
+            'id' => (int)$reputation['next_level_id'],
+            'name' => (string)$reputation['next_level_name'],
+            'threshold' => (int)$reputation['next_level_threshold'],
+            'color' => (string)($reputation['next_level_color'] ?? '#a279ec'),
+        ], (int)$reputation['next_level_number']);
     }
     pw_json(['ok' => true, 'reputation' => $reputation, 'next_rank_unlocks' => $nextRankUnlocks, 'achievements' => $achievements, 'showcase_keys' => $showcaseKeys]);
 } catch (Throwable $e) {

@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=309">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=310">
 </head>
 <body>
 
@@ -2014,6 +2014,7 @@
 
       <div class="admin-toolbar">
         <button type="button" class="btn btn-solid" id="reputation-level-create-btn">+ Add Level</button>
+        <button type="button" class="btn" id="reputation-unlocks-btn" aria-expanded="false" aria-controls="reputation-unlock-overview">View Rank Unlocks</button>
         <button type="button" class="btn" id="reputation-rewards-btn">View Reward Rules</button>
         <button type="button" class="btn" id="reputation-multiplier-btn" data-requires-permission="reputation.edit">Multiplier Event</button>
         <button type="button" class="btn" id="reputation-ledger-btn">View Ledger</button>
@@ -2021,6 +2022,18 @@
         <span class="reputation-multiplier-status" id="reputation-multiplier-status">Checking event status&hellip;</span>
         <span class="admin-count" id="reputation-level-count"></span>
       </div>
+
+      <section class="reputation-unlock-overview" id="reputation-unlock-overview" hidden aria-labelledby="reputation-unlock-overview-title">
+        <div class="reputation-unlock-overview-head">
+          <div>
+            <h2 id="reputation-unlock-overview-title">Rank unlock overview</h2>
+            <p>Every live unlock players receive at each reputation rank. Expand a rank to inspect the individual rewards.</p>
+          </div>
+        </div>
+        <div class="reputation-unlock-overview-list" id="reputation-unlock-overview-list">
+          <div class="admin-list-empty">Loading rank unlocks&hellip;</div>
+        </div>
+      </section>
 
       <div class="admin-list" id="reputation-level-list">
         <div class="admin-list-empty">Loading reputation levels&hellip;</div>
@@ -15580,6 +15593,9 @@
   var reputationLevelListEl = document.getElementById('reputation-level-list');
   var reputationLevelCountEl = document.getElementById('reputation-level-count');
   var reputationLevelCreateBtn = document.getElementById('reputation-level-create-btn');
+  var reputationUnlocksBtn = document.getElementById('reputation-unlocks-btn');
+  var reputationUnlockOverview = document.getElementById('reputation-unlock-overview');
+  var reputationUnlockOverviewList = document.getElementById('reputation-unlock-overview-list');
   var reputationRewardsBtn = document.getElementById('reputation-rewards-btn');
   var reputationMultiplierBtn = document.getElementById('reputation-multiplier-btn');
   var reputationMultiplierStatus = document.getElementById('reputation-multiplier-status');
@@ -15601,6 +15617,7 @@
   var reputationLevelModalMode = 'create';
   var currentReputationLevel = null;
   var reputationSettings = null;
+  var reputationLevelsCache = [];
 
   var reputationRewardsModal = document.getElementById('reputation-rewards-modal');
   var reputationRewardsModalSub = document.getElementById('reputation-rewards-modal-sub');
@@ -15724,11 +15741,15 @@
       .then(function (r) { return r.json(); })
       .then(function (data) {
         var levels = (data.ok && data.levels) || [];
+        reputationLevelsCache = levels;
         reputationLevelCountEl.textContent = levels.length + (levels.length === 1 ? ' level' : ' levels');
         renderReputationLevelList(levels);
+        renderReputationUnlockOverview(levels);
       })
       .catch(function () {
+        reputationLevelsCache = [];
         reputationLevelListEl.innerHTML = '<div class="admin-list-empty">Could not load reputation levels.</div>';
+        if (!reputationUnlockOverview.hidden) reputationUnlockOverviewList.innerHTML = '<div class="admin-list-empty">Could not load rank unlocks.</div>';
       });
     loadReputationSettings();
     return levelRequest;
@@ -15756,6 +15777,47 @@
         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openReputationLevelModal(level); }
       });
       reputationLevelListEl.appendChild(row);
+    });
+  }
+
+  function renderReputationUnlockOverview(levels) {
+    if (!levels.length) {
+      reputationUnlockOverviewList.innerHTML = '<div class="admin-list-empty">No reputation ranks have been created yet.</div>';
+      return;
+    }
+    reputationUnlockOverviewList.innerHTML = '';
+    levels.forEach(function (level, index) {
+      var unlocks = Array.isArray(level.unlocks) ? level.unlocks : [];
+      var unlockCount = Number.isFinite(Number(level.unlock_count)) ? Number(level.unlock_count) : unlocks.length;
+      var row = document.createElement('details');
+      row.className = 'reputation-rank-unlock-row';
+      var summary = document.createElement('summary');
+      summary.innerHTML =
+        '<span class="reputation-rank-unlock-identity">' +
+          '<span class="reputation-bar-square" style="background:' + escapeHtml(level.color) + '"></span>' +
+          '<span><strong>Rank ' + (index + 1) + ' · ' + escapeHtml(level.name) + '</strong><small>' + Number(level.threshold) + ' reputation</small></span>' +
+        '</span>' +
+        '<span class="reputation-rank-unlock-count">' + unlockCount + ' ' + (unlockCount === 1 ? 'unlock' : 'unlocks') + '</span>';
+      row.appendChild(summary);
+
+      var details = document.createElement('div');
+      details.className = 'reputation-rank-unlock-details';
+      if (!unlocks.length) {
+        details.innerHTML = '<p class="reputation-rank-unlock-empty">No live player unlocks are currently attached to this rank.</p>';
+      } else {
+        unlocks.forEach(function (unlock) {
+          var item = document.createElement('article');
+          item.className = 'reputation-rank-unlock-item';
+          item.style.setProperty('--unlock-accent', unlock.accent || level.color || '#a279ec');
+          item.innerHTML =
+            '<small>' + escapeHtml(unlock.eyebrow || 'Rank unlock') + '</small>' +
+            '<strong>' + escapeHtml(unlock.title || 'Untitled unlock') + '</strong>' +
+            (unlock.description ? '<p>' + escapeHtml(unlock.description) + '</p>' : '');
+          details.appendChild(item);
+        });
+      }
+      row.appendChild(details);
+      reputationUnlockOverviewList.appendChild(row);
     });
   }
 
@@ -15796,6 +15858,13 @@
   }
 
   reputationLevelCreateBtn.addEventListener('click', openCreateReputationLevelModal);
+  reputationUnlocksBtn.addEventListener('click', function () {
+    var willShow = reputationUnlockOverview.hidden;
+    reputationUnlockOverview.hidden = !willShow;
+    reputationUnlocksBtn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+    reputationUnlocksBtn.textContent = willShow ? 'Hide Rank Unlocks' : 'View Rank Unlocks';
+    if (willShow) renderReputationUnlockOverview(reputationLevelsCache);
+  });
   reputationLevelCloseBtn.addEventListener('click', closeReputationLevelModal);
   reputationLevelCancelBtn.addEventListener('click', closeReputationLevelModal);
   reputationLevelModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeReputationLevelModal);

@@ -595,6 +595,83 @@ function pw_reputation_info(int $reputation): array {
 }
 
 /**
+ * Returns the live, player-facing unlocks attached to one reputation level.
+ * Both the public reputation preview and the admin rank overview use this
+ * single catalog so a rank can never promise something different in either
+ * place. Timeline records only count once they are published, matching the
+ * point at which a player could actually receive and view the content.
+ */
+function pw_reputation_level_unlocks(PDO $db, array $level, int $rankNumber): array {
+    $levelId = (int)($level['id'] ?? 0);
+    $levelName = trim((string)($level['name'] ?? ''));
+    $threshold = max(0, (int)($level['threshold'] ?? 0));
+    $levelColor = (string)($level['color'] ?? '');
+    if (!preg_match('/\A#[a-fA-F0-9]{6}\z/', $levelColor)) {
+        $levelColor = '#a279ec';
+    }
+
+    // Rank distinctions are immediate, built-in effects. They appear before
+    // optional content unlocks so every level has a complete, truthful entry.
+    $unlocks = [
+        [
+            'type' => 'forum_rank',
+            'title' => 'Forum rank title',
+            'eyebrow' => 'Community identity',
+            'description' => 'Your forum standing will display as ' . $levelName . '.',
+            'accent' => $levelColor,
+        ],
+        [
+            'type' => 'profile_aura',
+            'title' => 'Profile aura',
+            'eyebrow' => 'Profile distinction',
+            'description' => 'Your reputation bar and profile rank signal will adopt the ' . $levelName . ' aura.',
+            'accent' => $levelColor,
+        ],
+        [
+            'type' => 'rank_marker',
+            'title' => 'Standing marker',
+            'eyebrow' => 'Community standing',
+            'description' => 'Your reputation badge advances to rank ' . max(1, $rankNumber) . ' in the community ladder.',
+            'accent' => $levelColor,
+        ],
+    ];
+
+    if ($levelId > 0) {
+        try {
+            $unlockStmt = $db->prepare(
+                'SELECT title, era_label, date_label, summary, accent_color
+                 FROM timeline_events
+                 WHERE is_published = 1 AND required_level_id = ?
+                 ORDER BY sort_order ASC, id ASC'
+            );
+            $unlockStmt->execute([$levelId]);
+            foreach ($unlockStmt->fetchAll() as $event) {
+                $when = array_filter([trim((string)$event['era_label']), trim((string)$event['date_label'])]);
+                $detail = trim((string)$event['summary']);
+                $eventColor = (string)$event['accent_color'];
+                $unlocks[] = [
+                    'type' => 'timeline',
+                    'title' => (string)$event['title'],
+                    'eyebrow' => 'Timeline record',
+                    'description' => trim(($when ? implode(' · ', $when) . ' — ' : '') . $detail),
+                    'accent' => preg_match('/\A#[a-fA-F0-9]{6}\z/', $eventColor) ? $eventColor : $levelColor,
+                ];
+            }
+        } catch (PDOException $e) {
+            // Timeline Control may be deployed after Reputation; the built-in
+            // rank effects remain available while that optional source is absent.
+        }
+    }
+
+    foreach ($unlocks as &$unlock) {
+        $unlock['threshold'] = $threshold;
+        $unlock['rank_name'] = $levelName;
+    }
+    unset($unlock);
+    return $unlocks;
+}
+
+/**
  * Fixed 6-icon Overlord resonance catalog, in the same order as (and keyed
  * to) the hardcoded overlord list already used by quiz.html and this
  * file's own $validOverlords in api/save-quiz-result.php. Not admin-
