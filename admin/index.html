@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=310">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=311">
 </head>
 <body>
 
@@ -55,6 +55,16 @@
         <li data-requires-permission="known_figures.view"><button type="button" class="admin-nav-link" data-section="known-figures-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Known Figures Control</button></li>
         <li data-requires-permission="timeline.view"><button type="button" class="admin-nav-link" data-section="timeline-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><circle cx="7" cy="12" r="2"/><circle cx="13" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><path d="M7 10V6M13 14v4"/></svg>Timeline Control</button></li>
         <li data-requires-permission="soundtracks.view"><button type="button" class="admin-nav-link" data-section="soundtrack-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9 16V8l7-2v8"/><circle cx="8" cy="16" r="1.6"/><circle cx="15" cy="14" r="1.6"/></svg>Soundtrack Control</button></li>
+      </ul>
+    </div>
+
+    <div class="admin-nav-category is-collapsed" data-category="game" data-requires-permission="missions.view">
+      <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
+        <span>Game Control</span>
+        <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <ul class="admin-nav-list admin-nav-list-collapsible">
+        <li data-requires-permission="missions.view"><button type="button" class="admin-nav-link" data-section="mission-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18V6l8-3 8 3v12l-8 3z"/><path d="m4 6 8 3 8-3M12 9v12"/><path d="m8 14 2 2 4-4"/></svg>Missions</button></li>
       </ul>
     </div>
 
@@ -2040,6 +2050,39 @@
       </div>
     </section>
 
+    <section class="admin-section" id="section-mission-control" hidden>
+      <div class="admin-section-head">
+        <h1>Mission Control</h1>
+        <p>Manage the Neoh expedition loop: reusable mission definitions, the shared crew roster, and player mission diagnostics.</p>
+      </div>
+
+      <div class="admin-toolbar mission-admin-toolbar">
+        <div class="admin-filter-tabs" id="mission-admin-tabs" role="tablist" aria-label="Mission Control views">
+          <button type="button" class="admin-filter-tab active" data-mission-panel="definitions" role="tab" aria-selected="true">Mission Definitions</button>
+          <button type="button" class="admin-filter-tab" data-mission-panel="crew" role="tab" aria-selected="false">Crew</button>
+          <button type="button" class="admin-filter-tab" data-mission-panel="player-missions" role="tab" aria-selected="false" data-requires-permission="missions.player_missions">Player Missions</button>
+        </div>
+        <button type="button" class="btn btn-solid" id="mission-definition-create-btn" data-requires-permission="missions.edit">+ Add Mission</button>
+        <button type="button" class="btn btn-solid" id="mission-crew-create-btn" data-requires-permission="missions.edit" hidden>+ Add Crew Member</button>
+        <span class="admin-count" id="mission-admin-count"></span>
+      </div>
+
+      <div class="mission-admin-panel" id="mission-admin-definitions-panel">
+        <div class="mission-admin-columns" aria-hidden="true"><span>Mission</span><span>Type</span><span>Duration</span><span>Crew</span><span>Rewards</span><span>Status</span></div>
+        <div class="admin-list mission-admin-list" id="mission-definition-list"><div class="admin-list-empty">Loading mission definitions&hellip;</div></div>
+      </div>
+
+      <div class="mission-admin-panel" id="mission-admin-crew-panel" hidden>
+        <div class="mission-admin-columns mission-admin-crew-columns" aria-hidden="true"><span>Crew member</span><span>Role</span><span>World</span><span>Starter</span><span>Assigned</span><span>Status</span></div>
+        <div class="admin-list mission-admin-list" id="mission-crew-list"><div class="admin-list-empty">Loading crew&hellip;</div></div>
+      </div>
+
+      <div class="mission-admin-panel" id="mission-admin-player-missions-panel" hidden>
+        <div class="mission-admin-columns mission-admin-player-columns" aria-hidden="true"><span>Player</span><span>Mission</span><span>Crew</span><span>Started</span><span>Completes</span><span>Status</span></div>
+        <div class="admin-list mission-admin-list" id="mission-player-missions-list"><div class="admin-list-empty">Loading player missions&hellip;</div></div>
+      </div>
+    </section>
+
     <section class="admin-section" id="section-book-control" hidden>
       <div class="admin-section-head">
         <h1>Book Control</h1>
@@ -3970,6 +4013,62 @@
 <div class="admin-modal" id="reputation-ledger-modal" hidden><div class="admin-modal-backdrop"></div><div class="admin-modal-inner admin-modal-inner-wide"><button type="button" class="admin-modal-close" id="reputation-ledger-modal-close" aria-label="Close">&times;</button><h3 class="admin-modal-title">Reputation Ledger</h3><p class="admin-modal-sub">Every recorded award, reversal, and staff adjustment.</p><div id="reputation-ledger-list" class="admin-list"><div class="admin-list-empty">Loading ledger&hellip;</div></div><div class="admin-modal-actions"><button type="button" class="btn" id="reputation-ledger-modal-done-btn">Done</button></div></div></div>
 <div class="admin-modal" id="reputation-adjust-modal" hidden><div class="admin-modal-backdrop"></div><div class="admin-modal-inner"><button type="button" class="admin-modal-close" id="reputation-adjust-modal-close" aria-label="Close">&times;</button><h3 class="admin-modal-title">Adjust Member Reputation</h3><p class="admin-modal-sub">This change is permanently recorded in the reputation ledger.</p><div class="admin-field"><label for="reputation-adjust-member-id">Member ID</label><input id="reputation-adjust-member-id" type="number" min="1" step="1" placeholder="Find this in Members"></div><div class="admin-field"><label for="reputation-adjust-points">Points</label><input id="reputation-adjust-points" type="number" min="-1000" max="1000" step="1" placeholder="e.g. 10 or -5"></div><div class="admin-field"><label for="reputation-adjust-reason">Reason</label><textarea id="reputation-adjust-reason" maxlength="255" placeholder="Explain this staff adjustment"></textarea></div><p class="admin-modal-error" id="reputation-adjust-error"></p><div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="reputation-adjust-save-btn">Save Adjustment</button><button type="button" class="btn" id="reputation-adjust-cancel-btn">Cancel</button></div></div></div>
 
+<div class="admin-modal" id="mission-definition-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="mission-definition-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="mission-definition-modal-title">Add Mission</h3>
+    <p class="admin-modal-sub" id="mission-definition-modal-sub">Define the timing, crew requirement, and rewards that the server records when a player launches this mission.</p>
+    <div class="admin-field-row">
+      <div class="admin-field"><label for="mission-definition-name">Name</label><input type="text" id="mission-definition-name" maxlength="150" placeholder="e.g. Signal Sweep"></div>
+      <div class="admin-field"><label for="mission-definition-slug">Slug</label><input type="text" id="mission-definition-slug" maxlength="150" placeholder="e.g. signal-sweep"></div>
+    </div>
+    <div class="admin-field"><label for="mission-definition-description">Description</label><textarea id="mission-definition-description" maxlength="2000" placeholder="Describe the operation players are sending their crew into."></textarea></div>
+    <div class="admin-field-row">
+      <div class="admin-field"><label for="mission-definition-world">World</label><select id="mission-definition-world"><option value="neoh">Neoh</option></select></div>
+      <div class="admin-field"><label for="mission-definition-type">Mission type</label><select id="mission-definition-type"><option value="recon">Recon</option><option value="survey">Survey</option><option value="salvage">Salvage</option></select></div>
+      <div class="admin-field"><label for="mission-definition-duration">Duration (seconds)</label><input type="number" id="mission-definition-duration" min="60" max="86400" step="1" value="300"></div>
+    </div>
+    <div class="admin-field-row">
+      <div class="admin-field"><label for="mission-definition-min-crew">Minimum crew</label><input type="number" id="mission-definition-min-crew" min="1" max="8" step="1" value="1"></div>
+      <div class="admin-field"><label for="mission-definition-max-crew">Maximum crew</label><input type="number" id="mission-definition-max-crew" min="1" max="8" step="1" value="1"></div>
+      <div class="admin-field"><label for="mission-definition-sort-order">Display order</label><input type="number" id="mission-definition-sort-order" min="0" max="9999" step="1" value="0"></div>
+    </div>
+    <div class="admin-field-row">
+      <div class="admin-field"><label for="mission-definition-xp">XP per crew member</label><input type="number" id="mission-definition-xp" min="0" max="100000" step="1" value="20"></div>
+      <div class="admin-field"><label for="mission-definition-reputation">Reputation reward</label><input type="number" id="mission-definition-reputation" min="0" max="100000" step="1" value="0"></div>
+      <label class="member-ban-toggle"><span><strong>Enabled</strong><small>Disabled missions stay in history but cannot be launched.</small></span><input type="checkbox" id="mission-definition-enabled" checked></label>
+    </div>
+    <p class="admin-modal-error" id="mission-definition-modal-error"></p><p class="admin-modal-status" id="mission-definition-modal-status"></p>
+    <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="mission-definition-save-btn">Save Mission</button><button type="button" class="btn" id="mission-definition-cancel-btn">Cancel</button><button type="button" class="admin-delete-btn" id="mission-definition-delete-btn" hidden>Delete Mission</button></div>
+  </div>
+</div>
+
+<div class="admin-modal" id="mission-crew-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="mission-crew-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="mission-crew-modal-title">Add Crew Member</h3>
+    <p class="admin-modal-sub">Crew definitions are the source templates used to give players their own mission roster.</p>
+    <div class="admin-field-row"><div class="admin-field"><label for="mission-crew-name">Name</label><input type="text" id="mission-crew-name" maxlength="100"></div><div class="admin-field"><label for="mission-crew-slug">Slug</label><input type="text" id="mission-crew-slug" maxlength="100"></div><div class="admin-field"><label for="mission-crew-role">Role</label><select id="mission-crew-role"><option value="Vanguard">Vanguard</option><option value="Pathfinder">Pathfinder</option><option value="Engineer">Engineer</option></select></div></div>
+    <div class="admin-field"><label for="mission-crew-description">Description</label><textarea id="mission-crew-description" maxlength="2000"></textarea></div>
+    <div class="admin-field"><label for="mission-crew-portrait">Portrait URL</label><div class="mission-portrait-field"><img id="mission-crew-portrait-preview" alt="" hidden><input type="text" id="mission-crew-portrait" maxlength="255" placeholder="images/crew-member.jpg"><input type="file" id="mission-crew-portrait-file" accept="image/jpeg,image/png,image/webp" hidden><button type="button" class="btn" id="mission-crew-portrait-upload">Upload image</button><button type="button" class="btn" id="mission-crew-portrait-browse">Choose image</button></div><p class="admin-field-hint">Upload a JPG, PNG, or WEBP image, or select an approved crew portrait.</p></div>
+    <div class="admin-field-row"><div class="admin-field"><label for="mission-crew-starting-level">Starting level</label><input type="number" id="mission-crew-starting-level" min="1" max="999" step="1" value="1"></div><div class="admin-field"><label for="mission-crew-world-affinity">World affinity</label><select id="mission-crew-world-affinity"><option value="neoh">Neoh</option></select></div><label class="member-ban-toggle"><span><strong>Starter crew</strong><small>Granted once to every player who opens Missions.</small></span><input type="checkbox" id="mission-crew-starter" checked></label><label class="member-ban-toggle"><span><strong>Enabled</strong><small>Disabled definitions are retained for history.</small></span><input type="checkbox" id="mission-crew-enabled" checked></label></div>
+    <p class="admin-modal-error" id="mission-crew-modal-error"></p><p class="admin-modal-status" id="mission-crew-modal-status"></p>
+    <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="mission-crew-save-btn">Save Crew Member</button><button type="button" class="btn" id="mission-crew-cancel-btn">Cancel</button><button type="button" class="admin-delete-btn" id="mission-crew-delete-btn" hidden>Delete Crew Member</button></div>
+  </div>
+</div>
+
+<div class="admin-modal admin-modal-over" id="mission-crew-image-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="mission-crew-image-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title">Choose Crew Portrait</h3><p class="admin-modal-sub">Select a previously uploaded mission portrait or a compatible site image.</p>
+    <div class="admin-image-grid" id="mission-crew-image-list"><div class="admin-list-empty">Loading images&hellip;</div></div>
+    <div class="admin-modal-actions"><button type="button" class="btn" id="mission-crew-image-cancel-btn">Cancel</button></div>
+  </div>
+</div>
+
 <div class="admin-modal" id="warning-issue-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner">
@@ -4110,6 +4209,7 @@
 </div>
 
 <script src="../js/members.js?v=40"></script>
+<script src="../js/admin-missions.js?v=1"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -4354,6 +4454,7 @@
       if (name === 'privacy-requests') loadPrivacyRequests();
       if (name === 'forum-control') { loadForumCategories(); loadForumBoards(); }
       if (name === 'reputation-levels') loadReputationLevelList();
+      if (name === 'mission-control') loadMissionControl();
       if (name === 'book-control') loadBookList();
       if (name === 'quiz-control') loadQuizQuestionList();
       if (name === 'world-control') loadWorldList();

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Missions — The Pantheon Wars</title>
+<meta name="description" content="Deploy your crew into Neoh, complete operations, and build your expedition force.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/public.css?v=311"><link rel="stylesheet" href="css/missions.css?v=1">
+</head>
+<body class="missions-body">
+<header class="site-header"><div class="nav-inner"><button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button><a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a><nav class="main-nav"><a href="index.html">Home</a><div class="nav-item has-dropdown"><span class="nav-parent">The Universe<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="books.html">The Books</a><a href="worlds.html">The Worlds</a><a href="overlords.html">The Overlords</a><a href="known-figures.html">Known Figures</a><a href="timeline.html">The Timeline</a><a href="soundtracks.html">The Soundtracks</a></div></div><div class="nav-item has-dropdown"><span class="nav-parent">News<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="news.html">Latest News</a><a href="dev-dispatches.html">Development Dispatches</a></div></div><a href="missions.html" class="active">Missions</a><a href="about.html">About</a><div class="nav-item has-dropdown"><span class="nav-parent">Community<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="community.html">Nexus Veil (Forum)</a><a href="memberlist.html">Member List</a><a href="quiz.html">Quiz</a></div></div></nav><span class="nav-utility"><span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span></span></div></header>
+
+<main class="missions-page">
+  <section class="missions-hero">
+    <div class="missions-hero-art" aria-hidden="true"></div><div class="missions-hero-veil" aria-hidden="true"></div>
+    <div class="container missions-hero-content">
+      <span class="eyebrow">Expedition command</span><h1>Missions</h1>
+      <p>Deploy crews into Neoh, complete operations and build your expedition force.</p>
+    </div>
+  </section>
+
+  <section class="missions-main"><div class="container">
+    <div class="missions-gate" id="missions-gate" hidden><span class="eyebrow">Members only</span><h2>Your expedition awaits</h2><p>Log in to assemble your Neoh crew and begin taking missions.</p><button type="button" class="btn btn-solid auth-trigger" data-tab="login">Log In</button></div>
+
+    <div id="missions-content" hidden>
+      <div class="missions-command-header"><div><span class="missions-world-label">World command · NEOH</span><h2>Neoh Operations</h2><p id="missions-command-copy">Establishing a secure command link…</p></div><p class="missions-status-message" id="missions-status-message" role="status" aria-live="polite"></p></div>
+      <div class="missions-stats" aria-label="Mission statistics"><article><span>Active missions</span><strong id="missions-stat-active">0</strong></article><article><span>Available crew</span><strong id="missions-stat-crew">0</strong></article><article><span>Completed missions</span><strong id="missions-stat-completed">0</strong></article><article><span>Total operations</span><strong id="missions-stat-total">0</strong></article></div>
+
+      <section class="missions-section"><div class="missions-section-head"><div><span class="eyebrow">In the field</span><h2>Active missions</h2></div><span id="missions-active-count" class="missions-count"></span></div><div class="missions-active-grid" id="missions-active-list"><p class="missions-empty">Loading active missions…</p></div></section>
+
+      <section class="missions-section missions-neoh-section"><div class="missions-section-head"><div><span class="eyebrow">World available</span><h2>Neoh</h2><p>Dense signal storms, abandoned infrastructure, and routes that only exist for a few hours at a time.</p></div></div><div class="missions-definition-grid" id="missions-definition-list"><p class="missions-empty">Loading Neoh operations…</p></div></section>
+
+      <section class="missions-section"><div class="missions-section-head"><div><span class="eyebrow">Expedition force</span><h2>Your crew</h2></div><span id="missions-crew-count" class="missions-count"></span></div><div class="missions-crew-grid" id="missions-crew-list"><p class="missions-empty">Preparing crew records…</p></div></section>
+
+      <section class="missions-section missions-history-section"><div class="missions-section-head"><div><span class="eyebrow">Archive</span><h2>Mission history</h2></div></div><div class="missions-history-list" id="missions-history-list"><p class="missions-empty">No mission records yet.</p></div></section>
+    </div>
+  </div></section>
+</main>
+
+<dialog class="mission-launch-modal" id="mission-launch-modal" aria-labelledby="mission-launch-title"><div class="mission-launch-modal-inner"><button type="button" class="mission-launch-close" id="mission-launch-close" aria-label="Close mission launch">×</button><span class="eyebrow">Neoh operation</span><h2 id="mission-launch-title">Launch mission</h2><p id="mission-launch-copy"></p><div class="mission-launch-crew" id="mission-launch-crew"></div><p class="mission-launch-error" id="mission-launch-error" role="alert"></p><div class="mission-launch-actions"><button type="button" class="btn btn-solid" id="mission-launch-confirm">Launch Mission</button><button type="button" class="btn" id="mission-launch-cancel">Cancel</button></div></div></dialog>
+
+<script src="js/main.js?v=18"></script><script src="js/members.js?v=40"></script><script src="js/missions.js?v=1"></script>
+</body>
+</html>

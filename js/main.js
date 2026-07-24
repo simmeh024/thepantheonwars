@@ -48,6 +48,16 @@ function initMain() {
   (function enhancePublicNavigation() {
     var nav = document.querySelector('.main-nav');
     if (!nav) return;
+    // Missions is a direct, member-facing destination. A handful of older
+    // specialised pages have compact legacy navigation, so make the route
+    // present there as well while their static templates catch up.
+    if (!nav.querySelector('a[href="missions.html"]')) {
+      var missionsLink = document.createElement('a');
+      missionsLink.href = 'missions.html';
+      missionsLink.textContent = 'Missions';
+      var aboutLink = nav.querySelector('a[href="about.html"]');
+      nav.insertBefore(missionsLink, aboutLink || null);
+    }
     var normalizePath = function (value) {
       var path = new URL(value, location.origin).pathname.replace(/\/index\.html$/, '/');
       return path === '/' ? '/' : path.replace(/\/$/, '');

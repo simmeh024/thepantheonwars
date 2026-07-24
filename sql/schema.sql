@@ -1708,3 +1708,90 @@ CREATE TABLE IF NOT EXISTS quiz_activity (
   KEY idx_quiz_activity_user (user_id),
   CONSTRAINT fk_quiz_activity_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Missions V0: a generic expedition foundation. Crew definitions are shared
+-- templates; game_player_crew is the player-owned progression record. Mission
+-- rewards are snapshotted on the player mission so later admin edits never
+-- alter an expedition already in progress. See migration_missions_v0.sql.
+CREATE TABLE IF NOT EXISTS game_crew_definitions (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  slug VARCHAR(100) NOT NULL,
+  description TEXT NULL,
+  role VARCHAR(40) NOT NULL,
+  portrait_url VARCHAR(255) NOT NULL DEFAULT '',
+  starting_level SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+  world_affinity VARCHAR(50) NOT NULL DEFAULT 'neoh',
+  is_starter TINYINT(1) NOT NULL DEFAULT 0,
+  is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_game_crew_definition_slug (slug),
+  KEY idx_game_crew_definition_starter (is_starter, is_enabled),
+  KEY idx_game_crew_definition_world (world_affinity, is_enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS game_player_crew (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  crew_definition_id INT UNSIGNED NOT NULL,
+  level SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+  xp INT UNSIGNED NOT NULL DEFAULT 0,
+  status VARCHAR(32) NOT NULL DEFAULT 'available',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_game_player_crew_member (user_id, crew_definition_id),
+  KEY idx_game_player_crew_user_status (user_id, status),
+  CONSTRAINT fk_game_player_crew_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_game_player_crew_definition FOREIGN KEY (crew_definition_id) REFERENCES game_crew_definitions(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS game_mission_definitions (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  world_key VARCHAR(50) NOT NULL,
+  name VARCHAR(150) NOT NULL,
+  slug VARCHAR(150) NOT NULL,
+  description TEXT NULL,
+  mission_type VARCHAR(40) NOT NULL,
+  duration_seconds INT UNSIGNED NOT NULL,
+  min_crew TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  max_crew TINYINT UNSIGNED NOT NULL DEFAULT 1,
+  xp_reward INT UNSIGNED NOT NULL DEFAULT 0,
+  reputation_reward INT UNSIGNED NOT NULL DEFAULT 0,
+  is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  sort_order INT NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_game_mission_definition_slug (slug),
+  KEY idx_game_mission_definition_world (world_key, is_enabled, sort_order)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS game_player_missions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  mission_definition_id INT UNSIGNED NOT NULL,
+  world_key VARCHAR(50) NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'active',
+  started_at DATETIME NOT NULL,
+  completes_at DATETIME NOT NULL,
+  completed_at DATETIME NULL,
+  claimed_at DATETIME NULL,
+  xp_reward INT UNSIGNED NOT NULL DEFAULT 0,
+  reputation_reward INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  KEY idx_game_player_missions_user_status (user_id, status, completes_at),
+  KEY idx_game_player_missions_definition (mission_definition_id),
+  CONSTRAINT fk_game_player_missions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_game_player_missions_definition FOREIGN KEY (mission_definition_id) REFERENCES game_mission_definitions(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS game_player_mission_crew (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  player_mission_id BIGINT UNSIGNED NOT NULL,
+  player_crew_id BIGINT UNSIGNED NOT NULL,
+  UNIQUE KEY uq_game_player_mission_crew_pair (player_mission_id, player_crew_id),
+  KEY idx_game_player_mission_crew_member (player_crew_id),
+  CONSTRAINT fk_game_player_mission_crew_mission FOREIGN KEY (player_mission_id) REFERENCES game_player_missions(id) ON DELETE CASCADE,
+  CONSTRAINT fk_game_player_mission_crew_member FOREIGN KEY (player_crew_id) REFERENCES game_player_crew(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
