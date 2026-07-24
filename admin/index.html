@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=302">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=303">
 </head>
 <body>
 
@@ -3295,51 +3295,65 @@
         <span class="dialogue-tree-legend" aria-hidden="true"><i class="is-root"></i> Opening <i class="is-branch"></i> Player choice</span>
         <span class="dialogue-tree-overview-count" id="dialogue-tree-overview-count"></span>
       </div>
-      <div class="dialogue-tree-map" id="dialogue-tree-map"></div>
-    </div>
+      <div class="dialogue-tree-workspace">
+        <div class="dialogue-tree-canvas-area">
+          <div class="dialogue-tree-map" id="dialogue-tree-map"></div>
+          <div class="dialogue-tree-minimap" id="dialogue-tree-minimap" aria-label="Dialogue tree minimap"></div>
+        </div>
 
-    <div class="dialogue-tree-editor-toolbar">
-      <button type="button" class="btn" id="dialogue-add-node-btn">+ Add Dialogue</button>
-      <button type="button" class="btn" id="dialogue-remove-node-btn">Remove Dialogue</button>
-    </div>
+        <aside class="dialogue-tree-inspector" aria-label="Dialogue editor">
+          <div class="dialogue-tree-inspector-head">
+            <span><strong>Node editor</strong><small>Everything for the selected dialogue lives here.</small></span>
+            <button type="button" class="permission-mini-btn" id="dialogue-remove-node-btn">Remove</button>
+          </div>
 
-    <label class="admin-field news-comments-toggle" for="dialogue-tree-enabled-input">
-      <span><strong>Use this custom dialogue tree</strong><small>When disabled, the normal two-message result transmission remains visible instead. For Syn, that means the established branching encounter remains in use.</small></span>
-      <input type="checkbox" id="dialogue-tree-enabled-input" checked>
-    </label>
+          <div class="dialogue-tree-editor-toolbar">
+            <button type="button" class="btn" id="dialogue-add-node-btn">+ Dialogue</button>
+            <button type="button" class="btn" id="dialogue-auto-layout-btn">Auto-layout</button>
+            <button type="button" class="btn" id="dialogue-reset-layout-btn">Reset view</button>
+          </div>
 
-    <div class="admin-field-row">
-      <div class="admin-field">
-        <label for="dialogue-tree-start-select">Opening dialogue</label>
-        <select id="dialogue-tree-start-select"></select>
+          <label class="admin-field news-comments-toggle" for="dialogue-tree-enabled-input">
+            <span><strong>Use this custom dialogue tree</strong><small>When disabled, the normal two-message result transmission remains visible instead.</small></span>
+            <input type="checkbox" id="dialogue-tree-enabled-input" checked>
+          </label>
+
+          <div class="admin-field-row">
+            <div class="admin-field">
+              <label for="dialogue-tree-start-select">Opening dialogue</label>
+              <select id="dialogue-tree-start-select"></select>
+            </div>
+            <div class="admin-field">
+              <label>Selected dialogue ID</label>
+              <p class="admin-readonly-value" id="dialogue-node-id-display"></p>
+            </div>
+          </div>
+
+          <div class="admin-field">
+            <label for="dialogue-node-title-input">Dialogue title</label>
+            <input type="text" id="dialogue-node-title-input" maxlength="100" placeholder="e.g. The first signal">
+          </div>
+          <div class="admin-field">
+            <label for="dialogue-node-messages-input">Overlord message lines</label>
+            <p class="admin-field-hint">One chat bubble per line. Blank lines are ignored.</p>
+            <textarea id="dialogue-node-messages-input" maxlength="4007" rows="5" placeholder="The signal has found you."></textarea>
+          </div>
+
+          <div class="dialogue-branch-head">
+            <span><strong>Player branches</strong><small>Click a line in the canvas for fast editing, or manage every branch here.</small></span>
+            <button type="button" class="btn" id="dialogue-add-branch-btn">+ Add Branch</button>
+          </div>
+          <div class="dialogue-branch-list" id="dialogue-branch-list"></div>
+
+          <div class="dialogue-tree-validation" id="dialogue-tree-validation"></div>
+          <p class="admin-modal-error" id="dialogue-tree-modal-error"></p>
+          <p class="admin-modal-status" id="dialogue-tree-modal-status"></p>
+          <div class="admin-modal-actions">
+            <button type="button" class="btn btn-solid" id="dialogue-tree-save-btn">Save Dialogue Tree</button>
+            <button type="button" class="btn" id="dialogue-tree-cancel-btn">Cancel</button>
+          </div>
+        </aside>
       </div>
-      <div class="admin-field">
-        <label>Selected dialogue ID</label>
-        <p class="admin-readonly-value" id="dialogue-node-id-display"></p>
-      </div>
-    </div>
-
-    <div class="admin-field">
-      <label for="dialogue-node-title-input">Dialogue title</label>
-      <input type="text" id="dialogue-node-title-input" maxlength="100" placeholder="e.g. The first signal">
-    </div>
-    <div class="admin-field">
-      <label for="dialogue-node-messages-input">Overlord message lines</label>
-      <p class="admin-field-hint">One chat bubble per line. Blank lines are ignored.</p>
-      <textarea id="dialogue-node-messages-input" maxlength="4007" rows="5" placeholder="The signal has found you."></textarea>
-    </div>
-
-    <div class="dialogue-branch-head">
-      <span><strong>Player branches</strong><small>Each branch becomes a player choice and points to another dialogue.</small></span>
-      <button type="button" class="btn" id="dialogue-add-branch-btn">+ Add Branch</button>
-    </div>
-    <div class="dialogue-branch-list" id="dialogue-branch-list"></div>
-
-    <p class="admin-modal-error" id="dialogue-tree-modal-error"></p>
-    <p class="admin-modal-status" id="dialogue-tree-modal-status"></p>
-    <div class="admin-modal-actions">
-      <button type="button" class="btn btn-solid" id="dialogue-tree-save-btn">Save Dialogue Tree</button>
-      <button type="button" class="btn" id="dialogue-tree-cancel-btn">Cancel</button>
     </div>
   </div>
 </div>
@@ -13349,6 +13363,8 @@
   var dialogueTreeModalError = document.getElementById('dialogue-tree-modal-error');
   var dialogueTreeModalStatus = document.getElementById('dialogue-tree-modal-status');
   var dialogueTreeMapEl = document.getElementById('dialogue-tree-map');
+  var dialogueTreeMinimapEl = document.getElementById('dialogue-tree-minimap');
+  var dialogueTreeValidationEl = document.getElementById('dialogue-tree-validation');
   var dialogueTreeOverviewCountEl = document.getElementById('dialogue-tree-overview-count');
   var dialogueTreeEnabledInput = document.getElementById('dialogue-tree-enabled-input');
   var dialogueTreeStartSelect = document.getElementById('dialogue-tree-start-select');
@@ -13359,11 +13375,19 @@
   var dialogueAddNodeBtn = document.getElementById('dialogue-add-node-btn');
   var dialogueRemoveNodeBtn = document.getElementById('dialogue-remove-node-btn');
   var dialogueAddBranchBtn = document.getElementById('dialogue-add-branch-btn');
+  var dialogueAutoLayoutBtn = document.getElementById('dialogue-auto-layout-btn');
+  var dialogueResetLayoutBtn = document.getElementById('dialogue-reset-layout-btn');
   var dialogueTreeSaveBtn = document.getElementById('dialogue-tree-save-btn');
   var dialogueTreeCloseBtn = document.getElementById('dialogue-tree-modal-close');
   var dialogueTreeCancelBtn = document.getElementById('dialogue-tree-cancel-btn');
   var currentDialogueTree = null;
   var selectedDialogueNodeId = null;
+  var dialogueCanvasZoom = 1;
+  var dialogueCanvasQuickAddOpen = false;
+  var dialogueCanvasLinkModeSourceId = null;
+  var dialogueCanvasLayout = null;
+
+  dialogueTreeMapEl.addEventListener('scroll', updateDialogueTreeMinimapViewport);
 
   function dialogueTreeClone(tree) {
     return JSON.parse(JSON.stringify(tree || { version: 1, start_node_id: '', nodes: [] }));
@@ -13405,6 +13429,182 @@
   function dialogueChoiceRequiredReputationLevel(choice) {
     var level = Number(choice && choice.required_reputation_level);
     return isFinite(level) && Math.floor(level) === level && level >= 1 && level <= 99 ? level : null;
+  }
+
+  function dialogueNodeCanvasPosition(node) {
+    var position = node && node.position;
+    var x = Number(position && position.x);
+    var y = Number(position && position.y);
+    return isFinite(x) && isFinite(y) && x >= 0 && x <= 10000 && y >= 0 && y <= 20000
+      ? { x: Math.round(x), y: Math.round(y) } : null;
+  }
+
+  function dialogueTreeCanvasPoint(event) {
+    var rect = dialogueTreeMapEl.getBoundingClientRect();
+    return {
+      x: (event.clientX - rect.left + dialogueTreeMapEl.scrollLeft) / dialogueCanvasZoom,
+      y: (event.clientY - rect.top + dialogueTreeMapEl.scrollTop) / dialogueCanvasZoom
+    };
+  }
+
+  function dialogueTreeSetCanvasZoom(nextZoom) {
+    dialogueCanvasZoom = Math.max(0.6, Math.min(1.45, Math.round(nextZoom * 100) / 100));
+    renderDialogueTreeMap();
+  }
+
+  function dialogueTreeAutoLayout(resetView) {
+    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
+    dialogueTreeSaveSelectedNode();
+    dialogueTreeNodes().forEach(function (node) { delete node.position; });
+    if (resetView) dialogueCanvasZoom = 1;
+    dialogueCanvasLinkModeSourceId = null;
+    dialogueTreeModalStatus.textContent = resetView ? 'Canvas view reset to the default tree layout.' : 'Dialogue cards arranged into a clean tree layout.';
+    dialogueTreeModalStatus.classList.add('show');
+    renderDialogueTreeMap();
+    if (resetView) {
+      dialogueTreeMapEl.scrollLeft = 0;
+      dialogueTreeMapEl.scrollTop = 0;
+      updateDialogueTreeMinimapViewport();
+    }
+  }
+
+  function dialogueTreeFocusBranch(choiceIndex, focusSelector) {
+    var row = dialogueBranchListEl.querySelector('.dialogue-branch-row[data-choice-index="' + choiceIndex + '"]');
+    if (!row) return;
+    row.scrollIntoView({ block: 'nearest' });
+    var control = row.querySelector(focusSelector || 'input[type="text"]');
+    if (control) {
+      control.focus();
+      if (control.select) control.select();
+    }
+  }
+
+  function dialogueTreeValidationIssues() {
+    var issues = [];
+    var nodes = dialogueTreeNodes();
+    var tree = currentDialogueTree && currentDialogueTree.tree;
+    var byId = {};
+    nodes.forEach(function (node) { byId[node.id] = node; });
+    if (!nodes.length) return [{ type: 'error', message: 'Add an opening dialogue before saving.' }];
+    if (!tree || !byId[tree.start_node_id]) issues.push({ type: 'error', message: 'Choose a valid opening dialogue.' });
+
+    nodes.forEach(function (node) {
+      if (!String(node.title || '').trim()) issues.push({ type: 'error', nodeId: node.id, message: 'This dialogue needs a title.' });
+      if (!Array.isArray(node.messages) || !node.messages.filter(function (line) { return String(line || '').trim(); }).length) {
+        issues.push({ type: 'error', nodeId: node.id, message: 'This dialogue needs at least one Overlord line.' });
+      }
+      (node.choices || []).forEach(function (choice, choiceIndex) {
+        if (!String(choice.label || '').trim()) issues.push({ type: 'error', nodeId: node.id, choiceIndex: choiceIndex, message: 'A player branch is missing its label.' });
+        if (!byId[choice.target_node_id]) issues.push({ type: 'error', nodeId: node.id, choiceIndex: choiceIndex, message: 'A player branch is not connected to a dialogue.' });
+        if (choice.target_node_id === node.id) issues.push({ type: 'error', nodeId: node.id, choiceIndex: choiceIndex, message: 'A branch cannot return to the same dialogue.' });
+      });
+    });
+
+    var visited = {};
+    var visiting = {};
+    var loopReported = {};
+    function visit(nodeId) {
+      if (visiting[nodeId]) {
+        if (!loopReported[nodeId]) {
+          issues.push({ type: 'error', nodeId: nodeId, message: 'This dialogue is part of a loop.' });
+          loopReported[nodeId] = true;
+        }
+        return;
+      }
+      if (visited[nodeId] || !byId[nodeId]) return;
+      visiting[nodeId] = true;
+      (byId[nodeId].choices || []).forEach(function (choice) { if (byId[choice.target_node_id]) visit(choice.target_node_id); });
+      delete visiting[nodeId];
+      visited[nodeId] = true;
+    }
+    if (tree && byId[tree.start_node_id]) visit(tree.start_node_id);
+    nodes.forEach(function (node) {
+      if (!visited[node.id]) issues.push({ type: 'warning', nodeId: node.id, message: 'This dialogue is unreachable from the opening.' });
+    });
+    return issues;
+  }
+
+  function renderDialogueTreeValidation() {
+    if (!dialogueTreeValidationEl) return;
+    var issues = dialogueTreeValidationIssues();
+    dialogueTreeValidationEl.innerHTML = '';
+    var head = document.createElement('div');
+    head.className = 'dialogue-tree-validation-head';
+    head.innerHTML = '<strong>Live validation</strong><span>' + (issues.length ? issues.length + (issues.length === 1 ? ' item' : ' items') : 'Ready') + '</span>';
+    dialogueTreeValidationEl.appendChild(head);
+    if (!issues.length) {
+      var ready = document.createElement('p');
+      ready.className = 'is-ready';
+      ready.textContent = 'Every dialogue is connected and ready to save.';
+      dialogueTreeValidationEl.appendChild(ready);
+      return;
+    }
+    var list = document.createElement('div');
+    list.className = 'dialogue-tree-validation-list';
+    issues.forEach(function (issue) {
+      var item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'dialogue-tree-validation-item is-' + issue.type;
+      item.textContent = issue.message;
+      item.addEventListener('click', function () {
+        if (!issue.nodeId) return;
+        dialogueTreeSaveSelectedNode();
+        selectedDialogueNodeId = issue.nodeId;
+        renderDialogueTreeEditor();
+        if (typeof issue.choiceIndex === 'number') dialogueTreeFocusBranch(issue.choiceIndex);
+      });
+      list.appendChild(item);
+    });
+    dialogueTreeValidationEl.appendChild(list);
+  }
+
+  function dialogueTreeCenterCanvasPosition(position) {
+    if (!position) return;
+    dialogueTreeMapEl.scrollLeft = Math.max(0, (position.x * dialogueCanvasZoom) - (dialogueTreeMapEl.clientWidth / 2));
+    dialogueTreeMapEl.scrollTop = Math.max(0, ((position.y + 63) * dialogueCanvasZoom) - (dialogueTreeMapEl.clientHeight / 2));
+    updateDialogueTreeMinimapViewport();
+  }
+
+  function updateDialogueTreeMinimapViewport() {
+    if (!dialogueTreeMinimapEl || !dialogueCanvasLayout) return;
+    var viewport = dialogueTreeMinimapEl.querySelector('.dialogue-tree-minimap-viewport');
+    if (!viewport) return;
+    var layout = dialogueCanvasLayout;
+    viewport.style.left = Math.max(0, (dialogueTreeMapEl.scrollLeft / layout.scaledWidth) * 100) + '%';
+    viewport.style.top = Math.max(0, (dialogueTreeMapEl.scrollTop / layout.scaledHeight) * 100) + '%';
+    viewport.style.width = Math.min(100, (dialogueTreeMapEl.clientWidth / layout.scaledWidth) * 100) + '%';
+    viewport.style.height = Math.min(100, (dialogueTreeMapEl.clientHeight / layout.scaledHeight) * 100) + '%';
+  }
+
+  function renderDialogueTreeMinimap(canvasWidth, canvasHeight, positions, nodeWidth, nodeHeight) {
+    if (!dialogueTreeMinimapEl) return;
+    var ratio = Math.min(154 / canvasWidth, 118 / canvasHeight);
+    var mapWidth = Math.max(96, Math.round(canvasWidth * ratio));
+    var mapHeight = Math.max(74, Math.round(canvasHeight * ratio));
+    dialogueTreeMinimapEl.innerHTML = '';
+    dialogueTreeMinimapEl.style.width = mapWidth + 'px';
+    dialogueTreeMinimapEl.style.height = mapHeight + 'px';
+    var field = document.createElement('div');
+    field.className = 'dialogue-tree-minimap-field';
+    dialogueTreeNodes().forEach(function (node) {
+      var position = positions[node.id];
+      if (!position) return;
+      var marker = document.createElement('button');
+      marker.type = 'button';
+      marker.className = 'dialogue-tree-minimap-node' + (node.id === selectedDialogueNodeId ? ' is-selected' : '') + (node.id === currentDialogueTree.tree.start_node_id ? ' is-start' : '');
+      marker.style.left = ((position.x - (nodeWidth / 2)) / canvasWidth * 100) + '%';
+      marker.style.top = (position.y / canvasHeight * 100) + '%';
+      marker.style.width = Math.max(5, (nodeWidth / canvasWidth) * 100) + '%';
+      marker.style.height = Math.max(4, (nodeHeight / canvasHeight) * 100) + '%';
+      marker.title = 'Centre ' + node.title;
+      marker.addEventListener('click', function () { dialogueTreeCenterCanvasPosition(position); });
+      field.appendChild(marker);
+    });
+    var viewport = document.createElement('span');
+    viewport.className = 'dialogue-tree-minimap-viewport';
+    field.appendChild(viewport);
+    dialogueTreeMinimapEl.appendChild(field);
+    updateDialogueTreeMinimapViewport();
   }
 
   function loadDialogueTreeList() {
@@ -13468,6 +13668,8 @@
     dialogueTreeOverviewCountEl.textContent = nodes.length + (nodes.length === 1 ? ' dialogue \u00b7 ' : ' dialogues \u00b7 ') + branchCount + (branchCount === 1 ? ' branch' : ' branches');
     if (!nodes.length) {
       dialogueTreeMapEl.innerHTML = '<p class="dialogue-tree-map-empty">Add the first dialogue to begin this tree.</p>';
+      if (dialogueTreeMinimapEl) dialogueTreeMinimapEl.innerHTML = '';
+      renderDialogueTreeValidation();
       return;
     }
 
@@ -13517,8 +13719,18 @@
     var topPadding = 42;
     var widestLevel = 1;
     levels.forEach(function (level) { if (level) widestLevel = Math.max(widestLevel, level.length); });
-    var canvasWidth = Math.max(760, (widestLevel * (nodeWidth + 58)) + (sidePadding * 2));
-    var canvasHeight = Math.max(310, ((deepestLevel + 1) * nodeHeight) + (deepestLevel * verticalGap) + (topPadding * 2));
+    var baseCanvasWidth = Math.max(760, (widestLevel * (nodeWidth + 58)) + (sidePadding * 2));
+    var baseCanvasHeight = Math.max(310, ((deepestLevel + 1) * nodeHeight) + (deepestLevel * verticalGap) + (topPadding * 2));
+    var manualMaxX = 0;
+    var manualMaxY = 0;
+    nodes.forEach(function (node) {
+      var savedPosition = dialogueNodeCanvasPosition(node);
+      if (!savedPosition) return;
+      manualMaxX = Math.max(manualMaxX, savedPosition.x + (nodeWidth / 2) + sidePadding);
+      manualMaxY = Math.max(manualMaxY, savedPosition.y + nodeHeight + topPadding);
+    });
+    var canvasWidth = Math.max(baseCanvasWidth, manualMaxX);
+    var canvasHeight = Math.max(baseCanvasHeight, manualMaxY);
     var positions = {};
     levels.forEach(function (level, depth) {
       if (!level) return;
@@ -13529,6 +13741,10 @@
         };
       });
     });
+    nodes.forEach(function (node) {
+      var savedPosition = dialogueNodeCanvasPosition(node);
+      if (savedPosition) positions[node.id] = savedPosition;
+    });
 
     var canvas = document.createElement('div');
     canvas.className = 'dialogue-tree-canvas';
@@ -13537,16 +13753,28 @@
     var canvasControls = document.createElement('div');
     var canEditDialogueTree = pwHasPermission('dialogues.edit');
     canvasControls.className = 'dialogue-tree-canvas-controls';
+    canvasControls.style.transform = 'scale(' + (1 / dialogueCanvasZoom) + ')';
     canvasControls.innerHTML =
       '<span class="dialogue-tree-canvas-controls-title">Canvas controls</span>' +
-      '<button type="button" class="dialogue-tree-canvas-control" data-dialogue-canvas-action="dialogue"' + (canEditDialogueTree ? '' : ' disabled') + '>+ Dialogue</button>' +
-      '<button type="button" class="dialogue-tree-canvas-control is-branch" data-dialogue-canvas-action="branch" title="Adds a child dialogue connected to the selected card"' + (canEditDialogueTree ? '' : ' disabled') + '>+ Branch</button>';
-    canvasControls.querySelector('[data-dialogue-canvas-action="dialogue"]').addEventListener('click', function () {
-      dialogueTreeAddStandaloneNode();
+      '<button type="button" class="dialogue-tree-canvas-control" data-dialogue-canvas-action="quick-add"' + (canEditDialogueTree ? '' : ' disabled') + '>+ Add</button>' +
+      '<span class="dialogue-tree-canvas-zoom"><button type="button" class="dialogue-tree-canvas-control is-icon" data-dialogue-canvas-action="zoom-out" aria-label="Zoom out">−</button><button type="button" class="dialogue-tree-canvas-control is-zoom" data-dialogue-canvas-action="zoom-reset">' + Math.round(dialogueCanvasZoom * 100) + '%</button><button type="button" class="dialogue-tree-canvas-control is-icon" data-dialogue-canvas-action="zoom-in" aria-label="Zoom in">+</button></span>' +
+      '<div class="dialogue-tree-quick-add-menu"' + (dialogueCanvasQuickAddOpen ? '' : ' hidden') + '>' +
+        '<button type="button" data-dialogue-canvas-action="dialogue"' + (canEditDialogueTree ? '' : ' disabled') + '><strong>Dialogue</strong><small>Standalone card</small></button>' +
+        '<button type="button" data-dialogue-canvas-action="branch"' + (canEditDialogueTree ? '' : ' disabled') + '><strong>Branch</strong><small>Child from selected</small></button>' +
+        '<button type="button" data-dialogue-canvas-action="ending"' + (canEditDialogueTree ? '' : ' disabled') + '><strong>Ending</strong><small>Terminal child</small></button>' +
+        '<button type="button" data-dialogue-canvas-action="link"' + (canEditDialogueTree ? '' : ' disabled') + '><strong>Link existing</strong><small>Choose another card</small></button>' +
+      '</div>';
+    canvasControls.querySelector('[data-dialogue-canvas-action="quick-add"]').addEventListener('click', function () {
+      dialogueCanvasQuickAddOpen = !dialogueCanvasQuickAddOpen;
+      renderDialogueTreeMap();
     });
-    canvasControls.querySelector('[data-dialogue-canvas-action="branch"]').addEventListener('click', function () {
-      dialogueTreeAddChildBranch();
-    });
+    canvasControls.querySelector('[data-dialogue-canvas-action="zoom-out"]').addEventListener('click', function () { dialogueTreeSetCanvasZoom(dialogueCanvasZoom - 0.1); });
+    canvasControls.querySelector('[data-dialogue-canvas-action="zoom-reset"]').addEventListener('click', function () { dialogueTreeSetCanvasZoom(1); });
+    canvasControls.querySelector('[data-dialogue-canvas-action="zoom-in"]').addEventListener('click', function () { dialogueTreeSetCanvasZoom(dialogueCanvasZoom + 0.1); });
+    canvasControls.querySelector('[data-dialogue-canvas-action="dialogue"]').addEventListener('click', function () { dialogueTreeAddStandaloneNode(); });
+    canvasControls.querySelector('[data-dialogue-canvas-action="branch"]').addEventListener('click', function () { dialogueTreeAddChildBranch(); });
+    canvasControls.querySelector('[data-dialogue-canvas-action="ending"]').addEventListener('click', function () { dialogueTreeAddEndingBranch(); });
+    canvasControls.querySelector('[data-dialogue-canvas-action="link"]').addEventListener('click', function () { dialogueTreeBeginLinkMode(); });
     canvas.appendChild(canvasControls);
     var svgNamespace = 'http://www.w3.org/2000/svg';
     var edges = document.createElementNS(svgNamespace, 'svg');
@@ -13573,7 +13801,7 @@
 
     nodes.forEach(function (node) {
       var sourcePosition = positions[node.id];
-      (node.choices || []).forEach(function (choice) {
+      (node.choices || []).forEach(function (choice, choiceIndex) {
         var targetPosition = positions[choice.target_node_id];
         if (!sourcePosition || !targetPosition) return;
         var fromX = sourcePosition.x;
@@ -13591,11 +13819,16 @@
         var gateLabels = [];
         if (choice.requires_high_resonance) gateLabels.push('High resonance');
         if (requiredReputationLevel) gateLabels.push('Rep level ' + requiredReputationLevel);
-        var choiceLabel = document.createElement('span');
+        var choiceLabel = document.createElement('button');
+        choiceLabel.type = 'button';
         choiceLabel.className = 'dialogue-tree-edge-label' + (gateLabels.length ? ' is-locked' : '');
         choiceLabel.style.left = ((fromX + toX) / 2) + 'px';
         choiceLabel.style.top = (fromY + ((toY - fromY) * 0.52)) + 'px';
         choiceLabel.innerHTML = (gateLabels.length ? '<em>' + escapeHtml(gateLabels.join(' · ')) + '</em>' : '') + escapeHtml(choice.label || 'Untitled choice');
+        choiceLabel.title = 'Edit this player choice';
+        choiceLabel.addEventListener('click', function () {
+          dialogueTreeOpenBranchPopover(node.id, choiceIndex, choiceLabel, canvas);
+        });
         canvas.appendChild(choiceLabel);
       });
     });
@@ -13604,27 +13837,196 @@
       var position = positions[node.id];
       var mapNode = document.createElement('button');
       mapNode.type = 'button';
-      mapNode.className = 'dialogue-tree-map-node' + (node.id === selectedDialogueNodeId ? ' is-selected' : '') + (node.id === tree.start_node_id ? ' is-start' : '') + (!(node.choices || []).length ? ' is-terminal' : '');
+      mapNode.className = 'dialogue-tree-map-node' + (node.id === selectedDialogueNodeId ? ' is-selected' : '') + (node.id === tree.start_node_id ? ' is-start' : '') + (!(node.choices || []).length ? ' is-terminal' : '') + (dialogueNodeCanvasPosition(node) ? ' is-positioned' : '') + (node.id === dialogueCanvasLinkModeSourceId ? ' is-link-source' : '');
       mapNode.style.left = (position.x - (nodeWidth / 2)) + 'px';
       mapNode.style.top = position.y + 'px';
+      mapNode.setAttribute('data-dialogue-node-id', node.id);
       mapNode.setAttribute('aria-label', 'Edit dialogue: ' + node.title);
       var firstMessage = (node.messages || [])[0] || 'No transmission text yet.';
       var choiceTotal = (node.choices || []).length;
       mapNode.innerHTML =
         '<span class="dialogue-tree-node-port is-input" aria-hidden="true"></span>' +
-        '<span class="dialogue-tree-node-port is-output" aria-hidden="true"></span>' +
         '<span class="dialogue-tree-node-kicker">' + (node.id === tree.start_node_id ? 'Root · Opening' : 'Syn dialogue') + '</span>' +
         '<span class="dialogue-tree-map-title">' + escapeHtml(node.title) + '</span>' +
         '<span class="dialogue-tree-node-excerpt">' + escapeHtml(firstMessage) + '</span>' +
         '<span class="dialogue-tree-map-meta">' + ((node.messages || []).length || 0) + (((node.messages || []).length || 0) === 1 ? ' line' : ' lines') + ' · ' + (choiceTotal ? choiceTotal + (choiceTotal === 1 ? ' choice' : ' choices') : 'Transmission end') + '</span>';
+      mapNode.addEventListener('pointerdown', function (event) {
+        dialogueTreeStartNodeDrag(event, node.id, position, mapNode, nodeWidth, nodeHeight, canvasWidth, canvasHeight);
+      });
       mapNode.addEventListener('click', function () {
+        if (mapNode.getAttribute('data-dialogue-dragged') === 'true') {
+          mapNode.removeAttribute('data-dialogue-dragged');
+          return;
+        }
+        if (dialogueCanvasLinkModeSourceId && node.id !== dialogueCanvasLinkModeSourceId) {
+          dialogueTreeConnectExistingBranch(dialogueCanvasLinkModeSourceId, node.id);
+          return;
+        }
         dialogueTreeSaveSelectedNode();
         selectedDialogueNodeId = node.id;
         renderDialogueTreeEditor();
       });
       canvas.appendChild(mapNode);
+
+      var addPort = document.createElement('button');
+      addPort.type = 'button';
+      addPort.className = 'dialogue-tree-node-add-port' + (node.id === tree.start_node_id ? ' is-start' : '');
+      addPort.style.left = position.x + 'px';
+      addPort.style.top = (position.y + nodeHeight) + 'px';
+      addPort.setAttribute('aria-label', 'Add or connect a branch from ' + node.title);
+      addPort.title = 'Click for a child dialogue, or drag to another card to connect it.';
+      addPort.textContent = '+';
+      addPort.disabled = !canEditDialogueTree;
+      addPort.addEventListener('pointerdown', function (event) {
+        dialogueTreeStartPortDrag(event, node.id, position, edges, nodeHeight);
+      });
+      canvas.appendChild(addPort);
     });
-    dialogueTreeMapEl.appendChild(canvas);
+    var stage = document.createElement('div');
+    stage.className = 'dialogue-tree-canvas-stage';
+    stage.style.width = (canvasWidth * dialogueCanvasZoom) + 'px';
+    stage.style.height = (canvasHeight * dialogueCanvasZoom) + 'px';
+    canvas.style.transform = 'scale(' + dialogueCanvasZoom + ')';
+    stage.appendChild(canvas);
+    dialogueTreeMapEl.appendChild(stage);
+    dialogueCanvasLayout = { scaledWidth: canvasWidth * dialogueCanvasZoom, scaledHeight: canvasHeight * dialogueCanvasZoom };
+    renderDialogueTreeMinimap(canvasWidth, canvasHeight, positions, nodeWidth, nodeHeight);
+    renderDialogueTreeValidation();
+  }
+
+  function dialogueTreeStartNodeDrag(event, nodeId, position, mapNode, nodeWidth, nodeHeight, canvasWidth, canvasHeight) {
+    if (!pwHasPermission('dialogues.edit') || event.button !== 0) return;
+    var start = dialogueTreeCanvasPoint(event);
+    var startPosition = { x: position.x, y: position.y };
+    var moved = false;
+    mapNode.setPointerCapture(event.pointerId);
+    mapNode.addEventListener('pointermove', moveNode);
+    mapNode.addEventListener('pointerup', finishNode, { once: true });
+    mapNode.addEventListener('pointercancel', cancelNode, { once: true });
+
+    function moveNode(moveEvent) {
+      var point = dialogueTreeCanvasPoint(moveEvent);
+      var deltaX = point.x - start.x;
+      var deltaY = point.y - start.y;
+      if (!moved && Math.abs(deltaX) + Math.abs(deltaY) < 7) return;
+      moved = true;
+      var node = dialogueNodeById(nodeId);
+      if (!node) return;
+      var x = Math.max((nodeWidth / 2) + 10, Math.min(canvasWidth - (nodeWidth / 2) - 10, startPosition.x + deltaX));
+      var y = Math.max(10, Math.min(canvasHeight - nodeHeight - 10, startPosition.y + deltaY));
+      node.position = { x: Math.round(x), y: Math.round(y) };
+      mapNode.classList.add('is-dragging', 'is-positioned');
+      mapNode.style.left = (node.position.x - (nodeWidth / 2)) + 'px';
+      mapNode.style.top = node.position.y + 'px';
+      moveEvent.preventDefault();
+    }
+
+    function finishNode() {
+      mapNode.removeEventListener('pointermove', moveNode);
+      if (moved) {
+        mapNode.setAttribute('data-dialogue-dragged', 'true');
+        dialogueTreeModalStatus.textContent = 'Dialogue position saved. Use Auto-layout to return it to the tree flow.';
+        dialogueTreeModalStatus.classList.add('show');
+        renderDialogueTreeMap();
+      }
+    }
+
+    function cancelNode() { mapNode.removeEventListener('pointermove', moveNode); }
+  }
+
+  function dialogueTreeStartPortDrag(event, sourceId, sourcePosition, edges, nodeHeight) {
+    if (!pwHasPermission('dialogues.edit') || event.button !== 0) return;
+    event.preventDefault();
+    event.stopPropagation();
+    var port = event.currentTarget;
+    var start = dialogueTreeCanvasPoint(event);
+    var moved = false;
+    var ghost = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    ghost.setAttribute('class', 'dialogue-tree-link-ghost');
+    edges.appendChild(ghost);
+    port.setPointerCapture(event.pointerId);
+    port.addEventListener('pointermove', movePort);
+    port.addEventListener('pointerup', finishPort, { once: true });
+    port.addEventListener('pointercancel', cancelPort, { once: true });
+    drawGhost(start);
+
+    function drawGhost(point) {
+      var fromX = sourcePosition.x;
+      var fromY = sourcePosition.y + nodeHeight;
+      var curve = Math.max(42, Math.min(90, Math.abs(point.y - fromY) / 2));
+      ghost.setAttribute('d', 'M ' + fromX + ' ' + fromY + ' C ' + fromX + ' ' + (fromY + curve) + ' ' + point.x + ' ' + (point.y - curve) + ' ' + point.x + ' ' + point.y);
+    }
+
+    function movePort(moveEvent) {
+      var point = dialogueTreeCanvasPoint(moveEvent);
+      if (Math.abs(point.x - start.x) + Math.abs(point.y - start.y) >= 7) moved = true;
+      drawGhost(point);
+      moveEvent.preventDefault();
+    }
+
+    function finishPort(upEvent) {
+      port.removeEventListener('pointermove', movePort);
+      if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
+      if (!moved) {
+        dialogueTreeAddChildBranch(sourceId);
+        return;
+      }
+      var targetEl = document.elementFromPoint(upEvent.clientX, upEvent.clientY);
+      var targetNode = targetEl && targetEl.closest ? targetEl.closest('[data-dialogue-node-id]') : null;
+      var targetId = targetNode && targetNode.getAttribute('data-dialogue-node-id');
+      if (targetId && targetId !== sourceId) {
+        dialogueTreeConnectExistingBranch(sourceId, targetId);
+      } else {
+        dialogueTreeModalStatus.textContent = 'Branch connection cancelled. Drop the line on another dialogue card to connect it.';
+        dialogueTreeModalStatus.classList.add('show');
+      }
+    }
+
+    function cancelPort() {
+      port.removeEventListener('pointermove', movePort);
+      if (ghost.parentNode) ghost.parentNode.removeChild(ghost);
+    }
+  }
+
+  function dialogueTreeOpenBranchPopover(sourceId, choiceIndex, anchor, canvas) {
+    if (!pwHasPermission('dialogues.edit')) return;
+    var source = dialogueNodeById(sourceId);
+    var choice = source && source.choices && source.choices[choiceIndex];
+    if (!choice) return;
+    var existing = canvas.querySelector('.dialogue-tree-branch-popover');
+    if (existing) existing.remove();
+    var requiredLevel = dialogueChoiceRequiredReputationLevel(choice);
+    var popover = document.createElement('div');
+    popover.className = 'dialogue-tree-branch-popover';
+    popover.style.left = anchor.style.left;
+    popover.style.top = (parseFloat(anchor.style.top) + 20) + 'px';
+    popover.innerHTML =
+      '<strong>Quick branch edit</strong>' +
+      '<label>Choice<input type="text" maxlength="180" value="' + escapeHtml(choice.label) + '"></label>' +
+      '<label class="dialogue-tree-popover-toggle"><input type="checkbox"' + (choice.requires_high_resonance ? ' checked' : '') + '> High resonance</label>' +
+      '<label>Rep level<input type="number" min="1" max="99" placeholder="None" value="' + (requiredLevel || '') + '"></label>' +
+      '<button type="button" class="permission-mini-btn" data-dialogue-popover-action="details">Open full branch editor</button>';
+    var choiceInput = popover.querySelector('input[type="text"]');
+    var resonanceInput = popover.querySelector('input[type="checkbox"]');
+    var levelInput = popover.querySelector('input[type="number"]');
+    choiceInput.addEventListener('input', function () { choice.label = choiceInput.value; });
+    choiceInput.addEventListener('change', function () { renderDialogueTreeMap(); renderDialogueBranches(source); });
+    resonanceInput.addEventListener('change', function () { choice.requires_high_resonance = resonanceInput.checked; renderDialogueTreeMap(); renderDialogueBranches(source); });
+    levelInput.addEventListener('change', function () {
+      var level = Number(levelInput.value);
+      choice.required_reputation_level = isFinite(level) && Math.floor(level) === level && level >= 1 && level <= 99 ? level : null;
+      renderDialogueTreeMap();
+      renderDialogueBranches(source);
+    });
+    popover.querySelector('[data-dialogue-popover-action="details"]').addEventListener('click', function () {
+      dialogueTreeSaveSelectedNode();
+      selectedDialogueNodeId = sourceId;
+      renderDialogueTreeEditor();
+      dialogueTreeFocusBranch(choiceIndex);
+    });
+    canvas.appendChild(popover);
+    choiceInput.focus();
+    choiceInput.select();
   }
 
   function renderDialogueTreeStartOptions() {
@@ -13644,6 +14046,7 @@
     node.choices.forEach(function (choice, choiceIndex) {
       var row = document.createElement('div');
       row.className = 'dialogue-branch-row';
+      row.setAttribute('data-choice-index', choiceIndex);
       var requiredReputationLevel = dialogueChoiceRequiredReputationLevel(choice);
       var targetOptions = dialogueTreeNodes().filter(function (target) { return target.id !== node.id; }).map(function (target) {
         return '<option value="' + escapeHtml(target.id) + '"' + (target.id === choice.target_node_id ? ' selected' : '') + '>' + escapeHtml(target.title) + '</option>';
@@ -13675,7 +14078,7 @@
   }
 
   function setDialogueTreeReadOnly(readOnly) {
-    [dialogueTreeEnabledInput, dialogueTreeStartSelect, dialogueNodeTitleInput, dialogueNodeMessagesInput, dialogueAddNodeBtn].forEach(function (control) { control.disabled = readOnly; });
+    [dialogueTreeEnabledInput, dialogueTreeStartSelect, dialogueNodeTitleInput, dialogueNodeMessagesInput, dialogueAddNodeBtn, dialogueAutoLayoutBtn, dialogueResetLayoutBtn].forEach(function (control) { control.disabled = readOnly; });
     dialogueRemoveNodeBtn.disabled = readOnly || dialogueTreeNodes().length <= 1;
     dialogueAddBranchBtn.disabled = readOnly || dialogueTreeNodes().length <= 1;
     dialogueTreeModal.querySelectorAll('.dialogue-branch-row input, .dialogue-branch-row select, .dialogue-branch-row button').forEach(function (control) { control.disabled = readOnly; });
@@ -13695,6 +14098,7 @@
     dialogueRemoveNodeBtn.disabled = !node || dialogueTreeNodes().length <= 1;
     renderDialogueTreeMap();
     renderDialogueBranches(node);
+    renderDialogueTreeValidation();
     setDialogueTreeReadOnly(!pwHasPermission('dialogues.edit'));
   }
 
@@ -13705,9 +14109,15 @@
     return id;
   }
 
-  function dialogueTreeCreateNode() {
+  function dialogueTreeCreateNode(options) {
+    options = options || {};
     var id = dialogueTreeNextNodeId();
-    var node = { id: id, title: 'New dialogue', messages: ['Write the Overlord\'s response.'], choices: [] };
+    var node = {
+      id: id,
+      title: options.title || 'New dialogue',
+      messages: options.messages || ['Write the Overlord\'s response.'],
+      choices: []
+    };
     currentDialogueTree.tree.nodes.push(node);
     return node;
   }
@@ -13723,29 +14133,102 @@
     dialogueTreeSaveSelectedNode();
     var node = dialogueTreeCreateNode();
     selectedDialogueNodeId = node.id;
+    dialogueCanvasQuickAddOpen = false;
+    dialogueCanvasLinkModeSourceId = null;
     dialogueTreeModalError.classList.remove('show');
     dialogueTreeModalStatus.textContent = 'New dialogue added. Give it a title and write the Overlord\'s response.';
     dialogueTreeModalStatus.classList.add('show');
     dialogueTreeFocusNewNode();
   }
 
-  function dialogueTreeAddChildBranch() {
+  function dialogueTreeAddChildBranch(sourceId) {
+    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
+    dialogueTreeSaveSelectedNode();
+    var source = sourceId ? dialogueNodeById(sourceId) : selectedDialogueNode();
+    if (!source) return;
+    if ((source.choices || []).length >= 10) {
+      dialogueTreeModalError.textContent = 'A dialogue can have at most 10 branches.';
+      dialogueTreeModalError.classList.add('show');
+      return;
+    }
+    var node = dialogueTreeCreateNode();
+    source.choices.push({ label: 'New player choice', target_node_id: node.id, requires_high_resonance: false, required_reputation_level: null });
+    selectedDialogueNodeId = node.id;
+    dialogueCanvasQuickAddOpen = false;
+    dialogueCanvasLinkModeSourceId = null;
+    dialogueTreeModalError.classList.remove('show');
+    dialogueTreeModalStatus.textContent = 'New branch created from “' + source.title + '”. Edit the child dialogue here, then click the branch label in the canvas to name the player choice.';
+    dialogueTreeModalStatus.classList.add('show');
+    dialogueTreeFocusNewNode();
+  }
+
+  function dialogueTreeAddEndingBranch(sourceId) {
+    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
+    dialogueTreeSaveSelectedNode();
+    var source = sourceId ? dialogueNodeById(sourceId) : selectedDialogueNode();
+    if (!source) return;
+    if ((source.choices || []).length >= 10) {
+      dialogueTreeModalError.textContent = 'A dialogue can have at most 10 branches.';
+      dialogueTreeModalError.classList.add('show');
+      return;
+    }
+    var node = dialogueTreeCreateNode({ title: 'Transmission end', messages: ['Transmission ended.'] });
+    source.choices.push({ label: 'End transmission', target_node_id: node.id, requires_high_resonance: false, required_reputation_level: null });
+    selectedDialogueNodeId = node.id;
+    dialogueCanvasQuickAddOpen = false;
+    dialogueCanvasLinkModeSourceId = null;
+    dialogueTreeModalStatus.textContent = 'Terminal dialogue added. You can still rewrite its final line in the canvas inspector.';
+    dialogueTreeModalStatus.classList.add('show');
+    dialogueTreeFocusNewNode();
+  }
+
+  function dialogueTreeConnectExistingBranch(sourceId, targetId) {
+    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
+    dialogueTreeSaveSelectedNode();
+    var source = dialogueNodeById(sourceId);
+    var target = dialogueNodeById(targetId);
+    if (!source || !target || source.id === target.id) return;
+    if ((source.choices || []).length >= 10) {
+      dialogueTreeModalError.textContent = 'A dialogue can have at most 10 branches.';
+      dialogueTreeModalError.classList.add('show');
+      return;
+    }
+    if ((source.choices || []).some(function (choice) { return choice.target_node_id === target.id; })) {
+      dialogueTreeModalStatus.textContent = 'Those dialogues already have a branch connection.';
+      dialogueTreeModalStatus.classList.add('show');
+      dialogueCanvasLinkModeSourceId = null;
+      renderDialogueTreeMap();
+      return;
+    }
+    source.choices.push({ label: 'New player choice', target_node_id: target.id, requires_high_resonance: false, required_reputation_level: null });
+    selectedDialogueNodeId = source.id;
+    dialogueCanvasLinkModeSourceId = null;
+    dialogueCanvasQuickAddOpen = false;
+    dialogueTreeModalError.classList.remove('show');
+    dialogueTreeModalStatus.textContent = 'Branch connected to “' + target.title + '”. Name the player choice in the canvas inspector.';
+    dialogueTreeModalStatus.classList.add('show');
+    renderDialogueTreeEditor();
+    dialogueTreeFocusBranch(source.choices.length - 1);
+  }
+
+  function dialogueTreeBeginLinkMode() {
     if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
     dialogueTreeSaveSelectedNode();
     var source = selectedDialogueNode();
     if (!source) return;
-    var node = dialogueTreeCreateNode();
-    source.choices.push({ label: 'New player choice', target_node_id: node.id, requires_high_resonance: false });
-    selectedDialogueNodeId = node.id;
-    dialogueTreeModalError.classList.remove('show');
-    dialogueTreeModalStatus.textContent = 'New branch created from “' + source.title + '”. Name the player choice and the new dialogue below.';
+    dialogueCanvasQuickAddOpen = false;
+    dialogueCanvasLinkModeSourceId = source.id;
+    dialogueTreeModalStatus.textContent = 'Link mode: click another dialogue card to connect it from “' + source.title + '”, or drag from its + port.';
     dialogueTreeModalStatus.classList.add('show');
-    dialogueTreeFocusNewNode();
+    renderDialogueTreeMap();
   }
 
   function openDialogueTreeModal(overlordId) {
     dialogueTreeModalError.classList.remove('show');
     dialogueTreeModalStatus.classList.remove('show');
+    dialogueCanvasZoom = 1;
+    dialogueCanvasQuickAddOpen = false;
+    dialogueCanvasLinkModeSourceId = null;
     dialogueTreeModal.hidden = false;
     dialogueTreeMapEl.innerHTML = '<p class="dialogue-tree-map-empty">Loading the tree&hellip;</p>';
     fetch('/api/admin/dialogues/get.php?overlord_id=' + encodeURIComponent(overlordId), { credentials: 'same-origin' })
@@ -13773,6 +14256,10 @@
     dialogueTreeModal.hidden = true;
     currentDialogueTree = null;
     selectedDialogueNodeId = null;
+    dialogueCanvasQuickAddOpen = false;
+    dialogueCanvasLinkModeSourceId = null;
+    dialogueCanvasLayout = null;
+    dialogueTreeMinimapEl.innerHTML = '';
   }
 
   dialogueTreeCloseBtn.addEventListener('click', closeDialogueTreeModal);
@@ -13790,6 +14277,9 @@
   dialogueAddNodeBtn.addEventListener('click', function () {
     dialogueTreeAddStandaloneNode();
   });
+
+  dialogueAutoLayoutBtn.addEventListener('click', function () { dialogueTreeAutoLayout(false); });
+  dialogueResetLayoutBtn.addEventListener('click', function () { dialogueTreeAutoLayout(true); });
 
   dialogueRemoveNodeBtn.addEventListener('click', function () {
     if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
@@ -13809,18 +14299,7 @@
   });
 
   dialogueAddBranchBtn.addEventListener('click', function () {
-    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
-    dialogueTreeSaveSelectedNode();
-    var node = selectedDialogueNode();
-    var target = dialogueTreeNodes().filter(function (candidate) { return candidate.id !== node.id; })[0];
-    if (!target) {
-      dialogueTreeModalError.textContent = 'Add another dialogue before adding a branch.';
-      dialogueTreeModalError.classList.add('show');
-      return;
-    }
-    dialogueTreeModalError.classList.remove('show');
-    node.choices.push({ label: 'New player choice', target_node_id: target.id, requires_high_resonance: false });
-    renderDialogueTreeEditor();
+    dialogueTreeAddChildBranch();
   });
 
   dialogueTreeSaveBtn.addEventListener('click', function () {

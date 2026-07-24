@@ -3092,6 +3092,73 @@
 .dialogue-branch-remove { align-self: end; white-space: nowrap; }
 .dialogue-branch-empty { margin: 0; padding: 12px; border: 1px dashed var(--border-soft); color: var(--text-faint); font-size: 0.74rem; }
 
+/* Dialogue Tree Control is a self-contained visual workspace: the canvas,
+   direct manipulation controls and the full node inspector stay together. */
+.admin-modal-inner-dialogue { width: min(1480px, calc(100vw - 28px)); max-width: 1480px; }
+.dialogue-tree-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 365px; min-height: 650px; margin-top: 13px; border: 1px solid rgba(162,121,236,0.24); background: #080811; }
+.dialogue-tree-canvas-area { position: relative; min-width: 0; overflow: hidden; }
+.dialogue-tree-map { min-height: 650px; height: min(680px, calc(100vh - 210px)); max-height: none; margin: 0; border: 0; border-right: 1px solid rgba(162,121,236,0.24); }
+.dialogue-tree-canvas-stage { position: relative; min-width: 100%; min-height: 100%; }
+.dialogue-tree-canvas { transform-origin: top left; }
+.dialogue-tree-inspector { display: flex; min-height: 0; max-height: min(680px, calc(100vh - 210px)); flex-direction: column; gap: 11px; padding: 13px; overflow: auto; background: linear-gradient(180deg, rgba(19,13,33,0.98), rgba(8,7,17,0.98)); scrollbar-color: rgba(162,121,236,0.58) rgba(8,8,17,0.9); }
+.dialogue-tree-inspector-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid var(--border-soft); }
+.dialogue-tree-inspector-head strong { display: block; color: var(--text); font: 600 0.77rem 'Cinzel', serif; letter-spacing: 0.07em; text-transform: uppercase; }
+.dialogue-tree-inspector-head small { display: block; margin-top: 4px; color: var(--text-faint); font-size: 0.64rem; line-height: 1.4; }
+.dialogue-tree-inspector .dialogue-tree-editor-toolbar { margin: 0; flex-wrap: wrap; }
+.dialogue-tree-inspector .dialogue-tree-editor-toolbar .btn { min-height: 30px; padding: 6px 9px; font-size: 0.59rem; }
+.dialogue-tree-inspector .news-comments-toggle { margin: 0; }
+.dialogue-tree-inspector .admin-field { margin: 0; }
+.dialogue-tree-inspector .admin-field-row { gap: 8px; }
+.dialogue-tree-inspector .admin-field-row .admin-field { min-width: 0; }
+.dialogue-tree-inspector .admin-readonly-value { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dialogue-tree-inspector .dialogue-branch-head { margin: 5px 0 0; padding-top: 12px; }
+.dialogue-tree-inspector .dialogue-branch-head .btn { min-height: 29px; padding: 5px 8px; font-size: 0.58rem; }
+.dialogue-tree-inspector .dialogue-branch-row { grid-template-columns: 1fr 1fr; padding: 8px; }
+.dialogue-tree-inspector .dialogue-branch-lock { min-height: 30px; }
+.dialogue-tree-inspector .dialogue-branch-remove { justify-self: start; }
+.dialogue-tree-inspector .admin-modal-actions { margin-top: auto; padding-top: 4px; }
+.dialogue-tree-canvas-controls { position: absolute; z-index: 8; top: 12px; left: 12px; flex-wrap: wrap; max-width: 355px; }
+.dialogue-tree-canvas-zoom { display: inline-flex; gap: 2px; }
+.dialogue-tree-canvas-control.is-icon { min-width: 26px; padding: 4px 6px; font-size: 0.9rem; line-height: 1; }
+.dialogue-tree-canvas-control.is-zoom { min-width: 43px; padding: 4px 6px; color: var(--text-dim); }
+.dialogue-tree-quick-add-menu { position: absolute; top: calc(100% + 6px); left: 0; z-index: 12; display: grid; width: 205px; gap: 4px; padding: 6px; border: 1px solid rgba(187,139,255,0.62); background: rgba(10,8,20,0.98); box-shadow: 0 12px 26px rgba(0,0,0,0.48); }
+.dialogue-tree-quick-add-menu[hidden] { display: none; }
+.dialogue-tree-quick-add-menu button { display: grid; gap: 2px; padding: 8px; border: 1px solid transparent; background: rgba(124,79,214,0.09); color: var(--text-dim); text-align: left; cursor: pointer; }
+.dialogue-tree-quick-add-menu button:hover, .dialogue-tree-quick-add-menu button:focus-visible { border-color: rgba(207,163,255,0.8); background: rgba(124,79,214,0.24); color: var(--text); outline: none; }
+.dialogue-tree-quick-add-menu button:disabled { opacity: 0.48; cursor: not-allowed; }
+.dialogue-tree-quick-add-menu strong { color: var(--purple-pale); font: 600 0.63rem 'Cinzel', serif; letter-spacing: 0.06em; text-transform: uppercase; }
+.dialogue-tree-quick-add-menu small { color: var(--text-faint); font-size: 0.59rem; }
+.dialogue-tree-edge-label { appearance: none; cursor: pointer; pointer-events: auto; }
+.dialogue-tree-edge-label:hover, .dialogue-tree-edge-label:focus-visible { border-color: #ffe0a1; box-shadow: 0 0 15px rgba(229,173,70,0.32); outline: none; }
+.dialogue-tree-link-ghost { fill: none; stroke: #f3c66a; stroke-width: 2.2; stroke-dasharray: 6 5; pointer-events: none; }
+.dialogue-tree-map-node.is-link-source { border-color: #f3c66a; box-shadow: 0 0 0 1px rgba(229,173,70,0.65), 0 0 24px rgba(229,173,70,0.25); }
+.dialogue-tree-map-node.is-dragging { z-index: 7; cursor: grabbing; transition: none; }
+.dialogue-tree-node-add-port { position: absolute; z-index: 6; width: 24px; height: 24px; padding: 0; border: 2px solid #bf8bff; border-radius: 50%; background: #110d20; box-shadow: 0 0 11px rgba(185,132,255,0.78); color: #e1c5ff; font-size: 1rem; line-height: 16px; cursor: crosshair; transform: translate(-50%, -50%); }
+.dialogue-tree-node-add-port:hover, .dialogue-tree-node-add-port:focus-visible { border-color: #f3c66a; background: #271a25; box-shadow: 0 0 15px rgba(229,173,70,0.58); color: #ffe0a1; outline: none; }
+.dialogue-tree-node-add-port.is-start { border-color: #4be493; box-shadow: 0 0 11px rgba(75,228,147,0.7); color: #b7ffd6; }
+.dialogue-tree-node-add-port:disabled { opacity: 0.45; cursor: not-allowed; }
+.dialogue-tree-branch-popover { position: absolute; z-index: 10; display: grid; width: 220px; gap: 7px; padding: 10px; border: 1px solid rgba(229,173,70,0.76); background: rgba(15,10,19,0.98); box-shadow: 0 14px 30px rgba(0,0,0,0.52); transform: translate(-50%, 0); }
+.dialogue-tree-branch-popover strong { color: #f3c66a; font: 600 0.64rem 'Cinzel', serif; letter-spacing: 0.06em; text-transform: uppercase; }
+.dialogue-tree-branch-popover label { display: grid; gap: 4px; color: var(--text-faint); font-size: 0.58rem; letter-spacing: 0.05em; text-transform: uppercase; }
+.dialogue-tree-branch-popover input[type="text"], .dialogue-tree-branch-popover input[type="number"] { min-height: 29px; border: 1px solid var(--border-soft); background: rgba(4,4,12,0.8); color: var(--text); font: 0.68rem 'Inter', sans-serif; }
+.dialogue-tree-branch-popover .dialogue-tree-popover-toggle { display: flex; align-items: center; gap: 6px; min-height: 24px; text-transform: none; }
+.dialogue-tree-branch-popover .dialogue-tree-popover-toggle input { accent-color: var(--purple-bright); }
+.dialogue-tree-minimap { position: absolute; z-index: 9; top: 12px; right: 12px; padding: 5px; border: 1px solid rgba(162,121,236,0.45); background: rgba(8,7,17,0.92); box-shadow: 0 8px 18px rgba(0,0,0,0.36); }
+.dialogue-tree-minimap-field { position: relative; width: 100%; height: 100%; overflow: hidden; background-image: linear-gradient(rgba(174,151,224,0.12) 1px, transparent 1px), linear-gradient(90deg, rgba(174,151,224,0.12) 1px, transparent 1px); background-size: 12px 12px; }
+.dialogue-tree-minimap-node { position: absolute; min-width: 5px; min-height: 4px; padding: 0; border: 0; border-radius: 1px; background: rgba(185,132,255,0.76); cursor: pointer; }
+.dialogue-tree-minimap-node.is-start { background: #4be493; }
+.dialogue-tree-minimap-node.is-selected { background: #f3c66a; box-shadow: 0 0 5px #f3c66a; }
+.dialogue-tree-minimap-viewport { position: absolute; box-sizing: border-box; border: 1px solid rgba(255,236,187,0.88); background: rgba(243,198,106,0.08); pointer-events: none; }
+.dialogue-tree-validation { margin-top: 4px; border: 1px solid var(--border-soft); background: rgba(7,6,16,0.62); }
+.dialogue-tree-validation-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 9px; border-bottom: 1px solid var(--border-soft); }
+.dialogue-tree-validation-head strong { color: var(--text); font: 600 0.61rem 'Cinzel', serif; letter-spacing: 0.065em; text-transform: uppercase; }
+.dialogue-tree-validation-head span { color: var(--gold-dim); font-size: 0.6rem; }
+.dialogue-tree-validation > p { margin: 0; padding: 9px; color: #77e8ad; font-size: 0.64rem; }
+.dialogue-tree-validation-list { display: grid; gap: 1px; }
+.dialogue-tree-validation-item { padding: 8px 9px; border: 0; border-left: 3px solid #e85c78; background: rgba(232,92,120,0.05); color: var(--text-dim); font-size: 0.63rem; line-height: 1.35; text-align: left; cursor: pointer; }
+.dialogue-tree-validation-item.is-warning { border-left-color: #e5ad46; background: rgba(229,173,70,0.05); }
+.dialogue-tree-validation-item:hover, .dialogue-tree-validation-item:focus-visible { background: rgba(162,121,236,0.17); color: var(--text); outline: none; }
+
 /* Known Figures preserves its single editable eyebrow line in storage, but the
    management list splits its conventional "From · Epithet" form into distinct
    columns so editors can scan lore provenance, visual treatment and visibility. */
@@ -3282,6 +3349,21 @@
   .timeline-management-title { gap: 9px; }
   .timeline-management-image { width: 29px; height: 42px; }
   .overlord-management-portrait { width: 29px; height: 42px; }
+}
+
+@media (max-width: 1120px) {
+  .dialogue-tree-workspace { grid-template-columns: 1fr; min-height: 0; }
+  .dialogue-tree-map { height: 560px; min-height: 500px; border-right: 0; border-bottom: 1px solid rgba(162,121,236,0.24); }
+  .dialogue-tree-inspector { max-height: none; overflow: visible; }
+  .dialogue-tree-inspector .dialogue-branch-row { grid-template-columns: 1fr 1fr; }
+}
+
+@media (max-width: 700px) {
+  .dialogue-tree-map { height: 490px; min-height: 440px; }
+  .dialogue-tree-minimap { display: none; }
+  .dialogue-tree-canvas-controls { max-width: 265px; }
+  .dialogue-tree-canvas-controls-title { display: none; }
+  .dialogue-tree-inspector .dialogue-branch-row { grid-template-columns: 1fr; }
 }
 
 /* World Control list rows -- same "wrap + width floor" fix as

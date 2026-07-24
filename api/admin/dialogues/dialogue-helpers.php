@@ -63,6 +63,19 @@ function pw_validate_dialogue_tree($tree): array {
         if (!$messages || count($messages) > 8) {
             pw_error('Every dialogue needs 1 to 8 message lines.');
         }
+        // Position is optional presentation metadata for the admin canvas. It
+        // never affects public playback, but retaining it lets editors keep a
+        // deliberately arranged tree after dragging cards around.
+        $position = null;
+        if (isset($node['position']) && $node['position'] !== null) {
+            if (!is_array($node['position'])) pw_error('A dialogue canvas position is invalid.');
+            $positionX = filter_var($node['position']['x'] ?? null, FILTER_VALIDATE_INT);
+            $positionY = filter_var($node['position']['y'] ?? null, FILTER_VALIDATE_INT);
+            if ($positionX === false || $positionY === false || $positionX < 0 || $positionX > 10000 || $positionY < 0 || $positionY > 20000) {
+                pw_error('A dialogue canvas position is outside the allowed workspace.');
+            }
+            $position = ['x' => $positionX, 'y' => $positionY];
+        }
         $rawChoices = isset($node['choices']) && is_array($node['choices']) ? $node['choices'] : [];
         if (count($rawChoices) > 10) pw_error('A dialogue may have at most 10 branches.');
         $choices = [];
@@ -91,7 +104,9 @@ function pw_validate_dialogue_tree($tree): array {
             ];
         }
         $nodeIds[$id] = true;
-        $normalized[] = ['id' => $id, 'title' => $title, 'messages' => $messages, 'choices' => $choices];
+        $normalizedNode = ['id' => $id, 'title' => $title, 'messages' => $messages, 'choices' => $choices];
+        if ($position !== null) $normalizedNode['position'] = $position;
+        $normalized[] = $normalizedNode;
     }
 
     $start = trim((string)($tree['start_node_id'] ?? ''));
