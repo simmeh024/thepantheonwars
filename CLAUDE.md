@@ -3304,7 +3304,11 @@ at that time.
   action.
 - Book Control: image upload + library picker (reuses server-generated filenames,
   per-directory `.htaccess` denying PHP execution, same pattern as
-  `api/upload-avatar.php`).
+  `api/upload-avatar.php`). The list is a five-column grid (Book number, Title,
+  Phase, Stage, Preview): cover art sits inside the title column, every stage
+  is color-coded by its fixed 1-15 workflow value, and Preview always renders
+  explicitly On or Off. The column header collapses into a two-line row layout
+  below 900px, so all status data remains available on smaller screens.
 - **Persistent sign-in recovery:** a 30-day PHP cookie is not sufficient by
   itself on shared hosting because PHP can garbage-collect the corresponding
   server-side session much sooner. `api/helpers.php` now aligns

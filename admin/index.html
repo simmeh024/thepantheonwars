@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=289">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=290">
 </head>
 <body>
 
@@ -2018,7 +2018,14 @@
         <span class="admin-count" id="book-count"></span>
       </div>
 
-      <div class="admin-list" id="book-list">
+      <div class="book-list-columns" aria-hidden="true">
+        <span>Book number</span>
+        <span>Title</span>
+        <span>Phase</span>
+        <span>Stage</span>
+        <span>Preview</span>
+      </div>
+      <div class="admin-list book-management-list" id="book-list">
         <div class="admin-list-empty">Loading books&hellip;</div>
       </div>
     </section>
@@ -10896,6 +10903,11 @@
   });
 
   var SAGA_PHASE_LABELS = { 1: 'I', 2: 'II', 3: 'III' };
+  var WRITING_STAGE_LABELS = {
+    1: 'Idea', 2: 'Outline', 3: 'First Draft', 4: 'Second Draft', 5: 'Developmental Revision',
+    6: 'Alpha Review', 7: 'Third Draft', 8: 'Beta Review', 9: 'Fourth Draft', 10: 'Developmental Editing',
+    11: 'Copy Editing', 12: 'Fifth Draft', 13: 'Proofreading', 14: 'Print Ready', 15: 'Published'
+  };
 
   var currentBook = null;
   var bookModalMode = 'edit';
@@ -10937,21 +10949,18 @@
     entries.forEach(function (entry) {
       var row = document.createElement('button');
       row.type = 'button';
-      row.className = 'admin-row';
+      var stage = Math.max(1, Math.min(15, parseInt(entry.writing_stage, 10) || 1));
+      var stageLabel = WRITING_STAGE_LABELS[stage] || ('Stage ' + stage);
+      row.className = 'admin-row book-management-row';
       row.innerHTML =
-        (entry.cover_image_url ? '<img class="admin-row-cover" src="' + resolveSiteImageUrl(entry.cover_image_url) + '" alt="">' : '') +
-        '<div class="admin-row-main">' +
-          '<p class="admin-row-subject">Book ' + entry.book_number + ' &mdash; ' + escapeHtml(entry.title) + '</p>' +
-          '<div class="admin-row-meta">' +
-            '<span>Phase ' + (SAGA_PHASE_LABELS[entry.saga_phase] || entry.saga_phase) + '</span>' +
-            '<span class="admin-row-sep">&bull;</span>' +
-            '<span>Stage ' + entry.writing_stage + ' / 15</span>' +
-          '</div>' +
-        '</div>' +
-        '<div class="member-row-badges">' +
-          (entry.preview_enabled ? '<span class="admin-status-badge is-translated">Preview On</span>' : '') +
-          (entry.has_buy_link ? '<span class="admin-status-badge is-translated">Buy Links</span>' : '') +
-        '</div>';
+        '<span class="book-list-number">Book ' + entry.book_number + '</span>' +
+        '<span class="book-list-title">' +
+          (entry.cover_image_url ? '<img class="book-list-cover" src="' + resolveSiteImageUrl(entry.cover_image_url) + '" alt="">' : '') +
+          '<span class="book-list-title-copy">' + escapeHtml(entry.title) + '</span>' +
+        '</span>' +
+        '<span class="book-list-phase">Phase ' + (SAGA_PHASE_LABELS[entry.saga_phase] || entry.saga_phase) + '</span>' +
+        '<span class="book-list-stage"><span class="book-stage-pill is-stage-' + stage + '" title="' + escapeHtml(stageLabel) + '"><strong>Stage ' + stage + '</strong><span>' + escapeHtml(stageLabel) + '</span></span></span>' +
+        '<span class="book-preview-status ' + (entry.preview_enabled ? 'is-enabled' : 'is-disabled') + '">Preview ' + (entry.preview_enabled ? 'On' : 'Off') + '</span>';
       row.addEventListener('click', function () { openBookModal(entry); });
       bookListEl.appendChild(row);
     });
