@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=309">
+<link rel="stylesheet" href="css/public.css?v=310">
 </head>
 <body>
 
@@ -1021,6 +1021,42 @@ document.addEventListener('DOMContentLoaded', function () {
     return message;
   }
 
+  function appendSynTyping(thread) {
+    var typing = document.createElement('div');
+    typing.className = 'result-chat-typing';
+    typing.setAttribute('aria-label', resultEl.querySelector('.result-chat-name').textContent + ' is typing');
+    var label = document.createElement('span');
+    label.className = 'result-chat-typing-label';
+    label.textContent = 'Syn is responding..';
+    typing.appendChild(label);
+    for (var dotIndex = 0; dotIndex < 3; dotIndex++) {
+      var dot = document.createElement('i');
+      dot.setAttribute('aria-hidden', 'true');
+      typing.appendChild(dot);
+    }
+    thread.appendChild(typing);
+    thread.scrollTop = thread.scrollHeight;
+    return typing;
+  }
+
+  function appendSynLines(thread, lines, complete) {
+    var lineIndex = 0;
+    function appendNextLine() {
+      if (lineIndex >= lines.length) {
+        if (complete) complete();
+        return;
+      }
+      var typing = appendSynTyping(thread);
+      queueResultChat(function () {
+        if (typing.parentNode) typing.parentNode.removeChild(typing);
+        appendResultChatMessage(thread, 'syn', lines[lineIndex]);
+        lineIndex++;
+        queueResultChat(appendNextLine, 120);
+      }, 440);
+    }
+    appendNextLine();
+  }
+
   function synDialogueContext() {
     return { resonance: synDialogue ? synDialogue.resonance : 0, answers: answers, interaction: quizInteraction };
   }
@@ -1035,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function renderSynChoices() {
-    if (!synDialogue) return;
+    if (!synDialogue || synDialogue.isRendering) return;
     var choicesEl = resultEl.querySelector('.result-chat-choices');
     var node = SYN_DIALOGUE_NODES[synDialogue.node];
     choicesEl.innerHTML = '';
@@ -1154,22 +1190,27 @@ document.addEventListener('DOMContentLoaded', function () {
     var node = SYN_DIALOGUE_NODES[nodeKey];
     if (!node) return;
     synDialogue.node = nodeKey;
+    synDialogue.isRendering = true;
     var thread = resultEl.querySelector('.result-chat-thread');
     var lines = typeof node.lines === 'function' ? node.lines(synDialogueContext()) : (node.lines || []);
-    lines.forEach(function (line) { appendResultChatMessage(thread, 'syn', line); });
-    if (node.glitch) triggerSynGlitch();
-    if (node.after) {
-      closeSynDialogue(false);
-      queueResultChat(function () {
-        node.after.lines.forEach(function (line) { appendResultChatMessage(thread, 'syn', line); });
-        if (node.after.outcome) recordSynOutcome(node.after.outcome);
-        if (node.after.close) closeSynDialogue(true);
-      }, node.after.delay || 0);
-      return;
-    }
-    if (node.outcome) recordSynOutcome(node.outcome);
-    if (node.close) closeSynDialogue(true);
-    else renderSynChoices();
+    appendSynLines(thread, lines, function () {
+      if (!synDialogue || synDialogue.node !== nodeKey) return;
+      synDialogue.isRendering = false;
+      if (node.glitch) triggerSynGlitch();
+      if (node.after) {
+        closeSynDialogue(false);
+        queueResultChat(function () {
+          appendSynLines(thread, node.after.lines, function () {
+            if (node.after.outcome) recordSynOutcome(node.after.outcome);
+            if (node.after.close) closeSynDialogue(true);
+          });
+        }, node.after.delay || 0);
+        return;
+      }
+      if (node.outcome) recordSynOutcome(node.outcome);
+      if (node.close) closeSynDialogue(true);
+      else renderSynChoices();
+    });
   }
 
   function chooseSynDialogue(choice) {
@@ -1207,7 +1248,7 @@ document.addEventListener('DOMContentLoaded', function () {
     choicesEl.innerHTML = '';
     invite.hidden = true;
     synDialogueState = { authenticated: false, flags: [], highSynResonance: false, migrationRequired: false, loaded: false };
-    synDialogue = { resonance: resonance, node: 'intro' };
+    synDialogue = { resonance: resonance, node: 'intro', isRendering: false };
     renderSynNode('intro');
     loadSynDialogueState();
   }
@@ -1242,11 +1283,12 @@ document.addEventListener('DOMContentLoaded', function () {
       renderSynDialogue(ov, resonance);
       return;
     }
-    appendResultChatMessage(thread, 'syn', profile.chat[0]);
-    resultChatTimer = setTimeout(function () {
-      appendResultChatMessage(thread, 'syn', profile.chat[1]);
-      resultChatTimer = null;
-    }, reduceMotion ? 0 : 3000);
+    appendSynLines(thread, [profile.chat[0]], function () {
+      resultChatTimer = setTimeout(function () {
+        appendSynLines(thread, [profile.chat[1]]);
+        resultChatTimer = null;
+      }, reduceMotion ? 0 : 3000);
+    });
   }
 
   function renderResultShareCard(ov, resonance) {

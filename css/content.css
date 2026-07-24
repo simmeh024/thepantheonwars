@@ -4107,14 +4107,17 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
 .result-chat-message p { margin: 0; color: var(--text-dim); font-size: 0.86rem; line-height: 1.55; }
 .result-chat-message--player p { color: #f4dfae; }
 @keyframes result-chat-arrival { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+.result-chat-typing { display: inline-flex; align-items: center; align-self: flex-start; gap: 4px; min-height: 29px; padding: 8px 11px; border: 1px solid rgba(162,121,236,0.18); border-radius: 4px 14px 14px 14px; background: rgba(124,79,214,0.07); color: var(--text-faint); }
+.result-chat-typing-label { margin-right: 2px; font: 500 0.62rem 'Jost', sans-serif; letter-spacing: 0.06em; text-transform: uppercase; }
+.result-chat-typing i { display: block; width: 4px; height: 4px; border-radius: 50%; background: var(--ov-accent, var(--purple-bright)); animation: result-chat-typing 0.9s ease-in-out infinite; }
+.result-chat-typing i:nth-of-type(2) { animation-delay: 0.14s; }
+.result-chat-typing i:nth-of-type(3) { animation-delay: 0.28s; }
+@keyframes result-chat-typing { 0%, 100% { opacity: 0.28; transform: translateY(0); } 45% { opacity: 1; transform: translateY(-2px); } }
 .result-chat-choices { display: grid; gap: 8px; padding: 14px 20px 18px; border-top: 1px solid var(--border-soft); background: rgba(4,3,13,0.26); }
 .result-chat-choices[hidden] { display: none; }
 .result-dialogue-choice { width: 100%; padding: 10px 12px; border: 1px solid rgba(162,121,236,0.35); color: var(--text-dim); text-align: left; font: 500 0.76rem 'Jost', sans-serif; letter-spacing: 0.025em; cursor: pointer; background: rgba(124,79,214,0.07); transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, transform 0.18s ease; }
-.result-dialogue-choice::before { color: var(--ov-accent, var(--purple-bright)); content: '['; }
-.result-dialogue-choice::after { color: var(--ov-accent, var(--purple-bright)); content: ']'; }
 .result-dialogue-choice:hover:not(:disabled), .result-dialogue-choice:focus-visible:not(:disabled) { border-color: var(--ov-accent, var(--purple-bright)); color: var(--text); outline: none; background: rgba(124,79,214,0.17); transform: translateX(2px); }
 .result-dialogue-choice.is-locked { border-color: rgba(255,255,255,0.1); color: var(--text-faint); cursor: not-allowed; background: rgba(255,255,255,0.025); }
-.result-dialogue-choice.is-locked::before, .result-dialogue-choice.is-locked::after { color: var(--text-faint); }
 .result-dialogue-choice small { display: block; margin-top: 5px; color: var(--text-faint); font-size: 0.62rem; letter-spacing: 0.04em; }
 .result-dialogue-outcome { display: grid; gap: 4px; padding: 11px 12px; border: 1px solid rgba(229,188,103,0.37); background: rgba(209,169,85,0.08); color: var(--gold-bright); font-size: 0.7rem; line-height: 1.4; }
 .result-dialogue-outcome strong { font: 600 0.7rem 'Cinzel', serif; letter-spacing: 0.05em; text-transform: uppercase; }
@@ -4185,7 +4188,7 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
 }
 @media (prefers-reduced-motion: reduce) {
   .resonance-bar-fill { transition: none; }
-  .result-chat-message, .result-chat-card.is-glitching { animation: none; }
+  .result-chat-message, .result-chat-card.is-glitching, .result-chat-typing i { animation: none; }
   .result-dialogue-choice { transition: none; }
 }
 
