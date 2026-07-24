@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=299">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=300">
 </head>
 <body>
 
@@ -3291,7 +3291,8 @@
 
     <div class="dialogue-tree-overview-panel">
       <div class="dialogue-tree-overview-head">
-        <span><strong>Whole tree</strong><small>Click a dialogue below to edit it. Lines show every outgoing player branch.</small></span>
+        <span><strong>Dialogue canvas</strong><small>Click a dialogue card to edit it. Follow the branch lines to see every player choice and where it leads.</small></span>
+        <span class="dialogue-tree-legend" aria-hidden="true"><i class="is-root"></i> Opening <i class="is-branch"></i> Player choice</span>
         <span class="dialogue-tree-overview-count" id="dialogue-tree-overview-count"></span>
       </div>
       <div class="dialogue-tree-map" id="dialogue-tree-map"></div>
@@ -13458,30 +13459,149 @@
     var tree = currentDialogueTree.tree;
     var nodes = dialogueTreeNodes();
     dialogueTreeMapEl.innerHTML = '';
-    dialogueTreeOverviewCountEl.textContent = nodes.length + (nodes.length === 1 ? ' dialogue · ' : ' dialogues · ') + dialogueBranchTotal(tree) + (dialogueBranchTotal(tree) === 1 ? ' branch' : ' branches');
+    var branchCount = dialogueBranchTotal(tree);
+    dialogueTreeOverviewCountEl.textContent = nodes.length + (nodes.length === 1 ? ' dialogue \u00b7 ' : ' dialogues \u00b7 ') + branchCount + (branchCount === 1 ? ' branch' : ' branches');
     if (!nodes.length) {
       dialogueTreeMapEl.innerHTML = '<p class="dialogue-tree-map-empty">Add the first dialogue to begin this tree.</p>';
       return;
     }
+
+    var nodeById = {};
+    var depthById = {};
+    nodes.forEach(function (node) { nodeById[node.id] = node; });
+    depthById[tree.start_node_id] = 0;
+
+    /* Repeatedly propagate the deepest known level. This keeps a converging branch
+       below both of its parents while retaining the API's no-cycle validation. */
+    for (var pass = 0; pass < nodes.length; pass++) {
+      var changed = false;
+      nodes.forEach(function (node) {
+        if (typeof depthById[node.id] === 'undefined') return;
+        (node.choices || []).forEach(function (choice) {
+          if (!nodeById[choice.target_node_id]) return;
+          var nextDepth = depthById[node.id] + 1;
+          if (typeof depthById[choice.target_node_id] === 'undefined' || depthById[choice.target_node_id] < nextDepth) {
+            depthById[choice.target_node_id] = nextDepth;
+            changed = true;
+          }
+        });
+      });
+      if (!changed) break;
+    }
+
+    var deepestLevel = 0;
+    Object.keys(depthById).forEach(function (nodeId) { deepestLevel = Math.max(deepestLevel, depthById[nodeId]); });
     nodes.forEach(function (node) {
+      if (typeof depthById[node.id] === 'undefined') {
+        deepestLevel += 1;
+        depthById[node.id] = deepestLevel;
+      }
+    });
+
+    var levels = [];
+    nodes.forEach(function (node) {
+      var depth = depthById[node.id];
+      if (!levels[depth]) levels[depth] = [];
+      levels[depth].push(node);
+    });
+
+    var nodeWidth = 236;
+    var nodeHeight = 126;
+    var verticalGap = 106;
+    var sidePadding = 72;
+    var topPadding = 42;
+    var widestLevel = 1;
+    levels.forEach(function (level) { if (level) widestLevel = Math.max(widestLevel, level.length); });
+    var canvasWidth = Math.max(760, (widestLevel * (nodeWidth + 58)) + (sidePadding * 2));
+    var canvasHeight = Math.max(310, ((deepestLevel + 1) * nodeHeight) + (deepestLevel * verticalGap) + (topPadding * 2));
+    var positions = {};
+    levels.forEach(function (level, depth) {
+      if (!level) return;
+      level.forEach(function (node, index) {
+        positions[node.id] = {
+          x: canvasWidth * (index + 1) / (level.length + 1),
+          y: topPadding + (depth * (nodeHeight + verticalGap))
+        };
+      });
+    });
+
+    var canvas = document.createElement('div');
+    canvas.className = 'dialogue-tree-canvas';
+    canvas.style.width = canvasWidth + 'px';
+    canvas.style.height = canvasHeight + 'px';
+    var svgNamespace = 'http://www.w3.org/2000/svg';
+    var edges = document.createElementNS(svgNamespace, 'svg');
+    edges.setAttribute('class', 'dialogue-tree-edges');
+    edges.setAttribute('viewBox', '0 0 ' + canvasWidth + ' ' + canvasHeight);
+    edges.setAttribute('width', canvasWidth);
+    edges.setAttribute('height', canvasHeight);
+    edges.setAttribute('aria-hidden', 'true');
+    var defs = document.createElementNS(svgNamespace, 'defs');
+    var marker = document.createElementNS(svgNamespace, 'marker');
+    marker.setAttribute('id', 'dialogue-tree-arrowhead');
+    marker.setAttribute('markerWidth', '7');
+    marker.setAttribute('markerHeight', '7');
+    marker.setAttribute('refX', '5');
+    marker.setAttribute('refY', '3.5');
+    marker.setAttribute('orient', 'auto');
+    var arrow = document.createElementNS(svgNamespace, 'path');
+    arrow.setAttribute('d', 'M 0 0 L 7 3.5 L 0 7 z');
+    arrow.setAttribute('fill', '#bd8aff');
+    marker.appendChild(arrow);
+    defs.appendChild(marker);
+    edges.appendChild(defs);
+    canvas.appendChild(edges);
+
+    nodes.forEach(function (node) {
+      var sourcePosition = positions[node.id];
+      (node.choices || []).forEach(function (choice) {
+        var targetPosition = positions[choice.target_node_id];
+        if (!sourcePosition || !targetPosition) return;
+        var fromX = sourcePosition.x;
+        var fromY = sourcePosition.y + nodeHeight;
+        var toX = targetPosition.x;
+        var toY = targetPosition.y;
+        var curveDepth = Math.max(46, Math.min(88, (toY - fromY) / 2));
+        var edge = document.createElementNS(svgNamespace, 'path');
+        edge.setAttribute('class', 'dialogue-tree-edge' + (node.id === tree.start_node_id ? ' is-from-root' : ''));
+        edge.setAttribute('d', 'M ' + fromX + ' ' + fromY + ' C ' + fromX + ' ' + (fromY + curveDepth) + ' ' + toX + ' ' + (toY - curveDepth) + ' ' + toX + ' ' + toY);
+        edge.setAttribute('marker-end', 'url(#dialogue-tree-arrowhead)');
+        edges.appendChild(edge);
+
+        var choiceLabel = document.createElement('span');
+        choiceLabel.className = 'dialogue-tree-edge-label' + (choice.requires_high_resonance ? ' is-locked' : '');
+        choiceLabel.style.left = ((fromX + toX) / 2) + 'px';
+        choiceLabel.style.top = (fromY + ((toY - fromY) * 0.52)) + 'px';
+        choiceLabel.innerHTML = (choice.requires_high_resonance ? '<em>Locked</em>' : '') + escapeHtml(choice.label || 'Untitled choice');
+        canvas.appendChild(choiceLabel);
+      });
+    });
+
+    nodes.forEach(function (node) {
+      var position = positions[node.id];
       var mapNode = document.createElement('button');
       mapNode.type = 'button';
-      mapNode.className = 'dialogue-tree-map-node' + (node.id === selectedDialogueNodeId ? ' is-selected' : '') + (node.id === tree.start_node_id ? ' is-start' : '');
-      var branchHtml = (node.choices || []).map(function (choice) {
-        var target = dialogueNodeById(choice.target_node_id);
-        return '<span class="dialogue-tree-map-branch">' + escapeHtml(choice.label) + ' &rarr; ' + escapeHtml(target ? target.title : choice.target_node_id) + '</span>';
-      }).join('') || '<span class="dialogue-tree-map-branch">No branches — this dialogue ends here.</span>';
+      mapNode.className = 'dialogue-tree-map-node' + (node.id === selectedDialogueNodeId ? ' is-selected' : '') + (node.id === tree.start_node_id ? ' is-start' : '') + (!(node.choices || []).length ? ' is-terminal' : '');
+      mapNode.style.left = (position.x - (nodeWidth / 2)) + 'px';
+      mapNode.style.top = position.y + 'px';
+      mapNode.setAttribute('aria-label', 'Edit dialogue: ' + node.title);
+      var firstMessage = (node.messages || [])[0] || 'No transmission text yet.';
+      var choiceTotal = (node.choices || []).length;
       mapNode.innerHTML =
+        '<span class="dialogue-tree-node-port is-input" aria-hidden="true"></span>' +
+        '<span class="dialogue-tree-node-port is-output" aria-hidden="true"></span>' +
+        '<span class="dialogue-tree-node-kicker">' + (node.id === tree.start_node_id ? 'Root · Opening' : 'Syn dialogue') + '</span>' +
         '<span class="dialogue-tree-map-title">' + escapeHtml(node.title) + '</span>' +
-        '<span class="dialogue-tree-map-meta">' + (node.id === tree.start_node_id ? 'Opening · ' : '') + (node.messages || []).length + ((node.messages || []).length === 1 ? ' line' : ' lines') + '</span>' +
-        '<span class="dialogue-tree-map-branches">' + branchHtml + '</span>';
+        '<span class="dialogue-tree-node-excerpt">' + escapeHtml(firstMessage) + '</span>' +
+        '<span class="dialogue-tree-map-meta">' + ((node.messages || []).length || 0) + (((node.messages || []).length || 0) === 1 ? ' line' : ' lines') + ' · ' + (choiceTotal ? choiceTotal + (choiceTotal === 1 ? ' choice' : ' choices') : 'Transmission end') + '</span>';
       mapNode.addEventListener('click', function () {
         dialogueTreeSaveSelectedNode();
         selectedDialogueNodeId = node.id;
         renderDialogueTreeEditor();
       });
-      dialogueTreeMapEl.appendChild(mapNode);
+      canvas.appendChild(mapNode);
     });
+    dialogueTreeMapEl.appendChild(canvas);
   }
 
   function renderDialogueTreeStartOptions() {
