@@ -1874,6 +1874,24 @@
 .vstats-top-grid { margin-bottom: 20px; }
 .vstats-top-grid-col { flex: 1 1 380px; display: flex; flex-direction: column; gap: 20px; }
 .vstats-top-grid .heatmap-card { flex: 1 1 480px; }
+.quiz-activity-card { flex: 1 1 auto; }
+.quiz-activity-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; padding: 16px 20px 12px; }
+.quiz-activity-card .quality-stat-card { min-width: 0; padding: 10px 12px; }
+.quiz-activity-card .quality-stat-value { font-size: 1.32rem; line-height: 1.2; white-space: nowrap; }
+.quiz-activity-card .quality-stat-label { font-size: 0.66rem; line-height: 1.3; }
+.quiz-activity-results { border-top: 1px solid var(--border-soft); padding: 0 20px 12px; }
+.quiz-activity-results-title { margin: 10px 0 3px; color: var(--text-faint); font-family: 'Jost', sans-serif; font-size: 0.68rem; letter-spacing: 0.08em; text-transform: uppercase; }
+.quiz-activity-result-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(70px, 1fr) auto; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid rgba(124, 79, 214, 0.12); }
+.quiz-activity-result-row:first-child { border-top: 0; }
+.quiz-activity-result-name { min-width: 0; overflow: hidden; color: var(--text-dim); font-size: 0.78rem; text-overflow: ellipsis; white-space: nowrap; }
+.quiz-activity-result-track { height: 6px; overflow: hidden; border-radius: 4px; background: var(--bg); }
+.quiz-activity-result-bar { display: block; height: 100%; border-radius: inherit; background: var(--purple-bright); }
+.quiz-activity-result-detail { color: var(--text-faint); font-size: 0.68rem; text-align: right; white-space: nowrap; }
+@media (max-width: 700px) {
+  .quiz-activity-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quiz-activity-result-row { grid-template-columns: minmax(0, 1fr) minmax(55px, 0.7fr); }
+  .quiz-activity-result-detail { grid-column: 1 / -1; text-align: left; }
+}
 .traffic-snapshot-grid { display: flex; flex-wrap: wrap; gap: 26px; padding: 18px 20px; }
 .traffic-snapshot-col { display: flex; flex-direction: column; gap: 10px; min-width: 150px; }
 .traffic-snapshot-col h3 {

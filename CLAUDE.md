@@ -601,6 +601,18 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Quiz Activity in Visitor Statistics.** The unused space below the
+  day-and-hour heatmap now reports quiz starts, completions, completion rate,
+  guest/member completion split and the result distribution for the selected
+  7/30/90-day reporting window. `quiz_activity` is created by
+  `sql/migration_quiz_activity.sql`; the dashboard degrades to a clear
+  migration prompt until that SQL has been run. Managed quizzes send an
+  idempotent start event on the first answer and update it only after
+  server-side scoring. Guest attempts are included, but only one-way hashes
+  of a browser UUID and attempt UUID plus the final result are stored -- no
+  raw guest identifier or answer content. Signed-in members keep their
+  personal result history exclusively in `quiz_results`.
+
 - **Real texture on Neoh's and High Hammer's weather cards.** Both switched
   from a CSS-drawn surface to a real user-supplied image applied as a
   `border-image` 9-slice, the same technique Babki Prime's tablet established

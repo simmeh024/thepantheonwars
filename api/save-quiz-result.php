@@ -68,6 +68,11 @@ try {
     pw_error('Your result could not be saved. Please try again.', 503);
 }
 
+// Analytics stores the completed member attempt separately from quiz_results,
+// so the Site Statistics card can compare member and guest outcomes without
+// exposing guest answers or turning guest activity into profile history.
+pw_quiz_track_attempt_completion($input, (int)$user['id'], $overlord);
+
 // +10 reputation for finishing the quiz, first time only -- retakes
 // (Re-Sync Overlord Resonance) never award it again.
 if ($isFirstQuiz) {

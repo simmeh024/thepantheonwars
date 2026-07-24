@@ -401,6 +401,7 @@ document.addEventListener('DOMContentLoaded', function () {
   ];
 
   var PROGRESS_KEY = 'pw_quiz_progress';
+  var quizAttemptId = null;
 
   var questions = BUILT_IN_QUESTIONS;
   var cast = FALLBACK_CAST;
@@ -437,11 +438,53 @@ document.addEventListener('DOMContentLoaded', function () {
     return 'managed:' + questions.map(function (q) { return q.id; }).join(',');
   }
 
+  function isQuizTrackingUuid(value) {
+    return typeof value === 'string' && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value);
+  }
+
+  function newQuizTrackingUuid() {
+    return window.crypto && typeof window.crypto.randomUUID === 'function' ? window.crypto.randomUUID() : '';
+  }
+
+  // Reuse the anonymous visitor cookie used by site-wide traffic analytics.
+  // The API hashes this identifier immediately; it never stores the raw value.
+  function getQuizVisitorId() {
+    try {
+      var match = document.cookie.match(/(?:^|; )pw_vid=([^;]+)/);
+      var visitorId = match ? match[1] : '';
+      if (isQuizTrackingUuid(visitorId)) return visitorId;
+      visitorId = newQuizTrackingUuid();
+      if (!visitorId) return '';
+      var expires = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toUTCString();
+      document.cookie = 'pw_vid=' + visitorId + '; expires=' + expires + '; path=/; SameSite=Lax';
+      return visitorId;
+    } catch (e) {
+      return '';
+    }
+  }
+
+  function beginQuizAttempt() {
+    if (!managed || quizAttemptId) return;
+    var attemptId = newQuizTrackingUuid();
+    var visitorId = getQuizVisitorId();
+    if (!attemptId || !visitorId) return;
+    quizAttemptId = attemptId;
+    fetch('/api/quiz/activity.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      keepalive: true,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'start', attempt_id: quizAttemptId, visitor_id: visitorId })
+    }).catch(function () {
+      // Completion creates the row if this small, non-blocking beacon is lost.
+    });
+  }
+
   function saveProgress() {
     try {
       if (!answers.length) { window.localStorage.removeItem(PROGRESS_KEY); return; }
       window.localStorage.setItem(PROGRESS_KEY, JSON.stringify({
-        signature: questionSignature(), answers: answers, current: current
+        signature: questionSignature(), answers: answers, current: current, attempt_id: quizAttemptId
       }));
     } catch (e) { /* private mode or a full quota -- progress is a nicety */ }
   }
@@ -460,6 +503,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!saved || saved.signature !== questionSignature() || !Array.isArray(saved.answers)) return false;
     if (!saved.answers.length || saved.answers.length > questions.length) return false;
     answers = saved.answers;
+    quizAttemptId = isQuizTrackingUuid(saved.attempt_id) ? saved.attempt_id : null;
     if (answers.length === questions.length) {
       current = questions.length;
       return 'complete';
@@ -514,6 +558,7 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function selectAnswer(answer) {
+    beginQuizAttempt();
     answers[current] = answer;
     // Jump to the first still-unanswered question. Answering forward this is
     // simply the next one; after going Back to change an earlier answer it
@@ -568,9 +613,15 @@ document.addEventListener('DOMContentLoaded', function () {
   function submitAnswers() {
     if (!managed) { showLocalResult(); return; }
 
+    beginQuizAttempt();
     var signedIn = window.PW_AUTH && window.PW_AUTH.loggedIn;
     var endpoint = signedIn ? '/api/save-quiz-result.php' : '/api/quiz/score.php';
     var body = { answers: answers };
+    var visitorId = getQuizVisitorId();
+    if (quizAttemptId && visitorId) {
+      body.attempt_id = quizAttemptId;
+      body.visitor_id = visitorId;
+    }
     if (signedIn && window.PW_AUTH.csrf) body.csrf = window.PW_AUTH.csrf;
 
     fetch(endpoint, {
@@ -753,6 +804,7 @@ document.addEventListener('DOMContentLoaded', function () {
   retryBtn.addEventListener('click', function () {
     current = 0;
     answers = [];
+    quizAttemptId = null;
     scores = [0, 0, 0, 0, 0, 0];
     clearProgress();
     resultEl.hidden = true;

@@ -285,6 +285,75 @@ function pw_quiz_score_answers(array $submitted): array {
 }
 
 /**
+ * Quiz Activity keeps only an anonymous, one-way association to a browser
+ * visit. It deliberately stores neither the raw visitor cookie nor answers:
+ * the result is enough for the aggregate activity card, while personal quiz
+ * history remains exclusive to signed-in members' quiz_results rows.
+ */
+function pw_quiz_activity_identifiers(array $input): ?array {
+    $attemptId = isset($input['attempt_id']) ? (string)$input['attempt_id'] : '';
+    $visitorId = isset($input['visitor_id']) ? (string)$input['visitor_id'] : '';
+    $uuidPattern = '/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i';
+    if (!preg_match($uuidPattern, $attemptId) || !preg_match($uuidPattern, $visitorId)) {
+        return null;
+    }
+    return [
+        'attempt_hash' => hash('sha256', strtolower($attemptId)),
+        'visitor_hash' => hash('sha256', strtolower($visitorId)),
+    ];
+}
+
+/**
+ * Idempotently record the first answer of a managed quiz. A retry of the same
+ * request cannot inflate starts because every browser attempt carries one UUID.
+ * Missing migration/table errors are deliberately non-fatal to the public quiz.
+ */
+function pw_quiz_track_attempt_start(array $input, ?int $userId): bool {
+    $identifiers = pw_quiz_activity_identifiers($input);
+    if ($identifiers === null) {
+        return false;
+    }
+    try {
+        $stmt = pw_db()->prepare(
+            'INSERT IGNORE INTO quiz_activity (attempt_token_hash, visitor_token_hash, user_id)
+             VALUES (?, ?, ?)'
+        );
+        $stmt->execute([$identifiers['attempt_hash'], $identifiers['visitor_hash'], $userId]);
+        return true;
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
+/**
+ * Complete the activity attempt after server-side scoring. If the asynchronous
+ * start beacon was lost, this creates a completed row so guest results are
+ * still represented in analytics. First completion wins, keeping retries from
+ * producing duplicates or overwriting the stored outcome.
+ */
+function pw_quiz_track_attempt_completion(array $input, ?int $userId, string $overlord): bool {
+    $identifiers = pw_quiz_activity_identifiers($input);
+    if ($identifiers === null || $overlord === '') {
+        return false;
+    }
+    try {
+        $stmt = pw_db()->prepare(
+            'INSERT INTO quiz_activity (
+                attempt_token_hash, visitor_token_hash, user_id, completed_at, overlord_result
+             ) VALUES (?, ?, ?, UTC_TIMESTAMP(), ?)
+             ON DUPLICATE KEY UPDATE
+                user_id = COALESCE(user_id, VALUES(user_id)),
+                completed_at = COALESCE(completed_at, UTC_TIMESTAMP()),
+                overlord_result = COALESCE(overlord_result, VALUES(overlord_result))'
+        );
+        $stmt->execute([$identifiers['attempt_hash'], $identifiers['visitor_hash'], $userId, $overlord]);
+        return true;
+    } catch (PDOException $e) {
+        return false;
+    }
+}
+
+/**
  * Share of members currently resonating with each Overlord, as
  * [slug => ['count' => int, 'pct' => int]] plus a 'total' member count.
  *
