@@ -168,10 +168,15 @@ function pw_quiz_overlord_dialogue_trees(): array {
         if (!$db->query("SHOW TABLES LIKE 'overlord_dialogue_trees'")->fetch()) {
             return $dialogues;
         }
+        // The workflow migration splits an editable draft from the public
+        // snapshot. Before it has run, keep reading the original tree_json so
+        // a deploy before a manual migration never removes live dialogue.
+        $hasPublishedTree = (bool)$db->query("SHOW COLUMNS FROM overlord_dialogue_trees LIKE 'published_tree_json'")->fetch();
+        $treeColumn = $hasPublishedTree ? 't.published_tree_json' : 't.tree_json';
         $rows = $db->query(
-            'SELECT o.slug, t.is_enabled, t.tree_json
+            'SELECT o.slug, t.is_enabled, ' . $treeColumn . ' AS tree_json
              FROM overlord_dialogue_trees t
-             JOIN overlords o ON o.id = t.overlord_id'
+             JOIN overlords o ON o.id = t.overlord_id' . ($hasPublishedTree ? ' WHERE t.published_tree_json IS NOT NULL' : '')
         )->fetchAll();
         foreach ($rows as $row) {
             $tree = json_decode($row['tree_json'], true);

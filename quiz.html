@@ -1106,9 +1106,18 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   function managedDialogueReputationLevel() {
-    var reputation = window.PW_AUTH && window.PW_AUTH.user && window.PW_AUTH.user.reputation;
+    var reputation = managedDialogue && managedDialogue.reputation || (window.PW_AUTH && window.PW_AUTH.user && window.PW_AUTH.user.reputation);
     var level = Number(reputation && reputation.level_number);
     return isFinite(level) && level > 0 ? Math.floor(level) : 0;
+  }
+
+  function managedDialogueStateKey(value) {
+    value = String(value || '').trim();
+    return /^[a-z0-9][a-z0-9_-]{0,63}$/.test(value) ? value : '';
+  }
+
+  function managedDialogueStateNeedsLoad(choice) {
+    return !!(managedDialogueStateKey(choice.required_flag) || managedDialogueStateKey(choice.required_variable_key));
   }
 
   function managedDialogueChoiceLockReasons(choice) {
@@ -1119,6 +1128,19 @@ document.addEventListener('DOMContentLoaded', function () {
     var requiredReputationLevel = Number(choice.required_reputation_level);
     if (isFinite(requiredReputationLevel) && Math.floor(requiredReputationLevel) === requiredReputationLevel && requiredReputationLevel >= 1 && managedDialogueReputationLevel() < requiredReputationLevel) {
       reasons.push('Requires Rep Level ' + requiredReputationLevel);
+    }
+    if (managedDialogueStateNeedsLoad(choice) && managedDialogue && managedDialogue.authenticated && !managedDialogue.stateLoaded) {
+      reasons.push('Checking saved dialogue state');
+      return reasons;
+    }
+    var state = managedDialogue && managedDialogue.state || { flags: [], variables: {} };
+    var flag = managedDialogueStateKey(choice.required_flag);
+    if (flag && state.flags.indexOf(flag) === -1) reasons.push('Requires flag: ' + flag);
+    var variable = managedDialogueStateKey(choice.required_variable_key);
+    if (variable) {
+      var minimum = Number(choice.required_variable_min);
+      if (!isFinite(minimum) || Math.floor(minimum) !== minimum) minimum = 1;
+      if ((Number(state.variables[variable]) || 0) < minimum) reasons.push('Requires ' + variable + ' ≥ ' + minimum);
     }
     return reasons;
   }
@@ -1154,11 +1176,85 @@ document.addEventListener('DOMContentLoaded', function () {
       button.addEventListener('click', function () {
         if (!managedDialogue || !managedDialogueChoiceUnlocked(choice)) return;
         choicesEl.innerHTML = '';
-        appendResultChatMessage(resultEl.querySelector('.result-chat-thread'), 'player', choice.label);
-        queueResultChat(function () { renderManagedDialogueNode(choice.target_node_id); }, 300);
+        preserveManagedDialogueChoice(choice, function () {
+          appendResultChatMessage(resultEl.querySelector('.result-chat-thread'), 'player', choice.label);
+          queueResultChat(function () { renderManagedDialogueNode(choice.target_node_id); }, 300);
+        });
       });
       choicesEl.appendChild(button);
     });
+  }
+
+  function managedDialogueApplyLocalEffects(choice) {
+    if (!managedDialogue) return;
+    var state = managedDialogue.state || { flags: [], variables: {} };
+    var setFlag = managedDialogueStateKey(choice.set_flag);
+    if (setFlag && state.flags.indexOf(setFlag) === -1) state.flags.push(setFlag);
+    var variable = managedDialogueStateKey(choice.variable_key);
+    if (variable) state.variables[variable] = Math.max(-9999, Math.min(9999, (Number(state.variables[variable]) || 0) + (Number(choice.variable_delta) || 0)));
+    managedDialogue.state = state;
+  }
+
+  function preserveManagedDialogueChoice(choice, complete) {
+    if (!managedDialogue) return;
+    var signedIn = window.PW_AUTH && window.PW_AUTH.loggedIn && window.PW_AUTH.csrf;
+    if (!signedIn || !choice.id) {
+      managedDialogueApplyLocalEffects(choice);
+      complete();
+      return;
+    }
+    var outcomeEl = resultEl.querySelector('.result-chat-outcome');
+    outcomeEl.hidden = false;
+    outcomeEl.textContent = 'Preserving this choice…';
+    fetch('/api/quiz/dialogue-choice.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overlord: managedDialogue.ov.slug, choice_id: choice.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error((data && data.error) || 'Could not preserve this choice.');
+        managedDialogue.state = data.state || managedDialogue.state;
+        managedDialogue.stateLoaded = true;
+        if (data.reputation) {
+          managedDialogue.reputation = data.reputation;
+          if (window.PW_AUTH && window.PW_AUTH.user) window.PW_AUTH.user.reputation = data.reputation;
+        }
+        outcomeEl.textContent = data.reputation_awarded ? '+' + data.reputation_awarded + ' reputation preserved.' : 'Choice preserved.';
+        complete();
+      })
+      .catch(function (error) {
+        outcomeEl.textContent = error.message || 'This choice could not be preserved right now.';
+        renderManagedDialogueChoices();
+      });
+  }
+
+  function loadManagedDialogueState() {
+    if (!managedDialogue || !(window.PW_AUTH && window.PW_AUTH.loggedIn)) return;
+    fetch('/api/quiz/dialogue-state.php?overlord=' + encodeURIComponent(managedDialogue.ov.slug), { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!managedDialogue || !data || !data.ok) return;
+        managedDialogue.state = data.state || managedDialogue.state;
+        // A pending migration means there is no persisted state yet, but the
+        // current browser session should still be able to follow the tree.
+        managedDialogue.stateLoaded = true;
+        if (data.reputation) managedDialogue.reputation = data.reputation;
+        if (data.result_matches && typeof data.resonance === 'number') managedDialogue.resonance = data.resonance;
+        if (!managedDialogue.renderStarted) {
+          managedDialogue.renderStarted = true;
+          renderManagedDialogueNode(managedDialogueNode(managedDialogue.state.node_id) ? managedDialogue.state.node_id : managedDialogue.tree.start_node_id);
+        } else if (!managedDialogue.isRendering) renderManagedDialogueChoices();
+      })
+      .catch(function () {
+        if (!managedDialogue) return;
+        managedDialogue.stateLoaded = true;
+        if (!managedDialogue.renderStarted) {
+          managedDialogue.renderStarted = true;
+          renderManagedDialogueNode(managedDialogue.tree.start_node_id);
+        } else {
+          renderManagedDialogueChoices();
+        }
+      });
   }
 
   function renderManagedDialogueNode(nodeId) {
@@ -1187,13 +1283,30 @@ document.addEventListener('DOMContentLoaded', function () {
       tree: tree,
       nodeId: tree.start_node_id,
       responseDelay: responseDelay,
-      isRendering: false
+      isRendering: false,
+      authenticated: !!(window.PW_AUTH && window.PW_AUTH.loggedIn),
+      stateLoaded: !(window.PW_AUTH && window.PW_AUTH.loggedIn),
+      state: { flags: [], variables: {}, node_id: '', result_id: 0 },
+      reputation: window.PW_AUTH && window.PW_AUTH.user && window.PW_AUTH.user.reputation || null,
+      renderStarted: false
     };
-    renderManagedDialogueNode(tree.start_node_id);
+    if (managedDialogue.authenticated) loadManagedDialogueState();
+    else {
+      managedDialogue.renderStarted = true;
+      renderManagedDialogueNode(tree.start_node_id);
+    }
   }
 
   document.addEventListener('pw-auth-ready', function () {
-    if (managedDialogue && !managedDialogue.isRendering) renderManagedDialogueChoices();
+    if (managedDialogue) {
+      managedDialogue.authenticated = !!(window.PW_AUTH && window.PW_AUTH.loggedIn);
+      if (managedDialogue.authenticated) loadManagedDialogueState();
+      else if (!managedDialogue.renderStarted) {
+        managedDialogue.stateLoaded = true;
+        managedDialogue.renderStarted = true;
+        renderManagedDialogueNode(managedDialogue.tree.start_node_id);
+      } else if (!managedDialogue.isRendering) renderManagedDialogueChoices();
+    }
   });
 
   function synDialogueContext() {

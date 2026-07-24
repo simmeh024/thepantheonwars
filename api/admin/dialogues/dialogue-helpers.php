@@ -10,6 +10,46 @@ function pw_dialogue_trees_ready(PDO $db): bool {
     return (bool)$db->query("SHOW TABLES LIKE 'overlord_dialogue_trees'")->fetch();
 }
 
+/**
+ * Draft/publish columns arrived after the first tree release. Keeping this
+ * capability check small lets the original editor remain readable during the
+ * deploy-before-migration window instead of making a pending migration fatal.
+ */
+function pw_dialogue_tree_publish_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    try {
+        $ready = (bool)$db->query("SHOW COLUMNS FROM overlord_dialogue_trees LIKE 'published_tree_json'")->fetch();
+    } catch (Throwable $e) {
+        $ready = false;
+    }
+    return $ready;
+}
+
+function pw_dialogue_tree_versions_ready(PDO $db): bool {
+    try {
+        return (bool)$db->query("SHOW TABLES LIKE 'overlord_dialogue_tree_versions'")->fetch();
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function pw_dialogue_variable_key($value): ?string {
+    $key = trim((string)$value);
+    return preg_match('/\A[a-z0-9][a-z0-9_-]{0,63}\z/', $key) ? $key : null;
+}
+
+function pw_dialogue_choice_id(string $nodeId, int $choiceIndex, $providedId = ''): string {
+    $providedId = trim((string)$providedId);
+    if (preg_match('/\A[a-z0-9][a-z0-9_-]{0,63}\z/', $providedId)) {
+        return $providedId;
+    }
+    // Legacy choices did not have an id. Give them a deterministic identity
+    // before they receive persistent effects, without asking editors to
+    // rebuild a previously authored tree.
+    return 'choice-' . substr(sha1($nodeId . ':' . $choiceIndex), 0, 18);
+}
+
 function pw_dialogue_default_tree(array $transmission = []): array {
     $messages = array_values(array_filter([
         trim((string)($transmission['opening_message'] ?? '')),
@@ -41,6 +81,7 @@ function pw_validate_dialogue_tree($tree): array {
 
     $normalized = [];
     $nodeIds = [];
+    $choiceIds = [];
     foreach ($nodes as $node) {
         if (!is_array($node)) pw_error('Each dialogue is invalid.');
         $id = trim((string)($node['id'] ?? ''));
@@ -79,8 +120,10 @@ function pw_validate_dialogue_tree($tree): array {
         $rawChoices = isset($node['choices']) && is_array($node['choices']) ? $node['choices'] : [];
         if (count($rawChoices) > 10) pw_error('A dialogue may have at most 10 branches.');
         $choices = [];
-        foreach ($rawChoices as $choice) {
+        foreach ($rawChoices as $choiceIndex => $choice) {
             if (!is_array($choice)) pw_error('A dialogue branch is invalid.');
+            $choiceId = pw_dialogue_choice_id($id, $choiceIndex, $choice['id'] ?? '');
+            if (isset($choiceIds[$choiceId])) pw_error('Every player branch needs a unique ID.');
             $label = trim((string)($choice['label'] ?? ''));
             $target = trim((string)($choice['target_node_id'] ?? ''));
             // This deliberately gates on the member's reputation LEVEL number
@@ -96,12 +139,55 @@ function pw_validate_dialogue_tree($tree): array {
             }
             if ($label === '' || mb_strlen($label) > 180) pw_error('Each branch needs a label of at most 180 characters.');
             if (!preg_match('/\A[a-z0-9][a-z0-9_-]{0,63}\z/', $target)) pw_error('Each branch must target a dialogue.');
+            $requiredFlag = trim((string)($choice['required_flag'] ?? ''));
+            if ($requiredFlag !== '' && pw_dialogue_variable_key($requiredFlag) === null) {
+                pw_error('A branch flag condition may only use lowercase letters, numbers, hyphens, and underscores.');
+            }
+            $requiredVariableKey = trim((string)($choice['required_variable_key'] ?? ''));
+            if ($requiredVariableKey !== '' && pw_dialogue_variable_key($requiredVariableKey) === null) {
+                pw_error('A branch variable condition may only use lowercase letters, numbers, hyphens, and underscores.');
+            }
+            $requiredVariableMin = null;
+            if ($requiredVariableKey !== '') {
+                $requiredVariableMin = filter_var($choice['required_variable_min'] ?? 1, FILTER_VALIDATE_INT);
+                if ($requiredVariableMin === false || $requiredVariableMin < -9999 || $requiredVariableMin > 9999) {
+                    pw_error('A branch variable condition must be between -9999 and 9999.');
+                }
+            }
+            $setFlag = trim((string)($choice['set_flag'] ?? ''));
+            if ($setFlag !== '' && pw_dialogue_variable_key($setFlag) === null) {
+                pw_error('A branch flag effect may only use lowercase letters, numbers, hyphens, and underscores.');
+            }
+            $variableKey = trim((string)($choice['variable_key'] ?? ''));
+            if ($variableKey !== '' && pw_dialogue_variable_key($variableKey) === null) {
+                pw_error('A branch variable effect may only use lowercase letters, numbers, hyphens, and underscores.');
+            }
+            $variableDelta = filter_var($choice['variable_delta'] ?? 0, FILTER_VALIDATE_INT);
+            if ($variableDelta === false || $variableDelta < -9999 || $variableDelta > 9999) {
+                pw_error('A branch variable change must be between -9999 and 9999.');
+            }
+            if ($variableKey === '' && $variableDelta !== 0) {
+                pw_error('Choose a variable before changing its value.');
+            }
+            $reputationReward = filter_var($choice['reputation_reward'] ?? 0, FILTER_VALIDATE_INT);
+            if ($reputationReward === false || $reputationReward < 0 || $reputationReward > 50) {
+                pw_error('A dialogue branch can award between 0 and 50 reputation.');
+            }
             $choices[] = [
+                'id' => $choiceId,
                 'label' => $label,
                 'target_node_id' => $target,
                 'requires_high_resonance' => !empty($choice['requires_high_resonance']),
                 'required_reputation_level' => $requiredLevel,
+                'required_flag' => $requiredFlag !== '' ? $requiredFlag : null,
+                'required_variable_key' => $requiredVariableKey !== '' ? $requiredVariableKey : null,
+                'required_variable_min' => $requiredVariableMin,
+                'set_flag' => $setFlag !== '' ? $setFlag : null,
+                'variable_key' => $variableKey !== '' ? $variableKey : null,
+                'variable_delta' => $variableKey !== '' ? $variableDelta : 0,
+                'reputation_reward' => $reputationReward,
             ];
+            $choiceIds[$choiceId] = true;
         }
         $nodeIds[$id] = true;
         $normalizedNode = ['id' => $id, 'title' => $title, 'messages' => $messages, 'choices' => $choices];

@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=304">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=306">
 </head>
 <body>
 
@@ -3309,12 +3309,21 @@
 
           <div class="dialogue-tree-editor-toolbar">
             <button type="button" class="btn" id="dialogue-add-node-btn">+ Dialogue</button>
+            <button type="button" class="btn" id="dialogue-preview-btn">Preview</button>
+            <button type="button" class="permission-mini-btn" id="dialogue-undo-btn" title="Undo last change">Undo</button>
+            <button type="button" class="permission-mini-btn" id="dialogue-redo-btn" title="Redo last change">Redo</button>
             <button type="button" class="btn" id="dialogue-auto-layout-btn">Auto-layout</button>
             <button type="button" class="btn" id="dialogue-reset-layout-btn">Reset view</button>
           </div>
 
+          <div class="dialogue-tree-search">
+            <label for="dialogue-tree-search-input">Find in tree</label>
+            <input type="search" id="dialogue-tree-search-input" maxlength="180" placeholder="Search dialogue, line, or player choice">
+            <div class="dialogue-tree-search-results" id="dialogue-tree-search-results" hidden></div>
+          </div>
+
           <label class="admin-field news-comments-toggle" for="dialogue-tree-enabled-input">
-            <span><strong>Use this custom dialogue tree</strong><small>When disabled, the normal two-message result transmission remains visible instead.</small></span>
+            <span><strong>Enable on publish</strong><small>Saving edits keeps the live transmission unchanged. Publishing this setting switches the public result chat.</small></span>
             <input type="checkbox" id="dialogue-tree-enabled-input" checked>
           </label>
 
@@ -3346,15 +3355,36 @@
           <div class="dialogue-branch-list" id="dialogue-branch-list"></div>
 
           <div class="dialogue-tree-validation" id="dialogue-tree-validation"></div>
+          <div class="dialogue-tree-publication" id="dialogue-tree-publication"></div>
           <p class="admin-modal-error" id="dialogue-tree-modal-error"></p>
           <p class="admin-modal-status" id="dialogue-tree-modal-status"></p>
           <div class="admin-modal-actions">
-            <button type="button" class="btn btn-solid" id="dialogue-tree-save-btn">Save Dialogue Tree</button>
+            <button type="button" class="btn" id="dialogue-tree-save-btn">Save Draft</button>
+            <button type="button" class="btn btn-solid" id="dialogue-tree-publish-btn">Publish</button>
             <button type="button" class="btn" id="dialogue-tree-cancel-btn">Cancel</button>
           </div>
         </aside>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="admin-modal" id="dialogue-preview-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-dialogue-preview">
+    <button type="button" class="admin-modal-close" id="dialogue-preview-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title">Dialogue Preview</h3>
+    <p class="admin-modal-sub">A safe local simulation of the current draft. Nothing here changes a member&rsquo;s story state or reputation.</p>
+    <div class="dialogue-preview-controls">
+      <label>Resonance <input type="number" id="dialogue-preview-resonance-input" min="0" max="100" value="75"></label>
+      <label>Rep level <input type="number" id="dialogue-preview-rep-level-input" min="0" max="99" value="1"></label>
+      <label>Flags <input type="text" id="dialogue-preview-flags-input" maxlength="500" placeholder="flag_one, flag_two"></label>
+      <label>Variables <input type="text" id="dialogue-preview-variables-input" maxlength="500" placeholder="trust=2, suspicion=1"></label>
+      <button type="button" class="permission-mini-btn" id="dialogue-preview-reset-btn">Restart preview</button>
+    </div>
+    <div class="dialogue-preview-chat" id="dialogue-preview-chat" aria-live="polite"></div>
+    <div class="dialogue-preview-choices" id="dialogue-preview-choices" aria-label="Preview dialogue choices"></div>
+    <p class="dialogue-preview-state" id="dialogue-preview-state"></p>
   </div>
 </div>
 
@@ -13377,15 +13407,38 @@
   var dialogueAddBranchBtn = document.getElementById('dialogue-add-branch-btn');
   var dialogueAutoLayoutBtn = document.getElementById('dialogue-auto-layout-btn');
   var dialogueResetLayoutBtn = document.getElementById('dialogue-reset-layout-btn');
+  var dialoguePreviewBtn = document.getElementById('dialogue-preview-btn');
+  var dialogueUndoBtn = document.getElementById('dialogue-undo-btn');
+  var dialogueRedoBtn = document.getElementById('dialogue-redo-btn');
+  var dialogueSearchInput = document.getElementById('dialogue-tree-search-input');
+  var dialogueSearchResultsEl = document.getElementById('dialogue-tree-search-results');
+  var dialoguePublicationEl = document.getElementById('dialogue-tree-publication');
   var dialogueTreeSaveBtn = document.getElementById('dialogue-tree-save-btn');
+  var dialogueTreePublishBtn = document.getElementById('dialogue-tree-publish-btn');
   var dialogueTreeCloseBtn = document.getElementById('dialogue-tree-modal-close');
   var dialogueTreeCancelBtn = document.getElementById('dialogue-tree-cancel-btn');
+  var dialoguePreviewModal = document.getElementById('dialogue-preview-modal');
+  var dialoguePreviewCloseBtn = document.getElementById('dialogue-preview-modal-close');
+  var dialoguePreviewChatEl = document.getElementById('dialogue-preview-chat');
+  var dialoguePreviewChoicesEl = document.getElementById('dialogue-preview-choices');
+  var dialoguePreviewStateEl = document.getElementById('dialogue-preview-state');
+  var dialoguePreviewResonanceInput = document.getElementById('dialogue-preview-resonance-input');
+  var dialoguePreviewRepLevelInput = document.getElementById('dialogue-preview-rep-level-input');
+  var dialoguePreviewFlagsInput = document.getElementById('dialogue-preview-flags-input');
+  var dialoguePreviewVariablesInput = document.getElementById('dialogue-preview-variables-input');
+  var dialoguePreviewResetBtn = document.getElementById('dialogue-preview-reset-btn');
   var currentDialogueTree = null;
   var selectedDialogueNodeId = null;
   var dialogueCanvasZoom = 1;
   var dialogueCanvasQuickAddOpen = false;
   var dialogueCanvasLinkModeSourceId = null;
   var dialogueCanvasLayout = null;
+  var dialogueUndoStack = [];
+  var dialogueRedoStack = [];
+  var dialogueHistoryCurrent = '';
+  var dialogueAutosaveTimer = null;
+  var dialoguePreviewState = null;
+  var dialoguePreviewTimer = null;
 
   dialogueTreeMapEl.addEventListener('scroll', updateDialogueTreeMinimapViewport);
   dialogueTreeMapEl.addEventListener('pointerdown', function (event) {
@@ -13399,6 +13452,79 @@
 
   function dialogueTreeClone(tree) {
     return JSON.parse(JSON.stringify(tree || { version: 1, start_node_id: '', nodes: [] }));
+  }
+
+  function dialogueTreeDraftSnapshot() {
+    return JSON.stringify({
+      tree: currentDialogueTree ? currentDialogueTree.tree : null,
+      draft_is_enabled: currentDialogueTree ? !!currentDialogueTree.draft_is_enabled : true
+    });
+  }
+
+  function dialogueTreeDraftStorageKey() {
+    return currentDialogueTree && currentDialogueTree.overlord ? 'pw_dialogue_tree_draft_v2_' + currentDialogueTree.overlord.id : '';
+  }
+
+  function updateDialogueHistoryButtons() {
+    var readOnly = !pwHasPermission('dialogues.edit');
+    dialogueUndoBtn.disabled = readOnly || !dialogueUndoStack.length;
+    dialogueRedoBtn.disabled = readOnly || !dialogueRedoStack.length;
+  }
+
+  function dialogueTreeScheduleAutosave() {
+    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
+    if (dialogueAutosaveTimer) clearTimeout(dialogueAutosaveTimer);
+    dialogueAutosaveTimer = setTimeout(function () {
+      try {
+        var key = dialogueTreeDraftStorageKey();
+        if (!key) return;
+        window.localStorage.setItem(key, JSON.stringify({ snapshot: dialogueTreeDraftSnapshot(), saved_at: new Date().toISOString() }));
+        dialogueTreeModalStatus.textContent = 'Draft auto-saved in this browser.';
+        dialogueTreeModalStatus.classList.add('show');
+      } catch (e) { /* Local storage is a recovery layer, never a blocker. */ }
+    }, 700);
+  }
+
+  function dialogueTreeClearAutosave() {
+    if (dialogueAutosaveTimer) { clearTimeout(dialogueAutosaveTimer); dialogueAutosaveTimer = null; }
+    try {
+      var key = dialogueTreeDraftStorageKey();
+      if (key) window.localStorage.removeItem(key);
+    } catch (e) {}
+  }
+
+  function dialogueTreeMarkChanged() {
+    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
+    var snapshot = dialogueTreeDraftSnapshot();
+    if (snapshot === dialogueHistoryCurrent) return;
+    if (dialogueHistoryCurrent) {
+      dialogueUndoStack.push(dialogueHistoryCurrent);
+      if (dialogueUndoStack.length > 50) dialogueUndoStack.shift();
+    }
+    dialogueHistoryCurrent = snapshot;
+    dialogueRedoStack = [];
+    updateDialogueHistoryButtons();
+    dialogueTreeScheduleAutosave();
+  }
+
+  function dialogueTreeRestoreHistory(snapshot, direction) {
+    if (!currentDialogueTree || !snapshot) return;
+    try {
+      var parsed = JSON.parse(snapshot);
+      if (!parsed || !parsed.tree || !Array.isArray(parsed.tree.nodes)) return;
+      var currentSnapshot = dialogueTreeDraftSnapshot();
+      if (direction === 'undo') dialogueRedoStack.push(currentSnapshot);
+      else dialogueUndoStack.push(currentSnapshot);
+      currentDialogueTree.tree = dialogueTreeClone(parsed.tree);
+      currentDialogueTree.draft_is_enabled = parsed.draft_is_enabled !== false;
+      dialogueHistoryCurrent = snapshot;
+      ensureSelectedDialogueNode();
+      updateDialogueHistoryButtons();
+      dialogueTreeScheduleAutosave();
+      renderDialogueTreeEditor();
+      dialogueTreeModalStatus.textContent = direction === 'undo' ? 'Last dialogue change undone.' : 'Dialogue change restored.';
+      dialogueTreeModalStatus.classList.add('show');
+    } catch (e) {}
   }
 
   function dialogueTreeNodes() {
@@ -13437,6 +13563,50 @@
   function dialogueChoiceRequiredReputationLevel(choice) {
     var level = Number(choice && choice.required_reputation_level);
     return isFinite(level) && Math.floor(level) === level && level >= 1 && level <= 99 ? level : null;
+  }
+
+  function dialogueChoiceVariableKey(value) {
+    value = String(value || '').trim();
+    return /^[a-z0-9][a-z0-9_-]{0,63}$/.test(value) ? value : '';
+  }
+
+  function dialogueChoiceGateLabels(choice) {
+    var labels = [];
+    var requiredLevel = dialogueChoiceRequiredReputationLevel(choice);
+    if (choice.requires_high_resonance) labels.push('High resonance');
+    if (requiredLevel) labels.push('Rep level ' + requiredLevel);
+    if (dialogueChoiceVariableKey(choice.required_flag)) labels.push('Flag ' + choice.required_flag);
+    var variable = dialogueChoiceVariableKey(choice.required_variable_key);
+    var variableMinimum = Number(choice.required_variable_min);
+    if (variable) labels.push(variable + ' ≥ ' + (isFinite(variableMinimum) ? variableMinimum : 1));
+    return labels;
+  }
+
+  function dialogueTreeNextChoiceId() {
+    var number = 1;
+    var known = {};
+    dialogueTreeNodes().forEach(function (node) {
+      (node.choices || []).forEach(function (choice) { if (choice.id) known[choice.id] = true; });
+    });
+    while (known['choice-' + number]) number++;
+    return 'choice-' + number;
+  }
+
+  function dialogueTreeNewChoice(targetId, label) {
+    return {
+      id: dialogueTreeNextChoiceId(),
+      label: label || 'New player choice',
+      target_node_id: targetId,
+      requires_high_resonance: false,
+      required_reputation_level: null,
+      required_flag: null,
+      required_variable_key: null,
+      required_variable_min: null,
+      set_flag: null,
+      variable_key: null,
+      variable_delta: 0,
+      reputation_reward: 0
+    };
   }
 
   function dialogueNodeCanvasPosition(node) {
@@ -13498,6 +13668,7 @@
     if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
     dialogueTreeSaveSelectedNode();
     dialogueTreeNodes().forEach(function (node) { delete node.position; });
+    dialogueTreeMarkChanged();
     if (resetView) dialogueCanvasZoom = 1;
     dialogueCanvasLinkModeSourceId = null;
     dialogueTreeModalStatus.textContent = resetView ? 'Canvas view reset to the default tree layout.' : 'Dialogue cards arranged into a clean tree layout.';
@@ -13675,7 +13846,9 @@
       var row = document.createElement('div');
       row.className = 'admin-row dialogue-management-row';
       row.tabIndex = 0;
-      var status = entry.is_custom ? (entry.is_enabled ? 'Active' : 'Disabled') : (entry.slug === 'syn-dravus' ? 'Built-in Syn' : 'Standard chat');
+      var status = entry.is_custom
+        ? (entry.publish_ready ? (entry.published_version ? (entry.is_enabled ? 'Live v' + entry.published_version : 'Published off') : 'Draft only') : (entry.is_enabled ? 'Active' : 'Disabled'))
+        : (entry.slug === 'syn-dravus' ? 'Built-in Syn' : 'Standard chat');
       row.innerHTML =
         '<span class="dialogue-management-overlord">' + escapeHtml(entry.name) + (entry.epithet ? '<small>' + escapeHtml(entry.epithet) + '</small>' : '') + '</span>' +
         '<span class="dialogue-management-count">' + (entry.is_custom ? entry.node_count : '—') + ' dialogues</span>' +
@@ -13699,6 +13872,7 @@
     if (!node) return;
     node.title = dialogueNodeTitleInput.value.trim() || 'Untitled dialogue';
     node.messages = dialogueNodeMessagesInput.value.split(/\r?\n/).map(function (line) { return line.trim(); }).filter(function (line) { return line !== ''; });
+    dialogueTreeMarkChanged();
   }
 
   function renderDialogueTreeMap() {
@@ -13858,10 +14032,7 @@
         edge.setAttribute('marker-end', 'url(#dialogue-tree-arrowhead)');
         edges.appendChild(edge);
 
-        var requiredReputationLevel = dialogueChoiceRequiredReputationLevel(choice);
-        var gateLabels = [];
-        if (choice.requires_high_resonance) gateLabels.push('High resonance');
-        if (requiredReputationLevel) gateLabels.push('Rep level ' + requiredReputationLevel);
+        var gateLabels = dialogueChoiceGateLabels(choice);
         var choiceLabel = document.createElement('button');
         choiceLabel.type = 'button';
         choiceLabel.className = 'dialogue-tree-edge-label' + (gateLabels.length ? ' is-locked' : '');
@@ -13968,6 +14139,7 @@
       mapNode.removeEventListener('pointermove', moveNode);
       if (moved) {
         mapNode.setAttribute('data-dialogue-dragged', 'true');
+        dialogueTreeMarkChanged();
         dialogueTreeModalStatus.textContent = 'Dialogue position saved. Use Auto-layout to return it to the tree flow.';
         dialogueTreeModalStatus.classList.add('show');
         renderDialogueTreeMap();
@@ -14052,12 +14224,13 @@
     var choiceInput = popover.querySelector('input[type="text"]');
     var resonanceInput = popover.querySelector('input[type="checkbox"]');
     var levelInput = popover.querySelector('input[type="number"]');
-    choiceInput.addEventListener('input', function () { choice.label = choiceInput.value; });
+    choiceInput.addEventListener('input', function () { choice.label = choiceInput.value; dialogueTreeMarkChanged(); });
     choiceInput.addEventListener('change', function () { renderDialogueTreeMap(); renderDialogueBranches(source); });
-    resonanceInput.addEventListener('change', function () { choice.requires_high_resonance = resonanceInput.checked; renderDialogueTreeMap(); renderDialogueBranches(source); });
+    resonanceInput.addEventListener('change', function () { choice.requires_high_resonance = resonanceInput.checked; dialogueTreeMarkChanged(); renderDialogueTreeMap(); renderDialogueBranches(source); });
     levelInput.addEventListener('change', function () {
       var level = Number(levelInput.value);
       choice.required_reputation_level = isFinite(level) && Math.floor(level) === level && level >= 1 && level <= 99 ? level : null;
+      dialogueTreeMarkChanged();
       renderDialogueTreeMap();
       renderDialogueBranches(source);
     });
@@ -14095,37 +14268,299 @@
         return '<option value="' + escapeHtml(target.id) + '"' + (target.id === choice.target_node_id ? ' selected' : '') + '>' + escapeHtml(target.title) + '</option>';
       }).join('');
       row.innerHTML =
-        '<div class="admin-field"><label>Player choice</label><input type="text" maxlength="180" value="' + escapeHtml(choice.label) + '"></div>' +
-        '<div class="admin-field"><label>Leads to</label><select>' + targetOptions + '</select></div>' +
-        '<label class="dialogue-branch-lock"><input type="checkbox"' + (choice.requires_high_resonance ? ' checked' : '') + '> Requires high resonance</label>' +
-        '<div class="admin-field dialogue-branch-reputation"><label>Required Rep level</label><input type="number" min="1" max="99" step="1" placeholder="None" title="Uses the member\'s Rep level, not their total reputation points" value="' + (requiredReputationLevel || '') + '"></div>' +
+        '<div class="admin-field"><label>Player choice</label><input type="text" data-dialogue-branch="label" maxlength="180" value="' + escapeHtml(choice.label) + '"></div>' +
+        '<div class="admin-field"><label>Leads to</label><select data-dialogue-branch="target">' + targetOptions + '</select></div>' +
+        '<label class="dialogue-branch-lock"><input type="checkbox" data-dialogue-branch="resonance"' + (choice.requires_high_resonance ? ' checked' : '') + '> Requires high resonance</label>' +
+        '<div class="admin-field dialogue-branch-reputation"><label>Required Rep level</label><input type="number" data-dialogue-branch="rep-level" min="1" max="99" step="1" placeholder="None" title="Uses the member\'s Rep level, not their total reputation points" value="' + (requiredReputationLevel || '') + '"></div>' +
+        '<details class="dialogue-branch-advanced"><summary>More conditions &amp; effects</summary><div class="dialogue-branch-advanced-grid">' +
+          '<div class="admin-field"><label>Required flag</label><input type="text" data-dialogue-branch="required-flag" maxlength="64" placeholder="e.g. syn_encountered" value="' + escapeHtml(choice.required_flag || '') + '"></div>' +
+          '<div class="admin-field"><label>Required variable</label><input type="text" data-dialogue-branch="required-variable" maxlength="64" placeholder="e.g. trust" value="' + escapeHtml(choice.required_variable_key || '') + '"></div>' +
+          '<div class="admin-field"><label>Minimum variable value</label><input type="number" data-dialogue-branch="required-min" min="-9999" max="9999" step="1" placeholder="1" value="' + (choice.required_variable_key ? (isFinite(Number(choice.required_variable_min)) ? Number(choice.required_variable_min) : 1) : '') + '"></div>' +
+          '<div class="admin-field"><label>Set flag</label><input type="text" data-dialogue-branch="set-flag" maxlength="64" placeholder="e.g. questioned_syn" value="' + escapeHtml(choice.set_flag || '') + '"></div>' +
+          '<div class="admin-field"><label>Change variable</label><input type="text" data-dialogue-branch="variable-key" maxlength="64" placeholder="e.g. trust" value="' + escapeHtml(choice.variable_key || '') + '"></div>' +
+          '<div class="admin-field"><label>Variable change</label><input type="number" data-dialogue-branch="variable-delta" min="-9999" max="9999" step="1" value="' + (Number(choice.variable_delta) || 0) + '"></div>' +
+          '<div class="admin-field"><label>Reputation reward</label><input type="number" data-dialogue-branch="reputation-reward" min="0" max="50" step="1" value="' + (Number(choice.reputation_reward) || 0) + '"></div>' +
+        '</div></details>' +
         '<button type="button" class="permission-mini-btn dialogue-branch-remove">Remove</button>';
-      var labelInput = row.querySelector('input[type="text"]');
-      var targetSelect = row.querySelector('select');
-      var lockedInput = row.querySelector('input[type="checkbox"]');
-      var reputationLevelInput = row.querySelector('.dialogue-branch-reputation input');
-      labelInput.addEventListener('input', function () { choice.label = labelInput.value; renderDialogueTreeMap(); });
-      targetSelect.addEventListener('change', function () { choice.target_node_id = targetSelect.value; renderDialogueTreeMap(); });
-      lockedInput.addEventListener('change', function () { choice.requires_high_resonance = lockedInput.checked; renderDialogueTreeMap(); });
+      var labelInput = row.querySelector('[data-dialogue-branch="label"]');
+      var targetSelect = row.querySelector('[data-dialogue-branch="target"]');
+      var lockedInput = row.querySelector('[data-dialogue-branch="resonance"]');
+      var reputationLevelInput = row.querySelector('[data-dialogue-branch="rep-level"]');
+      var requiredFlagInput = row.querySelector('[data-dialogue-branch="required-flag"]');
+      var requiredVariableInput = row.querySelector('[data-dialogue-branch="required-variable"]');
+      var requiredMinimumInput = row.querySelector('[data-dialogue-branch="required-min"]');
+      var setFlagInput = row.querySelector('[data-dialogue-branch="set-flag"]');
+      var variableKeyInput = row.querySelector('[data-dialogue-branch="variable-key"]');
+      var variableDeltaInput = row.querySelector('[data-dialogue-branch="variable-delta"]');
+      var reputationRewardInput = row.querySelector('[data-dialogue-branch="reputation-reward"]');
+      function changeMap() { dialogueTreeMarkChanged(); renderDialogueTreeMap(); }
+      labelInput.addEventListener('input', function () { choice.label = labelInput.value; changeMap(); });
+      targetSelect.addEventListener('change', function () { choice.target_node_id = targetSelect.value; changeMap(); });
+      lockedInput.addEventListener('change', function () { choice.requires_high_resonance = lockedInput.checked; changeMap(); });
       reputationLevelInput.addEventListener('input', function () {
         var enteredLevel = Number(reputationLevelInput.value);
         choice.required_reputation_level = isFinite(enteredLevel) && Math.floor(enteredLevel) === enteredLevel && enteredLevel >= 1 && enteredLevel <= 99 ? enteredLevel : null;
-        renderDialogueTreeMap();
+        changeMap();
       });
+      requiredFlagInput.addEventListener('input', function () { choice.required_flag = dialogueChoiceVariableKey(requiredFlagInput.value) || null; changeMap(); });
+      requiredVariableInput.addEventListener('input', function () { choice.required_variable_key = dialogueChoiceVariableKey(requiredVariableInput.value) || null; if (!choice.required_variable_key) choice.required_variable_min = null; changeMap(); });
+      requiredMinimumInput.addEventListener('input', function () { var value = Number(requiredMinimumInput.value); choice.required_variable_min = choice.required_variable_key && isFinite(value) && Math.floor(value) === value ? Math.max(-9999, Math.min(9999, value)) : null; changeMap(); });
+      setFlagInput.addEventListener('input', function () { choice.set_flag = dialogueChoiceVariableKey(setFlagInput.value) || null; dialogueTreeMarkChanged(); });
+      variableKeyInput.addEventListener('input', function () { choice.variable_key = dialogueChoiceVariableKey(variableKeyInput.value) || null; if (!choice.variable_key) choice.variable_delta = 0; dialogueTreeMarkChanged(); });
+      variableDeltaInput.addEventListener('input', function () { var value = Number(variableDeltaInput.value); choice.variable_delta = choice.variable_key && isFinite(value) && Math.floor(value) === value ? Math.max(-9999, Math.min(9999, value)) : 0; dialogueTreeMarkChanged(); });
+      reputationRewardInput.addEventListener('input', function () { var value = Number(reputationRewardInput.value); choice.reputation_reward = isFinite(value) && Math.floor(value) === value ? Math.max(0, Math.min(50, value)) : 0; dialogueTreeMarkChanged(); });
       row.querySelector('.dialogue-branch-remove').addEventListener('click', function () {
         node.choices.splice(choiceIndex, 1);
+        dialogueTreeMarkChanged();
         renderDialogueTreeEditor();
       });
       dialogueBranchListEl.appendChild(row);
     });
   }
 
+  function renderDialogueTreeSearch() {
+    if (!dialogueSearchInput || !dialogueSearchResultsEl) return;
+    var needle = dialogueSearchInput.value.trim().toLowerCase();
+    dialogueSearchResultsEl.innerHTML = '';
+    dialogueSearchResultsEl.hidden = !needle;
+    if (!needle || !currentDialogueTree) return;
+    var results = [];
+    dialogueTreeNodes().forEach(function (node) {
+      var haystack = [node.id, node.title].concat(node.messages || []).concat((node.choices || []).map(function (choice) { return choice.label; })).join(' ').toLowerCase();
+      if (haystack.indexOf(needle) !== -1) results.push(node);
+    });
+    if (!results.length) {
+      dialogueSearchResultsEl.innerHTML = '<span class="dialogue-tree-search-empty">No matching dialogue.</span>';
+      return;
+    }
+    results.slice(0, 12).forEach(function (node) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.innerHTML = '<strong>' + escapeHtml(node.title) + '</strong><small>' + escapeHtml((node.messages || [])[0] || node.id) + '</small>';
+      button.addEventListener('click', function () {
+        dialogueTreeSaveSelectedNode();
+        selectedDialogueNodeId = node.id;
+        dialogueSearchInput.value = '';
+        dialogueSearchResultsEl.hidden = true;
+        renderDialogueTreeEditor();
+        var position = dialogueNodeCanvasPosition(node);
+        if (position) dialogueTreeCenterCanvasPosition(position);
+      });
+      dialogueSearchResultsEl.appendChild(button);
+    });
+  }
+
+  function dialogueTreeVersionLabel(version) {
+    var time = version && version.created_at ? new Date(version.created_at.replace(' ', 'T') + 'Z') : null;
+    var date = time && !isNaN(time.getTime()) ? time.toLocaleString() : 'Unknown time';
+    return 'v' + version.version_number + ' · ' + date + (version.username ? ' · ' + version.username : '');
+  }
+
+  function renderDialogueTreePublication() {
+    if (!dialoguePublicationEl || !currentDialogueTree) return;
+    dialoguePublicationEl.innerHTML = '';
+    var head = document.createElement('div');
+    head.className = 'dialogue-tree-publication-head';
+    if (!currentDialogueTree.publish_ready) {
+      head.innerHTML = '<strong>Draft workflow</strong><span>Migration required</span>';
+      dialoguePublicationEl.appendChild(head);
+      var pending = document.createElement('p');
+      pending.textContent = 'Run the Dialogue Editor Workflow migration to keep drafts private, publish deliberate versions, and restore earlier releases.';
+      dialoguePublicationEl.appendChild(pending);
+      dialogueTreePublishBtn.hidden = true;
+      return;
+    }
+    var published = currentDialogueTree.published_version || 0;
+    head.innerHTML = '<strong>Publication</strong><span>' + (published ? 'Live v' + published : 'Not yet published') + '</span>';
+    dialoguePublicationEl.appendChild(head);
+    var message = document.createElement('p');
+    message.textContent = published
+      ? 'Save Draft keeps v' + published + ' live. Publish makes this draft the next public version.'
+      : 'This draft is private until you publish its first version.';
+    dialoguePublicationEl.appendChild(message);
+    var versions = Array.isArray(currentDialogueTree.versions) ? currentDialogueTree.versions : [];
+    if (versions.length) {
+      var list = document.createElement('div');
+      list.className = 'dialogue-tree-version-list';
+      versions.slice(0, 6).forEach(function (version) {
+        var row = document.createElement('div');
+        row.className = 'dialogue-tree-version-row';
+        row.innerHTML = '<span><strong>v' + version.version_number + '</strong> ' + escapeHtml(dialogueTreeVersionLabel(version).replace(/^v\d+ · /, '')) + '</span>';
+        if (pwHasPermission('dialogues.edit')) {
+          var restore = document.createElement('button');
+          restore.type = 'button';
+          restore.className = 'permission-mini-btn';
+          restore.textContent = 'Restore to draft';
+          restore.addEventListener('click', function () { dialogueTreeRestorePublishedVersion(version); });
+          row.appendChild(restore);
+        }
+        list.appendChild(row);
+      });
+      dialoguePublicationEl.appendChild(list);
+    }
+    dialogueTreePublishBtn.hidden = !pwHasPermission('dialogues.edit');
+  }
+
+  function dialogueTreeRestorePublishedVersion(version) {
+    if (!currentDialogueTree || !currentDialogueTree.publish_ready || !pwHasPermission('dialogues.edit')) return;
+    if (!window.confirm('Restore version ' + version.version_number + ' into this draft? The public version will not change until you publish.')) return;
+    fetch('/api/admin/dialogues/restore-version.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ overlord_id: currentDialogueTree.overlord.id, version_id: version.id, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error((data && data.error) || 'Could not restore this version.');
+        currentDialogueTree.tree = dialogueTreeClone(data.tree);
+        selectedDialogueNodeId = currentDialogueTree.tree.start_node_id;
+        dialogueHistoryCurrent = dialogueTreeDraftSnapshot();
+        dialogueUndoStack = [];
+        dialogueRedoStack = [];
+        dialogueTreeScheduleAutosave();
+        renderDialogueTreeEditor();
+        dialogueTreeModalStatus.textContent = 'Version ' + data.version + ' restored into the draft. Publish when ready.';
+        dialogueTreeModalStatus.classList.add('show');
+      })
+      .catch(function (error) {
+        dialogueTreeModalError.textContent = error.message || 'Could not restore this version.';
+        dialogueTreeModalError.classList.add('show');
+      });
+  }
+
+  function dialoguePreviewBuildState() {
+    var flags = dialoguePreviewFlagsInput.value.split(',').map(function (value) { return dialogueChoiceVariableKey(value); }).filter(function (value) { return !!value; });
+    var variables = {};
+    dialoguePreviewVariablesInput.value.split(',').forEach(function (entry) {
+      var parts = entry.split('=');
+      var key = dialogueChoiceVariableKey(parts.shift());
+      var value = Number(parts.join('='));
+      if (key && isFinite(value) && Math.floor(value) === value) variables[key] = Math.max(-9999, Math.min(9999, value));
+    });
+    return { flags: flags, variables: variables, nodeId: currentDialogueTree.tree.start_node_id };
+  }
+
+  function dialoguePreviewLockReasons(choice) {
+    var reasons = [];
+    var resonance = Math.max(0, Math.min(100, Number(dialoguePreviewResonanceInput.value) || 0));
+    var repLevel = Math.max(0, Math.min(99, Number(dialoguePreviewRepLevelInput.value) || 0));
+    if (choice.requires_high_resonance && resonance < 75) reasons.push('Requires high resonance');
+    var requiredLevel = dialogueChoiceRequiredReputationLevel(choice);
+    if (requiredLevel && repLevel < requiredLevel) reasons.push('Requires Rep Level ' + requiredLevel);
+    var flag = dialogueChoiceVariableKey(choice.required_flag);
+    if (flag && dialoguePreviewState.flags.indexOf(flag) === -1) reasons.push('Requires flag: ' + flag);
+    var variable = dialogueChoiceVariableKey(choice.required_variable_key);
+    var min = Number(choice.required_variable_min);
+    if (variable && (Number(dialoguePreviewState.variables[variable]) || 0) < (isFinite(min) ? min : 1)) reasons.push('Requires ' + variable + ' ≥ ' + (isFinite(min) ? min : 1));
+    return reasons;
+  }
+
+  function dialoguePreviewAppend(speaker, text) {
+    var message = document.createElement('div');
+    message.className = 'dialogue-preview-message' + (speaker === 'player' ? ' is-player' : '');
+    message.innerHTML = '<small>' + escapeHtml(speaker === 'player' ? 'Player' : currentDialogueTree.overlord.name) + '</small>' + escapeHtml(text);
+    dialoguePreviewChatEl.appendChild(message);
+    dialoguePreviewChatEl.scrollTop = dialoguePreviewChatEl.scrollHeight;
+  }
+
+  function dialoguePreviewAppendTyping() {
+    var typing = document.createElement('div');
+    typing.className = 'dialogue-preview-typing';
+    typing.textContent = currentDialogueTree.overlord.name + ' is responding…';
+    dialoguePreviewChatEl.appendChild(typing);
+    dialoguePreviewChatEl.scrollTop = dialoguePreviewChatEl.scrollHeight;
+    return typing;
+  }
+
+  function dialoguePreviewApplyEffects(choice) {
+    var setFlag = dialogueChoiceVariableKey(choice.set_flag);
+    if (setFlag && dialoguePreviewState.flags.indexOf(setFlag) === -1) dialoguePreviewState.flags.push(setFlag);
+    var variable = dialogueChoiceVariableKey(choice.variable_key);
+    if (variable) dialoguePreviewState.variables[variable] = Math.max(-9999, Math.min(9999, (Number(dialoguePreviewState.variables[variable]) || 0) + (Number(choice.variable_delta) || 0)));
+    var effects = [];
+    if (setFlag) effects.push('set flag ' + setFlag);
+    if (variable && Number(choice.variable_delta)) effects.push((Number(choice.variable_delta) > 0 ? '+' : '') + Number(choice.variable_delta) + ' ' + variable);
+    if (Number(choice.reputation_reward)) effects.push('+' + Number(choice.reputation_reward) + ' reputation');
+    dialoguePreviewState.lastEffect = effects.length ? effects.join(' · ') : '';
+  }
+
+  function renderDialoguePreviewState() {
+    var flags = dialoguePreviewState.flags.length ? dialoguePreviewState.flags.join(', ') : 'none';
+    var variables = Object.keys(dialoguePreviewState.variables).map(function (key) { return key + '=' + dialoguePreviewState.variables[key]; }).join(', ') || 'none';
+    dialoguePreviewStateEl.textContent = 'Preview state · Flags: ' + flags + ' · Variables: ' + variables + (dialoguePreviewState.lastEffect ? ' · Effect: ' + dialoguePreviewState.lastEffect : '');
+  }
+
+  function renderDialoguePreviewNode(nodeId) {
+    if (!dialoguePreviewState || !currentDialogueTree) return;
+    var node = dialogueNodeById(nodeId);
+    if (!node) return;
+    dialoguePreviewState.nodeId = nodeId;
+    dialoguePreviewChoicesEl.innerHTML = '';
+    var lines = node.messages || [];
+    var lineIndex = 0;
+    function finishNode() {
+      (node.choices || []).forEach(function (choice) {
+        var reasons = dialoguePreviewLockReasons(choice);
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.disabled = reasons.length > 0;
+        button.className = 'dialogue-preview-choice';
+        button.textContent = choice.label;
+        if (reasons.length) {
+          var note = document.createElement('small');
+          note.textContent = reasons.join(' · ');
+          button.appendChild(note);
+        }
+        button.addEventListener('click', function () {
+          dialoguePreviewChoicesEl.innerHTML = '';
+          dialoguePreviewAppend('player', choice.label);
+          dialoguePreviewApplyEffects(choice);
+          dialoguePreviewTimer = window.setTimeout(function () { renderDialoguePreviewNode(choice.target_node_id); }, 300);
+        });
+        dialoguePreviewChoicesEl.appendChild(button);
+      });
+      if (!node.choices || !node.choices.length) {
+        var terminal = document.createElement('span');
+        terminal.textContent = 'Transmission ended.';
+        dialoguePreviewChoicesEl.appendChild(terminal);
+      }
+      renderDialoguePreviewState();
+    }
+    function appendNext() {
+      if (lineIndex >= lines.length) { finishNode(); return; }
+      var typing = dialoguePreviewAppendTyping();
+      dialoguePreviewTimer = window.setTimeout(function () {
+        if (typing.parentNode) typing.parentNode.removeChild(typing);
+        dialoguePreviewAppend('overlord', lines[lineIndex++]);
+        dialoguePreviewTimer = window.setTimeout(appendNext, 130);
+      }, 420);
+    }
+    appendNext();
+  }
+
+  function restartDialoguePreview() {
+    if (!currentDialogueTree) return;
+    if (dialoguePreviewTimer) { window.clearTimeout(dialoguePreviewTimer); dialoguePreviewTimer = null; }
+    dialoguePreviewState = dialoguePreviewBuildState();
+    dialoguePreviewChatEl.innerHTML = '';
+    dialoguePreviewChoicesEl.innerHTML = '';
+    renderDialoguePreviewNode(dialoguePreviewState.nodeId);
+  }
+
+  function openDialogueTreePreview() {
+    if (!currentDialogueTree) return;
+    dialogueTreeSaveSelectedNode();
+    dialoguePreviewModal.hidden = false;
+    restartDialoguePreview();
+  }
+
   function setDialogueTreeReadOnly(readOnly) {
-    [dialogueTreeEnabledInput, dialogueTreeStartSelect, dialogueNodeTitleInput, dialogueNodeMessagesInput, dialogueAddNodeBtn, dialogueAutoLayoutBtn, dialogueResetLayoutBtn].forEach(function (control) { control.disabled = readOnly; });
+    [dialogueTreeEnabledInput, dialogueTreeStartSelect, dialogueNodeTitleInput, dialogueNodeMessagesInput, dialogueAddNodeBtn, dialogueAutoLayoutBtn, dialogueResetLayoutBtn, dialogueTreeSaveBtn, dialogueTreePublishBtn].forEach(function (control) { control.disabled = readOnly; });
     dialogueRemoveNodeBtn.disabled = readOnly || dialogueTreeNodes().length <= 1;
     dialogueAddBranchBtn.disabled = readOnly || dialogueTreeNodes().length <= 1;
     dialogueTreeModal.querySelectorAll('.dialogue-branch-row input, .dialogue-branch-row select, .dialogue-branch-row button').forEach(function (control) { control.disabled = readOnly; });
     dialogueTreeSaveBtn.hidden = readOnly;
+    dialogueTreePublishBtn.hidden = readOnly || !currentDialogueTree.publish_ready;
+    updateDialogueHistoryButtons();
   }
 
   function renderDialogueTreeEditor() {
@@ -14133,7 +14568,7 @@
     ensureSelectedDialogueNode();
     var tree = currentDialogueTree.tree;
     var node = selectedDialogueNode();
-    dialogueTreeEnabledInput.checked = !!currentDialogueTree.is_enabled;
+    dialogueTreeEnabledInput.checked = currentDialogueTree.draft_is_enabled !== false;
     renderDialogueTreeStartOptions();
     dialogueNodeIdDisplay.textContent = node ? node.id : 'No dialogue selected';
     dialogueNodeTitleInput.value = node ? node.title : '';
@@ -14142,6 +14577,8 @@
     renderDialogueTreeMap();
     renderDialogueBranches(node);
     renderDialogueTreeValidation();
+    renderDialogueTreeSearch();
+    renderDialogueTreePublication();
     setDialogueTreeReadOnly(!pwHasPermission('dialogues.edit'));
   }
 
@@ -14176,6 +14613,7 @@
     dialogueTreeSaveSelectedNode();
     var node = dialogueTreeCreateNode();
     selectedDialogueNodeId = node.id;
+    dialogueTreeMarkChanged();
     dialogueCanvasQuickAddOpen = false;
     dialogueCanvasLinkModeSourceId = null;
     dialogueTreeModalError.classList.remove('show');
@@ -14195,7 +14633,8 @@
       return;
     }
     var node = dialogueTreeCreateNode();
-    source.choices.push({ label: 'New player choice', target_node_id: node.id, requires_high_resonance: false, required_reputation_level: null });
+    source.choices.push(dialogueTreeNewChoice(node.id));
+    dialogueTreeMarkChanged();
     selectedDialogueNodeId = node.id;
     dialogueCanvasQuickAddOpen = false;
     dialogueCanvasLinkModeSourceId = null;
@@ -14216,7 +14655,8 @@
       return;
     }
     var node = dialogueTreeCreateNode({ title: 'Transmission end', messages: ['Transmission ended.'] });
-    source.choices.push({ label: 'End transmission', target_node_id: node.id, requires_high_resonance: false, required_reputation_level: null });
+    source.choices.push(dialogueTreeNewChoice(node.id, 'End transmission'));
+    dialogueTreeMarkChanged();
     selectedDialogueNodeId = node.id;
     dialogueCanvasQuickAddOpen = false;
     dialogueCanvasLinkModeSourceId = null;
@@ -14243,7 +14683,8 @@
       renderDialogueTreeMap();
       return;
     }
-    source.choices.push({ label: 'New player choice', target_node_id: target.id, requires_high_resonance: false, required_reputation_level: null });
+    source.choices.push(dialogueTreeNewChoice(target.id));
+    dialogueTreeMarkChanged();
     selectedDialogueNodeId = source.id;
     dialogueCanvasLinkModeSourceId = null;
     dialogueCanvasQuickAddOpen = false;
@@ -14282,9 +14723,28 @@
           overlord: data.overlord,
           is_custom: !!data.is_custom,
           is_enabled: !!data.is_enabled,
+          draft_is_enabled: data.draft_is_enabled !== false,
+          publish_ready: !!data.publish_ready,
+          published_tree: data.published_tree ? dialogueTreeClone(data.published_tree) : null,
+          published_version: Number(data.published_version) || 0,
+          published_at: data.published_at || null,
+          versions: Array.isArray(data.versions) ? data.versions : [],
           tree: dialogueTreeClone(data.tree)
         };
+        try {
+          var savedDraft = JSON.parse(window.localStorage.getItem(dialogueTreeDraftStorageKey()) || 'null');
+          var recovered = savedDraft && savedDraft.snapshot ? JSON.parse(savedDraft.snapshot) : null;
+          if (recovered && recovered.tree && Array.isArray(recovered.tree.nodes)) {
+            currentDialogueTree.tree = dialogueTreeClone(recovered.tree);
+            currentDialogueTree.draft_is_enabled = recovered.draft_is_enabled !== false;
+            dialogueTreeModalStatus.textContent = 'Recovered an unsaved browser draft.';
+            dialogueTreeModalStatus.classList.add('show');
+          }
+        } catch (e) {}
         selectedDialogueNodeId = currentDialogueTree.tree.start_node_id;
+        dialogueUndoStack = [];
+        dialogueRedoStack = [];
+        dialogueHistoryCurrent = dialogueTreeDraftSnapshot();
         dialogueTreeModalTitle.textContent = pwHasPermission('dialogues.edit') ? 'Edit Dialogue Tree' : 'View Dialogue Tree';
         dialogueTreeModalSub.textContent = data.overlord.name + (data.overlord.epithet ? ' — ' + data.overlord.epithet : '') + (data.is_custom ? ' · Custom tree' : ' · Starts from the current result transmission');
         renderDialogueTreeEditor();
@@ -14297,11 +14757,16 @@
 
   function closeDialogueTreeModal() {
     dialogueTreeModal.hidden = true;
+    dialoguePreviewModal.hidden = true;
     currentDialogueTree = null;
     selectedDialogueNodeId = null;
     dialogueCanvasQuickAddOpen = false;
     dialogueCanvasLinkModeSourceId = null;
     dialogueCanvasLayout = null;
+    dialogueUndoStack = [];
+    dialogueRedoStack = [];
+    dialogueHistoryCurrent = '';
+    dialoguePreviewState = null;
     dialogueTreeMinimapEl.innerHTML = '';
   }
 
@@ -14310,11 +14775,33 @@
   dialogueTreeModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeDialogueTreeModal);
   dialogueNodeTitleInput.addEventListener('input', function () { dialogueTreeSaveSelectedNode(); renderDialogueTreeMap(); });
   dialogueNodeMessagesInput.addEventListener('input', function () { dialogueTreeSaveSelectedNode(); renderDialogueTreeMap(); });
+  dialogueTreeEnabledInput.addEventListener('change', function () {
+    if (!currentDialogueTree) return;
+    currentDialogueTree.draft_is_enabled = dialogueTreeEnabledInput.checked;
+    dialogueTreeMarkChanged();
+    renderDialogueTreePublication();
+  });
   dialogueTreeStartSelect.addEventListener('change', function () {
     if (!currentDialogueTree) return;
     dialogueTreeSaveSelectedNode();
     currentDialogueTree.tree.start_node_id = dialogueTreeStartSelect.value;
+    dialogueTreeMarkChanged();
     renderDialogueTreeMap();
+  });
+
+  dialogueSearchInput.addEventListener('input', renderDialogueTreeSearch);
+  dialoguePreviewBtn.addEventListener('click', openDialogueTreePreview);
+  dialoguePreviewCloseBtn.addEventListener('click', function () { dialoguePreviewModal.hidden = true; });
+  dialoguePreviewModal.querySelector('.admin-modal-backdrop').addEventListener('click', function () { dialoguePreviewModal.hidden = true; });
+  dialoguePreviewResetBtn.addEventListener('click', restartDialoguePreview);
+  [dialoguePreviewResonanceInput, dialoguePreviewRepLevelInput, dialoguePreviewFlagsInput, dialoguePreviewVariablesInput].forEach(function (input) {
+    input.addEventListener('change', restartDialoguePreview);
+  });
+  dialogueUndoBtn.addEventListener('click', function () {
+    if (dialogueUndoStack.length) dialogueTreeRestoreHistory(dialogueUndoStack.pop(), 'undo');
+  });
+  dialogueRedoBtn.addEventListener('click', function () {
+    if (dialogueRedoStack.length) dialogueTreeRestoreHistory(dialogueRedoStack.pop(), 'redo');
   });
 
   dialogueAddNodeBtn.addEventListener('click', function () {
@@ -14336,6 +14823,7 @@
     });
     if (currentDialogueTree.tree.start_node_id === removedId) currentDialogueTree.tree.start_node_id = currentDialogueTree.tree.nodes[0].id;
     selectedDialogueNodeId = currentDialogueTree.tree.start_node_id;
+    dialogueTreeMarkChanged();
     dialogueTreeModalStatus.textContent = 'Dialogue removed. Reconnect any remaining dialogues that no longer have a branch from the opening before saving.';
     dialogueTreeModalStatus.classList.add('show');
     renderDialogueTreeEditor();
@@ -14370,8 +14858,11 @@
           return;
         }
         currentDialogueTree.is_custom = true;
-        currentDialogueTree.is_enabled = payload.is_enabled;
-        dialogueTreeModalStatus.textContent = 'Dialogue tree saved.';
+        currentDialogueTree.draft_is_enabled = payload.is_enabled;
+        if (!currentDialogueTree.publish_ready) currentDialogueTree.is_enabled = payload.is_enabled;
+        dialogueHistoryCurrent = dialogueTreeDraftSnapshot();
+        dialogueTreeClearAutosave();
+        dialogueTreeModalStatus.textContent = currentDialogueTree.publish_ready ? 'Draft saved. Publish when you are ready for readers to see it.' : 'Dialogue tree saved.';
         dialogueTreeModalStatus.classList.add('show');
         loadDialogueTreeList();
       })
@@ -14379,6 +14870,47 @@
         dialogueTreeSaveBtn.disabled = false;
         dialogueTreeSaveBtn.classList.remove('is-busy');
         dialogueTreeModalError.textContent = 'Could not save this dialogue tree.';
+        dialogueTreeModalError.classList.add('show');
+      });
+  });
+
+  dialogueTreePublishBtn.addEventListener('click', function () {
+    if (!currentDialogueTree || !currentDialogueTree.publish_ready || !pwHasPermission('dialogues.edit')) return;
+    dialogueTreeSaveSelectedNode();
+    var payload = {
+      overlord_id: currentDialogueTree.overlord.id,
+      is_enabled: dialogueTreeEnabledInput.checked,
+      tree: currentDialogueTree.tree,
+      csrf: window.PW_AUTH.csrf
+    };
+    dialogueTreeModalError.classList.remove('show');
+    dialogueTreePublishBtn.disabled = true;
+    dialogueTreePublishBtn.classList.add('is-busy');
+    fetch('/api/admin/dialogues/publish.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        dialogueTreePublishBtn.disabled = false;
+        dialogueTreePublishBtn.classList.remove('is-busy');
+        if (!data || !data.ok) throw new Error((data && data.error) || 'Could not publish this dialogue tree.');
+        currentDialogueTree.is_custom = true;
+        currentDialogueTree.is_enabled = payload.is_enabled;
+        currentDialogueTree.draft_is_enabled = payload.is_enabled;
+        currentDialogueTree.published_tree = dialogueTreeClone(currentDialogueTree.tree);
+        currentDialogueTree.published_version = Number(data.version) || currentDialogueTree.published_version + 1;
+        currentDialogueTree.versions.unshift({ version_number: currentDialogueTree.published_version, created_at: new Date().toISOString(), username: window.PW_AUTH && window.PW_AUTH.user && window.PW_AUTH.user.username });
+        dialogueHistoryCurrent = dialogueTreeDraftSnapshot();
+        dialogueTreeClearAutosave();
+        renderDialogueTreePublication();
+        dialogueTreeModalStatus.textContent = 'Published dialogue tree v' + currentDialogueTree.published_version + '.';
+        dialogueTreeModalStatus.classList.add('show');
+        loadDialogueTreeList();
+      })
+      .catch(function (error) {
+        dialogueTreePublishBtn.disabled = false;
+        dialogueTreePublishBtn.classList.remove('is-busy');
+        dialogueTreeModalError.textContent = error.message || 'Could not publish this dialogue tree.';
         dialogueTreeModalError.classList.add('show');
       });
   });

@@ -1538,10 +1538,51 @@ CREATE TABLE IF NOT EXISTS overlord_dialogue_trees (
   overlord_id INT UNSIGNED NOT NULL,
   is_enabled TINYINT(1) NOT NULL DEFAULT 1,
   tree_json MEDIUMTEXT NOT NULL,
+  -- tree_json is the editable draft. The published snapshot is what the
+  -- public quiz reads, so an editor can safely prepare a larger tree.
+  draft_is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  published_tree_json MEDIUMTEXT NULL,
+  published_version INT UNSIGNED NOT NULL DEFAULT 0,
+  published_at DATETIME NULL,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_overlord_dialogue_trees_overlord (overlord_id),
   CONSTRAINT fk_overlord_dialogue_trees_overlord FOREIGN KEY (overlord_id) REFERENCES overlords(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS overlord_dialogue_tree_versions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  overlord_id INT UNSIGNED NOT NULL,
+  version_number INT UNSIGNED NOT NULL,
+  tree_json MEDIUMTEXT NOT NULL,
+  created_by INT UNSIGNED NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_dialogue_tree_version (overlord_id, version_number),
+  KEY idx_dialogue_tree_versions_overlord (overlord_id, created_at),
+  CONSTRAINT fk_dialogue_tree_versions_overlord FOREIGN KEY (overlord_id) REFERENCES overlords(id) ON DELETE CASCADE,
+  CONSTRAINT fk_dialogue_tree_versions_user FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Per-member state makes authored branch flags and counters durable while
+-- keeping every Overlord's encounter self-contained.
+CREATE TABLE IF NOT EXISTS user_overlord_dialogue_state (
+  user_id INT UNSIGNED NOT NULL,
+  overlord_id INT UNSIGNED NOT NULL,
+  state_json MEDIUMTEXT NOT NULL,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, overlord_id),
+  CONSTRAINT fk_user_dialogue_state_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user_dialogue_state_overlord FOREIGN KEY (overlord_id) REFERENCES overlords(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS user_overlord_dialogue_effects (
+  user_id INT UNSIGNED NOT NULL,
+  overlord_id INT UNSIGNED NOT NULL,
+  choice_id VARCHAR(64) NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, overlord_id, choice_id),
+  CONSTRAINT fk_user_dialogue_effects_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user_dialogue_effects_overlord FOREIGN KEY (overlord_id) REFERENCES overlords(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 ALTER TABLE worlds

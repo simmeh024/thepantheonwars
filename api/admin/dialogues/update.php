@@ -18,25 +18,35 @@ $db = pw_db();
 if (!pw_dialogue_trees_ready($db)) {
     pw_error('Dialogue Tree Control needs its database migration before it can be used.', 503);
 }
+$publishReady = pw_dialogue_tree_publish_ready($db);
 
 try {
     $overlordStmt = $db->prepare('SELECT name FROM overlords WHERE id = ?');
     $overlordStmt->execute([$overlordId]);
     $overlord = $overlordStmt->fetch();
     if (!$overlord) pw_error('Overlord not found.', 404);
-    $stmt = $db->prepare(
-        'INSERT INTO overlord_dialogue_trees (overlord_id, is_enabled, tree_json)
-         VALUES (?, ?, ?)
-         ON DUPLICATE KEY UPDATE is_enabled = VALUES(is_enabled), tree_json = VALUES(tree_json)'
-    );
-    $stmt->execute([$overlordId, $enabled, $encoded]);
+    if ($publishReady) {
+        $stmt = $db->prepare(
+            'INSERT INTO overlord_dialogue_trees (overlord_id, is_enabled, draft_is_enabled, tree_json)
+             VALUES (?, 0, ?, ?)
+             ON DUPLICATE KEY UPDATE draft_is_enabled = VALUES(draft_is_enabled), tree_json = VALUES(tree_json)'
+        );
+        $stmt->execute([$overlordId, $enabled, $encoded]);
+    } else {
+        $stmt = $db->prepare(
+            'INSERT INTO overlord_dialogue_trees (overlord_id, is_enabled, tree_json)
+             VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE is_enabled = VALUES(is_enabled), tree_json = VALUES(tree_json)'
+        );
+        $stmt->execute([$overlordId, $enabled, $encoded]);
+    }
 } catch (Throwable $e) {
     pw_error('Could not save this dialogue tree.', 500);
 }
 
 pw_log_admin_activity(
     'overlord_dialogue_tree_updated',
-    'Updated custom dialogue tree for Overlord "' . $overlord['name'] . '"' . ($enabled ? '.' : ' (disabled).'),
+    ($publishReady ? 'Saved draft dialogue tree for Overlord "' : 'Updated custom dialogue tree for Overlord "') . $overlord['name'] . '"' . ($enabled ? '.' : ' (disabled).'),
     $adminUser
 );
 
