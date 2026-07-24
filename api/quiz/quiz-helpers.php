@@ -157,6 +157,35 @@ function pw_quiz_overlord_transmissions(): array {
 }
 
 /**
+ * Returns enabled custom dialogue trees for result-screen playback. The admin
+ * endpoint validates every saved node and branch; this public reader remains
+ * defensive so a malformed legacy row simply falls back to the authored chat.
+ */
+function pw_quiz_overlord_dialogue_trees(): array {
+    $dialogues = [];
+    try {
+        $db = pw_db();
+        if (!$db->query("SHOW TABLES LIKE 'overlord_dialogue_trees'")->fetch()) {
+            return $dialogues;
+        }
+        $rows = $db->query(
+            'SELECT o.slug, t.is_enabled, t.tree_json
+             FROM overlord_dialogue_trees t
+             JOIN overlords o ON o.id = t.overlord_id'
+        )->fetchAll();
+        foreach ($rows as $row) {
+            $tree = json_decode($row['tree_json'], true);
+            if (!is_array($tree) || empty($tree['start_node_id']) || empty($tree['nodes']) || !is_array($tree['nodes'])) continue;
+            $dialogues[$row['slug']] = ['is_enabled' => (bool)$row['is_enabled'], 'tree' => $tree];
+        }
+    } catch (Throwable $e) {
+        // A dialogue tree is optional enhancement; the standard result chat
+        // remains available throughout a migration or rollback window.
+    }
+    return $dialogues;
+}
+
+/**
  * The active question set, with each option's Overlord weights resolved.
  *
  * Returns [] when Quiz Control has no publishable questions, which is the

@@ -1529,6 +1529,21 @@ CREATE TABLE IF NOT EXISTS overlord_transmissions (
   CONSTRAINT fk_overlord_transmissions_overlord FOREIGN KEY (overlord_id) REFERENCES overlords(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Custom, editable result dialogue trees. Each JSON document holds a small
+-- acyclic graph of message nodes and player-choice branches for one Overlord.
+-- A missing or disabled row deliberately keeps the established result chat
+-- (including Syn's authored encounter) as the public fallback.
+CREATE TABLE IF NOT EXISTS overlord_dialogue_trees (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  overlord_id INT UNSIGNED NOT NULL,
+  is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  tree_json MEDIUMTEXT NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_overlord_dialogue_trees_overlord (overlord_id),
+  CONSTRAINT fk_overlord_dialogue_trees_overlord FOREIGN KEY (overlord_id) REFERENCES overlords(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 ALTER TABLE worlds
   ADD CONSTRAINT fk_worlds_overlord FOREIGN KEY (overlord_id) REFERENCES overlords(id) ON DELETE SET NULL;
 

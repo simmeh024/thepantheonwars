@@ -3010,6 +3010,61 @@
 .transmission-management-row .world-status-pill { justify-self: end; }
 .transmission-management-row .role-row-actions { grid-column: 1 / -1; }
 
+/* Dialogue Tree Control starts with a compact list, then opens an authoring
+   modal that keeps the full node/branch map visibly above the selected-node
+   editor. That relationship is the point: an editor can see where a choice
+   leads before changing its copy or removing a dialogue. */
+.dialogue-list-columns,
+.admin-row.dialogue-management-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.45fr) minmax(120px, 0.7fr) minmax(120px, 0.7fr) 112px;
+  align-items: center;
+  column-gap: 16px;
+}
+.dialogue-list-columns {
+  margin: 0 18px;
+  padding: 0 0 9px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-faint);
+  font-size: 0.61rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.dialogue-list-columns > span:last-child { text-align: right; }
+.admin-row.dialogue-management-row { gap: 0 16px; }
+.dialogue-management-overlord { min-width: 0; color: var(--text); font-family: 'Cinzel', serif; font-size: 0.94rem; }
+.dialogue-management-overlord small { display: block; overflow: hidden; margin-top: 3px; color: var(--text-faint); font-family: 'Jost', sans-serif; font-size: 0.67rem; font-style: italic; text-overflow: ellipsis; white-space: nowrap; }
+.dialogue-management-count { color: var(--gold-dim); font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+.dialogue-management-row .world-status-pill { justify-self: end; }
+.dialogue-management-row .role-row-actions { grid-column: 1 / -1; }
+
+.admin-modal-inner-dialogue { width: min(1080px, calc(100vw - 28px)); max-width: 1080px; }
+.dialogue-tree-overview-panel { margin: 18px 0; padding: 14px; border: 1px solid rgba(162,121,236,0.35); background: rgba(9,6,23,0.56); }
+.dialogue-tree-overview-head, .dialogue-branch-head { display: flex; align-items: start; justify-content: space-between; gap: 14px; }
+.dialogue-tree-overview-head strong, .dialogue-branch-head strong { display: block; color: var(--text); font: 600 0.78rem 'Cinzel', serif; letter-spacing: 0.06em; text-transform: uppercase; }
+.dialogue-tree-overview-head small, .dialogue-branch-head small { display: block; margin-top: 4px; color: var(--text-faint); font-size: 0.69rem; line-height: 1.45; }
+.dialogue-tree-overview-count { color: var(--gold-dim); font-size: 0.72rem; white-space: nowrap; }
+.dialogue-tree-map { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 13px; }
+.dialogue-tree-map-node { display: block; width: 100%; min-height: 106px; padding: 11px; border: 1px solid var(--border-soft); background: rgba(124,79,214,0.055); color: var(--text-dim); text-align: left; cursor: pointer; transition: border-color 0.18s ease, background 0.18s ease; }
+.dialogue-tree-map-node:hover, .dialogue-tree-map-node:focus-visible, .dialogue-tree-map-node.is-selected { border-color: var(--purple-bright); background: rgba(124,79,214,0.15); outline: none; }
+.dialogue-tree-map-node.is-start { box-shadow: inset 3px 0 0 var(--gold); }
+.dialogue-tree-map-title { display: block; overflow: hidden; color: var(--text); font: 600 0.79rem 'Cinzel', serif; text-overflow: ellipsis; white-space: nowrap; }
+.dialogue-tree-map-meta { display: block; margin-top: 4px; color: var(--text-faint); font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; }
+.dialogue-tree-map-branches { display: grid; gap: 3px; margin-top: 9px; }
+.dialogue-tree-map-branch { display: block; overflow: hidden; color: var(--purple-pale); font-size: 0.68rem; text-overflow: ellipsis; white-space: nowrap; }
+.dialogue-tree-map-empty { margin: 8px 0 0; color: var(--text-faint); font-size: 0.74rem; }
+.dialogue-tree-editor-toolbar { display: flex; gap: 8px; margin: 16px 0 12px; }
+.dialogue-branch-head { align-items: center; margin: 20px 0 9px; padding-top: 16px; border-top: 1px solid var(--border-soft); }
+.dialogue-branch-list { display: grid; gap: 8px; }
+.dialogue-branch-row { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(155px, 0.9fr) minmax(135px, 0.68fr) auto; align-items: end; gap: 9px; padding: 10px; border: 1px solid var(--border-soft); background: rgba(124,79,214,0.045); }
+.dialogue-branch-row .admin-field { margin: 0; }
+.dialogue-branch-row .admin-field label { font-size: 0.6rem; }
+.dialogue-branch-lock { display: flex; min-height: 36px; align-items: center; gap: 7px; color: var(--text-dim); font-size: 0.68rem; line-height: 1.3; }
+.dialogue-branch-lock input { accent-color: var(--purple-bright); }
+.dialogue-branch-remove { align-self: end; white-space: nowrap; }
+.dialogue-branch-empty { margin: 0; padding: 12px; border: 1px dashed var(--border-soft); color: var(--text-faint); font-size: 0.74rem; }
+
 /* Known Figures preserves its single editable eyebrow line in storage, but the
    management list splits its conventional "From · Epithet" form into distinct
    columns so editors can scan lore provenance, visual treatment and visibility. */
@@ -3100,6 +3155,7 @@
   .world-list-columns,
   .overlord-list-columns,
   .transmission-list-columns,
+  .dialogue-list-columns,
   .known-figure-list-columns,
   .timeline-list-columns { display: none; }
   .admin-row.world-management-row,
@@ -3136,6 +3192,22 @@
   .transmission-management-pace { grid-area: pace; justify-self: end; }
   .transmission-management-row .world-status-pill { grid-area: status; }
   .transmission-management-row .role-row-actions { grid-area: actions; }
+  .admin-row.dialogue-management-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'overlord status'
+      'dialogues branches'
+      'actions actions';
+    gap: 10px 14px;
+  }
+  .dialogue-management-overlord { grid-area: overlord; }
+  .dialogue-management-count:nth-child(2) { grid-area: dialogues; }
+  .dialogue-management-count:nth-child(3) { grid-area: branches; justify-self: end; }
+  .dialogue-management-row .world-status-pill { grid-area: status; }
+  .dialogue-management-row .role-row-actions { grid-area: actions; }
+  .dialogue-branch-row { grid-template-columns: 1fr 1fr; }
+  .dialogue-branch-lock { min-height: 30px; }
+  .dialogue-branch-remove { justify-self: start; }
   .admin-row.known-figure-management-row {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
@@ -3172,6 +3244,12 @@
   .world-management-cover { width: 29px; height: 42px; }
   .overlord-management-overlord { gap: 9px; }
   .transmission-management-overlord { font-size: 0.84rem; }
+  .dialogue-management-overlord { font-size: 0.84rem; }
+  .dialogue-tree-editor-toolbar { flex-wrap: wrap; }
+  .dialogue-tree-overview-head, .dialogue-branch-head { align-items: flex-start; flex-direction: column; }
+  .dialogue-tree-overview-count { white-space: normal; }
+  .dialogue-tree-map { grid-template-columns: 1fr; }
+  .dialogue-branch-row { grid-template-columns: 1fr; }
   .known-figure-management-name { gap: 9px; }
   .known-figure-management-portrait { width: 29px; height: 42px; }
   .timeline-management-title { gap: 9px; }

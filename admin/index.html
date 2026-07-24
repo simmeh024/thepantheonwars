@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=298">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=299">
 </head>
 <body>
 
@@ -39,7 +39,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="lore" data-requires-permission="books.view,worlds.view,weather.view,overlords.view,transmissions.view,known_figures.view,soundtracks.view,quiz.view">
+    <div class="admin-nav-category is-collapsed" data-category="lore" data-requires-permission="books.view,worlds.view,weather.view,overlords.view,transmissions.view,dialogues.view,known_figures.view,soundtracks.view,quiz.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>Lore Management</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -51,6 +51,7 @@
         <li data-requires-permission="weather.view"><button type="button" class="admin-nav-link" data-section="weather-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M7 17a4 4 0 1 1 1-7.87A6 6 0 0 1 19 12a3 3 0 0 1-1 5H7z"/><path d="M8 20l-1 2M12 20l-1 2M16 20l-1 2"/></svg>Weather Control</button></li>
         <li data-requires-permission="overlords.view"><button type="button" class="admin-nav-link" data-section="overlord-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><circle cx="12" cy="10" r="2.5"/></svg>Overlord Control</button></li>
         <li data-requires-permission="transmissions.view"><button type="button" class="admin-nav-link" data-section="overlord-transmission-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M5 12h2m3 0h4m3 0h2"/><path d="M3 8h2m12 0h4M3 16h4m10 0h2"/><circle cx="12" cy="12" r="2.5"/></svg>Overlord Transmission Control</button></li>
+        <li data-requires-permission="dialogues.view"><button type="button" class="admin-nav-link" data-section="overlord-dialogue-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M4 5h16v10H8l-4 4z"/><path d="M8 9h8M8 12h5"/></svg>Overlord Dialogue Control</button></li>
         <li data-requires-permission="known_figures.view"><button type="button" class="admin-nav-link" data-section="known-figures-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Known Figures Control</button></li>
         <li data-requires-permission="timeline.view"><button type="button" class="admin-nav-link" data-section="timeline-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><circle cx="7" cy="12" r="2"/><circle cx="13" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><path d="M7 10V6M13 14v4"/></svg>Timeline Control</button></li>
         <li data-requires-permission="soundtracks.view"><button type="button" class="admin-nav-link" data-section="soundtrack-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9 16V8l7-2v8"/><circle cx="8" cy="16" r="1.6"/><circle cx="15" cy="14" r="1.6"/></svg>Soundtrack Control</button></li>
@@ -1444,6 +1445,7 @@
             <option value="overlord_updated">Overlord updated</option>
             <option value="overlord_deleted">Overlord deleted</option>
             <option value="overlord_transmission_updated">Overlord transmission updated</option>
+            <option value="overlord_dialogue_tree_updated">Overlord dialogue tree updated</option>
             <option value="overlord_reordered">Overlords reordered</option>
           </optgroup>
           <optgroup label="Known Figures Control">
@@ -2143,6 +2145,27 @@
       </div>
       <div class="admin-list transmission-management-list" id="transmission-list">
         <div class="admin-list-empty">Loading Overlord transmissions&hellip;</div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-overlord-dialogue-control" hidden>
+      <div class="admin-section-head">
+        <h1>Overlord Dialogue Control</h1>
+        <p>Build optional result-screen dialogue trees for any Overlord. Each tree starts with one dialogue, then branches through player choices. Syn&rsquo;s established encounter remains active until a custom tree is saved and enabled.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <span class="admin-count" id="dialogue-tree-count"></span>
+      </div>
+
+      <div class="dialogue-list-columns" aria-hidden="true">
+        <span>Overlord</span>
+        <span>Dialogues</span>
+        <span>Branches</span>
+        <span>Status</span>
+      </div>
+      <div class="admin-list dialogue-management-list" id="dialogue-tree-list">
+        <div class="admin-list-empty">Loading dialogue trees&hellip;</div>
       </div>
     </section>
 
@@ -3259,6 +3282,67 @@
   </div>
 </div>
 
+<div class="admin-modal" id="dialogue-tree-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-dialogue">
+    <button type="button" class="admin-modal-close" id="dialogue-tree-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="dialogue-tree-modal-title">Edit Dialogue Tree</h3>
+    <p class="admin-modal-sub" id="dialogue-tree-modal-sub"></p>
+
+    <div class="dialogue-tree-overview-panel">
+      <div class="dialogue-tree-overview-head">
+        <span><strong>Whole tree</strong><small>Click a dialogue below to edit it. Lines show every outgoing player branch.</small></span>
+        <span class="dialogue-tree-overview-count" id="dialogue-tree-overview-count"></span>
+      </div>
+      <div class="dialogue-tree-map" id="dialogue-tree-map"></div>
+    </div>
+
+    <div class="dialogue-tree-editor-toolbar">
+      <button type="button" class="btn" id="dialogue-add-node-btn">+ Add Dialogue</button>
+      <button type="button" class="btn" id="dialogue-remove-node-btn">Remove Dialogue</button>
+    </div>
+
+    <label class="admin-field news-comments-toggle" for="dialogue-tree-enabled-input">
+      <span><strong>Use this custom dialogue tree</strong><small>When disabled, the normal two-message result transmission remains visible instead. For Syn, that means the established branching encounter remains in use.</small></span>
+      <input type="checkbox" id="dialogue-tree-enabled-input" checked>
+    </label>
+
+    <div class="admin-field-row">
+      <div class="admin-field">
+        <label for="dialogue-tree-start-select">Opening dialogue</label>
+        <select id="dialogue-tree-start-select"></select>
+      </div>
+      <div class="admin-field">
+        <label>Selected dialogue ID</label>
+        <p class="admin-readonly-value" id="dialogue-node-id-display"></p>
+      </div>
+    </div>
+
+    <div class="admin-field">
+      <label for="dialogue-node-title-input">Dialogue title</label>
+      <input type="text" id="dialogue-node-title-input" maxlength="100" placeholder="e.g. The first signal">
+    </div>
+    <div class="admin-field">
+      <label for="dialogue-node-messages-input">Overlord message lines</label>
+      <p class="admin-field-hint">One chat bubble per line. Blank lines are ignored.</p>
+      <textarea id="dialogue-node-messages-input" maxlength="4007" rows="5" placeholder="The signal has found you."></textarea>
+    </div>
+
+    <div class="dialogue-branch-head">
+      <span><strong>Player branches</strong><small>Each branch becomes a player choice and points to another dialogue.</small></span>
+      <button type="button" class="btn" id="dialogue-add-branch-btn">+ Add Branch</button>
+    </div>
+    <div class="dialogue-branch-list" id="dialogue-branch-list"></div>
+
+    <p class="admin-modal-error" id="dialogue-tree-modal-error"></p>
+    <p class="admin-modal-status" id="dialogue-tree-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="dialogue-tree-save-btn">Save Dialogue Tree</button>
+      <button type="button" class="btn" id="dialogue-tree-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-modal" id="known-figure-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner admin-modal-inner-wide">
@@ -4213,6 +4297,7 @@
       if (name === 'weather-control') loadWeatherControl();
       if (name === 'overlord-control') loadOverlordList();
       if (name === 'overlord-transmission-control') loadTransmissionList();
+      if (name === 'overlord-dialogue-control') loadDialogueTreeList();
       if (name === 'known-figures-control') loadKnownFigureList();
       if (name === 'timeline-control') loadTimelineList();
       if (name === 'soundtrack-control') loadSoundtrackList();
@@ -13248,6 +13333,349 @@
         transmissionSaveBtn.classList.remove('is-busy');
         transmissionModalError.textContent = 'Could not save this transmission.';
         transmissionModalError.classList.add('show');
+      });
+  });
+
+  // ===== Overlord Dialogue Control (Lore Management) =========================
+  // Custom trees are one document per Overlord. The modal deliberately renders
+  // the whole map before the node editor, so editing a line never hides the
+  // branch structure it belongs to.
+  var dialogueTreeListEl = document.getElementById('dialogue-tree-list');
+  var dialogueTreeCountEl = document.getElementById('dialogue-tree-count');
+  var dialogueTreeModal = document.getElementById('dialogue-tree-modal');
+  var dialogueTreeModalTitle = document.getElementById('dialogue-tree-modal-title');
+  var dialogueTreeModalSub = document.getElementById('dialogue-tree-modal-sub');
+  var dialogueTreeModalError = document.getElementById('dialogue-tree-modal-error');
+  var dialogueTreeModalStatus = document.getElementById('dialogue-tree-modal-status');
+  var dialogueTreeMapEl = document.getElementById('dialogue-tree-map');
+  var dialogueTreeOverviewCountEl = document.getElementById('dialogue-tree-overview-count');
+  var dialogueTreeEnabledInput = document.getElementById('dialogue-tree-enabled-input');
+  var dialogueTreeStartSelect = document.getElementById('dialogue-tree-start-select');
+  var dialogueNodeIdDisplay = document.getElementById('dialogue-node-id-display');
+  var dialogueNodeTitleInput = document.getElementById('dialogue-node-title-input');
+  var dialogueNodeMessagesInput = document.getElementById('dialogue-node-messages-input');
+  var dialogueBranchListEl = document.getElementById('dialogue-branch-list');
+  var dialogueAddNodeBtn = document.getElementById('dialogue-add-node-btn');
+  var dialogueRemoveNodeBtn = document.getElementById('dialogue-remove-node-btn');
+  var dialogueAddBranchBtn = document.getElementById('dialogue-add-branch-btn');
+  var dialogueTreeSaveBtn = document.getElementById('dialogue-tree-save-btn');
+  var dialogueTreeCloseBtn = document.getElementById('dialogue-tree-modal-close');
+  var dialogueTreeCancelBtn = document.getElementById('dialogue-tree-cancel-btn');
+  var currentDialogueTree = null;
+  var selectedDialogueNodeId = null;
+
+  function dialogueTreeClone(tree) {
+    return JSON.parse(JSON.stringify(tree || { version: 1, start_node_id: '', nodes: [] }));
+  }
+
+  function dialogueTreeNodes() {
+    return currentDialogueTree && currentDialogueTree.tree && Array.isArray(currentDialogueTree.tree.nodes)
+      ? currentDialogueTree.tree.nodes : [];
+  }
+
+  function selectedDialogueNode() {
+    var nodes = dialogueTreeNodes();
+    for (var i = 0; i < nodes.length; i++) {
+      if (nodes[i].id === selectedDialogueNodeId) return nodes[i];
+    }
+    return null;
+  }
+
+  function ensureSelectedDialogueNode() {
+    var nodes = dialogueTreeNodes();
+    if (!nodes.length) { selectedDialogueNodeId = null; return; }
+    if (!selectedDialogueNode()) {
+      selectedDialogueNodeId = currentDialogueTree.tree.start_node_id || nodes[0].id;
+    }
+  }
+
+  function dialogueNodeById(id) {
+    var nodes = dialogueTreeNodes();
+    for (var i = 0; i < nodes.length; i++) if (nodes[i].id === id) return nodes[i];
+    return null;
+  }
+
+  function dialogueBranchTotal(tree) {
+    var total = 0;
+    (tree.nodes || []).forEach(function (node) { total += Array.isArray(node.choices) ? node.choices.length : 0; });
+    return total;
+  }
+
+  function loadDialogueTreeList() {
+    dialogueTreeListEl.innerHTML = '<div class="admin-list-empty">Loading dialogue trees&hellip;</div>';
+    return fetch('/api/admin/dialogues/list.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error((data && data.error) || 'Could not load dialogue trees.');
+        var entries = Array.isArray(data.dialogues) ? data.dialogues : [];
+        dialogueTreeCountEl.textContent = entries.length + (entries.length === 1 ? ' Overlord' : ' Overlords');
+        renderDialogueTreeList(entries);
+      })
+      .catch(function (error) {
+        dialogueTreeCountEl.textContent = '';
+        dialogueTreeListEl.innerHTML = '<div class="admin-list-empty">' + escapeHtml(error.message || 'Could not load dialogue trees.') + '</div>';
+      });
+  }
+
+  function renderDialogueTreeList(entries) {
+    if (!entries.length) {
+      dialogueTreeListEl.innerHTML = '<div class="admin-list-empty">No Overlords yet. Create one in Overlord Control, then return here to build its dialogue tree.</div>';
+      return;
+    }
+    dialogueTreeListEl.innerHTML = '';
+    entries.forEach(function (entry) {
+      var row = document.createElement('div');
+      row.className = 'admin-row dialogue-management-row';
+      row.tabIndex = 0;
+      var status = entry.is_custom ? (entry.is_enabled ? 'Active' : 'Disabled') : (entry.slug === 'syn-dravus' ? 'Built-in Syn' : 'Standard chat');
+      row.innerHTML =
+        '<span class="dialogue-management-overlord">' + escapeHtml(entry.name) + (entry.epithet ? '<small>' + escapeHtml(entry.epithet) + '</small>' : '') + '</span>' +
+        '<span class="dialogue-management-count">' + (entry.is_custom ? entry.node_count : '—') + ' dialogues</span>' +
+        '<span class="dialogue-management-count">' + (entry.is_custom ? entry.branch_count : '—') + ' branches</span>' +
+        '<span class="world-status-pill ' + (entry.is_custom && entry.is_enabled ? 'is-available' : 'is-locked') + '">' + escapeHtml(status) + '</span>';
+      var actions = document.createElement('div');
+      actions.className = 'role-row-actions';
+      actions.innerHTML = '<button type="button" class="permission-mini-btn" data-dialogue-tree-action="edit">Edit Dialogue</button>';
+      actions.addEventListener('click', function (event) { event.stopPropagation(); openDialogueTreeModal(entry.overlord_id); });
+      row.appendChild(actions);
+      row.addEventListener('click', function () { openDialogueTreeModal(entry.overlord_id); });
+      row.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDialogueTreeModal(entry.overlord_id); }
+      });
+      dialogueTreeListEl.appendChild(row);
+    });
+  }
+
+  function dialogueTreeSaveSelectedNode() {
+    var node = selectedDialogueNode();
+    if (!node) return;
+    node.title = dialogueNodeTitleInput.value.trim() || 'Untitled dialogue';
+    node.messages = dialogueNodeMessagesInput.value.split(/\r?\n/).map(function (line) { return line.trim(); }).filter(function (line) { return line !== ''; });
+  }
+
+  function renderDialogueTreeMap() {
+    if (!currentDialogueTree) return;
+    var tree = currentDialogueTree.tree;
+    var nodes = dialogueTreeNodes();
+    dialogueTreeMapEl.innerHTML = '';
+    dialogueTreeOverviewCountEl.textContent = nodes.length + (nodes.length === 1 ? ' dialogue · ' : ' dialogues · ') + dialogueBranchTotal(tree) + (dialogueBranchTotal(tree) === 1 ? ' branch' : ' branches');
+    if (!nodes.length) {
+      dialogueTreeMapEl.innerHTML = '<p class="dialogue-tree-map-empty">Add the first dialogue to begin this tree.</p>';
+      return;
+    }
+    nodes.forEach(function (node) {
+      var mapNode = document.createElement('button');
+      mapNode.type = 'button';
+      mapNode.className = 'dialogue-tree-map-node' + (node.id === selectedDialogueNodeId ? ' is-selected' : '') + (node.id === tree.start_node_id ? ' is-start' : '');
+      var branchHtml = (node.choices || []).map(function (choice) {
+        var target = dialogueNodeById(choice.target_node_id);
+        return '<span class="dialogue-tree-map-branch">' + escapeHtml(choice.label) + ' &rarr; ' + escapeHtml(target ? target.title : choice.target_node_id) + '</span>';
+      }).join('') || '<span class="dialogue-tree-map-branch">No branches — this dialogue ends here.</span>';
+      mapNode.innerHTML =
+        '<span class="dialogue-tree-map-title">' + escapeHtml(node.title) + '</span>' +
+        '<span class="dialogue-tree-map-meta">' + (node.id === tree.start_node_id ? 'Opening · ' : '') + (node.messages || []).length + ((node.messages || []).length === 1 ? ' line' : ' lines') + '</span>' +
+        '<span class="dialogue-tree-map-branches">' + branchHtml + '</span>';
+      mapNode.addEventListener('click', function () {
+        dialogueTreeSaveSelectedNode();
+        selectedDialogueNodeId = node.id;
+        renderDialogueTreeEditor();
+      });
+      dialogueTreeMapEl.appendChild(mapNode);
+    });
+  }
+
+  function renderDialogueTreeStartOptions() {
+    var tree = currentDialogueTree.tree;
+    dialogueTreeStartSelect.innerHTML = dialogueTreeNodes().map(function (node) {
+      return '<option value="' + escapeHtml(node.id) + '">' + escapeHtml(node.title) + '</option>';
+    }).join('');
+    dialogueTreeStartSelect.value = tree.start_node_id;
+  }
+
+  function renderDialogueBranches(node) {
+    dialogueBranchListEl.innerHTML = '';
+    if (!node || !node.choices || !node.choices.length) {
+      dialogueBranchListEl.innerHTML = '<p class="dialogue-branch-empty">This dialogue currently ends the conversation. Add a branch to offer the player a choice.</p>';
+      return;
+    }
+    node.choices.forEach(function (choice, choiceIndex) {
+      var row = document.createElement('div');
+      row.className = 'dialogue-branch-row';
+      var targetOptions = dialogueTreeNodes().filter(function (target) { return target.id !== node.id; }).map(function (target) {
+        return '<option value="' + escapeHtml(target.id) + '"' + (target.id === choice.target_node_id ? ' selected' : '') + '>' + escapeHtml(target.title) + '</option>';
+      }).join('');
+      row.innerHTML =
+        '<div class="admin-field"><label>Player choice</label><input type="text" maxlength="180" value="' + escapeHtml(choice.label) + '"></div>' +
+        '<div class="admin-field"><label>Leads to</label><select>' + targetOptions + '</select></div>' +
+        '<label class="dialogue-branch-lock"><input type="checkbox"' + (choice.requires_high_resonance ? ' checked' : '') + '> Requires high resonance</label>' +
+        '<button type="button" class="permission-mini-btn dialogue-branch-remove">Remove</button>';
+      var labelInput = row.querySelector('input[type="text"]');
+      var targetSelect = row.querySelector('select');
+      var lockedInput = row.querySelector('input[type="checkbox"]');
+      labelInput.addEventListener('input', function () { choice.label = labelInput.value; renderDialogueTreeMap(); });
+      targetSelect.addEventListener('change', function () { choice.target_node_id = targetSelect.value; renderDialogueTreeMap(); });
+      lockedInput.addEventListener('change', function () { choice.requires_high_resonance = lockedInput.checked; });
+      row.querySelector('.dialogue-branch-remove').addEventListener('click', function () {
+        node.choices.splice(choiceIndex, 1);
+        renderDialogueTreeEditor();
+      });
+      dialogueBranchListEl.appendChild(row);
+    });
+  }
+
+  function setDialogueTreeReadOnly(readOnly) {
+    [dialogueTreeEnabledInput, dialogueTreeStartSelect, dialogueNodeTitleInput, dialogueNodeMessagesInput, dialogueAddNodeBtn].forEach(function (control) { control.disabled = readOnly; });
+    dialogueRemoveNodeBtn.disabled = readOnly || dialogueTreeNodes().length <= 1;
+    dialogueAddBranchBtn.disabled = readOnly || dialogueTreeNodes().length <= 1;
+    dialogueTreeModal.querySelectorAll('.dialogue-branch-row input, .dialogue-branch-row select, .dialogue-branch-row button').forEach(function (control) { control.disabled = readOnly; });
+    dialogueTreeSaveBtn.hidden = readOnly;
+  }
+
+  function renderDialogueTreeEditor() {
+    if (!currentDialogueTree) return;
+    ensureSelectedDialogueNode();
+    var tree = currentDialogueTree.tree;
+    var node = selectedDialogueNode();
+    dialogueTreeEnabledInput.checked = !!currentDialogueTree.is_enabled;
+    renderDialogueTreeStartOptions();
+    dialogueNodeIdDisplay.textContent = node ? node.id : 'No dialogue selected';
+    dialogueNodeTitleInput.value = node ? node.title : '';
+    dialogueNodeMessagesInput.value = node ? (node.messages || []).join('\n') : '';
+    dialogueRemoveNodeBtn.disabled = !node || dialogueTreeNodes().length <= 1;
+    renderDialogueTreeMap();
+    renderDialogueBranches(node);
+    setDialogueTreeReadOnly(!pwHasPermission('dialogues.edit'));
+  }
+
+  function dialogueTreeNextNodeId() {
+    var suffix = dialogueTreeNodes().length + 1;
+    var id = 'dialogue-' + suffix;
+    while (dialogueNodeById(id)) { suffix++; id = 'dialogue-' + suffix; }
+    return id;
+  }
+
+  function openDialogueTreeModal(overlordId) {
+    dialogueTreeModalError.classList.remove('show');
+    dialogueTreeModalStatus.classList.remove('show');
+    dialogueTreeModal.hidden = false;
+    dialogueTreeMapEl.innerHTML = '<p class="dialogue-tree-map-empty">Loading the tree&hellip;</p>';
+    fetch('/api/admin/dialogues/get.php?overlord_id=' + encodeURIComponent(overlordId), { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error((data && data.error) || 'Could not load this dialogue tree.');
+        currentDialogueTree = {
+          overlord: data.overlord,
+          is_custom: !!data.is_custom,
+          is_enabled: !!data.is_enabled,
+          tree: dialogueTreeClone(data.tree)
+        };
+        selectedDialogueNodeId = currentDialogueTree.tree.start_node_id;
+        dialogueTreeModalTitle.textContent = pwHasPermission('dialogues.edit') ? 'Edit Dialogue Tree' : 'View Dialogue Tree';
+        dialogueTreeModalSub.textContent = data.overlord.name + (data.overlord.epithet ? ' — ' + data.overlord.epithet : '') + (data.is_custom ? ' · Custom tree' : ' · Starts from the current result transmission');
+        renderDialogueTreeEditor();
+      })
+      .catch(function (error) {
+        dialogueTreeModalError.textContent = error.message || 'Could not load this dialogue tree.';
+        dialogueTreeModalError.classList.add('show');
+      });
+  }
+
+  function closeDialogueTreeModal() {
+    dialogueTreeModal.hidden = true;
+    currentDialogueTree = null;
+    selectedDialogueNodeId = null;
+  }
+
+  dialogueTreeCloseBtn.addEventListener('click', closeDialogueTreeModal);
+  dialogueTreeCancelBtn.addEventListener('click', closeDialogueTreeModal);
+  dialogueTreeModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeDialogueTreeModal);
+  dialogueNodeTitleInput.addEventListener('input', function () { dialogueTreeSaveSelectedNode(); renderDialogueTreeMap(); });
+  dialogueNodeMessagesInput.addEventListener('input', function () { dialogueTreeSaveSelectedNode(); renderDialogueTreeMap(); });
+  dialogueTreeStartSelect.addEventListener('change', function () {
+    if (!currentDialogueTree) return;
+    dialogueTreeSaveSelectedNode();
+    currentDialogueTree.tree.start_node_id = dialogueTreeStartSelect.value;
+    renderDialogueTreeMap();
+  });
+
+  dialogueAddNodeBtn.addEventListener('click', function () {
+    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
+    dialogueTreeSaveSelectedNode();
+    var id = dialogueTreeNextNodeId();
+    currentDialogueTree.tree.nodes.push({ id: id, title: 'New dialogue', messages: ['Write the Overlord\'s response.'], choices: [] });
+    selectedDialogueNodeId = id;
+    renderDialogueTreeEditor();
+    dialogueNodeTitleInput.focus();
+    dialogueNodeTitleInput.select();
+  });
+
+  dialogueRemoveNodeBtn.addEventListener('click', function () {
+    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
+    dialogueTreeSaveSelectedNode();
+    var node = selectedDialogueNode();
+    if (!node || dialogueTreeNodes().length <= 1) return;
+    var removedId = node.id;
+    currentDialogueTree.tree.nodes = dialogueTreeNodes().filter(function (candidate) { return candidate.id !== removedId; });
+    currentDialogueTree.tree.nodes.forEach(function (candidate) {
+      candidate.choices = (candidate.choices || []).filter(function (choice) { return choice.target_node_id !== removedId; });
+    });
+    if (currentDialogueTree.tree.start_node_id === removedId) currentDialogueTree.tree.start_node_id = currentDialogueTree.tree.nodes[0].id;
+    selectedDialogueNodeId = currentDialogueTree.tree.start_node_id;
+    dialogueTreeModalStatus.textContent = 'Dialogue removed. Reconnect any remaining dialogues that no longer have a branch from the opening before saving.';
+    dialogueTreeModalStatus.classList.add('show');
+    renderDialogueTreeEditor();
+  });
+
+  dialogueAddBranchBtn.addEventListener('click', function () {
+    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
+    dialogueTreeSaveSelectedNode();
+    var node = selectedDialogueNode();
+    var target = dialogueTreeNodes().filter(function (candidate) { return candidate.id !== node.id; })[0];
+    if (!target) {
+      dialogueTreeModalError.textContent = 'Add another dialogue before adding a branch.';
+      dialogueTreeModalError.classList.add('show');
+      return;
+    }
+    dialogueTreeModalError.classList.remove('show');
+    node.choices.push({ label: 'New player choice', target_node_id: target.id, requires_high_resonance: false });
+    renderDialogueTreeEditor();
+  });
+
+  dialogueTreeSaveBtn.addEventListener('click', function () {
+    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
+    dialogueTreeSaveSelectedNode();
+    var payload = {
+      overlord_id: currentDialogueTree.overlord.id,
+      is_enabled: dialogueTreeEnabledInput.checked,
+      tree: currentDialogueTree.tree,
+      csrf: window.PW_AUTH.csrf
+    };
+    dialogueTreeModalError.classList.remove('show');
+    dialogueTreeSaveBtn.disabled = true;
+    dialogueTreeSaveBtn.classList.add('is-busy');
+    fetch('/api/admin/dialogues/update.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        dialogueTreeSaveBtn.disabled = false;
+        dialogueTreeSaveBtn.classList.remove('is-busy');
+        if (!data || !data.ok) {
+          dialogueTreeModalError.textContent = (data && data.error) || 'Could not save this dialogue tree.';
+          dialogueTreeModalError.classList.add('show');
+          return;
+        }
+        currentDialogueTree.is_custom = true;
+        currentDialogueTree.is_enabled = payload.is_enabled;
+        dialogueTreeModalStatus.textContent = 'Dialogue tree saved.';
+        dialogueTreeModalStatus.classList.add('show');
+        loadDialogueTreeList();
+      })
+      .catch(function () {
+        dialogueTreeSaveBtn.disabled = false;
+        dialogueTreeSaveBtn.classList.remove('is-busy');
+        dialogueTreeModalError.textContent = 'Could not save this dialogue tree.';
+        dialogueTreeModalError.classList.add('show');
       });
   });
 

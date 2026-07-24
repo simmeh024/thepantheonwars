@@ -31,5 +31,6 @@ pw_json([
     'questions'    => $payload,
     'overlords'    => pw_quiz_overlord_cast(),
     'transmissions'=> pw_quiz_overlord_transmissions(),
+    'dialogues'    => pw_quiz_overlord_dialogue_trees(),
     'distribution' => pw_quiz_affinity_distribution(),
 ]);

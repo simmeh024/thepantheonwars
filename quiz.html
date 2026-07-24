@@ -480,6 +480,10 @@ document.addEventListener('DOMContentLoaded', function () {
   // cast by Overlord Transmission Control. Keeping a local empty default
   // means a just-deployed page remains playable before its DB migration runs.
   var transmissions = {};
+  // Optional authored trees from Overlord Dialogue Control. They replace the
+  // normal result chat only when an editor has saved and enabled one, keeping
+  // the original Syn encounter as the safe fallback for every existing result.
+  var dialogueTrees = {};
   var DEFAULT_TRANSMISSION_DELAY = 700;
   // True once the server has supplied the managed question set. Only then do
   // answers carry database ids, and only then can a result be scored at all --
@@ -497,6 +501,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var quizInteraction = { hesitated: 0, reconsidered: 0, returned: 0, questionStartedAt: 0, hesitatedQuestions: {} };
   var synDialogueState = { authenticated: false, flags: [], highSynResonance: false, migrationRequired: false };
   var synDialogue = null;
+  var managedDialogue = null;
 
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -782,6 +787,21 @@ document.addEventListener('DOMContentLoaded', function () {
     var delay = transmission && parseInt(transmission.typing_delay_ms, 10);
     if (isNaN(delay) || delay < 250 || delay > 4000) return DEFAULT_TRANSMISSION_DELAY;
     return delay;
+  }
+
+  function dialogueTreeFor(ov) {
+    if (!ov || !ov.slug || !dialogueTrees || typeof dialogueTrees !== 'object') return null;
+    var dialogue = dialogueTrees[ov.slug];
+    if (!dialogue || !dialogue.is_enabled || !dialogue.tree || !Array.isArray(dialogue.tree.nodes)) return null;
+    return dialogue.tree;
+  }
+
+  function managedDialogueNode(id) {
+    if (!managedDialogue || !managedDialogue.tree || !Array.isArray(managedDialogue.tree.nodes)) return null;
+    for (var i = 0; i < managedDialogue.tree.nodes.length; i++) {
+      if (managedDialogue.tree.nodes[i].id === id) return managedDialogue.tree.nodes[i];
+    }
+    return null;
   }
 
   function winnerResonancePercent(winnerIndex) {
@@ -1085,6 +1105,74 @@ document.addEventListener('DOMContentLoaded', function () {
     appendNextLine();
   }
 
+  function managedDialogueChoiceUnlocked(choice) {
+    return !choice.requires_high_resonance || (managedDialogue && managedDialogue.resonance >= 75);
+  }
+
+  function renderManagedDialogueChoices() {
+    if (!managedDialogue || managedDialogue.isRendering) return;
+    var choicesEl = resultEl.querySelector('.result-chat-choices');
+    var node = managedDialogueNode(managedDialogue.nodeId);
+    choicesEl.innerHTML = '';
+    if (!node || !node.choices || !node.choices.length) {
+      choicesEl.hidden = true;
+      return;
+    }
+    choicesEl.hidden = false;
+    node.choices.forEach(function (choice) {
+      var locked = !managedDialogueChoiceUnlocked(choice);
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'result-dialogue-choice' + (locked ? ' is-locked' : '');
+      button.disabled = locked;
+      button.textContent = choice.label;
+      if (locked) {
+        button.title = 'Unlocks at 75% resonance with this Overlord.';
+        var note = document.createElement('small');
+        note.textContent = 'Locked — requires high resonance';
+        button.appendChild(note);
+      }
+      button.addEventListener('click', function () {
+        if (!managedDialogue || !managedDialogueChoiceUnlocked(choice)) return;
+        choicesEl.innerHTML = '';
+        appendResultChatMessage(resultEl.querySelector('.result-chat-thread'), 'player', choice.label);
+        queueResultChat(function () { renderManagedDialogueNode(choice.target_node_id); }, 300);
+      });
+      choicesEl.appendChild(button);
+    });
+  }
+
+  function renderManagedDialogueNode(nodeId) {
+    if (!managedDialogue) return;
+    var node = managedDialogueNode(nodeId);
+    if (!node || !Array.isArray(node.messages) || !node.messages.length) return;
+    managedDialogue.nodeId = nodeId;
+    managedDialogue.isRendering = true;
+    var thread = resultEl.querySelector('.result-chat-thread');
+    appendSynLines(thread, node.messages, function () {
+      if (!managedDialogue || managedDialogue.nodeId !== nodeId) return;
+      managedDialogue.isRendering = false;
+      renderManagedDialogueChoices();
+    }, managedDialogue.responseDelay);
+  }
+
+  function renderManagedDialogue(ov, resonance, tree, responseDelay) {
+    var thread = resultEl.querySelector('.result-chat-thread');
+    var choicesEl = resultEl.querySelector('.result-chat-choices');
+    thread.innerHTML = '';
+    choicesEl.innerHTML = '';
+    choicesEl.hidden = false;
+    managedDialogue = {
+      ov: ov,
+      resonance: resonance,
+      tree: tree,
+      nodeId: tree.start_node_id,
+      responseDelay: responseDelay,
+      isRendering: false
+    };
+    renderManagedDialogueNode(tree.start_node_id);
+  }
+
   function synDialogueContext() {
     return {
       resonance: synDialogue ? synDialogue.resonance : 0,
@@ -1321,6 +1409,7 @@ document.addEventListener('DOMContentLoaded', function () {
     invite.textContent = profile.invite + ' \u2192';
     invite.hidden = false;
     synDialogue = null;
+    managedDialogue = null;
     resultLayout.classList.remove('result-layout--without-chat');
     if (!transmissionIsEnabled(transmission)) {
       chatCard.hidden = true;
@@ -1328,6 +1417,11 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
     chatCard.hidden = false;
+    var managedTree = dialogueTreeFor(ov);
+    if (managedTree) {
+      renderManagedDialogue(ov, resonance, managedTree, responseDelay);
+      return;
+    }
     if (ov.slug === 'syn-dravus') {
       renderSynDialogue(ov, resonance, transmission);
       return;
@@ -1602,6 +1696,7 @@ document.addEventListener('DOMContentLoaded', function () {
     scores = [0, 0, 0, 0, 0, 0];
     quizInteraction = { hesitated: 0, reconsidered: 0, returned: 0, questionStartedAt: 0, hesitatedQuestions: {} };
     synDialogue = null;
+    managedDialogue = null;
     clearProgress();
     resultEl.hidden = true;
     var quizWrap = quizApp.closest('.quiz-wrap');
@@ -1624,6 +1719,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       if (Array.isArray(data.overlords) && data.overlords.length === 6) cast = data.overlords;
       if (data.transmissions && typeof data.transmissions === 'object') transmissions = data.transmissions;
+      if (data.dialogues && typeof data.dialogues === 'object') dialogueTrees = data.dialogues;
       if (data.distribution) distribution = data.distribution;
     })
     .catch(function () { /* keep the built-in question set and cast */ })
