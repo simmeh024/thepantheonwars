@@ -14,16 +14,18 @@ require_once __DIR__ . '/weather-forecast.php';
 
 $db = pw_db();
 
-// worlds.accent_rgb arrives with sql/migration_weather_widget.sql. A missing
-// column is a hard SQL error rather than a NULL, so it is selected separately
-// and falls back to the pre-migration column list -- the header widget then
-// simply renders in its default palette until the migration has been run.
+// worlds.accent_rgb arrives with sql/migration_weather_widget.sql, and
+// current_auto/tomorrow_auto with sql/migration_weather_auto_forecast.sql. A
+// missing column is a hard SQL error rather than a NULL, so both are selected
+// separately and independently -- either migration can land before the other,
+// or not yet at all, and this still returns a usable row either way.
 $accentColumn = ', w.accent_rgb';
+$autoColumns = ', p.current_auto, p.tomorrow_auto';
 $baseSelect =
     'SELECT w.slug, w.name, w.sort_order%s,
             p.location_label, p.climate_label,
             p.current_condition, p.current_secondary, p.current_temp_c,
-            p.tomorrow_condition, p.tomorrow_temp_c,
+            p.tomorrow_condition, p.tomorrow_temp_c%s,
             p.forecast_min_c, p.forecast_max_c,
             p.humidity_min, p.humidity_max,
             p.precipitation_min, p.precipitation_max,
@@ -34,11 +36,16 @@ $baseSelect =
      WHERE w.status = \'available\' AND p.enabled = 1
      ORDER BY w.sort_order ASC';
 
-try {
-    $rows = $db->query(sprintf($baseSelect, $accentColumn))->fetchAll();
-} catch (PDOException $e) {
-    $rows = $db->query(sprintf($baseSelect, ''))->fetchAll();
+$rows = null;
+foreach ([[$accentColumn, $autoColumns], ['', $autoColumns], [$accentColumn, ''], ['', '']] as $combo) {
+    try {
+        $rows = $db->query(sprintf($baseSelect, $combo[0], $combo[1]))->fetchAll();
+        break;
+    } catch (PDOException $e) {
+        continue;
+    }
 }
+$rows = $rows === null ? [] : $rows;
 
 $worlds = array_map(function ($row) {
     $forecast = pw_build_weather_forecast($row, $row['slug']);

@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=280">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=281">
 </head>
 <body>
 
@@ -11168,11 +11168,33 @@
     return fromEl.closest('.weather-world-section');
   }
 
+  /**
+   * Greys the condition/temperature fields a day's auto toggle has made
+   * irrelevant, rather than hiding them -- the last authored values stay
+   * visible and are still sent on save, so switching the toggle back off
+   * restores exactly what was there before rather than a blanked field.
+   */
+  function weatherApplyAutoState(section) {
+    var currentAuto = section.querySelector('.weather-current-auto-input').checked;
+    var tomorrowAuto = section.querySelector('.weather-tomorrow-auto-input').checked;
+    [section.querySelector('.weather-current-condition-input'),
+     section.querySelector('.weather-current-secondary-input'),
+     section.querySelector('.weather-current-temp-input')].forEach(function (el) {
+      el.disabled = currentAuto;
+    });
+    [section.querySelector('.weather-tomorrow-condition-input'),
+     section.querySelector('.weather-tomorrow-temp-input')].forEach(function (el) {
+      el.disabled = tomorrowAuto;
+    });
+  }
+
   function updateWeatherPreview(section) {
     var p = section.querySelector('.weather-control-preview');
     var enabled = section.querySelector('.weather-enabled-input').checked;
     var location = section.querySelector('.weather-location-input').value.trim();
     var climate = section.querySelector('.weather-climate-input').value.trim();
+    var currentAuto = section.querySelector('.weather-current-auto-input').checked;
+    var tomorrowAuto = section.querySelector('.weather-tomorrow-auto-input').checked;
     var condition = section.querySelector('.weather-current-condition-input').value.trim();
     var secondary = section.querySelector('.weather-current-secondary-input').value.trim();
     var currentTemp = weatherValue(section.querySelector('.weather-current-temp-input'), 0);
@@ -11183,11 +11205,14 @@
 
     p.querySelector('.weather-preview-location').textContent = location || 'Untitled location';
     p.querySelector('.weather-preview-climate').textContent = climate || 'Unclassified climate';
-    p.querySelector('.weather-preview-temperature').textContent = currentTemp;
-    p.querySelector('.weather-preview-condition').textContent = condition || 'Unknown';
-    p.querySelector('.weather-preview-secondary').textContent = secondary;
-    p.querySelector('.weather-preview-today').innerHTML = currentTemp + '&deg;';
-    p.querySelector('.weather-preview-tomorrow').innerHTML = tomorrowTemp + '&deg;';
+    // The disabled fields above still hold the last authored values, but auto
+    // means the live site will not show them -- the preview says so instead
+    // of implying a figure that will not actually appear.
+    p.querySelector('.weather-preview-temperature').textContent = currentAuto ? '—' : currentTemp;
+    p.querySelector('.weather-preview-condition').textContent = currentAuto ? 'Auto-generated' : (condition || 'Unknown');
+    p.querySelector('.weather-preview-secondary').textContent = currentAuto ? 'Rolls fresh each day' : secondary;
+    p.querySelector('.weather-preview-today').innerHTML = currentAuto ? 'Auto' : (currentTemp + '&deg;');
+    p.querySelector('.weather-preview-tomorrow').innerHTML = tomorrowAuto ? 'Auto' : (tomorrowTemp + '&deg;');
     p.querySelector('.weather-preview-range').innerHTML = forecastMin + '&deg; / ' + forecastMax + '&deg;';
     p.querySelector('.weather-preview-hazard').textContent = hazard || 'No atmospheric advisory is currently active.';
 
@@ -11236,10 +11261,18 @@
               '<div class="admin-field"><label>Current condition</label><input type="text" class="weather-current-condition-input" maxlength="80"></div>' +
               '<div class="admin-field"><label>Atmospheric detail</label><input type="text" class="weather-current-secondary-input" maxlength="120"></div>' +
               '<div class="admin-field admin-field-compact"><label>Current &deg;C</label><input type="number" class="weather-current-temp-input" min="-100" max="100"></div>' +
+              '<label class="weather-auto-toggle" title="Roll Today the same way days three through five already generate, from the condition library and the range below, instead of the two fields to the left.">' +
+                '<input type="checkbox" class="weather-current-auto-input">' +
+                '<span>Auto-generate</span>' +
+              '</label>' +
             '</div>' +
             '<div class="admin-field-row weather-tomorrow-row">' +
               '<div class="admin-field"><label>Tomorrow&rsquo;s condition</label><input type="text" class="weather-tomorrow-condition-input" maxlength="80"></div>' +
               '<div class="admin-field admin-field-compact"><label>Tomorrow &deg;C</label><input type="number" class="weather-tomorrow-temp-input" min="-100" max="100"></div>' +
+              '<label class="weather-auto-toggle" title="Roll Tomorrow the same way days three through five already generate, instead of the two fields to the left.">' +
+                '<input type="checkbox" class="weather-tomorrow-auto-input">' +
+                '<span>Auto-generate</span>' +
+              '</label>' +
             '</div>' +
             '<span class="admin-field-group-label">Generation boundaries</span>' +
             '<div class="weather-boundary-grid">' +
@@ -11280,8 +11313,11 @@
     section.querySelector('.weather-current-condition-input').value = profile.current_condition || '';
     section.querySelector('.weather-current-secondary-input').value = profile.current_secondary || '';
     section.querySelector('.weather-current-temp-input').value = profile.current_temp_c === null ? 0 : profile.current_temp_c;
+    section.querySelector('.weather-current-auto-input').checked = !!profile.current_auto;
     section.querySelector('.weather-tomorrow-condition-input').value = profile.tomorrow_condition || '';
     section.querySelector('.weather-tomorrow-temp-input').value = profile.tomorrow_temp_c === null ? 0 : profile.tomorrow_temp_c;
+    section.querySelector('.weather-tomorrow-auto-input').checked = !!profile.tomorrow_auto;
+    weatherApplyAutoState(section);
     section.querySelector('.weather-forecast-min-input').value = profile.forecast_min_c === null ? -10 : profile.forecast_min_c;
     section.querySelector('.weather-forecast-max-input').value = profile.forecast_max_c === null ? 30 : profile.forecast_max_c;
     section.querySelector('.weather-humidity-min-input').value = profile.humidity_min === null ? 40 : profile.humidity_min;
@@ -11355,8 +11391,10 @@
           current_condition: section.querySelector('.weather-current-condition-input').value.trim(),
           current_secondary: section.querySelector('.weather-current-secondary-input').value.trim(),
           current_temp_c: weatherValue(section.querySelector('.weather-current-temp-input'), 0),
+          current_auto: section.querySelector('.weather-current-auto-input').checked,
           tomorrow_condition: section.querySelector('.weather-tomorrow-condition-input').value.trim(),
           tomorrow_temp_c: weatherValue(section.querySelector('.weather-tomorrow-temp-input'), 0),
+          tomorrow_auto: section.querySelector('.weather-tomorrow-auto-input').checked,
           forecast_min_c: weatherValue(section.querySelector('.weather-forecast-min-input'), -10),
           forecast_max_c: weatherValue(section.querySelector('.weather-forecast-max-input'), 30),
           humidity_min: weatherValue(section.querySelector('.weather-humidity-min-input'), 40),
@@ -11406,7 +11444,11 @@
     });
     weatherWorldsList.addEventListener('change', function (e) {
       var section = e.target.closest('.weather-world-section');
-      if (section && e.target.closest('.weather-control-editor')) updateWeatherPreview(section);
+      if (!section || !e.target.closest('.weather-control-editor')) return;
+      if (e.target.classList.contains('weather-current-auto-input') || e.target.classList.contains('weather-tomorrow-auto-input')) {
+        weatherApplyAutoState(section);
+      }
+      updateWeatherPreview(section);
     });
   }
 

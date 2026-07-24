@@ -300,13 +300,22 @@ function pw_build_weather_forecast($profile, $worldSlug, $today = null, $withHou
     $conditions = pw_weather_conditions($profile);
     $forecast = [];
 
+    // Today and Tomorrow are authored by default -- an admin's exact story
+    // beat ("Neoh is 19 C and acid rain today") stays exact until changed.
+    // Each carries its own opt-in toggle to fall through to the same
+    // generated path days 3-5 always use instead. !empty() rather than a
+    // strict check: a pre-migration profile with no such column simply reads
+    // as false, so this is never load-bearing for deploy order.
+    $autoCurrent = !empty($profile['current_auto']);
+    $autoTomorrow = !empty($profile['tomorrow_auto']);
+
     for ($offset = 0; $offset < 5; $offset++) {
         $date = $today->modify('+' . $offset . ' days');
         $seed = $baseSeed . '|day-' . $offset;
-        if ($offset === 0) {
+        if ($offset === 0 && !$autoCurrent) {
             $condition = (string)$profile['current_condition'];
             $temperature = (int)$profile['current_temp_c'];
-        } elseif ($offset === 1) {
+        } elseif ($offset === 1 && !$autoTomorrow) {
             $condition = (string)$profile['tomorrow_condition'];
             $temperature = (int)$profile['tomorrow_temp_c'];
         } else {
@@ -371,11 +380,19 @@ function pw_build_weather_forecast($profile, $worldSlug, $today = null, $withHou
             'max_c' => (int)$profile['forecast_max_c'],
         ],
         'current' => [
-            'condition' => (string)$profile['current_condition'],
-            'secondary' => (string)$profile['current_secondary'],
-            'icon' => pw_weather_icon_key($profile['current_condition']),
-            'temperature_c' => (int)$profile['current_temp_c'],
-            'feels_like_c' => (int)$profile['current_temp_c'] - pw_weather_range($baseSeed . '|feels', 1, 3),
+            // Read from forecast[0] rather than the raw profile columns again:
+            // when current_auto is on, forecast[0] already holds the generated
+            // condition/temperature, and re-reading the authored columns here
+            // would silently disagree with the day tile sitting right next to it.
+            'condition' => $forecast[0]['condition'],
+            // No generated equivalent exists for this line -- it is blanked
+            // under auto rather than carrying over an authored phrase ("Restless
+            // leaf-wind") that could read as mismatched against a rolled-up
+            // condition it was never written to describe.
+            'secondary' => $autoCurrent ? '' : (string)$profile['current_secondary'],
+            'icon' => $forecast[0]['icon'],
+            'temperature_c' => $forecast[0]['temperature_c'],
+            'feels_like_c' => $forecast[0]['temperature_c'] - pw_weather_range($baseSeed . '|feels', 1, 3),
             'humidity' => $forecast[0]['humidity'],
             'precipitation' => $forecast[0]['precipitation'],
             'wind_kph' => $forecast[0]['wind_kph'],

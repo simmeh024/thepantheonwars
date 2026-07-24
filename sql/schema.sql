@@ -1315,8 +1315,15 @@ CREATE TABLE IF NOT EXISTS world_weather_profiles (
   current_condition VARCHAR(80) NOT NULL DEFAULT '',
   current_secondary VARCHAR(120) NOT NULL DEFAULT '',
   current_temp_c SMALLINT NOT NULL DEFAULT 0,
+  -- Added by sql/migration_weather_auto_forecast.sql. 0 (authored) leaves
+  -- current_condition/current_temp_c exactly as saved; 1 rolls Today the same
+  -- way days 3-5 already generate, from condition_pool_json and the
+  -- forecast_min_c/max_c range below.
+  current_auto TINYINT(1) NOT NULL DEFAULT 0,
   tomorrow_condition VARCHAR(80) NOT NULL DEFAULT '',
   tomorrow_temp_c SMALLINT NOT NULL DEFAULT 0,
+  -- Same toggle, independently, for Tomorrow.
+  tomorrow_auto TINYINT(1) NOT NULL DEFAULT 0,
   forecast_min_c SMALLINT NOT NULL DEFAULT -10,
   forecast_max_c SMALLINT NOT NULL DEFAULT 30,
   humidity_min TINYINT UNSIGNED NOT NULL DEFAULT 40,

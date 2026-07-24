@@ -29,11 +29,16 @@ if (!preg_match('/^[a-z0-9-]{1,50}$/', $slug)) {
 }
 
 $db = pw_db();
-$stmt = $db->prepare(
+// current_auto/tomorrow_auto guarded the same way api/world-weather.php does:
+// without them here, this severity re-check would silently judge the
+// authored fields even on a world with auto-generated Today, disagreeing
+// with the card the visitor actually saw.
+$autoColumns = ', p.current_auto, p.tomorrow_auto';
+$baseSelect =
     'SELECT w.id, w.name, w.status,
             p.enabled, p.location_label, p.climate_label,
             p.current_condition, p.current_secondary, p.current_temp_c,
-            p.tomorrow_condition, p.tomorrow_temp_c,
+            p.tomorrow_condition, p.tomorrow_temp_c%s,
             p.forecast_min_c, p.forecast_max_c,
             p.humidity_min, p.humidity_max,
             p.precipitation_min, p.precipitation_max,
@@ -41,10 +46,16 @@ $stmt = $db->prepare(
             p.condition_pool_json, p.hazard_note, p.forecast_revision
      FROM worlds w
      LEFT JOIN world_weather_profiles p ON p.world_id = w.id
-     WHERE w.slug = ?'
-);
-$stmt->execute([$slug]);
-$profile = $stmt->fetch();
+     WHERE w.slug = ?';
+try {
+    $stmt = $db->prepare(sprintf($baseSelect, $autoColumns));
+    $stmt->execute([$slug]);
+    $profile = $stmt->fetch();
+} catch (PDOException $e) {
+    $stmt = $db->prepare(sprintf($baseSelect, ''));
+    $stmt->execute([$slug]);
+    $profile = $stmt->fetch();
+}
 
 // A locked world or a disabled profile is not witnessable, same gate as every
 // other public weather read.
