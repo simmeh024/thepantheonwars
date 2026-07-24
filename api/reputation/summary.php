@@ -24,7 +24,9 @@ try {
     foreach (pw_reputation_achievement_catalog() as $achievement) {
         $achievement['unlocked_at'] = $unlocked[$achievement['key']] ?? null;
         $achievement['unlocked'] = isset($unlocked[$achievement['key']]);
-        $achievement['progress'] = min((int)$achievement['target'], (int)($progress[$achievement['progress_type']] ?? 0));
+        $achievement['progress'] = $achievement['unlocked']
+            ? (int)$achievement['target']
+            : min((int)$achievement['target'], (int)($progress[$achievement['progress_type']] ?? 0));
         $achievements[] = $achievement;
     }
     $showcaseKeys = [];

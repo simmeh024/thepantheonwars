@@ -4033,13 +4033,13 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
 }
 .term-line.resync-green { color: #2e7d32; }
 
-.quiz-wrap.quiz-wrap--result { max-width: 1120px; }
+.quiz-wrap.quiz-wrap--result { max-width: 1240px; }
 .quiz-result { text-align: center; animation: result-reveal 0.6s ease; }
 @keyframes result-reveal {
   from { opacity: 0; transform: translateY(14px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
-.result-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 310px); align-items: start; gap: 28px; }
+.result-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 450px); align-items: start; gap: 32px; }
 .result-main { min-width: 0; }
 .result-tag { display: block; }
 .result-blurb { max-width: 520px; margin: 1em auto 1.6em; }
@@ -4093,17 +4093,38 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
 
 .result-chat-card { position: relative; overflow: hidden; text-align: left; border: 1px solid var(--ov-accent, var(--purple-bright)); background: linear-gradient(155deg, rgba(29,18,57,0.96), rgba(8,5,20,0.98)); box-shadow: 0 18px 46px rgba(0,0,0,0.32), 0 0 28px var(--ov-glow, transparent); }
 .result-chat-card::before { position: absolute; top: 0; right: 0; left: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--ov-accent, var(--purple-bright)), transparent); content: ''; }
-.result-chat-head { display: flex; align-items: center; gap: 10px; padding: 16px; border-bottom: 1px solid var(--border-soft); }
+.result-chat-head { display: flex; align-items: center; gap: 11px; padding: 18px 20px; border-bottom: 1px solid var(--border-soft); }
 .result-chat-portrait { width: 38px; height: 38px; border: 1px solid var(--ov-accent, var(--purple-bright)); border-radius: 50%; object-fit: cover; }
 .result-chat-name { display: block; margin-top: 2px; color: var(--text); font: 600 0.82rem 'Cinzel', serif; }
 .result-chat-time { display: block; margin-top: 2px; color: var(--text-faint); font-size: 0.62rem; }
 .result-chat-status { width: 7px; height: 7px; margin-left: auto; border-radius: 50%; background: var(--ov-accent, var(--purple-bright)); box-shadow: 0 0 9px var(--ov-accent, var(--purple-bright)); }
-.result-chat-thread { display: grid; gap: 11px; min-height: 160px; padding: 20px 16px; background: repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 5px); }
-.result-chat-message { width: fit-content; max-width: 92%; padding: 11px 12px; border: 1px solid rgba(162,121,236,0.24); border-radius: 4px 12px 12px 12px; background: rgba(124,79,214,0.13); }
-.result-chat-message p { margin: 0; color: var(--text-dim); font-size: 0.82rem; line-height: 1.5; }
-.result-chat-message-second { justify-self: end; border-color: var(--ov-accent, var(--purple-bright)); border-radius: 12px 4px 12px 12px; background: rgba(124,79,214,0.2); }
-.result-chat-message-second.is-visible { animation: result-chat-arrival 0.36s ease-out both; }
+.result-chat-thread { display: flex; flex-direction: column; gap: 12px; min-height: 292px; max-height: 510px; overflow-y: auto; overscroll-behavior: contain; padding: 22px 20px; scrollbar-color: var(--ov-accent, var(--purple-bright)) rgba(255,255,255,0.05); background: repeating-linear-gradient(0deg, rgba(255,255,255,0.018) 0 1px, transparent 1px 5px); }
+.result-chat-message { width: fit-content; max-width: 88%; padding: 10px 13px 12px; border: 1px solid rgba(162,121,236,0.28); border-radius: 4px 14px 14px 14px; background: rgba(124,79,214,0.13); animation: result-chat-arrival 0.28s ease-out both; }
+.result-chat-message--syn { align-self: flex-start; }
+.result-chat-message--player { align-self: flex-end; border-color: rgba(229,188,103,0.46); border-radius: 14px 4px 14px 14px; background: rgba(209,169,85,0.13); }
+.result-chat-sender { display: block; margin-bottom: 4px; color: var(--ov-accent, var(--purple-bright)); font: 600 0.58rem 'Jost', sans-serif; letter-spacing: 0.13em; text-transform: uppercase; }
+.result-chat-message--player .result-chat-sender { color: var(--gold-bright); }
+.result-chat-message p { margin: 0; color: var(--text-dim); font-size: 0.86rem; line-height: 1.55; }
+.result-chat-message--player p { color: #f4dfae; }
 @keyframes result-chat-arrival { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
+.result-chat-choices { display: grid; gap: 8px; padding: 14px 20px 18px; border-top: 1px solid var(--border-soft); background: rgba(4,3,13,0.26); }
+.result-chat-choices[hidden] { display: none; }
+.result-dialogue-choice { width: 100%; padding: 10px 12px; border: 1px solid rgba(162,121,236,0.35); color: var(--text-dim); text-align: left; font: 500 0.76rem 'Jost', sans-serif; letter-spacing: 0.025em; cursor: pointer; background: rgba(124,79,214,0.07); transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, transform 0.18s ease; }
+.result-dialogue-choice::before { color: var(--ov-accent, var(--purple-bright)); content: '['; }
+.result-dialogue-choice::after { color: var(--ov-accent, var(--purple-bright)); content: ']'; }
+.result-dialogue-choice:hover:not(:disabled), .result-dialogue-choice:focus-visible:not(:disabled) { border-color: var(--ov-accent, var(--purple-bright)); color: var(--text); outline: none; background: rgba(124,79,214,0.17); transform: translateX(2px); }
+.result-dialogue-choice.is-locked { border-color: rgba(255,255,255,0.1); color: var(--text-faint); cursor: not-allowed; background: rgba(255,255,255,0.025); }
+.result-dialogue-choice.is-locked::before, .result-dialogue-choice.is-locked::after { color: var(--text-faint); }
+.result-dialogue-choice small { display: block; margin-top: 5px; color: var(--text-faint); font-size: 0.62rem; letter-spacing: 0.04em; }
+.result-dialogue-outcome { display: grid; gap: 4px; padding: 11px 12px; border: 1px solid rgba(229,188,103,0.37); background: rgba(209,169,85,0.08); color: var(--gold-bright); font-size: 0.7rem; line-height: 1.4; }
+.result-dialogue-outcome strong { font: 600 0.7rem 'Cinzel', serif; letter-spacing: 0.05em; text-transform: uppercase; }
+.result-dialogue-outcome span { color: var(--text-dim); }
+.result-chat-outcome { margin: 0; padding: 0 20px 15px; color: var(--text-faint); font-size: 0.7rem; line-height: 1.45; background: rgba(4,3,13,0.26); }
+.result-chat-outcome[hidden] { display: none; }
+.result-chat-card.is-syn-dialogue .result-chat-thread { min-height: 352px; }
+.result-chat-card.is-glitching { animation: syn-dialogue-glitch 0.62s steps(2, end) both; }
+.result-chat-card.is-glitching .result-chat-thread { filter: saturate(1.7) hue-rotate(18deg); }
+@keyframes syn-dialogue-glitch { 0%, 100% { transform: translate(0); } 18% { transform: translate(-3px, 1px); box-shadow: -4px 0 rgba(102,220,255,0.5), 5px 0 rgba(248,93,140,0.5), 0 18px 46px rgba(0,0,0,0.32); } 44% { transform: translate(3px, -1px); } 71% { transform: translate(-2px, 0); } }
 .result-chat-invite { display: flex; align-items: center; justify-content: center; min-height: 43px; border-top: 1px solid var(--border-soft); color: var(--ov-accent, var(--gold-bright)); font: 600 0.69rem 'Jost', sans-serif; letter-spacing: 0.1em; text-transform: uppercase; transition: background 0.2s ease, color 0.2s ease; }
 .result-chat-invite:hover { background: rgba(124,79,214,0.14); color: var(--text); }
 
@@ -4153,7 +4174,7 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
 
 @media (max-width: 780px) {
   .result-layout { grid-template-columns: 1fr; }
-  .result-chat-card { max-width: 620px; width: 100%; margin: 0 auto; }
+  .result-chat-card { max-width: 720px; width: 100%; margin: 0 auto; }
 }
 @media (max-width: 560px) {
   .result-trait-list { grid-template-columns: 1fr; }
@@ -4164,7 +4185,8 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
 }
 @media (prefers-reduced-motion: reduce) {
   .resonance-bar-fill { transition: none; }
-  .result-chat-message-second.is-visible { animation: none; }
+  .result-chat-message, .result-chat-card.is-glitching { animation: none; }
+  .result-dialogue-choice { transition: none; }
 }
 
 /* ---------------- Homepage "Prophecy" scene (Nexus Veil teaser) ----------------

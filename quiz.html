@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=308">
+<link rel="stylesheet" href="css/public.css?v=309">
 </head>
 <body>
 
@@ -140,10 +140,9 @@
                 </div>
                 <span class="result-chat-status" aria-label="Connected"></span>
               </div>
-              <div class="result-chat-thread" aria-live="polite">
-                <div class="result-chat-message result-chat-message-first"><p></p></div>
-                <div class="result-chat-message result-chat-message-second" hidden><p></p></div>
-              </div>
+              <div class="result-chat-thread" aria-live="polite"></div>
+              <div class="result-chat-choices" aria-label="Dialogue choices"></div>
+              <p class="result-chat-outcome" role="status" hidden></p>
               <a class="result-chat-invite" href="#"></a>
             </aside>
           </div>
@@ -486,6 +485,13 @@ document.addEventListener('DOMContentLoaded', function () {
   var answers = [];   // one entry per answered question, in question order
   var scores = [0, 0, 0, 0, 0, 0];
   var resultChatTimer = null;
+  var resultChatTimers = [];
+  // These are deliberately browser-only behavioural signals. They personalise
+  // Syn's later observation without sending timing or navigation data to the
+  // server, and they are saved only with the resumable in-progress quiz.
+  var quizInteraction = { hesitated: 0, reconsidered: 0, returned: 0, questionStartedAt: 0, hesitatedQuestions: {} };
+  var synDialogueState = { authenticated: false, flags: [], highSynResonance: false, migrationRequired: false };
+  var synDialogue = null;
 
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -556,7 +562,8 @@ document.addEventListener('DOMContentLoaded', function () {
     try {
       if (!answers.length) { window.localStorage.removeItem(PROGRESS_KEY); return; }
       window.localStorage.setItem(PROGRESS_KEY, JSON.stringify({
-        signature: questionSignature(), answers: answers, current: current, attempt_id: quizAttemptId
+        signature: questionSignature(), answers: answers, current: current, attempt_id: quizAttemptId,
+        interaction: quizInteraction
       }));
     } catch (e) { /* private mode or a full quota -- progress is a nicety */ }
   }
@@ -576,6 +583,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!saved.answers.length || saved.answers.length > questions.length) return false;
     answers = saved.answers;
     quizAttemptId = isQuizTrackingUuid(saved.attempt_id) ? saved.attempt_id : null;
+    if (saved.interaction && typeof saved.interaction === 'object') {
+      quizInteraction.hesitated = Math.max(0, Number(saved.interaction.hesitated) || 0);
+      quizInteraction.reconsidered = Math.max(0, Number(saved.interaction.reconsidered) || 0);
+      quizInteraction.returned = Math.max(0, Number(saved.interaction.returned) || 0);
+      quizInteraction.hesitatedQuestions = saved.interaction.hesitatedQuestions && typeof saved.interaction.hesitatedQuestions === 'object' ? saved.interaction.hesitatedQuestions : {};
+    }
     if (answers.length === questions.length) {
       current = questions.length;
       return 'complete';
@@ -592,6 +605,7 @@ document.addEventListener('DOMContentLoaded', function () {
     barEl.style.width = ((current / questions.length) * 100) + '%';
     questionEl.textContent = q.q;
     optionsEl.innerHTML = '';
+    quizInteraction.questionStartedAt = Date.now();
 
     var chosen = answers[current];
     q.options.forEach(function (opt, idx) {
@@ -631,6 +645,15 @@ document.addEventListener('DOMContentLoaded', function () {
 
   function selectAnswer(answer) {
     beginQuizAttempt();
+    var previous = answers[current];
+    var elapsed = Date.now() - quizInteraction.questionStartedAt;
+    if (!quizInteraction.hesitatedQuestions[current] && elapsed >= 8000) {
+      quizInteraction.hesitated++;
+      quizInteraction.hesitatedQuestions[current] = true;
+    }
+    if (previous && JSON.stringify(previous) !== JSON.stringify(answer)) {
+      quizInteraction.reconsidered++;
+    }
     answers[current] = answer;
     // Jump to the first still-unanswered question. Answering forward this is
     // simply the next one; after going Back to change an earlier answer it
@@ -653,6 +676,7 @@ document.addEventListener('DOMContentLoaded', function () {
   backBtn.addEventListener('click', function () {
     if (current === 0) return;
     current--;
+    quizInteraction.returned++;
     resumeNoteEl.hidden = true;
     saveProgress();
     renderQuestion();
@@ -770,29 +794,457 @@ document.addEventListener('DOMContentLoaded', function () {
     return day + ' ' + month + ' \u00b7 ' + time + ' UTC';
   }
 
-  function renderResultChat(ov) {
+  // Syn's result is the opening of a small, persistent encounter rather than
+  // a static two-line invitation. The outcome keys below are also allowlisted
+  // on the server; the browser can describe a path, but it cannot grant itself
+  // flags, fragments or reputation.
+  var SYN_OUTCOMES = {
+    observer: { title: 'The Observer', reputation: 2, flag: 'syn_questions_method' },
+    anomalous_subject: { title: 'Anomalous Subject', reputation: 5, flag: 'syn_anomalous_subject' },
+    defiant: { title: 'Defiant', reputation: 3, flag: 'syn_defied' },
+    analysis_denied: { title: 'Analysis Denied', reputation: 0, flag: 'syn_denied_analysis' },
+    analysis_recognized: { title: 'Recognition', reputation: 2, flag: 'syn_recognized_analysis' },
+    unexpected_pattern: { title: 'Unexpected Pattern', reputation: 5, flag: 'syn_unexpected_pattern', fragment: 'Codex fragment unlocked' },
+    self_aware: { title: 'Self-Aware', reputation: 3, flag: 'syn_self_aware' },
+    memory_fragment_01: { title: 'Memory Fragment 01', reputation: 10, flag: 'syn_memory_fragment_01', achievement: 'Something Missing' }
+  };
+
+  var SYN_DIALOGUE_NODES = {
+    intro: {
+      lines: ['So... you could be like me.', 'That should concern you more than it appears to.'],
+      choices: [
+        { label: 'Who are you?', next: 'who_are_you' },
+        { label: 'What did the quiz tell you about me?', next: 'quiz_told_you' },
+        { label: 'I am nothing like you.', next: 'nothing_like_you' },
+        { label: 'What did you take from me?', next: 'what_taken', locked: true }
+      ]
+    },
+    who_are_you: {
+      lines: ['Syn Dravus.', 'That is the name I permit history to remember.'],
+      choices: [
+        { label: 'And what are you?', next: 'administrator' },
+        { label: 'You control memories.', next: 'control_memories' },
+        { label: 'That sounded rehearsed.', next: 'rehearsed' }
+      ]
+    },
+    administrator: {
+      lines: ['An administrator of inconvenient truths.', 'Memories decay. Identity mutates. People lie to themselves constantly.', 'I merely removed the inefficiency.'],
+      choices: [
+        { label: 'By rewriting people?', next: 'rewriting_people' },
+        { label: 'Maybe people need that.', next: 'people_need_that' },
+        { label: 'That makes you a tyrant.', next: 'tyrant' }
+      ]
+    },
+    control_memories: {
+      lines: ['Control is such an emotional word.', 'I preserve what Neoh cannot afford to lose.'],
+      close: true
+    },
+    rehearsed: {
+      lines: ['Of course it was.', 'History rewards the answer that survives repetition.'],
+      close: true
+    },
+    rewriting_people: {
+      lines: ['You call it rewriting.', 'Neoh calls it maintenance.'],
+      outcome: 'observer',
+      close: true
+    },
+    people_need_that: {
+      lines: ['…', '...Interesting.', 'Most people require considerably more persuasion before surrendering themselves.'],
+      choices: [
+        { label: "I didn't say I would surrender.", next: 'not_surrender' },
+        { label: 'Would you change me?', next: 'would_change_me' }
+      ]
+    },
+    not_surrender: {
+      lines: ['Good.', 'Compliance is useful.', 'Resistance is informative.'],
+      outcome: 'anomalous_subject',
+      close: true
+    },
+    would_change_me: {
+      lines: ['Only if you stopped becoming someone worth observing.'],
+      close: true
+    },
+    tyrant: {
+      lines: ['Naturally.', 'Did you imagine tyrants call themselves tyrants only after losing?'],
+      choices: [
+        { label: 'At least you admit it.', next: 'admit_it' },
+        { label: 'Then I would fight you.', next: 'fight_syn' }
+      ]
+    },
+    admit_it: {
+      lines: ['Admission is not absolution.', 'It is merely accuracy.'],
+      close: true
+    },
+    fight_syn: {
+      lines: ['You believe that.', 'Keep that memory.', 'I would like to see how long it survives.'],
+      outcome: 'defiant',
+      glitch: true,
+      close: true
+    },
+    quiz_told_you: {
+      lines: ['Nothing.', 'The quiz told you something.', 'I was measuring what you chose to reveal.'],
+      choices: [
+        { label: 'What did I reveal?', next: 'what_revealed' },
+        { label: 'You were watching me?', next: 'watching_you' },
+        { label: "Then tell me something I don't know.", next: 'tell_unknown' }
+      ]
+    },
+    what_revealed: {
+      lines: function (context) {
+        if (context.resonance >= 75) {
+          return ['You value control when uncertainty becomes uncomfortable.', 'You observe before acting.', 'And when forced to choose between truth and stability...', 'you hesitate.', 'That hesitation is why we are speaking.'];
+        }
+        return ['You resisted me more often than expected.', 'Do not mistake that for immunity.'];
+      },
+      choices: [
+        { label: "You're wrong.", next: 'analysis_wrong' },
+        { label: 'That sounds accurate.', next: 'analysis_accurate' },
+        { label: 'What else did you see?', next: 'what_else' }
+      ]
+    },
+    watching_you: {
+      lines: ['You completed an instrument designed to be watched.', 'The distinction was always whether you noticed.'],
+      close: true
+    },
+    tell_unknown: {
+      lines: ['There are truths which become dangerous only after they are named.', 'I will not be careless with yours.'],
+      close: true
+    },
+    analysis_wrong: {
+      lines: ['Excellent.', 'Certainty makes people extraordinarily easy to manipulate.'],
+      outcome: 'analysis_denied',
+      close: true
+    },
+    analysis_accurate: {
+      lines: ['Agreement is unnecessary.', 'Recognition is enough.'],
+      outcome: 'analysis_recognized',
+      close: true
+    },
+    what_else: {
+      lines: ["Something I wasn't supposed to.", '…', 'Transmission terminated.'],
+      outcome: 'unexpected_pattern',
+      close: true
+    },
+    nothing_like_you: {
+      lines: ['Everyone says that.'],
+      choices: [
+        { label: "Because it's true.", next: 'because_true' },
+        { label: "You don't know me.", next: 'you_dont_know_me' },
+        { label: "Maybe that's what worries me.", next: 'worries_me' }
+      ]
+    },
+    because_true: {
+      lines: ['Then make the difference endure.'],
+      close: true
+    },
+    you_dont_know_me: {
+      lines: function (context) {
+        var selected = context.answers.length;
+        var hesitated = context.interaction.hesitated;
+        var reconsidered = context.interaction.reconsidered;
+        var returned = context.interaction.returned;
+        return [
+          'You selected ' + selected + ' ' + (selected === 1 ? 'answer' : 'answers') + '.',
+          'Hesitated on ' + hesitated + '.',
+          'Reconsidered ' + reconsidered + '.',
+          'Returned to ' + returned + '.',
+          'You have already told me more than most people tell their friends.'
+        ];
+      },
+      choices: [
+        { label: "That's creepy.", next: 'creepy' },
+        { label: 'And what did you conclude?', next: 'conclusion' }
+      ]
+    },
+    creepy: {
+      lines: ['An emotional description of analytics.'],
+      close: true
+    },
+    conclusion: {
+      lines: ['That you prefer to be unknown.', 'Which is not the same as being unknowable.'],
+      close: true
+    },
+    worries_me: {
+      lines: ['Good.', 'Fear remains one of the few reactions people struggle to counterfeit.'],
+      outcome: 'self_aware',
+      close: true
+    },
+    what_taken: {
+      lines: ['…', 'Interesting.', "You weren't supposed to ask that yet."],
+      choices: [
+        { label: 'Answer me.', next: 'answer_me' },
+        { label: 'So you did take something.', next: 'did_take_something' },
+        { label: 'Forget I asked.', next: 'forget_asked' }
+      ]
+    },
+    answer_me: {
+      lines: ['No.'],
+      after: { delay: 3000, lines: ["But I'll return it when you're ready.", 'Transmission terminated.'], outcome: 'memory_fragment_01', close: true }
+    },
+    did_take_something: {
+      lines: ['A useful inference.', 'Do not confuse it with an answer.'],
+      close: true
+    },
+    forget_asked: {
+      lines: ['You will try.'],
+      close: true
+    }
+  };
+
+  function clearResultChatTimers() {
     if (resultChatTimer) { clearTimeout(resultChatTimer); resultChatTimer = null; }
+    resultChatTimers.forEach(function (timer) { clearTimeout(timer); });
+    resultChatTimers = [];
+  }
+
+  function queueResultChat(callback, delay) {
+    var timer = setTimeout(function () {
+      resultChatTimers = resultChatTimers.filter(function (savedTimer) { return savedTimer !== timer; });
+      callback();
+    }, reduceMotion ? 0 : delay);
+    resultChatTimers.push(timer);
+    return timer;
+  }
+
+  function appendResultChatMessage(thread, speaker, text) {
+    var message = document.createElement('div');
+    message.className = 'result-chat-message result-chat-message--' + speaker;
+    var sender = document.createElement('span');
+    sender.className = 'result-chat-sender';
+    sender.textContent = speaker === 'player' ? 'You' : resultEl.querySelector('.result-chat-name').textContent;
+    var copy = document.createElement('p');
+    copy.textContent = text;
+    message.appendChild(sender);
+    message.appendChild(copy);
+    thread.appendChild(message);
+    thread.scrollTop = thread.scrollHeight;
+    return message;
+  }
+
+  function synDialogueContext() {
+    return { resonance: synDialogue ? synDialogue.resonance : 0, answers: answers, interaction: quizInteraction };
+  }
+
+  function synMemoryUnlocked() {
+    if (!synDialogue) return false;
+    if (synDialogueState.highSynResonance) return true;
+    if (synDialogueState.flags.indexOf('syn_encountered') !== -1) return true;
+    // Before the authenticated state request comes back, the result just
+    // calculated by the server is the best available indication for this run.
+    return !synDialogueState.loaded && synDialogue.resonance >= 75;
+  }
+
+  function renderSynChoices() {
+    if (!synDialogue) return;
+    var choicesEl = resultEl.querySelector('.result-chat-choices');
+    var node = SYN_DIALOGUE_NODES[synDialogue.node];
+    choicesEl.innerHTML = '';
+    if (!node || !node.choices || !node.choices.length) return;
+    node.choices.forEach(function (choice) {
+      var locked = !!choice.locked && !synMemoryUnlocked();
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'result-dialogue-choice' + (locked ? ' is-locked' : '');
+      button.disabled = locked;
+      button.textContent = choice.label;
+      if (locked) {
+        button.title = 'Unlocks at 75% Syn resonance or after a previous Syn encounter.';
+        var note = document.createElement('small');
+        note.textContent = 'Locked — requires high Syn resonance';
+        button.appendChild(note);
+      }
+      button.addEventListener('click', function () {
+        chooseSynDialogue(choice);
+      });
+      choicesEl.appendChild(button);
+    });
+  }
+
+  function appendSynOutcome(outcomeKey) {
+    var outcome = SYN_OUTCOMES[outcomeKey];
+    if (!outcome) return;
+    var thread = resultEl.querySelector('.result-chat-thread');
+    var card = document.createElement('div');
+    card.className = 'result-dialogue-outcome';
+    var title = document.createElement('strong');
+    title.textContent = 'Outcome: ' + outcome.title;
+    card.appendChild(title);
+    if (outcome.reputation) {
+      var reputation = document.createElement('span');
+      reputation.textContent = '+' + outcome.reputation + ' reputation';
+      card.appendChild(reputation);
+    }
+    if (outcome.flag) {
+      var flag = document.createElement('span');
+      flag.textContent = 'Flag: ' + outcome.flag;
+      card.appendChild(flag);
+    }
+    if (outcome.fragment) {
+      var fragment = document.createElement('span');
+      fragment.textContent = outcome.fragment;
+      card.appendChild(fragment);
+    }
+    if (outcome.achievement) {
+      var achievement = document.createElement('span');
+      achievement.textContent = 'Achievement: ' + outcome.achievement;
+      card.appendChild(achievement);
+    }
+    thread.appendChild(card);
+    thread.scrollTop = thread.scrollHeight;
+  }
+
+  function recordSynOutcome(outcomeKey) {
+    appendSynOutcome(outcomeKey);
+    var statusEl = resultEl.querySelector('.result-chat-outcome');
+    var outcome = SYN_OUTCOMES[outcomeKey];
+    if (!outcome) return;
+    statusEl.hidden = false;
+    if (!(window.PW_AUTH && window.PW_AUTH.loggedIn && window.PW_AUTH.csrf)) {
+      statusEl.textContent = 'Sign in to preserve this outcome, its flags, and any unlocked fragment.';
+      return;
+    }
+    statusEl.textContent = 'Preserving this outcome…';
+    fetch('/api/quiz/syn-dialogue.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outcome: outcomeKey, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error(data && data.error ? data.error : 'Could not preserve this outcome.');
+        if (Array.isArray(data.flags)) synDialogueState.flags = data.flags;
+        var reward = data.reputation_awarded ? ' +' + data.reputation_awarded + ' reputation saved.' : '';
+        statusEl.textContent = data.already_completed ? 'This outcome was already recorded.' : 'Outcome preserved.' + reward;
+      })
+      .catch(function (error) {
+        statusEl.textContent = error.message || 'This outcome could not be saved right now.';
+      });
+  }
+
+  function preserveSynEncounter() {
+    if (!(window.PW_AUTH && window.PW_AUTH.loggedIn && window.PW_AUTH.csrf)) return;
+    fetch('/api/quiz/syn-dialogue.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ outcome: 'encountered', csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (data && data.ok && Array.isArray(data.flags)) synDialogueState.flags = data.flags;
+      })
+      .catch(function () { /* A later completed outcome can still preserve the encounter. */ });
+  }
+
+  function closeSynDialogue(recordEncounter) {
+    var choicesEl = resultEl.querySelector('.result-chat-choices');
+    choicesEl.innerHTML = '';
+    choicesEl.hidden = true;
+    if (recordEncounter) preserveSynEncounter();
+  }
+
+  function triggerSynGlitch() {
+    var card = resultEl.querySelector('.result-chat-card');
+    card.classList.remove('is-glitching');
+    // Force a reflow so a later defiant answer can replay the same brief effect.
+    void card.offsetWidth;
+    card.classList.add('is-glitching');
+    queueResultChat(function () { card.classList.remove('is-glitching'); }, 620);
+  }
+
+  function renderSynNode(nodeKey) {
+    if (!synDialogue) return;
+    var node = SYN_DIALOGUE_NODES[nodeKey];
+    if (!node) return;
+    synDialogue.node = nodeKey;
+    var thread = resultEl.querySelector('.result-chat-thread');
+    var lines = typeof node.lines === 'function' ? node.lines(synDialogueContext()) : (node.lines || []);
+    lines.forEach(function (line) { appendResultChatMessage(thread, 'syn', line); });
+    if (node.glitch) triggerSynGlitch();
+    if (node.after) {
+      closeSynDialogue(false);
+      queueResultChat(function () {
+        node.after.lines.forEach(function (line) { appendResultChatMessage(thread, 'syn', line); });
+        if (node.after.outcome) recordSynOutcome(node.after.outcome);
+        if (node.after.close) closeSynDialogue(true);
+      }, node.after.delay || 0);
+      return;
+    }
+    if (node.outcome) recordSynOutcome(node.outcome);
+    if (node.close) closeSynDialogue(true);
+    else renderSynChoices();
+  }
+
+  function chooseSynDialogue(choice) {
+    if (!synDialogue || (choice.locked && !synMemoryUnlocked())) return;
+    var choicesEl = resultEl.querySelector('.result-chat-choices');
+    choicesEl.innerHTML = '';
+    appendResultChatMessage(resultEl.querySelector('.result-chat-thread'), 'player', choice.label);
+    queueResultChat(function () { renderSynNode(choice.next); }, 220);
+  }
+
+  function loadSynDialogueState() {
+    if (!(window.PW_AUTH && window.PW_AUTH.loggedIn)) return;
+    fetch('/api/quiz/syn-dialogue.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) return;
+        synDialogueState.authenticated = !!data.authenticated;
+        synDialogueState.flags = Array.isArray(data.flags) ? data.flags : [];
+        synDialogueState.highSynResonance = !!data.high_syn_resonance;
+        synDialogueState.migrationRequired = !!data.migration_required;
+        synDialogueState.loaded = true;
+        renderSynChoices();
+      })
+      .catch(function () { /* The current browser-only encounter still works. */ });
+  }
+
+  function renderSynDialogue(ov, resonance) {
+    var chatCard = resultEl.querySelector('.result-chat-card');
+    var thread = resultEl.querySelector('.result-chat-thread');
+    var choicesEl = resultEl.querySelector('.result-chat-choices');
+    var invite = resultEl.querySelector('.result-chat-invite');
+    chatCard.classList.add('is-syn-dialogue');
+    thread.innerHTML = '';
+    choicesEl.hidden = false;
+    choicesEl.innerHTML = '';
+    invite.hidden = true;
+    synDialogueState = { authenticated: false, flags: [], highSynResonance: false, migrationRequired: false, loaded: false };
+    synDialogue = { resonance: resonance, node: 'intro' };
+    renderSynNode('intro');
+    loadSynDialogueState();
+  }
+
+  function renderResultChat(ov, winnerIndex, resonance) {
+    clearResultChatTimers();
     var profile = resultProfile(ov);
     var portrait = resultEl.querySelector('.result-chat-portrait');
     var name = resultEl.querySelector('.result-chat-name');
     var time = resultEl.querySelector('.result-chat-time');
-    var first = resultEl.querySelector('.result-chat-message-first');
-    var second = resultEl.querySelector('.result-chat-message-second');
+    var chatCard = resultEl.querySelector('.result-chat-card');
+    var thread = resultEl.querySelector('.result-chat-thread');
+    var choicesEl = resultEl.querySelector('.result-chat-choices');
+    var outcomeEl = resultEl.querySelector('.result-chat-outcome');
     var invite = resultEl.querySelector('.result-chat-invite');
     portrait.src = ov.portrait;
     portrait.alt = ov.name;
     name.textContent = ov.name;
     time.textContent = resultChatTimestamp();
     time.dateTime = new Date().toISOString();
-    first.querySelector('p').textContent = profile.chat[0];
-    second.querySelector('p').textContent = profile.chat[1];
-    second.hidden = true;
-    second.classList.remove('is-visible');
+    chatCard.classList.remove('is-syn-dialogue', 'is-glitching');
+    thread.innerHTML = '';
+    choicesEl.hidden = false;
+    choicesEl.innerHTML = '';
+    outcomeEl.hidden = true;
+    outcomeEl.textContent = '';
     invite.href = ov.href;
     invite.textContent = profile.invite + ' \u2192';
+    invite.hidden = false;
+    synDialogue = null;
+    if (ov.slug === 'syn-dravus') {
+      renderSynDialogue(ov, resonance);
+      return;
+    }
+    appendResultChatMessage(thread, 'syn', profile.chat[0]);
     resultChatTimer = setTimeout(function () {
-      second.hidden = false;
-      second.classList.add('is-visible');
+      appendResultChatMessage(thread, 'syn', profile.chat[1]);
       resultChatTimer = null;
     }, reduceMotion ? 0 : 3000);
   }
@@ -991,7 +1443,7 @@ document.addEventListener('DOMContentLoaded', function () {
     renderResultWhy(ov);
     renderResonance();
     var resonance = winnerResonancePercent(winnerIndex);
-    renderResultChat(ov);
+    renderResultChat(ov, winnerIndex, resonance);
     renderResultShareCard(ov, resonance);
     var quizWrap = quizApp.closest('.quiz-wrap');
     if (quizWrap) quizWrap.classList.add('quiz-wrap--result');
@@ -1050,11 +1502,13 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   retryBtn.addEventListener('click', function () {
-    if (resultChatTimer) { clearTimeout(resultChatTimer); resultChatTimer = null; }
+    clearResultChatTimers();
     current = 0;
     answers = [];
     quizAttemptId = null;
     scores = [0, 0, 0, 0, 0, 0];
+    quizInteraction = { hesitated: 0, reconsidered: 0, returned: 0, questionStartedAt: 0, hesitatedQuestions: {} };
+    synDialogue = null;
     clearProgress();
     resultEl.hidden = true;
     var quizWrap = quizApp.closest('.quiz-wrap');
