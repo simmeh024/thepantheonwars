@@ -2979,6 +2979,37 @@
 .overlord-management-row .world-overlord-pill { min-width: 0; width: max-content; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .overlord-management-row .role-row-actions { grid-column: 1 / -1; }
 
+/* Overlord Transmission Control keeps its configurable result-chat copy in
+   separate scan-friendly columns. The messages intentionally clip here: the
+   modal is the authoring surface, while this list answers "what will players
+   see, how quickly, and is it live?" at a glance. */
+.transmission-list-columns,
+.admin-row.transmission-management-row {
+  display: grid;
+  grid-template-columns: minmax(145px, 0.85fr) minmax(190px, 1.35fr) minmax(190px, 1.35fr) 104px 100px;
+  align-items: center;
+  column-gap: 16px;
+}
+.transmission-list-columns {
+  margin: 0 18px;
+  padding: 0 0 9px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-faint);
+  font-size: 0.61rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.transmission-list-columns > span:last-child { text-align: right; }
+.admin-row.transmission-management-row { gap: 0 16px; }
+.transmission-management-overlord { min-width: 0; color: var(--text); font-family: 'Cinzel', serif; font-size: 0.91rem; }
+.transmission-management-overlord small { display: block; overflow: hidden; margin-top: 3px; color: var(--text-faint); font-family: 'Jost', sans-serif; font-size: 0.67rem; font-style: italic; text-overflow: ellipsis; white-space: nowrap; }
+.transmission-management-preview { overflow: hidden; color: var(--text-dim); font-size: 0.76rem; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.transmission-management-preview.is-empty { color: var(--text-faint); font-style: italic; }
+.transmission-management-pace { color: var(--gold-dim); font-size: 0.74rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.transmission-management-row .world-status-pill { justify-self: end; }
+.transmission-management-row .role-row-actions { grid-column: 1 / -1; }
+
 /* Known Figures preserves its single editable eyebrow line in storage, but the
    management list splits its conventional "From · Epithet" form into distinct
    columns so editors can scan lore provenance, visual treatment and visibility. */
@@ -3068,6 +3099,7 @@
 @media (max-width: 900px) {
   .world-list-columns,
   .overlord-list-columns,
+  .transmission-list-columns,
   .known-figure-list-columns,
   .timeline-list-columns { display: none; }
   .admin-row.world-management-row,
@@ -3089,6 +3121,21 @@
   .overlord-management-row .world-overlord-pill { grid-area: overlord; justify-self: end; }
   .overlord-management-row .world-status-pill { grid-area: availability; justify-self: end; }
   .overlord-management-row .role-row-actions { grid-area: actions; }
+  .admin-row.transmission-management-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'overlord status'
+      'opening opening'
+      'followup pace'
+      'actions actions';
+    gap: 10px 14px;
+  }
+  .transmission-management-overlord { grid-area: overlord; }
+  .transmission-management-preview:nth-child(2) { grid-area: opening; }
+  .transmission-management-preview:nth-child(3) { grid-area: followup; }
+  .transmission-management-pace { grid-area: pace; justify-self: end; }
+  .transmission-management-row .world-status-pill { grid-area: status; }
+  .transmission-management-row .role-row-actions { grid-area: actions; }
   .admin-row.known-figure-management-row {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
@@ -3124,6 +3171,7 @@
   .world-management-world { gap: 9px; }
   .world-management-cover { width: 29px; height: 42px; }
   .overlord-management-overlord { gap: 9px; }
+  .transmission-management-overlord { font-size: 0.84rem; }
   .known-figure-management-name { gap: 9px; }
   .known-figure-management-portrait { width: 29px; height: 42px; }
   .timeline-management-title { gap: 9px; }

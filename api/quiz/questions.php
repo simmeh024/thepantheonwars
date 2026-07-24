@@ -30,5 +30,6 @@ pw_json([
     'managed'      => count($payload) > 0,
     'questions'    => $payload,
     'overlords'    => pw_quiz_overlord_cast(),
+    'transmissions'=> pw_quiz_overlord_transmissions(),
     'distribution' => pw_quiz_affinity_distribution(),
 ]);

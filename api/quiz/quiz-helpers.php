@@ -124,6 +124,39 @@ function pw_quiz_overlord_cast(): array {
 }
 
 /**
+ * Optional result-chat configuration maintained in Overlord Transmission
+ * Control. The result page falls back to its built-in copy and 700ms tempo
+ * when this migration has not been applied or when a newly created Overlord
+ * does not yet have a row.
+ */
+function pw_quiz_overlord_transmissions(): array {
+    $transmissions = [];
+    try {
+        $db = pw_db();
+        if (!$db->query("SHOW TABLES LIKE 'overlord_transmissions'")->fetch()) {
+            return $transmissions;
+        }
+        $rows = $db->query(
+            'SELECT o.slug, t.is_enabled, t.opening_message, t.followup_message, t.typing_delay_ms
+             FROM overlord_transmissions t
+             JOIN overlords o ON o.id = t.overlord_id'
+        )->fetchAll();
+        foreach ($rows as $row) {
+            $transmissions[$row['slug']] = [
+                'is_enabled' => (bool)$row['is_enabled'],
+                'opening_message' => (string)$row['opening_message'],
+                'followup_message' => (string)$row['followup_message'],
+                'typing_delay_ms' => max(250, min(4000, (int)$row['typing_delay_ms'])),
+            ];
+        }
+    } catch (Throwable $e) {
+        // Transmissions are optional public polish, never a reason the quiz
+        // should fail to load while an admin migration is pending.
+    }
+    return $transmissions;
+}
+
+/**
  * The active question set, with each option's Overlord weights resolved.
  *
  * Returns [] when Quiz Control has no publishable questions, which is the

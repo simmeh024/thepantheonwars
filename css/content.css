@@ -4040,6 +4040,7 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .result-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(380px, 450px); align-items: start; gap: 32px; }
+.result-layout.result-layout--without-chat { grid-template-columns: minmax(0, 1fr); }
 .result-main { min-width: 0; }
 .result-tag { display: block; }
 .result-blurb { max-width: 520px; margin: 1em auto 1.6em; }
@@ -4109,9 +4110,9 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
 @keyframes result-chat-arrival { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: translateY(0); } }
 .result-chat-typing { display: inline-flex; align-items: center; align-self: flex-start; gap: 4px; min-height: 29px; padding: 8px 11px; border: 1px solid rgba(162,121,236,0.18); border-radius: 4px 14px 14px 14px; background: rgba(124,79,214,0.07); color: var(--text-faint); }
 .result-chat-typing-label { margin-right: 2px; font: 500 0.62rem 'Jost', sans-serif; letter-spacing: 0.06em; text-transform: uppercase; }
-.result-chat-typing i { display: block; width: 4px; height: 4px; border-radius: 50%; background: var(--ov-accent, var(--purple-bright)); animation: result-chat-typing 0.9s ease-in-out infinite; }
-.result-chat-typing i:nth-of-type(2) { animation-delay: 0.14s; }
-.result-chat-typing i:nth-of-type(3) { animation-delay: 0.28s; }
+.result-chat-typing i { display: block; width: 4px; height: 4px; border-radius: 50%; background: var(--ov-accent, var(--purple-bright)); animation: result-chat-typing 1.15s ease-in-out infinite; }
+.result-chat-typing i:nth-of-type(2) { animation-delay: 0.18s; }
+.result-chat-typing i:nth-of-type(3) { animation-delay: 0.36s; }
 @keyframes result-chat-typing { 0%, 100% { opacity: 0.28; transform: translateY(0); } 45% { opacity: 1; transform: translateY(-2px); } }
 .result-chat-choices { display: grid; gap: 8px; padding: 14px 20px 18px; border-top: 1px solid var(--border-soft); background: rgba(4,3,13,0.26); }
 .result-chat-choices[hidden] { display: none; }

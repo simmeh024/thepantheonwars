@@ -1511,6 +1511,24 @@ CREATE TABLE IF NOT EXISTS overlords (
   CONSTRAINT fk_overlords_world FOREIGN KEY (world_id) REFERENCES worlds(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Per-Overlord quiz-result transmissions. The result page uses these as the
+-- two initial chat messages and as its response tempo; Syn keeps his full
+-- dialogue tree after this configured opening. A missing row intentionally
+-- falls back to the built-in result copy so newly created Overlords remain
+-- safe before an editor configures their transmission.
+CREATE TABLE IF NOT EXISTS overlord_transmissions (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  overlord_id INT UNSIGNED NOT NULL,
+  is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  opening_message VARCHAR(500) NOT NULL DEFAULT '',
+  followup_message VARCHAR(500) NOT NULL DEFAULT '',
+  typing_delay_ms SMALLINT UNSIGNED NOT NULL DEFAULT 700,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_overlord_transmissions_overlord (overlord_id),
+  CONSTRAINT fk_overlord_transmissions_overlord FOREIGN KEY (overlord_id) REFERENCES overlords(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 ALTER TABLE worlds
   ADD CONSTRAINT fk_worlds_overlord FOREIGN KEY (overlord_id) REFERENCES overlords(id) ON DELETE SET NULL;
 

@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=310">
+<link rel="stylesheet" href="css/public.css?v=311">
 </head>
 <body>
 
@@ -476,6 +476,11 @@ document.addEventListener('DOMContentLoaded', function () {
   var questions = BUILT_IN_QUESTIONS;
   var cast = FALLBACK_CAST;
   var distribution = null;
+  // Optional per-Overlord result-chat copy and pace, supplied alongside the
+  // cast by Overlord Transmission Control. Keeping a local empty default
+  // means a just-deployed page remains playable before its DB migration runs.
+  var transmissions = {};
+  var DEFAULT_TRANSMISSION_DELAY = 700;
   // True once the server has supplied the managed question set. Only then do
   // answers carry database ids, and only then can a result be scored at all --
   // the client no longer knows which Overlord an answer belongs to.
@@ -764,6 +769,21 @@ document.addEventListener('DOMContentLoaded', function () {
     };
   }
 
+  function transmissionFor(ov) {
+    if (!ov || !ov.slug || !transmissions || typeof transmissions !== 'object') return null;
+    return transmissions[ov.slug] || null;
+  }
+
+  function transmissionIsEnabled(transmission) {
+    return !transmission || transmission.is_enabled !== false;
+  }
+
+  function transmissionResponseDelay(transmission) {
+    var delay = transmission && parseInt(transmission.typing_delay_ms, 10);
+    if (isNaN(delay) || delay < 250 || delay > 4000) return DEFAULT_TRANSMISSION_DELAY;
+    return delay;
+  }
+
   function winnerResonancePercent(winnerIndex) {
     var total = scores.reduce(function (sum, score) { return sum + score; }, 0) || 1;
     return Math.round(((scores[winnerIndex] || 0) / total) * 100);
@@ -811,7 +831,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var SYN_DIALOGUE_NODES = {
     intro: {
-      lines: ['So... you could be like me.', 'That should concern you more than it appears to.'],
+      lines: function (context) {
+        var transmission = context.transmission || {};
+        return [
+          transmission.opening_message || 'So... you could be like me.',
+          transmission.followup_message || 'That should concern you more than it appears to.'
+        ];
+      },
       choices: [
         { label: 'Who are you?', next: 'who_are_you' },
         { label: 'What did the quiz tell you about me?', next: 'quiz_told_you' },
@@ -1024,10 +1050,11 @@ document.addEventListener('DOMContentLoaded', function () {
   function appendSynTyping(thread) {
     var typing = document.createElement('div');
     typing.className = 'result-chat-typing';
-    typing.setAttribute('aria-label', resultEl.querySelector('.result-chat-name').textContent + ' is typing');
+    var speakerName = resultEl.querySelector('.result-chat-name').textContent || 'Syn';
+    typing.setAttribute('aria-label', speakerName + ' is responding');
     var label = document.createElement('span');
     label.className = 'result-chat-typing-label';
-    label.textContent = 'Syn is responding..';
+    label.textContent = speakerName + ' is responding..';
     typing.appendChild(label);
     for (var dotIndex = 0; dotIndex < 3; dotIndex++) {
       var dot = document.createElement('i');
@@ -1039,7 +1066,8 @@ document.addEventListener('DOMContentLoaded', function () {
     return typing;
   }
 
-  function appendSynLines(thread, lines, complete) {
+  function appendSynLines(thread, lines, complete, responseDelay) {
+    var delay = typeof responseDelay === 'number' ? responseDelay : DEFAULT_TRANSMISSION_DELAY;
     var lineIndex = 0;
     function appendNextLine() {
       if (lineIndex >= lines.length) {
@@ -1051,14 +1079,19 @@ document.addEventListener('DOMContentLoaded', function () {
         if (typing.parentNode) typing.parentNode.removeChild(typing);
         appendResultChatMessage(thread, 'syn', lines[lineIndex]);
         lineIndex++;
-        queueResultChat(appendNextLine, 120);
-      }, 440);
+        queueResultChat(appendNextLine, 180);
+      }, delay);
     }
     appendNextLine();
   }
 
   function synDialogueContext() {
-    return { resonance: synDialogue ? synDialogue.resonance : 0, answers: answers, interaction: quizInteraction };
+    return {
+      resonance: synDialogue ? synDialogue.resonance : 0,
+      answers: answers,
+      interaction: quizInteraction,
+      transmission: synDialogue ? synDialogue.transmission : null
+    };
   }
 
   function synMemoryUnlocked() {
@@ -1203,14 +1236,14 @@ document.addEventListener('DOMContentLoaded', function () {
           appendSynLines(thread, node.after.lines, function () {
             if (node.after.outcome) recordSynOutcome(node.after.outcome);
             if (node.after.close) closeSynDialogue(true);
-          });
+          }, synDialogue.responseDelay);
         }, node.after.delay || 0);
         return;
       }
       if (node.outcome) recordSynOutcome(node.outcome);
       if (node.close) closeSynDialogue(true);
       else renderSynChoices();
-    });
+    }, synDialogue.responseDelay);
   }
 
   function chooseSynDialogue(choice) {
@@ -1218,7 +1251,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var choicesEl = resultEl.querySelector('.result-chat-choices');
     choicesEl.innerHTML = '';
     appendResultChatMessage(resultEl.querySelector('.result-chat-thread'), 'player', choice.label);
-    queueResultChat(function () { renderSynNode(choice.next); }, 220);
+    queueResultChat(function () { renderSynNode(choice.next); }, 300);
   }
 
   function loadSynDialogueState() {
@@ -1237,7 +1270,7 @@ document.addEventListener('DOMContentLoaded', function () {
       .catch(function () { /* The current browser-only encounter still works. */ });
   }
 
-  function renderSynDialogue(ov, resonance) {
+  function renderSynDialogue(ov, resonance, transmission) {
     var chatCard = resultEl.querySelector('.result-chat-card');
     var thread = resultEl.querySelector('.result-chat-thread');
     var choicesEl = resultEl.querySelector('.result-chat-choices');
@@ -1248,7 +1281,13 @@ document.addEventListener('DOMContentLoaded', function () {
     choicesEl.innerHTML = '';
     invite.hidden = true;
     synDialogueState = { authenticated: false, flags: [], highSynResonance: false, migrationRequired: false, loaded: false };
-    synDialogue = { resonance: resonance, node: 'intro', isRendering: false };
+    synDialogue = {
+      resonance: resonance,
+      node: 'intro',
+      isRendering: false,
+      transmission: transmission,
+      responseDelay: transmissionResponseDelay(transmission)
+    };
     renderSynNode('intro');
     loadSynDialogueState();
   }
@@ -1256,6 +1295,9 @@ document.addEventListener('DOMContentLoaded', function () {
   function renderResultChat(ov, winnerIndex, resonance) {
     clearResultChatTimers();
     var profile = resultProfile(ov);
+    var transmission = transmissionFor(ov);
+    var responseDelay = transmissionResponseDelay(transmission);
+    var resultLayout = resultEl.querySelector('.result-layout');
     var portrait = resultEl.querySelector('.result-chat-portrait');
     var name = resultEl.querySelector('.result-chat-name');
     var time = resultEl.querySelector('.result-chat-time');
@@ -1279,16 +1321,25 @@ document.addEventListener('DOMContentLoaded', function () {
     invite.textContent = profile.invite + ' \u2192';
     invite.hidden = false;
     synDialogue = null;
-    if (ov.slug === 'syn-dravus') {
-      renderSynDialogue(ov, resonance);
+    resultLayout.classList.remove('result-layout--without-chat');
+    if (!transmissionIsEnabled(transmission)) {
+      chatCard.hidden = true;
+      resultLayout.classList.add('result-layout--without-chat');
       return;
     }
-    appendSynLines(thread, [profile.chat[0]], function () {
+    chatCard.hidden = false;
+    if (ov.slug === 'syn-dravus') {
+      renderSynDialogue(ov, resonance, transmission);
+      return;
+    }
+    var opening = (transmission && transmission.opening_message) || profile.chat[0];
+    var followup = (transmission && transmission.followup_message) || profile.chat[1];
+    appendSynLines(thread, [opening], function () {
       resultChatTimer = setTimeout(function () {
-        appendSynLines(thread, [profile.chat[1]]);
+        appendSynLines(thread, [followup], null, responseDelay);
         resultChatTimer = null;
       }, reduceMotion ? 0 : 3000);
-    });
+    }, responseDelay);
   }
 
   function renderResultShareCard(ov, resonance) {
@@ -1572,6 +1623,7 @@ document.addEventListener('DOMContentLoaded', function () {
         managed = true;
       }
       if (Array.isArray(data.overlords) && data.overlords.length === 6) cast = data.overlords;
+      if (data.transmissions && typeof data.transmissions === 'object') transmissions = data.transmissions;
       if (data.distribution) distribution = data.distribution;
     })
     .catch(function () { /* keep the built-in question set and cast */ })

@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=297">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=298">
 </head>
 <body>
 
@@ -39,7 +39,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="lore" data-requires-permission="books.view,worlds.view,weather.view,overlords.view,known_figures.view,soundtracks.view,quiz.view">
+    <div class="admin-nav-category is-collapsed" data-category="lore" data-requires-permission="books.view,worlds.view,weather.view,overlords.view,transmissions.view,known_figures.view,soundtracks.view,quiz.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>Lore Management</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -50,6 +50,7 @@
         <li data-requires-permission="worlds.view"><button type="button" class="admin-nav-link" data-section="world-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"/></svg>World Control</button></li>
         <li data-requires-permission="weather.view"><button type="button" class="admin-nav-link" data-section="weather-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M7 17a4 4 0 1 1 1-7.87A6 6 0 0 1 19 12a3 3 0 0 1-1 5H7z"/><path d="M8 20l-1 2M12 20l-1 2M16 20l-1 2"/></svg>Weather Control</button></li>
         <li data-requires-permission="overlords.view"><button type="button" class="admin-nav-link" data-section="overlord-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6z"/><circle cx="12" cy="10" r="2.5"/></svg>Overlord Control</button></li>
+        <li data-requires-permission="transmissions.view"><button type="button" class="admin-nav-link" data-section="overlord-transmission-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M5 12h2m3 0h4m3 0h2"/><path d="M3 8h2m12 0h4M3 16h4m10 0h2"/><circle cx="12" cy="12" r="2.5"/></svg>Overlord Transmission Control</button></li>
         <li data-requires-permission="known_figures.view"><button type="button" class="admin-nav-link" data-section="known-figures-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>Known Figures Control</button></li>
         <li data-requires-permission="timeline.view"><button type="button" class="admin-nav-link" data-section="timeline-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><circle cx="7" cy="12" r="2"/><circle cx="13" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><path d="M7 10V6M13 14v4"/></svg>Timeline Control</button></li>
         <li data-requires-permission="soundtracks.view"><button type="button" class="admin-nav-link" data-section="soundtrack-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9 16V8l7-2v8"/><circle cx="8" cy="16" r="1.6"/><circle cx="15" cy="14" r="1.6"/></svg>Soundtrack Control</button></li>
@@ -1442,6 +1443,7 @@
             <option value="overlord_created">Overlord created</option>
             <option value="overlord_updated">Overlord updated</option>
             <option value="overlord_deleted">Overlord deleted</option>
+            <option value="overlord_transmission_updated">Overlord transmission updated</option>
             <option value="overlord_reordered">Overlords reordered</option>
           </optgroup>
           <optgroup label="Known Figures Control">
@@ -2119,6 +2121,28 @@
       </div>
       <div class="admin-list overlord-management-list" id="overlord-list">
         <div class="admin-list-empty">Loading overlords&hellip;</div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-overlord-transmission-control" hidden>
+      <div class="admin-section-head">
+        <h1>Overlord Transmission Control</h1>
+        <p>Shape the two-message transmission that appears beside each quiz result. Syn uses these messages as the opening of his longer dialogue tree; disable a transmission to hide its result-side chat entirely.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <span class="admin-count" id="transmission-count"></span>
+      </div>
+
+      <div class="transmission-list-columns" aria-hidden="true">
+        <span>Overlord</span>
+        <span>Opening transmission</span>
+        <span>Follow-up transmission</span>
+        <span>Response pace</span>
+        <span>Status</span>
+      </div>
+      <div class="admin-list transmission-management-list" id="transmission-list">
+        <div class="admin-list-empty">Loading Overlord transmissions&hellip;</div>
       </div>
     </section>
 
@@ -3198,6 +3222,43 @@
   </div>
 </div>
 
+<div class="admin-modal" id="transmission-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="transmission-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="transmission-modal-title">Edit Overlord Transmission</h3>
+    <p class="admin-modal-sub" id="transmission-modal-sub"></p>
+
+    <label class="admin-field news-comments-toggle" for="transmission-enabled-input">
+      <span><strong>Show this transmission</strong><small>When disabled, the quiz result keeps its main result card but hides this Overlord&rsquo;s chat panel.</small></span>
+      <input type="checkbox" id="transmission-enabled-input" checked>
+    </label>
+
+    <div class="admin-field">
+      <label for="transmission-opening-input">Opening transmission</label>
+      <p class="admin-field-hint">The first chat bubble after a quiz result. For Syn, this replaces the first line of his dialogue tree.</p>
+      <textarea id="transmission-opening-input" maxlength="500" rows="3"></textarea>
+    </div>
+    <div class="admin-field">
+      <label for="transmission-followup-input">Follow-up transmission</label>
+      <p class="admin-field-hint">The second chat bubble. For Syn, this is the second line before the player&rsquo;s first choice.</p>
+      <textarea id="transmission-followup-input" maxlength="500" rows="3"></textarea>
+    </div>
+    <div class="admin-field">
+      <label for="transmission-delay-input">Response pace (milliseconds)</label>
+      <p class="admin-field-hint">How long the &ldquo;responding&rdquo; indicator remains visible before each Overlord message. 700ms is the default; use 250&ndash;4000ms.</p>
+      <input type="number" id="transmission-delay-input" min="250" max="4000" step="50" value="700">
+    </div>
+
+    <p class="admin-modal-error" id="transmission-modal-error"></p>
+    <p class="admin-modal-status" id="transmission-modal-status"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="transmission-save-btn">Save Transmission</button>
+      <button type="button" class="btn" id="transmission-cancel-btn">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="admin-modal" id="known-figure-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner admin-modal-inner-wide">
@@ -4151,6 +4212,7 @@
       if (name === 'world-control') loadWorldList();
       if (name === 'weather-control') loadWeatherControl();
       if (name === 'overlord-control') loadOverlordList();
+      if (name === 'overlord-transmission-control') loadTransmissionList();
       if (name === 'known-figures-control') loadKnownFigureList();
       if (name === 'timeline-control') loadTimelineList();
       if (name === 'soundtrack-control') loadSoundtrackList();
@@ -13033,6 +13095,159 @@
         overlordDeleteBtn.disabled = false; overlordDeleteBtn.classList.remove('is-busy');
         overlordModalError.textContent = 'Could not delete this overlord. Please try again.';
         overlordModalError.classList.add('show');
+      });
+  });
+
+  // ===== Overlord Transmission Control (Lore Management) =====================
+  // A result transmission is deliberately a one-to-one child of an Overlord
+  // rather than a free-standing sortable content type. That keeps the editor
+  // focused on the same six quiz outcomes and lets a newly created Overlord
+  // acquire its first transmission with one save.
+  var transmissionListEl = document.getElementById('transmission-list');
+  var transmissionCountEl = document.getElementById('transmission-count');
+  var transmissionModal = document.getElementById('transmission-modal');
+  var transmissionModalTitle = document.getElementById('transmission-modal-title');
+  var transmissionModalSub = document.getElementById('transmission-modal-sub');
+  var transmissionModalError = document.getElementById('transmission-modal-error');
+  var transmissionModalStatus = document.getElementById('transmission-modal-status');
+  var transmissionCloseBtn = document.getElementById('transmission-modal-close');
+  var transmissionCancelBtn = document.getElementById('transmission-cancel-btn');
+  var transmissionSaveBtn = document.getElementById('transmission-save-btn');
+  var transmissionEnabledInput = document.getElementById('transmission-enabled-input');
+  var transmissionOpeningInput = document.getElementById('transmission-opening-input');
+  var transmissionFollowupInput = document.getElementById('transmission-followup-input');
+  var transmissionDelayInput = document.getElementById('transmission-delay-input');
+  var currentTransmission = null;
+
+  function loadTransmissionList() {
+    transmissionListEl.innerHTML = '<div class="admin-list-empty">Loading Overlord transmissions&hellip;</div>';
+    return fetch('/api/admin/transmissions/list.php', { credentials: 'same-origin' })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        if (!data || !data.ok) throw new Error((data && data.error) || 'Could not load Overlord transmissions.');
+        var entries = Array.isArray(data.transmissions) ? data.transmissions : [];
+        transmissionCountEl.textContent = entries.length + (entries.length === 1 ? ' transmission' : ' transmissions');
+        renderTransmissionList(entries);
+      })
+      .catch(function (error) {
+        transmissionCountEl.textContent = '';
+        transmissionListEl.innerHTML = '<div class="admin-list-empty">' + escapeHtml(error.message || 'Could not load Overlord transmissions.') + '</div>';
+      });
+  }
+
+  function renderTransmissionList(entries) {
+    if (!entries.length) {
+      transmissionListEl.innerHTML = '<div class="admin-list-empty">No Overlords yet. Create one in Overlord Control, then return here to configure its transmission.</div>';
+      return;
+    }
+    transmissionListEl.innerHTML = '';
+    entries.forEach(function (entry) {
+      var row = document.createElement('div');
+      row.className = 'admin-row transmission-management-row';
+      row.tabIndex = 0;
+      var opening = entry.opening_message || 'Uses the built-in result opening.';
+      var followup = entry.followup_message || 'Uses the built-in result follow-up.';
+      row.innerHTML =
+        '<span class="transmission-management-overlord">' + escapeHtml(entry.name) +
+          (entry.epithet ? '<small>' + escapeHtml(entry.epithet) + '</small>' : '') +
+        '</span>' +
+        '<span class="transmission-management-preview' + (entry.opening_message ? '' : ' is-empty') + '">' + escapeHtml(opening) + '</span>' +
+        '<span class="transmission-management-preview' + (entry.followup_message ? '' : ' is-empty') + '">' + escapeHtml(followup) + '</span>' +
+        '<span class="transmission-management-pace">' + escapeHtml(String(entry.typing_delay_ms || 700)) + ' ms</span>' +
+        '<span class="world-status-pill ' + (entry.is_enabled ? 'is-available' : 'is-locked') + '">' + (entry.is_enabled ? 'Enabled' : 'Hidden') + '</span>';
+
+      var actions = document.createElement('div');
+      actions.className = 'role-row-actions';
+      actions.innerHTML = '<button type="button" class="permission-mini-btn" data-transmission-action="edit">Edit Transmission</button>';
+      actions.addEventListener('click', function (event) {
+        event.stopPropagation();
+        openTransmissionModal(entry);
+      });
+      row.appendChild(actions);
+      row.addEventListener('click', function () { openTransmissionModal(entry); });
+      row.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          openTransmissionModal(entry);
+        }
+      });
+      transmissionListEl.appendChild(row);
+    });
+  }
+
+  function setTransmissionFormReadOnly(readOnly) {
+    transmissionEnabledInput.disabled = readOnly;
+    transmissionOpeningInput.disabled = readOnly;
+    transmissionFollowupInput.disabled = readOnly;
+    transmissionDelayInput.disabled = readOnly;
+    transmissionSaveBtn.hidden = readOnly;
+  }
+
+  function openTransmissionModal(entry) {
+    currentTransmission = entry;
+    transmissionModalTitle.textContent = pwHasPermission('transmissions.edit') ? 'Edit Overlord Transmission' : 'View Overlord Transmission';
+    transmissionModalSub.textContent = entry.name + (entry.epithet ? ' — ' + entry.epithet : '');
+    transmissionEnabledInput.checked = !!entry.is_enabled;
+    transmissionOpeningInput.value = entry.opening_message || '';
+    transmissionFollowupInput.value = entry.followup_message || '';
+    transmissionDelayInput.value = entry.typing_delay_ms || 700;
+    transmissionModalError.classList.remove('show');
+    transmissionModalStatus.classList.remove('show');
+    setTransmissionFormReadOnly(!pwHasPermission('transmissions.edit'));
+    transmissionModal.hidden = false;
+    if (pwHasPermission('transmissions.edit')) setTimeout(function () { transmissionOpeningInput.focus(); }, 30);
+  }
+
+  function closeTransmissionModal() {
+    transmissionModal.hidden = true;
+    currentTransmission = null;
+  }
+
+  transmissionCloseBtn.addEventListener('click', closeTransmissionModal);
+  transmissionCancelBtn.addEventListener('click', closeTransmissionModal);
+  transmissionModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeTransmissionModal);
+
+  transmissionSaveBtn.addEventListener('click', function () {
+    if (!currentTransmission || !pwHasPermission('transmissions.edit')) return;
+    var delay = parseInt(transmissionDelayInput.value, 10);
+    if (isNaN(delay) || delay < 250 || delay > 4000) {
+      transmissionModalError.textContent = 'Response pace must be between 250 and 4000 milliseconds.';
+      transmissionModalError.classList.add('show');
+      return;
+    }
+    var payload = {
+      overlord_id: currentTransmission.overlord_id,
+      is_enabled: transmissionEnabledInput.checked,
+      opening_message: transmissionOpeningInput.value.trim(),
+      followup_message: transmissionFollowupInput.value.trim(),
+      typing_delay_ms: delay,
+      csrf: window.PW_AUTH.csrf
+    };
+    transmissionModalError.classList.remove('show');
+    transmissionSaveBtn.disabled = true;
+    transmissionSaveBtn.classList.add('is-busy');
+    fetch('/api/admin/transmissions/update.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    })
+      .then(function (response) { return response.json(); })
+      .then(function (data) {
+        transmissionSaveBtn.disabled = false;
+        transmissionSaveBtn.classList.remove('is-busy');
+        if (!data || !data.ok) {
+          transmissionModalError.textContent = (data && data.error) || 'Could not save this transmission.';
+          transmissionModalError.classList.add('show');
+          return;
+        }
+        transmissionModalStatus.textContent = 'Transmission saved.';
+        transmissionModalStatus.classList.add('show');
+        loadTransmissionList();
+        setTimeout(closeTransmissionModal, 700);
+      })
+      .catch(function () {
+        transmissionSaveBtn.disabled = false;
+        transmissionSaveBtn.classList.remove('is-busy');
+        transmissionModalError.textContent = 'Could not save this transmission.';
+        transmissionModalError.classList.add('show');
       });
   });
 
