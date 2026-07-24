@@ -2080,12 +2080,114 @@
    not as a default it happens to inherit. What it was missing is that Syn's
    feed should not be a clean one.
 
-   Neoh's atlas motif is glitch (js/world-atlas-effects.js), so this reuses
-   that idea at card scale rather than inventing a second visual language for
-   the same world. All CSS, scoped to the variant. Both animations stop under
-   prefers-reduced-motion through base.css's global override, and both settle
-   to their resting state when they do: the tear band is transparent at rest,
-   and the caret is simply a solid block. */
+   The card is now framed by a real projected hologram panel
+   (images/Neoh-wall-background.webp, 1122x1402): a fine scan grid and four
+   glowing HUD corner brackets, cyan at the top drifting toward violet at the
+   foot -- confirmed by sampling the four corners rather than assumed; the
+   bottom two read measurably cooler/pinker than the top two. Applied as a
+   border-image, the same 9-slice technique Babki Prime's tablet uses, but
+   with plain stretch rather than round: this frame has no repeating glyphs to
+   protect from a mid-tile cut, just a straight glow line each edge, which
+   stretches losslessly.
+
+   That real image supersedes the CSS-drawn registration marks this card used
+   to carry -- four flat gradient bars standing in for a HUD frame. The real
+   thing reads far better, so those are removed rather than left underneath
+   a texture that already does their job.
+
+   Neoh's atlas motif is glitch (js/world-atlas-effects.js), so the icon fault
+   below reuses that idea at card scale rather than inventing a second visual
+   language for the same world. All CSS, scoped to the variant. Every
+   animation here stops under prefers-reduced-motion through base.css's global
+   override, and each settles to a legible resting state when it does: the
+   tear band is transparent at rest, the caret is a solid block, the scan line
+   is off-card, and the flicker simply never dips. */
+.world-weather-card--neoh {
+  /* Restated explicitly even though it matches the shared default: every
+     other variant's own block sets these, and Neoh having its own block now
+     for the first time should not rely on inheriting a value silently. */
+  --world-weather-icon: #70ccdf;
+  --world-weather-icon-current: #78d8ee;
+  /* The shared muted tone (#9186b8) was calibrated against every card's own
+     dark gradient ground and measured 5.27:1 there. This texture's grid
+     highlights spike to lum 74 in places -- brighter than any prior card's
+     ground -- where #9186b8 falls to 2.53:1. Lightened toward pale cyan
+     rather than darkened toward black, since a shadow-dark muted tone would
+     read as dead rather than as a dimmer projection. The far-day forecast
+     below dims this same family down to 0.78 opacity, which needed more
+     headroom than a bare 4.5:1 gives -- #e0ecf6 is the value that clears the
+     compounded case, re-measured against the texture's own brightest sampled
+     pixel: 4.99:1 at 0.78 opacity, 7.01:1 at full strength. Used for every
+     muted element on this card so they read as one family. */
+  --wx-muted: #e0ecf6;
+  border-style: solid;
+  border-width: 28px;
+  border-color: transparent;
+  border-image: url('/images/Neoh-wall-background.webp') 100 fill / 28px / 0 stretch;
+  /* Shown only if the texture fails to load, so the card degrades to a plain
+     dark hologram-blue tint rather than a bare box. */
+  background: linear-gradient(165deg, rgba(6, 16, 34, 0.98), rgba(3, 9, 20, 0.98));
+  padding: 13px 15px;
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.5);
+}
+/* Every reading picks up a soft, always-on bloom -- projected light rather
+   than printed ink. Deliberately gentler and never animated, so it never
+   competes with the icon's own dramatic, momentary glitch below; this is
+   ambient, that is an event. */
+.world-weather-card--neoh .world-weather-head > div > span,
+.world-weather-card--neoh .world-weather-head h2,
+.world-weather-card--neoh .world-weather-current > strong,
+.world-weather-card--neoh .world-weather-current b,
+.world-weather-card--neoh .world-weather-metrics strong,
+.world-weather-card--neoh .world-weather-divider,
+.world-weather-card--neoh .world-weather-day strong,
+.world-weather-card--neoh .world-weather-hourly-head,
+.world-weather-card--neoh .world-weather-hour-temp {
+  text-shadow: 0 0 7px rgba(120, 216, 238, 0.4);
+}
+.world-weather-card--neoh .world-weather-current-icon svg,
+.world-weather-card--neoh .world-weather-day-icon svg,
+.world-weather-card--neoh .world-weather-hour-icon svg {
+  filter: drop-shadow(0 0 5px rgba(120, 216, 238, 0.45));
+}
+/* The shared CRT sweep becomes a hologram projector's scan line: a crisp
+   bright edge with a soft trailing glow above it, reusing the base card's own
+   translateY(450%) sweep rather than a new keyframe. The duration is
+   deliberately not a multiple of the icon glitch's 6.5s or the far-day slip's
+   8.3s/5.9s, so nothing on this card ever falls into step with anything else. */
+.world-weather-card--neoh .world-weather-card-scan {
+  background: linear-gradient(180deg,
+    transparent,
+    rgba(120, 216, 238, 0.06) 30%,
+    rgba(184, 240, 255, 0.5) 92%,
+    rgba(224, 250, 255, 0.85) 97%,
+    rgba(184, 240, 255, 0.5) 99%,
+    transparent);
+  animation: world-weather-scan 6.2s linear infinite;
+}
+/* A rare, brief power hiccup across the whole panel -- two quick micro-dips
+   near the end of an 11.7s cycle, unrelated to every other duration on this
+   card for the same reason. Mostly solid: this is a second, quieter fault
+   layered under the icon's own, not a second copy of it. */
+.world-weather-card--neoh {
+  animation: neoh-hologram-flicker 11.7s steps(1, end) infinite;
+}
+@keyframes neoh-hologram-flicker {
+  0%, 96.4% { opacity: 1; }
+  96.5%, 96.9% { opacity: 0.74; }
+  97%, 98.1% { opacity: 1; }
+  98.2%, 98.5% { opacity: 0.82; }
+  98.6%, 100% { opacity: 1; }
+}
+/* Two elements neither --wx-muted nor any other Neoh rule reaches: the day
+   name reads the site-wide --text-dim, and the footer carries its own
+   hardcoded rgba(). Both cleared AA against every prior card's ground but
+   fall to 3.57:1 and 1.88:1 here. Matched to --wx-muted's own #e0ecf6 rather
+   than picked separately, so every muted element on this card is the same
+   family; the far-day forecast further down dims this exact colour to 0.78
+   opacity, confirmed to still clear AA at 4.99:1 there. */
+.world-weather-card--neoh .world-weather-day-name { color: #e0ecf6; }
+.world-weather-card--neoh footer { color: rgba(224, 236, 246, 0.85); }
 
 /* The current condition is the one live reading on the card, so it is the
    thing that fails. Mostly still -- the burst occupies about a tenth of the
@@ -2209,29 +2311,6 @@
   92% { transform: translateX(-1.5px); }
   93% { transform: translateX(1.5px); }
   94%, 100% { transform: none; }
-}
-
-/* Registration marks: the framing of a monitored feed rather than a border.
-   Eight bars drawn as background layers on one pseudo-element, which is why
-   this needs no markup -- four corners, each an L, with the card's own edge
-   left alone. Static on purpose; the icon and the caret already move, and a
-   third moving thing would read as noise rather than as surveillance. */
-.world-weather-card--neoh::before {
-  --neoh-mark: rgba(120, 216, 238, 0.45);
-  content: '';
-  position: absolute;
-  z-index: 0;
-  inset: 9px;
-  pointer-events: none;
-  background:
-    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 0 0 / 12px 1px no-repeat,
-    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 0 0 / 1px 12px no-repeat,
-    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 100% 0 / 12px 1px no-repeat,
-    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 100% 0 / 1px 12px no-repeat,
-    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 0 100% / 12px 1px no-repeat,
-    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 0 100% / 1px 12px no-repeat,
-    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 100% 100% / 12px 1px no-repeat,
-    linear-gradient(var(--neoh-mark), var(--neoh-mark)) 100% 100% / 1px 12px no-repeat;
 }
 
 /* Every other calibrated world (except The Nexus Veil, neutral ground with
