@@ -55,8 +55,7 @@ function initMain() {
       var missionsLink = document.createElement('a');
       missionsLink.href = 'missions.html';
       missionsLink.textContent = 'Missions';
-      var aboutLink = nav.querySelector('a[href="about.html"]');
-      nav.insertBefore(missionsLink, aboutLink || null);
+      nav.appendChild(missionsLink);
     }
     var normalizePath = function (value) {
       var path = new URL(value, location.origin).pathname.replace(/\/index\.html$/, '/');
