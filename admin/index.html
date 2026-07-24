@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=300">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=301">
 </head>
 <body>
 
@@ -13529,6 +13529,20 @@
     canvas.className = 'dialogue-tree-canvas';
     canvas.style.width = canvasWidth + 'px';
     canvas.style.height = canvasHeight + 'px';
+    var canvasControls = document.createElement('div');
+    var canEditDialogueTree = pwHasPermission('dialogues.edit');
+    canvasControls.className = 'dialogue-tree-canvas-controls';
+    canvasControls.innerHTML =
+      '<span class="dialogue-tree-canvas-controls-title">Canvas controls</span>' +
+      '<button type="button" class="dialogue-tree-canvas-control" data-dialogue-canvas-action="dialogue"' + (canEditDialogueTree ? '' : ' disabled') + '>+ Dialogue</button>' +
+      '<button type="button" class="dialogue-tree-canvas-control is-branch" data-dialogue-canvas-action="branch" title="Adds a child dialogue connected to the selected card"' + (canEditDialogueTree ? '' : ' disabled') + '>+ Branch</button>';
+    canvasControls.querySelector('[data-dialogue-canvas-action="dialogue"]').addEventListener('click', function () {
+      dialogueTreeAddStandaloneNode();
+    });
+    canvasControls.querySelector('[data-dialogue-canvas-action="branch"]').addEventListener('click', function () {
+      dialogueTreeAddChildBranch();
+    });
+    canvas.appendChild(canvasControls);
     var svgNamespace = 'http://www.w3.org/2000/svg';
     var edges = document.createElementNS(svgNamespace, 'svg');
     edges.setAttribute('class', 'dialogue-tree-edges');
@@ -13674,6 +13688,44 @@
     return id;
   }
 
+  function dialogueTreeCreateNode() {
+    var id = dialogueTreeNextNodeId();
+    var node = { id: id, title: 'New dialogue', messages: ['Write the Overlord\'s response.'], choices: [] };
+    currentDialogueTree.tree.nodes.push(node);
+    return node;
+  }
+
+  function dialogueTreeFocusNewNode() {
+    renderDialogueTreeEditor();
+    dialogueNodeTitleInput.focus();
+    dialogueNodeTitleInput.select();
+  }
+
+  function dialogueTreeAddStandaloneNode() {
+    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
+    dialogueTreeSaveSelectedNode();
+    var node = dialogueTreeCreateNode();
+    selectedDialogueNodeId = node.id;
+    dialogueTreeModalError.classList.remove('show');
+    dialogueTreeModalStatus.textContent = 'New dialogue added. Give it a title and write the Overlord\'s response.';
+    dialogueTreeModalStatus.classList.add('show');
+    dialogueTreeFocusNewNode();
+  }
+
+  function dialogueTreeAddChildBranch() {
+    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
+    dialogueTreeSaveSelectedNode();
+    var source = selectedDialogueNode();
+    if (!source) return;
+    var node = dialogueTreeCreateNode();
+    source.choices.push({ label: 'New player choice', target_node_id: node.id, requires_high_resonance: false });
+    selectedDialogueNodeId = node.id;
+    dialogueTreeModalError.classList.remove('show');
+    dialogueTreeModalStatus.textContent = 'New branch created from “' + source.title + '”. Name the player choice and the new dialogue below.';
+    dialogueTreeModalStatus.classList.add('show');
+    dialogueTreeFocusNewNode();
+  }
+
   function openDialogueTreeModal(overlordId) {
     dialogueTreeModalError.classList.remove('show');
     dialogueTreeModalStatus.classList.remove('show');
@@ -13719,14 +13771,7 @@
   });
 
   dialogueAddNodeBtn.addEventListener('click', function () {
-    if (!currentDialogueTree || !pwHasPermission('dialogues.edit')) return;
-    dialogueTreeSaveSelectedNode();
-    var id = dialogueTreeNextNodeId();
-    currentDialogueTree.tree.nodes.push({ id: id, title: 'New dialogue', messages: ['Write the Overlord\'s response.'], choices: [] });
-    selectedDialogueNodeId = id;
-    renderDialogueTreeEditor();
-    dialogueNodeTitleInput.focus();
-    dialogueNodeTitleInput.select();
+    dialogueTreeAddStandaloneNode();
   });
 
   dialogueRemoveNodeBtn.addEventListener('click', function () {

@@ -3051,6 +3051,13 @@
 .dialogue-tree-legend .is-branch { margin-left: 8px; background: #e5ad46; color: #e5ad46; }
 .dialogue-tree-map { position: relative; min-height: 310px; max-height: 620px; margin-top: 13px; overflow: auto; border: 1px solid rgba(162,121,236,0.23); background-color: #080811; background-image: linear-gradient(rgba(174,151,224,0.075) 1px, transparent 1px), linear-gradient(90deg, rgba(174,151,224,0.075) 1px, transparent 1px); background-size: 38px 38px; scrollbar-color: rgba(162,121,236,0.6) rgba(8,8,17,0.9); }
 .dialogue-tree-canvas { position: relative; min-width: 100%; }
+.dialogue-tree-canvas-controls { position: absolute; z-index: 5; top: 12px; left: 12px; display: flex; align-items: center; gap: 6px; padding: 6px; border: 1px solid rgba(162,121,236,0.32); background: rgba(8,7,17,0.92); box-shadow: 0 8px 16px rgba(0,0,0,0.35); }
+.dialogue-tree-canvas-controls-title { margin: 0 3px 0 2px; color: var(--text-faint); font-size: 0.54rem; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; }
+.dialogue-tree-canvas-control { min-height: 26px; padding: 5px 8px; border: 1px solid rgba(187,139,255,0.6); background: rgba(124,79,214,0.14); color: var(--purple-pale); font: 600 0.59rem 'Cinzel', serif; letter-spacing: 0.055em; text-transform: uppercase; cursor: pointer; transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease; }
+.dialogue-tree-canvas-control:hover, .dialogue-tree-canvas-control:focus-visible { border-color: #d3adff; background: rgba(144,92,241,0.28); color: var(--text); outline: none; }
+.dialogue-tree-canvas-control.is-branch { border-color: rgba(229,173,70,0.64); color: #f3c66a; }
+.dialogue-tree-canvas-control.is-branch:hover, .dialogue-tree-canvas-control.is-branch:focus-visible { border-color: #f3c66a; background: rgba(229,173,70,0.16); }
+.dialogue-tree-canvas-control:disabled { opacity: 0.46; cursor: not-allowed; }
 .dialogue-tree-edges { position: absolute; inset: 0; z-index: 1; overflow: visible; pointer-events: none; }
 .dialogue-tree-edge { fill: none; stroke: rgba(189,138,255,0.76); stroke-width: 2; filter: drop-shadow(0 0 3px rgba(140,92,232,0.4)); }
 .dialogue-tree-edge.is-from-root { stroke: rgba(96,138,255,0.92); }
