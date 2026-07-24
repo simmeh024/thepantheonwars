@@ -158,7 +158,7 @@
 }
 .admin-clock-slot {
   position: absolute; z-index: 2; top: 20px; right: 44px;
-  display: flex; align-items: flex-start; justify-content: flex-end;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
 }
 .admin-utc-clock {
   position: relative; z-index: 1; margin: 0;
@@ -689,26 +689,25 @@
 .admin-home-grid { display: flex; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
 .admin-home-grid-main { flex: 2 1 420px; min-width: 0; }
 .admin-home-grid-side { flex: 1 1 260px; min-width: 220px; }
-.home-customize-btn, .home-customize-reset, .home-card-control, .home-layout-move {
+.home-layout-settings-btn, .home-layout-edit-btn, .home-customize-reset, .home-card-control, .home-layout-move {
   border: 1px solid var(--border); border-radius: 5px; background: rgba(124,79,214,0.09); color: var(--text-dim); font: 600 0.7rem 'Jost', sans-serif; letter-spacing: 0.05em; cursor: pointer;
 }
-.home-customize-btn { padding: 7px 10px; margin-left: auto; text-transform: uppercase; }
-.home-customize-btn:hover, .home-customize-btn[aria-expanded="true"] { border-color: var(--purple-bright); color: var(--purple-bright); }
-.home-customize-panel { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 16px; margin: 0 0 20px; padding: 15px 17px; border: 1px solid rgba(162,121,236,0.3); border-radius: 8px; background: rgba(104,62,169,0.1); }
-.home-customize-panel strong { font-family: 'Jost', sans-serif; font-size: 0.8rem; color: var(--text); }
-.home-customize-panel p { max-width: 470px; margin: 4px 0 0; font-size: 0.76rem; color: var(--text-faint); }
-.home-customize-controls { display: grid; flex: 1 1 390px; gap: 6px; }
-.home-customize-drag-note { margin: 0 !important; max-width: none !important; color: var(--purple-bright) !important; }
+.home-layout-settings { position: relative; }
+.home-layout-settings-btn { width: 100%; padding: 6px 9px; text-transform: uppercase; }
+.home-layout-settings-btn:hover, .home-layout-settings-btn[aria-expanded="true"] { border-color: var(--purple-bright); color: var(--purple-bright); }
+.home-layout-settings-panel { position: absolute; top: calc(100% + 6px); right: 0; display: flex; gap: 6px; min-width: max-content; padding: 7px; border: 1px solid var(--border); border-radius: 7px; background: rgba(24,14,45,0.98); box-shadow: 0 10px 24px rgba(0,0,0,0.3); }
+.home-layout-edit-btn, .home-customize-reset { padding: 7px 9px; }
+.home-layout-edit-btn[aria-pressed="true"] { border-color: var(--gold-bright); color: var(--gold-bright); background: rgba(236,201,135,0.1); }
 .home-layout-row { display: grid; grid-template-columns: minmax(120px, 1fr) auto auto auto auto; align-items: center; gap: 6px; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font: 0.74rem 'Jost', sans-serif; color: var(--text-dim); }
 .home-layout-row:last-child { border-bottom: 0; }
 .home-layout-row.is-pinned > span { color: var(--gold-bright); }
 .home-layout-move, .home-card-control { min-width: 27px; height: 27px; padding: 0 7px; }
 .home-layout-move:disabled { opacity: 0.35; cursor: default; }
-.home-customize-reset { align-self: center; padding: 7px 10px; }
-.home-customize-reset:hover, .home-layout-move:hover:not(:disabled), .home-card-control:hover { border-color: var(--purple-bright); color: var(--purple-bright); }
+.home-customize-reset:hover, .home-layout-edit-btn:hover, .home-layout-move:hover:not(:disabled), .home-card-control:hover { border-color: var(--purple-bright); color: var(--purple-bright); }
 .home-card-tools { display: flex; gap: 5px; margin-left: auto; }
-.is-home-card-drag-handle { cursor: grab; user-select: none; }
-.is-home-card-drag-handle:active { cursor: grabbing; }
+.is-home-card-drag-handle { user-select: none; }
+.is-home-layout-editing .is-home-card-drag-handle { cursor: grab; }
+.is-home-layout-editing .is-home-card-drag-handle:active { cursor: grabbing; }
 .activity-widget.is-home-card-dragging { opacity: 0.45; }
 .activity-widget.is-home-card-drop-target { border-color: var(--purple-bright); box-shadow: 0 0 0 2px rgba(162,121,236,0.18), 0 0 20px rgba(162,121,236,0.12); }
 .home-card-control.is-active { border-color: var(--gold-bright); color: var(--gold-bright); background: rgba(236,201,135,0.1); }

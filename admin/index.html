@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=284">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=285">
 </head>
 <body>
 
@@ -147,21 +147,19 @@
         <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>
         <time id="admin-utc-clock-time" aria-label="Current UTC time">--:--:-- UTC</time>
       </div>
+      <div class="home-layout-settings">
+        <button type="button" class="home-layout-settings-btn" id="home-customize-btn" aria-expanded="false" aria-controls="home-customize-panel">Dashboard settings</button>
+        <div class="home-layout-settings-panel" id="home-customize-panel" hidden>
+          <button type="button" class="home-layout-edit-btn" id="home-layout-edit-btn" aria-pressed="false">Enable editing</button>
+          <button type="button" class="home-customize-reset" id="home-customize-reset">Reset layout</button>
+        </div>
+      </div>
     </div>
 
     <section class="admin-section" id="section-home">
       <div class="admin-section-head">
         <h1>Home</h1>
         <p>A chronological record of administrator actions, system changes, and community moderation activity.</p>
-        <button type="button" class="home-customize-btn" id="home-customize-btn" aria-expanded="false" aria-controls="home-customize-panel">Customize Home</button>
-      </div>
-      <div class="home-customize-panel" id="home-customize-panel" hidden>
-        <div>
-          <strong>Your dashboard layout</strong>
-          <p>Drag a card by its header to place it where you want. Pin and collapse controls remain available on every card. These preferences are saved for your account on this browser.</p>
-        </div>
-        <div class="home-customize-controls" id="home-customize-controls"></div>
-        <button type="button" class="home-customize-reset" id="home-customize-reset">Reset layout</button>
       </div>
 
       <div class="admin-home-top-row">
@@ -6047,10 +6045,11 @@
   var HOME_LAYOUT_KEY_PREFIX = 'pw_admin_home_layout_v1_';
   var homeCustomizeBtn = document.getElementById('home-customize-btn');
   var homeCustomizePanel = document.getElementById('home-customize-panel');
-  var homeCustomizeControls = document.getElementById('home-customize-controls');
+  var homeLayoutEditBtn = document.getElementById('home-layout-edit-btn');
   var homeCustomizeReset = document.getElementById('home-customize-reset');
   var homeLayoutStorageKey = null;
   var draggingHomeCard = null;
+  var homeLayoutEditing = false;
 
   function homeCards() { return Array.prototype.slice.call(document.querySelectorAll('[data-home-card]')); }
   function defaultHomeLayout() {
@@ -6119,11 +6118,6 @@
       if (pin) { pin.classList.toggle('is-active', layout.pinned.indexOf(id) !== -1); pin.setAttribute('aria-pressed', layout.pinned.indexOf(id) !== -1 ? 'true' : 'false'); }
       if (collapse) { collapse.classList.toggle('is-active', layout.collapsed.indexOf(id) !== -1); collapse.setAttribute('aria-expanded', layout.collapsed.indexOf(id) === -1 ? 'true' : 'false'); }
     });
-    renderHomeLayoutControls(layout);
-  }
-  function renderHomeLayoutControls(layout) {
-    if (!homeCustomizeControls) return;
-    homeCustomizeControls.innerHTML = '<p class="home-customize-drag-note">Drag any card directly from its header and drop it before another card anywhere on the dashboard.</p>';
   }
   function updateHomeLayout(mutator) {
     var layout = loadHomeLayout();
@@ -6136,9 +6130,7 @@
     homeCards().forEach(function (card) {
       var head = card.querySelector('.activity-widget-head');
       if (!head || head.querySelector('.home-card-tools')) return;
-      head.draggable = true;
       head.classList.add('is-home-card-drag-handle');
-      head.title = 'Drag to reorder this card';
       var tools = document.createElement('div');
       tools.className = 'home-card-tools';
       tools.innerHTML = '<button type="button" class="home-card-control" data-home-card-action="pin" title="Pin card" aria-label="Pin card" aria-pressed="false">&#9733;</button>' +
@@ -6146,10 +6138,23 @@
       head.appendChild(tools);
     });
     applyHomeLayout(loadHomeLayout());
+    setHomeLayoutEditing(false);
+  }
+  function setHomeLayoutEditing(enabled) {
+    homeLayoutEditing = enabled;
+    document.getElementById('section-home').classList.toggle('is-home-layout-editing', enabled);
+    homeCards().forEach(function (card) {
+      var head = card.querySelector('.is-home-card-drag-handle');
+      if (head) { head.draggable = enabled; head.title = enabled ? 'Drag to reorder this card' : ''; }
+    });
+    if (homeLayoutEditBtn) {
+      homeLayoutEditBtn.textContent = enabled ? 'Finish editing' : 'Enable editing';
+      homeLayoutEditBtn.setAttribute('aria-pressed', enabled ? 'true' : 'false');
+    }
   }
   document.addEventListener('dragstart', function (event) {
     var head = event.target.closest('.is-home-card-drag-handle');
-    if (!head || event.target.closest('button, a')) { if (head) event.preventDefault(); return; }
+    if (!homeLayoutEditing || !head || event.target.closest('button, a')) { if (head) event.preventDefault(); return; }
     draggingHomeCard = head.closest('[data-home-card]');
     if (!draggingHomeCard) return;
     event.dataTransfer.effectAllowed = 'move';
@@ -6199,6 +6204,9 @@
     var show = homeCustomizePanel.hidden;
     homeCustomizePanel.hidden = !show;
     homeCustomizeBtn.setAttribute('aria-expanded', show ? 'true' : 'false');
+  });
+  if (homeLayoutEditBtn) homeLayoutEditBtn.addEventListener('click', function () {
+    setHomeLayoutEditing(!homeLayoutEditing);
   });
   if (homeCustomizeReset) homeCustomizeReset.addEventListener('click', function () {
     try { localStorage.removeItem(homeLayoutStorageKey); } catch (e) {}
