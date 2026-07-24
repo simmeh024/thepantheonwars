@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=295">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=296">
 </head>
 <body>
 
@@ -2139,7 +2139,14 @@
         <span class="admin-count" id="timeline-count"></span>
       </div>
 
-      <div class="admin-list" id="timeline-list">
+      <div class="timeline-list-columns" aria-hidden="true">
+        <span>Title</span>
+        <span>Era</span>
+        <span>Year</span>
+        <span>Reputation needed</span>
+        <span>Status</span>
+      </div>
+      <div class="admin-list timeline-management-list" id="timeline-list">
         <div class="admin-list-empty">Loading timeline events&hellip;</div>
       </div>
     </section>
@@ -13309,24 +13316,23 @@
     }
     timelineListEl.innerHTML = '';
     entries.forEach(function (entry, i) {
+      var reputationNeeded = entry.required_level_name
+        ? escapeHtml(entry.required_level_name) + (entry.required_level_threshold !== null && entry.required_level_threshold !== undefined ? ' <span>' + entry.required_level_threshold + ' pts</span>' : '')
+        : 'Always visible';
       var row = document.createElement('div');
-      row.className = 'admin-row world-row';
+      row.className = 'admin-row timeline-management-row';
       row.tabIndex = 0;
       row.innerHTML =
-        (entry.image_url ? '<img class="admin-row-cover" src="' + resolveSiteImageUrl(entry.image_url) + '" alt="">' : '') +
-        '<div class="admin-row-main">' +
-          '<p class="world-row-title">' + escapeHtml(entry.title) +
-            (entry.date_label ? ' <span class="admin-row-sep">&bull;</span> ' + escapeHtml(entry.date_label) : '') + '</p>' +
-          (entry.era_label ? '<div class="admin-row-meta"><span>' + escapeHtml(entry.era_label) + '</span></div>' : '') +
+        '<div class="timeline-management-title">' +
+          (entry.image_url ? '<img class="timeline-management-image" src="' + resolveSiteImageUrl(entry.image_url) + '" alt="">' : '') +
+          '<span>' + escapeHtml(entry.title) + '</span>' +
         '</div>' +
-        '<div class="world-row-status">' +
-          '<span class="world-overlord-pill">' +
-            (entry.required_level_name ? 'Needs ' + escapeHtml(entry.required_level_name) : 'Always visible') +
-          '</span>' +
-          '<span class="world-status-pill ' + (entry.is_published ? 'is-available' : 'is-locked') + '">' +
-            (entry.is_published ? 'Published' : 'Unpublished') +
-          '</span>' +
-        '</div>';
+        '<span class="timeline-management-era' + (entry.era_label ? '' : ' is-empty') + '">' + escapeHtml(entry.era_label || 'No era') + '</span>' +
+        '<span class="timeline-management-year' + (entry.date_label ? '' : ' is-empty') + '">' + escapeHtml(entry.date_label || 'No year') + '</span>' +
+        '<span class="world-overlord-pill timeline-management-reputation' + (entry.required_level_name ? ' is-gated' : ' is-open') + '">' + reputationNeeded + '</span>' +
+        '<span class="world-status-pill timeline-management-status ' + (entry.is_published ? 'is-available' : 'is-locked') + '">' +
+          (entry.is_published ? 'Published' : 'Unpublished') +
+        '</span>';
 
       var actions = document.createElement('div');
       actions.className = 'role-row-actions';

@@ -3004,10 +3004,54 @@
 .known-figure-management-status { justify-self: end; }
 .known-figure-management-row .role-row-actions { grid-column: 1 / -1; }
 
+/* Timeline Control surfaces chronological labels, access gates and visibility
+   separately so an editor does not need to infer them from a combined title. */
+.timeline-list-columns,
+.admin-row.timeline-management-row {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.3fr) minmax(120px, 0.8fr) minmax(105px, 0.75fr) minmax(155px, 1fr) 112px;
+  align-items: center;
+  column-gap: 16px;
+}
+.timeline-list-columns {
+  margin: 0 18px;
+  padding: 0 0 9px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-faint);
+  font-size: 0.61rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.timeline-list-columns > span:last-child { text-align: right; }
+.admin-row.timeline-management-row { gap: 0 16px; }
+.timeline-management-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.timeline-management-image {
+  width: 34px; height: 48px; object-fit: cover; border: 1px solid var(--border-soft);
+  border-radius: 3px; flex-shrink: 0;
+}
+.timeline-management-title > span {
+  overflow: hidden; color: var(--text); font-family: 'Cinzel', serif; font-size: 0.98rem;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.timeline-management-era,
+.timeline-management-year {
+  overflow: hidden; color: var(--text-dim); font-size: 0.78rem;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.timeline-management-era { font-style: italic; }
+.timeline-management-era.is-empty,
+.timeline-management-year.is-empty { color: var(--text-faint); }
+.timeline-management-reputation { min-width: 0; width: max-content; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.timeline-management-reputation > span { color: var(--text-faint); font-size: 0.9em; }
+.timeline-management-status { justify-self: end; }
+.timeline-management-row .role-row-actions { grid-column: 1 / -1; }
+
 @media (max-width: 900px) {
   .world-list-columns,
   .overlord-list-columns,
-  .known-figure-list-columns { display: none; }
+  .known-figure-list-columns,
+  .timeline-list-columns { display: none; }
   .admin-row.world-management-row,
   .admin-row.overlord-management-row {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -3042,6 +3086,21 @@
   .known-figure-management-motif { grid-area: motif; justify-self: end; }
   .known-figure-management-status { grid-area: status; }
   .known-figure-management-row .role-row-actions { grid-area: actions; }
+  .admin-row.timeline-management-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'title status'
+      'era reputation'
+      'year year'
+      'actions actions';
+    gap: 10px 14px;
+  }
+  .timeline-management-title { grid-area: title; }
+  .timeline-management-era { grid-area: era; }
+  .timeline-management-year { grid-area: year; }
+  .timeline-management-reputation { grid-area: reputation; justify-self: end; }
+  .timeline-management-status { grid-area: status; }
+  .timeline-management-row .role-row-actions { grid-area: actions; }
 }
 @media (max-width: 560px) {
   .world-management-world { gap: 9px; }
@@ -3049,6 +3108,8 @@
   .overlord-management-overlord { gap: 9px; }
   .known-figure-management-name { gap: 9px; }
   .known-figure-management-portrait { width: 29px; height: 42px; }
+  .timeline-management-title { gap: 9px; }
+  .timeline-management-image { width: 29px; height: 42px; }
   .overlord-management-portrait { width: 29px; height: 42px; }
 }
 

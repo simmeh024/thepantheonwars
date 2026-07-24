@@ -3328,6 +3328,11 @@ at that time.
   missing parts render as `Unknown` / `No epithet`. Portrait art remains
   beside the name, motif and publication use their existing pills, and the
   move/edit actions continue on a full-width line below the values.
+- Timeline Control follows the same model with Title, Era, Year, Reputation
+  needed, and Status columns. Event art remains beside the title; era/year
+  fall back to explicit `No era` / `No year` labels; the existing reputation
+  gate shows either `Always visible` or the level and point threshold; and
+  existing move/edit actions remain on a full-width row below the values.
 - **Persistent sign-in recovery:** a 30-day PHP cookie is not sufficient by
   itself on shared hosting because PHP can garbage-collect the corresponding
   server-side session much sooner. `api/helpers.php` now aligns
