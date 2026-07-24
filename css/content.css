@@ -3061,9 +3061,18 @@
   --world-weather-icon-current: #f2d078;
   --wx-muted: #c1ad84;
   --bab-moss: 120, 168, 74;
-  /* Gold-inlay engraving: the letters read as metal set into a cut groove --
-     a dark seat below and behind, a warm highlight along the top lip. */
-  --bab-inlay: 0 1px 0 rgba(0, 0, 0, 0.85), 0 -1px 1px rgba(255, 226, 158, 0.35), 0 0 10px rgba(232, 196, 106, 0.22);
+  /* Gold inlay seated IN a cut groove. The light on this slab comes from the
+     top-left, so the groove's upper wall is in shadow and its lower lip catches
+     it: dark above, warm highlight below. The reverse -- which this was --
+     reads as type sitting on the surface rather than set into it. */
+  --bab-inlay: 0 -1px 1px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 230, 170, 0.3), 0 0 9px rgba(232, 196, 106, 0.18);
+  /* The same cut, one step deeper, for the headline readings. */
+  --bab-inlay-deep: 0 -2px 2px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 236, 186, 0.4), 0 0 16px rgba(232, 196, 106, 0.25);
+  /* A recess cut into the slab: shadow gathering along the top and left inner
+     walls, a lit lip along the bottom and right. Used by every panel so they
+     read as chiselled out of the stone rather than laid over it. */
+  --bab-recess: inset 0 3px 6px rgba(0, 0, 0, 0.8), inset 2px 0 5px rgba(0, 0, 0, 0.5),
+    inset 0 -1px 0 rgba(240, 214, 150, 0.16), inset -1px 0 0 rgba(240, 214, 150, 0.08);
   /* The carved slab is a real texture (images/babki-stone-tablet.webp, a
      1190x1322 render with the glyph frieze and corner seal baked in). It is
      applied as a border-image 9-slice: the ornate corners stay pinned, the
@@ -3097,6 +3106,14 @@
   display: block;
   z-index: 0;
   background: rgba(10, 10, 7, 0.62);
+  /* Not a flat overlay: the inner field is sunk into the slab, so it carries
+     the same cut edges as the panels inside it. This is what stops the
+     darkening reading as a rectangle laid on top of the texture. */
+  box-shadow:
+    inset 0 4px 10px rgba(0, 0, 0, 0.75),
+    inset 3px 0 8px rgba(0, 0, 0, 0.5),
+    inset -2px 0 6px rgba(0, 0, 0, 0.4),
+    inset 0 -2px 0 rgba(240, 214, 150, 0.12);
 }
 .world-weather-card--babki-prime .world-weather-card-scan { display: none; }
 .world-weather-card--babki-prime .world-weather-head > div > span { color: #e8c46a; text-shadow: var(--bab-inlay); }
@@ -3126,14 +3143,15 @@
 /* The big reading, inlaid deepest of all. */
 .world-weather-card--babki-prime .world-weather-current > strong {
   color: #f4d78a;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.85), 0 -1px 1px rgba(255, 230, 165, 0.4), 0 0 16px rgba(232, 196, 106, 0.28);
+  text-shadow: var(--bab-inlay-deep);
 }
 .world-weather-card--babki-prime .world-weather-current b { color: #eccf88; text-shadow: var(--bab-inlay); }
 /* Metric readings cut into recessed panels of the slab. */
 .world-weather-card--babki-prime .world-weather-metrics {
-  border-color: rgba(70, 62, 40, 0.6);
-  background: rgba(14, 13, 9, 0.34);
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.55), inset 0 -1px 0 rgba(232, 196, 106, 0.08);
+  border-color: rgba(78, 68, 44, 0.55);
+  /* Thin, so the stone shows through the cut instead of a flat tint. */
+  background: rgba(10, 9, 6, 0.26);
+  box-shadow: var(--bab-recess), 0 1px 0 rgba(240, 214, 150, 0.07);
 }
 .world-weather-card--babki-prime .world-weather-metrics div {
   border-right-color: rgba(70, 62, 40, 0.5);
@@ -3147,16 +3165,21 @@
 .world-weather-card--babki-prime .world-weather-divider::after { background: linear-gradient(90deg, rgba(198, 162, 96, 0.55), transparent); }
 /* Day tags as cut cartouches: recessed panel, lit top lip, shadowed foot. */
 .world-weather-card--babki-prime .world-weather-day {
-  border-color: rgba(70, 62, 40, 0.55);
-  background: linear-gradient(180deg, rgba(12, 11, 8, 0.42), rgba(24, 22, 15, 0.3));
-  box-shadow: inset 0 1px 0 rgba(232, 196, 106, 0.1), inset 0 -2px 3px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+  border-color: rgba(78, 68, 44, 0.5);
+  background: rgba(10, 9, 6, 0.24);
+  box-shadow: var(--bab-recess), 0 1px 0 rgba(240, 214, 150, 0.06);
 }
 .world-weather-card--babki-prime .world-weather-day:hover,
 .world-weather-card--babki-prime .world-weather-day.is-open { border-color: rgba(232, 196, 106, 0.55); }
 .world-weather-card--babki-prime .world-weather-day.is-today {
-  border-color: rgba(232, 196, 106, 0.55);
-  background: linear-gradient(180deg, rgba(232, 196, 106, 0.14), rgba(12, 11, 8, 0.36));
-  box-shadow: inset 0 1px 0 rgba(232, 196, 106, 0.16), inset 0 -2px 3px rgba(0, 0, 0, 0.55), inset 0 0 12px rgba(232, 196, 106, 0.14);
+  border-color: rgba(232, 196, 106, 0.6);
+  background: rgba(10, 9, 6, 0.18);
+  box-shadow:
+    inset 0 3px 6px rgba(0, 0, 0, 0.72),
+    inset 0 -1px 0 rgba(255, 226, 150, 0.34),
+    inset -1px 0 0 rgba(255, 226, 150, 0.16),
+    inset 0 0 14px rgba(232, 196, 106, 0.12),
+    0 1px 0 rgba(240, 214, 150, 0.1);
 }
 .world-weather-card--babki-prime .world-weather-day-name { color: #c9b488; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
 .world-weather-card--babki-prime .world-weather-day strong { color: #f0dca4; text-shadow: var(--bab-inlay); }
@@ -3188,8 +3211,8 @@
   padding: 12px 14px 12px 16px;
   border: 1px solid rgba(70, 62, 40, 0.6);
   border-left: 0;
-  background: linear-gradient(180deg, rgba(20, 18, 12, 0.42), rgba(0, 0, 0, 0.3));
-  box-shadow: inset 0 1px 0 rgba(232, 196, 106, 0.08), inset 0 -1px 2px rgba(0, 0, 0, 0.55);
+  background: rgba(10, 9, 6, 0.28);
+  box-shadow: var(--bab-recess), 0 1px 0 rgba(240, 214, 150, 0.07);
   color: #d9cca8;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
 }
