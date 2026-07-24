@@ -558,12 +558,14 @@ function pw_reputation_info(int $reputation): array {
     $current = null;
     $currentNumber = null;
     $next = null;
+    $nextNumber = null;
     foreach ($levels as $index => $level) {
         if ((int)$level['threshold'] <= $reputation) {
             $current = $level;
             $currentNumber = $index + 1;
         } elseif ($next === null) {
             $next = $level;
+            $nextNumber = $index + 1;
         }
     }
 
@@ -584,6 +586,9 @@ function pw_reputation_info(int $reputation): array {
         'level_number' => $currentNumber,
         'level_color' => $current ? $current['color'] : '#c7ccd6',
         'next_level_name' => $next ? $next['name'] : null,
+        'next_level_id' => $next ? (int)$next['id'] : null,
+        'next_level_number' => $nextNumber,
+        'next_level_color' => $next ? $next['color'] : null,
         'next_level_threshold' => $next ? (int)$next['threshold'] : null,
         'progress_percent' => $progress,
     ];

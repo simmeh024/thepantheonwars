@@ -1,0 +1,23 @@
+.reputation-insight-stack { display: grid; align-content: start; gap: 14px; }
+.reputation-next-unlocks { padding: 14px; border: 1px solid rgba(162,121,236,0.28); background: linear-gradient(145deg, rgba(12,20,38,0.78), rgba(21,10,34,0.88)); }
+.reputation-next-unlocks[hidden] { display: none; }
+.reputation-next-unlocks-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.reputation-next-unlocks-head > span:last-child { color: var(--text-faint); font-size: .62rem; letter-spacing: .07em; text-transform: uppercase; }
+.reputation-next-unlocks-grid, .reputation-unlocks-modal-list { display: grid; gap: 8px; }
+.reputation-unlock-card { position: relative; overflow: hidden; padding: 10px 11px; border: 1px solid var(--unlock-accent, #a279ec); border-color: color-mix(in srgb, var(--unlock-accent, #a279ec) 48%, transparent); background: rgba(8,6,18,.65); background: linear-gradient(110deg, color-mix(in srgb, var(--unlock-accent, #a279ec) 10%, transparent), rgba(7,5,16,.42)); box-shadow: inset 2px 0 0 var(--unlock-accent, #a279ec); }
+.reputation-unlock-card-kicker { display: block; margin-bottom: 4px; color: var(--unlock-accent, #a279ec); font: 600 .55rem/1 Jost, sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+.reputation-unlock-card strong { display: block; color: var(--text); font: 600 .73rem/1.3 Cinzel, serif; }
+.reputation-unlock-card p { margin: 4px 0 0; color: var(--text-dim); font-size: .68rem; line-height: 1.42; }
+.reputation-unlock-card small { display: block; margin-top: 7px; color: var(--text-faint); font-size: .57rem; letter-spacing: .055em; text-transform: uppercase; }
+.reputation-next-unlocks-more { width: 100%; margin-top: 9px; padding: 8px 10px; font-size: .61rem; }
+.reputation-unlocks-modal { width: min(690px, calc(100vw - 28px)); max-height: min(760px, calc(100vh - 28px)); margin: auto; padding: 0; border: 1px solid rgba(187,139,255,.62); background: linear-gradient(145deg, #171025, #090613); color: var(--text); box-shadow: 0 24px 80px rgba(0,0,0,.7); }
+.reputation-unlocks-modal::backdrop { background: rgba(5,3,14,.78); backdrop-filter: blur(4px); }
+.reputation-unlocks-modal-inner { position: relative; padding: 28px; overflow: auto; }
+.reputation-unlocks-modal h2 { margin: 7px 34px 6px 0; color: var(--text); font-size: 1.35rem; }
+.reputation-unlocks-modal p { margin: 0 0 18px; color: var(--text-dim); font-size: .82rem; line-height: 1.55; }
+.reputation-unlocks-modal-close { position: absolute; top: 12px; right: 12px; width: 32px; height: 32px; border: 1px solid var(--border); background: rgba(124,79,214,.08); color: var(--text-dim); font: 1.25rem/1 Jost, sans-serif; cursor: pointer; }
+.reputation-unlocks-modal-close:hover, .reputation-unlocks-modal-close:focus-visible { border-color: var(--purple-pale); background: rgba(124,79,214,.2); color: var(--text); outline: none; }
+.reputation-unlocks-modal-list .reputation-unlock-card { padding: 13px 14px; }
+.reputation-unlocks-modal-list .reputation-unlock-card strong { font-size: .84rem; }
+.reputation-unlocks-modal-list .reputation-unlock-card p { font-size: .76rem; }
+@media (max-width:700px) { .reputation-unlocks-modal-inner { padding: 22px 18px; } .reputation-unlocks-modal h2 { font-size: 1.12rem; } .reputation-next-unlocks { padding: 13px; } }
