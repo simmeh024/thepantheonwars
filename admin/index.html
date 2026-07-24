@@ -156,6 +156,13 @@
           <button type="button" class="home-layout-edit-btn" id="home-layout-edit-btn" aria-pressed="false">Enable editing</button>
           <button type="button" class="home-customize-reset" id="home-customize-reset">Reset layout</button>
         </div>
+        <div class="vstats-settings-panel" id="vstats-settings-panel" hidden>
+          <label class="vstats-settings-option">
+            <input type="checkbox" id="vstats-include-admin-toggle">
+            <span>Include admin traffic</span>
+          </label>
+          <p class="vstats-settings-note">Off by default so admin/staff page views don&rsquo;t skew totals, trends, and top lists below.</p>
+        </div>
       </div>
     </div>
 
@@ -751,18 +758,6 @@
         <div>
           <h1>Visitor Statistics</h1>
           <p>Page-view traffic across the public site &mdash; totals, trends over time, top pages/referrers, and a raw recent-visits feed.</p>
-        </div>
-        <div class="vstats-settings">
-          <button type="button" class="vstats-settings-btn" id="vstats-settings-btn" aria-expanded="false" aria-label="Visitor statistics settings">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-          </button>
-          <div class="vstats-settings-panel" id="vstats-settings-panel" hidden>
-            <label class="vstats-settings-option">
-              <input type="checkbox" id="vstats-include-admin-toggle">
-              <span>Include admin traffic</span>
-            </label>
-            <p class="vstats-settings-note">Off by default so admin/staff page views don&rsquo;t skew totals, trends, and top lists below.</p>
-          </div>
         </div>
       </div>
 
@@ -4120,10 +4115,14 @@
     }
   }
 
+  var activeAdminSectionName = 'home';
+
   function showSection(name) {
     if (!document.getElementById('section-' + name)) name = firstVisibleSection();
     navLinks.forEach(function (l) { l.classList.toggle('active', l.getAttribute('data-section') === name); });
     sections.forEach(function (s) { s.hidden = (s.id !== 'section-' + name); });
+    activeAdminSectionName = name;
+    syncContextSettings(name);
     try { localStorage.setItem(ACTIVE_SECTION_KEY, name); } catch (e) {}
     if (name === 'home') { startHomeAutoRefresh(); refreshHomeCards(); } else { stopHomeAutoRefresh(); }
     if (name === 'system-status') { startSystemStatusAutoRefresh(); } else { stopSystemStatusAutoRefresh(); }
@@ -6297,10 +6296,21 @@
       });
     }
   });
-  if (homeCustomizeBtn) homeCustomizeBtn.addEventListener('click', function () {
-    var show = homeCustomizePanel.hidden;
-    homeCustomizePanel.hidden = !show;
+  if (homeCustomizeBtn) homeCustomizeBtn.addEventListener('click', function (event) {
+    event.stopPropagation();
+    var panel = activeAdminSectionName === 'visitor-stats' ? vstatsSettingsPanel : homeCustomizePanel;
+    var otherPanel = activeAdminSectionName === 'visitor-stats' ? homeCustomizePanel : vstatsSettingsPanel;
+    if (!panel) return;
+    var show = panel.hidden;
+    panel.hidden = !show;
+    if (otherPanel) otherPanel.hidden = true;
     homeCustomizeBtn.setAttribute('aria-expanded', show ? 'true' : 'false');
+  });
+  document.addEventListener('click', function (event) {
+    if (event.target.closest('#home-customize-btn, #home-customize-panel, #vstats-settings-panel')) return;
+    if (homeCustomizePanel) homeCustomizePanel.hidden = true;
+    if (vstatsSettingsPanel) vstatsSettingsPanel.hidden = true;
+    if (homeCustomizeBtn) homeCustomizeBtn.setAttribute('aria-expanded', 'false');
   });
   if (homeLayoutEditBtn) homeLayoutEditBtn.addEventListener('click', function () {
     setHomeLayoutEditing(!homeLayoutEditing);
@@ -6815,30 +6825,27 @@
 
   // ===== Visitor Statistics settings menu (Include admin traffic) =============
   var VSTATS_INCLUDE_ADMIN_KEY = 'pw_admin_vstats_include_admin';
-  var vstatsSettingsBtn = document.getElementById('vstats-settings-btn');
   var vstatsSettingsPanel = document.getElementById('vstats-settings-panel');
   var vstatsIncludeAdminToggle = document.getElementById('vstats-include-admin-toggle');
   var vstatsIncludeAdmin = localStorage.getItem(VSTATS_INCLUDE_ADMIN_KEY) === '1';
 
   function vstatsAdminQS(sep) { return vstatsIncludeAdmin ? (sep + 'include_admin=1') : ''; }
 
-  if (vstatsIncludeAdminToggle) vstatsIncludeAdminToggle.checked = vstatsIncludeAdmin;
-
-  if (vstatsSettingsBtn && vstatsSettingsPanel) {
-    vstatsSettingsBtn.addEventListener('click', function (e) {
-      e.stopPropagation();
-      var willOpen = vstatsSettingsPanel.hidden;
-      vstatsSettingsPanel.hidden = !willOpen;
-      vstatsSettingsBtn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-    });
-    document.addEventListener('click', function (e) {
-      if (vstatsSettingsPanel.hidden) return;
-      if (!e.target.closest('.vstats-settings')) {
-        vstatsSettingsPanel.hidden = true;
-        vstatsSettingsBtn.setAttribute('aria-expanded', 'false');
-      }
-    });
+  // The persistent top-right gear serves the Home layout on ordinary console
+  // sections. On Visitor Statistics it becomes the page's one and only
+  // settings button, preventing two adjacent gear icons for one screen.
+  function syncContextSettings(name) {
+    var isVisitorStats = name === 'visitor-stats';
+    if (homeCustomizePanel) homeCustomizePanel.hidden = true;
+    if (vstatsSettingsPanel) vstatsSettingsPanel.hidden = true;
+    if (!homeCustomizeBtn) return;
+    homeCustomizeBtn.setAttribute('aria-expanded', 'false');
+    homeCustomizeBtn.setAttribute('aria-controls', isVisitorStats ? 'vstats-settings-panel' : 'home-customize-panel');
+    homeCustomizeBtn.setAttribute('aria-label', isVisitorStats ? 'Visitor statistics settings' : 'Dashboard settings');
+    homeCustomizeBtn.setAttribute('data-tooltip', isVisitorStats ? 'Visitor statistics settings' : 'Dashboard settings');
   }
+
+  if (vstatsIncludeAdminToggle) vstatsIncludeAdminToggle.checked = vstatsIncludeAdmin;
 
   if (vstatsIncludeAdminToggle) {
     vstatsIncludeAdminToggle.addEventListener('change', function () {
