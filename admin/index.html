@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=294">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=295">
 </head>
 <body>
 
@@ -2116,7 +2116,14 @@
         <span class="admin-count" id="known-figure-count"></span>
       </div>
 
-      <div class="admin-list" id="known-figure-list">
+      <div class="known-figure-list-columns" aria-hidden="true">
+        <span>Name</span>
+        <span>From</span>
+        <span>Epithet</span>
+        <span>Style effect</span>
+        <span>Status</span>
+      </div>
+      <div class="admin-list known-figure-management-list" id="known-figure-list">
         <div class="admin-list-empty">Loading known figures&hellip;</div>
       </div>
     </section>
@@ -12988,7 +12995,15 @@
       });
   }
 
-  var KNOWN_FIGURE_MOTIF_LABELS = { pulse: 'Pulse', glitch: 'Glitch', twirl: 'Twirl', glint: 'Glint', none: 'No motif' };
+  var KNOWN_FIGURE_MOTIF_LABELS = { pulse: 'Pulse', glitch: 'Glitch', twirl: 'Twirl', glint: 'Glint', none: 'None' };
+
+  // The existing eyebrow field intentionally keeps this public-facing lore line
+  // as one editable value (for example, "Neoh · The Mindweaver's Lie"). Split
+  // its conventional two parts only for the scannable management-list columns.
+  function getKnownFigureOriginAndEpithet(eyebrow) {
+    var parts = String(eyebrow || '').split(/\s*·\s*/).filter(function (part) { return part; });
+    return { origin: parts.shift() || 'Unknown', epithet: parts.join(' · ') || 'No epithet' };
+  }
 
   function renderKnownFigureList(entries) {
     if (!entries.length) {
@@ -12997,20 +13012,21 @@
     }
     knownFigureListEl.innerHTML = '';
     entries.forEach(function (entry, i) {
+      var lore = getKnownFigureOriginAndEpithet(entry.eyebrow);
       var row = document.createElement('div');
-      row.className = 'admin-row world-row';
+      row.className = 'admin-row known-figure-management-row';
       row.tabIndex = 0;
       row.innerHTML =
-        (entry.portrait_image_url ? '<img class="admin-row-cover" src="' + resolveSiteImageUrl(entry.portrait_image_url) + '" alt="">' : '') +
-        '<div class="admin-row-main">' +
-          '<p class="world-row-title">' + escapeHtml(entry.name) + (entry.eyebrow ? ' <span class="admin-row-sep">&bull;</span> ' + escapeHtml(entry.eyebrow) : '') + '</p>' +
+        '<div class="known-figure-management-name">' +
+          (entry.portrait_image_url ? '<img class="known-figure-management-portrait" src="' + resolveSiteImageUrl(entry.portrait_image_url) + '" alt="">' : '') +
+          '<span>' + escapeHtml(entry.name) + '</span>' +
         '</div>' +
-        '<div class="world-row-status">' +
-          '<span class="world-overlord-pill">' + (KNOWN_FIGURE_MOTIF_LABELS[entry.motif] || 'No motif') + '</span>' +
-          '<span class="world-status-pill ' + (entry.is_published ? 'is-available' : 'is-locked') + '">' +
-            (entry.is_published ? 'Published' : 'Unpublished') +
-          '</span>' +
-        '</div>';
+        '<span class="known-figure-management-origin' + (lore.origin === 'Unknown' ? ' is-empty' : '') + '">' + escapeHtml(lore.origin) + '</span>' +
+        '<span class="known-figure-management-epithet' + (lore.epithet === 'No epithet' ? ' is-empty' : '') + '">' + escapeHtml(lore.epithet) + '</span>' +
+        '<span class="world-overlord-pill known-figure-management-motif">' + (KNOWN_FIGURE_MOTIF_LABELS[entry.motif] || 'None') + '</span>' +
+        '<span class="world-status-pill known-figure-management-status ' + (entry.is_published ? 'is-available' : 'is-locked') + '">' +
+          (entry.is_published ? 'Published' : 'Unpublished') +
+        '</span>';
 
       var actions = document.createElement('div');
       actions.className = 'role-row-actions';

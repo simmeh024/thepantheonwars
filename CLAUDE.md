@@ -3322,6 +3322,12 @@ at that time.
   answer count rather than being lost, and the compact high-contrast `Edit` button
   continues to open the existing editor without dictating the row height. On narrower screens the header hides
   and each row becomes a compact two-line layout without omitting any metadata.
+- Known Figures Control uses five columns: Name, From, Epithet, Style effect,
+  and Status. Its existing `eyebrow` storage field retains the editable
+  `From · Epithet` lore line, which is split only for list presentation;
+  missing parts render as `Unknown` / `No epithet`. Portrait art remains
+  beside the name, motif and publication use their existing pills, and the
+  move/edit actions continue on a full-width line below the values.
 - **Persistent sign-in recovery:** a 30-day PHP cookie is not sufficient by
   itself on shared hosting because PHP can garbage-collect the corresponding
   server-side session much sooner. `api/helpers.php` now aligns

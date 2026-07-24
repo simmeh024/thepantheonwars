@@ -2961,9 +2961,53 @@
 .overlord-management-row .world-overlord-pill { min-width: 0; width: max-content; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .overlord-management-row .role-row-actions { grid-column: 1 / -1; }
 
+/* Known Figures preserves its single editable eyebrow line in storage, but the
+   management list splits its conventional "From · Epithet" form into distinct
+   columns so editors can scan lore provenance, visual treatment and visibility. */
+.known-figure-list-columns,
+.admin-row.known-figure-management-row {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) minmax(105px, 0.7fr) minmax(155px, 1.1fr) minmax(105px, 0.72fr) 112px;
+  align-items: center;
+  column-gap: 16px;
+}
+.known-figure-list-columns {
+  margin: 0 18px;
+  padding: 0 0 9px;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-faint);
+  font-size: 0.61rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.known-figure-list-columns > span:last-child { text-align: right; }
+.admin-row.known-figure-management-row { gap: 0 16px; }
+.known-figure-management-name { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.known-figure-management-portrait {
+  width: 34px; height: 48px; object-fit: cover; border: 1px solid var(--border-soft);
+  border-radius: 3px; flex-shrink: 0;
+}
+.known-figure-management-name > span {
+  overflow: hidden; color: var(--text); font-family: 'Cinzel', serif; font-size: 0.98rem;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.known-figure-management-origin,
+.known-figure-management-epithet {
+  overflow: hidden; color: var(--text-dim); font-size: 0.78rem;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.known-figure-management-epithet { font-style: italic; }
+.known-figure-management-origin.is-empty,
+.known-figure-management-epithet.is-empty { color: var(--text-faint); }
+.known-figure-management-motif { min-width: 0; width: max-content; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.known-figure-management-status { justify-self: end; }
+.known-figure-management-row .role-row-actions { grid-column: 1 / -1; }
+
 @media (max-width: 900px) {
   .world-list-columns,
-  .overlord-list-columns { display: none; }
+  .overlord-list-columns,
+  .known-figure-list-columns { display: none; }
   .admin-row.world-management-row,
   .admin-row.overlord-management-row {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -2983,11 +3027,28 @@
   .overlord-management-row .world-overlord-pill { grid-area: overlord; justify-self: end; }
   .overlord-management-row .world-status-pill { grid-area: availability; justify-self: end; }
   .overlord-management-row .role-row-actions { grid-area: actions; }
+  .admin-row.known-figure-management-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'name status'
+      'origin motif'
+      'epithet epithet'
+      'actions actions';
+    gap: 10px 14px;
+  }
+  .known-figure-management-name { grid-area: name; }
+  .known-figure-management-origin { grid-area: origin; }
+  .known-figure-management-epithet { grid-area: epithet; }
+  .known-figure-management-motif { grid-area: motif; justify-self: end; }
+  .known-figure-management-status { grid-area: status; }
+  .known-figure-management-row .role-row-actions { grid-area: actions; }
 }
 @media (max-width: 560px) {
   .world-management-world { gap: 9px; }
   .world-management-cover { width: 29px; height: 42px; }
   .overlord-management-overlord { gap: 9px; }
+  .known-figure-management-name { gap: 9px; }
+  .known-figure-management-portrait { width: 29px; height: 42px; }
   .overlord-management-portrait { width: 29px; height: 42px; }
 }
 
