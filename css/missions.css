@@ -22,6 +22,21 @@
 .missions-stats article::after { content: ''; position: absolute; left: 18px; right: 18px; bottom: 0; height: 1px; background: linear-gradient(90deg, #69e0e8, transparent); opacity: 0.46; }
 .missions-stats span { color: #8ba5be; font-size: 0.66rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; }
 .missions-stats strong { color: #e9d399; font: 600 1.65rem/1 'Cinzel', serif; }
+.mission-command-feed { margin-bottom: 40px; padding: 20px 22px; border: 1px solid rgba(94,183,198,0.34); background: linear-gradient(110deg, rgba(11,35,53,0.78), rgba(21,13,46,0.85)); box-shadow: inset 0 1px rgba(133,229,237,0.06); }
+.mission-command-feed-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; padding-bottom: 15px; border-bottom: 1px solid rgba(92,163,181,0.22); }
+.mission-command-feed-head .eyebrow { margin-bottom: 4px; color: #78dce3; font-size: 0.61rem; }
+.mission-command-feed-head h2 { margin: 0; font-size: 1.18rem; }
+.mission-feed-live { display: inline-flex; align-items: center; gap: 7px; color: #8ee3bd; font-size: 0.63rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; }
+.mission-feed-live i { width: 7px; height: 7px; border-radius: 50%; background: #80e1ae; box-shadow: 0 0 0 4px rgba(128,225,174,0.1), 0 0 11px rgba(128,225,174,0.8); animation: mission-feed-pulse 2.4s ease-in-out infinite; }
+@keyframes mission-feed-pulse { 0%,100% { opacity: .72; transform: scale(.86); } 50% { opacity: 1; transform: scale(1); } }
+.mission-feed-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0; margin: 0; padding: 0; list-style: none; }
+.mission-feed-entry { position: relative; min-height: 82px; padding: 15px 18px 13px; border-right: 1px solid rgba(92,163,181,0.2); }
+.mission-feed-entry:first-child { padding-left: 0; }.mission-feed-entry:last-child { padding-right: 0; border-right: 0; }
+.mission-feed-entry time { display: block; margin-bottom: 6px; color: #6e91a7; font-size: 0.57rem; font-variant-numeric: tabular-nums; letter-spacing: .08em; }
+.mission-feed-code { display: block; color: #85dce2; font-size: 0.61rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-feed-entry p { margin: 5px 0 0; color: #b4c9d6; font-size: .72rem; line-height: 1.42; }
+.mission-feed-entry.is-live .mission-feed-code { color: #7ce2e8; }.mission-feed-entry.is-ready .mission-feed-code { color: #ebd18a; }.mission-feed-entry.is-watch .mission-feed-code { color: #d6a777; }.mission-feed-entry.is-muted { opacity: .76; }
+.mission-feed-empty { padding: 16px 0 0; color: #88a2b2; font-size: .74rem; }
 .missions-section { margin-top: 42px; }
 .missions-section-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
 .missions-section-head .eyebrow { margin-bottom: 6px; color: #79d9df; font-size: 0.62rem; }
@@ -60,9 +75,12 @@
 .crew-role { color: #78d6dd; font-size: 0.61rem; font-weight: 700; letter-spacing: 0.13em; text-transform: uppercase; }
 .mission-crew-copy h3 { margin: 2px 0 4px; font-size: 1rem; }
 .mission-crew-copy p { margin: 0; color: #a9bdca; font-size: 0.74rem; line-height: 1.45; }
-.crew-level-row { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; color: #d9cfb5; font-size: 0.67rem; }
-.crew-xp-track { height: 4px; margin-top: 5px; overflow: hidden; background: rgba(3,6,14,0.75); }
-.crew-xp-track span { display: block; height: 100%; background: linear-gradient(90deg, #62d9e1, #8b6bd4); }
+.crew-progression { display: grid; grid-template-columns: 40px minmax(0,1fr); gap: 10px; align-items: center; margin-top: 14px; padding: 9px 10px; border: 1px solid rgba(99,170,190,0.23); background: rgba(5,14,27,0.33); }
+.crew-rank-insignia { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid currentColor; border-radius: 50% 50% 44% 44%; color: #78dce3; background: rgba(74,205,220,0.08); box-shadow: inset 0 0 14px rgba(73,205,220,0.11); }
+.crew-rank-insignia span { font: 700 .65rem/1 'Cinzel', serif; letter-spacing: .08em; }.crew-rank-insignia small { margin-top: -6px; color: #dceff0; font-size: .5rem; font-weight: 700; letter-spacing: .07em; }
+.crew-progression-copy { min-width: 0; }.crew-progression-copy > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: #a8c1cf; font-size: .61rem; letter-spacing: .07em; text-transform: uppercase; }.crew-progression-copy strong { color: #ead397; font-size: .64rem; letter-spacing: .04em; white-space: nowrap; }.crew-progression-copy > small { display: block; margin-top: 5px; color: #7895a7; font-size: .59rem; }
+.crew-xp-track { height: 5px; margin-top: 7px; overflow: hidden; background: rgba(3,6,14,0.8); box-shadow: inset 0 1px 2px rgba(0,0,0,0.38); }.crew-xp-track span { display: block; height: 100%; background: linear-gradient(90deg, #62d9e1, #8b6bd4); box-shadow: 0 0 9px rgba(98,217,225,0.54); }
+.crew-progression.is-vanguard .crew-rank-insignia { color: #e3bc71; background: rgba(226,178,92,0.09); }.crew-progression.is-vanguard .crew-xp-track span { background: linear-gradient(90deg, #e6bd71, #d88758); box-shadow: 0 0 9px rgba(230,189,113,0.52); }.crew-progression.is-pathfinder .crew-rank-insignia { color: #70dfe6; background: rgba(87,213,225,0.09); }.crew-progression.is-pathfinder .crew-xp-track span { background: linear-gradient(90deg, #69dce5, #73a8df); }.crew-progression.is-engineer .crew-rank-insignia { color: #b790ed; background: rgba(170,112,233,0.1); }.crew-progression.is-engineer .crew-xp-track span { background: linear-gradient(90deg, #af7ee7, #dd83bd); box-shadow: 0 0 9px rgba(175,126,231,0.5); }
 .crew-status { display: grid; gap: 1px; margin-top: 13px; }
 .crew-status small { color: #718ca5; font-size: 0.59rem; letter-spacing: 0.1em; text-transform: uppercase; }
 .crew-status strong { color: #89e0b4; font-size: 0.69rem; letter-spacing: 0.09em; text-transform: uppercase; }
@@ -95,5 +113,5 @@
 .mission-launch-error { min-height: 20px; color: #efa7a2 !important; }
 .mission-launch-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 .mission-launch-actions .btn { padding: 10px 15px; font-size: 0.68rem; }
-@media (max-width: 760px) { .missions-page { padding-top: 62px; } .missions-hero { min-height: 235px; } .missions-hero-content { padding-bottom: 30px; } .missions-command-header { align-items: start; flex-direction: column; } .missions-status-message { max-width: none; text-align: left; } .missions-stats { grid-template-columns: repeat(2, 1fr); } .missions-stats article:nth-child(2) { border-right: 0; } .missions-stats article:nth-child(-n+2) { border-bottom: 1px solid rgba(80,129,168,0.27); } .missions-neoh-section { padding: 18px; } .mission-history-row { grid-template-columns: 1fr 1fr; gap: 11px; } .mission-history-row > div:last-child { justify-self: start; } }
+@media (max-width: 760px) { .missions-page { padding-top: 62px; } .missions-hero { min-height: 235px; } .missions-hero-content { padding-bottom: 30px; } .missions-command-header { align-items: start; flex-direction: column; } .missions-status-message { max-width: none; text-align: left; } .missions-stats { grid-template-columns: repeat(2, 1fr); } .missions-stats article:nth-child(2) { border-right: 0; } .missions-stats article:nth-child(-n+2) { border-bottom: 1px solid rgba(80,129,168,0.27); } .mission-command-feed { padding: 18px; }.mission-feed-list { grid-template-columns: 1fr; }.mission-feed-entry,.mission-feed-entry:first-child,.mission-feed-entry:last-child { min-height: 0; padding: 12px 0; border-right: 0; border-bottom: 1px solid rgba(92,163,181,0.2); }.mission-feed-entry:last-child { border-bottom: 0; padding-bottom: 0; }.mission-feed-entry p { max-width: 540px; }.missions-neoh-section { padding: 18px; } .mission-history-row { grid-template-columns: 1fr 1fr; gap: 11px; } .mission-history-row > div:last-child { justify-self: start; } }
 @media (max-width: 470px) { .missions-main { padding-top: 24px; } .missions-stats article { min-height: 76px; padding: 14px; } .mission-active-footer { align-items: start; flex-direction: column; } .mission-crew-card { grid-template-columns: 78px minmax(0,1fr); gap: 12px; } .mission-crew-portrait { width: 78px; height: 108px; } .mission-definition-meta { grid-template-columns: 1fr 1fr; } .mission-history-row { grid-template-columns: 1fr; } .mission-launch-modal-inner { padding: 24px 18px; } }
