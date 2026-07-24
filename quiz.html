@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=307">
+<link rel="stylesheet" href="css/public.css?v=308">
 </head>
 <body>
 
@@ -102,26 +102,68 @@
         </div>
 
         <div class="quiz-result affinity-themed" hidden>
-          <span class="eyebrow result-tag">You Are</span>
-          <div class="overlord-portrait-frame result-portrait"><img src="" alt=""></div>
-          <h2 class="result-name"></h2>
-          <span class="overlord-epithet result-epithet"></span>
-          <span class="overlord-domain-tag result-domain"></span>
-          <p class="result-blurb"></p>
-          <p class="result-rarity" hidden></p>
-          <div class="result-actions">
-            <a href="#" class="btn btn-solid result-link">Learn more →</a>
-            <button type="button" class="btn quiz-retry">Retake the Quiz</button>
-          </div>
+          <div class="result-layout">
+            <div class="result-main">
+              <span class="eyebrow result-tag">You Are</span>
+              <div class="overlord-portrait-frame result-portrait"><img src="" alt=""></div>
+              <h2 class="result-name"></h2>
+              <span class="overlord-epithet result-epithet"></span>
+              <span class="overlord-domain-tag result-domain"></span>
+              <p class="result-blurb"></p>
+              <p class="result-rarity" hidden></p>
 
-          <div class="result-resonance" hidden>
-            <span class="resonance-label">Overlord Resonance</span>
-            <div class="result-resonance-list"></div>
+              <section class="result-why" aria-labelledby="result-why-title">
+                <span class="result-why-kicker">Why this result</span>
+                <h3 id="result-why-title">Your strongest signals</h3>
+                <p>These are the instincts your answers aligned with most closely.</p>
+                <div class="result-trait-list"></div>
+              </section>
+
+              <div class="result-actions">
+                <a href="#" class="btn btn-solid result-link">Learn more →</a>
+                <button type="button" class="btn quiz-retry">Retake the Quiz</button>
+              </div>
+
+              <div class="result-resonance" hidden>
+                <div class="result-resonance-head"><span class="resonance-label">Overlord Resonance</span><span class="resonance-note">Your three closest alignments</span></div>
+                <div class="result-resonance-list"></div>
+              </div>
+            </div>
+
+            <aside class="result-chat-card" aria-labelledby="result-chat-heading">
+              <div class="result-chat-head">
+                <img class="result-chat-portrait" src="" alt="">
+                <div>
+                  <span class="result-chat-channel">Private transmission</span>
+                  <strong id="result-chat-heading" class="result-chat-name"></strong>
+                  <time class="result-chat-time"></time>
+                </div>
+                <span class="result-chat-status" aria-label="Connected"></span>
+              </div>
+              <div class="result-chat-thread" aria-live="polite">
+                <div class="result-chat-message result-chat-message-first"><p></p></div>
+                <div class="result-chat-message result-chat-message-second" hidden><p></p></div>
+              </div>
+              <a class="result-chat-invite" href="#"></a>
+            </aside>
           </div>
 
           <div class="result-share">
+            <div class="result-share-card" aria-label="Shareable quiz result card">
+              <span class="result-share-card-brand">The Pantheon Wars</span>
+              <div class="result-share-card-body">
+                <img class="result-share-card-portrait" src="" alt="">
+                <div>
+                  <span class="result-share-card-kicker">My Overlord Resonance</span>
+                  <strong class="result-share-card-name"></strong>
+                  <span class="result-share-card-epithet"></span>
+                  <span class="result-share-card-score"></span>
+                </div>
+              </div>
+            </div>
             <span class="share-label">Share Your Overlord</span>
             <div class="share-btns">
+              <button type="button" class="share-btn share-download">Download result card</button>
               <a href="#" target="_blank" rel="noopener" class="share-btn share-x">Share on X</a>
               <button type="button" class="share-btn share-mastodon">Share on Mastodon</button>
               <a href="#" target="_blank" rel="noopener" class="share-btn share-whatsapp">Share on WhatsApp</a>
@@ -400,6 +442,35 @@ document.addEventListener('DOMContentLoaded', function () {
       blurb: "You rule through honor and reputation, staged as carefully as any duel. Your word is the one currency you never let devalue." }
   ];
 
+  // These short profiles turn a score into a readable interpretation without
+  // exposing the answer weights that keep the managed quiz server-scored.
+  var RESULT_PROFILES = {
+    'syn-dravus': {
+      traits: [['Foresight', 'You prefer to see the pattern before anyone else notices it.'], ['Discernment', 'You read motives as carefully as spoken words.'], ['Quiet influence', 'You change the room without needing to command it.']],
+      chat: ['So.. you could be like me,', 'Join me in my spire...'], invite: 'Enter Neoh'
+    },
+    'malric-thorne': {
+      traits: [['Resolve', 'You accept responsibility when everyone else hesitates.'], ['Command', 'You find the structure that keeps chaos from spreading.'], ['Discipline', 'You value the choice that endures beyond the moment.']],
+      chat: ['You understand what order costs.', 'Come to Cerius. There is work for someone with resolve.'], invite: 'Enter Cerius'
+    },
+    'korrus-vale': {
+      traits: [['Systems thinking', 'You look for the mechanism behind the mess.'], ['Pragmatism', 'You choose what works when the stakes become real.'], ['Endurance', 'You can carry difficult decisions farther than most.']],
+      chat: ['You see the pressure points.', 'Come to Reanium. Let us build something that survives.'], invite: 'Enter Reanium'
+    },
+    'lysara-venthe': {
+      traits: [['Protective instinct', 'You make space for others to feel safe.'], ['Emotional intelligence', 'You notice what people need before they ask.'], ['Steady care', 'Your gentleness has real strength behind it.']],
+      chat: ['You know that care is not weakness.', 'Come to Asmecu. The tide always has room for one more.'], invite: 'Enter Asmecu'
+    },
+    'zura-kaleth': {
+      traits: [['Patience', 'You let the right answer take the time it needs.'], ['Adaptability', 'You know growth rarely follows a straight line.'], ['Long vision', 'You invest in what will matter after the noise passes.']],
+      chat: ['You understand that roots do their work unseen.', 'Come to Babki Prime. There is room to grow.'], invite: 'Enter Babki Prime'
+    },
+    'maerion-thal': {
+      traits: [['Honor', 'You measure power by the promises it keeps.'], ['Presence', 'You know a reputation is built in every small choice.'], ['Conviction', 'You stand by your word when it would be easier not to.']],
+      chat: ['Your word carries weight.', 'Come to High Hammer. Let us see what you stand for.'], invite: 'Enter High Hammer'
+    }
+  };
+
   var PROGRESS_KEY = 'pw_quiz_progress';
   var quizAttemptId = null;
 
@@ -414,6 +485,7 @@ document.addEventListener('DOMContentLoaded', function () {
   var current = 0;
   var answers = [];   // one entry per answered question, in question order
   var scores = [0, 0, 0, 0, 0, 0];
+  var resultChatTimer = null;
 
   var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -661,13 +733,179 @@ document.addEventListener('DOMContentLoaded', function () {
     showResult(winner, 'unavailable');
   }
 
+  function resultProfile(ov) {
+    return RESULT_PROFILES[ov.slug] || {
+      traits: [['Instinct', 'Your answers formed a clear pattern.'], ['Conviction', 'You chose the path that felt most true to you.'], ['Potential', 'Your resonance has only begun to reveal itself.']],
+      chat: ['The Nexus Veil has noticed you.', 'There is a place for you in this world.'], invite: 'Explore this world'
+    };
+  }
+
+  function winnerResonancePercent(winnerIndex) {
+    var total = scores.reduce(function (sum, score) { return sum + score; }, 0) || 1;
+    return Math.round(((scores[winnerIndex] || 0) / total) * 100);
+  }
+
+  function renderResultWhy(ov) {
+    var listEl = resultEl.querySelector('.result-trait-list');
+    if (!listEl) return;
+    listEl.innerHTML = '';
+    resultProfile(ov).traits.forEach(function (trait) {
+      var item = document.createElement('div');
+      item.className = 'result-trait';
+      var name = document.createElement('strong');
+      name.textContent = trait[0];
+      var detail = document.createElement('span');
+      detail.textContent = trait[1];
+      item.appendChild(name);
+      item.appendChild(detail);
+      listEl.appendChild(item);
+    });
+  }
+
+  function resultChatTimestamp() {
+    var now = new Date();
+    var day = String(now.getUTCDate()).padStart(2, '0');
+    var month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][now.getUTCMonth()];
+    var time = String(now.getUTCHours()).padStart(2, '0') + ':' + String(now.getUTCMinutes()).padStart(2, '0');
+    return day + ' ' + month + ' \u00b7 ' + time + ' UTC';
+  }
+
+  function renderResultChat(ov) {
+    if (resultChatTimer) { clearTimeout(resultChatTimer); resultChatTimer = null; }
+    var profile = resultProfile(ov);
+    var portrait = resultEl.querySelector('.result-chat-portrait');
+    var name = resultEl.querySelector('.result-chat-name');
+    var time = resultEl.querySelector('.result-chat-time');
+    var first = resultEl.querySelector('.result-chat-message-first');
+    var second = resultEl.querySelector('.result-chat-message-second');
+    var invite = resultEl.querySelector('.result-chat-invite');
+    portrait.src = ov.portrait;
+    portrait.alt = ov.name;
+    name.textContent = ov.name;
+    time.textContent = resultChatTimestamp();
+    time.dateTime = new Date().toISOString();
+    first.querySelector('p').textContent = profile.chat[0];
+    second.querySelector('p').textContent = profile.chat[1];
+    second.hidden = true;
+    second.classList.remove('is-visible');
+    invite.href = ov.href;
+    invite.textContent = profile.invite + ' \u2192';
+    resultChatTimer = setTimeout(function () {
+      second.hidden = false;
+      second.classList.add('is-visible');
+      resultChatTimer = null;
+    }, reduceMotion ? 0 : 3000);
+  }
+
+  function renderResultShareCard(ov, resonance) {
+    var portrait = resultEl.querySelector('.result-share-card-portrait');
+    portrait.src = ov.portrait;
+    portrait.alt = ov.name;
+    resultEl.querySelector('.result-share-card-name').textContent = ov.name;
+    resultEl.querySelector('.result-share-card-epithet').textContent = ov.epithet;
+    resultEl.querySelector('.result-share-card-score').textContent = resonance + '% resonance';
+  }
+
+  function downloadResultShareCard(ov, resonance, button) {
+    var originalLabel = button.textContent;
+    button.disabled = true;
+    button.textContent = 'Preparing card\u2026';
+    var canvas = document.createElement('canvas');
+    canvas.width = 1200;
+    canvas.height = 630;
+    var ctx = canvas.getContext('2d');
+    var accent = ov.accent_color || '#a279ec';
+    ctx.fillStyle = '#0a0718';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    var glow = ctx.createRadialGradient(925, 180, 20, 925, 180, 520);
+    glow.addColorStop(0, accent + '88');
+    glow.addColorStop(1, 'rgba(10,7,24,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    var line = ctx.createLinearGradient(70, 0, 720, 0);
+    line.addColorStop(0, '#e4bd70');
+    line.addColorStop(1, accent);
+    ctx.fillStyle = line;
+    ctx.fillRect(70, 56, 630, 6);
+    ctx.fillStyle = '#e4bd70';
+    ctx.font = '600 20px Jost, sans-serif';
+    ctx.fillText('THE PANTHEON WARS', 72, 112);
+    ctx.fillStyle = '#a99bc6';
+    ctx.font = '600 18px Jost, sans-serif';
+    ctx.fillText('MY OVERLORD RESONANCE', 72, 178);
+    ctx.fillStyle = '#f8f3ff';
+    ctx.font = '600 68px Cinzel, Georgia, serif';
+    ctx.fillText(ov.name.toUpperCase(), 72, 260);
+    ctx.fillStyle = accent;
+    ctx.font = '500 30px Cinzel, Georgia, serif';
+    ctx.fillText(ov.epithet.toUpperCase(), 72, 310);
+    ctx.strokeStyle = 'rgba(236,201,135,0.45)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(72, 370, 360, 118);
+    ctx.fillStyle = '#a99bc6';
+    ctx.font = '500 19px Jost, sans-serif';
+    ctx.fillText('RESONANCE', 98, 410);
+    ctx.fillStyle = '#f8f3ff';
+    ctx.font = '600 62px Cinzel, Georgia, serif';
+    ctx.fillText(resonance + '%', 98, 465);
+    ctx.fillStyle = '#a99bc6';
+    ctx.font = '400 20px Jost, sans-serif';
+    ctx.fillText('Which Overlord are you?', 72, 560);
+
+    var finish = function () {
+      var save = function (blob) {
+        if (!blob) { button.disabled = false; button.textContent = 'Could not prepare card'; return; }
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement('a');
+        link.href = url;
+        link.download = 'my-' + ov.slug + '-overlord-result.png';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        button.disabled = false;
+        button.textContent = 'Downloaded';
+        setTimeout(function () { button.textContent = originalLabel; }, 1800);
+      };
+      if (canvas.toBlob) canvas.toBlob(save, 'image/png');
+      else {
+        var fallback = document.createElement('a');
+        fallback.href = canvas.toDataURL('image/png');
+        fallback.download = 'my-' + ov.slug + '-overlord-result.png';
+        fallback.click();
+        button.disabled = false;
+        button.textContent = originalLabel;
+      }
+    };
+
+    var portrait = new Image();
+    portrait.onload = function () {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(930, 300, 175, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(portrait, 755, 125, 350, 350);
+      ctx.restore();
+      ctx.strokeStyle = accent;
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.arc(930, 300, 177, 0, Math.PI * 2);
+      ctx.stroke();
+      finish();
+    };
+    portrait.onerror = finish;
+    portrait.src = ov.portrait;
+  }
+
   function renderResonance() {
     var box = resultEl.querySelector('.result-resonance');
     var listEl = resultEl.querySelector('.result-resonance-list');
     listEl.innerHTML = '';
     var total = scores.reduce(function (a, b) { return a + b; }, 0) || 1;
     var ranked = scores.map(function (s, i) {
-      return { name: cast[i] ? cast[i].name : ('Overlord ' + (i + 1)), pct: Math.round((s / total) * 100) };
+      var overlord = cast[i] || {};
+      return { name: overlord.name || ('Overlord ' + (i + 1)), pct: Math.round((s / total) * 100), accent: overlord.accent_color || '' };
     });
     ranked.sort(function (a, b) { return b.pct - a.pct; });
 
@@ -683,28 +921,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
       var row = document.createElement('div');
       row.className = 'resonance-row';
+      row.setAttribute('aria-label', w.name + ': ' + w.pct + '% ' + wTierLabel);
+      var meta = document.createElement('div');
+      meta.className = 'resonance-row-meta';
       var nameEl = document.createElement('span');
       nameEl.className = 'resonance-name';
       nameEl.textContent = w.name;
+      var tierEl = document.createElement('span');
+      tierEl.className = 'resonance-tier ' + wTier;
+      tierEl.textContent = wTierLabel;
+      meta.appendChild(nameEl);
+      meta.appendChild(tierEl);
       var trackEl = document.createElement('div');
       trackEl.className = 'resonance-bar-track';
       var fillEl = document.createElement('div');
-      var wSlug = wTier === 'tier-pure' ? ' overlord-' + w.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') : '';
-              fillEl.className = 'resonance-bar-fill ' + wTier + wSlug;
+      fillEl.className = 'resonance-bar-fill ' + wTier;
+      if (w.accent) fillEl.style.setProperty('--resonance-accent', w.accent);
       trackEl.appendChild(fillEl);
-      var pctWrap = document.createElement('span');
-      pctWrap.className = 'resonance-pct-wrap';
       var pctEl = document.createElement('span');
-      pctEl.className = 'resonance-pct ' + wTier;
+      pctEl.className = 'resonance-pct';
       pctEl.textContent = w.pct + '%';
-      pctWrap.appendChild(pctEl);
-      var wTooltip = document.createElement('span');
-      wTooltip.className = 'resonance-tooltip ' + wTier;
-      wTooltip.textContent = wTierLabel;
-      pctWrap.appendChild(wTooltip);
-      row.appendChild(nameEl);
+      row.appendChild(meta);
       row.appendChild(trackEl);
-      row.appendChild(pctWrap);
+      row.appendChild(pctEl);
       listEl.appendChild(row);
       fillEls.push({ el: fillEl, pct: w.pct });
     });
@@ -749,9 +988,15 @@ document.addEventListener('DOMContentLoaded', function () {
     link.textContent = 'Learn more about ' + ov.name + ' →';
 
     renderRarity(ov);
+    renderResultWhy(ov);
     renderResonance();
+    var resonance = winnerResonancePercent(winnerIndex);
+    renderResultChat(ov);
+    renderResultShareCard(ov, resonance);
+    var quizWrap = quizApp.closest('.quiz-wrap');
+    if (quizWrap) quizWrap.classList.add('quiz-wrap--result');
 
-    var shareText = "I got " + ov.name + ", " + ov.epithet + " \u2014 which Overlord are you?";
+    var shareText = "I got " + ov.name + ", " + ov.epithet + " with " + resonance + "% resonance \u2014 which Overlord are you?";
     var pageUrl = "https://thepantheonwars.com/quiz.html";
 
     var xLink = resultEl.querySelector('.share-x');
@@ -759,6 +1004,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     var waLink = resultEl.querySelector('.share-whatsapp');
     waLink.href = 'https://wa.me/?text=' + encodeURIComponent(shareText + ' ' + pageUrl);
+
+    var downloadBtn = resultEl.querySelector('.share-download');
+    downloadBtn.onclick = function () { downloadResultShareCard(ov, resonance, downloadBtn); };
 
     var mastoBtn = resultEl.querySelector('.share-mastodon');
     mastoBtn.onclick = function () {
@@ -802,12 +1050,15 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 
   retryBtn.addEventListener('click', function () {
+    if (resultChatTimer) { clearTimeout(resultChatTimer); resultChatTimer = null; }
     current = 0;
     answers = [];
     quizAttemptId = null;
     scores = [0, 0, 0, 0, 0, 0];
     clearProgress();
     resultEl.hidden = true;
+    var quizWrap = quizApp.closest('.quiz-wrap');
+    if (quizWrap) quizWrap.classList.remove('quiz-wrap--result');
     resumeNoteEl.hidden = true;
     cardEl.style.display = '';
     renderQuestion();
