@@ -104,6 +104,17 @@ function pw_validate_dialogue_tree($tree): array {
         if (!$messages || count($messages) > 8) {
             pw_error('Every dialogue needs 1 to 8 message lines.');
         }
+        // A node can override the transmission-wide typing pace. Null keeps
+        // the existing default for legacy trees and for deliberately unset
+        // dialogue timers.
+        $paceMs = null;
+        $rawPaceMs = $node['pace_ms'] ?? null;
+        if ($rawPaceMs !== null && $rawPaceMs !== '') {
+            $paceMs = filter_var($rawPaceMs, FILTER_VALIDATE_INT);
+            if ($paceMs === false || $paceMs < 250 || $paceMs > 10000) {
+                pw_error('A dialogue pace timer must be between 0.25 and 10 seconds.');
+            }
+        }
         // Position is optional presentation metadata for the admin canvas. It
         // never affects public playback, but retaining it lets editors keep a
         // deliberately arranged tree after dragging cards around.
@@ -191,6 +202,7 @@ function pw_validate_dialogue_tree($tree): array {
         }
         $nodeIds[$id] = true;
         $normalizedNode = ['id' => $id, 'title' => $title, 'messages' => $messages, 'choices' => $choices];
+        if ($paceMs !== null) $normalizedNode['pace_ms'] = $paceMs;
         if ($position !== null) $normalizedNode['position'] = $position;
         $normalized[] = $normalizedNode;
     }

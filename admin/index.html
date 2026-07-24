@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=307">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=308">
 </head>
 <body>
 
@@ -3346,6 +3346,11 @@
             <label for="dialogue-node-messages-input">Overlord message lines</label>
             <p class="admin-field-hint">One chat bubble per line. Blank lines are ignored.</p>
             <textarea id="dialogue-node-messages-input" maxlength="4007" rows="5" placeholder="The signal has found you."></textarea>
+          </div>
+          <div class="admin-field dialogue-node-pace-field">
+            <label for="dialogue-node-pace-input">Pace timer</label>
+            <p class="admin-field-hint">How long the “is responding…” indicator remains before each line. Leave blank to use the transmission default.</p>
+            <div class="dialogue-node-pace-control"><input type="number" id="dialogue-node-pace-input" min="0.25" max="10" step="0.05" placeholder="Default"><span>seconds</span></div>
           </div>
 
           <div class="dialogue-branch-head">
@@ -13401,6 +13406,7 @@
   var dialogueNodeIdDisplay = document.getElementById('dialogue-node-id-display');
   var dialogueNodeTitleInput = document.getElementById('dialogue-node-title-input');
   var dialogueNodeMessagesInput = document.getElementById('dialogue-node-messages-input');
+  var dialogueNodePaceInput = document.getElementById('dialogue-node-pace-input');
   var dialogueBranchListEl = document.getElementById('dialogue-branch-list');
   var dialogueAddNodeBtn = document.getElementById('dialogue-add-node-btn');
   var dialogueRemoveNodeBtn = document.getElementById('dialogue-remove-node-btn');
@@ -13580,6 +13586,24 @@
     var variableMinimum = Number(choice.required_variable_min);
     if (variable) labels.push(variable + ' ≥ ' + (isFinite(variableMinimum) ? variableMinimum : 1));
     return labels;
+  }
+
+  function dialogueNodePaceMs(node) {
+    var pace = Number(node && node.pace_ms);
+    return isFinite(pace) && Math.floor(pace) === pace && pace >= 250 && pace <= 10000 ? pace : null;
+  }
+
+  function dialogueNodePaceInputValue() {
+    var value = String(dialogueNodePaceInput.value || '').trim();
+    if (!value) return null;
+    var pace = Math.round(Number(value) * 1000);
+    return isFinite(pace) && pace >= 250 && pace <= 10000 ? pace : null;
+  }
+
+  function dialogueNodePaceLabel(node) {
+    var pace = dialogueNodePaceMs(node);
+    if (!pace) return 'Default pace';
+    return (pace / 1000).toFixed(pace % 1000 ? 2 : 0).replace(/0$/, '').replace(/\.$/, '') + 's pace';
   }
 
   function dialogueChoiceGateTone(choice) {
@@ -13901,6 +13925,9 @@
     if (!node) return;
     node.title = dialogueNodeTitleInput.value.trim() || 'Untitled dialogue';
     node.messages = dialogueNodeMessagesInput.value.split(/\r?\n/).map(function (line) { return line.trim(); }).filter(function (line) { return line !== ''; });
+    var pace = dialogueNodePaceInputValue();
+    if (pace === null) delete node.pace_ms;
+    else node.pace_ms = pace;
     dialogueTreeMarkChanged();
   }
 
@@ -14101,7 +14128,7 @@
         '<span class="dialogue-tree-node-kicker">' + (node.id === tree.start_node_id ? 'Root · Opening' : 'Syn dialogue') + '</span>' +
         '<span class="dialogue-tree-map-title">' + escapeHtml(node.title) + '</span>' +
         '<span class="dialogue-tree-node-excerpt">' + escapeHtml(firstMessage) + '</span>' +
-        '<span class="dialogue-tree-map-meta">' + ((node.messages || []).length || 0) + (((node.messages || []).length || 0) === 1 ? ' line' : ' lines') + ' · ' + (choiceTotal ? choiceTotal + (choiceTotal === 1 ? ' choice' : ' choices') : 'Transmission end') + '</span>';
+        '<span class="dialogue-tree-map-meta">' + ((node.messages || []).length || 0) + (((node.messages || []).length || 0) === 1 ? ' line' : ' lines') + ' · ' + dialogueNodePaceLabel(node) + ' · ' + (choiceTotal ? choiceTotal + (choiceTotal === 1 ? ' choice' : ' choices') : 'Transmission end') + '</span>';
       mapNode.addEventListener('pointerdown', function (event) {
         dialogueTreeStartNodeDrag(event, node.id, position, mapNode, nodeWidth, nodeHeight, canvasWidth, canvasHeight);
       });
@@ -14570,7 +14597,7 @@
         if (typing.parentNode) typing.parentNode.removeChild(typing);
         dialoguePreviewAppend('overlord', lines[lineIndex++]);
         dialoguePreviewTimer = window.setTimeout(appendNext, 130);
-      }, 420);
+      }, dialogueNodePaceMs(node) || 420);
     }
     appendNext();
   }
@@ -14592,7 +14619,7 @@
   }
 
   function setDialogueTreeReadOnly(readOnly) {
-    [dialogueTreeEnabledInput, dialogueTreeStartSelect, dialogueNodeTitleInput, dialogueNodeMessagesInput, dialogueAddNodeBtn, dialogueAutoLayoutBtn, dialogueResetLayoutBtn, dialogueTreeSaveBtn, dialogueTreePublishBtn].forEach(function (control) { control.disabled = readOnly; });
+    [dialogueTreeEnabledInput, dialogueTreeStartSelect, dialogueNodeTitleInput, dialogueNodeMessagesInput, dialogueNodePaceInput, dialogueAddNodeBtn, dialogueAutoLayoutBtn, dialogueResetLayoutBtn, dialogueTreeSaveBtn, dialogueTreePublishBtn].forEach(function (control) { control.disabled = readOnly; });
     dialogueRemoveNodeBtn.disabled = readOnly || dialogueTreeNodes().length <= 1;
     dialogueAddBranchBtn.disabled = readOnly || dialogueTreeNodes().length <= 1;
     dialogueTreeModal.querySelectorAll('.dialogue-branch-row input, .dialogue-branch-row select, .dialogue-branch-row button').forEach(function (control) { control.disabled = readOnly; });
@@ -14611,6 +14638,7 @@
     dialogueNodeIdDisplay.textContent = node ? node.id : 'No dialogue selected';
     dialogueNodeTitleInput.value = node ? node.title : '';
     dialogueNodeMessagesInput.value = node ? (node.messages || []).join('\n') : '';
+    dialogueNodePaceInput.value = node && dialogueNodePaceMs(node) ? dialogueNodePaceMs(node) / 1000 : '';
     dialogueRemoveNodeBtn.disabled = !node || dialogueTreeNodes().length <= 1;
     renderDialogueTreeMap();
     renderDialogueBranches(node);
@@ -14813,6 +14841,7 @@
   dialogueTreeModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeDialogueTreeModal);
   dialogueNodeTitleInput.addEventListener('input', function () { dialogueTreeSaveSelectedNode(); renderDialogueTreeMap(); });
   dialogueNodeMessagesInput.addEventListener('input', function () { dialogueTreeSaveSelectedNode(); renderDialogueTreeMap(); });
+  dialogueNodePaceInput.addEventListener('input', function () { dialogueTreeSaveSelectedNode(); renderDialogueTreeMap(); });
   dialogueTreeEnabledInput.addEventListener('change', function () {
     if (!currentDialogueTree) return;
     currentDialogueTree.draft_is_enabled = dialogueTreeEnabledInput.checked;

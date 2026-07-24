@@ -789,6 +789,12 @@ document.addEventListener('DOMContentLoaded', function () {
     return delay;
   }
 
+  function dialogueNodeResponseDelay(node, fallbackDelay) {
+    var delay = node && parseInt(node.pace_ms, 10);
+    if (isNaN(delay) || delay < 250 || delay > 10000) return fallbackDelay;
+    return delay;
+  }
+
   function dialogueTreeFor(ov) {
     if (!ov || !ov.slug || !dialogueTrees || typeof dialogueTrees !== 'object') return null;
     var dialogue = dialogueTrees[ov.slug];
@@ -1268,7 +1274,7 @@ document.addEventListener('DOMContentLoaded', function () {
       if (!managedDialogue || managedDialogue.nodeId !== nodeId) return;
       managedDialogue.isRendering = false;
       renderManagedDialogueChoices();
-    }, managedDialogue.responseDelay);
+    }, dialogueNodeResponseDelay(node, managedDialogue.responseDelay));
   }
 
   function renderManagedDialogue(ov, resonance, tree, responseDelay) {

@@ -3111,6 +3111,10 @@
 .dialogue-branch-reputation input::placeholder { color: var(--text-faint); opacity: 0.78; }
 .dialogue-branch-remove { align-self: end; white-space: nowrap; }
 .dialogue-branch-empty { margin: 0; padding: 12px; border: 1px dashed var(--border-soft); color: var(--text-faint); font-size: 0.74rem; }
+.dialogue-node-pace-field { max-width: 270px; }
+.dialogue-node-pace-control { display: flex; align-items: center; gap: 8px; }
+.dialogue-node-pace-control input { width: 110px; }
+.dialogue-node-pace-control span { color: var(--text-faint); font-size: 0.7rem; }
 
 /* Dialogue Tree Control is a self-contained visual workspace: the canvas,
    direct manipulation controls and the full node inspector stay together. */
