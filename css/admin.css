@@ -693,7 +693,10 @@
   border: 1px solid var(--border); border-radius: 5px; background: rgba(124,79,214,0.09); color: var(--text-dim); font: 600 0.7rem 'Jost', sans-serif; letter-spacing: 0.05em; cursor: pointer;
 }
 .home-layout-settings { position: relative; }
-.home-layout-settings-btn { width: 100%; padding: 6px 9px; text-transform: uppercase; }
+.home-layout-settings-btn { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 31px; height: 31px; padding: 0; }
+.home-layout-settings-btn svg { width: 16px; height: 16px; }
+.home-layout-settings-btn::after { content: attr(data-tooltip); position: absolute; top: 50%; right: calc(100% + 8px); transform: translateY(-50%); width: max-content; padding: 5px 7px; border: 1px solid var(--border); border-radius: 4px; background: rgba(24,14,45,0.98); color: var(--text-dim); font: 0.68rem 'Jost', sans-serif; letter-spacing: 0.03em; opacity: 0; pointer-events: none; transition: opacity 0.15s ease; }
+.home-layout-settings-btn:hover::after, .home-layout-settings-btn:focus-visible::after { opacity: 1; }
 .home-layout-settings-btn:hover, .home-layout-settings-btn[aria-expanded="true"] { border-color: var(--purple-bright); color: var(--purple-bright); }
 .home-layout-settings-panel { position: absolute; top: calc(100% + 6px); right: 0; display: flex; gap: 6px; min-width: max-content; padding: 7px; border: 1px solid var(--border); border-radius: 7px; background: rgba(24,14,45,0.98); box-shadow: 0 10px 24px rgba(0,0,0,0.3); }
 .home-layout-edit-btn, .home-customize-reset { padding: 7px 9px; }
