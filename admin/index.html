@@ -1005,6 +1005,13 @@
         </div>
         <label class="site-settings-toggle"><input type="checkbox" id="site-settings-google-input"><span><strong>Enable Google OAuth</strong><small>Lets visitors sign in or register with Google.</small></span></label>
         <label class="site-settings-toggle"><input type="checkbox" id="site-settings-apple-input"><span><strong>Enable Apple OAuth</strong><small>Lets visitors sign in or register with Apple. Leave off until Sign In with Apple credentials are configured (see docs/apple-oauth.md).</small></span></label>
+        <div class="admin-form-card-head admin-form-card-head-secondary"><div><h2>Registration &amp; Community</h2><p>Control public account creation and the community actions available to members. Read-only mode overrides all community write controls.</p></div></div>
+        <label class="site-settings-toggle"><input type="checkbox" id="site-settings-registration-input"><span><strong>Allow public registration</strong><small>When off, password sign-up is blocked while existing members can still sign in.</small></span></label>
+        <label class="site-settings-toggle"><input type="checkbox" id="site-settings-topics-input"><span><strong>Allow new forum topics</strong><small>Lets members begin new discussions.</small></span></label>
+        <label class="site-settings-toggle"><input type="checkbox" id="site-settings-replies-input"><span><strong>Allow forum replies</strong><small>Lets members reply to existing discussions.</small></span></label>
+        <label class="site-settings-toggle"><input type="checkbox" id="site-settings-messages-input"><span><strong>Allow direct messages</strong><small>Lets members send private messages.</small></span></label>
+        <label class="site-settings-toggle"><input type="checkbox" id="site-settings-news-comments-input"><span><strong>Allow News comments</strong><small>Lets members reply beneath News posts that have comments enabled.</small></span></label>
+        <label class="site-settings-toggle"><input type="checkbox" id="site-settings-read-only-input"><span><strong>Enable community read-only mode</strong><small>Pauses new topics, replies, direct messages, and News comments while keeping community content visible.</small></span></label>
         <div class="admin-form-card-head admin-form-card-head-secondary"><div><h2>Maintenance Mode</h2><p>Shows every visitor a full-page message instead of the site. Signed-in administrators and the admin console are never blocked.</p></div></div>
         <label class="site-settings-toggle"><input type="checkbox" id="site-settings-maintenance-input"><span><strong>Enable Maintenance Mode</strong><small>Locks the public site behind the message below until switched off again.</small></span></label>
         <div class="admin-field"><label for="site-settings-maintenance-message-input">Maintenance message <span>(optional)</span></label><textarea id="site-settings-maintenance-message-input" rows="3" maxlength="1000" placeholder="Leave blank to use the standard message"></textarea></div>
@@ -14115,6 +14122,12 @@
   var siteSettingsAppleInput = document.getElementById('site-settings-apple-input');
   var siteSettingsMaintenanceInput = document.getElementById('site-settings-maintenance-input');
   var siteSettingsMaintenanceMessageInput = document.getElementById('site-settings-maintenance-message-input');
+  var siteSettingsRegistrationInput = document.getElementById('site-settings-registration-input');
+  var siteSettingsTopicsInput = document.getElementById('site-settings-topics-input');
+  var siteSettingsRepliesInput = document.getElementById('site-settings-replies-input');
+  var siteSettingsMessagesInput = document.getElementById('site-settings-messages-input');
+  var siteSettingsNewsCommentsInput = document.getElementById('site-settings-news-comments-input');
+  var siteSettingsReadOnlyInput = document.getElementById('site-settings-read-only-input');
   var siteSettingsError = document.getElementById('site-settings-error');
   var siteSettingsStatus = document.getElementById('site-settings-status');
   var siteSettingsSaveBtn = document.getElementById('site-settings-save-btn');
@@ -14128,10 +14141,17 @@
         if (!data.ok) throw new Error(data.error || 'Could not load Site Settings.');
         var oauth = data.oauth || {};
         var maintenance = data.maintenance || {};
+        var features = data.features || {};
         siteSettingsGoogleInput.checked = !!oauth.google;
         siteSettingsAppleInput.checked = !!oauth.apple;
         siteSettingsMaintenanceInput.checked = !!maintenance.enabled;
         siteSettingsMaintenanceMessageInput.value = maintenance.message || '';
+        siteSettingsRegistrationInput.checked = features.registration_enabled !== false;
+        siteSettingsTopicsInput.checked = features.forum_topics_enabled !== false;
+        siteSettingsRepliesInput.checked = features.forum_replies_enabled !== false;
+        siteSettingsMessagesInput.checked = features.direct_messages_enabled !== false;
+        siteSettingsNewsCommentsInput.checked = features.news_comments_enabled !== false;
+        siteSettingsReadOnlyInput.checked = !!features.community_read_only;
         siteSettingsSaveBtn.disabled = !pwHasPermission('site_settings.manage');
       })
       .catch(function (error) {
@@ -14152,6 +14172,12 @@
         apple_enabled: siteSettingsAppleInput.checked,
         maintenance_enabled: siteSettingsMaintenanceInput.checked,
         maintenance_message: siteSettingsMaintenanceMessageInput.value.trim(),
+        registration_enabled: siteSettingsRegistrationInput.checked,
+        forum_topics_enabled: siteSettingsTopicsInput.checked,
+        forum_replies_enabled: siteSettingsRepliesInput.checked,
+        direct_messages_enabled: siteSettingsMessagesInput.checked,
+        news_comments_enabled: siteSettingsNewsCommentsInput.checked,
+        community_read_only: siteSettingsReadOnlyInput.checked,
       })
     }).then(function (response) { return response.json(); }).then(function (data) {
       if (!data.ok) throw new Error(data.error || 'Could not save Site Settings.');

@@ -8,6 +8,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $input = pw_input();
 pw_require_csrf($input);
+pw_require_site_feature('registration_enabled', 'New registrations are temporarily unavailable.');
 
 $username = isset($input['username']) ? trim($input['username']) : '';
 $email = isset($input['email']) ? trim($input['email']) : '';

@@ -9,6 +9,7 @@ $user = pw_require_login();
 $input = pw_input();
 pw_require_csrf($input);
 pw_require_not_muted($user);
+pw_require_site_feature('forum_replies_enabled', 'Forum replies are temporarily unavailable.');
 
 $topicId = isset($input['topic_id']) ? (int)$input['topic_id'] : 0;
 if ($topicId <= 0) {

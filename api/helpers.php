@@ -170,6 +170,40 @@ function pw_maintenance_settings() {
     ];
 }
 
+// --- Site-wide feature controls ----------------------------------------------
+// These settings back the Admin Site Settings controls. Defaults are deliberately
+// permissive so a deployment remains backwards-compatible until its migration
+// is run and an administrator makes an explicit change.
+function pw_site_feature_settings() {
+    $defaults = [
+        'registration_enabled' => true,
+        'forum_topics_enabled' => true,
+        'forum_replies_enabled' => true,
+        'direct_messages_enabled' => true,
+        'news_comments_enabled' => true,
+        'reactions_enabled' => true,
+        'community_read_only' => false,
+    ];
+    try {
+        $keys = array_map(static function ($key) { return 'site_' . $key; }, array_keys($defaults));
+        $placeholders = implode(',', array_fill(0, count($keys), '?'));
+        $stmt = pw_db()->prepare("SELECT `key`, value FROM app_settings WHERE `key` IN ($placeholders)");
+        $stmt->execute($keys);
+        foreach ($stmt->fetchAll() as $row) {
+            $name = substr($row['key'], 5);
+            if (array_key_exists($name, $defaults)) $defaults[$name] = $row['value'] === '1';
+        }
+    } catch (Throwable $e) {}
+    return $defaults;
+}
+
+function pw_require_site_feature($feature, $message) {
+    $settings = pw_site_feature_settings();
+    if (!empty($settings['community_read_only']) || empty($settings[$feature])) {
+        pw_error($message, 403);
+    }
+}
+
 // --- Auth guards ---------------------------------------------------------------
 // A ban is only "active" if it was set AND (it's permanent, i.e. no expiry,
 // OR the expiry hasn't passed yet). Once banned_until passes, the account is

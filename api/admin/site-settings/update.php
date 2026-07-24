@@ -21,6 +21,13 @@ $values = [
     'oauth_apple_enabled' => $appleEnabled ? '1' : '0',
     'maintenance_mode_enabled' => $maintenanceEnabled ? '1' : '0',
     'maintenance_message' => $maintenanceMessage,
+    'site_registration_enabled' => !empty($input['registration_enabled']) ? '1' : '0',
+    'site_forum_topics_enabled' => !empty($input['forum_topics_enabled']) ? '1' : '0',
+    'site_forum_replies_enabled' => !empty($input['forum_replies_enabled']) ? '1' : '0',
+    'site_direct_messages_enabled' => !empty($input['direct_messages_enabled']) ? '1' : '0',
+    'site_news_comments_enabled' => !empty($input['news_comments_enabled']) ? '1' : '0',
+    'site_reactions_enabled' => !empty($input['reactions_enabled']) ? '1' : '0',
+    'site_community_read_only' => !empty($input['community_read_only']) ? '1' : '0',
 ];
 $stmt = pw_db()->prepare('INSERT INTO app_settings (`key`, value) VALUES (?, ?) ON DUPLICATE KEY UPDATE value = VALUES(value), updated_at = CURRENT_TIMESTAMP');
 foreach ($values as $key => $value) {
@@ -34,4 +41,4 @@ pw_log_admin_activity(
     $adminUser
 );
 
-pw_json(['ok' => true, 'oauth' => pw_oauth_settings(), 'maintenance' => pw_maintenance_settings_raw()]);
+pw_json(['ok' => true, 'oauth' => pw_oauth_settings(), 'maintenance' => pw_maintenance_settings_raw(), 'features' => pw_site_feature_settings()]);

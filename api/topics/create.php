@@ -9,6 +9,7 @@ $user = pw_require_login();
 $input = pw_input();
 pw_require_csrf($input);
 pw_require_not_muted($user);
+pw_require_site_feature('forum_topics_enabled', 'New forum topics are temporarily unavailable.');
 
 $board = isset($input['board']) ? trim($input['board']) : '';
 if (!preg_match('/^[a-z0-9\-]{1,50}$/', $board)) {

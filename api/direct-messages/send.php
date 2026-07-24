@@ -7,6 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $user = pw_require_login();
 $input = pw_input();
 pw_require_csrf($input);
+pw_require_site_feature('direct_messages_enabled', 'Direct messages are temporarily unavailable.');
 
 $recipientId = isset($input['recipient_id']) ? (int)$input['recipient_id'] : 0;
 $body = isset($input['body']) ? trim((string)$input['body']) : '';
