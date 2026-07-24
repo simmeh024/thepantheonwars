@@ -3313,6 +3313,10 @@ at that time.
   Tagline, Overlord, Availability). Its thumbnail remains beside the world
   name, empty values are explicitly shown as `No tagline` / `Unassigned`, and
   reordering/editing actions retain their own full-width row below the data.
+- Overlord Control follows the same pattern with Overlord, Epithet, World, and
+  Availability columns. Portrait art stays beside the Overlord name, while
+  missing epithets or world assignments render explicitly as `No epithet` /
+  `Unassigned` rather than leaving ambiguous blank cells.
 - **Persistent sign-in recovery:** a 30-day PHP cookie is not sufficient by
   itself on shared hosting because PHP can garbage-collect the corresponding
   server-side session much sooner. `api/helpers.php` now aligns

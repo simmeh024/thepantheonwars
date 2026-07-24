@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=291">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=292">
 </head>
 <body>
 
@@ -2088,7 +2088,13 @@
         <span class="admin-count" id="overlord-count"></span>
       </div>
 
-      <div class="admin-list" id="overlord-list">
+      <div class="overlord-list-columns" aria-hidden="true">
+        <span>Overlord</span>
+        <span>Epithet</span>
+        <span>World</span>
+        <span>Availability</span>
+      </div>
+      <div class="admin-list overlord-management-list" id="overlord-list">
         <div class="admin-list-empty">Loading overlords&hellip;</div>
       </div>
     </section>
@@ -12696,19 +12702,18 @@
     overlordListEl.innerHTML = '';
     entries.forEach(function (entry, i) {
       var row = document.createElement('div');
-      row.className = 'admin-row world-row';
+      row.className = 'admin-row overlord-management-row';
       row.tabIndex = 0;
       row.innerHTML =
-        (entry.portrait_image_url ? '<img class="admin-row-cover" src="' + resolveSiteImageUrl(entry.portrait_image_url) + '" alt="">' : '') +
-        '<div class="admin-row-main">' +
-          '<p class="world-row-title">' + escapeHtml(entry.name) + (entry.epithet ? ' <span class="admin-row-sep">&bull;</span> ' + escapeHtml(entry.epithet) : '') + '</p>' +
-        '</div>' +
-        '<div class="world-row-status">' +
-          '<span class="world-overlord-pill">' + (entry.world_name ? escapeHtml(entry.world_name) : 'Unassigned') + '</span>' +
-          '<span class="world-status-pill ' + (entry.status === 'available' ? 'is-available' : 'is-locked') + '">' +
-            (entry.status === 'available' ? 'Available' : 'Locked') +
-          '</span>' +
-        '</div>';
+        '<span class="overlord-management-overlord">' +
+          (entry.portrait_image_url ? '<img class="overlord-management-portrait" src="' + resolveSiteImageUrl(entry.portrait_image_url) + '" alt="">' : '') +
+          '<span class="overlord-management-name">' + escapeHtml(entry.name) + '</span>' +
+        '</span>' +
+        '<span class="overlord-management-epithet' + (entry.epithet ? '' : ' is-empty') + '">' + escapeHtml(entry.epithet || 'No epithet') + '</span>' +
+        '<span class="world-overlord-pill' + (entry.world_name ? '' : ' is-unassigned') + '">' + escapeHtml(entry.world_name || 'Unassigned') + '</span>' +
+        '<span class="world-status-pill ' + (entry.status === 'available' ? 'is-available' : 'is-locked') + '">' +
+          (entry.status === 'available' ? 'Available' : 'Locked') +
+        '</span>';
 
       var actions = document.createElement('div');
       actions.className = 'role-row-actions';

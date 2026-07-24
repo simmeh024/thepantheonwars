@@ -2864,13 +2864,16 @@
    World Control itself has its own four-column grid so its world, tagline,
    overlord and availability values line up under a persistent header. */
 .world-list-columns,
-.admin-row.world-management-row {
+.overlord-list-columns,
+.admin-row.world-management-row,
+.admin-row.overlord-management-row {
   display: grid;
   grid-template-columns: minmax(160px, 1.1fr) minmax(180px, 1.55fr) minmax(115px, 0.82fr) 105px;
   align-items: center;
   column-gap: 16px;
 }
-.world-list-columns {
+.world-list-columns,
+.overlord-list-columns {
   margin: 0 18px;
   padding: 0 0 9px;
   border-bottom: 1px solid var(--border-soft);
@@ -2880,7 +2883,8 @@
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.admin-row.world-management-row { gap: 0 16px; }
+.admin-row.world-management-row,
+.admin-row.overlord-management-row { gap: 0 16px; }
 .world-management-world { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .world-management-cover {
   width: 34px; height: 48px; object-fit: cover; border: 1px solid var(--border-soft);
@@ -2898,10 +2902,28 @@
 .world-management-row .world-overlord-pill { min-width: 0; width: max-content; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .world-overlord-pill.is-unassigned { border-color: rgba(176,166,200,0.28); background: rgba(176,166,200,0.05); color: var(--text-faint); }
 .world-management-row .role-row-actions { grid-column: 1 / -1; }
+.overlord-management-overlord { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.overlord-management-portrait {
+  width: 34px; height: 48px; object-fit: cover; border: 1px solid var(--border-soft);
+  border-radius: 3px; flex-shrink: 0;
+}
+.overlord-management-name {
+  overflow: hidden; color: var(--text); font-family: 'Cinzel', serif; font-size: 0.98rem;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.overlord-management-epithet {
+  overflow: hidden; color: var(--text-dim); font-size: 0.78rem; font-style: italic;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.overlord-management-epithet.is-empty { color: var(--text-faint); }
+.overlord-management-row .world-overlord-pill { min-width: 0; width: max-content; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
+.overlord-management-row .role-row-actions { grid-column: 1 / -1; }
 
 @media (max-width: 900px) {
-  .world-list-columns { display: none; }
-  .admin-row.world-management-row {
+  .world-list-columns,
+  .overlord-list-columns { display: none; }
+  .admin-row.world-management-row,
+  .admin-row.overlord-management-row {
     grid-template-columns: minmax(0, 1fr) auto;
     grid-template-areas:
       'world availability'
@@ -2914,10 +2936,17 @@
   .world-management-row .world-overlord-pill { grid-area: overlord; justify-self: end; }
   .world-management-row .world-status-pill { grid-area: availability; justify-self: end; }
   .world-management-row .role-row-actions { grid-area: actions; }
+  .overlord-management-overlord { grid-area: world; }
+  .overlord-management-epithet { grid-area: tagline; }
+  .overlord-management-row .world-overlord-pill { grid-area: overlord; justify-self: end; }
+  .overlord-management-row .world-status-pill { grid-area: availability; justify-self: end; }
+  .overlord-management-row .role-row-actions { grid-area: actions; }
 }
 @media (max-width: 560px) {
   .world-management-world { gap: 9px; }
   .world-management-cover { width: 29px; height: 42px; }
+  .overlord-management-overlord { gap: 9px; }
+  .overlord-management-portrait { width: 29px; height: 42px; }
 }
 
 /* World Control list rows -- same "wrap + width floor" fix as
