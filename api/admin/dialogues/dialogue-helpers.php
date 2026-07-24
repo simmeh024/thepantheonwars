@@ -70,12 +70,24 @@ function pw_validate_dialogue_tree($tree): array {
             if (!is_array($choice)) pw_error('A dialogue branch is invalid.');
             $label = trim((string)($choice['label'] ?? ''));
             $target = trim((string)($choice['target_node_id'] ?? ''));
+            // This deliberately gates on the member's reputation LEVEL number
+            // (the number shown in the reputation bar), never on raw points.
+            // A blank value keeps the branch open to every reputation level.
+            $rawRequiredLevel = $choice['required_reputation_level'] ?? null;
+            $requiredLevel = null;
+            if ($rawRequiredLevel !== null && $rawRequiredLevel !== '') {
+                $requiredLevel = filter_var($rawRequiredLevel, FILTER_VALIDATE_INT);
+                if ($requiredLevel === false || $requiredLevel < 1 || $requiredLevel > 99) {
+                    pw_error('A branch reputation requirement must be a level between 1 and 99.');
+                }
+            }
             if ($label === '' || mb_strlen($label) > 180) pw_error('Each branch needs a label of at most 180 characters.');
             if (!preg_match('/\A[a-z0-9][a-z0-9_-]{0,63}\z/', $target)) pw_error('Each branch must target a dialogue.');
             $choices[] = [
                 'label' => $label,
                 'target_node_id' => $target,
                 'requires_high_resonance' => !empty($choice['requires_high_resonance']),
+                'required_reputation_level' => $requiredLevel,
             ];
         }
         $nodeIds[$id] = true;

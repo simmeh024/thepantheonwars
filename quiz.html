@@ -1105,8 +1105,26 @@ document.addEventListener('DOMContentLoaded', function () {
     appendNextLine();
   }
 
+  function managedDialogueReputationLevel() {
+    var reputation = window.PW_AUTH && window.PW_AUTH.user && window.PW_AUTH.user.reputation;
+    var level = Number(reputation && reputation.level_number);
+    return isFinite(level) && level > 0 ? Math.floor(level) : 0;
+  }
+
+  function managedDialogueChoiceLockReasons(choice) {
+    var reasons = [];
+    if (choice.requires_high_resonance && !(managedDialogue && managedDialogue.resonance >= 75)) {
+      reasons.push('Requires high resonance');
+    }
+    var requiredReputationLevel = Number(choice.required_reputation_level);
+    if (isFinite(requiredReputationLevel) && Math.floor(requiredReputationLevel) === requiredReputationLevel && requiredReputationLevel >= 1 && managedDialogueReputationLevel() < requiredReputationLevel) {
+      reasons.push('Requires Rep Level ' + requiredReputationLevel);
+    }
+    return reasons;
+  }
+
   function managedDialogueChoiceUnlocked(choice) {
-    return !choice.requires_high_resonance || (managedDialogue && managedDialogue.resonance >= 75);
+    return managedDialogueChoiceLockReasons(choice).length === 0;
   }
 
   function renderManagedDialogueChoices() {
@@ -1120,16 +1138,17 @@ document.addEventListener('DOMContentLoaded', function () {
     }
     choicesEl.hidden = false;
     node.choices.forEach(function (choice) {
-      var locked = !managedDialogueChoiceUnlocked(choice);
+      var lockReasons = managedDialogueChoiceLockReasons(choice);
+      var locked = lockReasons.length > 0;
       var button = document.createElement('button');
       button.type = 'button';
       button.className = 'result-dialogue-choice' + (locked ? ' is-locked' : '');
       button.disabled = locked;
       button.textContent = choice.label;
       if (locked) {
-        button.title = 'Unlocks at 75% resonance with this Overlord.';
+        button.title = lockReasons.join('. ') + '.';
         var note = document.createElement('small');
-        note.textContent = 'Locked — requires high resonance';
+        note.textContent = 'Locked — ' + lockReasons.join(' · ');
         button.appendChild(note);
       }
       button.addEventListener('click', function () {
@@ -1172,6 +1191,10 @@ document.addEventListener('DOMContentLoaded', function () {
     };
     renderManagedDialogueNode(tree.start_node_id);
   }
+
+  document.addEventListener('pw-auth-ready', function () {
+    if (managedDialogue && !managedDialogue.isRendering) renderManagedDialogueChoices();
+  });
 
   function synDialogueContext() {
     return {

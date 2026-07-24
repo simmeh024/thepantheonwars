@@ -3083,11 +3083,12 @@
 .dialogue-tree-editor-toolbar { display: flex; gap: 8px; margin: 16px 0 12px; }
 .dialogue-branch-head { align-items: center; margin: 20px 0 9px; padding-top: 16px; border-top: 1px solid var(--border-soft); }
 .dialogue-branch-list { display: grid; gap: 8px; }
-.dialogue-branch-row { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(155px, 0.9fr) minmax(135px, 0.68fr) auto; align-items: end; gap: 9px; padding: 10px; border: 1px solid var(--border-soft); background: rgba(124,79,214,0.045); }
+.dialogue-branch-row { display: grid; grid-template-columns: minmax(180px, 1.2fr) minmax(155px, 0.9fr) minmax(135px, 0.68fr) minmax(120px, 0.58fr) auto; align-items: end; gap: 9px; padding: 10px; border: 1px solid var(--border-soft); background: rgba(124,79,214,0.045); }
 .dialogue-branch-row .admin-field { margin: 0; }
 .dialogue-branch-row .admin-field label { font-size: 0.6rem; }
 .dialogue-branch-lock { display: flex; min-height: 36px; align-items: center; gap: 7px; color: var(--text-dim); font-size: 0.68rem; line-height: 1.3; }
 .dialogue-branch-lock input { accent-color: var(--purple-bright); }
+.dialogue-branch-reputation input::placeholder { color: var(--text-faint); opacity: 0.78; }
 .dialogue-branch-remove { align-self: end; white-space: nowrap; }
 .dialogue-branch-empty { margin: 0; padding: 12px; border: 1px dashed var(--border-soft); color: var(--text-faint); font-size: 0.74rem; }
 

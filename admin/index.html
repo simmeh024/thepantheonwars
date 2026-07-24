@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=301">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=302">
 </head>
 <body>
 
@@ -13402,6 +13402,11 @@
     return total;
   }
 
+  function dialogueChoiceRequiredReputationLevel(choice) {
+    var level = Number(choice && choice.required_reputation_level);
+    return isFinite(level) && Math.floor(level) === level && level >= 1 && level <= 99 ? level : null;
+  }
+
   function loadDialogueTreeList() {
     dialogueTreeListEl.innerHTML = '<div class="admin-list-empty">Loading dialogue trees&hellip;</div>';
     return fetch('/api/admin/dialogues/list.php', { credentials: 'same-origin' })
@@ -13582,11 +13587,15 @@
         edge.setAttribute('marker-end', 'url(#dialogue-tree-arrowhead)');
         edges.appendChild(edge);
 
+        var requiredReputationLevel = dialogueChoiceRequiredReputationLevel(choice);
+        var gateLabels = [];
+        if (choice.requires_high_resonance) gateLabels.push('High resonance');
+        if (requiredReputationLevel) gateLabels.push('Rep level ' + requiredReputationLevel);
         var choiceLabel = document.createElement('span');
-        choiceLabel.className = 'dialogue-tree-edge-label' + (choice.requires_high_resonance ? ' is-locked' : '');
+        choiceLabel.className = 'dialogue-tree-edge-label' + (gateLabels.length ? ' is-locked' : '');
         choiceLabel.style.left = ((fromX + toX) / 2) + 'px';
         choiceLabel.style.top = (fromY + ((toY - fromY) * 0.52)) + 'px';
-        choiceLabel.innerHTML = (choice.requires_high_resonance ? '<em>Locked</em>' : '') + escapeHtml(choice.label || 'Untitled choice');
+        choiceLabel.innerHTML = (gateLabels.length ? '<em>' + escapeHtml(gateLabels.join(' · ')) + '</em>' : '') + escapeHtml(choice.label || 'Untitled choice');
         canvas.appendChild(choiceLabel);
       });
     });
@@ -13635,6 +13644,7 @@
     node.choices.forEach(function (choice, choiceIndex) {
       var row = document.createElement('div');
       row.className = 'dialogue-branch-row';
+      var requiredReputationLevel = dialogueChoiceRequiredReputationLevel(choice);
       var targetOptions = dialogueTreeNodes().filter(function (target) { return target.id !== node.id; }).map(function (target) {
         return '<option value="' + escapeHtml(target.id) + '"' + (target.id === choice.target_node_id ? ' selected' : '') + '>' + escapeHtml(target.title) + '</option>';
       }).join('');
@@ -13642,13 +13652,20 @@
         '<div class="admin-field"><label>Player choice</label><input type="text" maxlength="180" value="' + escapeHtml(choice.label) + '"></div>' +
         '<div class="admin-field"><label>Leads to</label><select>' + targetOptions + '</select></div>' +
         '<label class="dialogue-branch-lock"><input type="checkbox"' + (choice.requires_high_resonance ? ' checked' : '') + '> Requires high resonance</label>' +
+        '<div class="admin-field dialogue-branch-reputation"><label>Required Rep level</label><input type="number" min="1" max="99" step="1" placeholder="None" title="Uses the member\'s Rep level, not their total reputation points" value="' + (requiredReputationLevel || '') + '"></div>' +
         '<button type="button" class="permission-mini-btn dialogue-branch-remove">Remove</button>';
       var labelInput = row.querySelector('input[type="text"]');
       var targetSelect = row.querySelector('select');
       var lockedInput = row.querySelector('input[type="checkbox"]');
+      var reputationLevelInput = row.querySelector('.dialogue-branch-reputation input');
       labelInput.addEventListener('input', function () { choice.label = labelInput.value; renderDialogueTreeMap(); });
       targetSelect.addEventListener('change', function () { choice.target_node_id = targetSelect.value; renderDialogueTreeMap(); });
-      lockedInput.addEventListener('change', function () { choice.requires_high_resonance = lockedInput.checked; });
+      lockedInput.addEventListener('change', function () { choice.requires_high_resonance = lockedInput.checked; renderDialogueTreeMap(); });
+      reputationLevelInput.addEventListener('input', function () {
+        var enteredLevel = Number(reputationLevelInput.value);
+        choice.required_reputation_level = isFinite(enteredLevel) && Math.floor(enteredLevel) === enteredLevel && enteredLevel >= 1 && enteredLevel <= 99 ? enteredLevel : null;
+        renderDialogueTreeMap();
+      });
       row.querySelector('.dialogue-branch-remove').addEventListener('click', function () {
         node.choices.splice(choiceIndex, 1);
         renderDialogueTreeEditor();
