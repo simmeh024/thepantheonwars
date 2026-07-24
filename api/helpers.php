@@ -598,8 +598,9 @@ function pw_reputation_info(int $reputation): array {
  * Returns the live, player-facing unlocks attached to one reputation level.
  * Both the public reputation preview and the admin rank overview use this
  * single catalog so a rank can never promise something different in either
- * place. Timeline records only count once they are published, matching the
- * point at which a player could actually receive and view the content.
+ * place. Timeline records and dialogue branches only count once they are
+ * published, matching the point at which a player could actually receive and
+ * view the content.
  */
 function pw_reputation_level_unlocks(PDO $db, array $level, int $rankNumber): array {
     $levelId = (int)($level['id'] ?? 0);
@@ -663,11 +664,89 @@ function pw_reputation_level_unlocks(PDO $db, array $level, int $rankNumber): ar
         }
     }
 
+    foreach (pw_reputation_dialogue_level_unlocks($db, $rankNumber, $levelColor) as $unlock) {
+        $unlocks[] = $unlock;
+    }
+
     foreach ($unlocks as &$unlock) {
         $unlock['threshold'] = $threshold;
         $unlock['rank_name'] = $levelName;
     }
     unset($unlock);
+    return $unlocks;
+}
+
+/**
+ * Finds the published dialogue choices that become selectable at one
+ * reputation rank. The dialogue editor stores trees as JSON rather than a
+ * relational graph, so this deliberately reads only the small published
+ * snapshot once per request and derives the rank-gated branches from it.
+ */
+function pw_reputation_dialogue_level_unlocks(PDO $db, int $rankNumber, string $fallbackColor): array {
+    static $publishedTrees = null;
+    if ($publishedTrees === null) {
+        $publishedTrees = [];
+        try {
+            if (!(bool)$db->query("SHOW TABLES LIKE 'overlord_dialogue_trees'")->fetch()) {
+                return [];
+            }
+            $hasPublishedTree = (bool)$db->query("SHOW COLUMNS FROM overlord_dialogue_trees LIKE 'published_tree_json'")->fetch();
+            $treeColumn = $hasPublishedTree ? 't.published_tree_json' : 't.tree_json';
+            $rows = $db->query(
+                'SELECT o.name AS overlord_name, o.epithet AS overlord_epithet, ' . $treeColumn . ' AS tree_json
+                 FROM overlord_dialogue_trees t
+                 JOIN overlords o ON o.id = t.overlord_id
+                 WHERE t.is_enabled = 1' . ($hasPublishedTree ? ' AND t.published_tree_json IS NOT NULL' : '')
+            )->fetchAll();
+            foreach ($rows as $row) {
+                $tree = json_decode((string)$row['tree_json'], true);
+                if (!is_array($tree) || empty($tree['nodes']) || !is_array($tree['nodes'])) continue;
+                $publishedTrees[] = [
+                    'overlord_name' => trim((string)$row['overlord_name']),
+                    'overlord_epithet' => trim((string)$row['overlord_epithet']),
+                    'tree' => $tree,
+                ];
+            }
+        } catch (Throwable $e) {
+            // The dialogue tables are optional during deployment. Rank and
+            // timeline unlocks remain useful while their migration is absent.
+            $publishedTrees = [];
+        }
+    }
+
+    $unlocks = [];
+    foreach ($publishedTrees as $published) {
+        $overlordName = $published['overlord_name'] !== '' ? $published['overlord_name'] : 'Overlord';
+        $overlordEpithet = $published['overlord_epithet'];
+        $overlordLabel = $overlordName . ($overlordEpithet !== '' ? ' · ' . $overlordEpithet : '');
+        foreach ($published['tree']['nodes'] as $node) {
+            if (!is_array($node) || !isset($node['choices']) || !is_array($node['choices'])) continue;
+            $nodeTitle = trim((string)($node['title'] ?? ''));
+            if ($nodeTitle === '') $nodeTitle = 'an untitled dialogue';
+            foreach ($node['choices'] as $choice) {
+                if (!is_array($choice) || (int)($choice['required_reputation_level'] ?? 0) !== $rankNumber) continue;
+                $label = trim((string)($choice['label'] ?? ''));
+                if ($label === '') continue;
+                $extraConditions = [];
+                if (!empty($choice['requires_high_resonance'])) $extraConditions[] = 'high resonance';
+                $flag = trim((string)($choice['required_flag'] ?? ''));
+                if ($flag !== '') $extraConditions[] = 'the ' . $flag . ' story flag';
+                $variableKey = trim((string)($choice['required_variable_key'] ?? ''));
+                if ($variableKey !== '') {
+                    $extraConditions[] = $variableKey . ' at ' . (int)($choice['required_variable_min'] ?? 1);
+                }
+                $description = 'Available in ' . $overlordName . '\'s transmission from “' . $nodeTitle . '”.';
+                if ($extraConditions) $description .= ' Also requires ' . implode(' and ', $extraConditions) . '.';
+                $unlocks[] = [
+                    'type' => 'dialogue_choice',
+                    'title' => $label,
+                    'eyebrow' => 'Overlord dialogue · ' . $overlordLabel,
+                    'description' => $description,
+                    'accent' => $fallbackColor,
+                ];
+            }
+        }
+    }
     return $unlocks;
 }
 
