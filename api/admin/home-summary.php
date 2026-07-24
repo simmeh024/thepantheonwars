@@ -151,6 +151,7 @@ $siteRow = $db->query(
         (SELECT COUNT(*) FROM topics WHERE is_deleted = 0) + (SELECT COUNT(*) FROM comments WHERE is_deleted = 0) AS total_forum_posts,
         (SELECT COUNT(*) FROM dispatch_entries) AS total_dispatches,
         (SELECT COUNT(*) FROM news_posts) AS total_newsposts,
+        (SELECT COUNT(*) FROM news_comments) AS total_news_comments,
         (SELECT COUNT(*) FROM dispatch_entries WHERE DATE(committed_at) = CURDATE()) AS today_dispatches,
         (SELECT tag FROM dispatch_entries WHERE DATE(committed_at) = CURDATE() GROUP BY tag ORDER BY COUNT(*) DESC, tag ASC LIMIT 1) AS most_active_category"
 )->fetch();
@@ -160,6 +161,7 @@ $siteStats = [
     'total_forum_posts' => (int)$siteRow['total_forum_posts'],
     'total_dispatches' => (int)$siteRow['total_dispatches'],
     'total_newsposts' => (int)$siteRow['total_newsposts'],
+    'total_news_comments' => (int)$siteRow['total_news_comments'],
     'active_worlds' => 4,
     'active_overlords' => 6,
     'today_dispatches' => (int)$siteRow['today_dispatches'],

@@ -650,6 +650,10 @@
               <div class="site-stat-value" id="site-stat-newsposts">&hellip;</div>
               <div class="site-stat-label">Newsposts</div>
             </div>
+            <div class="site-stat">
+              <div class="site-stat-value" id="site-stat-news-comments">&hellip;</div>
+              <div class="site-stat-label">News Comments</div>
+            </div>
           </div>
           <p class="site-stats-footnote">All time</p>
         </div>
@@ -5014,6 +5018,7 @@
   var siteStatWorldsEl = document.getElementById('site-stat-worlds');
   var siteStatOverlordsEl = document.getElementById('site-stat-overlords');
   var siteStatNewspostsEl = document.getElementById('site-stat-newsposts');
+  var siteStatNewsCommentsEl = document.getElementById('site-stat-news-comments');
   var translationConfidenceAverageEl = document.getElementById('translation-confidence-average');
   var translationConfidenceHighEl = document.getElementById('translation-confidence-high');
   var translationConfidenceMediumEl = document.getElementById('translation-confidence-medium');
@@ -5043,13 +5048,14 @@
         siteStatWorldsEl.textContent = data.active_worlds;
         siteStatOverlordsEl.textContent = data.active_overlords;
         siteStatNewspostsEl.textContent = data.total_newsposts.toLocaleString('en-US');
+        siteStatNewsCommentsEl.textContent = data.total_news_comments.toLocaleString('en-US');
         devSnapshotTodayCountEl.textContent = data.today_dispatches;
         devSnapshotCategoryEl.textContent = data.most_active_category
           ? (TAG_LABELS[data.most_active_category] || data.most_active_category)
           : '—';
       })
       .catch(function () {
-        [siteStatMembersEl, siteStatForumPostsEl, siteStatDispatchesEl, siteStatWorldsEl, siteStatOverlordsEl, siteStatNewspostsEl, devSnapshotTodayCountEl].forEach(function (el) {
+        [siteStatMembersEl, siteStatForumPostsEl, siteStatDispatchesEl, siteStatWorldsEl, siteStatOverlordsEl, siteStatNewspostsEl, siteStatNewsCommentsEl, devSnapshotTodayCountEl].forEach(function (el) {
           if (el) el.textContent = '—';
         });
         if (devSnapshotCategoryEl) devSnapshotCategoryEl.textContent = '—';
