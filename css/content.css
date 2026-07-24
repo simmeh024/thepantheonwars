@@ -3057,17 +3057,19 @@
    on a clear break, the stone half-swallowed on a root-mist day. */
 .world-weather-card--babki-prime {
   /* Gold, for readings inlaid into the stone. */
-  --world-weather-icon: #e8c46a;
-  --world-weather-icon-current: #f2d078;
-  --wx-muted: #c1ad84;
+  --world-weather-icon: #d8b868;
+  --world-weather-icon-current: #e0c274;
+  --wx-muted: #b7a57e;
   --bab-moss: 120, 168, 74;
   /* Gold inlay seated IN a cut groove. The light on this slab comes from the
      top-left, so the groove's upper wall is in shadow and its lower lip catches
      it: dark above, warm highlight below. The reverse -- which this was --
      reads as type sitting on the surface rather than set into it. */
-  --bab-inlay: 0 -1px 1px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 230, 170, 0.3), 0 0 9px rgba(232, 196, 106, 0.18);
-  /* The same cut, one step deeper, for the headline readings. */
-  --bab-inlay-deep: 0 -2px 2px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 236, 186, 0.4), 0 0 16px rgba(232, 196, 106, 0.25);
+  --bab-inlay: 0 -1px 1px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 230, 170, 0.22), 0 0 6px rgba(232, 196, 106, 0.12);
+  /* The same cut, one step deeper, for the headline readings. Both lit lip
+     and glow trimmed from their original values -- a duller inlay glints
+     less, which reads as worn gilding rather than fresh gold leaf. */
+  --bab-inlay-deep: 0 -2px 2px rgba(0, 0, 0, 0.95), 0 1px 0 rgba(255, 236, 186, 0.3), 0 0 11px rgba(232, 196, 106, 0.17);
   /* A recess cut into the slab: shadow gathering along the top and left inner
      walls, a lit lip along the bottom and right. Used by every panel so they
      read as chiselled out of the stone rather than laid over it. */
@@ -3116,8 +3118,8 @@
     inset 0 -2px 0 rgba(240, 214, 150, 0.12);
 }
 .world-weather-card--babki-prime .world-weather-card-scan { display: none; }
-.world-weather-card--babki-prime .world-weather-head > div > span { color: #e8c46a; text-shadow: var(--bab-inlay); }
-.world-weather-card--babki-prime .world-weather-head h2 { color: #f4dca0; text-shadow: var(--bab-inlay); }
+.world-weather-card--babki-prime .world-weather-head > div > span { color: #d8b868; text-shadow: var(--bab-inlay); }
+.world-weather-card--babki-prime .world-weather-head h2 { color: #e2cc95; text-shadow: var(--bab-inlay); }
 .world-weather-card--babki-prime .world-weather-climate { text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
 /* A cut cartouche framing the archive pill, gilt inlaid. */
 .world-weather-card--babki-prime .world-weather-live {
@@ -3137,15 +3139,15 @@
   box-shadow: 0 0 6px rgba(232, 196, 106, 0.8);
 }
 .world-weather-card--babki-prime .world-weather-current-icon {
-  color: #f2d078;
+  color: #e0c274;
   filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.8)) drop-shadow(0 0 8px rgba(232, 196, 106, 0.3));
 }
 /* The big reading, inlaid deepest of all. */
 .world-weather-card--babki-prime .world-weather-current > strong {
-  color: #f4d78a;
+  color: #e2c883;
   text-shadow: var(--bab-inlay-deep);
 }
-.world-weather-card--babki-prime .world-weather-current b { color: #eccf88; text-shadow: var(--bab-inlay); }
+.world-weather-card--babki-prime .world-weather-current b { color: #dbc181; text-shadow: var(--bab-inlay); }
 /* Metric readings cut into recessed panels of the slab. */
 .world-weather-card--babki-prime .world-weather-metrics {
   border-color: rgba(78, 68, 44, 0.55);
@@ -3157,10 +3159,10 @@
   border-right-color: rgba(70, 62, 40, 0.5);
   background: rgba(20, 18, 12, 0.3);
 }
-.world-weather-card--babki-prime .world-weather-metrics span { color: #c1ad84; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
-.world-weather-card--babki-prime .world-weather-metrics strong { color: #f0dca4; text-shadow: var(--bab-inlay); }
-.world-weather-card--babki-prime .world-weather-season b { color: #c9b488; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
-.world-weather-card--babki-prime .world-weather-divider { color: #e8c46a; text-shadow: var(--bab-inlay); }
+.world-weather-card--babki-prime .world-weather-metrics span { color: #b7a57e; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
+.world-weather-card--babki-prime .world-weather-metrics strong { color: #dfcc99; text-shadow: var(--bab-inlay); }
+.world-weather-card--babki-prime .world-weather-season b { color: #beaa81; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
+.world-weather-card--babki-prime .world-weather-divider { color: #d8b868; text-shadow: var(--bab-inlay); }
 .world-weather-card--babki-prime .world-weather-divider::before { background: linear-gradient(90deg, transparent, rgba(198, 162, 96, 0.55)); }
 .world-weather-card--babki-prime .world-weather-divider::after { background: linear-gradient(90deg, rgba(198, 162, 96, 0.55), transparent); }
 /* Day tags as cut cartouches: recessed panel, lit top lip, shadowed foot. */
@@ -3181,27 +3183,27 @@
     inset 0 0 14px rgba(232, 196, 106, 0.12),
     0 1px 0 rgba(240, 214, 150, 0.1);
 }
-.world-weather-card--babki-prime .world-weather-day-name { color: #c9b488; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
-.world-weather-card--babki-prime .world-weather-day strong { color: #f0dca4; text-shadow: var(--bab-inlay); }
-.world-weather-card--babki-prime .world-weather-day-icon { color: #d8bd7a; }
+.world-weather-card--babki-prime .world-weather-day-name { color: #beaa81; text-shadow: 0 1px 0 rgba(0, 0, 0, 0.7); }
+.world-weather-card--babki-prime .world-weather-day strong { color: #dfcc99; text-shadow: var(--bab-inlay); }
+.world-weather-card--babki-prime .world-weather-day-icon { color: #cbb276; }
 .world-weather-card--babki-prime .world-weather-hourly { border-top-color: rgba(70, 62, 40, 0.6); }
-.world-weather-card--babki-prime .world-weather-hourly-head { color: #e8c46a; text-shadow: var(--bab-inlay); }
+.world-weather-card--babki-prime .world-weather-hourly-head { color: #d8b868; text-shadow: var(--bab-inlay); }
 .world-weather-card--babki-prime .world-weather-hourly-nav {
   border-color: rgba(70, 62, 40, 0.6);
   background: rgba(14, 13, 9, 0.6);
-  color: #c9b488;
+  color: #beaa81;
 }
-.world-weather-card--babki-prime .world-weather-hourly-nav:hover:not(:disabled) { border-color: rgba(232, 196, 106, 0.7); color: #f0dca4; }
-.world-weather-card--babki-prime .world-weather-hour { color: #c9b488; }
-.world-weather-card--babki-prime .world-weather-hour-temp { color: #f0dca4; text-shadow: var(--bab-inlay); }
-.world-weather-card--babki-prime .world-weather-hour-icon { color: #d8bd7a; }
+.world-weather-card--babki-prime .world-weather-hourly-nav:hover:not(:disabled) { border-color: rgba(232, 196, 106, 0.7); color: #dfcc99; }
+.world-weather-card--babki-prime .world-weather-hour { color: #beaa81; }
+.world-weather-card--babki-prime .world-weather-hour-temp { color: #dfcc99; text-shadow: var(--bab-inlay); }
+.world-weather-card--babki-prime .world-weather-hour-icon { color: #cbb276; }
 .world-weather-card--babki-prime .world-weather-hour.is-now {
   border-color: rgba(232, 196, 106, 0.55);
   background: linear-gradient(180deg, rgba(232, 196, 106, 0.14), rgba(12, 11, 8, 0.16));
-  color: #f6e6b4;
+  color: #e4d4a6;
 }
-.world-weather-card--babki-prime .world-weather-hour.is-now .world-weather-hour-time { color: #f2d078; }
-.world-weather-card--babki-prime .world-weather-hour-now { color: #f2d078; }
+.world-weather-card--babki-prime .world-weather-hour.is-now .world-weather-hour-time { color: #e0c274; }
+.world-weather-card--babki-prime .world-weather-hour-now { color: #e0c274; }
 .world-weather-card--babki-prime .world-weather-hour.is-night { background: rgba(8, 8, 6, 0.5); }
 .world-weather-card--babki-prime .world-weather-hour.is-night.is-now { background: linear-gradient(180deg, rgba(232, 196, 106, 0.13), rgba(8, 8, 6, 0.45)); }
 /* The advisory is a panel cut into the slab, its warning inlaid; a carved
@@ -3213,7 +3215,7 @@
   border-left: 0;
   background: rgba(10, 9, 6, 0.28);
   box-shadow: var(--bab-recess), 0 1px 0 rgba(240, 214, 150, 0.07);
-  color: #d9cca8;
+  color: #cbbf9c;
   text-shadow: 0 1px 0 rgba(0, 0, 0, 0.6);
 }
 .world-weather-card--babki-prime .world-weather-hazard::before {
