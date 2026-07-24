@@ -3317,6 +3317,11 @@ at that time.
   Availability columns. Portrait art stays beside the Overlord name, while
   missing epithets or world assignments render explicitly as `No epithet` /
   `Unassigned` rather than leaving ambiguous blank cells.
+- Quiz Control uses a matching scan-first grid with Title, Order, Answers, and
+  Edit columns. Response volume and its low-signal warning remain beside the
+  answer count rather than being lost, and the prominent `Edit question` button
+  continues to open the existing editor. On narrower screens the header hides
+  and each row becomes a compact two-line layout without omitting any metadata.
 - **Persistent sign-in recovery:** a 30-day PHP cookie is not sufficient by
   itself on shared hosting because PHP can garbage-collect the corresponding
   server-side session much sooner. `api/helpers.php` now aligns

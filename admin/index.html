@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=292">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=293">
 </head>
 <body>
 
@@ -2039,7 +2039,13 @@
         <button type="button" class="btn btn-solid" id="quiz-question-create-btn">+ Add Question</button>
         <span class="admin-count" id="quiz-question-count"></span>
       </div>
-      <div class="admin-list" id="quiz-question-list"><div class="admin-list-empty">Loading quiz questions&hellip;</div></div>
+      <div class="quiz-question-list-columns" aria-hidden="true">
+        <span>Title</span>
+        <span>Order</span>
+        <span>Answers</span>
+        <span>Edit</span>
+      </div>
+      <div class="admin-list quiz-question-management-list" id="quiz-question-list"><div class="admin-list-empty">Loading quiz questions&hellip;</div></div>
     </section>
 
     <section class="admin-section" id="section-world-control" hidden>
@@ -16004,18 +16010,18 @@
       if (!questions.length) { quizQuestionListEl.innerHTML = '<div class="admin-list-empty">No managed questions yet. The public quiz is still using its original questions.</div>'; return; }
       quizQuestionListEl.innerHTML = '';
       questions.forEach(function (question) {
-        var meta = '<span>Order ' + question.sort_order + '</span><span class="admin-row-sep">&bull;</span><span>' + question.options.length + ' answers</span>';
+        var answers = question.options.length + (question.options.length === 1 ? ' answer' : ' answers');
         // A question where nearly everyone picks the same answer separates no
         // one and is worth rewriting. Only shown once enough people have
         // answered for the share to mean anything.
         if (question.responses >= 20 && question.top_share !== null) {
-          meta += '<span class="admin-row-sep">&bull;</span><span>' + question.responses + ' responses</span>';
+          answers += '<span class="quiz-question-response-detail">' + question.responses + ' responses</span>';
           if (question.top_share >= 70) {
-            meta += '<span class="admin-row-sep">&bull;</span><span class="quiz-lowsignal-pill">' + question.top_share + '% pick one answer</span>';
+            answers += '<span class="quiz-lowsignal-pill">' + question.top_share + '% pick one answer</span>';
           }
         }
-        var row = document.createElement('div'); row.className = 'admin-row';
-        row.innerHTML = '<div class="admin-row-main"><p class="admin-row-subject">' + escapeHtml(question.question_text) + (question.is_active ? '' : ' <span class="report-status report-status-resolved">Inactive</span>') + '</p><div class="admin-row-meta">' + meta + '</div></div><button type="button" class="permission-mini-btn">Edit</button>';
+        var row = document.createElement('div'); row.className = 'admin-row quiz-question-management-row';
+        row.innerHTML = '<div class="quiz-question-title"><p class="admin-row-subject">' + escapeHtml(question.question_text) + (question.is_active ? '' : ' <span class="report-status report-status-resolved">Inactive</span>') + '</p></div><span class="quiz-question-order">Order ' + question.sort_order + '</span><span class="quiz-question-answers">' + answers + '</span><button type="button" class="btn btn-solid quiz-question-edit-btn">Edit question</button>';
         row.querySelector('button').addEventListener('click', function () { openQuizQuestionModal(question); });
         quizQuestionListEl.appendChild(row);
       });
