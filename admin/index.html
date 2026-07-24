@@ -185,7 +185,7 @@
 
                   <button type="button" class="bh4-stats-toggle" id="bh4-stats-toggle" aria-expanded="false" aria-controls="bh4-welcome-stats">
                     <svg class="bh4-stats-toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="6" y1="20" x2="6" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="18" y1="20" x2="18" y2="14"/></svg>
-                    <span>Since your last session: <span id="bh4-stats-total">&hellip;</span> recorded changes</span>
+                    <span>This session: <span id="bh4-stats-total">&hellip;</span> recorded changes</span>
                     <svg class="bh4-stats-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
                   </button>
                   <ul class="bh4-welcome-stats" id="bh4-welcome-stats" hidden>
@@ -196,6 +196,10 @@
                     <li>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8l6-5 6 5"/><path d="M5 8v11a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V8"/><path d="M9 4v3"/></svg>
                       <span id="bh4-stat-translations">&hellip;</span>
+                    </li>
+                    <li>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v2"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>
+                      <span id="bh4-stat-new-members">&hellip;</span>
                     </li>
                     <li>
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -4536,6 +4540,7 @@
   var bh4NameEl = document.getElementById('bh4-welcome-name');
   var bh4DispatchesEl = document.getElementById('bh4-stat-dispatches');
   var bh4TranslationsEl = document.getElementById('bh4-stat-translations');
+  var bh4NewMembersEl = document.getElementById('bh4-stat-new-members');
   var bh4LoginsEl = document.getElementById('bh4-stat-logins');
   var bh4StatusEl = document.getElementById('bh4-welcome-status');
   var bh4StatusTextEl = document.getElementById('bh4-welcome-status-text');
@@ -4586,9 +4591,10 @@
     if (bh4NameEl) bh4NameEl.textContent = data.display_name;
     if (bh4DispatchesEl) bh4DispatchesEl.textContent = pluralize(data.dispatches_classified, 'dispatch classified', 'dispatches classified');
     if (bh4TranslationsEl) bh4TranslationsEl.textContent = pluralize(data.translations_completed, 'translation completed', 'translations completed');
+    if (bh4NewMembersEl) bh4NewMembersEl.textContent = pluralize(data.new_members, 'new member', 'new members');
     if (bh4LoginsEl) bh4LoginsEl.textContent = pluralize(data.admin_logins, 'administrator login', 'administrator logins');
     if (bh4StatsTotalEl) {
-      var total = (data.dispatches_classified || 0) + (data.translations_completed || 0) + (data.admin_logins || 0);
+      var total = (data.dispatches_classified || 0) + (data.translations_completed || 0) + (data.new_members || 0) + (data.admin_logins || 0);
       bh4StatsTotalEl.textContent = total;
     }
     renderBh4CriticalState(data);

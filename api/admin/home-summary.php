@@ -176,17 +176,10 @@ $translationConfidence = pw_admin_runtime_cache_remember(
     }
 );
 
-$loginRows = $db->prepare(
-    "SELECT id, created_at
-     FROM admin_activity_log
-     WHERE user_id = ? AND action IN ('login_ok', 'login')
-     ORDER BY created_at DESC, id DESC
-     LIMIT 2"
-);
-$loginRows->execute([$adminUser['id']]);
-$previousLogins = $loginRows->fetchAll();
-$since = count($previousLogins) >= 2 ? $previousLogins[1]['created_at']
-    : (count($previousLogins) === 1 ? $previousLogins[0]['created_at'] : '1970-01-01 00:00:00');
+$since = isset($_SESSION['pw_bh4_session_started_at'])
+    ? $_SESSION['pw_bh4_session_started_at']
+    : $db->query('SELECT NOW() AS now')->fetch()['now'];
+$_SESSION['pw_bh4_session_started_at'] = $since;
 $bh4Row = $db->prepare(
     "SELECT
         SUM(action = 'category_edited') AS dispatches_classified,
@@ -196,6 +189,9 @@ $bh4Row = $db->prepare(
 );
 $bh4Row->execute([$since]);
 $bh4Counts = $bh4Row->fetch();
+$bh4MembersStmt = $db->prepare('SELECT COUNT(*) AS c FROM users WHERE created_at > ?');
+$bh4MembersStmt->execute([$since]);
+$bh4NewMembers = (int)$bh4MembersStmt->fetch()['c'];
 // System Status and BH-4's health-based advice are intentionally loaded by
 // home-system-health.php after this fast base payload has rendered. A cold
 // spaCy model load must not hold every Home card in its loading state.
@@ -207,6 +203,7 @@ $bh4 = [
     'since' => $since,
     'dispatches_classified' => (int)$bh4Counts['dispatches_classified'],
     'translations_completed' => (int)$bh4Counts['translations_completed'],
+    'new_members' => $bh4NewMembers,
     'admin_logins' => (int)$bh4Counts['admin_logins'],
     'critical_events' => null,
     'critical_summary' => null,
