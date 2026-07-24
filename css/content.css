@@ -2346,8 +2346,20 @@
   --wx-muted: #b09c8a;
   /* Struck into the plate rather than laid on it. */
   --hh-engrave: 0 -1px 0 rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 198, 148, 0.11);
-  border-color: rgba(126, 108, 94, 0.62);
-  border-width: 2px;
+  /* The plate is now a real texture (images/High-hammer-background.webp,
+     1122x1402: dark riveted iron, sampled -- full-image average luminance 36,
+     center 41, well within the dark range the interior background already
+     assumes -- with a genuine bright stud catching light near the top edge
+     rather than the simulated one this block used to draw). Same border-image
+     9-slice as Neoh and Babki Prime. stretch, not round: unlike Babki's
+     frieze this surface carries no evenly repeating motif to protect from a
+     mid-tile seam, so stretch is lossless where round would only add risk. */
+  border-style: solid;
+  border-width: 28px;
+  border-color: transparent;
+  border-image: url('/images/High-hammer-background.webp') 100 fill / 28px / 0 stretch;
+  /* Shown only if the texture ever fails to load, so the card degrades to a
+     dark forge tint rather than a bare box. */
   background:
     /* The furnace off the top-right corner. */
     radial-gradient(circle at 94% -8%, rgba(255, 156, 74, 0.16), transparent 44%),
@@ -2357,6 +2369,9 @@
     /* Brushed grain across the face of the plate. */
     repeating-linear-gradient(0deg, rgba(255, 232, 214, 0.014) 0 1px, transparent 1px 3px),
     linear-gradient(168deg, rgba(46, 40, 36, 0.985), rgba(25, 21, 19, 0.985));
+  /* Trimmed from the base 22px, since the 28px frame already insets content --
+     the same adjustment Neoh and Babki Prime made for their own real frames. */
+  padding: 13px 15px;
   box-shadow:
     0 18px 46px rgba(0, 0, 0, 0.46),
     /* A cast bevel: light catching the top edge, shadow gathering at the foot. */
@@ -2365,28 +2380,19 @@
     inset 0 0 70px rgba(0, 0, 0, 0.34);
 }
 /* Pitting rather than scanlines: two tight crossing repeats read as a cast
-   surface where the shared card's single horizontal one reads as a raster. */
+   surface where the shared card's single horizontal one reads as a raster.
+   Scoped to the padding box (see the shared ::after positioning note above),
+   so it grains the plate's own face without ever touching the real texture
+   in the frame around it. */
 .world-weather-card--high-hammer::after {
   background:
     repeating-linear-gradient(37deg, transparent 0 2px, rgba(0, 0, 0, 0.05) 2px 3px),
     repeating-linear-gradient(-37deg, transparent 0 3px, rgba(255, 224, 196, 0.012) 3px 4px);
 }
-/* Four domed rivets holding the plate to the wall. Drawn as background layers
-   on one pseudo-element, so this needs no markup -- the same technique as
-   Neoh's registration marks, which is why the two must never both apply. */
-.world-weather-card--high-hammer::before {
-  --hh-rivet: radial-gradient(circle at 36% 32%, rgba(255, 216, 178, 0.85), rgba(122, 100, 84, 0.9) 52%, rgba(20, 15, 12, 0.95) 78%, transparent 80%);
-  content: '';
-  position: absolute;
-  z-index: 0;
-  inset: 7px;
-  pointer-events: none;
-  background:
-    var(--hh-rivet) 0 0 / 7px 7px no-repeat,
-    var(--hh-rivet) 100% 0 / 7px 7px no-repeat,
-    var(--hh-rivet) 0 100% / 7px 7px no-repeat,
-    var(--hh-rivet) 100% 100% / 7px 7px no-repeat;
-}
+/* The four simulated corner rivets this card used to draw itself are gone --
+   the real plate already carries genuine bolted hardware, and layering a
+   second, CSS-drawn set on top of it would only look like a duplicate. Same
+   call already made for Neoh's registration marks. */
 /* The CRT sweep becomes heat standing off the forge floor. */
 .world-weather-card--high-hammer .world-weather-card-scan {
   top: auto;
