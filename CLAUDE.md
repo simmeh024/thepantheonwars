@@ -3305,6 +3305,23 @@ at that time.
 - Book Control: image upload + library picker (reuses server-generated filenames,
   per-directory `.htaccess` denying PHP execution, same pattern as
   `api/upload-avatar.php`).
+- **Persistent sign-in recovery:** a 30-day PHP cookie is not sufficient by
+  itself on shared hosting because PHP can garbage-collect the corresponding
+  server-side session much sooner. `api/helpers.php` now aligns
+  `session.gc_maxlifetime` with the 30-day persistent-session window and, for
+  remembered password, registration, Google, and Apple sign-ins, keeps the
+  existing opaque `user_sessions` token in a separate Secure/HttpOnly/Lax
+  `pw_remember` cookie. If PHP session data disappears, that token restores
+  the same unrevoked, non-expired persistent registry row and immediately
+  rotates both the PHP session ID and token; the database still stores hashes
+  only. Temporary sessions never receive this cookie. Logout, current-session
+  revocation, a 14-day inactivity timeout, password-reset/session revocation,
+  and the fixed 30-day registry expiry all leave it unable to restore access.
+  The remembered-session cookie is also backfilled for already-active
+  persistent sessions on their next request. `pw_apply_session_persistence()`
+  must run **after** `session_regenerate_id(true)`: PHP will not alter cookie
+  parameters after a session starts, which was why the earlier Remember me
+  checkbox did not reliably control the final session cookie.
 - Two-factor authentication is opt-in TOTP for password sign-ins only; Google
   OAuth keeps using Google's provider protection. `user_two_factor` holds an
   AES-256-GCM ciphertext, never a plaintext authenticator secret. Add a base64

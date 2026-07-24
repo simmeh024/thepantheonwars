@@ -45,6 +45,7 @@ $stmt->execute([$username, $email, $hash, $username]);
 $userId = (int)$db->lastInsertId();
 
 session_regenerate_id(true);
+pw_apply_session_persistence(true);
 $_SESSION['user_id'] = $userId;
 pw_issue_user_session($userId, 'password');
 pw_log_activity('session_created', 'Created a password-authenticated session.', $userId, $username);

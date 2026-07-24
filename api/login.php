@@ -113,8 +113,8 @@ $stmt = $db->prepare('UPDATE users SET failed_login_attempts = 0, locked_until =
 $stmt->execute([$ip, $user['id']]);
 pw_log_login_attempt($ip, $identifier, true);
 
-pw_apply_session_persistence($remember);
 session_regenerate_id(true);
+pw_apply_session_persistence($remember);
 $_SESSION['user_id'] = (int)$user['id'];
 pw_issue_user_session((int)$user['id'], 'password', $remember);
 

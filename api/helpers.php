@@ -12,6 +12,37 @@ require_once __DIR__ . '/db.php';
 $GLOBALS['pw_request_started_at'] = hrtime(true);
 
 // --- Session bootstrap -----------------------------------------------------
+// PHP's session garbage collector is separate from the browser cookie. On a
+// shared host its default lifetime is often only a few minutes, so a 30-day
+// cookie alone does not keep a member signed in: the PHP session data can be
+// swept away long before the cookie expires. Keep the PHP storage window in
+// step with persistent sessions. The independent remember-token recovery
+// below remains the reliable fallback if the host clears session files early.
+const PW_PERSISTENT_SESSION_LIFETIME = 60 * 60 * 24 * 30;
+const PW_REMEMBER_COOKIE_NAME = 'pw_remember';
+
+function pw_cookie_options($expires = 0) {
+    return [
+        'expires' => $expires,
+        'path' => '/',
+        'secure' => true,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ];
+}
+
+function pw_set_remember_cookie($token) {
+    if (!is_string($token) || !preg_match('/\A[a-f0-9]{64}\z/D', $token)) {
+        return;
+    }
+    setcookie(PW_REMEMBER_COOKIE_NAME, $token, pw_cookie_options(time() + PW_PERSISTENT_SESSION_LIFETIME));
+}
+
+function pw_clear_remember_cookie() {
+    setcookie(PW_REMEMBER_COOKIE_NAME, '', pw_cookie_options(time() - 42000));
+    unset($_COOKIE[PW_REMEMBER_COOKIE_NAME]);
+}
+
 // A public page fires several independent API calls at once (visitor
 // analytics, forum summaries, leaderboards, and the account session check).
 // Starting a brand-new PHP session in every one of those requests races their
@@ -24,17 +55,29 @@ function pw_start_session() {
         return;
     }
 
+    // This must precede session_start(). It protects the normal PHP session
+    // path; pw_restore_remembered_session() also covers hosts that purge their
+    // session store despite this per-request setting.
+    ini_set('session.gc_maxlifetime', (string) PW_PERSISTENT_SESSION_LIFETIME);
     session_set_cookie_params([
-        'lifetime' => 60 * 60 * 24 * 30, // 30 days
+        'lifetime' => PW_PERSISTENT_SESSION_LIFETIME,
         'path' => '/',
         'secure' => true,
         'httponly' => true,
         'samesite' => 'Lax',
     ]);
     session_start();
+
+    // A persistent session has a separate opaque token cookie so it can be
+    // safely restored from user_sessions if PHP has already discarded its
+    // server-side session data. It is only consulted after a real PHP session
+    // has been started, never as a replacement for the session cookie itself.
+    if (empty($_SESSION['user_id'])) {
+        pw_restore_remembered_session();
+    }
 }
 
-if (isset($_COOKIE[session_name()])) {
+if (isset($_COOKIE[session_name()]) || isset($_COOKIE[PW_REMEMBER_COOKIE_NAME])) {
     pw_start_session();
 }
 
@@ -46,10 +89,24 @@ if (isset($_COOKIE[session_name()])) {
 // sensitive to expire until user_id is set.
 if (!empty($_SESSION['user_id'])) {
     if (!empty($_SESSION['pw_last_seen']) && (time() - $_SESSION['pw_last_seen']) > 14 * 24 * 60 * 60) {
-        $_SESSION = [];
-        session_destroy();
+        // The separate recovery cookie must obey the same inactivity limit as
+        // the PHP session. Revoke its registry row before clearing cookies so
+        // it cannot immediately sign the member back in on the next request.
+        try {
+            $token = pw_current_session_token();
+            if ($token !== null) {
+                pw_db()->prepare('UPDATE user_sessions SET revoked_at = UTC_TIMESTAMP(), revoked_reason = ? WHERE user_id = ? AND session_token_hash = ? AND revoked_at IS NULL')
+                    ->execute(['idle_timeout', (int)$_SESSION['user_id'], pw_session_hash($token)]);
+            }
+        } catch (Throwable $e) {}
+        pw_destroy_local_session();
     } else {
         $_SESSION['pw_last_seen'] = time();
+        // Existing persistent sessions predate pw_remember. Add the recovery
+        // cookie on their next normal request, so the fix protects members who
+        // are already signed in when it is deployed without changing temporary
+        // sessions into remembered ones.
+        pw_backfill_remember_cookie();
     }
 }
 
@@ -672,9 +729,9 @@ function pw_resolve_country($ip) {
 
 // --- Account session registry ----------------------------------------------
 // PHP keeps the authenticated browser state in its normal secure cookie. This
-// registry adds a revocable, database-backed record alongside it. The browser
-// only receives an opaque random identifier inside the PHP session; the DB
-// stores a SHA-256 hash, never a raw PHP session ID or registry token.
+// registry adds a revocable, database-backed record alongside it. Persistent
+// logins also keep the opaque random token in a Secure/HttpOnly recovery
+// cookie; the DB stores a SHA-256 hash, never a raw PHP session ID or token.
 function pw_current_session_token() {
     return isset($_SESSION['pw_session_token']) && is_string($_SESSION['pw_session_token'])
         ? $_SESSION['pw_session_token'] : null;
@@ -703,20 +760,25 @@ function pw_session_client_details() {
     return [$ua, $browser, $os, $browser . ' on ' . $os];
 }
 
-// Re-issues the session cookie with the lifetime matching the caller's
-// "Remember me" choice. Must run BEFORE session_regenerate_id(true) -- that
-// call sends the new session cookie using whatever cookie params are
-// currently in effect, so the order here is load-bearing. A remembered
-// session gets the normal 30-day cookie; an unremembered one gets a true
-// session-scoped cookie (lifetime 0) so it disappears when the browser closes.
+// Re-issues the current PHP session cookie with the lifetime matching the
+// caller's "Remember me" choice. This runs AFTER session_regenerate_id(true):
+// session_set_cookie_params() cannot change an already-active session, which
+// meant the old implementation silently kept the bootstrap lifetime instead
+// of honoring the checkbox. Sending the regenerated id explicitly fixes that.
 function pw_apply_session_persistence($remember) {
-    session_set_cookie_params([
-        'lifetime' => $remember ? 60 * 60 * 24 * 30 : 0,
-        'path' => '/',
-        'secure' => true,
-        'httponly' => true,
-        'samesite' => 'Lax',
-    ]);
+    $remember = (bool)$remember;
+    if (session_status() === PHP_SESSION_NONE) {
+        session_set_cookie_params([
+            'lifetime' => $remember ? PW_PERSISTENT_SESSION_LIFETIME : 0,
+            'path' => '/',
+            'secure' => true,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
+        return;
+    }
+    $_SESSION['pw_session_persistent'] = $remember ? 1 : 0;
+    setcookie(session_name(), session_id(), pw_cookie_options($remember ? time() + PW_PERSISTENT_SESSION_LIFETIME : 0));
 }
 
 // A "significant change" is this exact browser+OS+country combination never
@@ -750,9 +812,14 @@ function pw_maybe_notify_new_device($userId, $sessionId, $browser, $os, $country
 
 function pw_issue_user_session($userId, $provider = 'password', $remember = true) {
     $token = bin2hex(random_bytes(32));
+    $remember = (bool)$remember;
     $_SESSION['pw_session_token'] = $token;
     $_SESSION['pw_authenticated_at'] = time();
     $_SESSION['pw_session_provider'] = $provider;
+    $_SESSION['pw_session_persistent'] = $remember ? 1 : 0;
+    // Do not let a previous account's fallback token survive a new sign-in if
+    // the registry write below happens to fail during a deployment window.
+    pw_clear_remember_cookie();
     try {
         [$ua, $browser, $os, $label] = pw_session_client_details();
         $ip = pw_client_ip();
@@ -775,12 +842,107 @@ function pw_issue_user_session($userId, $provider = 'password', $remember = true
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ' . $expiryClause . ', ?)'
         );
         $stmt->execute([$userId, pw_session_hash($token), pw_session_hash(session_id()), $label, $ua, $browser, $os, $ip, $countryCode, $countryName, $provider, $remember ? 1 : 0]);
+        if ($remember) {
+            // The raw 256-bit token is held only in this Secure/HttpOnly
+            // cookie and the PHP session; user_sessions stores its SHA-256
+            // hash, so a database leak cannot be replayed in a browser.
+            pw_set_remember_cookie($token);
+        }
         pw_maybe_notify_new_device($userId, (int)pw_db()->lastInsertId(), $browser, $os, $countryCode, $label, $countryName);
     } catch (Throwable $e) {
         // The registry migration may not have run yet. Do not break a valid
         // login during deployment; once present, validation becomes strict.
     }
     return $token;
+}
+
+// Restores a remembered login after PHP's own session data vanished. The
+// database session is the authority: the cookie alone is useless if it was
+// revoked, expired, belongs to a temporary session, or the account is banned.
+// Rotate both the PHP session id and opaque token on every recovery so the old
+// token becomes single-use, including in the event of a copied cookie.
+function pw_restore_remembered_session() {
+    if (session_status() !== PHP_SESSION_ACTIVE || !empty($_SESSION['user_id'])) {
+        return false;
+    }
+    $token = $_COOKIE[PW_REMEMBER_COOKIE_NAME] ?? '';
+    if (!is_string($token) || !preg_match('/\A[a-f0-9]{64}\z/D', $token)) {
+        if ($token !== '') pw_clear_remember_cookie();
+        return false;
+    }
+
+    try {
+        $db = pw_db();
+        $stmt = $db->prepare(
+            'SELECT us.id, us.user_id, us.auth_provider
+             FROM user_sessions us
+             INNER JOIN users u ON u.id = us.user_id
+             WHERE us.session_token_hash = ? AND us.is_persistent = 1
+               AND us.revoked_at IS NULL AND us.expires_at > UTC_TIMESTAMP()
+               AND us.last_active_at > DATE_SUB(UTC_TIMESTAMP(), INTERVAL 14 DAY)
+               AND (u.banned_at IS NULL OR (u.banned_until IS NOT NULL AND u.banned_until <= UTC_TIMESTAMP()))
+             LIMIT 1'
+        );
+        $stmt->execute([pw_session_hash($token)]);
+        $session = $stmt->fetch();
+        if (!$session) {
+            pw_clear_remember_cookie();
+            return false;
+        }
+
+        session_regenerate_id(true);
+        $rotatedToken = bin2hex(random_bytes(32));
+        $update = $db->prepare(
+            'UPDATE user_sessions
+             SET session_token_hash = ?, php_session_id_hash = ?, last_active_at = UTC_TIMESTAMP()
+             WHERE id = ? AND session_token_hash = ? AND is_persistent = 1
+               AND revoked_at IS NULL AND expires_at > UTC_TIMESTAMP()'
+        );
+        $update->execute([pw_session_hash($rotatedToken), pw_session_hash(session_id()), (int)$session['id'], pw_session_hash($token)]);
+        if ($update->rowCount() !== 1) {
+            return false;
+        }
+
+        $_SESSION['user_id'] = (int)$session['user_id'];
+        $_SESSION['pw_session_token'] = $rotatedToken;
+        $_SESSION['pw_authenticated_at'] = time();
+        $_SESSION['pw_session_provider'] = $session['auth_provider'] ?: 'password';
+        $_SESSION['pw_session_persistent'] = 1;
+        $_SESSION['pw_last_seen'] = time();
+        pw_apply_session_persistence(true);
+        pw_set_remember_cookie($rotatedToken);
+        return true;
+    } catch (Throwable $e) {
+        // A transient database failure must not turn an existing browser visit
+        // into a forced sign-out. The normal session path can still continue.
+        return false;
+    }
+}
+
+// Backfills the recovery cookie for live persistent sessions created before
+// this mechanism shipped. It deliberately checks is_persistent in the registry
+// first, preserving a member's deliberate "Remember me" opt-out.
+function pw_backfill_remember_cookie() {
+    if (isset($_COOKIE[PW_REMEMBER_COOKIE_NAME])) {
+        return;
+    }
+    $token = pw_current_session_token();
+    if ($token === null || empty($_SESSION['user_id'])) {
+        return;
+    }
+    try {
+        $stmt = pw_db()->prepare(
+            'SELECT 1 FROM user_sessions
+             WHERE user_id = ? AND session_token_hash = ? AND is_persistent = 1
+               AND revoked_at IS NULL AND expires_at > UTC_TIMESTAMP() LIMIT 1'
+        );
+        $stmt->execute([(int)$_SESSION['user_id'], pw_session_hash($token)]);
+        if ($stmt->fetchColumn()) {
+            pw_set_remember_cookie($token);
+        }
+    } catch (Throwable $e) {
+        // The registry is deliberately optional during its rollout window.
+    }
 }
 
 function pw_validate_current_user_session($userId) {
@@ -825,9 +987,9 @@ function pw_revoke_user_sessions($userId, $exceptToken = null, $reason = 'user_r
 function pw_destroy_local_session() {
     $_SESSION = [];
     if (ini_get('session.use_cookies')) {
-        $params = session_get_cookie_params();
-        setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
+        setcookie(session_name(), '', pw_cookie_options(time() - 42000));
     }
+    pw_clear_remember_cookie();
     session_destroy();
 }
 

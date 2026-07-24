@@ -57,8 +57,8 @@ try {
 }
 
 pw_log_login_attempt($ip, $identifier, true);
-pw_apply_session_persistence($remember);
 session_regenerate_id(true);
+pw_apply_session_persistence($remember);
 pw_two_factor_clear_pending_login();
 $_SESSION['user_id'] = $userId;
 pw_issue_user_session($userId, 'password+totp', $remember);
