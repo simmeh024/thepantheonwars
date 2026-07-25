@@ -8,6 +8,12 @@
   var activeList = document.getElementById('missions-active-list');
   var definitionList = document.getElementById('missions-definition-list');
   var crewList = document.getElementById('missions-crew-list');
+  var crewRoleFilter = document.getElementById('missions-crew-role-filter');
+  var crewLevelFilter = document.getElementById('missions-crew-level-filter');
+  var crewWorldFilter = document.getElementById('missions-crew-world-filter');
+  var crewStatusFilter = document.getElementById('missions-crew-status-filter');
+  var crewSort = document.getElementById('missions-crew-sort');
+  var crewFilterSummary = document.getElementById('missions-crew-filter-summary');
   var historyList = document.getElementById('missions-history-list');
   var commandFeedList = document.getElementById('mission-feed-list');
   var launchModal = document.getElementById('mission-launch-modal');
@@ -59,19 +65,76 @@
     }).join('');
   }
 
+  function crewAvailability(crew) {
+    if (!crew.definition_enabled) return 'unavailable';
+    if (crew.status === 'on_mission') return 'deployed';
+    return crew.status === 'available' ? 'available' : 'unavailable';
+  }
+
+  function populateCrewFilter(select, entries, allLabel, formatLabel) {
+    var current = select.value || 'all';
+    select.replaceChildren();
+    var allOption = document.createElement('option'); allOption.value = 'all'; allOption.textContent = allLabel; select.appendChild(allOption);
+    entries.forEach(function (entry) {
+      var option = document.createElement('option'); option.value = String(entry); option.textContent = formatLabel(entry); select.appendChild(option);
+    });
+    select.value = entries.map(String).indexOf(current) !== -1 ? current : 'all';
+  }
+
+  function updateCrewFilterOptions(crew) {
+    var roles = Array.from(new Set(crew.map(function (member) { return member.role; }).filter(Boolean))).sort();
+    var levels = Array.from(new Set(crew.map(function (member) { return Number(member.level); }).filter(function (level) { return level > 0; }))).sort(function (a, b) { return a - b; });
+    var worlds = Array.from(new Set(crew.map(function (member) { return member.world_affinity; }).filter(Boolean))).sort();
+    populateCrewFilter(crewRoleFilter, roles, 'All roles', function (role) { return role; });
+    populateCrewFilter(crewLevelFilter, levels, 'All levels', function (level) { return 'Level ' + level; });
+    populateCrewFilter(crewWorldFilter, worlds, 'All worlds', function (world) { return String(world).charAt(0).toUpperCase() + String(world).slice(1); });
+  }
+
+  function filteredCrew(crew) {
+    var role = crewRoleFilter.value;
+    var level = crewLevelFilter.value;
+    var world = crewWorldFilter.value;
+    var status = crewStatusFilter.value;
+    var visible = crew.filter(function (member) {
+      return (role === 'all' || member.role === role)
+        && (level === 'all' || Number(member.level) === Number(level))
+        && (world === 'all' || member.world_affinity === world)
+        && (status === 'all' || crewAvailability(member) === status);
+    });
+    var sort = crewSort.value;
+    if (sort === 'default') return visible;
+    var statusOrder = { available: 0, deployed: 1, unavailable: 2 };
+    return visible.slice().sort(function (left, right) {
+      var comparison = 0;
+      if (sort === 'name-asc') comparison = String(left.name).localeCompare(String(right.name));
+      if (sort === 'level-desc') comparison = Number(right.level) - Number(left.level);
+      if (sort === 'level-asc') comparison = Number(left.level) - Number(right.level);
+      if (sort === 'status') comparison = statusOrder[crewAvailability(left)] - statusOrder[crewAvailability(right)];
+      return comparison || String(left.name).localeCompare(String(right.name));
+    });
+  }
+
   function renderCrew(data) {
-    if (!data.crew.length) { crewList.innerHTML = '<p class="missions-empty">Crew records are being prepared.</p>'; return; }
-    crewList.innerHTML = data.crew.map(function (crew) {
+    if (!data.crew.length) { crewFilterSummary.textContent = ''; crewList.innerHTML = '<p class="missions-empty">Crew records are being prepared.</p>'; return; }
+    updateCrewFilterOptions(data.crew);
+    var visibleCrew = filteredCrew(data.crew);
+    document.getElementById('missions-crew-count').textContent = visibleCrew.length === data.crew.length
+      ? data.crew.length + (data.crew.length === 1 ? ' member' : ' members')
+      : visibleCrew.length + ' of ' + data.crew.length + ' members';
+    crewFilterSummary.textContent = visibleCrew.length === data.crew.length ? 'Showing your full roster.' : 'Showing ' + visibleCrew.length + ' matching crew member' + (visibleCrew.length === 1 ? '.' : 's.');
+    if (!visibleCrew.length) { crewList.innerHTML = '<p class="missions-empty">No crew members match these filters.</p>'; return; }
+    crewList.innerHTML = visibleCrew.map(function (crew) {
       var portrait = safeImage(crew.portrait_url);
-      var deployed = crew.status === 'on_mission';
-      var status = !crew.definition_enabled ? 'Unavailable' : deployed ? 'On mission' : 'Available';
+      var availability = crewAvailability(crew);
+      var deployed = availability === 'deployed';
+      var status = availability === 'unavailable' ? 'Unavailable' : deployed ? 'On mission' : 'Available';
       var missionCopy = deployed && crew.active_mission_name ? '<p class="crew-mission-copy">' + escapeHtml(crew.active_mission_name) + '<span class="mission-countdown" data-completes-at="' + escapeHtml(crew.active_mission_completes_at) + '">Calculating…</span></p>' : '';
       var profile = crewRoleProfile(crew.role);
       var totalXp = Math.max(0, Number(crew.xp) || 0);
       var cycleXp = totalXp % 100;
       var progress = totalXp > 0 && cycleXp === 0 ? 100 : cycleXp;
       var thresholdCopy = progress === 100 ? 'Cycle threshold reached' : (100 - progress) + ' XP to next threshold';
-      return '<article class="mission-crew-card ' + (deployed ? 'is-deployed' : '') + '">' + (portrait ? '<img src="' + escapeHtml(portrait) + '" alt="" class="mission-crew-portrait">' : '<div class="mission-crew-portrait mission-crew-fallback" aria-hidden="true">' + escapeHtml(crew.name.charAt(0)) + '</div>') + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3><p>' + escapeHtml(crew.description) + '</p><div class="crew-progression ' + profile.className + '"><div class="crew-rank-insignia" aria-label="' + escapeHtml(crew.role) + ' level ' + crew.level + '"><span>' + profile.code + '</span><small>L' + crew.level + '</small></div><div class="crew-progression-copy"><div><span>' + profile.rankLabel + '</span><strong>' + progress + ' / 100 XP</strong></div><div class="crew-xp-track"><span style="width:' + progress + '%"></span></div><small>' + thresholdCopy + '</small></div></div><div class="crew-status"><small>Status</small><strong>' + status + '</strong></div>' + missionCopy + '</div></article>';
+      return '<article class="mission-crew-card ' + (deployed ? 'is-deployed' : '') + (availability === 'unavailable' ? ' is-unavailable' : '') + '">' + (portrait ? '<img src="' + escapeHtml(portrait) + '" alt="" class="mission-crew-portrait">' : '<div class="mission-crew-portrait mission-crew-fallback" aria-hidden="true">' + escapeHtml(crew.name.charAt(0)) + '</div>') + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3><p>' + escapeHtml(crew.description) + '</p><div class="crew-progression ' + profile.className + '"><div class="crew-rank-insignia" aria-label="' + escapeHtml(crew.role) + ' level ' + crew.level + '"><span>' + profile.code + '</span><small>L' + crew.level + '</small></div><div class="crew-progression-copy"><div><span>' + profile.rankLabel + '</span><strong>' + progress + ' / 100 XP</strong></div><div class="crew-xp-track"><span style="width:' + progress + '%"></span></div><small>' + thresholdCopy + '</small></div></div><div class="crew-status"><small>Status</small><strong>' + status + '</strong></div>' + missionCopy + '</div></article>';
     }).join('');
   }
 
@@ -177,6 +240,9 @@
     var action = button.getAttribute('data-action'); var missionId = Number(button.getAttribute('data-mission-id'));
     button.disabled = true; button.classList.add('is-busy');
     post('/api/missions/' + action + '.php', { mission_id: missionId, csrf: window.PW_AUTH.csrf }).then(function (result) { setStatus(action === 'claim' ? 'Rewards claimed: +' + result.xp_awarded_per_crew + ' XP per crew and +' + result.reputation_awarded + ' reputation.' : 'Mission completed. Rewards are ready to claim.'); load(); }).catch(function (error) { setStatus(error.message, true); button.disabled = false; button.classList.remove('is-busy'); });
+  });
+  [crewRoleFilter, crewLevelFilter, crewWorldFilter, crewStatusFilter, crewSort].forEach(function (control) {
+    control.addEventListener('change', function () { if (state.data) renderCrew(state.data); });
   });
   document.addEventListener('pw-auth-ready', load); window.setInterval(tickCountdowns, 1000); window.setInterval(tickCommandFeed, 1000); load();
 }());
