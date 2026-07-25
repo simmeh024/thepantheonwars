@@ -214,6 +214,264 @@ function pw_missions_track_progress(array $chain, array $claimedCounts): array {
     ];
 }
 
+/**
+ * Crew Stats is a further additive migration. Every read and write path probes
+ * for it and falls back to the pre-stats behaviour, so a deploy landing ahead
+ * of the migration keeps missions fully playable -- they simply award no loot
+ * and cannot fail, exactly as before.
+ */
+function pw_mission_stats_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_missions_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT strength, cunning, science, charisma FROM `game_player_crew` LIMIT 1');
+        $db->query('SELECT base_success_percent, loot_rolls FROM `game_mission_definitions` LIMIT 1');
+        $db->query('SELECT id FROM `game_loot_definitions` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * Crew stats, levelling, and the effects a crew brings to a mission.
+ *
+ * Everything here is a pure function of role, level and stat values, so the
+ * same numbers can be shown in the browser and enforced on the server without
+ * two implementations drifting apart. The browser only ever displays them; the
+ * server recomputes every figure it acts on.
+ * ---------------------------------------------------------------------- */
+
+const PW_MISSION_MAX_LEVEL = 50;
+const PW_MISSION_MAX_STAT = 50;
+const PW_MISSION_XP_PER_LEVEL = 100;
+
+/**
+ * Stats a crew member has automatically allocated by this level: two points per
+ * level into the role's primary stat and one into Cunning, each capped.
+ *
+ * The two caps meet at different levels on purpose. A primary stat reaches 50
+ * at level 25 and plateaus, while Cunning arrives at exactly 50 at level 50, so
+ * the second half of a career trades raw specialism for the role bonus and
+ * steadily better loot.
+ */
+function pw_missions_stat_plan(string $role): array {
+    $primary = [
+        'Vanguard' => 'strength',
+        'Pathfinder' => 'charisma',
+        'Engineer' => 'science',
+    ][$role] ?? null;
+    return ['primary' => $primary, 'primary_per_level' => 2, 'cunning_per_level' => 1];
+}
+
+function pw_missions_stats_for_level(string $role, int $level): array {
+    $level = max(0, min(PW_MISSION_MAX_LEVEL, $level));
+    $plan = pw_missions_stat_plan($role);
+    $stats = ['strength' => 0, 'cunning' => 0, 'science' => 0, 'charisma' => 0];
+    $stats['cunning'] = min(PW_MISSION_MAX_STAT, $level * $plan['cunning_per_level']);
+    if ($plan['primary'] !== null) {
+        $stats[$plan['primary']] = min(PW_MISSION_MAX_STAT, $level * $plan['primary_per_level']);
+    }
+    return $stats;
+}
+
+/**
+ * Level implied by total XP, at a flat 100 XP per level -- the same threshold
+ * the crew card has always displayed. A crew template may start above level 1,
+ * and levelling must never demote it, so the definition's starting level acts
+ * as a floor.
+ */
+function pw_missions_level_for_xp(int $xp, int $startingLevel = 1): int {
+    $earned = (int)floor(max(0, $xp) / PW_MISSION_XP_PER_LEVEL) + 1;
+    return max(1, min(PW_MISSION_MAX_LEVEL, max($earned, $startingLevel)));
+}
+
+/**
+ * Per-level role bonus one crew member contributes to a mission.
+ * Engineer  0.05% shorter mission per level
+ * Pathfinder 0.10% more XP for the whole crew per level
+ * Vanguard  0.05 flat reputation per level
+ * These stack across every crew member assigned, so three level-2 Engineers
+ * contribute 3 x (2 x 0.05%) = 0.30%.
+ */
+function pw_missions_role_rates(): array {
+    return [
+        'Engineer' => ['duration_percent_per_level' => 0.05],
+        'Pathfinder' => ['xp_percent_per_level' => 0.10],
+        'Vanguard' => ['reputation_per_level' => 0.05],
+    ];
+}
+
+/**
+ * Per-point stat rates. Applied to the summed stat totals of the assigned crew.
+ */
+function pw_missions_stat_rates(): array {
+    return [
+        'strength' => ['key' => 'success_percent_per_point', 'value' => 0.5],
+        'cunning' => ['key' => 'loot_percent_per_point', 'value' => 1.0],
+        'charisma' => ['key' => 'xp_percent_per_point', 'value' => 0.5],
+        'science' => ['key' => 'upgrade_percent_per_point', 'value' => 1.5],
+    ];
+}
+
+/**
+ * Total effects a set of assigned crew brings to one mission.
+ *
+ * @param array $crew Rows carrying role, level and the four stat columns.
+ */
+function pw_missions_crew_effects(array $crew): array {
+    $rates = pw_missions_role_rates();
+    $totals = ['strength' => 0, 'cunning' => 0, 'science' => 0, 'charisma' => 0];
+    $durationPercent = 0.0;
+    $xpPercent = 0.0;
+    $reputationFlat = 0.0;
+
+    foreach ($crew as $member) {
+        $level = max(0, min(PW_MISSION_MAX_LEVEL, (int)($member['level'] ?? 0)));
+        foreach ($totals as $stat => $_) {
+            $totals[$stat] += max(0, min(PW_MISSION_MAX_STAT, (int)($member[$stat] ?? 0)));
+        }
+        $role = (string)($member['role'] ?? '');
+        if (isset($rates[$role]['duration_percent_per_level'])) $durationPercent += $level * $rates[$role]['duration_percent_per_level'];
+        if (isset($rates[$role]['xp_percent_per_level'])) $xpPercent += $level * $rates[$role]['xp_percent_per_level'];
+        if (isset($rates[$role]['reputation_per_level'])) $reputationFlat += $level * $rates[$role]['reputation_per_level'];
+    }
+
+    // Charisma adds to the same XP pool the Pathfinder role bonus feeds.
+    $xpPercent += $totals['charisma'] * 0.5;
+
+    return [
+        // Clamped well short of a free mission: a duration multiplier must stay
+        // positive however large a future crew or rate becomes.
+        'duration_percent' => round(min(90.0, $durationPercent), 2),
+        'xp_percent' => round($xpPercent, 2),
+        'reputation_flat' => (int)floor($reputationFlat),
+        'success_percent' => round($totals['strength'] * 0.5, 2),
+        'loot_percent' => round($totals['cunning'] * 1.0, 2),
+        'upgrade_percent' => round(min(95.0, $totals['science'] * 1.5), 2),
+        'stat_totals' => $totals,
+    ];
+}
+
+/**
+ * Mission duration after the Engineer bonus, floored so an operation can never
+ * become instant however deep a crew's experience runs.
+ */
+function pw_missions_effective_duration(int $baseSeconds, array $effects): int {
+    $seconds = (int)round($baseSeconds * (1 - ($effects['duration_percent'] / 100)));
+    return max(30, min($baseSeconds, $seconds));
+}
+
+function pw_missions_effective_success(int $baseSuccessPercent, array $effects): int {
+    $percent = (int)round($baseSuccessPercent + $effects['success_percent']);
+    return max(5, min(100, $percent));
+}
+
+/* ------------------------------------------------------------------------
+ * Loot.
+ *
+ * Cunning buys extra draws: every whole 100% of loot bonus is one guaranteed
+ * additional roll, and the remainder is the chance of one more. Science is a
+ * per-item upgrade roll that promotes a drop one tier up the ladder.
+ *
+ * Both are resolved server-side with random_int(). The client is never told
+ * the odds it rolled against, only what it received.
+ * ---------------------------------------------------------------------- */
+
+function pw_missions_loot_tiers(): array {
+    return ['common', 'uncommon', 'rare', 'legendary'];
+}
+
+/** Percent chance expressed to two decimals, rolled against a 0-10000 range. */
+function pw_missions_percent_roll(float $percent): bool {
+    $percent = max(0.0, min(100.0, $percent));
+    if ($percent <= 0) return false;
+    if ($percent >= 100) return true;
+    return random_int(1, 10000) <= (int)round($percent * 100);
+}
+
+function pw_missions_loot_roll_count(int $baseRolls, array $effects): int {
+    if ($baseRolls < 1) return 0;
+    $bonus = max(0.0, $effects['loot_percent']);
+    $rolls = $baseRolls + (int)floor($bonus / 100);
+    if (pw_missions_percent_roll(fmod($bonus, 100))) $rolls++;
+    // A single mission cannot empty the pool however deep a crew's Cunning runs.
+    return min(12, $rolls);
+}
+
+/**
+ * Draw loot for one mission. Returns rows of definition id, name and tier, one
+ * entry per item awarded, with the Science upgrade already applied.
+ */
+function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array $effects): array {
+    $rolls = pw_missions_loot_roll_count($baseRolls, $effects);
+    if ($rolls < 1) return [];
+
+    $stmt = $db->prepare('SELECT id, name, slug, tier, drop_weight FROM game_loot_definitions WHERE world_key = ? AND is_enabled = 1');
+    $stmt->execute([$worldKey]);
+    $pool = $stmt->fetchAll();
+    if (!$pool) return [];
+
+    /* Normalise the weights on the pool itself, not on a copy: an administrator
+     * may set a drop weight of 0, and an all-zero pool would otherwise reach
+     * random_int(1, 0) and throw. Every item stays drawable at minimum weight. */
+    $byTier = [];
+    foreach ($pool as $index => $item) {
+        $pool[$index]['drop_weight'] = max(1, (int)$item['drop_weight']);
+        $byTier[$item['tier']][] = $pool[$index];
+    }
+    $tiers = pw_missions_loot_tiers();
+
+    $pick = static function (array $candidates) {
+        $total = 0;
+        foreach ($candidates as $item) $total += max(1, (int)$item['drop_weight']);
+        $target = random_int(1, $total);
+        foreach ($candidates as $item) {
+            $target -= max(1, (int)$item['drop_weight']);
+            if ($target <= 0) return $item;
+        }
+        return $candidates[count($candidates) - 1];
+    };
+
+    $awarded = [];
+    for ($i = 0; $i < $rolls; $i++) {
+        $item = $pick($pool);
+        // Science promotes the drop one tier when it hits and a higher tier
+        // actually exists; otherwise the original item stands.
+        if (pw_missions_percent_roll($effects['upgrade_percent'])) {
+            $index = array_search($item['tier'], $tiers, true);
+            $nextTier = $index !== false ? ($tiers[$index + 1] ?? null) : null;
+            if ($nextTier !== null && !empty($byTier[$nextTier])) {
+                $item = $pick($byTier[$nextTier]);
+                $item['upgraded'] = true;
+            }
+        }
+        $awarded[] = [
+            'id' => (int)$item['id'],
+            'name' => $item['name'],
+            'tier' => $item['tier'],
+            'upgraded' => !empty($item['upgraded']),
+        ];
+    }
+    return $awarded;
+}
+
+function pw_missions_store_loot(PDO $db, int $userId, array $awarded): void {
+    if (!$awarded) return;
+    $counts = [];
+    foreach ($awarded as $item) {
+        $counts[$item['id']] = ($counts[$item['id']] ?? 0) + 1;
+    }
+    $stmt = $db->prepare(
+        'INSERT INTO game_player_loot (user_id, loot_definition_id, quantity) VALUES (?, ?, ?)
+         ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)'
+    );
+    foreach ($counts as $definitionId => $quantity) {
+        $stmt->execute([$userId, $definitionId, $quantity]);
+    }
+}
+
 function pw_missions_grant_starter_crew(PDO $db, int $userId): void {
     $stmt = $db->prepare(
         'INSERT IGNORE INTO game_player_crew (user_id, crew_definition_id, level, xp, status)

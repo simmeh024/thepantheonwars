@@ -86,6 +86,24 @@
       + '<small class="mission-campaign-strip-note">' + escapeHtml(line) + '</small></div>';
   }
 
+  /* A mission that can fail must say so before a crew is committed. The base
+   * chance comes from the operation; the crew's Strength is added on top, and
+   * the server rolls the real figure at claim. */
+  function missionRiskMarkup(mission) {
+    var base = Number(mission.base_success_percent);
+    if (!isFinite(base)) base = 100;
+    var bonus = state.data && state.data.roster_effects ? Number(state.data.roster_effects.success_percent) || 0 : 0;
+    var parts = [];
+    if (base < 100) {
+      parts.push('<span class="mission-risk-chance" title="' + escapeHtml('This operation succeeds ' + base + '% of the time before your crew is counted. Strength across the assigned crew adds to that, and the result is rolled when you claim. A failed mission returns your crew with no rewards and does not count towards a campaign unlock.') + '" tabindex="0">Success ' + base + '%'
+        + (bonus > 0 ? ' <em>+' + fmt(bonus) + '% roster</em>' : '') + '</span>');
+    }
+    if (Number(mission.loot_rolls) > 0) {
+      parts.push('<span class="mission-risk-loot" title="' + escapeHtml('Recovers ' + mission.loot_rolls + ' item' + (mission.loot_rolls === 1 ? '' : 's') + ' on success. Cunning adds extra draws and Science can promote a drop to a higher tier.') + '" tabindex="0">' + mission.loot_rolls + ' loot roll' + (mission.loot_rolls === 1 ? '' : 's') + '</span>');
+    }
+    return parts.length ? '<p class="mission-risk">' + parts.join('') + '</p>' : '';
+  }
+
   /* Each entry is one slot: a standalone mission, or a campaign track showing
    * only its current step. The server sends nothing about a sealed operation,
    * so there is no locked-card branch here by design. */
@@ -104,7 +122,9 @@
       var canLaunch = available >= mission.min_crew;
       return '<article class="mission-definition-card' + (campaign ? ' has-campaign' : '') + '"><div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p>'
         + (campaign ? campaignStateMarkup(campaign) : '<p class="mission-unlock-state is-base">Available immediately</p>')
-        + '<dl class="mission-definition-meta"><div><dt>Crew</dt><dd>' + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + '</dd></div><div><dt>XP</dt><dd>+' + mission.xp_reward + ' per crew</dd></div><div><dt>Reputation</dt><dd>' + (mission.reputation_reward ? '+' + mission.reputation_reward : '—') + '</dd></div></dl><button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + (canLaunch ? 'Select Crew' : 'Crew Unavailable') + '</button></article>';
+        + '<dl class="mission-definition-meta"><div><dt>Crew</dt><dd>' + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + '</dd></div><div><dt>XP</dt><dd>+' + mission.xp_reward + ' per crew</dd></div><div><dt>Reputation</dt><dd>' + (mission.reputation_reward ? '+' + mission.reputation_reward : '—') + '</dd></div></dl>'
+        + missionRiskMarkup(mission)
+        + '<button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + (canLaunch ? 'Select Crew' : 'Crew Unavailable') + '</button></article>';
     }).join('');
   }
 
@@ -157,6 +177,55 @@
     });
   }
 
+  /* Stat card shown under each portrait. The four stats are allocated
+   * automatically on level up, so this is a readout, never a control. Every
+   * figure here is recomputed on the server before it affects a mission --
+   * these numbers explain the maths, they do not decide it. */
+  var STAT_INFO = {
+    strength: { label: 'Strength', short: 'STR', effect: function (v) { return '+' + fmt(v * 0.5) + '% mission success'; },
+      copy: 'Raises the chance a mission succeeds at all. 0.5% per point, added to the operation’s own base chance and shared across the whole assigned crew.' },
+    cunning: { label: 'Cunning', short: 'CUN', effect: function (v) { return '+' + fmt(v * 1) + '% loot'; },
+      copy: 'Buys extra draws from the loot pool. 1% per point; every whole 100% is one guaranteed extra item, and the remainder is the chance of one more.' },
+    science: { label: 'Science', short: 'SCI', effect: function (v) { return '+' + fmt(v * 1.5) + '% tier upgrade'; },
+      copy: 'A luck roll on each item recovered. 1.5% per point for that drop to be promoted one rarity tier higher.' },
+    charisma: { label: 'Charisma', short: 'CHA', effect: function (v) { return '+' + fmt(v * 0.5) + '% XP'; },
+      copy: 'Adds to the experience the whole crew earns from a mission. 0.5% per point, stacking with the Pathfinder role bonus.' }
+  };
+  var ROLE_INFO = {
+    Engineer: { stat: 'science', effect: function (l) { return '−' + fmt(l * 0.05) + '% mission time'; },
+      copy: 'Engineers shorten every operation they join by 0.05% per level. This stacks across the crew, so three level-2 Engineers cut 0.30% from the clock.' },
+    Pathfinder: { stat: 'charisma', effect: function (l) { return '+' + fmt(l * 0.10) + '% crew XP'; },
+      copy: 'Pathfinders raise the experience the whole crew earns by 0.10% per level, on top of their own Charisma.' },
+    Vanguard: { stat: 'strength', effect: function (l) { return '+' + fmt(l * 0.05) + ' reputation'; },
+      copy: 'Vanguards add 0.05 flat reputation per level to a successful mission, on top of the operation’s own reward.' }
+  };
+  function fmt(value) {
+    var rounded = Math.round(value * 100) / 100;
+    return String(rounded % 1 === 0 ? rounded : rounded.toFixed(2).replace(/0$/, ''));
+  }
+
+  function crewStatCard(crew) {
+    var maxStat = Number(crew.max_stat) || 50;
+    var cells = ['strength', 'cunning', 'science', 'charisma'].map(function (key) {
+      var info = STAT_INFO[key];
+      var value = Math.max(0, Number(crew[key]) || 0);
+      var pct = Math.min(100, Math.round((value / maxStat) * 100));
+      var capped = value >= maxStat;
+      var tip = info.label + ' ' + value + ' / ' + maxStat + (capped ? ' (max)' : '') + ' — ' + info.effect(value) + '. ' + info.copy;
+      return '<div class="crew-stat' + (capped ? ' is-max' : '') + ' is-' + key + '" tabindex="0" title="' + escapeHtml(tip) + '">'
+        + '<span class="crew-stat-key">' + info.short + '</span>'
+        + '<span class="crew-stat-value">' + value + '</span>'
+        + '<span class="crew-stat-bar"><i style="width:' + pct + '%"></i></span>'
+        + '<span class="crew-stat-effect">' + escapeHtml(info.effect(value)) + '</span></div>';
+    }).join('');
+
+    var role = ROLE_INFO[crew.role];
+    var roleLine = role
+      ? '<p class="crew-stat-role" tabindex="0" title="' + escapeHtml(role.copy) + '"><span>' + escapeHtml(crew.role) + ' bonus</span><strong>' + escapeHtml(role.effect(Number(crew.level) || 0)) + '</strong></p>'
+      : '';
+    return '<div class="crew-stat-card"><div class="crew-stat-grid">' + cells + '</div>' + roleLine + '</div>';
+  }
+
   function renderCrew(data) {
     if (!data.crew.length) { crewFilterSummary.textContent = ''; crewList.innerHTML = '<p class="missions-empty">Crew records are being prepared.</p>'; return; }
     updateCrewFilterOptions(data.crew);
@@ -173,11 +242,15 @@
       var status = availability === 'unavailable' ? 'Unavailable' : deployed ? 'On mission' : 'Available';
       var missionCopy = deployed && crew.active_mission_name ? '<p class="crew-mission-copy">' + escapeHtml(crew.active_mission_name) + '<span class="mission-countdown" data-completes-at="' + escapeHtml(crew.active_mission_completes_at) + '">Calculating…</span></p>' : '';
       var profile = crewRoleProfile(crew.role);
+      var maxLevel = Number(crew.max_level) || 50;
+      var atMaxLevel = (Number(crew.level) || 0) >= maxLevel;
       var totalXp = Math.max(0, Number(crew.xp) || 0);
       var cycleXp = totalXp % 100;
-      var progress = totalXp > 0 && cycleXp === 0 ? 100 : cycleXp;
-      var thresholdCopy = progress === 100 ? 'Cycle threshold reached' : (100 - progress) + ' XP to next threshold';
-      return '<article class="mission-crew-card ' + (deployed ? 'is-deployed' : '') + (availability === 'unavailable' ? ' is-unavailable' : '') + '">' + (portrait ? '<img src="' + escapeHtml(portrait) + '" alt="" class="mission-crew-portrait">' : '<div class="mission-crew-portrait mission-crew-fallback" aria-hidden="true">' + escapeHtml(crew.name.charAt(0)) + '</div>') + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3><p>' + escapeHtml(crew.description) + '</p><div class="crew-progression ' + profile.className + '"><div class="crew-rank-insignia" aria-label="' + escapeHtml(crew.role) + ' level ' + crew.level + '"><span>' + profile.code + '</span><small>L' + crew.level + '</small></div><div class="crew-progression-copy"><div><span>' + profile.rankLabel + '</span><strong>' + progress + ' / 100 XP</strong></div><div class="crew-xp-track"><span style="width:' + progress + '%"></span></div><small>' + thresholdCopy + '</small></div></div><div class="crew-status"><small>Status</small><strong>' + status + '</strong></div>' + missionCopy + '</div></article>';
+      // At the level ceiling the XP cycle keeps turning but buys nothing, so
+      // the bar reads full rather than restarting from a misleading zero.
+      var progress = atMaxLevel ? 100 : (totalXp > 0 && cycleXp === 0 ? 100 : cycleXp);
+      var thresholdCopy = atMaxLevel ? 'Maximum rank reached' : progress === 100 ? 'Cycle threshold reached' : (100 - progress) + ' XP to next threshold';
+      return '<article class="mission-crew-card ' + (deployed ? 'is-deployed' : '') + (availability === 'unavailable' ? ' is-unavailable' : '') + '">' + (portrait ? '<img src="' + escapeHtml(portrait) + '" alt="" class="mission-crew-portrait">' : '<div class="mission-crew-portrait mission-crew-fallback" aria-hidden="true">' + escapeHtml(crew.name.charAt(0)) + '</div>') + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3><p>' + escapeHtml(crew.description) + '</p><div class="crew-progression ' + profile.className + (atMaxLevel ? ' is-max-level' : '') + '"><div class="crew-rank-insignia" aria-label="' + escapeHtml(crew.role) + ' level ' + crew.level + '"><span>' + profile.code + '</span><small>L' + crew.level + '</small></div><div class="crew-progression-copy"><div><span>' + profile.rankLabel + '</span><strong>' + (atMaxLevel ? 'Level ' + maxLevel : progress + ' / 100 XP') + '</strong></div><div class="crew-xp-track"><span style="width:' + progress + '%"></span></div><small>' + thresholdCopy + '</small></div></div>' + crewStatCard(crew) + '<div class="crew-status"><small>Status</small><strong>' + status + '</strong></div>' + missionCopy + '</div></article>';
     }).join('');
   }
 
@@ -228,6 +301,21 @@
     var server = apiDate(data.server_time);
     state.serverOffset = server && !isNaN(server) ? server.getTime() - Date.now() : 0;
     renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderHistory(data); tickCountdowns();
+  }
+
+  function claimSummary(result) {
+    if (result.succeeded === false) {
+      return 'Mission failed at ' + result.success_percent + '% success. Your crew returned without rewards, and this run does not count towards a campaign unlock.';
+    }
+    var parts = ['Rewards claimed: +' + result.xp_awarded_per_crew + ' XP per crew'];
+    if (result.xp_bonus_percent > 0) parts[0] += ' (includes +' + fmt(result.xp_bonus_percent) + '% crew bonus)';
+    if (result.reputation_awarded > 0) parts.push('+' + result.reputation_awarded + ' reputation');
+    if (result.level_ups && result.level_ups.length) parts.push(result.level_ups.length + ' crew levelled up');
+    if (result.loot && result.loot.length) {
+      var names = result.loot.map(function (item) { return item.name + (item.upgraded ? ' (upgraded)' : ''); });
+      parts.push('recovered ' + names.join(', '));
+    }
+    return parts.join(' · ') + '.';
   }
 
   function tickCountdowns() {
@@ -282,7 +370,7 @@
     var button = event.target.closest('.mission-action'); if (!button) return;
     var action = button.getAttribute('data-action'); var missionId = Number(button.getAttribute('data-mission-id'));
     button.disabled = true; button.classList.add('is-busy');
-    post('/api/missions/' + action + '.php', { mission_id: missionId, csrf: window.PW_AUTH.csrf }).then(function (result) { setStatus(action === 'claim' ? 'Rewards claimed: +' + result.xp_awarded_per_crew + ' XP per crew and +' + result.reputation_awarded + ' reputation.' : 'Mission completed. Rewards are ready to claim.'); load(); }).catch(function (error) { setStatus(error.message, true); button.disabled = false; button.classList.remove('is-busy'); });
+    post('/api/missions/' + action + '.php', { mission_id: missionId, csrf: window.PW_AUTH.csrf }).then(function (result) { setStatus(action === 'claim' ? claimSummary(result) : 'Mission completed. Rewards are ready to claim.', action === 'claim' && result.succeeded === false); load(); }).catch(function (error) { setStatus(error.message, true); button.disabled = false; button.classList.remove('is-busy'); });
   });
   [crewRoleFilter, crewLevelFilter, crewWorldFilter, crewStatusFilter, crewSort].forEach(function (control) {
     control.addEventListener('change', function () { if (state.data) renderCrew(state.data); });

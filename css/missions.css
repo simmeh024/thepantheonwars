@@ -58,6 +58,41 @@
 @media (prefers-reduced-motion: reduce) { .mission-campaign-block i { transition: none; } }
 @media (max-width: 620px) { .mission-campaign-block { height: 9px; } }
 
+/* Crew stat card. Stats are allocated automatically on level up, so this is a
+ * readout rather than a control -- nothing here is clickable, but every cell is
+ * focusable so the hover explanation is reachable by keyboard too. */
+.crew-stat-card { margin: 10px 0 0; padding: 9px 10px 8px; border: 1px solid rgba(88,142,181,0.28); background: rgba(8,18,33,0.5); }
+.crew-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.crew-stat { display: grid; grid-template-columns: auto 1fr; grid-template-areas: 'key value' 'bar bar' 'effect effect'; align-items: center; gap: 2px 6px; padding: 6px 7px; border: 1px solid rgba(103,152,190,0.24); background: rgba(12,25,44,0.66); cursor: help; }
+.crew-stat:hover, .crew-stat:focus-visible { border-color: rgba(126,227,232,0.55); background: rgba(16,34,58,0.8); }
+.crew-stat-key { grid-area: key; color: #79d9df; font-size: 0.56rem; font-weight: 700; letter-spacing: .1em; }
+.crew-stat-value { grid-area: value; justify-self: end; color: #f0edf8; font-size: 0.82rem; font-weight: 600; line-height: 1; }
+.crew-stat-bar { grid-area: bar; height: 4px; margin: 3px 0 1px; overflow: hidden; background: rgba(9,19,35,0.85); }
+.crew-stat-bar i { display: block; height: 100%; background: linear-gradient(90deg, #4fc6d6, #7ee3e8); transition: width .4s ease; }
+.crew-stat-effect { grid-area: effect; color: #94aec0; font-size: 0.58rem; letter-spacing: .015em; }
+.crew-stat.is-strength .crew-stat-key { color: #e08a72; } .crew-stat.is-strength .crew-stat-bar i { background: linear-gradient(90deg, #b8543a, #e08a72); }
+.crew-stat.is-cunning .crew-stat-key { color: #c79ae8; } .crew-stat.is-cunning .crew-stat-bar i { background: linear-gradient(90deg, #8d5cc4, #c79ae8); }
+.crew-stat.is-science .crew-stat-key { color: #6fd7b0; } .crew-stat.is-science .crew-stat-bar i { background: linear-gradient(90deg, #34a37c, #6fd7b0); }
+.crew-stat.is-charisma .crew-stat-key { color: #e8c66f; } .crew-stat.is-charisma .crew-stat-bar i { background: linear-gradient(90deg, #c09033, #e8c66f); }
+.crew-stat.is-max { border-color: rgba(235,209,138,0.5); }
+.crew-stat.is-max .crew-stat-value { color: #ebd18a; }
+.crew-stat-role { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 8px 0 0; padding-top: 7px; border-top: 1px solid rgba(88,142,181,0.22); cursor: help; }
+.crew-stat-role span { color: #87a7bb; font-size: 0.58rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+.crew-stat-role strong { color: #7ee3e8; font-size: 0.68rem; font-weight: 600; white-space: nowrap; }
+.crew-stat-role:hover span, .crew-stat-role:focus-visible span { color: #b6cad8; }
+.crew-progression.is-max-level .crew-rank-insignia { border-color: rgba(235,209,138,0.6); color: #ebd18a; }
+
+/* Mission risk line. Only rendered when an operation can actually fail or
+ * actually drops loot, so a plain mission card is unchanged. */
+.mission-risk { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0 !important; }
+.mission-risk span { padding: 3px 7px; border: 1px solid rgba(103,152,190,0.34); color: #b6cad8; font-size: 0.6rem; font-weight: 600; letter-spacing: .04em; cursor: help; }
+.mission-risk span:hover, .mission-risk span:focus-visible { border-color: rgba(126,227,232,0.55); color: #dceaf3; }
+.mission-risk-chance { border-color: rgba(224,138,114,0.4) !important; color: #e0a894 !important; }
+.mission-risk-chance em { color: #9edba8; font-style: normal; }
+.mission-risk-loot { border-color: rgba(199,154,232,0.4) !important; color: #c79ae8 !important; }
+@media (prefers-reduced-motion: reduce) { .crew-stat-bar i { transition: none; } }
+@media (max-width: 420px) { .crew-stat-grid { grid-template-columns: 1fr; } }
+
 .missions-section { margin-top: 42px; }
 .missions-section-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
 .missions-section-head .eyebrow { margin-bottom: 6px; color: #79d9df; font-size: 0.62rem; }

@@ -34,6 +34,10 @@ function pw_admin_mission_definition_input(array $input): array {
     }
     $sortOrder = filter_var($input['sort_order'] ?? 0, FILTER_VALIDATE_INT);
     if ($sortOrder === false || $sortOrder < 0 || $sortOrder > 100000) pw_error('Sort order must be between 0 and 100000.');
+    $baseSuccess = filter_var($input['base_success_percent'] ?? 100, FILTER_VALIDATE_INT);
+    if ($baseSuccess === false || $baseSuccess < 1 || $baseSuccess > 100) pw_error('Base success chance must be between 1% and 100%.');
+    $lootRolls = filter_var($input['loot_rolls'] ?? 0, FILTER_VALIDATE_INT);
+    if ($lootRolls === false || $lootRolls < 0 || $lootRolls > 10) pw_error('Loot rolls must be between 0 and 10.');
     $unlocksAfterRaw = trim((string)($input['unlocks_after_mission_id'] ?? ''));
     $unlocksAfterMissionId = null;
     if ($unlocksAfterRaw !== '') {
@@ -52,6 +56,8 @@ function pw_admin_mission_definition_input(array $input): array {
         'unlocks_after_mission_id' => $unlocksAfterMissionId,
         'unlocks_after_completion_count' => $unlocksAfterCompletionCount,
         'is_campaign_final' => !empty($input['is_campaign_final']) ? 1 : 0,
+        'base_success_percent' => $baseSuccess,
+        'loot_rolls' => $lootRolls,
     ];
 }
 

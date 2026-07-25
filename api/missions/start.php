@@ -43,9 +43,12 @@ try {
         throw new RuntimeException('This mission requires between ' . (int)$mission['min_crew'] . ' and ' . (int)$mission['max_crew'] . ' crew members.');
     }
 
+    $statsReady = pw_mission_stats_ready($db);
     $placeholders = pw_missions_placeholders(count($crewIds));
     $crewStmt = $db->prepare(
-        'SELECT pc.id, pc.status FROM game_player_crew pc
+        'SELECT pc.id, pc.status, pc.level, c.role'
+        . ($statsReady ? ', pc.strength, pc.cunning, pc.science, pc.charisma' : '') .
+        ' FROM game_player_crew pc
          JOIN game_crew_definitions c ON c.id = pc.crew_definition_id AND c.is_enabled = 1
          WHERE pc.user_id = ? AND pc.id IN (' . $placeholders . ') FOR UPDATE'
     );
@@ -56,8 +59,17 @@ try {
         if ($member['status'] !== 'available') throw new RuntimeException('Every selected crew member must be available.');
     }
 
+    /* The Engineer bonus is applied to the completion time at launch, so the
+     * countdown a player watches is the real one. Every other bonus is resolved
+     * at claim instead -- a crew that levels up mid-mission should benefit,
+     * and the duration is already fixed by then. */
+    $effects = $statsReady
+        ? pw_missions_crew_effects($selectedCrew)
+        : ['duration_percent' => 0.0, 'success_percent' => 0.0];
+    $duration = pw_missions_effective_duration((int)$mission['duration_seconds'], $effects);
+
     $now = pw_missions_utc_now($db);
-    $completesAt = $now->modify('+' . (int)$mission['duration_seconds'] . ' seconds');
+    $completesAt = $now->modify('+' . $duration . ' seconds');
     $insert = $db->prepare(
         'INSERT INTO game_player_missions
          (user_id, mission_definition_id, world_key, status, started_at, completes_at, xp_reward, reputation_reward)

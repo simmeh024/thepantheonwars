@@ -10,14 +10,17 @@ $duplicate = $db->prepare('SELECT id FROM game_mission_definitions WHERE slug = 
 if ($duplicate->fetch()) pw_error('A mission with that slug already exists.', 409);
 pw_admin_validate_mission_succession($db, null, $data);
 $campaignReady = pw_mission_campaign_ready($db);
+$statsReady = pw_mission_stats_ready($db);
 $stmt = $db->prepare(
     'INSERT INTO game_mission_definitions
      (world_key, name, slug, description, mission_type, duration_seconds, min_crew, max_crew, xp_reward, reputation_reward, is_enabled, sort_order, unlocks_after_mission_id, unlocks_after_completion_count'
-    . ($campaignReady ? ', is_campaign_final)' : ')') .
-    ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?' . ($campaignReady ? ', ?)' : ')')
+    . ($campaignReady ? ', is_campaign_final' : '')
+    . ($statsReady ? ', base_success_percent, loot_rolls' : '') . ')'
+    . ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?' . ($campaignReady ? ', ?' : '') . ($statsReady ? ', ?, ?' : '') . ')'
 );
 $values = [$data['world_key'], $data['name'], $data['slug'], $data['description'], $data['mission_type'], $data['duration_seconds'], $data['min_crew'], $data['max_crew'], $data['xp_reward'], $data['reputation_reward'], $data['is_enabled'], $data['sort_order'], $data['unlocks_after_mission_id'], $data['unlocks_after_completion_count']];
 if ($campaignReady) $values[] = $data['is_campaign_final'];
+if ($statsReady) { $values[] = $data['base_success_percent']; $values[] = $data['loot_rolls']; }
 $stmt->execute($values);
 $id = (int)$db->lastInsertId();
 if ($campaignReady) pw_admin_apply_campaign_final($db, $id, $data);

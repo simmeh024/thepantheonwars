@@ -9,8 +9,10 @@ $userId = (int)$user['id'];
 try {
     pw_missions_grant_starter_crew($db, $userId);
 
+    $statsReady = pw_mission_stats_ready($db);
     $crewStmt = $db->prepare(
-        'SELECT pc.id, pc.level, pc.xp, pc.status, pc.created_at,
+        'SELECT pc.id, pc.level, pc.xp, pc.status, pc.created_at,'
+        . ($statsReady ? ' pc.strength, pc.cunning, pc.science, pc.charisma,' : '') . '
                 c.name, c.slug, c.description, c.role, c.portrait_url, c.world_affinity, c.is_enabled AS definition_enabled,
                 active.id AS active_mission_id, active.status AS active_mission_status,
                 active.completes_at AS active_mission_completes_at, active.active_mission_name
@@ -27,10 +29,20 @@ try {
          ORDER BY c.is_starter DESC, c.role ASC, c.name ASC'
     );
     $crewStmt->execute([$userId, $userId]);
-    $crew = array_map(static function ($row) {
+    $crew = array_map(static function ($row) use ($statsReady) {
         foreach (['id', 'level', 'xp'] as $field) $row[$field] = (int)$row[$field];
         $row['definition_enabled'] = (bool)$row['definition_enabled'];
         $row['active_mission_id'] = $row['active_mission_id'] !== null ? (int)$row['active_mission_id'] : null;
+        /* Before the stats migration runs, stats are derived from role and
+         * level for display only -- the same values the backfill will store --
+         * so the card never renders a row of zeroes against a levelled crew. */
+        $stats = $statsReady
+            ? ['strength' => (int)$row['strength'], 'cunning' => (int)$row['cunning'], 'science' => (int)$row['science'], 'charisma' => (int)$row['charisma']]
+            : pw_missions_stats_for_level((string)$row['role'], $row['level']);
+        foreach ($stats as $key => $value) $row[$key] = $value;
+        $row['max_level'] = PW_MISSION_MAX_LEVEL;
+        $row['max_stat'] = PW_MISSION_MAX_STAT;
+        $row['role_effect'] = pw_missions_crew_effects([$row]);
         return $row;
     }, $crewStmt->fetchAll());
 
@@ -54,6 +66,7 @@ try {
         'SELECT mission.id, mission.world_key, mission.name, mission.slug, mission.description, mission.mission_type, mission.duration_seconds,
                 mission.min_crew, mission.max_crew, mission.xp_reward, mission.reputation_reward, mission.sort_order, mission.is_enabled,
                 mission.unlocks_after_mission_id, mission.unlocks_after_completion_count,'
+        . ($statsReady ? ' mission.base_success_percent, mission.loot_rolls,' : ' 100 AS base_success_percent, 0 AS loot_rolls,')
         . ($campaignReady ? ' mission.is_campaign_final,' : ' 0 AS is_campaign_final,') .
                ' prerequisite.name AS unlocks_after_mission_name
          FROM game_mission_definitions mission
@@ -63,7 +76,7 @@ try {
     );
     $missionsStmt->execute();
     $worldMissions = array_map(static function ($row) use ($claimedCounts) {
-        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order', 'unlocks_after_completion_count'] as $field) $row[$field] = (int)$row[$field];
+        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls'] as $field) $row[$field] = (int)$row[$field];
         $row['unlocks_after_mission_id'] = $row['unlocks_after_mission_id'] !== null ? (int)$row['unlocks_after_mission_id'] : null;
         $row['is_enabled'] = (bool)$row['is_enabled'];
         $row['is_campaign_final'] = (bool)$row['is_campaign_final'];
@@ -88,7 +101,7 @@ try {
      * than dimming it in the browser. The bar is the only acknowledgement that
      * further operations exist. */
     $publicFields = ['id', 'world_key', 'name', 'slug', 'description', 'mission_type', 'duration_seconds',
-        'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order'];
+        'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order', 'base_success_percent', 'loot_rolls'];
     $slots = [];
     foreach (pw_missions_build_campaign_tracks($missionsById) as $chain) {
         $progress = pw_missions_track_progress($chain, $claimedCounts);
@@ -150,6 +163,32 @@ try {
         return $mission['status'] === 'claimed';
     }));
 
+    /* Loot the player already holds. Only ever their own rows, and only the
+     * item's public name and tier -- drop weights stay server-side so the pool's
+     * odds are never readable from the browser. */
+    $loot = [];
+    if ($statsReady) {
+        $lootStmt = $db->prepare(
+            'SELECT l.id, l.name, l.slug, l.description, l.tier, pl.quantity, pl.first_acquired_at
+             FROM game_player_loot pl
+             JOIN game_loot_definitions l ON l.id = pl.loot_definition_id
+             WHERE pl.user_id = ? AND pl.quantity > 0
+             ORDER BY FIELD(l.tier, "legendary", "rare", "uncommon", "common"), l.name ASC'
+        );
+        $lootStmt->execute([$userId]);
+        $loot = array_map(static function ($row) {
+            $row['id'] = (int)$row['id'];
+            $row['quantity'] = (int)$row['quantity'];
+            return $row;
+        }, $lootStmt->fetchAll());
+    }
+
+    // What the full available roster would contribute if sent out together --
+    // the headline the crew section shows above the individual stat cards.
+    $rosterEffects = pw_missions_crew_effects(array_filter($crew, static function ($member) {
+        return $member['status'] === 'available' && $member['definition_enabled'];
+    }));
+
     $availableCrew = count(array_filter($crew, static function ($member) { return $member['status'] === 'available'; }));
     $serverTime = $db->query('SELECT UTC_TIMESTAMP() AS value')->fetch();
     pw_json([
@@ -163,6 +202,9 @@ try {
             'total_missions' => count($allPlayerMissions),
         ],
         'crew' => $crew,
+        'roster_effects' => $rosterEffects,
+        'loot' => $loot,
+        'stats_ready' => $statsReady,
         'missions' => $missions,
         'active_missions' => $active,
         'history' => array_slice($history, 0, 30),
