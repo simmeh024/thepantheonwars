@@ -66,22 +66,37 @@ try {
      * already fixed by then. Affinity itself is a pure function of role and type,
      * so resolving its time half here and its reward half at claim cannot
      * disagree: neither input can change while the crew is out. */
+    /* Today's conditions on the world this operation runs on. Read once here and
+     * recorded against the run, so the weather the crew launched into is the
+     * weather that judges them at claim -- a long operation can cross a UTC day
+     * boundary, and the forecast deliberately turns over with the date. */
+    $weather = pw_missions_world_weather($db, (string)$mission['world_key']);
     $effects = $statsReady
-        ? pw_missions_crew_effects($selectedCrew, (string)$mission['mission_type'])
+        ? pw_missions_crew_effects($selectedCrew, (string)$mission['mission_type'], $weather)
         : ['duration_percent' => 0.0, 'duration_penalty_percent' => 0.0, 'success_percent' => 0.0];
     $duration = pw_missions_effective_duration((int)$mission['duration_seconds'], $effects);
 
     $now = pw_missions_utc_now($db);
     $completesAt = $now->modify('+' . $duration . ' seconds');
-    $insert = $db->prepare(
-        'INSERT INTO game_player_missions
-         (user_id, mission_definition_id, world_key, status, started_at, completes_at, xp_reward, reputation_reward)
-         VALUES (?, ?, ?, "active", ?, ?, ?, ?)'
-    );
-    $insert->execute([
-        $userId, (int)$mission['id'], $mission['world_key'], pw_missions_datetime($now), pw_missions_datetime($completesAt),
+    $weatherReady = pw_mission_weather_ready($db);
+    $columns = ['user_id', 'mission_definition_id', 'world_key', 'status', 'started_at', 'completes_at', 'xp_reward', 'reputation_reward'];
+    $values = [
+        $userId, (int)$mission['id'], $mission['world_key'], 'active', pw_missions_datetime($now), pw_missions_datetime($completesAt),
         (int)$mission['xp_reward'], (int)$mission['reputation_reward'],
-    ]);
+    ];
+    if ($weatherReady) {
+        array_push($columns, 'weather_condition', 'weather_icon', 'weather_severe');
+        array_push($values,
+            $weather ? $weather['condition'] : null,
+            $weather ? $weather['icon'] : null,
+            $weather && $weather['severe'] ? 1 : 0
+        );
+    }
+    $insert = $db->prepare(
+        'INSERT INTO game_player_missions (' . implode(', ', $columns) . ')
+         VALUES (' . pw_missions_placeholders(count($columns)) . ')'
+    );
+    $insert->execute($values);
     $playerMissionId = (int)$db->lastInsertId();
     $linkStmt = $db->prepare('INSERT INTO game_player_mission_crew (player_mission_id, player_crew_id) VALUES (?, ?)');
     foreach ($crewIds as $crewId) $linkStmt->execute([$playerMissionId, $crewId]);

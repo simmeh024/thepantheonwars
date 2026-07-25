@@ -26,6 +26,7 @@
   var launchSlots = document.getElementById('mission-launch-slots');
   var launchRecommend = document.getElementById('mission-launch-recommend');
   var launchProjection = document.getElementById('mission-launch-projection');
+  var weatherCard = document.getElementById('mission-weather-card');
   var profileCard = document.getElementById('mission-profile-card');
   var dailyCard = document.getElementById('mission-daily-card');
   var resultModal = document.getElementById('mission-result-modal');
@@ -514,7 +515,7 @@
     state.data = data;
     var server = apiDate(data.server_time);
     state.serverOffset = server && !isNaN(server) ? server.getTime() - Date.now() : 0;
-    applyWatermark(data.watermark); renderProfile(data); renderDaily(data); renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderHistory(data); tickCountdowns();
+    applyWatermark(data.watermark); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderHistory(data); tickCountdowns();
   }
 
   /* Debrief shown after a claim. The server has already resolved everything by
@@ -573,6 +574,16 @@
           + ' suited to ' + affinity.type + ' work' + (gains.length ? ': ' + gains.join(', ') : '') + '.';
       }
     }
+    /* The conditions this run was actually resolved against -- the ones recorded
+     * when the crew launched, which on a long operation may not be today's. */
+    var weather = result.weather;
+    var weatherLine = weather && weather.active && (weather.severe || weather.storm)
+      ? '<p class="mission-result-affinity is-weather">' + escapeHtml(weather.condition
+          + (weather.storm
+            ? ' interfered with the operation’s odds and the quality of what came back.'
+            : ' held the crew up on the way out.')) + '</p>'
+      : '';
+
     /* Its own paragraph above the stat grid, not inside it -- that container is
      * a grid and a stray paragraph would be laid out as one of its cells. */
     var affinityLine = affinityNote
@@ -612,7 +623,7 @@
       + '<h2 id="mission-result-title">' + escapeHtml(title) + '</h2>'
       + '<p class="mission-result-mission">' + escapeHtml(result.mission_name || '') + '</p>'
       + '<p class="mission-result-lead">' + escapeHtml(lead) + '</p>'
-      + affinityLine
+      + affinityLine + weatherLine
       + '<div class="mission-result-grid">' + grid + '</div>' + extras;
     if (typeof resultModal.showModal === 'function') resultModal.showModal(); else resultModal.setAttribute('open', '');
   }
@@ -661,6 +672,71 @@
   }
 
   /* ----------------------------------------------------------------------
+   * Operating conditions.
+   *
+   * Neoh's weather is generated once on the server, from the same profile and
+   * the same deterministic generator that draws the World Record's own forecast
+   * card -- this only renders today's reading and states what it costs. The
+   * icon paths are the five from js/world-detail.js, hand-duplicated per this
+   * codebase's no-shared-module convention so the storm on this page is
+   * unmistakably the storm on that one.
+   * -------------------------------------------------------------------- */
+  function weatherIconHtml(icon) {
+    var paths = {
+      'acid-rain': '<path d="M13 35h34a10 10 0 0 0 1-20 16 16 0 0 0-30-3 12 12 0 0 0-5 23z"/><path d="m20 43-4 9m15-9-4 9m15-9-4 9"/><path d="M18 55h22"/>',
+      storm: '<path d="M13 34h34a10 10 0 0 0 1-20 16 16 0 0 0-30-3 12 12 0 0 0-5 23z"/><path d="m34 38-8 11h7l-4 10 13-15h-8z"/>',
+      smog: '<path d="M13 31h34a10 10 0 0 0 1-20 16 16 0 0 0-30-3 12 12 0 0 0-5 23z"/><path d="M10 40h36M18 47h34M8 54h31"/>',
+      clear: '<circle cx="32" cy="32" r="11"/><path d="M32 8v8m0 32v8M8 32h8m32 0h8M15 15l6 6m22 22 6 6m0-34-6 6M21 43l-6 6"/>',
+      overcast: '<path d="M13 37h34a10 10 0 0 0 1-20 16 16 0 0 0-30-3 12 12 0 0 0-5 23z"/>'
+    };
+    return '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (paths[icon] || paths.overcast) + '</svg>';
+  }
+
+  function weatherEffectLines(effects) {
+    if (!effects) return [];
+    var lines = [];
+    if (effects.duration_percent > 0) {
+      lines.push({ tone: 'is-slow', text: '+' + fmt(effects.duration_percent) + '% operation time',
+        tip: 'Severe conditions slow every operation launched in them. Applied when the crew leaves, so the countdown you watch is the real one.' });
+    }
+    if (effects.success_percent > 0 || effects.upgrade_percent > 0) {
+      var parts = [];
+      if (effects.success_percent > 0) parts.push('−' + fmt(effects.success_percent) + '% success');
+      if (effects.upgrade_percent > 0) parts.push('−' + fmt(effects.upgrade_percent) + '% loot quality');
+      lines.push({ tone: 'is-luck', text: parts.join(' · '),
+        tip: 'A static storm interferes with both of an operation’s chance rolls: whether it succeeds at all, and whether a recovered item is promoted a rarity tier.' });
+    }
+    return lines;
+  }
+
+  /* The card in the left rail. Hidden entirely rather than shown empty when the
+   * world has no weather to read -- a locked world, a disabled profile, or a
+   * database without the weather tables. */
+  function renderWeather(data) {
+    if (!weatherCard) return;
+    var weather = data.weather;
+    if (!weather) { weatherCard.hidden = true; weatherCard.innerHTML = ''; return; }
+    var effects = weather.effects || {};
+    var lines = weatherEffectLines(effects);
+    var world = (data.world && data.world.name) || 'Neoh';
+    weatherCard.hidden = false;
+    weatherCard.className = 'mission-weather-card is-' + escapeHtml(weather.icon) + (weather.severe ? ' is-severe' : '');
+    weatherCard.innerHTML = '<span class="eyebrow">Operating conditions</span>'
+      + '<div class="mission-weather-head"><span class="mission-weather-icon">' + weatherIconHtml(weather.icon) + '</span>'
+      + '<span class="mission-weather-read"><strong>' + escapeHtml(weather.condition) + '</strong>'
+      + '<small>' + escapeHtml(world) + ' · ' + weather.temperature_c + '°C · ' + weather.wind_kph + ' kph</small></span></div>'
+      + (weather.severe && weather.severity_label
+        ? '<p class="mission-weather-severity">' + escapeHtml(weather.severity_label) + '</p>' : '')
+      + (lines.length
+        ? '<ul class="mission-weather-effects">' + lines.map(function (line) {
+            return '<li class="' + line.tone + '" tabindex="0" title="' + escapeHtml(line.tip) + '">' + escapeHtml(line.text) + '</li>';
+          }).join('') + '</ul>'
+        : '<p class="mission-weather-clear">Conditions are not affecting operations.</p>')
+      + (weather.hazard_note ? '<p class="mission-weather-hazard">' + escapeHtml(weather.hazard_note) + '</p>' : '')
+      + '<a class="mission-weather-link" href="world.html?slug=neoh">Full forecast</a>';
+  }
+
+  /* ----------------------------------------------------------------------
    * Role affinity, as the launch screen shows it.
    *
    * The matrix itself is never written here: api/missions/overview.php sends
@@ -703,8 +779,15 @@
     });
 
     var penalty = !!(rule && crew.length && matched === 0);
-    var penaltyDuration = penalty ? Number(rule.penalty.duration_percent) || 0 : 0;
-    var penaltySuccess = penalty ? Number(rule.penalty.success_percent) || 0 : 0;
+    /* Today's conditions apply to every operation, so they join the affinity
+     * penalty in the same two pools the server adds them to -- one slowdown
+     * figure and one success figure, whatever produced them. */
+    var conditions = (state.data && state.data.weather && state.data.weather.effects) || null;
+    var weatherDuration = conditions ? Number(conditions.duration_percent) || 0 : 0;
+    var weatherSuccess = conditions ? Number(conditions.success_percent) || 0 : 0;
+    var weatherUpgrade = conditions ? Number(conditions.upgrade_percent) || 0 : 0;
+    var penaltyDuration = (penalty ? Number(rule.penalty.duration_percent) || 0 : 0) + weatherDuration;
+    var penaltySuccess = (penalty ? Number(rule.penalty.success_percent) || 0 : 0) + weatherSuccess;
     durationPercent = Math.min(90, durationPercent + affinity.duration_percent);
     xpPercent += (totals.charisma * 0.5) + affinity.xp_percent;
 
@@ -717,6 +800,7 @@
       matched: matched,
       penalty: penalty,
       affinity: affinity,
+      weather: conditions,
       penalty_duration_percent: penaltyDuration,
       penalty_success_percent: penaltySuccess,
       duration_seconds: Math.max(30, Math.min(Math.round(baseSeconds * (1 + (penaltyDuration / 100))), seconds)),
@@ -730,7 +814,7 @@
       xp: Math.round((Number(mission.xp_reward) || 0) * (1 + (xpPercent / 100))),
       base_xp: Number(mission.xp_reward) || 0,
       loot_percent: totals.cunning * 1.0,
-      upgrade_percent: Math.min(95, (totals.science * 1.5) + affinity.upgrade_percent)
+      upgrade_percent: Math.max(0, Math.min(95, (totals.science * 1.5) + affinity.upgrade_percent) - weatherUpgrade)
     };
   }
 
@@ -766,8 +850,16 @@
       : projection.matched > 0
         ? projection.matched + ' specialist' + (projection.matched === 1 ? '' : 's') + ' suited to this operation.'
         : '';
+    /* Conditions get their own line rather than being folded into the affinity
+     * note: one is a choice the player just made and the other is the weather,
+     * and blaming a lost mission on the wrong one is worse than saying nothing. */
+    var conditionLines = weatherEffectLines(projection.weather);
+    var weatherNote = conditionLines.length && state.data.weather
+      ? state.data.weather.condition + ' over Neoh: ' + conditionLines.map(function (line) { return line.text; }).join(', ') + '.'
+      : '';
     launchProjection.innerHTML = '<dl class="mission-projection-grid">' + rows + '</dl>'
       + (note ? '<p class="mission-projection-note' + (projection.penalty ? ' is-warning' : ' is-good') + '">' + escapeHtml(note) + '</p>' : '')
+      + (weatherNote ? '<p class="mission-projection-note is-weather">' + escapeHtml(weatherNote) + '</p>' : '')
       + '<p class="mission-projection-caveat">Projected from the crew you have chosen. Command confirms the final figures on return.</p>';
   }
 

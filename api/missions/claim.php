@@ -45,10 +45,18 @@ try {
     }
     $crewIds = array_map(static function ($member) { return (int)$member['id']; }, $crew);
 
-    /* Recomputed here from the crew that actually went out and this operation's
-     * own type -- never from anything the client sends, and never read back from
-     * a figure stored at launch. */
-    $effects = $statsReady ? pw_missions_crew_effects($crew, (string)$mission['mission_type']) : [
+    /* The conditions recorded when this crew launched, not today's. `pm.*` above
+     * brings the columns in once the weather migration has been run; before that
+     * there is no snapshot and a claim simply resolves without a weather effect,
+     * rather than against whatever the world happens to be doing now. */
+    $launchWeather = pw_mission_weather_ready($db) && ($mission['weather_icon'] ?? null) !== null
+        ? ['condition' => (string)$mission['weather_condition'], 'icon' => (string)$mission['weather_icon'], 'severe' => (int)$mission['weather_severe'] === 1]
+        : null;
+
+    /* Recomputed here from the crew that actually went out, this operation's own
+     * type and those conditions -- never from anything the client sends, and
+     * never read back from a reward figure stored at launch. */
+    $effects = $statsReady ? pw_missions_crew_effects($crew, (string)$mission['mission_type'], $launchWeather) : [
         'duration_percent' => 0.0, 'duration_penalty_percent' => 0.0, 'xp_percent' => 0.0,
         'reputation_flat' => 0, 'reputation_percent' => 0.0, 'credit_percent' => 0.0,
         'success_percent' => 0.0, 'loot_percent' => 0.0, 'upgrade_percent' => 0.0,
@@ -187,6 +195,9 @@ try {
         // so the debrief can report it rather than leaving the player to infer it
         // from a reward figure they never saw the baseline for.
         'affinity' => $effects['affinity'] ?? null,
+        // The conditions this run was resolved against, so the debrief can say
+        // that the storm cost the odds rather than leaving it unexplained.
+        'weather' => $effects['weather'] ?? null,
         'credits_awarded' => $creditsAwarded,
         'credits_total' => $creditBalance,
         'credits_ready' => $creditsReady,

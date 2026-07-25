@@ -233,11 +233,18 @@ try {
         'credits_ready' => $creditsReady,
     ];
 
+    // Neoh is the only world with operations today; the helper is world-generic.
+    $weatherNow = pw_missions_world_weather($db, 'neoh');
     $availableCrew = count(array_filter($crew, static function ($member) { return $member['status'] === 'available'; }));
     $serverTime = $db->query('SELECT UTC_TIMESTAMP() AS value')->fetch();
     pw_json([
         'ok' => true,
         'world' => ['key' => 'neoh', 'name' => 'Neoh', 'background' => 'images/world-neoh.jpg'],
+        /* Today's conditions on Neoh and what they do to an operation, from the
+         * same generator the World Record card reads. Null when the world is
+         * locked, its profile disabled, or the weather tables absent -- the page
+         * simply shows no conditions card and every mission runs unmodified. */
+        'weather' => $weatherNow ? array_merge($weatherNow, ['effects' => pw_missions_weather_modifiers($weatherNow)]) : null,
         'server_time' => $serverTime['value'],
         'player' => $player,
         'watermark' => pw_missions_watermark_settings(),

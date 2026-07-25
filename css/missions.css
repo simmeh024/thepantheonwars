@@ -114,7 +114,48 @@
  * commander rail on the right. The rail stacks first on narrow screens -- a
  * player's own standing and balance are the summary the rest of the page is
  * measured against, so they belong above it rather than after a long roster. */
-.missions-layout { display: grid; grid-template-columns: minmax(0, 1fr) 262px; gap: 26px; align-items: start; }
+/* Conditions on the left, operations in the middle, commander on the right. The
+ * left rail is narrower than the right: it carries one card, and Neoh's weather
+ * needs less room than a reputation bar and a balance.
+ *
+ * The page's own container is widened past the site-wide 1180px because two
+ * rails do not fit inside it: measured at 1180, a 224px left rail left the
+ * operations column at 586px, which dropped both the crew grid and the
+ * operations grid to a single card per row. 1360 restores two-up in both while
+ * staying narrower than the widest breakpoint below. Safe to widen here because
+ * every text block on this page carries its own max-width -- this is a
+ * dashboard, not prose. */
+.missions-page .container { max-width: 1360px; }
+.missions-layout { display: grid; grid-template-columns: 224px minmax(0, 1fr) 262px; gap: 26px; align-items: start; }
+.missions-conditions-rail { display: grid; gap: 14px; align-content: start; min-width: 0; }
+/* Today's conditions on Neoh. Tinted by the condition itself through
+ * --wx-signal, so a storm card and a clear card are recognisably different
+ * objects rather than the same panel with different words in it. */
+.mission-weather-card { --wx-signal: 112,228,242; padding: 15px 16px 16px; border: 1px solid rgba(88,142,181,0.36); background: linear-gradient(160deg, rgba(13,32,52,0.82), rgba(20,13,42,0.88)); box-shadow: inset 0 1px rgba(136,229,237,0.05); }
+.mission-weather-card .eyebrow { margin-bottom: 11px; color: rgb(var(--wx-signal)); font-size: 0.57rem; }
+.mission-weather-card.is-storm { --wx-signal: 200,168,255; }
+.mission-weather-card.is-acid-rain { --wx-signal: 158,219,168; }
+.mission-weather-card.is-smog { --wx-signal: 214,167,119; }
+.mission-weather-card.is-clear { --wx-signal: 235,209,138; }
+.mission-weather-card.is-severe { border-color: rgba(224,138,114,0.45); }
+.mission-weather-head { display: flex; align-items: center; gap: 11px; }
+.mission-weather-icon { flex: 0 0 auto; width: 34px; height: 34px; color: rgb(var(--wx-signal)); filter: drop-shadow(0 0 9px rgba(var(--wx-signal), 0.4)); }
+.mission-weather-icon svg { display: block; width: 100%; height: 100%; }
+.mission-weather-read { display: grid; gap: 2px; min-width: 0; }
+.mission-weather-read strong { color: #eef4f8; font-size: 0.85rem; line-height: 1.2; }
+.mission-weather-read small { color: #9db3c2; font-size: 0.65rem; }
+.mission-weather-severity { margin: 11px 0 0 !important; padding: 3px 7px; border: 1px solid rgba(224,138,114,0.45); color: #e0a894 !important; font-size: 0.6rem !important; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; justify-self: start; }
+.mission-weather-effects { display: grid; gap: 5px; margin: 11px 0 0; padding: 0; list-style: none; }
+.mission-weather-effects li { padding-left: 10px; border-left: 2px solid currentColor; font-size: 0.68rem; font-weight: 600; line-height: 1.35; cursor: help; }
+.mission-weather-effects li.is-slow { color: #e0a894; }
+.mission-weather-effects li.is-luck { color: #c8a8ff; }
+.mission-weather-clear { margin: 11px 0 0 !important; color: #9edba8 !important; font-size: 0.68rem !important; font-weight: 600; }
+.mission-weather-hazard { margin: 11px 0 0 !important; color: #a4bac8 !important; font-size: 0.65rem !important; line-height: 1.5 !important; }
+.mission-weather-link { display: inline-block; margin-top: 12px; color: rgb(var(--wx-signal)); font-size: 0.62rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; text-decoration: none; }
+.mission-weather-link::after { content: ' →'; }
+.mission-weather-link:hover, .mission-weather-link:focus-visible { text-decoration: underline; }
+.mission-projection-note.is-weather { color: #c8a8ff !important; }
+.mission-result-affinity.is-weather { color: #c8a8ff !important; }
 .missions-primary { min-width: 0; }
 /* Deliberately not sticky: the rail scrolls away with the page. */
 .missions-rail { display: grid; gap: 14px; align-content: start; min-width: 0; }
@@ -201,9 +242,25 @@
 .mission-history-status.is-failed { border-color: rgba(224,138,114,0.5); color: #e0a894; }
 .mission-definition-meta dd.is-credits { color: #f0d591; }
 @media (prefers-reduced-motion: reduce) { .mission-profile-rep-track i { transition: none; } }
+/* Between the two rails and a single column there is a band where three columns
+ * would squeeze the operations grid below two cards. The conditions card becomes
+ * a full-width strip there instead, laid out as a row so it costs one shallow
+ * band rather than a tall card's worth of height. */
+@media (max-width: 1240px) and (min-width: 1081px) {
+  .missions-layout { grid-template-columns: minmax(0, 1fr) 262px; }
+  .missions-conditions-rail { grid-column: 1 / -1; order: -1; }
+  .mission-weather-card { display: flex; flex-wrap: wrap; align-items: center; gap: 9px 22px; padding: 13px 16px; }
+  .mission-weather-card .eyebrow, .mission-weather-severity, .mission-weather-effects,
+  .mission-weather-clear, .mission-weather-hazard, .mission-weather-link { margin-top: 0 !important; }
+  .mission-weather-effects { grid-auto-flow: column; gap: 5px 18px; }
+  .mission-weather-hazard { flex: 1 1 240px; }
+  .mission-weather-link { margin-left: auto; }
+}
 @media (max-width: 1080px) {
   .missions-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
-  .missions-rail { order: -1; }
+  /* Commander first, then conditions, then the operations themselves. */
+  .missions-rail { order: -2; }
+  .missions-conditions-rail { order: -1; }
   .mission-profile-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 22px; align-items: center; }
   .mission-profile-card .eyebrow { grid-column: 1 / -1; margin-bottom: 4px; order: 0; }
   /* The balance has to be auto-placed before the reputation bar or it lands on

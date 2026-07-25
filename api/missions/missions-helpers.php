@@ -557,6 +557,137 @@ function pw_missions_affinity(?string $missionType, array $crew): array {
 }
 
 /**
+ * Whether sql/migration_mission_weather.sql has been run. Until it has, weather
+ * still affects a launch -- the modifiers are computed from the live forecast,
+ * not from a stored row -- but nothing is snapshotted, so a claim resolves with
+ * no weather effect rather than against the wrong day's conditions.
+ */
+function pw_mission_weather_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_missions_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT weather_condition, weather_icon, weather_severe FROM `game_player_missions` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+/* ------------------------------------------------------------------------
+ * Neoh's live weather, as an operating condition.
+ *
+ * The world already generates a deterministic forecast for its World Record
+ * card, including a severity judgement made against that world's own
+ * configured bounds. This reads the same generator -- never a second copy of
+ * it -- and turns today's conditions into two effects:
+ *
+ *   Severe weather slows an operation down. Any severity reason counts: a
+ *   storm front, extreme wind, torrential fall, peak heat or deep cold.
+ *
+ *   A static storm additionally ruins the luck -- the success roll and the
+ *   loot-tier promotion roll, which are the two chance rolls a mission makes.
+ *   Storms are themselves a severity reason, so a static storm is both slower
+ *   and less lucky, while extreme heat is only slower.
+ *
+ * Weather is a property of the world and the day, not of the crew, so it is
+ * never something a player can select around -- only something to wait out.
+ * ---------------------------------------------------------------------- */
+
+const PW_MISSION_WEATHER_SEVERE_DURATION = 15.0;
+const PW_MISSION_WEATHER_STORM_SUCCESS = 5.0;
+const PW_MISSION_WEATHER_STORM_UPGRADE = 15.0;
+
+/**
+ * Today's conditions for a world, or null when there is nothing to read.
+ *
+ * Gated exactly as api/world-weather.php gates the public card: the world must
+ * be available in World Control and its weather profile enabled. A world with
+ * no profile, a disabled profile, or a database without the weather tables at
+ * all simply has no weather, and every operation runs unmodified -- so this can
+ * never become a reason a mission cannot be launched.
+ */
+function pw_missions_world_weather(PDO $db, string $worldKey): ?array {
+    static $cache = [];
+    if (array_key_exists($worldKey, $cache)) return $cache[$worldKey];
+    if (!preg_match('/^[a-z0-9-]{1,50}$/', $worldKey)) return $cache[$worldKey] = null;
+
+    require_once __DIR__ . '/../weather-forecast.php';
+    /* current_auto/tomorrow_auto arrive with a later migration than the profile
+     * table itself, so they are selected separately and fall back to the
+     * pre-migration column list -- the same guarded pattern the public weather
+     * endpoint uses, for the same reason: a missing column is a hard SQL error,
+     * not a NULL. */
+    $select =
+        'SELECT w.slug, w.status, p.enabled, p.current_condition, p.current_secondary, p.current_temp_c,
+                p.tomorrow_condition, p.tomorrow_temp_c%s, p.forecast_min_c, p.forecast_max_c,
+                p.humidity_min, p.humidity_max, p.precipitation_min, p.precipitation_max,
+                p.wind_min_kph, p.wind_max_kph, p.condition_pool_json, p.hazard_note, p.forecast_revision
+         FROM worlds w
+         LEFT JOIN world_weather_profiles p ON p.world_id = w.id
+         WHERE w.slug = ?';
+    try {
+        try {
+            $stmt = $db->prepare(sprintf($select, ', p.current_auto, p.tomorrow_auto'));
+            $stmt->execute([$worldKey]);
+            $profile = $stmt->fetch();
+        } catch (PDOException $e) {
+            $stmt = $db->prepare(sprintf($select, ''));
+            $stmt->execute([$worldKey]);
+            $profile = $stmt->fetch();
+        }
+    } catch (Throwable $e) {
+        return $cache[$worldKey] = null;
+    }
+    if (!$profile || $profile['status'] !== 'available' || $profile['enabled'] === null || (int)$profile['enabled'] !== 1) {
+        return $cache[$worldKey] = null;
+    }
+
+    $forecast = pw_build_weather_forecast($profile, $worldKey);
+    $current = $forecast['current'];
+    return $cache[$worldKey] = [
+        'condition' => (string)$current['condition'],
+        'icon' => (string)$current['icon'],
+        'severe' => !empty($current['severity']['severe']),
+        'severity_label' => (string)($current['severity']['label'] ?? ''),
+        'temperature_c' => (int)$current['temperature_c'],
+        'wind_kph' => (int)$current['wind_kph'],
+        'hazard_note' => (string)$profile['hazard_note'],
+    ];
+}
+
+/**
+ * The two effects above, from a conditions snapshot. Accepts either a live
+ * reading from pw_missions_world_weather() or the row stored against a launched
+ * mission -- both carry an icon and a severe flag, which is all this needs.
+ */
+function pw_missions_weather_modifiers(?array $weather): array {
+    $result = [
+        'active' => false,
+        'condition' => '',
+        'icon' => '',
+        'severe' => false,
+        'storm' => false,
+        'duration_percent' => 0.0,
+        'success_percent' => 0.0,
+        'upgrade_percent' => 0.0,
+    ];
+    if (!$weather || ($weather['icon'] ?? '') === '') return $result;
+
+    $result['active'] = true;
+    $result['condition'] = (string)($weather['condition'] ?? '');
+    $result['icon'] = (string)$weather['icon'];
+    $result['severe'] = !empty($weather['severe']);
+    $result['storm'] = $result['icon'] === 'storm';
+    if ($result['severe']) $result['duration_percent'] = PW_MISSION_WEATHER_SEVERE_DURATION;
+    if ($result['storm']) {
+        $result['success_percent'] = PW_MISSION_WEATHER_STORM_SUCCESS;
+        $result['upgrade_percent'] = PW_MISSION_WEATHER_STORM_UPGRADE;
+    }
+    return $result;
+}
+
+/**
  * Per-point stat rates. Applied to the summed stat totals of the assigned crew.
  */
 function pw_missions_stat_rates(): array {
@@ -577,8 +708,12 @@ function pw_missions_stat_rates(): array {
  *        context -- a single crew card, or the whole roster's headline -- in
  *        which case no affinity bonus or penalty applies and the result is
  *        exactly what it was before affinity existed.
+ * @param array|null $weather Conditions the operation runs in, from
+ *        pw_missions_world_weather() at launch or the snapshot stored against
+ *        the run at claim. Omitted wherever there is no operation in context,
+ *        for the same reason as $missionType.
  */
-function pw_missions_crew_effects(array $crew, ?string $missionType = null): array {
+function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?array $weather = null): array {
     $rates = pw_missions_role_rates();
     $totals = ['strength' => 0, 'cunning' => 0, 'science' => 0, 'charisma' => 0];
     $durationPercent = 0.0;
@@ -606,6 +741,12 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null): arr
     $durationPercent += $affinity['duration_percent'];
     $xpPercent += $affinity['xp_percent'];
 
+    /* Weather joins the same pools, for the same reason: one figure per effect,
+     * whatever produced it. Its slowdown is added to the affinity penalty rather
+     * than netted against the Engineer reduction -- bad weather should still cost
+     * time on a crew experienced enough to have outrun it. */
+    $conditions = pw_missions_weather_modifiers($weather);
+
     return [
         // Clamped well short of a free mission: a duration multiplier must stay
         // positive however large a future crew or rate becomes.
@@ -615,16 +756,21 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null): arr
         // wrong for the job is still slower than the same crew sent where it
         // belongs -- netting the two would let deep Engineer levels cancel the
         // penalty out entirely.
-        'duration_penalty_percent' => round($affinity['penalty_duration_percent'], 2),
+        'duration_penalty_percent' => round($affinity['penalty_duration_percent'] + $conditions['duration_percent'], 2),
         'xp_percent' => round($xpPercent, 2),
         'reputation_flat' => (int)floor($reputationFlat),
         'reputation_percent' => round($affinity['reputation_percent'], 2),
         'credit_percent' => round($affinity['credit_percent'], 2),
-        'success_percent' => round(($totals['strength'] * 0.5) + $affinity['success_percent'] - $affinity['penalty_success_percent'], 2),
+        'success_percent' => round(($totals['strength'] * 0.5) + $affinity['success_percent']
+            - $affinity['penalty_success_percent'] - $conditions['success_percent'], 2),
         'loot_percent' => round($totals['cunning'] * 1.0, 2),
-        'upgrade_percent' => round(min(95.0, ($totals['science'] * 1.5) + $affinity['upgrade_percent']), 2),
+        // The storm's toll on the promotion roll comes off after the cap, and is
+        // floored at zero: a storm can take the whole bonus away, never turn it
+        // into a penalty on a crew that had none to begin with.
+        'upgrade_percent' => round(max(0.0, min(95.0, ($totals['science'] * 1.5) + $affinity['upgrade_percent']) - $conditions['upgrade_percent']), 2),
         'stat_totals' => $totals,
         'affinity' => $affinity,
+        'weather' => $conditions,
     ];
 }
 
