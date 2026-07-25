@@ -486,10 +486,10 @@
        * an accessible name, so the state is still announced and hoverable. */
       var statusDot = '<span class="crew-status-dot is-' + availability + '" role="img" tabindex="0" title="' + escapeHtml(status) + '" aria-label="Status: ' + escapeHtml(status) + '"></span>';
       return '<article class="mission-crew-card ' + (deployed ? 'is-deployed' : '') + (availability === 'unavailable' ? ' is-unavailable' : '') + '">'
-        + '<span class="mission-crew-portrait-wrap">' + portraitMarkup + statusDot + '</span>'
+        + '<div class="mission-crew-visual"><span class="mission-crew-portrait-wrap">' + portraitMarkup + statusDot + '</span>' + crewLoadoutStrip(crew) + '</div>'
         + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3>' + missionCopy + '<p>' + escapeHtml(crew.description) + '</p>'
         + '<div class="crew-progression ' + profile.className + (atMaxLevel ? ' is-max-level' : '') + '"><div class="crew-rank-insignia" aria-label="' + escapeHtml(crew.role) + ' level ' + crew.level + '"><span>' + profile.code + '</span><small>L' + crew.level + '</small></div><div class="crew-progression-copy"><div><span>' + profile.rankLabel + '</span><strong>' + rankValue + '</strong></div><div class="crew-xp-track"><span style="width:' + progress + '%"></span></div></div></div>'
-        + crewStatCard(crew) + crewLoadoutStrip(crew) + '</div></article>';
+        + crewStatCard(crew) + '</div></article>';
     }).join('');
   }
 
@@ -1154,9 +1154,9 @@
     return parts.join('\n');
   }
 
-  /* The read-only strip on a crew card. Seven squares, filled or dashed, each
-   * its own hover/focus target -- the tooltip is the whole point of the strip,
-   * so every square is reachable by keyboard as well as pointer. */
+  /* The read-only silhouette under a crew portrait. Seven squares, filled or
+   * dashed, each its own hover/focus target -- the tooltip is the whole point
+   * of the grid, so every square is reachable by keyboard as well as pointer. */
   function crewLoadoutStrip(crew) {
     if (!gearReady()) return '';
     var equipped = crew.gear || {};
@@ -1165,15 +1165,16 @@
       var item = equipped[slot.key];
       if (item) filled++;
       var label = item ? gearTooltip(item) : 'Empty — ' + slot.label;
-      return '<span class="mission-gear-slot' + (item ? ' is-filled is-' + escapeHtml(item.tier) : ' is-empty') + '"'
+      return '<span class="mission-gear-slot mission-gear-slot--' + escapeHtml(slot.key.replace(/_/g, '-'))
+        + (item ? ' is-filled is-' + escapeHtml(item.tier) : ' is-empty') + '"'
         + ' tabindex="0" role="img" title="' + escapeHtml(label) + '" aria-label="' + escapeHtml(label.split('\n').join('. ')) + '">'
         + gearIconHtml(slot.key, item ? item.icon_url : '') + '</span>';
     }).join('');
     var deployed = crewAvailability(crew) !== 'available';
     return '<div class="mission-crew-loadout">'
-      + '<span class="mission-crew-loadout-label">Loadout</span>'
+      + '<div class="mission-crew-loadout-meta"><span class="mission-crew-loadout-label">Loadout</span>'
+      + '<span class="mission-crew-loadout-count">' + filled + ' / ' + gearSlots().length + '</span></div>'
       + '<span class="mission-gear-slots">' + squares + '</span>'
-      + '<span class="mission-crew-loadout-count">' + filled + ' / ' + gearSlots().length + '</span>'
       + '<button type="button" class="btn mission-loadout-btn" data-crew-id="' + crew.id + '"' + (deployed ? ' disabled' : '')
       + ' title="' + escapeHtml(deployed ? 'A crew member in the field cannot change equipment.' : 'Assign equipment to ' + crew.name) + '">'
       + (deployed ? 'In field' : 'Loadout') + '</button></div>';
