@@ -62,14 +62,15 @@
  * readout rather than a control -- nothing here is clickable, but every cell is
  * focusable so the hover explanation is reachable by keyboard too. */
 .crew-stat-card { margin: 10px 0 0; padding: 9px 10px 8px; border: 1px solid rgba(88,142,181,0.28); background: rgba(8,18,33,0.5); }
-.crew-stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
-.crew-stat { display: grid; grid-template-columns: auto 1fr; grid-template-areas: 'key value' 'bar bar' 'effect effect'; align-items: center; gap: 2px 6px; padding: 6px 7px; border: 1px solid rgba(103,152,190,0.24); background: rgba(12,25,44,0.66); cursor: help; }
+/* One row of four. The per-stat effect sentence moved into the tooltip, which
+ * is what lets each cell shrink to a key, a figure and a bar. */
+.crew-stat-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.crew-stat { display: grid; grid-template-columns: auto 1fr; grid-template-areas: 'key value' 'bar bar'; align-items: center; gap: 2px 5px; padding: 5px 6px; border: 1px solid rgba(103,152,190,0.24); background: rgba(12,25,44,0.66); cursor: help; }
 .crew-stat:hover, .crew-stat:focus-visible { border-color: rgba(126,227,232,0.55); background: rgba(16,34,58,0.8); }
-.crew-stat-key { grid-area: key; color: #79d9df; font-size: 0.56rem; font-weight: 700; letter-spacing: .1em; }
-.crew-stat-value { grid-area: value; justify-self: end; color: #f0edf8; font-size: 0.82rem; font-weight: 600; line-height: 1; }
-.crew-stat-bar { grid-area: bar; height: 4px; margin: 3px 0 1px; overflow: hidden; background: rgba(9,19,35,0.85); }
+.crew-stat-key { grid-area: key; color: #79d9df; font-size: 0.54rem; font-weight: 700; letter-spacing: .08em; }
+.crew-stat-value { grid-area: value; justify-self: end; color: #f0edf8; font-size: 0.78rem; font-weight: 600; line-height: 1; }
+.crew-stat-bar { grid-area: bar; height: 4px; margin: 4px 0 0; overflow: hidden; background: rgba(9,19,35,0.85); }
 .crew-stat-bar i { display: block; height: 100%; background: linear-gradient(90deg, #4fc6d6, #7ee3e8); transition: width .4s ease; }
-.crew-stat-effect { grid-area: effect; color: #94aec0; font-size: 0.58rem; letter-spacing: .015em; }
 .crew-stat.is-strength .crew-stat-key { color: #e08a72; } .crew-stat.is-strength .crew-stat-bar i { background: linear-gradient(90deg, #b8543a, #e08a72); }
 .crew-stat.is-cunning .crew-stat-key { color: #c79ae8; } .crew-stat.is-cunning .crew-stat-bar i { background: linear-gradient(90deg, #8d5cc4, #c79ae8); }
 .crew-stat.is-science .crew-stat-key { color: #6fd7b0; } .crew-stat.is-science .crew-stat-bar i { background: linear-gradient(90deg, #34a37c, #6fd7b0); }
@@ -91,7 +92,7 @@
 .mission-risk-chance em { color: #9edba8; font-style: normal; }
 .mission-risk-loot { border-color: rgba(199,154,232,0.4) !important; color: #c79ae8 !important; }
 @media (prefers-reduced-motion: reduce) { .crew-stat-bar i { transition: none; } }
-@media (max-width: 420px) { .crew-stat-grid { grid-template-columns: 1fr; } }
+@media (max-width: 470px) { .crew-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 .missions-section { margin-top: 42px; }
 .missions-section-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
@@ -148,12 +149,20 @@
 .crew-progression-copy { min-width: 0; }.crew-progression-copy > div:first-child { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: #a8c1cf; font-size: .61rem; letter-spacing: .07em; text-transform: uppercase; }.crew-progression-copy strong { color: #ead397; font-size: .64rem; letter-spacing: .04em; white-space: nowrap; }.crew-progression-copy > small { display: block; margin-top: 5px; color: #7895a7; font-size: .59rem; }
 .crew-xp-track { height: 5px; margin-top: 7px; overflow: hidden; background: rgba(3,6,14,0.8); box-shadow: inset 0 1px 2px rgba(0,0,0,0.38); }.crew-xp-track span { display: block; height: 100%; background: linear-gradient(90deg, #62d9e1, #8b6bd4); box-shadow: 0 0 9px rgba(98,217,225,0.54); }
 .crew-progression.is-vanguard .crew-rank-insignia { color: #e3bc71; background: rgba(226,178,92,0.09); }.crew-progression.is-vanguard .crew-xp-track span { background: linear-gradient(90deg, #e6bd71, #d88758); box-shadow: 0 0 9px rgba(230,189,113,0.52); }.crew-progression.is-pathfinder .crew-rank-insignia { color: #70dfe6; background: rgba(87,213,225,0.09); }.crew-progression.is-pathfinder .crew-xp-track span { background: linear-gradient(90deg, #69dce5, #73a8df); }.crew-progression.is-engineer .crew-rank-insignia { color: #b790ed; background: rgba(170,112,233,0.1); }.crew-progression.is-engineer .crew-xp-track span { background: linear-gradient(90deg, #af7ee7, #dd83bd); box-shadow: 0 0 9px rgba(175,126,231,0.5); }
-.crew-status { display: grid; gap: 1px; margin-top: 13px; }
-.crew-status small { color: #718ca5; font-size: 0.59rem; letter-spacing: 0.1em; text-transform: uppercase; }
-.crew-status strong { color: #89e0b4; font-size: 0.69rem; letter-spacing: 0.09em; text-transform: uppercase; }
-.mission-crew-card.is-deployed .crew-status strong { color: #83dce4; }
-.crew-mission-copy { margin-top: 7px !important; color: #c7d8e2 !important; font-size: 0.67rem !important; }
-.crew-mission-copy .mission-countdown { margin-top: 3px; font-size: 0.72rem; }
+/* Status reads as a dot on the portrait instead of a labelled block; it keeps
+ * an accessible name and a hover title, so nothing is lost but the two lines. */
+/* align-self keeps the wrapper the height of the portrait. Without it the grid
+ * stretches it to the full card and the dot lands at the card's foot. */
+.mission-crew-portrait-wrap { position: relative; display: block; align-self: start; width: 95px; line-height: 0; }
+.crew-status-dot { position: absolute; right: -5px; bottom: -5px; width: 13px; height: 13px; border: 2px solid #101a2c; border-radius: 50%; background: #6f8496; }
+.crew-status-dot.is-available { background: #89e0b4; box-shadow: 0 0 9px rgba(137,224,180,0.6); }
+.crew-status-dot.is-deployed { background: #83dce4; box-shadow: 0 0 9px rgba(131,220,228,0.65); }
+.crew-status-dot.is-unavailable { background: #6f8496; }
+.crew-status-dot:focus-visible { outline: 2px solid #7ee3e8; outline-offset: 2px; }
+.crew-mission-copy { margin: 3px 0 0 !important; color: #c7d8e2 !important; font-size: 0.68rem !important; }
+/* The shared .mission-countdown is display:block for the active-mission cards.
+ * Here it must stay on the name's line, or the one-line summary becomes two. */
+.crew-mission-copy .mission-countdown { display: inline; color: #ead397; font: 600 0.68rem/1.45 'Jost', sans-serif; }
 .missions-history-list { border: 1px solid rgba(80,129,168,0.34); background: rgba(12,16,32,0.52); }
 .mission-history-row { display: grid; grid-template-columns: minmax(210px, 1.35fr) minmax(135px,0.8fr) minmax(145px,0.85fr) auto; gap: 18px; align-items: center; padding: 14px 18px; border-bottom: 1px solid rgba(80,129,168,0.24); }
 .mission-history-row:last-child { border-bottom: 0; }
@@ -181,4 +190,4 @@
 .mission-launch-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 .mission-launch-actions .btn { padding: 10px 15px; font-size: 0.68rem; }
 @media (max-width: 760px) { .missions-page { padding-top: 62px; } .missions-hero { min-height: 235px; } .missions-hero-content { padding-bottom: 30px; } .missions-command-header { align-items: start; flex-direction: column; } .missions-status-message { max-width: none; text-align: left; } .missions-stats { grid-template-columns: repeat(2, 1fr); } .missions-stats article:nth-child(2) { border-right: 0; } .missions-stats article:nth-child(-n+2) { border-bottom: 1px solid rgba(80,129,168,0.27); } .mission-command-feed { padding: 18px; }.mission-feed-list { grid-template-columns: 1fr; }.mission-feed-entry,.mission-feed-entry:first-child,.mission-feed-entry:last-child { min-height: 0; padding: 12px 0; border-right: 0; border-bottom: 1px solid rgba(92,163,181,0.2); }.mission-feed-entry:last-child { border-bottom: 0; padding-bottom: 0; }.mission-feed-entry p { max-width: 540px; }.missions-neoh-section { padding: 18px; } .missions-crew-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); } .mission-history-row { grid-template-columns: 1fr 1fr; gap: 11px; } .mission-history-row > div:last-child { justify-self: start; } }
-@media (max-width: 470px) { .missions-main { padding-top: 24px; } .missions-stats article { min-height: 76px; padding: 14px; } .mission-active-footer { align-items: start; flex-direction: column; } .missions-crew-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mission-crew-card { grid-template-columns: 78px minmax(0,1fr); gap: 12px; } .mission-crew-portrait { width: 78px; height: 108px; } .mission-definition-meta { grid-template-columns: 1fr 1fr; } .mission-history-row { grid-template-columns: 1fr; } .mission-launch-modal-inner { padding: 24px 18px; } }
+@media (max-width: 470px) { .missions-main { padding-top: 24px; } .missions-stats article { min-height: 76px; padding: 14px; } .mission-active-footer { align-items: start; flex-direction: column; } .missions-crew-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mission-crew-card { grid-template-columns: 78px minmax(0,1fr); gap: 12px; } .mission-crew-portrait { width: 78px; height: 108px; } .mission-crew-portrait-wrap { width: 78px; } .mission-definition-meta { grid-template-columns: 1fr 1fr; } .mission-history-row { grid-template-columns: 1fr; } .mission-launch-modal-inner { padding: 24px 18px; } }

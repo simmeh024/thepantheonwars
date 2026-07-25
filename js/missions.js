@@ -211,12 +211,14 @@
       var value = Math.max(0, Number(crew[key]) || 0);
       var pct = Math.min(100, Math.round((value / maxStat) * 100));
       var capped = value >= maxStat;
+      /* The effect sentence lives only in the tooltip. Printed in every cell it
+       * cost four lines per card to say "+0%" three times, since a crew member
+       * only ever has two stats above zero. */
       var tip = info.label + ' ' + value + ' / ' + maxStat + (capped ? ' (max)' : '') + ' — ' + info.effect(value) + '. ' + info.copy;
       return '<div class="crew-stat' + (capped ? ' is-max' : '') + ' is-' + key + '" tabindex="0" title="' + escapeHtml(tip) + '">'
         + '<span class="crew-stat-key">' + info.short + '</span>'
         + '<span class="crew-stat-value">' + value + '</span>'
-        + '<span class="crew-stat-bar"><i style="width:' + pct + '%"></i></span>'
-        + '<span class="crew-stat-effect">' + escapeHtml(info.effect(value)) + '</span></div>';
+        + '<span class="crew-stat-bar"><i style="width:' + pct + '%"></i></span></div>';
     }).join('');
 
     var role = ROLE_INFO[crew.role];
@@ -240,7 +242,9 @@
       var availability = crewAvailability(crew);
       var deployed = availability === 'deployed';
       var status = availability === 'unavailable' ? 'Unavailable' : deployed ? 'On mission' : 'Available';
-      var missionCopy = deployed && crew.active_mission_name ? '<p class="crew-mission-copy">' + escapeHtml(crew.active_mission_name) + '<span class="mission-countdown" data-completes-at="' + escapeHtml(crew.active_mission_completes_at) + '">Calculating…</span></p>' : '';
+      /* One line rather than two, and sitting under the name instead of in a
+       * labelled block at the foot of the card. */
+      var missionCopy = deployed && crew.active_mission_name ? '<p class="crew-mission-copy">' + escapeHtml(crew.active_mission_name) + ' · <span class="mission-countdown" data-completes-at="' + escapeHtml(crew.active_mission_completes_at) + '">Calculating…</span></p>' : '';
       var profile = crewRoleProfile(crew.role);
       var maxLevel = Number(crew.max_level) || 50;
       var atMaxLevel = (Number(crew.level) || 0) >= maxLevel;
@@ -249,8 +253,20 @@
       // At the level ceiling the XP cycle keeps turning but buys nothing, so
       // the bar reads full rather than restarting from a misleading zero.
       var progress = atMaxLevel ? 100 : (totalXp > 0 && cycleXp === 0 ? 100 : cycleXp);
-      var thresholdCopy = atMaxLevel ? 'Maximum rank reached' : progress === 100 ? 'Cycle threshold reached' : (100 - progress) + ' XP to next threshold';
-      return '<article class="mission-crew-card ' + (deployed ? 'is-deployed' : '') + (availability === 'unavailable' ? ' is-unavailable' : '') + '">' + (portrait ? '<img src="' + escapeHtml(portrait) + '" alt="" class="mission-crew-portrait">' : '<div class="mission-crew-portrait mission-crew-fallback" aria-hidden="true">' + escapeHtml(crew.name.charAt(0)) + '</div>') + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3><p>' + escapeHtml(crew.description) + '</p><div class="crew-progression ' + profile.className + (atMaxLevel ? ' is-max-level' : '') + '"><div class="crew-rank-insignia" aria-label="' + escapeHtml(crew.role) + ' level ' + crew.level + '"><span>' + profile.code + '</span><small>L' + crew.level + '</small></div><div class="crew-progression-copy"><div><span>' + profile.rankLabel + '</span><strong>' + (atMaxLevel ? 'Level ' + maxLevel : progress + ' / 100 XP') + '</strong></div><div class="crew-xp-track"><span style="width:' + progress + '%"></span></div><small>' + thresholdCopy + '</small></div></div>' + crewStatCard(crew) + '<div class="crew-status"><small>Status</small><strong>' + status + '</strong></div>' + missionCopy + '</div></article>';
+      /* No "N XP to next threshold" line: it is exactly 100 minus the figure
+       * already shown beside it, so it cost a line per card to restate one. */
+      var rankValue = atMaxLevel ? 'Level ' + maxLevel : progress + ' / 100 XP';
+      var portraitMarkup = portrait
+        ? '<img src="' + escapeHtml(portrait) + '" alt="" class="mission-crew-portrait">'
+        : '<div class="mission-crew-portrait mission-crew-fallback" aria-hidden="true">' + escapeHtml(crew.name.charAt(0)) + '</div>';
+      /* Status is a dot on the portrait rather than a labelled block. It keeps
+       * an accessible name, so the state is still announced and hoverable. */
+      var statusDot = '<span class="crew-status-dot is-' + availability + '" role="img" tabindex="0" title="' + escapeHtml(status) + '" aria-label="Status: ' + escapeHtml(status) + '"></span>';
+      return '<article class="mission-crew-card ' + (deployed ? 'is-deployed' : '') + (availability === 'unavailable' ? ' is-unavailable' : '') + '">'
+        + '<span class="mission-crew-portrait-wrap">' + portraitMarkup + statusDot + '</span>'
+        + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3>' + missionCopy + '<p>' + escapeHtml(crew.description) + '</p>'
+        + '<div class="crew-progression ' + profile.className + (atMaxLevel ? ' is-max-level' : '') + '"><div class="crew-rank-insignia" aria-label="' + escapeHtml(crew.role) + ' level ' + crew.level + '"><span>' + profile.code + '</span><small>L' + crew.level + '</small></div><div class="crew-progression-copy"><div><span>' + profile.rankLabel + '</span><strong>' + rankValue + '</strong></div><div class="crew-xp-track"><span style="width:' + progress + '%"></span></div></div></div>'
+        + crewStatCard(crew) + '</div></article>';
     }).join('');
   }
 
