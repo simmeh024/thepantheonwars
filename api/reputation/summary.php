@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/../market/market-helpers.php';
 
 $user = pw_require_login();
 $db = pw_db();
@@ -46,6 +47,15 @@ try {
             'threshold' => (int)$reputation['next_level_threshold'],
             'color' => (string)($reputation['next_level_color'] ?? '#a279ec'),
         ], (int)$reputation['next_level_number']);
+        /* Market offers remain hidden in the storefront until the player has
+         * earned their rank. The reputation page is the purposeful preview of
+         * the entries that will become eligible in its next rotation. */
+        $nextRankUnlocks = array_merge($nextRankUnlocks, pw_market_next_rank_unlocks(
+            $db,
+            (int)$reputation['next_level_number'],
+            (int)$reputation['next_level_threshold'],
+            (string)($reputation['next_level_color'] ?? '#a279ec')
+        ));
     }
     pw_json(['ok' => true, 'reputation' => $reputation, 'next_rank_unlocks' => $nextRankUnlocks, 'achievements' => $achievements, 'showcase_keys' => $showcaseKeys]);
 } catch (Throwable $e) {

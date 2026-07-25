@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=316">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=316"><link rel="stylesheet" href="../css/admin-market.css?v=1">
 </head>
 <body>
 
@@ -58,7 +58,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="game" data-requires-permission="missions.view,loot_tables.view">
+    <div class="admin-nav-category is-collapsed" data-category="game" data-requires-permission="missions.view,loot_tables.view,market.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>Game Control</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -66,6 +66,7 @@
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li data-requires-permission="missions.view"><button type="button" class="admin-nav-link" data-section="mission-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18V6l8-3 8 3v12l-8 3z"/><path d="m4 6 8 3 8-3M12 9v12"/><path d="m8 14 2 2 4-4"/></svg>Missions</button></li>
         <li data-requires-permission="loot_tables.view"><button type="button" class="admin-nav-link" data-section="loot-tables"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M2 5h20v3H2z"/><path d="M12 8v13"/><path d="M12 5c-1.6-2.6-5.4-2.2-5.4.3 0 1.4 1.6 2 5.4 2s5.4-.6 5.4-2C17.4 2.8 13.6 2.4 12 5Z"/></svg>Loot Tables</button></li>
+        <li data-requires-permission="market.view"><button type="button" class="admin-nav-link" data-section="market-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v12H4z"/><path d="M3 5h18v3H3z"/><path d="M8 12h8M8 16h5"/><circle cx="17" cy="16" r="1"/></svg>Market Control</button></li>
       </ul>
     </div>
 
@@ -2149,6 +2150,25 @@
         <div class="mission-admin-columns loot-mission-columns" aria-hidden="true"><span>Mission</span><span>Loot tables</span><span>Status</span></div>
         <div class="admin-list mission-admin-list" id="loot-mission-list"><div class="admin-list-empty">Loading missions&hellip;</div></div>
       </div>
+    </section>
+
+    <section class="admin-section" id="section-market-control" hidden>
+      <div class="admin-section-head">
+        <h1>Market Control</h1>
+        <p>Curate the weighted catalogue behind The Market. Gear draws at 00:00, 06:00, 12:00 and 18:00 UTC; character leads refresh independently one hour later.</p>
+      </div>
+      <div class="admin-toolbar market-admin-toolbar">
+        <div class="admin-filter-tabs" id="market-admin-tabs" role="tablist" aria-label="Market catalogue filters">
+          <button type="button" class="admin-filter-tab active" data-market-filter="all" role="tab" aria-selected="true">All offers</button>
+          <button type="button" class="admin-filter-tab" data-market-filter="gear" role="tab" aria-selected="false">Equipment</button>
+          <button type="button" class="admin-filter-tab" data-market-filter="character" role="tab" aria-selected="false">Characters</button>
+        </div>
+        <button type="button" class="btn btn-solid" id="market-entry-create-btn" data-requires-permission="market.manage">+ Add Market Offer</button>
+        <span class="admin-count" id="market-admin-count"></span>
+      </div>
+      <div class="market-rotation-summary" id="market-rotation-summary"><div class="admin-list-empty">Loading current rotations…</div></div>
+      <div class="market-admin-columns" aria-hidden="true"><span>Catalogue entry</span><span>Type</span><span>Price</span><span>Reputation rank</span><span>Weight / stock</span><span>Status</span></div>
+      <div class="admin-list market-admin-list" id="market-entry-list"><div class="admin-list-empty">Loading market catalogue…</div></div>
     </section>
 
     <section class="admin-section" id="section-book-control" hidden>
@@ -4371,8 +4391,31 @@
   </div>
 </div>
 
+<div class="admin-modal" id="market-entry-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="market-entry-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="market-entry-modal-title">Add Market Offer</h3>
+    <p class="admin-modal-sub" id="market-entry-modal-sub">An offer enters future shared rotations according to its weight. Prices, rank gates, and stock are snapshotted when the next window begins.</p>
+    <div class="admin-field-row">
+      <div class="admin-field"><label for="market-entry-type">Offer type</label><select id="market-entry-type"><option value="gear">Equipment</option><option value="character">Character</option></select></div>
+      <div class="admin-field"><label for="market-entry-definition">Catalogue entry</label><select id="market-entry-definition"></select></div>
+    </div>
+    <div class="admin-field-row market-entry-numbers">
+      <div class="admin-field"><label for="market-entry-price">Price (credits)</label><input type="number" id="market-entry-price" min="1" max="1000000" step="1" value="250"></div>
+      <div class="admin-field"><label for="market-entry-rank">Required reputation rank</label><select id="market-entry-rank"></select></div>
+      <div class="admin-field"><label for="market-entry-weight">Rotation weight</label><input type="number" id="market-entry-weight" min="1" max="10000" step="1" value="100"></div>
+      <div class="admin-field"><label for="market-entry-stock">Stock per rotation</label><input type="number" id="market-entry-stock" min="1" max="1000" step="1" value="1"></div>
+    </div>
+    <p class="admin-field-hint" id="market-entry-rotation-help">A weight of 200 is twice as likely to be selected as an otherwise equal entry with weight 100. Gear selects up to six entries per window; characters select up to three.</p>
+    <label class="admin-setting-toggle"><span><strong>Available for future rotations</strong><small>Disable an entry to remove it from the active storefront and all upcoming draws without erasing its configuration.</small></span><input type="checkbox" id="market-entry-enabled" checked></label>
+    <p class="admin-modal-error" id="market-entry-modal-error"></p><p class="admin-modal-status" id="market-entry-modal-status"></p>
+    <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="market-entry-save-btn">Save Market Offer</button><button type="button" class="btn" id="market-entry-cancel-btn">Cancel</button></div>
+  </div>
+</div>
+
 <script src="../js/members.js?v=40"></script>
-<script src="../js/admin-missions.js?v=8"></script><script src="../js/admin-loot-tables.js?v=1"></script>
+<script src="../js/admin-missions.js?v=8"></script><script src="../js/admin-loot-tables.js?v=1"></script><script src="../js/admin-market.js?v=1"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -4619,6 +4662,7 @@
       if (name === 'reputation-levels') loadReputationLevelList();
       if (name === 'mission-control') loadMissionControl();
       if (name === 'loot-tables') loadLootTables();
+      if (name === 'market-control') loadMarketControl();
       if (name === 'book-control') loadBookList();
       if (name === 'quiz-control') loadQuizQuestionList();
       if (name === 'world-control') loadWorldList();
