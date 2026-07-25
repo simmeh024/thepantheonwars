@@ -4,6 +4,11 @@ require_once __DIR__ . '/market-helpers.php';
 pw_require_permission('market.view');
 $db = pw_db();
 pw_admin_market_require_ready($db);
+// This catalogue changes whenever an administrator saves equipment or a market
+// entry. It must not be reused from a browser/proxy cache while the admin page
+// remains open, or newly created gear is invisible to the picker.
+header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0');
+header('Pragma: no-cache');
 
 try {
     $now = pw_missions_utc_now($db);
