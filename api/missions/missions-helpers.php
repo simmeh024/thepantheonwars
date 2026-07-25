@@ -81,87 +81,139 @@ function pw_mission_campaign_ready(PDO $db): bool {
 }
 
 /**
- * Resolve one world's campaign into ordered steps.
+ * Group one world's missions into ordered campaign tracks.
  *
- * The chain is walked backwards from the administrator-flagged final mission
- * through unlocks_after_mission_id, then reversed, so the bar always reflects
- * the real gating relationships rather than a separately maintained list.
+ * A track is a succession chain followed forward from a mission that has no
+ * prerequisite. Each track occupies a single card on the Missions page: only
+ * its current step is playable, and clearing that step replaces the card with
+ * the next operation rather than adding a second one beside it.
+ *
+ * Branching is possible in the schema (two missions may name the same
+ * prerequisite) even though the admin UI encourages a straight chain. The
+ * lowest sort_order successor continues the track and any sibling starts a
+ * track of its own, so a branch degrades into two visible tracks instead of
+ * silently dropping missions.
+ *
+ * A mission flagged is_campaign_final ends its track. Anything chained beyond
+ * it begins a fresh track, so an early finale retires the ending rather than
+ * deleting the operations that follow it.
+ *
+ * @param array $missionsById Every mission in the world, keyed by id.
+ * @return array[] Ordered lists of mission rows, one list per track.
+ */
+function pw_missions_build_campaign_tracks(array $missionsById): array {
+    $successors = [];
+    foreach ($missionsById as $mission) {
+        $previous = $mission['unlocks_after_mission_id'];
+        if ($previous !== null && isset($missionsById[$previous])) {
+            $successors[$previous][] = (int)$mission['id'];
+        }
+    }
+    $rank = static function (int $id) use ($missionsById): array {
+        return [(int)$missionsById[$id]['sort_order'], $id];
+    };
+    foreach ($successors as $previous => $ids) {
+        usort($ids, static function ($a, $b) use ($rank) { return $rank($a) <=> $rank($b); });
+        $successors[$previous] = $ids;
+    }
+
+    $queue = [];
+    foreach ($missionsById as $mission) {
+        $previous = $mission['unlocks_after_mission_id'];
+        if ($previous === null || !isset($missionsById[$previous])) $queue[] = (int)$mission['id'];
+    }
+    usort($queue, static function ($a, $b) use ($rank) { return $rank($a) <=> $rank($b); });
+
+    /* A cycle among damaged rows has no root at all, so a root-only sweep would
+     * drop every mission caught in it -- silently losing operations is a worse
+     * failure than showing them in an odd order. Anything left unassigned is
+     * seeded as its own root, which guarantees every mission lands in exactly
+     * one track. The admin save path already rejects cycles; this is the floor
+     * beneath that. */
+    $leftovers = array_keys($missionsById);
+    usort($leftovers, static function ($a, $b) use ($rank) { return $rank($a) <=> $rank($b); });
+
+    $tracks = [];
+    $assigned = [];
+    while ($queue || $leftovers) {
+        $cursor = $queue ? array_shift($queue) : array_shift($leftovers);
+        if (isset($assigned[$cursor])) continue;
+        $chain = [];
+        while ($cursor !== null && !isset($assigned[$cursor])) {
+            $assigned[$cursor] = true;
+            $chain[] = $missionsById[$cursor];
+            $next = $successors[$cursor] ?? [];
+            if (!empty($missionsById[$cursor]['is_campaign_final'])) {
+                // The finale closes this track; whatever chains after it is a
+                // separate campaign that opens once this one is finished.
+                foreach ($next as $laterId) $queue[] = $laterId;
+                break;
+            }
+            foreach (array_slice($next, 1) as $branchId) $queue[] = $branchId;
+            $cursor = $next[0] ?? null;
+        }
+        if ($chain) $tracks[] = $chain;
+    }
+    return $tracks;
+}
+
+/**
+ * Resolve a single track into the blocks the progress bar draws.
  *
  * A step's requirement is stored on its *successor*: mission B carrying
  * unlocks_after_completion_count = 3 means step A needs three claimed runs.
- * The final step needs a single claimed run to finish the campaign. This is the
- * same rule the unlock gate itself uses, so the bar can never disagree with
- * which missions are actually playable.
+ * The last step needs a single claimed run. This is the same rule the unlock
+ * gate itself applies, so the bar can never disagree with which mission is
+ * actually playable.
  *
- * @param array $missionsById   Every mission in the world, keyed by id.
+ * The returned current_index is the step the player is on. Once every step is
+ * complete it stays on the finale, which remains replayable -- finishing a
+ * campaign should not leave an empty slot where the card used to be.
+ *
+ * @param array $chain          Ordered mission rows for one track.
  * @param array $claimedCounts  mission_definition_id => claimed run count.
  */
-function pw_missions_campaign_progress(array $missionsById, array $claimedCounts): ?array {
-    $final = null;
-    foreach ($missionsById as $mission) {
-        if (!empty($mission['is_campaign_final'])) { $final = $mission; break; }
-    }
-    if ($final === null) return null;
-
-    $chain = [];
-    $visited = [];
-    $cursor = $final;
-    while ($cursor !== null) {
-        $cursorId = (int)$cursor['id'];
-        // Defensive: the admin save path rejects loops, but a chain read on
-        // every page load must never be able to hang on damaged data.
-        if (isset($visited[$cursorId])) break;
-        $visited[$cursorId] = true;
-        array_unshift($chain, $cursor);
-        $previousId = $cursor['unlocks_after_mission_id'] !== null ? (int)$cursor['unlocks_after_mission_id'] : null;
-        $cursor = $previousId !== null && isset($missionsById[$previousId]) ? $missionsById[$previousId] : null;
-    }
-    if (!$chain) return null;
-
+function pw_missions_track_progress(array $chain, array $claimedCounts): array {
     $steps = [];
-    $completedSteps = 0;
+    $completed = 0;
     $currentIndex = null;
     foreach ($chain as $index => $mission) {
-        $missionId = (int)$mission['id'];
         $successor = $chain[$index + 1] ?? null;
         $required = $successor !== null ? max(1, (int)$successor['unlocks_after_completion_count']) : 1;
-        $done = min($required, (int)($claimedCounts[$missionId] ?? 0));
+        $done = min($required, (int)($claimedCounts[(int)$mission['id']] ?? 0));
         $isComplete = $done >= $required;
-        if ($isComplete) $completedSteps++;
+        if ($isComplete) $completed++;
         if (!$isComplete && $currentIndex === null) $currentIndex = $index;
         $steps[] = [
             'position' => $index + 1,
             'runs_done' => $done,
             'runs_required' => $required,
             'is_complete' => $isComplete,
-            // A step the player has never reached must not leak its mission
-            // name; only completed and in-progress steps are named.
             'name' => null,
             'state' => $isComplete ? 'complete' : 'locked',
         ];
     }
-    if ($currentIndex !== null) {
-        $steps[$currentIndex]['state'] = 'current';
-    }
+    $total = count($chain);
+    $isComplete = $completed >= $total;
+    if ($currentIndex === null) $currentIndex = $total - 1;
+    if (!$isComplete) $steps[$currentIndex]['state'] = 'current';
+
+    /* A step the player has not reached carries no name. Naming stops at the
+     * current step, so the bar shows how far the campaign runs without
+     * revealing what is still sealed. */
     foreach ($steps as $index => $step) {
-        if ($step['state'] !== 'locked') $steps[$index]['name'] = $chain[$index]['name'];
+        if ($index <= $currentIndex) $steps[$index]['name'] = $chain[$index]['name'];
     }
 
-    $total = count($chain);
     return [
         'total_steps' => $total,
-        'completed_steps' => $completedSteps,
-        'is_complete' => $completedSteps >= $total,
-        'final_name' => $completedSteps >= $total ? $final['name'] : null,
+        'completed_steps' => $completed,
+        'is_complete' => $isComplete,
+        'current_index' => $currentIndex,
         'steps' => $steps,
     ];
 }
 
-/**
- * Starter templates are cloned into a player-owned crew record the first time
- * the player visits Missions. INSERT IGNORE and the unique user/template key
- * make this safe across simultaneous page loads and future starter additions.
- */
 function pw_missions_grant_starter_crew(PDO $db, int $userId): void {
     $stmt = $db->prepare(
         'INSERT IGNORE INTO game_player_crew (user_id, crew_definition_id, level, xp, status)

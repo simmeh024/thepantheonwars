@@ -70,27 +70,55 @@ try {
         if ($row['unlocks_after_mission_id'] !== null) {
             $row['unlocks_after_completion_count'] = max(1, $row['unlocks_after_completion_count']);
         }
-        $row['is_unlocked'] = $row['unlocks_after_mission_id'] === null
-            || ($claimedCounts[$row['unlocks_after_mission_id']] ?? 0) >= $row['unlocks_after_completion_count'];
         return $row;
     }, $missionsStmt->fetchAll());
 
     $missionsById = [];
     foreach ($worldMissions as $mission) $missionsById[(int)$mission['id']] = $mission;
-    $campaign = pw_missions_campaign_progress($missionsById, $claimedCounts);
 
-    /* A locked mission is omitted from the response entirely -- name, slug,
-     * description, rewards and crew requirements included. Sending it and
-     * hiding it in CSS would hand every unreleased operation to anyone opening
-     * the network tab, the same reason api/timeline.php seals a gated event
-     * server-side rather than dimming it in the browser. The campaign bar above
-     * is the only thing that acknowledges those missions exist. */
-    $missions = array_values(array_map(static function ($mission) {
-        unset($mission['is_enabled'], $mission['is_campaign_final'], $mission['is_unlocked']);
-        return $mission;
-    }, array_filter($worldMissions, static function ($mission) {
-        return $mission['is_enabled'] && $mission['is_unlocked'];
-    })));
+    /* Every mission belongs to exactly one track. A one-step track is an
+     * ordinary standalone mission and carries no progress bar; a longer track
+     * is a campaign that shows one card at a time.
+     *
+     * Only the current step of a track is ever sent. Every later mission is
+     * omitted from the response entirely -- name, slug, description, rewards
+     * and crew requirements included -- because sending them and hiding them in
+     * CSS would hand every sealed operation to anyone opening the network tab,
+     * the same reason api/timeline.php seals a gated event server-side rather
+     * than dimming it in the browser. The bar is the only acknowledgement that
+     * further operations exist. */
+    $publicFields = ['id', 'world_key', 'name', 'slug', 'description', 'mission_type', 'duration_seconds',
+        'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order'];
+    $slots = [];
+    foreach (pw_missions_build_campaign_tracks($missionsById) as $chain) {
+        $progress = pw_missions_track_progress($chain, $claimedCounts);
+        $current = $chain[$progress['current_index']];
+        $isCampaign = count($chain) > 1;
+
+        // A disabled operation is never playable. On a standalone mission that
+        // simply removes the card; mid-campaign it leaves the bar in place so
+        // the player still sees where they are, without naming the mission.
+        if (!$current['is_enabled']) {
+            if ($isCampaign) {
+                $slots[] = [
+                    'sort_order' => (int)$current['sort_order'],
+                    'is_offline' => true,
+                    'campaign' => $progress,
+                ];
+            }
+            continue;
+        }
+
+        $slot = [];
+        foreach ($publicFields as $field) $slot[$field] = $current[$field];
+        $slot['is_offline'] = false;
+        $slot['campaign'] = $isCampaign ? $progress : null;
+        $slots[] = $slot;
+    }
+    usort($slots, static function ($a, $b) {
+        return [$a['sort_order'], $a['id'] ?? 0] <=> [$b['sort_order'], $b['id'] ?? 0];
+    });
+    $missions = array_values($slots);
 
     $playerMissionStmt = $db->prepare(
         'SELECT pm.id, pm.world_key, pm.status, pm.started_at, pm.completes_at, pm.completed_at, pm.claimed_at,
@@ -135,7 +163,6 @@ try {
             'total_missions' => count($allPlayerMissions),
         ],
         'crew' => $crew,
-        'campaign' => $campaign,
         'missions' => $missions,
         'active_missions' => $active,
         'history' => array_slice($history, 0, 30),

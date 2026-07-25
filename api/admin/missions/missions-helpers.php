@@ -56,15 +56,48 @@ function pw_admin_mission_definition_input(array $input): array {
 }
 
 /**
- * A world has at most one campaign finale, so flagging a new one clears the
- * previous flag rather than rejecting the save. Last write wins, which matches
- * how an administrator actually re-plans a campaign: the old ending simply
- * stops being the ending.
+ * A finale ends the succession chain it sits on, and a world may run several
+ * independent chains, so the flag is unique per *chain* rather than per world.
+ * Flagging a new finale clears any other flag on the same chain instead of
+ * rejecting the save -- last write wins, which is how an administrator
+ * actually re-plans an ending. A finale on an unrelated chain is untouched.
  */
 function pw_admin_apply_campaign_final(PDO $db, int $missionId, array $data): void {
     if (!$data['is_campaign_final']) return;
-    $stmt = $db->prepare('UPDATE game_mission_definitions SET is_campaign_final = 0 WHERE world_key = ? AND id != ? AND is_campaign_final = 1');
-    $stmt->execute([$data['world_key'], $missionId]);
+
+    // Walk back to the chain root, then forward to its tip, collecting every
+    // mission that shares this chain. Both walks guard against a malformed
+    // cycle so a damaged row can never spin here.
+    $chainIds = [];
+    $back = $db->prepare('SELECT unlocks_after_mission_id FROM game_mission_definitions WHERE id = ?');
+    $cursor = $missionId;
+    while ($cursor !== null && !isset($chainIds[$cursor])) {
+        $chainIds[$cursor] = true;
+        $back->execute([$cursor]);
+        $row = $back->fetch();
+        $cursor = $row && $row['unlocks_after_mission_id'] !== null ? (int)$row['unlocks_after_mission_id'] : null;
+    }
+    $forward = $db->prepare('SELECT id FROM game_mission_definitions WHERE unlocks_after_mission_id = ? ORDER BY sort_order ASC, id ASC');
+    $pending = [$missionId];
+    while ($pending) {
+        $current = array_shift($pending);
+        $forward->execute([$current]);
+        foreach ($forward->fetchAll() as $row) {
+            $id = (int)$row['id'];
+            if (isset($chainIds[$id])) continue;
+            $chainIds[$id] = true;
+            $pending[] = $id;
+        }
+    }
+
+    unset($chainIds[$missionId]);
+    if (!$chainIds) return;
+    $ids = array_keys($chainIds);
+    $stmt = $db->prepare(
+        'UPDATE game_mission_definitions SET is_campaign_final = 0
+         WHERE is_campaign_final = 1 AND id IN (' . pw_missions_placeholders(count($ids)) . ')'
+    );
+    $stmt->execute($ids);
 }
 
 /**
