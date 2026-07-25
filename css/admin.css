@@ -4120,12 +4120,16 @@
 .loot-entry-copy small { color: var(--text-dim); font-size: .66rem; }
 .loot-entry-chance { display: flex; align-items: center; gap: 6px; }
 .loot-entry-chance span { color: var(--text-dim); font-size: .58rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
-.loot-entry-chance input { width: 84px; }
+.loot-entry-chance input, .loot-entry-add select { height: 34px; border: 1px solid var(--border); border-radius: 2px; background: rgba(8,5,19,0.84); color: var(--text); font-family: 'Jost', sans-serif; font-size: .76rem; color-scheme: dark; transition: border-color .16s ease, box-shadow .16s ease, background-color .16s ease; }
+.loot-entry-chance input { width: 84px; padding: 6px 8px; color: var(--gold-bright); font-weight: 600; text-align: center; }
+.loot-entry-chance input:hover, .loot-entry-add select:hover { border-color: rgba(162,121,236,0.6); }
+.loot-entry-chance input:focus, .loot-entry-add select:focus { outline: none; border-color: var(--purple-bright); background: rgba(16,10,34,0.96); box-shadow: 0 0 0 3px rgba(157,111,232,0.15); }
+.loot-entry-add select { width: 100%; min-width: 0; padding: 6px 30px 6px 10px; }
+.loot-entry-add select:disabled, .loot-entry-chance input:disabled { border-color: var(--border-soft); color: var(--text-faint); background: rgba(8,5,19,0.52); }
 .loot-entry-chance i { color: var(--text-dim); font-size: .72rem; font-style: normal; }
 .loot-entry-remove { width: 28px; height: 28px; border: 1px solid var(--border); background: transparent; color: var(--text-dim); font-size: 1.1rem; line-height: 1; cursor: pointer; }
 .loot-entry-remove:hover { border-color: rgba(224,138,114,0.55); color: #e0a894; }
-.loot-entry-add { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
-.loot-entry-add select { min-width: 0; flex: 1; }
+.loot-entry-add { display: grid; grid-template-columns: minmax(138px, .72fr) minmax(260px, 1.38fr) auto; gap: 8px; align-items: center; margin-bottom: 6px; }
 .loot-entry-add .btn { flex: 0 0 auto; padding: 8px 12px; font-size: .68rem; }
 @media (max-width: 900px) {
   .loot-admin-columns, .loot-mission-columns { display: none; }
@@ -4136,6 +4140,11 @@
   .loot-entry-row, .loot-entry-row.has-portrait { grid-template-columns: minmax(0, 1fr) auto; }
   .loot-entry-row .mission-admin-portrait { display: none; }
   .loot-entry-copy { grid-column: 1 / -1; }
+  .loot-entry-add { grid-template-columns: minmax(130px, .72fr) minmax(0, 1.28fr) auto; }
+}
+@media (max-width: 560px) {
+  .loot-entry-add { grid-template-columns: 1fr; }
+  .loot-entry-add .btn { width: 100%; }
 }
 
 /* Reusable, non-destructive form switches. These intentionally do not reuse
