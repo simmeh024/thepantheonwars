@@ -432,6 +432,130 @@ function pw_missions_role_rates(): array {
     ];
 }
 
+/* ------------------------------------------------------------------------
+ * Mission-type role affinity.
+ *
+ * The role bonuses above are the same on every operation. Affinity is the
+ * opposite: it asks whether this crew member is the right specialist for this
+ * kind of work, so who you send matters as much as how experienced they are.
+ *
+ * Every role earns its keep on exactly two of the three operation types, and
+ * every type has two ways in -- no role is dead weight and no type is a trap:
+ *
+ *   recon    Vanguard  +5% credits      Pathfinder +5% XP
+ *   survey   Engineer  -5% duration     Pathfinder +5% reputation
+ *   salvage  Engineer  +5% loot upgrade Vanguard   +5% success
+ *
+ * A matching member's bonus stacks, so two Vanguards on a recon run earn 10%
+ * more credits.
+ *
+ * Assigning nobody from either preferred role is charged once -- not once per
+ * mismatched member. A two-crew operation with a single wrong role would
+ * otherwise be charged twice, and +40% duration on a compounding penalty makes
+ * the mission not worth running rather than merely worse.
+ * ---------------------------------------------------------------------- */
+
+const PW_MISSION_AFFINITY_PERCENT = 5.0;
+const PW_MISSION_AFFINITY_PENALTY_DURATION = 20.0;
+const PW_MISSION_AFFINITY_PENALTY_SUCCESS = 5.0;
+
+/**
+ * Which role earns which bonus on which operation type. Keyed by the lowercase
+ * mission_type value Mission Control stores, and by the exact role strings the
+ * crew definitions use.
+ */
+function pw_missions_affinity_matrix(): array {
+    return [
+        'recon' => ['Vanguard' => 'credit_percent', 'Pathfinder' => 'xp_percent'],
+        'survey' => ['Engineer' => 'duration_percent', 'Pathfinder' => 'reputation_percent'],
+        'salvage' => ['Engineer' => 'upgrade_percent', 'Vanguard' => 'success_percent'],
+    ];
+}
+
+/**
+ * The matrix in the shape the browser draws it: one entry per operation type,
+ * each preferred role carrying the effect it feeds and a ready reader label.
+ * Sent to the launch screen so the tags and the projection are driven by the
+ * server's own rates rather than by a second copy of them in JavaScript.
+ */
+function pw_missions_affinity_rules(): array {
+    $labels = [
+        'credit_percent' => 'credits',
+        'xp_percent' => 'XP',
+        'reputation_percent' => 'reputation',
+        'duration_percent' => 'faster',
+        'upgrade_percent' => 'loot quality',
+        'success_percent' => 'success',
+    ];
+    $rules = [];
+    foreach (pw_missions_affinity_matrix() as $type => $roles) {
+        $preferred = [];
+        foreach ($roles as $role => $effect) {
+            $preferred[$role] = [
+                'effect' => $effect,
+                'percent' => PW_MISSION_AFFINITY_PERCENT,
+                'label' => '+' . rtrim(rtrim(number_format(PW_MISSION_AFFINITY_PERCENT, 1, '.', ''), '0'), '.') . '% ' . $labels[$effect],
+            ];
+        }
+        $rules[$type] = [
+            'preferred' => $preferred,
+            'penalty' => [
+                'duration_percent' => PW_MISSION_AFFINITY_PENALTY_DURATION,
+                'success_percent' => PW_MISSION_AFFINITY_PENALTY_SUCCESS,
+            ],
+        ];
+    }
+    return $rules;
+}
+
+/**
+ * Affinity a set of assigned crew brings to one operation type.
+ *
+ * An unrecognized type earns no bonus and, deliberately, takes no penalty
+ * either: a type added straight to the database would otherwise silently punish
+ * every crew sent to it.
+ *
+ * @param array $crew Rows carrying at least a role.
+ */
+function pw_missions_affinity(?string $missionType, array $crew): array {
+    $type = strtolower(trim((string)$missionType));
+    $result = [
+        'type' => $type,
+        'preferred_roles' => [],
+        'matched_roles' => [],
+        'matched_count' => 0,
+        'penalty' => false,
+        'credit_percent' => 0.0,
+        'xp_percent' => 0.0,
+        'reputation_percent' => 0.0,
+        'duration_percent' => 0.0,
+        'upgrade_percent' => 0.0,
+        'success_percent' => 0.0,
+        'penalty_duration_percent' => 0.0,
+        'penalty_success_percent' => 0.0,
+    ];
+    $map = pw_missions_affinity_matrix()[$type] ?? null;
+    if ($map === null) return $result;
+    $result['preferred_roles'] = array_keys($map);
+
+    foreach ($crew as $member) {
+        $role = (string)($member['role'] ?? '');
+        if (!isset($map[$role])) continue;
+        $result[$map[$role]] += PW_MISSION_AFFINITY_PERCENT;
+        $result['matched_count']++;
+        if (!in_array($role, $result['matched_roles'], true)) $result['matched_roles'][] = $role;
+    }
+
+    // Charged only on a crew that was actually assigned: an empty selection is
+    // a preview of nothing, not a mismatch.
+    if ($result['matched_count'] === 0 && count($crew) > 0) {
+        $result['penalty'] = true;
+        $result['penalty_duration_percent'] = PW_MISSION_AFFINITY_PENALTY_DURATION;
+        $result['penalty_success_percent'] = PW_MISSION_AFFINITY_PENALTY_SUCCESS;
+    }
+    return $result;
+}
+
 /**
  * Per-point stat rates. Applied to the summed stat totals of the assigned crew.
  */
@@ -448,8 +572,13 @@ function pw_missions_stat_rates(): array {
  * Total effects a set of assigned crew brings to one mission.
  *
  * @param array $crew Rows carrying role, level and the four stat columns.
+ * @param string|null $missionType Operation type, when the effects are being
+ *        computed for a specific mission. Omitted where there is no mission in
+ *        context -- a single crew card, or the whole roster's headline -- in
+ *        which case no affinity bonus or penalty applies and the result is
+ *        exactly what it was before affinity existed.
  */
-function pw_missions_crew_effects(array $crew): array {
+function pw_missions_crew_effects(array $crew, ?string $missionType = null): array {
     $rates = pw_missions_role_rates();
     $totals = ['strength' => 0, 'cunning' => 0, 'science' => 0, 'charisma' => 0];
     $durationPercent = 0.0;
@@ -470,26 +599,48 @@ function pw_missions_crew_effects(array $crew): array {
     // Charisma adds to the same XP pool the Pathfinder role bonus feeds.
     $xpPercent += $totals['charisma'] * 0.5;
 
+    /* Affinity is added to the same pools the stats and role bonuses feed, so
+     * every consumer downstream keeps reading one figure per effect rather than
+     * having to know that a second bonus system exists. */
+    $affinity = pw_missions_affinity($missionType, $crew);
+    $durationPercent += $affinity['duration_percent'];
+    $xpPercent += $affinity['xp_percent'];
+
     return [
         // Clamped well short of a free mission: a duration multiplier must stay
         // positive however large a future crew or rate becomes.
         'duration_percent' => round(min(90.0, $durationPercent), 2),
+        // A mismatched crew is slower. Kept separate from the reduction above
+        // rather than subtracted from it, so a crew that is both experienced and
+        // wrong for the job is still slower than the same crew sent where it
+        // belongs -- netting the two would let deep Engineer levels cancel the
+        // penalty out entirely.
+        'duration_penalty_percent' => round($affinity['penalty_duration_percent'], 2),
         'xp_percent' => round($xpPercent, 2),
         'reputation_flat' => (int)floor($reputationFlat),
-        'success_percent' => round($totals['strength'] * 0.5, 2),
+        'reputation_percent' => round($affinity['reputation_percent'], 2),
+        'credit_percent' => round($affinity['credit_percent'], 2),
+        'success_percent' => round(($totals['strength'] * 0.5) + $affinity['success_percent'] - $affinity['penalty_success_percent'], 2),
         'loot_percent' => round($totals['cunning'] * 1.0, 2),
-        'upgrade_percent' => round(min(95.0, $totals['science'] * 1.5), 2),
+        'upgrade_percent' => round(min(95.0, ($totals['science'] * 1.5) + $affinity['upgrade_percent']), 2),
         'stat_totals' => $totals,
+        'affinity' => $affinity,
     ];
 }
 
 /**
- * Mission duration after the Engineer bonus, floored so an operation can never
- * become instant however deep a crew's experience runs.
+ * Mission duration after the Engineer bonus and any affinity adjustment, floored
+ * so an operation can never become instant however deep a crew's experience
+ * runs.
  */
 function pw_missions_effective_duration(int $baseSeconds, array $effects): int {
-    $seconds = (int)round($baseSeconds * (1 - ($effects['duration_percent'] / 100)));
-    return max(30, min($baseSeconds, $seconds));
+    $penalty = 1 + (($effects['duration_penalty_percent'] ?? 0) / 100);
+    $seconds = (int)round($baseSeconds * (1 - ($effects['duration_percent'] / 100)) * $penalty);
+    /* The ceiling rises with the penalty. Left at the base duration it would
+     * have silently swallowed the mismatch charge, since a penalised run is
+     * meant to take longer than the operation's listed time. With no penalty
+     * this is the base duration exactly, as it always was. */
+    return max(30, min((int)round($baseSeconds * $penalty), $seconds));
 }
 
 function pw_missions_effective_success(int $baseSuccessPercent, array $effects): int {

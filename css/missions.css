@@ -341,13 +341,72 @@
 .mission-launch-modal h2 { margin: 0 32px 6px 0; font-size: 1.42rem; }
 .mission-launch-modal p { margin: 0; color: #aec3cf; font-size: 0.82rem; }
 .mission-launch-close { position: absolute; top: 15px; right: 15px; width: 31px; height: 31px; border: 1px solid rgba(119,215,225,0.35); background: rgba(7,14,28,0.5); color: #d9e5ec; font-size: 1.25rem; line-height: 1; cursor: pointer; }
-.mission-launch-crew { display: grid; gap: 8px; margin: 21px 0 12px; }
-.mission-launch-crew-choice { display: flex; align-items: center; gap: 11px; padding: 11px 13px; border: 1px solid rgba(90,149,185,0.38); background: rgba(6,15,28,0.42); cursor: pointer; }
+/* Operation brief: which roles this type of work suits, and what ignoring both
+ * costs. Stated before a crew is chosen rather than discovered afterwards. */
+.mission-launch-brief { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; margin-top: 15px; }
+.mission-launch-brief-label { color: #79d9df; font-size: 0.58rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-launch-brief-role { padding: 4px 8px; border: 1px solid rgba(126,227,232,0.4); color: #cfe7ef; font-size: 0.66rem; font-weight: 600; }
+.mission-launch-brief-role em { color: #9edba8; font-style: normal; }
+.mission-launch-brief-penalty { padding: 4px 8px; border: 1px solid rgba(224,138,114,0.42); color: #e0a894; font-size: 0.63rem; font-weight: 600; }
+.mission-launch-crew-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 18px 0 9px; }
+.mission-launch-slots { color: #90abba; font-size: 0.63rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.mission-launch-slots.is-ready { color: #9edba8; }
+.mission-launch-recommend { padding: 7px 11px !important; font-size: 0.63rem !important; }
+.mission-launch-crew { display: grid; gap: 8px; margin: 0 0 12px; max-height: min(46vh, 420px); overflow-y: auto; }
+.mission-launch-crew-choice { display: grid; grid-template-columns: auto 42px minmax(0, 1fr); align-items: center; gap: 11px; padding: 10px 13px; border: 1px solid rgba(90,149,185,0.38); background: rgba(6,15,28,0.42); cursor: pointer; }
 .mission-launch-crew-choice:hover { border-color: rgba(115,220,230,0.67); }
+.mission-launch-crew-choice:focus-within { border-color: rgba(126,227,232,0.8); box-shadow: 0 0 0 1px rgba(126,227,232,0.35); }
 .mission-launch-crew-choice input { accent-color: #69dce3; }
-.mission-launch-crew-choice span { display: grid; gap: 1px; }
+/* Suited to this operation: a left edge and a warmer border, so the rows worth
+ * choosing read at a glance without colouring the whole row in. */
+.mission-launch-crew-choice.is-affinity { border-color: rgba(158,219,168,0.5); box-shadow: inset 3px 0 rgba(110,207,140,0.75); }
+/* Dimmed, but nowhere near as far as a plain disabled button. Both of these
+ * rows still carry information a player reads while deciding -- which run is
+ * holding a crew member and when they return, or the affinity of someone there
+ * is no room for -- so the dimming only supports the disabled checkbox and
+ * not-allowed cursor rather than doing the work alone. 0.8 is where every
+ * label in a dimmed row still measured above 4.5:1 against the modal's own
+ * background; at 0.5 the smallest of them fell to 2.7:1. */
+.mission-launch-crew-choice.is-unavailable { cursor: not-allowed; opacity: 0.8; }
+.mission-launch-crew-choice.is-capped { cursor: not-allowed; opacity: 0.8; }
+.mission-launch-crew-choice.is-unavailable:hover, .mission-launch-crew-choice.is-capped:hover { border-color: rgba(90,149,185,0.38); }
+.mission-launch-crew-portrait { display: block; width: 42px; height: 42px; overflow: hidden; border: 1px solid rgba(103,152,190,0.4); }
+.mission-launch-crew-portrait img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.mission-launch-crew-fallback { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: rgba(11,24,43,0.8); color: #8fb6c6; font: 600 1rem 'Cinzel', serif; }
+.mission-launch-crew-copy { display: grid; gap: 2px; min-width: 0; }
 .mission-launch-crew-choice strong { color: #eef1f6; font-size: 0.84rem; }
 .mission-launch-crew-choice small { color: #90abba; font-size: 0.68rem; }
+.mission-launch-crew-stats { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
+.mission-launch-stat { display: inline-flex; align-items: baseline; gap: 4px; padding: 1px 5px; border: 1px solid rgba(103,152,190,0.3); color: #c2d5e0; font-size: 0.6rem; font-weight: 600; cursor: help; }
+.mission-launch-stat i { color: #7d9bb0; font-size: 0.53rem; font-style: normal; letter-spacing: .06em; }
+.mission-launch-stat.is-strength { border-color: rgba(224,138,114,0.34); }
+.mission-launch-stat.is-cunning { border-color: rgba(199,154,232,0.34); }
+.mission-launch-stat.is-science { border-color: rgba(126,227,232,0.34); }
+.mission-launch-stat.is-charisma { border-color: rgba(235,209,138,0.34); }
+.mission-launch-crew-tag { margin-top: 3px; font-size: 0.64rem; font-weight: 600; letter-spacing: .02em; cursor: help; }
+.mission-launch-crew-tag.is-affinity { color: #9edba8; }
+.mission-launch-crew-tag.is-neutral { color: #8ba3b4; }
+/* Lighter than the other tags on purpose: this line sits inside a dimmed row,
+ * and the muted tone the rest of them use measured 3.4:1 once that opacity was
+ * applied. This one clears 6:1 through the same dimming. */
+.mission-launch-crew-tag.is-unavailable { color: #ccdde8; cursor: default; }
+/* Projection. Every figure here is recomputed on the server at launch and again
+ * at claim; this is only what the current selection is expected to produce. */
+.mission-launch-projection { margin-bottom: 4px; padding: 12px 13px; border: 1px solid rgba(88,142,181,0.32); background: rgba(8,18,33,0.55); }
+.mission-projection-empty { color: #8ba3b4 !important; font-size: 0.7rem !important; }
+.mission-projection-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(84px, 1fr)); gap: 9px; margin: 0; }
+.mission-projection-cell { min-width: 0; }
+.mission-projection-cell dt { margin-bottom: 3px; color: #758fa7; font-size: 0.58rem; letter-spacing: .1em; text-transform: uppercase; }
+.mission-projection-cell dd { margin: 0; color: #dfe8ef; font-size: 0.74rem; line-height: 1.3; }
+.mission-projection-cell dd s { color: #6f889b; text-decoration-thickness: 1px; }
+.mission-projection-cell.is-better dd strong { color: #9edba8; }
+.mission-projection-cell.is-worse dd strong { color: #e0a894; }
+.mission-projection-note { margin: 10px 0 0 !important; font-size: 0.68rem !important; font-weight: 600; }
+.mission-projection-note.is-good { color: #9edba8 !important; }
+.mission-projection-note.is-warning { color: #e0a894 !important; }
+.mission-projection-caveat { margin: 6px 0 0 !important; color: #7d94a6 !important; font-size: 0.62rem !important; line-height: 1.45 !important; }
+.mission-result-affinity { margin: 12px 0 0 !important; color: #9edba8 !important; font-size: 0.72rem !important; font-weight: 600; }
+.mission-result-affinity.is-warning { color: #e0a894 !important; }
 .mission-launch-error { min-height: 20px; color: #efa7a2 !important; }
 .mission-launch-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
 .mission-launch-actions .btn { padding: 10px 15px; font-size: 0.68rem; }

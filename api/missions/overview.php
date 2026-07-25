@@ -255,6 +255,11 @@ try {
         ],
         'crew' => $crew,
         'roster_effects' => $rosterEffects,
+        /* The affinity matrix, so the launch screen can label each crew member
+         * for the operation being launched and project the result. The rates
+         * live on the server; the browser only ever displays them, and every
+         * figure it shows is recomputed here at launch and again at claim. */
+        'affinity_rules' => pw_missions_affinity_rules(),
         'loot' => $loot,
         'stats_ready' => $statsReady,
         'missions' => $missions,

@@ -17,7 +17,7 @@ try {
     $creditsReady = pw_mission_credits_ready($db);
     if ($creditsReady) $statsColumns .= ', md.credit_reward';
     $missionStmt = $db->prepare(
-        'SELECT pm.*, md.name AS mission_name, md.duration_seconds AS mission_duration_seconds' . $statsColumns . '
+        'SELECT pm.*, md.name AS mission_name, md.mission_type, md.duration_seconds AS mission_duration_seconds' . $statsColumns . '
          FROM game_player_missions pm
          JOIN game_mission_definitions md ON md.id = pm.mission_definition_id
          WHERE pm.id = ? AND pm.user_id = ? FOR UPDATE'
@@ -45,8 +45,12 @@ try {
     }
     $crewIds = array_map(static function ($member) { return (int)$member['id']; }, $crew);
 
-    $effects = $statsReady ? pw_missions_crew_effects($crew) : [
-        'duration_percent' => 0.0, 'xp_percent' => 0.0, 'reputation_flat' => 0,
+    /* Recomputed here from the crew that actually went out and this operation's
+     * own type -- never from anything the client sends, and never read back from
+     * a figure stored at launch. */
+    $effects = $statsReady ? pw_missions_crew_effects($crew, (string)$mission['mission_type']) : [
+        'duration_percent' => 0.0, 'duration_penalty_percent' => 0.0, 'xp_percent' => 0.0,
+        'reputation_flat' => 0, 'reputation_percent' => 0.0, 'credit_percent' => 0.0,
         'success_percent' => 0.0, 'loot_percent' => 0.0, 'upgrade_percent' => 0.0,
     ];
 
@@ -64,11 +68,17 @@ try {
     $loot = [];
     if ($succeeded) {
         $xpAwarded = (int)round((int)$mission['xp_reward'] * (1 + ($effects['xp_percent'] / 100)));
-        $reputationAwarded = (int)$mission['reputation_reward'] + (int)$effects['reputation_flat'];
-        /* Credits are the operation's flat contract fee. Deliberately not scaled
-         * by any crew stat: Cunning already buys extra loot draws, and paying a
-         * second bonus off the same roster would compound one advantage twice. */
-        $creditsAwarded = $creditsReady ? (int)($mission['credit_reward'] ?? 0) : 0;
+        $reputationAwarded = (int)round((int)$mission['reputation_reward'] * (1 + ($effects['reputation_percent'] / 100)))
+            + (int)$effects['reputation_flat'];
+        /* Credits are the operation's contract fee, and the one reward no crew
+         * stat touches: Cunning already buys extra loot draws, so paying a second
+         * bonus off the same roster would compound one advantage twice. Affinity
+         * is the sole exception -- a Vanguard on a recon run negotiates a few
+         * extra credits out of the job, which is a fact about who was sent rather
+         * than about how experienced they are. */
+        $creditsAwarded = $creditsReady
+            ? (int)round((int)($mission['credit_reward'] ?? 0) * (1 + ($effects['credit_percent'] / 100)))
+            : 0;
     }
 
     /* A failed mission returns its crew with no XP, no reputation and no loot,
@@ -173,6 +183,10 @@ try {
         'xp_awarded_per_crew' => $xpAwarded,
         'reputation_awarded' => $reputationAwarded,
         'xp_bonus_percent' => $effects['xp_percent'],
+        // What the assigned crew's specialism was worth on this operation type,
+        // so the debrief can report it rather than leaving the player to infer it
+        // from a reward figure they never saw the baseline for.
+        'affinity' => $effects['affinity'] ?? null,
         'credits_awarded' => $creditsAwarded,
         'credits_total' => $creditBalance,
         'credits_ready' => $creditsReady,

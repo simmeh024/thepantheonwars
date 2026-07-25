@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var state = { data: null, serverOffset: 0, launchMission: null, refreshQueued: false, feedSlot: null };
+  var state = { data: null, serverOffset: 0, launchMission: null, launchProjection: null, launchPenaltyAck: false, refreshQueued: false, feedSlot: null };
   var gate = document.getElementById('missions-gate');
   var content = document.getElementById('missions-content');
   var statusMessage = document.getElementById('missions-status-message');
@@ -22,6 +22,10 @@
   var launchCrew = document.getElementById('mission-launch-crew');
   var launchError = document.getElementById('mission-launch-error');
   var launchConfirm = document.getElementById('mission-launch-confirm');
+  var launchBrief = document.getElementById('mission-launch-brief');
+  var launchSlots = document.getElementById('mission-launch-slots');
+  var launchRecommend = document.getElementById('mission-launch-recommend');
+  var launchProjection = document.getElementById('mission-launch-projection');
   var profileCard = document.getElementById('mission-profile-card');
   var dailyCard = document.getElementById('mission-daily-card');
   var resultModal = document.getElementById('mission-result-modal');
@@ -546,6 +550,35 @@
       return '<div class="mission-result-stat is-' + row.key + '"><span>' + escapeHtml(row.label) + '</span><strong>' + escapeHtml(row.value) + '</strong><small>' + escapeHtml(row.note) + '</small></div>';
     }).join('');
 
+    /* What the crew's specialism was worth here. Reported rather than left to be
+     * inferred: the figures above are the adjusted ones, and a player never sees
+     * the contract's own baseline again once the crew is out. */
+    var affinity = result.affinity;
+    var affinityNote = '';
+    if (affinity && affinity.type) {
+      if (affinity.penalty) {
+        affinityNote = 'No ' + (affinity.preferred_roles || []).join(' or ') + ' was assigned to this ' + affinity.type
+          + ' operation, so it ran ' + fmt(affinity.penalty_duration_percent) + '% long at ' + fmt(affinity.penalty_success_percent) + '% worse odds.';
+      } else if (affinity.matched_count > 0) {
+        var gains = [
+          { value: affinity.credit_percent, label: 'credits' },
+          { value: affinity.xp_percent, label: 'XP' },
+          { value: affinity.reputation_percent, label: 'reputation' },
+          { value: affinity.duration_percent, label: 'off the clock' },
+          { value: affinity.success_percent, label: 'success' },
+          { value: affinity.upgrade_percent, label: 'loot quality' }
+        ].filter(function (gain) { return Number(gain.value) > 0; })
+          .map(function (gain) { return '+' + fmt(gain.value) + '% ' + gain.label; });
+        affinityNote = affinity.matched_count + ' specialist' + (affinity.matched_count === 1 ? '' : 's')
+          + ' suited to ' + affinity.type + ' work' + (gains.length ? ': ' + gains.join(', ') : '') + '.';
+      }
+    }
+    /* Its own paragraph above the stat grid, not inside it -- that container is
+     * a grid and a stray paragraph would be laid out as one of its cells. */
+    var affinityLine = affinityNote
+      ? '<p class="mission-result-affinity' + (affinity.penalty ? ' is-warning' : '') + '">' + escapeHtml(affinityNote) + '</p>'
+      : '';
+
     var extras = '';
     /* A character award is the rarest thing a mission can produce, so it leads
      * the extras rather than sitting under the item list. A roll that hit a
@@ -579,6 +612,7 @@
       + '<h2 id="mission-result-title">' + escapeHtml(title) + '</h2>'
       + '<p class="mission-result-mission">' + escapeHtml(result.mission_name || '') + '</p>'
       + '<p class="mission-result-lead">' + escapeHtml(lead) + '</p>'
+      + affinityLine
       + '<div class="mission-result-grid">' + grid + '</div>' + extras;
     if (typeof resultModal.showModal === 'function') resultModal.showModal(); else resultModal.setAttribute('open', '');
   }
@@ -626,23 +660,259 @@
     fetch('/api/missions/overview.php', { credentials: 'same-origin' }).then(function (response) { return response.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'Mission command is unavailable.'); render(data); }).catch(function (error) { activeList.innerHTML = '<p class="missions-empty">' + escapeHtml(error.message || 'Mission command is unavailable.') + '</p>'; });
   }
 
+  /* ----------------------------------------------------------------------
+   * Role affinity, as the launch screen shows it.
+   *
+   * The matrix itself is never written here: api/missions/overview.php sends
+   * affinity_rules, so which role suits which operation type -- and what each
+   * match is worth -- has exactly one definition, on the server that enforces
+   * it. This code only reads those rules and displays the result.
+   * -------------------------------------------------------------------- */
+  function affinityRule(missionType) {
+    var rules = (state.data && state.data.affinity_rules) || {};
+    return rules[String(missionType || '').trim().toLowerCase()] || null;
+  }
+  function affinityFor(missionType, role) {
+    var rule = affinityRule(missionType);
+    return rule && rule.preferred && rule.preferred[role] ? rule.preferred[role] : null;
+  }
+
+  /* What a given selection would produce, mirroring pw_missions_crew_effects()
+   * and pw_missions_effective_duration()/_success(). Deliberately computed from
+   * the same per-level and per-point rates already published in ROLE_INFO and
+   * STAT_INFO above rather than by summing the server's per-member role_effect
+   * objects: those are each individually rounded and floored, so summing them
+   * would quietly under-report a flat reputation bonus. This is a projection --
+   * the server recomputes every figure at launch and again at claim, and is the
+   * only thing that decides an outcome. */
+  function projectLaunch(mission, crew) {
+    var rule = affinityRule(mission.mission_type);
+    var affinity = { credit_percent: 0, xp_percent: 0, reputation_percent: 0, duration_percent: 0, upgrade_percent: 0, success_percent: 0 };
+    var matched = 0;
+    var totals = { strength: 0, cunning: 0, science: 0, charisma: 0 };
+    var durationPercent = 0, xpPercent = 0, reputationFlat = 0;
+
+    crew.forEach(function (member) {
+      var level = Math.max(0, Math.min(Number(member.max_level) || 50, Number(member.level) || 0));
+      Object.keys(totals).forEach(function (stat) { totals[stat] += Math.max(0, Number(member[stat]) || 0); });
+      if (member.role === 'Engineer') durationPercent += level * 0.05;
+      if (member.role === 'Pathfinder') xpPercent += level * 0.10;
+      if (member.role === 'Vanguard') reputationFlat += level * 0.05;
+      var match = rule && rule.preferred ? rule.preferred[member.role] : null;
+      if (match) { affinity[match.effect] += Number(match.percent) || 0; matched++; }
+    });
+
+    var penalty = !!(rule && crew.length && matched === 0);
+    var penaltyDuration = penalty ? Number(rule.penalty.duration_percent) || 0 : 0;
+    var penaltySuccess = penalty ? Number(rule.penalty.success_percent) || 0 : 0;
+    durationPercent = Math.min(90, durationPercent + affinity.duration_percent);
+    xpPercent += (totals.charisma * 0.5) + affinity.xp_percent;
+
+    var baseSeconds = Number(mission.duration_seconds) || 0;
+    var seconds = Math.round(baseSeconds * (1 - (durationPercent / 100)) * (1 + (penaltyDuration / 100)));
+    var baseSuccess = isFinite(Number(mission.base_success_percent)) ? Number(mission.base_success_percent) : 100;
+
+    return {
+      crew: crew,
+      matched: matched,
+      penalty: penalty,
+      affinity: affinity,
+      penalty_duration_percent: penaltyDuration,
+      penalty_success_percent: penaltySuccess,
+      duration_seconds: Math.max(30, Math.min(Math.round(baseSeconds * (1 + (penaltyDuration / 100))), seconds)),
+      base_duration_seconds: baseSeconds,
+      success_percent: Math.max(5, Math.min(100, Math.round(baseSuccess + (totals.strength * 0.5) + affinity.success_percent - penaltySuccess))),
+      base_success_percent: baseSuccess,
+      credits: Math.round((Number(mission.credit_reward) || 0) * (1 + (affinity.credit_percent / 100))),
+      base_credits: Number(mission.credit_reward) || 0,
+      reputation: Math.round((Number(mission.reputation_reward) || 0) * (1 + (affinity.reputation_percent / 100))) + Math.floor(reputationFlat),
+      base_reputation: Number(mission.reputation_reward) || 0,
+      xp: Math.round((Number(mission.xp_reward) || 0) * (1 + (xpPercent / 100))),
+      base_xp: Number(mission.xp_reward) || 0,
+      loot_percent: totals.cunning * 1.0,
+      upgrade_percent: Math.min(95, (totals.science * 1.5) + affinity.upgrade_percent)
+    };
+  }
+
+  /* One projection row. The base figure is shown alongside the projected one
+   * whenever they differ, since "+340 credits" says nothing about whether this
+   * crew improved on the contract or cost you part of it. */
+  function projectionRow(label, base, value, formatValue, higherIsBetter) {
+    var changed = value !== base;
+    var better = higherIsBetter ? value > base : value < base;
+    var tone = !changed ? '' : better ? ' is-better' : ' is-worse';
+    return '<div class="mission-projection-cell' + tone + '"><dt>' + escapeHtml(label) + '</dt><dd>'
+      + (changed ? '<s>' + escapeHtml(formatValue(base)) + '</s> ' : '')
+      + '<strong>' + escapeHtml(formatValue(value)) + '</strong></dd></div>';
+  }
+
+  function renderLaunchProjection(projection) {
+    var mission = state.launchMission;
+    if (!launchProjection || !mission) return;
+    if (!projection.crew.length) {
+      launchProjection.innerHTML = '<p class="mission-projection-empty">Choose a crew to project this operation.</p>';
+      return;
+    }
+    var clock = function (seconds) { return formatDuration(seconds); };
+    var pct = function (value) { return value + '%'; };
+    var rows = projectionRow('Time', projection.base_duration_seconds, projection.duration_seconds, clock, false)
+      + projectionRow('Success', projection.base_success_percent, projection.success_percent, pct, true)
+      + projectionRow('XP each', projection.base_xp, projection.xp, function (v) { return '+' + v; }, true)
+      + projectionRow('Reputation', projection.base_reputation, projection.reputation, function (v) { return v ? '+' + v : '—'; }, true)
+      + (projection.base_credits > 0 ? projectionRow('Credits', projection.base_credits, projection.credits, function (v) { return '+' + credits(v); }, true) : '');
+    var note = projection.penalty
+      ? 'No ' + (affinityRule(mission.mission_type).preferred ? Object.keys(affinityRule(mission.mission_type).preferred).join(' or ') : 'specialist')
+        + ' assigned — this run takes ' + fmt(projection.penalty_duration_percent) + '% longer and is ' + fmt(projection.penalty_success_percent) + '% less likely to succeed.'
+      : projection.matched > 0
+        ? projection.matched + ' specialist' + (projection.matched === 1 ? '' : 's') + ' suited to this operation.'
+        : '';
+    launchProjection.innerHTML = '<dl class="mission-projection-grid">' + rows + '</dl>'
+      + (note ? '<p class="mission-projection-note' + (projection.penalty ? ' is-warning' : ' is-good') + '">' + escapeHtml(note) + '</p>' : '')
+      + '<p class="mission-projection-caveat">Projected from the crew you have chosen. Command confirms the final figures on return.</p>';
+  }
+
+  /* Sorted so the crew that suit this operation are the ones a player sees
+   * first, then the most experienced, then alphabetically. Unavailable crew
+   * always sink to the bottom: they are shown for context, not for choosing. */
+  function launchCrewOrder(mission) {
+    var crew = (state.data && state.data.crew || []).slice();
+    return crew.sort(function (a, b) {
+      var aOpen = crewAvailability(a) === 'available' ? 0 : 1;
+      var bOpen = crewAvailability(b) === 'available' ? 0 : 1;
+      if (aOpen !== bOpen) return aOpen - bOpen;
+      var aMatch = affinityFor(mission.mission_type, a.role) ? 0 : 1;
+      var bMatch = affinityFor(mission.mission_type, b.role) ? 0 : 1;
+      if (aMatch !== bMatch) return aMatch - bMatch;
+      if (Number(b.level) !== Number(a.level)) return Number(b.level) - Number(a.level);
+      return String(a.name).localeCompare(String(b.name));
+    });
+  }
+
+  function launchStatStrip(member) {
+    return '<span class="mission-launch-crew-stats">' + ['strength', 'cunning', 'science', 'charisma'].map(function (key) {
+      var info = STAT_INFO[key];
+      var value = Math.max(0, Number(member[key]) || 0);
+      return '<span class="mission-launch-stat is-' + key + '" title="' + escapeHtml(info.label + ' ' + value + ' — ' + info.effect(value)) + '">'
+        + '<i>' + info.short + '</i>' + value + '</span>';
+    }).join('') + '</span>';
+  }
+
+  function launchCrewRow(mission, member) {
+    var availability = crewAvailability(member);
+    var open = availability === 'available';
+    var match = affinityFor(mission.mission_type, member.role);
+    var portrait = safeImage(member.portrait_url);
+    var portraitMarkup = portrait
+      ? '<img src="' + escapeHtml(portrait) + '" alt="">'
+      : '<span class="mission-launch-crew-fallback" aria-hidden="true">' + escapeHtml(String(member.name).charAt(0)) + '</span>';
+    /* Deployed crew are listed rather than omitted, with the run that is
+     * holding them and when it returns. Left out entirely, a fully committed
+     * roster looked identical to owning no crew at all. */
+    var tag = !open
+      ? '<span class="mission-launch-crew-tag is-unavailable">' + (availability === 'deployed'
+          ? escapeHtml(member.active_mission_name || 'On mission') + ' · <span class="mission-countdown" data-completes-at="' + escapeHtml(member.active_mission_completes_at || '') + '">Calculating…</span>'
+          : 'Unavailable') + '</span>'
+      : match
+        ? '<span class="mission-launch-crew-tag is-affinity" title="' + escapeHtml(member.role + 's are suited to ' + String(mission.mission_type).toLowerCase() + ' work. Every one you assign adds this bonus again.') + '">' + escapeHtml(match.label) + '</span>'
+        : '<span class="mission-launch-crew-tag is-neutral" title="' + escapeHtml('No affinity with this operation type. A crew carrying none of its preferred roles takes a time and success penalty.') + '">No affinity</span>';
+    return '<label class="mission-launch-crew-choice' + (open ? '' : ' is-unavailable') + (match && open ? ' is-affinity' : '') + '">'
+      /* data-locked marks a checkbox that is disabled for a reason of its own,
+       * so the cap logic in updateLaunchState() leaves it alone rather than
+       * re-enabling an unavailable crew member the moment a slot frees up. */
+      + '<input type="checkbox" value="' + member.id + '"' + (open ? '' : ' disabled data-locked') + '>'
+      + '<span class="mission-launch-crew-portrait">' + portraitMarkup + '</span>'
+      + '<span class="mission-launch-crew-copy"><strong>' + escapeHtml(member.name) + '</strong>'
+      + '<small>' + escapeHtml(member.role) + ' · Level ' + member.level + '</small>'
+      + launchStatStrip(member) + tag + '</span></label>';
+  }
+
+  /* Recalculated after every change to the selection: the slot counter, which
+   * checkboxes may still be ticked, the projection, and the confirm button. */
+  function updateLaunchState() {
+    var mission = state.launchMission;
+    if (!mission) return;
+    var inputs = Array.prototype.slice.call(launchCrew.querySelectorAll('input[type="checkbox"]'));
+    var chosenIds = inputs.filter(function (input) { return input.checked; }).map(function (input) { return Number(input.value); });
+    var atCap = chosenIds.length >= mission.max_crew;
+    /* Disabled at the cap rather than silently unticking a click and writing an
+     * error, which is what this modal used to do. */
+    inputs.forEach(function (input) {
+      if (input.hasAttribute('data-locked')) return;
+      input.disabled = !input.checked && atCap;
+      input.closest('.mission-launch-crew-choice').classList.toggle('is-capped', !input.checked && atCap);
+    });
+    if (launchSlots) {
+      launchSlots.textContent = chosenIds.length + ' of ' + mission.max_crew + ' chosen'
+        + (chosenIds.length < mission.min_crew ? ' · ' + mission.min_crew + ' needed' : '');
+      launchSlots.classList.toggle('is-ready', chosenIds.length >= mission.min_crew);
+    }
+    var chosen = (state.data && state.data.crew || []).filter(function (member) { return chosenIds.indexOf(Number(member.id)) !== -1; });
+    var projection = projectLaunch(mission, chosen);
+    state.launchProjection = projection;
+    renderLaunchProjection(projection);
+    // Any change to the crew invalidates a mismatch the player already accepted.
+    state.launchPenaltyAck = false;
+    launchConfirm.textContent = 'Launch Mission';
+    launchConfirm.disabled = chosenIds.length < mission.min_crew;
+  }
+
+  /* Fills the slots with the best crew for this operation: affinity first, then
+   * experience -- the same order the list is already sorted in. */
+  function recommendLaunchCrew() {
+    var mission = state.launchMission;
+    if (!mission) return;
+    var picks = launchCrewOrder(mission)
+      .filter(function (member) { return crewAvailability(member) === 'available'; })
+      .slice(0, mission.max_crew)
+      .map(function (member) { return String(member.id); });
+    Array.prototype.forEach.call(launchCrew.querySelectorAll('input[type="checkbox"]'), function (input) {
+      input.disabled = false;
+      input.checked = picks.indexOf(input.value) !== -1;
+    });
+    launchError.textContent = '';
+    updateLaunchState();
+  }
+
   function openLaunch(missionId) {
     var mission = (state.data && state.data.missions || []).find(function (item) { return item.id === Number(missionId); });
     if (!mission) return;
-    state.launchMission = mission; launchError.textContent = '';
-    launchTitle.textContent = mission.name; launchCopy.textContent = 'Choose ' + mission.min_crew + (mission.max_crew !== mission.min_crew ? ' to ' + mission.max_crew : '') + ' available crew member' + (mission.max_crew === 1 ? '' : 's') + '.';
-    var crew = availableCrew();
-    launchCrew.innerHTML = crew.map(function (member) { return '<label class="mission-launch-crew-choice"><input type="checkbox" value="' + member.id + '"><span><strong>' + escapeHtml(member.name) + '</strong><small>' + escapeHtml(member.role) + ' · Level ' + member.level + '</small></span></label>'; }).join('') || '<p class="missions-empty">No crew members are available.</p>';
+    state.launchMission = mission; state.launchPenaltyAck = false; launchError.textContent = '';
+    launchTitle.textContent = mission.name;
+    launchCopy.textContent = 'Choose ' + mission.min_crew + (mission.max_crew !== mission.min_crew ? ' to ' + mission.max_crew : '') + ' available crew member' + (mission.max_crew === 1 ? '' : 's') + '.';
+    var rule = affinityRule(mission.mission_type);
+    if (launchBrief) {
+      launchBrief.innerHTML = rule
+        ? '<span class="mission-launch-brief-label">' + escapeHtml(String(mission.mission_type).toUpperCase()) + ' prefers</span>'
+          + Object.keys(rule.preferred).map(function (role) {
+            return '<span class="mission-launch-brief-role">' + escapeHtml(role) + ' <em>' + escapeHtml(rule.preferred[role].label) + '</em></span>';
+          }).join('')
+          + '<span class="mission-launch-brief-penalty">Neither assigned: +' + fmt(rule.penalty.duration_percent) + '% time, −' + fmt(rule.penalty.success_percent) + '% success</span>'
+        : '';
+      launchBrief.hidden = !rule;
+    }
+    var roster = launchCrewOrder(mission);
+    var openCount = roster.filter(function (member) { return crewAvailability(member) === 'available'; }).length;
+    launchCrew.innerHTML = roster.length
+      ? roster.map(function (member) { return launchCrewRow(mission, member); }).join('')
+      : '<p class="missions-empty">No crew members are available.</p>';
+    if (launchRecommend) launchRecommend.disabled = openCount === 0;
+    updateLaunchState();
+    tickCountdowns();
     if (typeof launchModal.showModal === 'function') launchModal.showModal(); else launchModal.setAttribute('open', '');
   }
-  function closeLaunch() { if (launchModal.open && typeof launchModal.close === 'function') launchModal.close(); else launchModal.removeAttribute('open'); state.launchMission = null; }
+  function closeLaunch() {
+    if (launchModal.open && typeof launchModal.close === 'function') launchModal.close(); else launchModal.removeAttribute('open');
+    state.launchMission = null; state.launchProjection = null; state.launchPenaltyAck = false;
+    launchConfirm.textContent = 'Launch Mission';
+  }
 
   definitionList.addEventListener('click', function (event) { var button = event.target.closest('.mission-launch-btn'); if (button && !button.disabled) openLaunch(button.getAttribute('data-mission-id')); });
-  launchCrew.addEventListener('change', function (event) {
+  launchCrew.addEventListener('change', function () {
     if (!state.launchMission) return;
-    var selected = launchCrew.querySelectorAll('input:checked');
-    if (selected.length > state.launchMission.max_crew) { event.target.checked = false; launchError.textContent = 'This mission allows a maximum of ' + state.launchMission.max_crew + ' crew members.'; } else { launchError.textContent = ''; }
+    launchError.textContent = '';
+    updateLaunchState();
   });
+  if (launchRecommend) launchRecommend.addEventListener('click', recommendLaunchCrew);
   document.getElementById('mission-result-close').addEventListener('click', closeResult);
   document.getElementById('mission-result-dismiss').addEventListener('click', closeResult);
   resultModal.addEventListener('click', function (event) { if (event.target === resultModal) closeResult(); });
@@ -652,6 +922,15 @@
     if (!state.launchMission) return;
     var crewIds = Array.prototype.map.call(launchCrew.querySelectorAll('input:checked'), function (input) { return Number(input.value); });
     if (crewIds.length < state.launchMission.min_crew || crewIds.length > state.launchMission.max_crew) { launchError.textContent = 'Choose the required number of crew members before launching.'; return; }
+    /* Launching into a mismatch takes a second, deliberate click rather than a
+     * window.confirm(): the penalty is already spelled out in the projection
+     * above, and a blocking dialog has stalled this page's flows before. */
+    if (state.launchProjection && state.launchProjection.penalty && !state.launchPenaltyAck) {
+      state.launchPenaltyAck = true;
+      launchConfirm.textContent = 'Launch Anyway';
+      launchError.textContent = 'This crew has no specialist for this operation. Launch again to accept the penalty.';
+      return;
+    }
     launchConfirm.disabled = true; launchConfirm.classList.add('is-busy'); launchError.textContent = '';
     post('/api/missions/start.php', { mission_id: state.launchMission.id, crew_ids: crewIds, csrf: window.PW_AUTH.csrf }).then(function () { closeLaunch(); setStatus('Mission launched. Your crew is now in the field.'); load(); }).catch(function (error) { launchError.textContent = error.message; }).finally(function () { launchConfirm.disabled = false; launchConfirm.classList.remove('is-busy'); });
   });

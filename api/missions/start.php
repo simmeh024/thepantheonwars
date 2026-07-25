@@ -59,13 +59,16 @@ try {
         if ($member['status'] !== 'available') throw new RuntimeException('Every selected crew member must be available.');
     }
 
-    /* The Engineer bonus is applied to the completion time at launch, so the
-     * countdown a player watches is the real one. Every other bonus is resolved
-     * at claim instead -- a crew that levels up mid-mission should benefit,
-     * and the duration is already fixed by then. */
+    /* The Engineer bonus, and the affinity adjustment for this operation type,
+     * are applied to the completion time at launch, so the countdown a player
+     * watches is the real one. Every other bonus is resolved at claim instead --
+     * a crew that levels up mid-mission should benefit, and the duration is
+     * already fixed by then. Affinity itself is a pure function of role and type,
+     * so resolving its time half here and its reward half at claim cannot
+     * disagree: neither input can change while the crew is out. */
     $effects = $statsReady
-        ? pw_missions_crew_effects($selectedCrew)
-        : ['duration_percent' => 0.0, 'success_percent' => 0.0];
+        ? pw_missions_crew_effects($selectedCrew, (string)$mission['mission_type'])
+        : ['duration_percent' => 0.0, 'duration_penalty_percent' => 0.0, 'success_percent' => 0.0];
     $duration = pw_missions_effective_duration((int)$mission['duration_seconds'], $effects);
 
     $now = pw_missions_utc_now($db);
