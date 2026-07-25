@@ -25,7 +25,19 @@ try {
              JOIN game_mission_definitions md ON md.id = pm.mission_definition_id
              WHERE pm.user_id = ? AND pm.status IN ("active", "completed")
          ) active ON active.player_crew_id = pc.id
-         WHERE pc.user_id = ?
+         /* A crew member whose definition an administrator has switched off is
+          * withdrawn from the roster entirely rather than listed as
+          * unavailable. api/missions/start.php has always refused to send one on
+          * an operation, so a visible row was a crew member the player could
+          * look at and never use. Filtered here rather than hidden in the
+          * browser, so the record does not travel to a page that will not show
+          * it. Their game_player_crew row is untouched, and re-enabling the
+          * definition restores them with their level and XP intact.
+          *
+          * A run already in the field is unaffected: claim.php joins the
+          * definition without this condition, so an operation launched before
+          * the switch still completes and still pays out. */
+         WHERE pc.user_id = ? AND c.is_enabled = 1
          ORDER BY c.is_starter DESC, c.role ASC, c.name ASC'
     );
     $crewStmt->execute([$userId, $userId]);
@@ -235,6 +247,9 @@ try {
 
     // Neoh is the only world with operations today; the helper is world-generic.
     $weatherNow = pw_missions_world_weather($db, 'neoh');
+    /* Correct by construction now that the roster query excludes switched-off
+     * definitions. It used to count them, so this tile could report crew the
+     * launch screen already refused to offer. */
     $availableCrew = count(array_filter($crew, static function ($member) { return $member['status'] === 'available'; }));
     $serverTime = $db->query('SELECT UTC_TIMESTAMP() AS value')->fetch();
     pw_json([

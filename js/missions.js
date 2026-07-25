@@ -321,6 +321,13 @@
   }
 
   function crewAvailability(crew) {
+    /* Kept as a floor rather than removed: the roster query withdraws a
+     * switched-off crew member before it reaches this page, and status is only
+     * ever available or on_mission, so nothing here should resolve to
+     * unavailable any more. The Unavailable filter option was dropped for that
+     * reason -- an option that can never match anything is a dead control --
+     * but the state itself stays handled so an unexpected status value renders
+     * as a disabled row instead of an available one. */
     if (!crew.definition_enabled) return 'unavailable';
     if (crew.status === 'on_mission') return 'deployed';
     return crew.status === 'available' ? 'available' : 'unavailable';
