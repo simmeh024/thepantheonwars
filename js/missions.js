@@ -23,6 +23,7 @@
   var launchError = document.getElementById('mission-launch-error');
   var launchConfirm = document.getElementById('mission-launch-confirm');
   var profileCard = document.getElementById('mission-profile-card');
+  var dailyCard = document.getElementById('mission-daily-card');
   var resultModal = document.getElementById('mission-result-modal');
   var resultInner = document.getElementById('mission-result-inner');
   var resultBody = document.getElementById('mission-result-body');
@@ -80,6 +81,54 @@
     page.style.setProperty('--mission-watermark', 'url("' + (url.charAt(0) === '/' ? url : '/' + url) + '")');
     page.style.setProperty('--mission-watermark-opacity', String(Math.max(1, Math.min(40, Number(watermark.opacity) || 8)) / 100));
     page.classList.add('has-watermark');
+  }
+
+  /* Today's objective, under the commander card in the same rail. One a day,
+   * chosen on the server and stable for the whole UTC day, so this is a
+   * readout: the client never picks the objective or its reward, and claiming
+   * sends nothing but a CSRF token. */
+  function rewardLabel(daily) {
+    return daily.reward_type === 'reputation'
+      ? '+' + daily.reward_amount + ' reputation'
+      : '+' + credits(daily.reward_amount) + ' credits';
+  }
+
+  function renderDaily(data) {
+    if (!dailyCard) return;
+    var daily = data.daily;
+    // Hidden rather than empty while the migration is pending -- an objective
+    // card with nothing in it is worse than no card.
+    if (!daily) { dailyCard.hidden = true; dailyCard.innerHTML = ''; dailyCard.classList.remove('is-complete'); return; }
+    dailyCard.hidden = false;
+    dailyCard.classList.toggle('is-complete', !!daily.is_complete);
+    var pct = daily.target > 0 ? Math.min(100, Math.round((daily.progress / daily.target) * 100)) : 0;
+    var action = daily.claimed
+      ? '<p class="mission-daily-done">Reward claimed — ' + escapeHtml(rewardLabel(daily)) + '</p>'
+      : daily.is_complete
+        ? '<button type="button" class="btn btn-solid" id="mission-daily-claim">Claim ' + escapeHtml(rewardLabel(daily)) + '</button>'
+        : '';
+    dailyCard.innerHTML = '<div class="mission-daily-head"><span class="eyebrow">Daily objective</span>'
+        + '<span class="mission-daily-reset" data-daily-reset="' + escapeHtml(daily.resets_at) + '">Resets in —</span></div>'
+      + '<p class="mission-daily-label">' + escapeHtml(daily.label) + '</p>'
+      + '<p class="mission-daily-detail">' + escapeHtml(daily.detail) + '</p>'
+      + '<span class="mission-daily-track" role="img" aria-label="Progress: ' + daily.progress + ' of ' + daily.target + '"><i style="width:' + pct + '%"></i></span>'
+      + '<p class="mission-daily-progress"><span>' + daily.progress + ' / ' + daily.target + '</span><strong>' + escapeHtml(rewardLabel(daily)) + '</strong></p>'
+      + action
+      + '<p class="mission-daily-error" id="mission-daily-error" role="alert"></p>';
+    tickDailyReset();
+  }
+
+  // Counts down to the objective's own UTC-midnight reset, on the same ticker
+  // the mission countdowns already use.
+  function tickDailyReset() {
+    var element = dailyCard && dailyCard.querySelector('[data-daily-reset]');
+    if (!element) return;
+    var resets = apiDate(element.getAttribute('data-daily-reset'));
+    if (!resets || isNaN(resets)) { element.textContent = ''; return; }
+    var remaining = Math.max(0, Math.floor((resets.getTime() - (Date.now() + state.serverOffset)) / 1000));
+    var hours = Math.floor(remaining / 3600);
+    var minutes = Math.floor((remaining % 3600) / 60);
+    element.textContent = 'Resets in ' + (hours > 0 ? hours + 'h ' + minutes + 'm' : minutes + 'm');
   }
 
   /* Commander card in the right rail. The avatar is the site-wide
@@ -421,7 +470,7 @@
     state.data = data;
     var server = apiDate(data.server_time);
     state.serverOffset = server && !isNaN(server) ? server.getTime() - Date.now() : 0;
-    applyWatermark(data.watermark); renderProfile(data); renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderHistory(data); tickCountdowns();
+    applyWatermark(data.watermark); renderProfile(data); renderDaily(data); renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderHistory(data); tickCountdowns();
   }
 
   /* Debrief shown after a claim. The server has already resolved everything by
@@ -522,6 +571,7 @@
       element.textContent = remaining > 0 ? formatDuration(remaining) + ' remaining' : 'Ready for completion';
       if (remaining === 0 && !state.refreshQueued) { state.refreshQueued = true; window.setTimeout(function () { state.refreshQueued = false; load(); }, 1500); }
     });
+    tickDailyReset();
   }
 
   function tickCommandFeed() {
@@ -579,6 +629,26 @@
       else { setStatus('Mission completed. Rewards are ready to claim.'); }
     }).catch(function (error) { setStatus(error.message, true); button.disabled = false; button.classList.remove('is-busy'); });
   });
+  /* Delegated, because the card is rebuilt on every refresh and a listener
+   * bound to the button itself would be thrown away with it. */
+  if (dailyCard) dailyCard.addEventListener('click', function (event) {
+    var button = event.target.closest('#mission-daily-claim');
+    if (!button || button.disabled) return;
+    var error = document.getElementById('mission-daily-error');
+    if (error) error.textContent = '';
+    button.disabled = true; button.classList.add('is-busy');
+    post('/api/missions/daily-claim.php', { csrf: window.PW_AUTH.csrf }).then(function (result) {
+      load();
+      setStatus(result.reward_type === 'reputation'
+        ? 'Daily objective complete: +' + result.reputation_awarded + ' reputation.'
+        : 'Daily objective complete: +' + credits(result.credits_awarded) + ' credits (total ' + credits(result.credits_total) + ').');
+    }).catch(function (caught) {
+      var target = document.getElementById('mission-daily-error');
+      if (target) target.textContent = caught.message;
+      button.disabled = false; button.classList.remove('is-busy');
+    });
+  });
+
   [crewRoleFilter, crewLevelFilter, crewWorldFilter, crewStatusFilter, crewSort].forEach(function (control) {
     control.addEventListener('change', function () { if (state.data) renderCrew(state.data); });
   });

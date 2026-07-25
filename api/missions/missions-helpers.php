@@ -698,6 +698,139 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
     return $result;
 }
 
+/* ------------------------------------------------------------------------
+ * Daily objectives.
+ *
+ * One objective per player per UTC day, chosen deterministically so a refresh
+ * cannot reroll it. Progress is counted forward as missions resolve rather than
+ * derived on read: a crew level-up leaves no record anywhere (levels are
+ * recomputed from total XP), so there would be nothing to count after the fact.
+ * ---------------------------------------------------------------------- */
+
+function pw_mission_dailies_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_missions_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT user_id FROM `game_player_daily_progress` LIMIT 1');
+        $db->query('SELECT user_id FROM `game_player_daily_claims` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+/** Any duration at or above this counts as a long operation. */
+const PW_MISSION_LONG_SECONDS = 1800;
+
+/**
+ * The fixed catalogue. Order is load-bearing: the daily is picked by index, so
+ * inserting an objective in the middle would change which one a player is
+ * shown mid-day. Append only.
+ */
+function pw_missions_daily_catalogue(): array {
+    return [
+        [
+            'key' => 'five_missions',
+            'label' => 'Complete 5 missions',
+            'detail' => 'Any operation counts, and a failed run still counts as run.',
+            'metric' => 'missions_completed',
+            'target' => 5,
+            'reward_type' => 'reputation',
+            'reward_amount' => 50,
+        ],
+        [
+            'key' => 'two_level_ups',
+            'label' => 'Level up a crew member twice',
+            'detail' => 'Two levels in total, across any of your crew.',
+            'metric' => 'crew_level_ups',
+            'target' => 2,
+            'reward_type' => 'credits',
+            'reward_amount' => 100,
+        ],
+        [
+            'key' => 'long_mission',
+            'label' => 'Complete one 30-minute mission',
+            'detail' => 'Measured by the operation\'s listed duration, so an Engineer shortening the clock does not disqualify it.',
+            'metric' => 'long_missions',
+            'target' => 1,
+            'reward_type' => 'credits',
+            'reward_amount' => 50,
+        ],
+    ];
+}
+
+/** Today in UTC, the boundary every daily in this project already uses. */
+function pw_missions_daily_date(PDO $db): string {
+    return pw_missions_utc_now($db)->format('Y-m-d');
+}
+
+/**
+ * Which objective a player sees on a given day.
+ *
+ * Seeded from the player and the date together, the same technique the weather
+ * forecast and the Overlord decree-of-the-day already use: stable for the whole
+ * UTC day, different per player, and impossible to reroll by refreshing.
+ */
+function pw_missions_daily_for_user(int $userId, string $date): array {
+    $catalogue = pw_missions_daily_catalogue();
+    return $catalogue[crc32($userId . '|' . $date) % count($catalogue)];
+}
+
+/**
+ * Add to a daily counter. Safe to call before the migration has run -- the
+ * whole objective feature is decorative until then, and a mission claim must
+ * never fail over it.
+ */
+function pw_missions_record_daily_progress(PDO $db, int $userId, string $metric, int $amount): void {
+    if ($amount < 1 || !pw_mission_dailies_ready($db)) return;
+    try {
+        $stmt = $db->prepare(
+            'INSERT INTO game_player_daily_progress (user_id, stat_date, metric_key, progress)
+             VALUES (?, UTC_DATE(), ?, ?)
+             ON DUPLICATE KEY UPDATE progress = progress + VALUES(progress)'
+        );
+        $stmt->execute([$userId, $metric, $amount]);
+    } catch (Throwable $e) {
+        // Counting is not worth losing a mission reward over.
+    }
+}
+
+/**
+ * Today's objective with the player's progress against it, or null when the
+ * migration has not been run.
+ */
+function pw_missions_daily_state(PDO $db, int $userId): ?array {
+    if (!pw_mission_dailies_ready($db)) return null;
+    $now = pw_missions_utc_now($db);
+    $date = $now->format('Y-m-d');
+    $daily = pw_missions_daily_for_user($userId, $date);
+
+    $progressStmt = $db->prepare('SELECT progress FROM game_player_daily_progress WHERE user_id = ? AND stat_date = ? AND metric_key = ?');
+    $progressStmt->execute([$userId, $date, $daily['metric']]);
+    $progress = (int)($progressStmt->fetchColumn() ?: 0);
+
+    $claimStmt = $db->prepare('SELECT claimed_at FROM game_player_daily_claims WHERE user_id = ? AND stat_date = ? AND daily_key = ?');
+    $claimStmt->execute([$userId, $date, $daily['key']]);
+    $claimedAt = $claimStmt->fetchColumn();
+
+    return [
+        'key' => $daily['key'],
+        'label' => $daily['label'],
+        'detail' => $daily['detail'],
+        'target' => $daily['target'],
+        'progress' => min($progress, $daily['target']),
+        'raw_progress' => $progress,
+        'reward_type' => $daily['reward_type'],
+        'reward_amount' => $daily['reward_amount'],
+        'is_complete' => $progress >= $daily['target'],
+        'claimed' => $claimedAt !== false && $claimedAt !== null,
+        'claimed_at' => $claimedAt !== false ? $claimedAt : null,
+        // Next UTC midnight, so the card can count down to its own reset.
+        'resets_at' => $now->modify('tomorrow midnight')->format('Y-m-d H:i:s'),
+    ];
+}
+
 function pw_missions_grant_starter_crew(PDO $db, int $userId): void {
     $stmt = $db->prepare(
         'INSERT IGNORE INTO game_player_crew (user_id, crew_definition_id, level, xp, status)

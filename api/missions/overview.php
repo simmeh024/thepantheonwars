@@ -241,6 +241,8 @@ try {
         'server_time' => $serverTime['value'],
         'player' => $player,
         'watermark' => pw_missions_watermark_settings(),
+        // Null until the dailies migration has been run; the card stays hidden.
+        'daily' => pw_missions_daily_state($db, $userId),
         'stats' => [
             'active_missions' => count($active),
             'available_crew' => $availableCrew,

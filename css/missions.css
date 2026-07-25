@@ -120,7 +120,8 @@
  * measured against, so they belong above it rather than after a long roster. */
 .missions-layout { display: grid; grid-template-columns: minmax(0, 1fr) 262px; gap: 26px; align-items: start; }
 .missions-primary { min-width: 0; }
-.missions-rail { position: sticky; top: 84px; min-width: 0; }
+/* Deliberately not sticky: the rail scrolls away with the page. */
+.missions-rail { display: grid; gap: 14px; align-content: start; min-width: 0; }
 .mission-profile-card { padding: 17px 16px 15px; border: 1px solid rgba(94,183,198,0.34); background: linear-gradient(150deg, rgba(11,35,53,0.82), rgba(21,13,46,0.88)); box-shadow: inset 0 1px rgba(133,229,237,0.06); }
 .mission-profile-card .eyebrow { display: block; margin-bottom: 11px; color: #79d9df; font-size: 0.6rem; }
 .mission-profile-loading { margin: 0; color: #86a0b2; font-size: 0.74rem; }
@@ -141,6 +142,26 @@
 .mission-profile-credits strong { color: #e9d399; font: 600 1.2rem/1 'Cinzel', serif; }
 .mission-profile-credits.is-pending { display: grid; }
 .mission-profile-credits.is-pending small { color: #86a0b2; font-size: 0.63rem; line-height: 1.4; }
+
+/* Daily objective, sitting under the commander card in the same rail. One
+ * objective a day, so this is a single small panel rather than a list. */
+.mission-daily-card { padding: 15px 16px 14px; border: 1px solid rgba(199,154,232,0.34); background: linear-gradient(150deg, rgba(30,18,54,0.86), rgba(14,20,42,0.88)); box-shadow: inset 0 1px rgba(199,154,232,0.07); }
+.mission-daily-card[hidden] { display: none; }
+.mission-daily-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
+.mission-daily-head .eyebrow { margin: 0; color: #c79ae8; font-size: 0.6rem; }
+.mission-daily-reset { color: #8ba5be; font-size: 0.58rem; letter-spacing: .04em; white-space: nowrap; }
+.mission-daily-label { margin: 0 0 4px; color: #f0edf8; font-size: 0.9rem; font-weight: 600; line-height: 1.35; }
+.mission-daily-detail { margin: 0; color: #8ba5be; font-size: 0.66rem; line-height: 1.45; }
+.mission-daily-track { display: block; height: 6px; margin: 11px 0 6px; overflow: hidden; background: rgba(3,6,14,0.8); box-shadow: inset 0 1px 2px rgba(0,0,0,0.38); }
+.mission-daily-track i { display: block; height: 100%; background: linear-gradient(90deg, #8d5cc4, #c79ae8); box-shadow: 0 0 9px rgba(199,154,232,0.5); transition: width .5s ease; }
+.mission-daily-card.is-complete .mission-daily-track i { background: linear-gradient(90deg, #6ad2a2, #9edba8); box-shadow: 0 0 9px rgba(158,219,168,0.5); }
+.mission-daily-progress { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; color: #a9bdcb; font-size: 0.66rem; }
+.mission-daily-progress strong { color: #e9d399; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+.mission-daily-card .btn { width: 100%; margin-top: 11px; padding: 9px 12px; font-size: 0.67rem; }
+.mission-daily-done { display: flex; align-items: center; gap: 7px; margin: 11px 0 0; padding-top: 10px; border-top: 1px solid rgba(199,154,232,0.22); color: #9edba8; font-size: 0.68rem; font-weight: 600; }
+.mission-daily-done::before { content: ''; width: 7px; height: 7px; flex: 0 0 7px; border-radius: 50%; background: #9edba8; box-shadow: 0 0 8px rgba(158,219,168,0.7); }
+.mission-daily-error { margin: 9px 0 0; color: #efa5a1; font-size: 0.66rem; line-height: 1.4; }
+@media (prefers-reduced-motion: reduce) { .mission-daily-track i { transition: none; } }
 
 /* Mission debrief. The two outcomes share a shape so the report always reads
  * the same way; only the accent and the figures differ. */
@@ -186,7 +207,7 @@
 @media (prefers-reduced-motion: reduce) { .mission-profile-rep-track i { transition: none; } }
 @media (max-width: 1080px) {
   .missions-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
-  .missions-rail { position: static; order: -1; }
+  .missions-rail { order: -1; }
   .mission-profile-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 22px; align-items: center; }
   .mission-profile-card .eyebrow { grid-column: 1 / -1; margin-bottom: 4px; order: 0; }
   /* The balance has to be auto-placed before the reputation bar or it lands on

@@ -17,7 +17,7 @@ try {
     $creditsReady = pw_mission_credits_ready($db);
     if ($creditsReady) $statsColumns .= ', md.credit_reward';
     $missionStmt = $db->prepare(
-        'SELECT pm.*, md.name AS mission_name' . $statsColumns . '
+        'SELECT pm.*, md.name AS mission_name, md.duration_seconds AS mission_duration_seconds' . $statsColumns . '
          FROM game_player_missions pm
          JOIN game_mission_definitions md ON md.id = pm.mission_definition_id
          WHERE pm.id = ? AND pm.user_id = ? FOR UPDATE'
@@ -84,6 +84,9 @@ try {
     // Levelling is re-derived from the crew member's new XP total, so it is
     // correct even if a past award was applied while the migration was pending.
     $levelUps = [];
+    // Levels gained, not crew members promoted: a large XP award can carry one
+    // crew member up two levels at once, and the daily objective counts levels.
+    $levelsGained = 0;
     if ($statsReady && $xpAwarded > 0) {
         $levelStmt = $db->prepare('UPDATE game_player_crew SET level = ?, strength = ?, cunning = ?, science = ?, charisma = ? WHERE id = ? AND user_id = ?');
         foreach ($crew as $member) {
@@ -92,6 +95,7 @@ try {
             if ($newLevel === (int)$member['level']) continue;
             $stats = pw_missions_stats_for_level((string)$member['role'], $newLevel);
             $levelStmt->execute([$newLevel, $stats['strength'], $stats['cunning'], $stats['science'], $stats['charisma'], (int)$member['id'], $userId]);
+            $levelsGained += $newLevel - (int)$member['level'];
             $levelUps[] = ['id' => (int)$member['id'], 'name' => $member['name'], 'level' => $newLevel];
         }
     }
@@ -147,6 +151,19 @@ try {
     $missionUpdate = $db->prepare('UPDATE game_player_missions SET ' . implode(', ', $sets) . ' WHERE id = ? AND status = "completed"');
     $missionUpdate->execute($values);
     if ($missionUpdate->rowCount() !== 1) throw new RuntimeException('This mission reward was already claimed.');
+
+    /* Daily objective counters. Recorded after the mission row is safely
+     * updated, so a run that turns out to be already claimed cannot inflate
+     * them. A failed run still counts as a mission completed -- the crew went
+     * out and came back, and losing the rewards is punishment enough -- while
+     * the long-operation counter deliberately reads the definition's listed
+     * duration, not the shortened clock an Engineer produced. */
+    pw_missions_record_daily_progress($db, $userId, 'missions_completed', 1);
+    if ((int)$mission['mission_duration_seconds'] >= PW_MISSION_LONG_SECONDS) {
+        pw_missions_record_daily_progress($db, $userId, 'long_missions', 1);
+    }
+    pw_missions_record_daily_progress($db, $userId, 'crew_level_ups', $levelsGained);
+
     $db->commit();
     pw_json([
         'ok' => true,

@@ -1831,6 +1831,34 @@ CREATE TABLE IF NOT EXISTS game_player_loot (
   CONSTRAINT fk_game_player_loot_definition FOREIGN KEY (loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- sql/migration_mission_dailies.sql. One objective per player per UTC day,
+-- chosen deterministically from a fixed catalogue in PHP. Progress is counted
+-- forward rather than derived, because a crew level-up leaves no record --
+-- levels are recomputed from total XP, so there is nothing to count after the
+-- fact.
+CREATE TABLE IF NOT EXISTS game_player_daily_progress (
+  user_id INT UNSIGNED NOT NULL,
+  stat_date DATE NOT NULL,
+  metric_key VARCHAR(40) NOT NULL,
+  progress INT UNSIGNED NOT NULL DEFAULT 0,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, stat_date, metric_key),
+  KEY idx_game_player_daily_progress_date (stat_date),
+  CONSTRAINT fk_game_player_daily_progress_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS game_player_daily_claims (
+  user_id INT UNSIGNED NOT NULL,
+  stat_date DATE NOT NULL,
+  daily_key VARCHAR(40) NOT NULL,
+  reward_type VARCHAR(20) NOT NULL,
+  reward_amount INT UNSIGNED NOT NULL DEFAULT 0,
+  claimed_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, stat_date, daily_key),
+  KEY idx_game_player_daily_claims_date (stat_date),
+  CONSTRAINT fk_game_player_daily_claims_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- sql/migration_mission_watermark.sql adds game_mission_definitions.
 -- watermark_url and watermark_opacity: an emblem drawn inside that one
 -- mission's card, separate from the single page-wide watermark held in
