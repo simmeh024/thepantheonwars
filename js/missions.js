@@ -195,11 +195,10 @@
     document.getElementById('missions-command-copy').textContent = data.stats.active_missions ? 'Your crews are transmitting from the field. Mission time is verified by command.' : 'No active deployments. Review Neoh operations and assign an available crew.';
   }
 
-  /* Each active operation gets a small route diagram. The intermediate nodes
-   * are generated from a seeded random sequence instead of Math.random(), so
-   * a card retains its route through refreshes rather than visibly jumping as
-   * its countdown updates. Its lit section is calculated from the same start
-   * and completion timestamps that power the remaining-time countdown. */
+  /* Each active operation gets the same clear rising route toward its endpoint.
+   * The points are intentionally authored rather than random, so the trace
+   * reads as a plotted Neoh approach and remains visually calm on refresh.
+   * Its lit section is calculated from the same timestamps as the countdown. */
   function missionRouteProgress(startedAt, completesAt, isCompleted) {
     if (isCompleted) return 100;
     var started = apiDate(startedAt);
@@ -225,22 +224,15 @@
   }
 
   function missionRouteMarkup(mission, isCompleted) {
-    var seed = (Math.abs(Number(mission.id)) || 1) >>> 0;
-    function random() {
-      seed = (seed * 1664525 + 1013904223) >>> 0;
-      return seed / 4294967296;
-    }
-    var start = { x: 18, y: 128 };
-    var end = { x: 242, y: 24 + Math.round(random() * 28) };
-    var nodeCount = 2 + Math.floor(random() * 3);
-    var points = [start];
-    for (var index = 1; index <= nodeCount; index++) {
-      points.push({
-        x: Math.round(18 + ((224 * index) / (nodeCount + 1)) + ((random() - 0.5) * 12)),
-        y: Math.round(32 + (random() * 92))
-      });
-    }
-    points.push(end);
+    var points = [
+      { x: 16, y: 144 },
+      { x: 60, y: 113 },
+      { x: 108, y: 78 },
+      { x: 164, y: 55 },
+      { x: 246, y: 28 }
+    ];
+    var start = points[0];
+    var end = points[points.length - 1];
     var path = 'M' + points.map(function (point) { return point.x + ' ' + point.y; }).join(' L');
     var nodes = points.slice(0, -1).map(function (point, index) {
       return '<circle class="mission-route-node' + (index === 0 ? ' is-origin' : '') + '" cx="' + point.x + '" cy="' + point.y + '" r="2.4" />';
