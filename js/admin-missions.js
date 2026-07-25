@@ -246,6 +246,9 @@
     document.getElementById('mission-definition-success').value = mission && mission.base_success_percent !== undefined ? mission.base_success_percent : 100;
     document.getElementById('mission-definition-loot-rolls').value = mission && mission.loot_rolls !== undefined ? mission.loot_rolls : 0;
     document.getElementById('mission-definition-credits').value = mission && mission.credit_reward !== undefined ? mission.credit_reward : 0;
+    document.getElementById('mission-definition-watermark').value = mission && mission.watermark_url ? mission.watermark_url : '';
+    document.getElementById('mission-definition-watermark-opacity').value = mission && mission.watermark_opacity ? mission.watermark_opacity : 10;
+    updateMissionWatermarkPreview();
     syncMissionSuccessionFields();
   }
 
@@ -264,6 +267,14 @@
     document.getElementById('mission-definition-modal-sub').textContent = currentDefinition ? 'Changes affect future launches only. Existing player missions keep their recorded completion time and rewards.' : 'The server validates the duration, crew requirement, and rewards before a player can launch this mission.';
     document.getElementById('mission-definition-delete-btn').hidden = !currentDefinition || !can('missions.delete');
     document.getElementById('mission-definition-save-btn').disabled = !can('missions.edit');
+    /* Computed alongside the Save button rather than left to the static
+     * data-requires-permission sweep, which runs once at load and would be
+     * undone the next time this modal opens. */
+    ['mission-definition-watermark-upload', 'mission-definition-watermark-browse', 'mission-definition-watermark-clear'].forEach(function (id) {
+      document.getElementById(id).disabled = !can('missions.edit');
+    });
+    document.getElementById('mission-definition-watermark').readOnly = !can('missions.edit');
+    document.getElementById('mission-definition-watermark-opacity').disabled = !can('missions.edit');
     resetModalMessage('mission-definition-modal');
     definitionModal.hidden = false;
     setTimeout(function () { document.getElementById('mission-definition-name').focus(); }, 25);
@@ -290,7 +301,9 @@
       is_campaign_final: document.getElementById('mission-definition-campaign-final').checked,
       base_success_percent: document.getElementById('mission-definition-success').value,
       loot_rolls: document.getElementById('mission-definition-loot-rolls').value,
-      credit_reward: document.getElementById('mission-definition-credits').value
+      credit_reward: document.getElementById('mission-definition-credits').value,
+      watermark_url: document.getElementById('mission-definition-watermark').value.trim(),
+      watermark_opacity: document.getElementById('mission-definition-watermark-opacity').value
     };
   }
 
@@ -483,6 +496,36 @@
     pickerSub: 'Select a previously uploaded mission portrait or a compatible site image.',
     emptyMessage: 'No compatible images were found. Upload a JPEG to start the crew library.',
     uploadError: 'Could not upload this portrait.'
+  });
+
+  /* --- Per-mission watermark, inside the mission editor ------------------- */
+
+  function updateMissionWatermarkPreview() {
+    var url = document.getElementById('mission-definition-watermark').value.trim();
+    var preview = document.getElementById('mission-definition-watermark-preview');
+    preview.hidden = !url;
+    if (url) preview.src = assetUrl(url);
+    var opacity = Math.max(1, Math.min(40, Number(document.getElementById('mission-definition-watermark-opacity').value) || 10));
+    var art = document.getElementById('mission-definition-watermark-demo-art');
+    art.style.backgroundImage = url ? 'url("' + assetUrl(url) + '")' : 'none';
+    art.style.opacity = String(opacity / 100);
+    document.getElementById('mission-definition-watermark-demo').classList.toggle('is-empty', !url);
+  }
+
+  wireImageField({
+    input: 'mission-definition-watermark', upload: 'mission-definition-watermark-upload',
+    browse: 'mission-definition-watermark-browse', file: 'mission-definition-watermark-file',
+    kind: 'watermark', errorTarget: 'mission-definition-modal-error', onChange: updateMissionWatermarkPreview,
+    pickerTitle: 'Choose Mission Watermark',
+    pickerSub: 'Select a previously uploaded watermark or a compatible site image. A transparent PNG reads best behind a card.',
+    emptyMessage: 'No watermarks have been uploaded yet. Upload a transparent PNG to start the library.',
+    uploadError: 'Could not upload this watermark.'
+  });
+  document.getElementById('mission-definition-watermark-opacity').addEventListener('input', updateMissionWatermarkPreview);
+  document.getElementById('mission-definition-watermark-clear').addEventListener('click', function () {
+    if (!can('missions.edit')) return;
+    document.getElementById('mission-definition-watermark').value = '';
+    updateMissionWatermarkPreview();
   });
 
   /* --- Presentation: the Missions page watermark ------------------------- */

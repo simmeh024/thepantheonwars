@@ -63,11 +63,13 @@ try {
      * off in Mission Control. Card rendering filters to enabled missions below. */
     $campaignReady = pw_mission_campaign_ready($db);
     $creditsReady = pw_mission_credits_ready($db);
+    $watermarkReady = pw_mission_watermark_ready($db);
     $missionsStmt = $db->prepare(
         'SELECT mission.id, mission.world_key, mission.name, mission.slug, mission.description, mission.mission_type, mission.duration_seconds,
                 mission.min_crew, mission.max_crew, mission.xp_reward, mission.reputation_reward, mission.sort_order, mission.is_enabled,
                 mission.unlocks_after_mission_id, mission.unlocks_after_completion_count,'
         . ($creditsReady ? ' mission.credit_reward,' : ' 0 AS credit_reward,')
+        . ($watermarkReady ? ' mission.watermark_url, mission.watermark_opacity,' : ' "" AS watermark_url, 10 AS watermark_opacity,')
         . ($statsReady ? ' mission.base_success_percent, mission.loot_rolls,' : ' 100 AS base_success_percent, 0 AS loot_rolls,')
         . ($campaignReady ? ' mission.is_campaign_final,' : ' 0 AS is_campaign_final,') .
                ' prerequisite.name AS unlocks_after_mission_name
@@ -78,7 +80,11 @@ try {
     );
     $missionsStmt->execute();
     $worldMissions = array_map(static function ($row) use ($claimedCounts) {
-        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls'] as $field) $row[$field] = (int)$row[$field];
+        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls', 'watermark_opacity'] as $field) $row[$field] = (int)$row[$field];
+        // Re-validated on the way out, not only on the way in: this reaches the
+        // browser as a CSS url(), so a row edited straight in the database must
+        // not be able to put an arbitrary path there.
+        $row['watermark_url'] = pw_missions_watermark_url($row['watermark_url']);
         $row['unlocks_after_mission_id'] = $row['unlocks_after_mission_id'] !== null ? (int)$row['unlocks_after_mission_id'] : null;
         $row['is_enabled'] = (bool)$row['is_enabled'];
         $row['is_campaign_final'] = (bool)$row['is_campaign_final'];
@@ -103,7 +109,8 @@ try {
      * than dimming it in the browser. The bar is the only acknowledgement that
      * further operations exist. */
     $publicFields = ['id', 'world_key', 'name', 'slug', 'description', 'mission_type', 'duration_seconds',
-        'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'base_success_percent', 'loot_rolls'];
+        'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'base_success_percent', 'loot_rolls',
+        'watermark_url', 'watermark_opacity'];
     $slots = [];
     foreach (pw_missions_build_campaign_tracks($missionsById) as $chain) {
         $progress = pw_missions_track_progress($chain, $claimedCounts);
@@ -137,7 +144,8 @@ try {
 
     $playerMissionStmt = $db->prepare(
         'SELECT pm.id, pm.world_key, pm.status, pm.started_at, pm.completes_at, pm.completed_at, pm.claimed_at,
-                pm.xp_reward, pm.reputation_reward, ' . ($creditsReady ? 'pm.credits_awarded,' : '0 AS credits_awarded,') . ' md.name, md.slug, md.mission_type,
+                pm.xp_reward, pm.reputation_reward, ' . ($creditsReady ? 'pm.credits_awarded,' : '0 AS credits_awarded,')
+        . ($watermarkReady ? ' md.watermark_url, md.watermark_opacity,' : ' "" AS watermark_url, 10 AS watermark_opacity,') . ' md.name, md.slug, md.mission_type,
                 (pm.completes_at <= UTC_TIMESTAMP()) AS is_ready,
                 GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR "|~|") AS crew_names
          FROM game_player_missions pm
@@ -155,6 +163,8 @@ try {
         $row['xp_reward'] = (int)$row['xp_reward'];
         $row['reputation_reward'] = (int)$row['reputation_reward'];
         $row['credits_awarded'] = (int)$row['credits_awarded'];
+        $row['watermark_opacity'] = (int)$row['watermark_opacity'];
+        $row['watermark_url'] = pw_missions_watermark_url($row['watermark_url']);
         $row['is_ready'] = (bool)$row['is_ready'];
         $row['crew_names'] = $row['crew_names'] !== null && $row['crew_names'] !== '' ? explode('|~|', $row['crew_names']) : [];
         return $row;

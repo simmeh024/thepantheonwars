@@ -46,6 +46,22 @@
    * this value goes straight into a CSS url(), and a second check costs
    * nothing. */
   var WATERMARK_URL = /^(?:images\/[a-zA-Z0-9._-]{1,220}|\/uploads\/mission-images\/img_[a-f0-9]{16}\.(?:jpg|png))$/;
+
+  /* A mission's own emblem, drawn inside that mission's card. Returned as the
+   * class and inline custom properties a card needs, or an empty string when
+   * the mission has none -- so a card with no watermark carries no extra
+   * markup at all. Same root-relative rule as the page watermark: a url()
+   * inside a custom property resolves against the stylesheet, not the page. */
+  function missionWatermark(mission) {
+    var url = String(mission && mission.watermark_url ? mission.watermark_url : '');
+    if (!WATERMARK_URL.test(url)) return { className: '', style: '' };
+    var opacity = Math.max(1, Math.min(40, Number(mission.watermark_opacity) || 10)) / 100;
+    return {
+      className: ' has-card-watermark',
+      style: ' style="--card-watermark:url(&quot;' + escapeHtml(url.charAt(0) === '/' ? url : '/' + url)
+        + '&quot;);--card-watermark-opacity:' + opacity + '"'
+    };
+  }
   function applyWatermark(watermark) {
     var page = document.querySelector('.missions-page');
     if (!page) return;
@@ -117,7 +133,10 @@
         : mission.is_ready
           ? '<button type="button" class="btn btn-solid mission-action" data-action="complete" data-mission-id="' + mission.id + '">Complete Mission</button>'
           : '<span class="mission-in-progress">Transmission active</span>';
-      return '<article class="mission-active-card is-' + escapeHtml(mission.status) + '"><div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-world">' + escapeHtml(mission.world_key) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p class="mission-crew-line">' + escapeHtml((mission.crew_names || []).join(' · ')) + '</p><div class="mission-active-footer"><div><strong class="mission-countdown" data-completes-at="' + escapeHtml(mission.completes_at) + '">' + (isCompleted ? 'Mission complete' : 'Calculating…') + '</strong><small>' + (isCompleted ? 'Ready for reward claim' : 'Completion verified by command') + '</small></div>' + action + '</div></article>';
+      // The same mission keeps its emblem while a crew is in the field, so the
+      // operation reads as the same thing on both cards.
+      var watermark = missionWatermark(mission);
+      return '<article class="mission-active-card is-' + escapeHtml(mission.status) + watermark.className + '"' + watermark.style + '><div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-world">' + escapeHtml(mission.world_key) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p class="mission-crew-line">' + escapeHtml((mission.crew_names || []).join(' · ')) + '</p><div class="mission-active-footer"><div><strong class="mission-countdown" data-completes-at="' + escapeHtml(mission.completes_at) + '">' + (isCompleted ? 'Mission complete' : 'Calculating…') + '</strong><small>' + (isCompleted ? 'Ready for reward claim' : 'Completion verified by command') + '</small></div>' + action + '</div></article>';
     }).join('');
   }
 
@@ -185,7 +204,8 @@
       }
 
       var canLaunch = available >= mission.min_crew;
-      return '<article class="mission-definition-card' + (campaign ? ' has-campaign' : '') + '"><div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p>'
+      var watermark = missionWatermark(mission);
+      return '<article class="mission-definition-card' + (campaign ? ' has-campaign' : '') + watermark.className + '"' + watermark.style + '><div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p>'
         + (campaign ? campaignStateMarkup(campaign) : '<p class="mission-unlock-state is-base">Available immediately</p>')
         + '<dl class="mission-definition-meta"><div><dt>Crew</dt><dd>' + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + '</dd></div><div><dt>XP</dt><dd>+' + mission.xp_reward + ' per crew</dd></div><div><dt>Reputation</dt><dd>' + (mission.reputation_reward ? '+' + mission.reputation_reward : '—') + '</dd></div>'
           + (Number(mission.credit_reward) > 0 ? '<div><dt>Credits</dt><dd class="is-credits">+' + credits(mission.credit_reward) + '</dd></div>' : '') + '</dl>'

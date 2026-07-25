@@ -1831,6 +1831,11 @@ CREATE TABLE IF NOT EXISTS game_player_loot (
   CONSTRAINT fk_game_player_loot_definition FOREIGN KEY (loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- sql/migration_mission_watermark.sql adds game_mission_definitions.
+-- watermark_url and watermark_opacity: an emblem drawn inside that one
+-- mission's card, separate from the single page-wide watermark held in
+-- app_settings.
+
 -- sql/migration_mission_loot_tables.sql (also adds the loot_tables.view /
 -- loot_tables.edit permissions). A mission -> table link carries the chance the
 -- table is opened at all; each entry carries its own chance of dropping, rolled

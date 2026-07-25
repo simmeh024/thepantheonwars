@@ -276,6 +276,23 @@ function pw_missions_watermark_settings(): array {
 }
 
 /**
+ * Per-mission watermark is a further additive migration, separate from the
+ * page-wide one above: that is one image behind the whole Missions page, this
+ * belongs to a single operation and travels with it onto its active card.
+ */
+function pw_mission_watermark_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_missions_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT watermark_url, watermark_opacity FROM `game_mission_definitions` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+/**
  * Mission Credits is a further additive migration. Same guarded-probe rule as
  * the migrations above: a missing column is a hard SQL error rather than NULL,
  * so every read and write path falls back to "this world has no currency yet"

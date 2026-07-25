@@ -34,6 +34,16 @@ function pw_admin_mission_definition_input(array $input): array {
     }
     $creditReward = filter_var($input['credit_reward'] ?? 0, FILTER_VALIDATE_INT);
     if ($creditReward === false || $creditReward < 0 || $creditReward > 1000000) pw_error('Credit reward must be between 0 and 1,000,000.');
+    /* Same closed allow-list and the same image library as the page-wide
+     * watermark. An unrecognised path is rejected rather than silently blanked,
+     * so a mistyped filename is reported instead of appearing to save. */
+    $rawWatermark = trim((string)($input['watermark_url'] ?? ''));
+    $watermarkUrl = pw_missions_watermark_url($rawWatermark);
+    if ($rawWatermark !== '' && $watermarkUrl === '') {
+        pw_error('Choose a mission watermark from the image library, or upload a new one.');
+    }
+    $watermarkOpacity = filter_var($input['watermark_opacity'] ?? 10, FILTER_VALIDATE_INT);
+    if ($watermarkOpacity === false || $watermarkOpacity < 1 || $watermarkOpacity > 40) pw_error('Watermark strength must be between 1% and 40%.');
     $sortOrder = filter_var($input['sort_order'] ?? 0, FILTER_VALIDATE_INT);
     if ($sortOrder === false || $sortOrder < 0 || $sortOrder > 100000) pw_error('Sort order must be between 0 and 100000.');
     $baseSuccess = filter_var($input['base_success_percent'] ?? 100, FILTER_VALIDATE_INT);
@@ -54,6 +64,7 @@ function pw_admin_mission_definition_input(array $input): array {
         'name' => $name, 'slug' => $slug, 'world_key' => $worldKey, 'description' => $description,
         'mission_type' => $missionType, 'duration_seconds' => $duration, 'min_crew' => $minCrew, 'max_crew' => $maxCrew,
         'xp_reward' => $xpReward, 'reputation_reward' => $reputationReward, 'credit_reward' => $creditReward,
+        'watermark_url' => $watermarkUrl, 'watermark_opacity' => $watermarkOpacity,
         'is_enabled' => !empty($input['is_enabled']) ? 1 : 0, 'sort_order' => $sortOrder,
         'unlocks_after_mission_id' => $unlocksAfterMissionId,
         'unlocks_after_completion_count' => $unlocksAfterCompletionCount,

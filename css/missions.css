@@ -208,6 +208,23 @@
 .mission-active-card, .mission-definition-card { position: relative; overflow: hidden; min-width: 0; padding: 19px; border: 1px solid rgba(88,142,181,0.36); background: linear-gradient(145deg, rgba(20,49,71,0.76), rgba(24,14,49,0.86)); box-shadow: inset 0 1px rgba(136,229,237,0.05); }
 .mission-active-card::before, .mission-definition-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: linear-gradient(#6ce5eb, #8d67d3); box-shadow: 0 0 16px rgba(100,225,233,0.5); }
 .mission-active-card.is-completed::before { background: linear-gradient(#e8c476, #a279ec); }
+/* A mission's own emblem, drawn inside its card. ::after because ::before is
+ * already the card's left accent bar, and the card is overflow:hidden, so the
+ * art is clipped to the card without any extra containment. Sits behind the
+ * content and takes no pointer events, exactly like the page watermark.
+ * Anchored bottom-right rather than centred: a mission card is text from its
+ * top-left corner down, and centring put the emblem straight under the
+ * description. */
+.mission-active-card.has-card-watermark::after,
+.mission-definition-card.has-card-watermark::after {
+  content: ''; position: absolute; z-index: 0; inset: 0; pointer-events: none;
+  background: var(--card-watermark) right -12% bottom -8% / auto 78% no-repeat;
+  opacity: var(--card-watermark-opacity, 0.1);
+  mix-blend-mode: screen;
+}
+.mission-active-card.has-card-watermark > *,
+.mission-definition-card.has-card-watermark > * { position: relative; z-index: 1; }
+
 .mission-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
 .mission-type, .mission-duration { color: #9ae2e6; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; }
 .mission-duration { color: #d6c18b; }

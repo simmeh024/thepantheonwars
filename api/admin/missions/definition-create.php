@@ -12,6 +12,7 @@ pw_admin_validate_mission_succession($db, null, $data);
 $campaignReady = pw_mission_campaign_ready($db);
 $statsReady = pw_mission_stats_ready($db);
 $creditsReady = pw_mission_credits_ready($db);
+$watermarkReady = pw_mission_watermark_ready($db);
 /* Column list and value list are built from one array of pairs so the
  * placeholder count can never drift from the value count as further optional
  * migrations are added -- PDO only reports that mismatch at execute() against a
@@ -28,6 +29,7 @@ $columns = [
 if ($campaignReady) $columns['is_campaign_final'] = $data['is_campaign_final'];
 if ($statsReady) { $columns['base_success_percent'] = $data['base_success_percent']; $columns['loot_rolls'] = $data['loot_rolls']; }
 if ($creditsReady) $columns['credit_reward'] = $data['credit_reward'];
+if ($watermarkReady) { $columns['watermark_url'] = $data['watermark_url']; $columns['watermark_opacity'] = $data['watermark_opacity']; }
 $stmt = $db->prepare(
     'INSERT INTO game_mission_definitions (' . implode(', ', array_keys($columns)) . ')'
     . ' VALUES (' . pw_missions_placeholders(count($columns)) . ')'

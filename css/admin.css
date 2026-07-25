@@ -4081,6 +4081,11 @@
 .mission-watermark-demo-copy small { color: #8ba5be; font-size: .66rem; }
 .mission-watermark-demo.is-empty .mission-watermark-demo-copy small::after { content: ' — no watermark shown'; }
 .mission-watermark-demo.is-empty .mission-watermark-demo-copy small { color: #7e94a6; }
+/* The per-mission preview mirrors the card treatment rather than the page one:
+ * anchored bottom-right at card scale, so the dial is judged against what the
+ * mission card will actually look like. */
+.mission-watermark-demo-card { min-height: 128px; margin: 0; }
+.mission-watermark-demo-card .mission-watermark-demo-art { background-position: right -12% bottom -8%; background-size: auto 78%; }
 
 /* Loot Table Management. Scan-first grids matching the Mission Control lists,
  * plus one editable row shape shared by table entries and mission attachments

@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=314">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=315">
 </head>
 <body>
 
@@ -4104,6 +4104,22 @@
       <div class="admin-field"><label for="mission-definition-loot-rolls">Loot rolls on success</label><input type="number" id="mission-definition-loot-rolls" min="0" max="10" step="1" value="0"></div>
       <div class="admin-field"><label for="mission-definition-credits">Credit reward</label><input type="number" id="mission-definition-credits" min="0" max="1000000" step="1" value="0"></div>
     </div>
+    <div class="admin-field">
+      <label for="mission-definition-watermark">Mission watermark</label>
+      <div class="mission-portrait-field">
+        <img id="mission-definition-watermark-preview" alt="" hidden>
+        <input type="text" id="mission-definition-watermark" maxlength="255" placeholder="images/mission-sigil.png">
+        <input type="file" id="mission-definition-watermark-file" accept="image/jpeg,image/png,image/webp" hidden>
+        <button type="button" class="btn" id="mission-definition-watermark-upload">Upload image</button>
+        <button type="button" class="btn" id="mission-definition-watermark-browse">Choose image</button>
+        <button type="button" class="btn" id="mission-definition-watermark-clear">Clear</button>
+      </div>
+      <p class="admin-field-hint">An emblem drawn faintly inside this mission&rsquo;s own card, and on its card again while a crew is in the field. A transparent PNG works best; uploads keep their transparency. Leave empty for no watermark. This is separate from the single page-wide watermark under Presentation.</p>
+    </div>
+    <div class="admin-field-row">
+      <div class="admin-field"><label for="mission-definition-watermark-opacity">Watermark strength (%)</label><input type="number" id="mission-definition-watermark-opacity" min="1" max="40" step="1" value="10"></div>
+      <div class="mission-watermark-demo mission-watermark-demo-card" id="mission-definition-watermark-demo" aria-hidden="true"><span class="mission-watermark-demo-art" id="mission-definition-watermark-demo-art"></span><span class="mission-watermark-demo-copy"><strong>Mission card</strong><small>Live preview at the current strength</small></span></div>
+    </div>
     <p class="admin-field-hint">100% means this operation can never fail. Crew Strength adds 0.5% per point on top of this figure, and the outcome is rolled on the server when the player claims. A failed mission returns its crew with no rewards and does not count towards a campaign unlock. Loot rolls of 0 means this operation drops nothing; Cunning adds extra draws and Science can promote a drop to a higher tier. The credit reward is the operation&rsquo;s flat contract fee, paid only on success and deliberately not scaled by any crew stat.</p>
     <div class="admin-field-row">
       <div class="admin-field"><label for="mission-definition-unlocks-after">Unlocks after</label><select id="mission-definition-unlocks-after"><option value="">No prerequisite &mdash; available immediately</option></select></div>
@@ -4321,7 +4337,7 @@
 </div>
 
 <script src="../js/members.js?v=40"></script>
-<script src="../js/admin-missions.js?v=6"></script><script src="../js/admin-loot-tables.js?v=1"></script>
+<script src="../js/admin-missions.js?v=7"></script><script src="../js/admin-loot-tables.js?v=1"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
