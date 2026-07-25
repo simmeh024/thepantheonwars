@@ -13,11 +13,11 @@ try {
         'SELECT pc.id, pc.level, pc.xp, pc.status, pc.created_at,
                 c.name, c.slug, c.description, c.role, c.portrait_url, c.world_affinity, c.is_enabled AS definition_enabled,
                 active.id AS active_mission_id, active.status AS active_mission_status,
-                active.completes_at AS active_mission_completes_at, active_definition.name AS active_mission_name
+                active.completes_at AS active_mission_completes_at, active.active_mission_name
          FROM game_player_crew pc
          JOIN game_crew_definitions c ON c.id = pc.crew_definition_id
          LEFT JOIN (
-             SELECT link.player_crew_id, pm.id, pm.status, pm.completes_at, md.name
+             SELECT link.player_crew_id, pm.id, pm.status, pm.completes_at, md.name AS active_mission_name
              FROM game_player_mission_crew link
              JOIN game_player_missions pm ON pm.id = link.player_mission_id
              JOIN game_mission_definitions md ON md.id = pm.mission_definition_id
