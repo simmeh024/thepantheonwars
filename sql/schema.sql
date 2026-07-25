@@ -1865,9 +1865,10 @@ CREATE TABLE IF NOT EXISTS game_player_daily_claims (
 -- app_settings.
 
 -- sql/migration_mission_loot_tables.sql (also adds the loot_tables.view /
--- loot_tables.edit permissions). A mission -> table link carries the chance the
--- table is opened at all; each entry carries its own chance of dropping, rolled
--- independently. Characters are the only entry_type in use.
+-- loot_tables.edit permissions), expanded by
+-- sql/migration_mission_loot_table_gear.sql. A mission -> table link carries
+-- the chance the table is opened at all; character and gear entries each carry
+-- their own independent drop chance.
 CREATE TABLE IF NOT EXISTS game_loot_tables (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(150) NOT NULL,
@@ -1885,14 +1886,18 @@ CREATE TABLE IF NOT EXISTS game_loot_table_entries (
   loot_table_id INT UNSIGNED NOT NULL,
   entry_type VARCHAR(20) NOT NULL DEFAULT 'crew',
   crew_definition_id INT UNSIGNED NULL,
+  loot_definition_id INT UNSIGNED NULL,
   chance_percent DECIMAL(6,3) NOT NULL DEFAULT 0.000,
   sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_game_loot_table_entry_crew (loot_table_id, crew_definition_id),
+  UNIQUE KEY uq_game_loot_table_entry_gear (loot_table_id, loot_definition_id),
   KEY idx_game_loot_table_entry_order (loot_table_id, sort_order, id),
+  KEY idx_game_loot_table_entry_gear (loot_definition_id),
   CONSTRAINT fk_game_loot_table_entry_table FOREIGN KEY (loot_table_id) REFERENCES game_loot_tables(id) ON DELETE CASCADE,
-  CONSTRAINT fk_game_loot_table_entry_crew FOREIGN KEY (crew_definition_id) REFERENCES game_crew_definitions(id) ON DELETE CASCADE
+  CONSTRAINT fk_game_loot_table_entry_crew FOREIGN KEY (crew_definition_id) REFERENCES game_crew_definitions(id) ON DELETE CASCADE,
+  CONSTRAINT fk_game_loot_table_entry_gear FOREIGN KEY (loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS game_mission_loot_tables (

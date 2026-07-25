@@ -2129,7 +2129,7 @@
     <section class="admin-section" id="section-loot-tables" hidden>
       <div class="admin-section-head">
         <h1>Loot Table Management</h1>
-        <p>Reusable groups of possible rewards. A mission opens a table with its own chance, and each entry inside the table then rolls independently &mdash; so one run can award several characters, or none. Characters are the only loot type for now.</p>
+        <p>Reusable groups of possible rewards. A mission opens a table with its own chance, and each character or gear entry inside the table then rolls independently &mdash; so one run can award several rewards, or none.</p>
       </div>
 
       <div class="admin-toolbar">
@@ -2142,7 +2142,7 @@
       </div>
 
       <div class="mission-admin-panel" id="loot-admin-tables-panel">
-        <div class="mission-admin-columns loot-admin-columns" aria-hidden="true"><span>Loot table</span><span>Characters</span><span>Best chance</span><span>Missions</span><span>Status</span></div>
+        <div class="mission-admin-columns loot-admin-columns" aria-hidden="true"><span>Loot table</span><span>Rewards</span><span>Best chance</span><span>Missions</span><span>Status</span></div>
         <div class="admin-list mission-admin-list" id="loot-table-list"><div class="admin-list-empty">Loading loot tables&hellip;</div></div>
       </div>
 
@@ -4208,18 +4208,19 @@
   <div class="admin-modal-inner admin-modal-inner-wide">
     <button type="button" class="admin-modal-close" id="loot-table-modal-close" aria-label="Close">&times;</button>
     <h3 class="admin-modal-title" id="loot-table-modal-title">Add Loot Table</h3>
-    <p class="admin-modal-sub">Each character below rolls on its own when this table is opened, so the chances do not need to add up to 100%.</p>
+    <p class="admin-modal-sub">Each character or gear item below rolls on its own when this table is opened, so the chances do not need to add up to 100%.</p>
     <div class="admin-field-row">
       <div class="admin-field"><label for="loot-table-name">Name</label><input type="text" id="loot-table-name" maxlength="150" placeholder="e.g. Lower District Recruits"></div>
       <div class="admin-field"><label for="loot-table-slug">Slug</label><input type="text" id="loot-table-slug" maxlength="150" placeholder="e.g. lower-district-recruits"></div>
       <label class="admin-setting-toggle"><span><strong>Enabled</strong><small>A disabled table stays attached but never drops.</small></span><input type="checkbox" id="loot-table-enabled" checked></label>
     </div>
     <div class="admin-field"><label for="loot-table-description">Description</label><textarea id="loot-table-description" maxlength="2000" placeholder="Internal note describing what this table is for."></textarea></div>
-    <div class="admin-subsection-head"><h2>Characters in this table</h2><p>Drop chance is per successful mission, once this table has been opened. Between 0.01% and 100%.</p></div>
+    <div class="admin-subsection-head"><h2>Rewards in this table</h2><p>Drop chance is per successful mission, once this table has been opened. Between 0.01% and 100%.</p></div>
     <div class="loot-entry-list" id="loot-entry-list"></div>
     <div class="loot-entry-add">
-      <select id="loot-entry-crew" aria-label="Character to add"></select>
-      <button type="button" class="btn" id="loot-entry-add-btn">Add Character</button>
+      <select id="loot-entry-type" aria-label="Reward type"><option value="crew">Character</option><option value="gear">Gear</option></select>
+      <select id="loot-entry-source" aria-label="Reward to add"></select>
+      <button type="button" class="btn" id="loot-entry-add-btn">Add Reward</button>
     </div>
     <p class="admin-modal-error" id="loot-table-modal-error"></p><p class="admin-modal-status" id="loot-table-modal-status"></p>
     <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="loot-table-save-btn">Save Loot Table</button><button type="button" class="btn" id="loot-table-cancel-btn">Cancel</button><button type="button" class="admin-delete-btn" id="loot-table-delete-btn" hidden>Delete Loot Table</button></div>
@@ -4415,7 +4416,7 @@
 </div>
 
 <script src="../js/members.js?v=40"></script>
-<script src="../js/admin-missions.js?v=8"></script><script src="../js/admin-loot-tables.js?v=1"></script><script src="../js/admin-market.js?v=1"></script>
+<script src="../js/admin-missions.js?v=8"></script><script src="../js/admin-loot-tables.js?v=2"></script><script src="../js/admin-market.js?v=1"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };

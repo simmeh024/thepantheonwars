@@ -145,12 +145,16 @@ try {
     }
 
     /* Loot tables are independent of the item pool above: they are attached per
-     * mission in Loot Table Management and currently award characters. Rolled
-     * inside the same transaction, so a failure anywhere rolls the recruit back
-     * with everything else. */
-    $crewAwards = $succeeded
+     * mission in Loot Table Management and can award characters and gear. Every
+     * roll and inventory write remains inside this transaction, so a failure
+     * anywhere rolls the whole claim back. */
+    $lootTableAwards = $succeeded
         ? pw_missions_roll_loot_tables($db, $userId, (int)$mission['mission_definition_id'])
-        : ['granted' => [], 'duplicates' => []];
+        : ['granted' => [], 'duplicates' => [], 'gear' => []];
+    if (!empty($lootTableAwards['gear'])) {
+        pw_missions_store_loot($db, $userId, $lootTableAwards['gear']);
+        $loot = array_merge($loot, $lootTableAwards['gear']);
+    }
 
     $now = pw_missions_utc_now($db);
     $status = $succeeded ? 'claimed' : 'failed';
@@ -207,8 +211,8 @@ try {
         'credits_ready' => $creditsReady,
         'level_ups' => $levelUps,
         'loot' => $loot,
-        'crew_recruited' => $crewAwards['granted'],
-        'crew_duplicates' => $crewAwards['duplicates'],
+        'crew_recruited' => $lootTableAwards['granted'],
+        'crew_duplicates' => $lootTableAwards['duplicates'],
     ]);
 } catch (Throwable $e) {
     if ($db->inTransaction()) $db->rollBack();

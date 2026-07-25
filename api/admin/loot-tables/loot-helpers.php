@@ -2,7 +2,7 @@
 /**
  * Shared validation for Loot Table Management.
  *
- * Chance figures are stored as DECIMAL(6,3) so a genuinely rare character can be
+ * Chance figures are stored as DECIMAL(6,3) so a genuinely rare reward can be
  * set below 1%. The floor is 0.01 rather than 0.001 because the shared roller
  * resolves to two decimal places -- accepting a figure that could never fire
  * would be a worse answer than rejecting it.
@@ -39,9 +39,10 @@ function pw_admin_loot_table_input(array $input): array {
 /**
  * Normalise the entry rows a table save carries.
  *
- * A duplicate character is rejected rather than merged: two rows for the same
- * character would roll twice and quietly double its real drop chance, which is
- * the opposite of what an administrator entering "5%" twice expects.
+ * A duplicate source is rejected rather than merged: two rows for the same
+ * character or gear item would roll twice and quietly double its real drop
+ * chance, which is the opposite of what an administrator entering "5%" twice
+ * expects.
  */
 function pw_admin_loot_entries_input($raw): array {
     if (!is_array($raw)) return [];
@@ -50,12 +51,26 @@ function pw_admin_loot_entries_input($raw): array {
     $seen = [];
     foreach ($raw as $index => $row) {
         if (!is_array($row)) pw_error('One loot entry is malformed.');
-        $crewId = filter_var($row['crew_definition_id'] ?? null, FILTER_VALIDATE_INT);
-        if ($crewId === false || $crewId < 1) pw_error('Choose a character for every loot entry.');
-        if (isset($seen[$crewId])) pw_error('Each character may only appear once in a loot table. Adjust that entry\'s chance instead of adding it twice.');
-        $seen[$crewId] = true;
+        $entryType = strtolower(trim((string)($row['entry_type'] ?? 'crew')));
+        if (!in_array($entryType, ['crew', 'gear'], true)) pw_error('Loot entries must be a character or gear item.');
+        // The old crew_definition_id shape remains accepted so a browser with a
+        // cached pre-gear editor cannot accidentally erase a table while a new
+        // deployment is propagating.
+        $definitionId = filter_var(
+            $row['definition_id'] ?? ($entryType === 'crew' ? ($row['crew_definition_id'] ?? null) : ($row['loot_definition_id'] ?? null)),
+            FILTER_VALIDATE_INT
+        );
+        if ($definitionId === false || $definitionId < 1) {
+            pw_error('Choose a ' . ($entryType === 'crew' ? 'character' : 'gear item') . ' for every loot entry.');
+        }
+        $key = $entryType . ':' . $definitionId;
+        if (isset($seen[$key])) {
+            pw_error('Each ' . ($entryType === 'crew' ? 'character' : 'gear item') . ' may only appear once in a loot table. Adjust that entry\'s chance instead of adding it twice.');
+        }
+        $seen[$key] = true;
         $entries[] = [
-            'crew_definition_id' => $crewId,
+            'entry_type' => $entryType,
+            'definition_id' => $definitionId,
             'chance_percent' => pw_admin_loot_chance($row['chance_percent'] ?? null, 'Drop chance'),
             'sort_order' => $index,
         ];
@@ -63,40 +78,60 @@ function pw_admin_loot_entries_input($raw): array {
     return $entries;
 }
 
-/** Every character id in a set must exist, or the save is rejected as a whole. */
-function pw_admin_loot_require_crew_exists(PDO $db, array $crewIds): void {
-    $crewIds = array_values(array_unique(array_map('intval', $crewIds)));
-    if (!$crewIds) return;
-    $stmt = $db->prepare('SELECT COUNT(*) FROM game_crew_definitions WHERE id IN (' . pw_missions_placeholders(count($crewIds)) . ')');
-    $stmt->execute($crewIds);
-    if ((int)$stmt->fetchColumn() !== count($crewIds)) pw_error('One selected character no longer exists.', 404);
+/** Every selected source must exist, or the save is rejected as a whole. */
+function pw_admin_loot_require_sources_exist(PDO $db, array $entries): void {
+    $crewIds = [];
+    $gearIds = [];
+    foreach ($entries as $entry) {
+        if ($entry['entry_type'] === 'crew') $crewIds[] = (int)$entry['definition_id'];
+        else $gearIds[] = (int)$entry['definition_id'];
+    }
+    $crewIds = array_values(array_unique($crewIds));
+    $gearIds = array_values(array_unique($gearIds));
+    if ($crewIds) {
+        $stmt = $db->prepare('SELECT COUNT(*) FROM game_crew_definitions WHERE id IN (' . pw_missions_placeholders(count($crewIds)) . ')');
+        $stmt->execute($crewIds);
+        if ((int)$stmt->fetchColumn() !== count($crewIds)) pw_error('One selected character no longer exists.', 404);
+    }
+    if ($gearIds) {
+        $stmt = $db->prepare('SELECT COUNT(*) FROM game_loot_definitions WHERE slot IS NOT NULL AND slot != "" AND id IN (' . pw_missions_placeholders(count($gearIds)) . ')');
+        $stmt->execute($gearIds);
+        if ((int)$stmt->fetchColumn() !== count($gearIds)) pw_error('One selected gear item no longer exists.', 404);
+    }
 }
 
 /**
  * Replace a table's entries in place.
  *
- * Rows are matched by character and updated rather than deleted and recreated:
+ * Rows are matched by their reward type and source, then updated rather than
+ * deleted and recreated:
  * game_loot_table_entries has no dependants today, but the delete-all-then-
  * reinsert shape is exactly what cost the quiz module its answer history when
  * an admin fixed a typo, and there is no reason to repeat it.
  */
 function pw_admin_loot_sync_entries(PDO $db, int $tableId, array $entries): void {
-    $existingStmt = $db->prepare('SELECT id, crew_definition_id FROM game_loot_table_entries WHERE loot_table_id = ?');
+    $existingStmt = $db->prepare('SELECT id, entry_type, crew_definition_id, loot_definition_id FROM game_loot_table_entries WHERE loot_table_id = ?');
     $existingStmt->execute([$tableId]);
     $existing = [];
-    foreach ($existingStmt->fetchAll() as $row) $existing[(int)$row['crew_definition_id']] = (int)$row['id'];
+    foreach ($existingStmt->fetchAll() as $row) {
+        $type = $row['entry_type'] === 'gear' ? 'gear' : 'crew';
+        $definitionId = (int)($type === 'gear' ? $row['loot_definition_id'] : $row['crew_definition_id']);
+        $existing[$type . ':' . $definitionId] = (int)$row['id'];
+    }
 
     $update = $db->prepare('UPDATE game_loot_table_entries SET chance_percent = ?, sort_order = ? WHERE id = ? AND loot_table_id = ?');
-    $insert = $db->prepare('INSERT INTO game_loot_table_entries (loot_table_id, entry_type, crew_definition_id, chance_percent, sort_order) VALUES (?, "crew", ?, ?, ?)');
+    $insert = $db->prepare('INSERT INTO game_loot_table_entries (loot_table_id, entry_type, crew_definition_id, loot_definition_id, chance_percent, sort_order) VALUES (?, ?, ?, ?, ?, ?)');
     $keep = [];
     foreach ($entries as $entry) {
-        $crewId = (int)$entry['crew_definition_id'];
-        if (isset($existing[$crewId])) {
-            $update->execute([$entry['chance_percent'], $entry['sort_order'], $existing[$crewId], $tableId]);
-            $keep[] = $existing[$crewId];
+        $key = $entry['entry_type'] . ':' . (int)$entry['definition_id'];
+        if (isset($existing[$key])) {
+            $update->execute([$entry['chance_percent'], $entry['sort_order'], $existing[$key], $tableId]);
+            $keep[] = $existing[$key];
             continue;
         }
-        $insert->execute([$tableId, $crewId, $entry['chance_percent'], $entry['sort_order']]);
+        $crewId = $entry['entry_type'] === 'crew' ? (int)$entry['definition_id'] : null;
+        $gearId = $entry['entry_type'] === 'gear' ? (int)$entry['definition_id'] : null;
+        $insert->execute([$tableId, $entry['entry_type'], $crewId, $gearId, $entry['chance_percent'], $entry['sort_order']]);
         $keep[] = (int)$db->lastInsertId();
     }
     $delete = $keep

@@ -3,7 +3,7 @@ require_once __DIR__ . '/loot-helpers.php';
 
 pw_require_permission('loot_tables.view');
 $db = pw_db();
-pw_missions_require_loot_tables_ready($db);
+pw_missions_require_loot_table_gear_ready($db);
 
 $tables = $db->query(
     'SELECT lt.id, lt.name, lt.slug, lt.description, lt.is_enabled, lt.created_at, lt.updated_at,
@@ -13,10 +13,14 @@ $tables = $db->query(
 )->fetchAll();
 
 $entryRows = $db->query(
-    'SELECT entry.id, entry.loot_table_id, entry.crew_definition_id, entry.chance_percent, entry.sort_order,
-            crew.name, crew.role, crew.portrait_url, crew.is_enabled AS crew_enabled
+    'SELECT entry.id, entry.loot_table_id, entry.entry_type, entry.crew_definition_id, entry.loot_definition_id,
+            entry.chance_percent, entry.sort_order,
+            crew.name AS crew_name, crew.role, crew.portrait_url, crew.is_enabled AS crew_enabled,
+            gear.name AS gear_name, gear.slug AS gear_slug, gear.tier AS gear_tier, gear.slot AS gear_slot,
+            gear.icon_url AS gear_icon_url, gear.is_enabled AS gear_enabled
      FROM game_loot_table_entries entry
      LEFT JOIN game_crew_definitions crew ON crew.id = entry.crew_definition_id
+     LEFT JOIN game_loot_definitions gear ON gear.id = entry.loot_definition_id
      ORDER BY entry.loot_table_id ASC, entry.sort_order ASC, entry.id ASC'
 )->fetchAll();
 
@@ -24,13 +28,18 @@ $entriesByTable = [];
 foreach ($entryRows as $row) {
     $entriesByTable[(int)$row['loot_table_id']][] = [
         'id' => (int)$row['id'],
-        'crew_definition_id' => (int)$row['crew_definition_id'],
+        'entry_type' => $row['entry_type'] === 'gear' ? 'gear' : 'crew',
+        'definition_id' => $row['entry_type'] === 'gear' ? (int)$row['loot_definition_id'] : (int)$row['crew_definition_id'],
         'chance_percent' => (float)$row['chance_percent'],
         'sort_order' => (int)$row['sort_order'],
-        'name' => $row['name'],
+        'name' => $row['entry_type'] === 'gear' ? $row['gear_name'] : $row['crew_name'],
         'role' => $row['role'],
         'portrait_url' => $row['portrait_url'],
         'crew_enabled' => (bool)$row['crew_enabled'],
+        'tier' => $row['gear_tier'],
+        'slot' => $row['gear_slot'],
+        'icon_url' => $row['gear_icon_url'],
+        'gear_enabled' => (bool)$row['gear_enabled'],
     ];
 }
 
@@ -52,6 +61,19 @@ $crew = array_map(static function ($row) {
 }, $db->query(
     'SELECT id, name, slug, role, portrait_url, world_affinity, is_enabled
      FROM game_crew_definitions ORDER BY name ASC, id ASC'
+)->fetchAll());
+
+// Gear follows the same picker rule. Only equipment definitions belong here;
+// generic mission resources remain in their normal weighted world loot pools.
+$gear = array_map(static function ($row) {
+    $row['id'] = (int)$row['id'];
+    $row['is_enabled'] = (bool)$row['is_enabled'];
+    return $row;
+}, $db->query(
+    'SELECT id, name, slug, tier, slot, icon_url, is_enabled
+     FROM game_loot_definitions
+     WHERE slot IS NOT NULL AND slot != ""
+     ORDER BY tier ASC, name ASC, id ASC'
 )->fetchAll());
 
 // Mission attachments, so one screen shows which missions open which table.
@@ -77,4 +99,4 @@ foreach ($db->query(
     ];
 }
 
-pw_json(['ok' => true, 'tables' => $tables, 'crew' => $crew, 'missions' => $missions]);
+pw_json(['ok' => true, 'tables' => $tables, 'crew' => $crew, 'gear' => $gear, 'missions' => $missions]);

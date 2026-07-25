@@ -1,22 +1,22 @@
 /**
  * Loot Table Management (Admin Console -> Game Control -> Loot Tables).
  *
- * Two views over the same fetch: the loot tables themselves, and which missions
- * open them. Kept as its own file alongside js/admin-missions.js rather than
- * folded into admin/index.html, matching how Mission Control is already split
- * out of that already-large file.
+ * Tables can independently roll character recruits and gear. The API returns
+ * both catalogues in one response so this editor never has to infer a reward's
+ * type from an id, and can keep disabled or deleted sources visible for repair.
  */
 (function () {
   'use strict';
 
   var tables = [];
   var crewCatalogue = [];
+  var gearCatalogue = [];
   var missions = [];
   var activePanel = 'tables';
-  var currentTable = null;   // null while the modal is closed, {} while creating
+  var currentTable = null;
   var currentMission = null;
-  var draftEntries = [];     // rows in the open loot-table modal
-  var draftLinks = [];       // rows in the open mission modal
+  var draftEntries = [];
+  var draftLinks = [];
 
   var tableList = document.getElementById('loot-table-list');
   var missionList = document.getElementById('loot-mission-list');
@@ -64,9 +64,6 @@
     if (element) element.textContent = message || '';
   }
 
-  /* A chance is stored to three decimals but almost always typed as a whole
-   * number, so trailing zeroes are trimmed for display -- "5%" rather than
-   * "5.000%" -- while a genuinely fine-grained 0.05% keeps its precision. */
   function chance(value) {
     var number = Number(value) || 0;
     return String(Math.round(number * 1000) / 1000);
@@ -79,11 +76,40 @@
     return null;
   }
 
+  function gearById(id) {
+    for (var i = 0; i < gearCatalogue.length; i++) {
+      if (gearCatalogue[i].id === Number(id)) return gearCatalogue[i];
+    }
+    return null;
+  }
+
   function tableById(id) {
     for (var i = 0; i < tables.length; i++) {
       if (tables[i].id === Number(id)) return tables[i];
     }
     return null;
+  }
+
+  function entryType(entry) {
+    return entry && entry.entry_type === 'gear' ? 'gear' : 'crew';
+  }
+
+  function sourceCatalogue(type) {
+    return type === 'gear' ? gearCatalogue : crewCatalogue;
+  }
+
+  function entrySource(entry) {
+    return entryType(entry) === 'gear' ? gearById(entry.definition_id) : crewById(entry.definition_id);
+  }
+
+  function sourceDescription(type, source) {
+    if (!source) return 'This ' + (type === 'gear' ? 'gear item' : 'character') + ' no longer exists';
+    if (type === 'gear') return (source.tier || 'Unknown tier') + ' · ' + (source.slot || 'Gear');
+    return source.role || 'Character';
+  }
+
+  function sourceNoun(type) {
+    return type === 'gear' ? 'gear item' : 'character';
   }
 
   function refreshCount() {
@@ -101,7 +127,10 @@
       var view = document.getElementById('loot-admin-' + name + '-panel');
       if (view) view.hidden = !isActive;
       var tab = document.querySelector('[data-loot-panel="' + name + '"]');
-      if (tab) { tab.classList.toggle('active', isActive); tab.setAttribute('aria-selected', isActive ? 'true' : 'false'); }
+      if (tab) {
+        tab.classList.toggle('active', isActive);
+        tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      }
     });
     document.getElementById('loot-table-create-btn').hidden = panel !== 'tables' || !can('loot_tables.edit');
     refreshCount();
@@ -109,18 +138,21 @@
 
   function renderTables() {
     if (!tableList) return;
-    if (!tables.length) { blank(tableList, 'No loot tables yet. Add one to start awarding characters from missions.'); return; }
+    if (!tables.length) {
+      blank(tableList, 'No loot tables yet. Add one to start awarding characters and gear from missions.');
+      return;
+    }
     tableList.innerHTML = '';
     tables.forEach(function (table) {
       var entries = table.entries || [];
-      // The strongest single drop is the figure that actually characterises a
-      // table at a glance; a total would be misleading, since the entries are
-      // independent rolls and can sum past 100%.
-      var best = entries.reduce(function (highest, entry) { return Math.max(highest, Number(entry.chance_percent) || 0); }, 0);
-      var names = entries.slice(0, 3).map(function (entry) { return entry.name || 'Missing character'; });
+      // Each entry rolls independently, so a summed chance would be misleading.
+      var best = entries.reduce(function (highest, entry) {
+        return Math.max(highest, Number(entry.chance_percent) || 0);
+      }, 0);
+      var names = entries.slice(0, 3).map(function (entry) { return entry.name || 'Missing reward'; });
       var summary = entries.length
         ? escapeHtml(names.join(', ')) + (entries.length > 3 ? ' <em>+' + (entries.length - 3) + ' more</em>' : '')
-        : '<em>No characters</em>';
+        : '<em>No rewards</em>';
       var row = document.createElement('button');
       row.type = 'button';
       row.className = 'admin-row loot-admin-row';
@@ -137,7 +169,10 @@
 
   function renderMissions() {
     if (!missionList) return;
-    if (!missions.length) { blank(missionList, 'No missions exist yet. Create one in Mission Control first.'); return; }
+    if (!missions.length) {
+      blank(missionList, 'No missions exist yet. Create one in Mission Control first.');
+      return;
+    }
     missionList.innerHTML = '';
     missions.forEach(function (mission) {
       var links = mission.links || [];
@@ -161,28 +196,63 @@
 
   /* --- Loot table modal --------------------------------------------------- */
 
+  function populateEntryPicker() {
+    var typeSelect = document.getElementById('loot-entry-type');
+    var select = document.getElementById('loot-entry-source');
+    var type = typeSelect.value === 'gear' ? 'gear' : 'crew';
+    var chosen = draftEntries.filter(function (entry) {
+      return entryType(entry) === type;
+    }).map(function (entry) {
+      return Number(entry.definition_id);
+    });
+    var catalogue = sourceCatalogue(type);
+    var available = catalogue.filter(function (source) { return chosen.indexOf(source.id) === -1; });
+    select.replaceChildren();
+    available.forEach(function (source) {
+      var option = document.createElement('option');
+      option.value = String(source.id);
+      option.textContent = source.name + ' — ' + sourceDescription(type, source) + (source.is_enabled ? '' : ' (disabled)');
+      select.appendChild(option);
+    });
+    var addBtn = document.getElementById('loot-entry-add-btn');
+    typeSelect.disabled = !can('loot_tables.edit');
+    select.disabled = !available.length || !can('loot_tables.edit');
+    addBtn.disabled = select.disabled;
+    if (!available.length) {
+      var empty = document.createElement('option');
+      empty.textContent = catalogue.length
+        ? 'Every ' + sourceNoun(type) + ' is already in this table'
+        : 'No ' + (type === 'gear' ? 'gear items' : 'characters') + ' exist yet';
+      select.appendChild(empty);
+    }
+  }
+
   function renderDraftEntries() {
     var list = document.getElementById('loot-entry-list');
     var editable = can('loot_tables.edit');
     if (!draftEntries.length) {
-      blank(list, 'No characters yet. Choose one below to add it to this table.');
-      populateCrewPicker();
+      blank(list, 'No rewards yet. Choose a character or gear item below to add it to this table.');
+      populateEntryPicker();
       return;
     }
     list.innerHTML = '';
     draftEntries.forEach(function (entry, index) {
-      var crew = crewById(entry.crew_definition_id);
-      var portrait = crew && crew.portrait_url
-        ? '<img class="mission-admin-portrait" src="' + escapeHtml(assetUrl(crew.portrait_url)) + '" alt="">'
+      var type = entryType(entry);
+      var source = entrySource(entry);
+      var imageUrl = source && (type === 'gear' ? source.icon_url : source.portrait_url);
+      var image = imageUrl
+        ? '<img class="mission-admin-portrait" src="' + escapeHtml(assetUrl(imageUrl)) + '" alt="">'
         : '';
+      var typeLabel = type === 'gear' ? 'Gear' : 'Character';
+      var enabled = source && source.is_enabled;
       var row = document.createElement('div');
-      row.className = 'loot-entry-row' + (portrait ? ' has-portrait' : '') + (crew && !crew.is_enabled ? ' is-disabled-crew' : '');
-      row.innerHTML = portrait +
-        '<div class="loot-entry-copy"><strong>' + escapeHtml(crew ? crew.name : 'Missing character') + '</strong>' +
-        '<small>' + escapeHtml(crew ? crew.role : 'This character no longer exists') +
-        (crew && !crew.is_enabled ? ' &middot; disabled, will never drop' : '') + '</small></div>' +
+      row.className = 'loot-entry-row' + (image ? ' has-portrait' : '') + (source && !enabled ? ' is-disabled-crew' : '');
+      row.innerHTML = image +
+        '<div class="loot-entry-copy"><strong>' + escapeHtml(source ? source.name : 'Missing ' + sourceNoun(type)) + '</strong>' +
+        '<small>' + typeLabel + ' &middot; ' + escapeHtml(sourceDescription(type, source)) +
+        (source && !enabled ? ' &middot; disabled, will never drop' : '') + '</small></div>' +
         '<label class="loot-entry-chance"><span>Chance</span><input type="number" min="0.01" max="100" step="0.01" value="' + escapeHtml(chance(entry.chance_percent)) + '"><i>%</i></label>' +
-        '<button type="button" class="loot-entry-remove" aria-label="Remove ' + escapeHtml(crew ? crew.name : 'entry') + '">&times;</button>';
+        '<button type="button" class="loot-entry-remove" aria-label="Remove ' + escapeHtml(source ? source.name : 'entry') + '">&times;</button>';
       var input = row.querySelector('input');
       input.disabled = !editable;
       input.addEventListener('input', function () { draftEntries[index].chance_percent = this.value; });
@@ -195,30 +265,7 @@
       });
       list.appendChild(row);
     });
-    populateCrewPicker();
-  }
-
-  // Only characters not already in the table -- adding one twice would roll it
-  // twice and quietly double its real chance, which the server rejects anyway.
-  function populateCrewPicker() {
-    var select = document.getElementById('loot-entry-crew');
-    var chosen = draftEntries.map(function (entry) { return Number(entry.crew_definition_id); });
-    select.replaceChildren();
-    var available = crewCatalogue.filter(function (crew) { return chosen.indexOf(crew.id) === -1; });
-    available.forEach(function (crew) {
-      var option = document.createElement('option');
-      option.value = String(crew.id);
-      option.textContent = crew.name + ' — ' + crew.role + (crew.is_enabled ? '' : ' (disabled)');
-      select.appendChild(option);
-    });
-    var addBtn = document.getElementById('loot-entry-add-btn');
-    select.disabled = !available.length || !can('loot_tables.edit');
-    addBtn.disabled = select.disabled;
-    if (!available.length) {
-      var option = document.createElement('option');
-      option.textContent = crewCatalogue.length ? 'Every character is already in this table' : 'No characters exist yet';
-      select.appendChild(option);
-    }
+    populateEntryPicker();
   }
 
   function openTableModal(table) {
@@ -230,7 +277,12 @@
     document.getElementById('loot-table-description').value = table && table.description ? table.description : '';
     document.getElementById('loot-table-enabled').checked = table ? !!table.is_enabled : true;
     draftEntries = (table && table.entries ? table.entries : []).map(function (entry) {
-      return { crew_definition_id: entry.crew_definition_id, chance_percent: entry.chance_percent };
+      var type = entry.entry_type === 'gear' ? 'gear' : 'crew';
+      return {
+        entry_type: type,
+        definition_id: entry.definition_id || (type === 'gear' ? entry.loot_definition_id : entry.crew_definition_id),
+        chance_percent: entry.chance_percent
+      };
     });
     showModalError('loot-table-modal-error', '');
     document.getElementById('loot-table-modal-status').textContent = '';
@@ -241,9 +293,6 @@
     });
     document.getElementById('loot-table-enabled').disabled = !editable;
     document.getElementById('loot-table-save-btn').disabled = !editable;
-    // Delete stays hidden while creating and for anyone who cannot edit, and
-    // is computed here rather than left to the static permission sweep, which
-    // runs once and would be undone by this function.
     document.getElementById('loot-table-delete-btn').hidden = !table || !editable;
 
     renderDraftEntries();
@@ -256,7 +305,8 @@
     if (!can('loot_tables.edit')) return;
     var button = document.getElementById('loot-table-save-btn');
     showModalError('loot-table-modal-error', '');
-    button.disabled = true; button.classList.add('is-busy');
+    button.disabled = true;
+    button.classList.add('is-busy');
     request('/api/admin/loot-tables/save.php', {
       id: currentTable ? currentTable.id : null,
       name: document.getElementById('loot-table-name').value.trim(),
@@ -267,8 +317,12 @@
     }).then(function () {
       closeTableModal();
       return load();
-    }).catch(function (error) { showModalError('loot-table-modal-error', error.message); })
-      .then(function () { button.disabled = !can('loot_tables.edit'); button.classList.remove('is-busy'); });
+    }).catch(function (error) {
+      showModalError('loot-table-modal-error', error.message);
+    }).then(function () {
+      button.disabled = !can('loot_tables.edit');
+      button.classList.remove('is-busy');
+    });
   }
 
   /* --- Mission assignment modal ------------------------------------------- */
@@ -277,7 +331,7 @@
     var list = document.getElementById('loot-mission-link-list');
     var editable = can('loot_tables.edit');
     if (!draftLinks.length) {
-      blank(list, 'This mission awards no characters. Attach a loot table below.');
+      blank(list, 'This mission awards no loot-table rewards. Attach a loot table below.');
       populateTablePicker();
       return;
     }
@@ -289,7 +343,7 @@
       row.className = 'loot-entry-row' + (table && !table.is_enabled ? ' is-disabled-crew' : '');
       row.innerHTML =
         '<div class="loot-entry-copy"><strong>' + escapeHtml(table ? table.name : 'Missing table') + '</strong>' +
-        '<small>' + (table ? entryCount + (entryCount === 1 ? ' character' : ' characters') : 'This table no longer exists') +
+        '<small>' + (table ? entryCount + (entryCount === 1 ? ' reward' : ' rewards') : 'This table no longer exists') +
         (table && !table.is_enabled ? ' &middot; disabled, will never drop' : '') + '</small></div>' +
         '<label class="loot-entry-chance"><span>Opens</span><input type="number" min="0.01" max="100" step="0.01" value="' + escapeHtml(chance(link.chance_percent)) + '"><i>%</i></label>' +
         '<button type="button" class="loot-entry-remove" aria-label="Detach ' + escapeHtml(table ? table.name : 'table') + '">&times;</button>';
@@ -348,15 +402,20 @@
     if (!can('loot_tables.edit') || !currentMission) return;
     var button = document.getElementById('loot-mission-save-btn');
     showModalError('loot-mission-modal-error', '');
-    button.disabled = true; button.classList.add('is-busy');
+    button.disabled = true;
+    button.classList.add('is-busy');
     request('/api/admin/loot-tables/mission-tables-save.php', {
       mission_definition_id: currentMission.id,
       tables: draftLinks
     }).then(function () {
       closeMissionModal();
       return load();
-    }).catch(function (error) { showModalError('loot-mission-modal-error', error.message); })
-      .then(function () { button.disabled = !can('loot_tables.edit'); button.classList.remove('is-busy'); });
+    }).catch(function (error) {
+      showModalError('loot-mission-modal-error', error.message);
+    }).then(function () {
+      button.disabled = !can('loot_tables.edit');
+      button.classList.remove('is-busy');
+    });
   }
 
   /* --- Wiring -------------------------------------------------------------- */
@@ -369,18 +428,21 @@
   document.getElementById('loot-table-cancel-btn').addEventListener('click', closeTableModal);
   tableModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeTableModal);
   document.getElementById('loot-table-save-btn').addEventListener('click', saveTable);
+  document.getElementById('loot-entry-type').addEventListener('change', populateEntryPicker);
   document.getElementById('loot-entry-add-btn').addEventListener('click', function () {
     if (!can('loot_tables.edit')) return;
-    var value = document.getElementById('loot-entry-crew').value;
+    var type = document.getElementById('loot-entry-type').value === 'gear' ? 'gear' : 'crew';
+    var value = document.getElementById('loot-entry-source').value;
     if (!value) return;
-    draftEntries.push({ crew_definition_id: Number(value), chance_percent: 5 });
+    draftEntries.push({ entry_type: type, definition_id: Number(value), chance_percent: 5 });
     renderDraftEntries();
   });
   document.getElementById('loot-table-delete-btn').addEventListener('click', function () {
     if (!can('loot_tables.edit') || !currentTable) return;
-    if (!window.confirm('Delete "' + currentTable.name + '"? Its characters and chances are removed with it.')) return;
+    if (!window.confirm('Delete "' + currentTable.name + '"? Its rewards and chances are removed with it.')) return;
     var button = this;
-    button.disabled = true; button.classList.add('is-busy');
+    button.disabled = true;
+    button.classList.add('is-busy');
     request('/api/admin/loot-tables/delete.php', { id: currentTable.id })
       .then(function () { closeTableModal(); return load(); })
       .catch(function (error) { showModalError('loot-table-modal-error', error.message); })
@@ -403,12 +465,13 @@
     return request('/api/admin/loot-tables/list.php').then(function (data) {
       tables = data.tables || [];
       crewCatalogue = data.crew || [];
+      gearCatalogue = data.gear || [];
       missions = data.missions || [];
       renderTables();
       renderMissions();
       refreshCount();
     }).catch(function (error) {
-      blank(tableList, error.message || 'Could not load loot tables. Run the Mission Loot Tables migration first.');
+      blank(tableList, error.message || 'Could not load loot tables. Run the Mission Loot Table Gear migration first.');
       blank(missionList, error.message || 'Could not load missions.');
     });
   }

@@ -6,7 +6,7 @@ $admin = pw_require_permission('loot_tables.edit');
 $input = pw_input();
 pw_require_csrf($input);
 $db = pw_db();
-pw_missions_require_loot_tables_ready($db);
+pw_missions_require_loot_table_gear_ready($db);
 
 $rawId = $input['id'] ?? null;
 $id = $rawId === null || $rawId === '' ? null : filter_var($rawId, FILTER_VALIDATE_INT);
@@ -14,7 +14,7 @@ if ($id !== null && ($id === false || $id < 1)) pw_error('Missing loot table.');
 
 $data = pw_admin_loot_table_input($input);
 $entries = pw_admin_loot_entries_input($input['entries'] ?? []);
-pw_admin_loot_require_crew_exists($db, array_map(static function ($entry) { return $entry['crew_definition_id']; }, $entries));
+pw_admin_loot_require_sources_exist($db, $entries);
 
 try {
     $db->beginTransaction();
