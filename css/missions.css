@@ -393,6 +393,15 @@
   opacity: var(--card-watermark-opacity, 0.1);
   mix-blend-mode: screen;
 }
+/* Active-card artwork is a right-side transmission image, not a rectangular
+ * panel. Centre it vertically and fade its left edge into the card so artwork
+ * with opaque edges never looks like it was abruptly dropped over the route. */
+.mission-active-card.has-card-watermark::after {
+  background-position: right -6% center;
+  background-size: auto 108%;
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, transparent 24%, rgba(0,0,0,0.34) 52%, #000 78%);
+  mask-image: linear-gradient(to right, transparent 0%, transparent 24%, rgba(0,0,0,0.34) 52%, #000 78%);
+}
 .mission-active-card.has-card-watermark > *,
 .mission-definition-card.has-card-watermark > * { position: relative; z-index: 1; }
 /* Active operations carry a low-contrast route plot behind their content. The
@@ -403,14 +412,13 @@
 .mission-active-card.has-card-watermark > .mission-route { position: absolute; z-index: 0; }
 .mission-route svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .mission-route-base { fill: none; stroke: rgba(105,202,216,0.24); stroke-dasharray: 3 7; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.mission-route-signal { fill: none; stroke: rgba(121,226,234,0.9); stroke-width: 1.35; stroke-dasharray: 12 46; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; animation: mission-route-flow 8s linear infinite; }
+.mission-route-progress { fill: none; stroke: rgba(121,226,234,0.9); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .mission-route-node { fill: #82dce4; stroke: rgba(10,29,47,0.92); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
 .mission-route-node.is-origin { fill: #c8a8ff; }
-.mission-route-packet { fill: #e2fcff; filter: drop-shadow(0 0 3px rgba(121,226,234,0.95)); }
+.mission-route-packet { fill: #e2fcff; filter: drop-shadow(0 0 3px rgba(121,226,234,0.95)); transition: cx .85s linear, cy .85s linear; }
 .mission-route-endpoint { fill: #e8d18a; stroke: rgba(10,29,47,0.92); stroke-width: 1.8; vector-effect: non-scaling-stroke; }
 .mission-route-endpoint-pulse { fill: none; stroke: rgba(232,209,138,0.72); stroke-width: 1; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; animation: mission-route-endpoint 2.3s ease-out infinite; }
-.mission-route.is-complete { opacity: .46; }.mission-route.is-complete .mission-route-signal { stroke: rgba(232,209,138,0.9); animation-play-state: paused; }.mission-route.is-complete .mission-route-endpoint-pulse { animation: none; opacity: .55; }
-@keyframes mission-route-flow { to { stroke-dashoffset: -116; } }
+.mission-route.is-complete { opacity: .46; }.mission-route.is-complete .mission-route-progress { stroke: rgba(232,209,138,0.9); }.mission-route.is-complete .mission-route-endpoint-pulse { animation: none; opacity: .55; }
 @keyframes mission-route-endpoint { 0% { opacity: .85; transform: scale(.56); } 75%,100% { opacity: 0; transform: scale(1.55); } }
 
 /* Operation types as collapsible shelves. The heading carries the type, so the
@@ -506,7 +514,7 @@
 @keyframes mission-crew-holo-sweep { from { transform: translateX(-42%) skewX(-12deg); } to { transform: translateX(42%) skewX(-12deg); } }
 @keyframes mission-crew-portrait-scan { 0%,16% { opacity: 0; transform: translateY(-110%); } 26% { opacity: 1; } 60%,100% { opacity: 0; transform: translateY(510%); } }
 @keyframes mission-crew-gear-glow { 0%,100% { box-shadow: 0 0 7px rgba(var(--gear-tier),0.26), inset 0 0 7px rgba(var(--gear-tier),0.1); } 50% { box-shadow: 0 0 13px rgba(var(--gear-tier),0.5), inset 0 0 10px rgba(var(--gear-tier),0.2); } }
-@media (prefers-reduced-motion: reduce) { .mission-route-signal, .mission-route-endpoint-pulse, .mission-crew-card, .mission-crew-card::after, .mission-crew-portrait-wrap::after, .mission-gear-slot.is-filled { animation: none !important; transition: none !important; } .mission-route-packet { display: none; } .mission-crew-card:hover { transform: none !important; } }
+@media (prefers-reduced-motion: reduce) { .mission-route-endpoint-pulse, .mission-crew-card, .mission-crew-card::after, .mission-crew-portrait-wrap::after, .mission-gear-slot.is-filled { animation: none !important; transition: none !important; } .mission-route-packet { display: none; } .mission-crew-card:hover { transform: none !important; } }
 .missions-history-list { border: 1px solid rgba(80,129,168,0.34); background: rgba(12,16,32,0.52); }
 .mission-history-row { display: grid; grid-template-columns: minmax(210px, 1.35fr) minmax(135px,0.8fr) minmax(145px,0.85fr) auto; gap: 18px; align-items: center; padding: 14px 18px; border-bottom: 1px solid rgba(80,129,168,0.24); }
 .mission-history-row:last-child { border-bottom: 0; }

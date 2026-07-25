@@ -198,8 +198,32 @@
   /* Each active operation gets a small route diagram. The intermediate nodes
    * are generated from a seeded random sequence instead of Math.random(), so
    * a card retains its route through refreshes rather than visibly jumping as
-   * its countdown updates. Nothing here is gameplay data; it is command-room
-   * decoration, kept out of the accessibility tree below. */
+   * its countdown updates. Its lit section is calculated from the same start
+   * and completion timestamps that power the remaining-time countdown. */
+  function missionRouteProgress(startedAt, completesAt, isCompleted) {
+    if (isCompleted) return 100;
+    var started = apiDate(startedAt);
+    var completes = apiDate(completesAt);
+    if (!started || !completes || isNaN(started) || isNaN(completes) || completes <= started) return 0;
+    var now = Date.now() + state.serverOffset;
+    return Math.max(0, Math.min(100, ((now - started.getTime()) / (completes.getTime() - started.getTime())) * 100));
+  }
+
+  function updateMissionRouteProgress() {
+    document.querySelectorAll('.mission-route[data-started-at][data-completes-at]').forEach(function (route) {
+      var progress = missionRouteProgress(route.getAttribute('data-started-at'), route.getAttribute('data-completes-at'), route.classList.contains('is-complete'));
+      var path = route.querySelector('.mission-route-progress');
+      if (path) path.style.strokeDasharray = progress.toFixed(3) + ' 100';
+      var packet = route.querySelector('.mission-route-packet');
+      if (!packet || !path || typeof path.getTotalLength !== 'function') return;
+      var length = path.getTotalLength();
+      if (!length) return;
+      var point = path.getPointAtLength(length * (progress / 100));
+      packet.setAttribute('cx', point.x.toFixed(2));
+      packet.setAttribute('cy', point.y.toFixed(2));
+    });
+  }
+
   function missionRouteMarkup(mission, isCompleted) {
     var seed = (Math.abs(Number(mission.id)) || 1) >>> 0;
     function random() {
@@ -221,10 +245,11 @@
     var nodes = points.slice(0, -1).map(function (point, index) {
       return '<circle class="mission-route-node' + (index === 0 ? ' is-origin' : '') + '" cx="' + point.x + '" cy="' + point.y + '" r="2.4" />';
     }).join('');
-    var packet = isCompleted ? '' : '<circle class="mission-route-packet" r="3"><animateMotion dur="8s" repeatCount="indefinite" path="' + path + '" /></circle>';
-    return '<div class="mission-route' + (isCompleted ? ' is-complete' : '') + '" aria-hidden="true"><svg viewBox="0 0 260 160" preserveAspectRatio="none" focusable="false">'
-      + '<path class="mission-route-base" d="' + path + '" />'
-      + '<path class="mission-route-signal" d="' + path + '" />'
+    var progress = missionRouteProgress(mission.started_at, mission.completes_at, isCompleted);
+    var packet = isCompleted ? '' : '<circle class="mission-route-packet" cx="' + start.x + '" cy="' + start.y + '" r="3" />';
+    return '<div class="mission-route' + (isCompleted ? ' is-complete' : '') + '" data-started-at="' + escapeHtml(mission.started_at || '') + '" data-completes-at="' + escapeHtml(mission.completes_at || '') + '" aria-hidden="true"><svg viewBox="0 0 260 160" preserveAspectRatio="none" focusable="false">'
+      + '<path class="mission-route-base" pathLength="100" d="' + path + '" />'
+      + '<path class="mission-route-progress" pathLength="100" d="' + path + '" style="stroke-dasharray:' + progress.toFixed(3) + ' 100" />'
       + nodes + packet + '<circle class="mission-route-endpoint" cx="' + end.x + '" cy="' + end.y + '" r="4" /><circle class="mission-route-endpoint-pulse" cx="' + end.x + '" cy="' + end.y + '" r="7" />'
       + '</svg></div>';
   }
@@ -243,6 +268,7 @@
       var watermark = missionWatermark(mission);
       return '<article class="mission-active-card is-' + escapeHtml(mission.status) + watermark.className + '"' + watermark.style + '>' + missionRouteMarkup(mission, isCompleted) + '<div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-world">' + escapeHtml(mission.world_key) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p class="mission-crew-line">' + escapeHtml((mission.crew_names || []).join(' · ')) + '</p><div class="mission-active-footer"><div><strong class="mission-countdown" data-completes-at="' + escapeHtml(mission.completes_at) + '">' + (isCompleted ? 'Mission complete' : 'Calculating…') + '</strong><small>' + (isCompleted ? 'Ready for reward claim' : 'Completion verified by command') + '</small></div>' + action + '</div></article>';
     }).join('');
+    updateMissionRouteProgress();
   }
 
   /* The campaign track drawn inside a chain's card. One block per operation:
@@ -721,6 +747,7 @@
       element.textContent = remaining > 0 ? formatDuration(remaining) + ' remaining' : 'Ready for completion';
       if (remaining === 0 && !state.refreshQueued) { state.refreshQueued = true; window.setTimeout(function () { state.refreshQueued = false; load(); }, 1500); }
     });
+    updateMissionRouteProgress();
     tickDailyReset();
   }
 
