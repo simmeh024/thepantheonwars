@@ -4065,6 +4065,18 @@
 .mission-admin-type { color: var(--purple-light); font-size: .77rem; text-transform: capitalize; }
 .mission-admin-crew-columns { grid-template-columns: minmax(190px, 2fr) minmax(95px, .8fr) minmax(78px, .65fr) minmax(78px, .65fr) minmax(95px, .8fr) minmax(85px, .72fr); }
 .mission-admin-player-columns { grid-template-columns: minmax(135px, 1fr) minmax(170px, 1.3fr) minmax(150px, 1.2fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(85px, .75fr); }
+/* Seven columns rather than six: an item's slot and its rarity are the two
+ * things an administrator scans for, and folding either into the name column
+ * would hide the one field that decides whether the item is gear at all. */
+.mission-admin-gear-columns { grid-template-columns: minmax(160px, 1.8fr) minmax(78px, .7fr) minmax(74px, .62fr) minmax(110px, .95fr) minmax(90px, .78fr) minmax(74px, .62fr) minmax(80px, .7fr); }
+.mission-gear-intro { margin: -4px 0 14px !important; max-width: 780px; }
+.mission-gear-tier { font-size: .72rem; font-weight: 600; text-transform: capitalize; }
+.mission-gear-tier.is-common { color: var(--text-dim); }
+.mission-gear-tier.is-uncommon { color: #3ecf8e; }
+.mission-gear-tier.is-rare { color: #50c9bf; }
+.mission-gear-tier.is-legendary { color: var(--gold-bright); }
+.mission-gear-bonus-row .admin-field { min-width: 0; }
+#mission-gear-bonus-summary.is-warning { color: var(--status-warning) !important; }
 .mission-admin-empty { padding: 28px 16px; color: var(--text-faint); text-align: center; }
 .mission-portrait-field { display: flex; align-items: center; gap: 8px; }
 .mission-portrait-field input { min-width: 0; flex: 1; }
@@ -4181,6 +4193,7 @@
   .mission-admin-columns { display: none; }
   .mission-admin-row,
   .mission-admin-crew-columns,
+  .mission-admin-gear-columns,
   .mission-admin-player-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px 14px; padding: 15px 16px; }
   .mission-admin-row .mission-admin-title { grid-column: 1 / -1; }
 }
@@ -4188,6 +4201,7 @@
   .mission-admin-toolbar .admin-filter-tabs { width: 100%; margin-right: 0; }
   .mission-admin-row,
   .mission-admin-crew-columns,
+  .mission-admin-gear-columns,
   .mission-admin-player-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mission-portrait-field { flex-wrap: wrap; }
 }

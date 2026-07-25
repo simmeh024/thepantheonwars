@@ -54,9 +54,17 @@ try {
         foreach ($stats as $key => $value) $row[$key] = $value;
         $row['max_level'] = PW_MISSION_MAX_LEVEL;
         $row['max_stat'] = PW_MISSION_MAX_STAT;
-        $row['role_effect'] = pw_missions_crew_effects([$row]);
         return $row;
     }, $crewStmt->fetchAll());
+
+    /* Equipment folded in before any effect is computed, so a crew card's own
+     * bonus line already reflects what that crew member is carrying. The
+     * pre-gear values survive as base_<stat> and gear_bonus, which is what lets
+     * the card show "4 +2" instead of a total with no explanation. */
+    $crew = pw_missions_apply_gear($db, $userId, $crew);
+    foreach ($crew as $index => $row) {
+        $crew[$index]['role_effect'] = pw_missions_crew_effects([$row]);
+    }
 
     $claimedStmt = $db->prepare(
         'SELECT mission_definition_id, COUNT(*) AS claimed_count
@@ -210,18 +218,49 @@ try {
      * item's public name and tier -- drop weights stay server-side so the pool's
      * odds are never readable from the browser. */
     $loot = [];
+    $gearReady = pw_mission_gear_ready($db);
     if ($statsReady) {
-        $lootStmt = $db->prepare(
-            'SELECT l.id, l.name, l.slug, l.description, l.tier, pl.quantity, pl.first_acquired_at
-             FROM game_player_loot pl
-             JOIN game_loot_definitions l ON l.id = pl.loot_definition_id
-             WHERE pl.user_id = ? AND pl.quantity > 0
-             ORDER BY FIELD(l.tier, "legendary", "rare", "uncommon", "common"), l.name ASC'
-        );
+        /* The gear columns and the equipped count arrive with the gear migration;
+         * selected in a separate branch because a missing column is a hard SQL
+         * error, not a NULL, so the pre-migration shape has to stay reachable.
+         *
+         * equipped_count is a correlated subquery rather than a join: a LEFT JOIN
+         * on to the gear table would multiply the row per equipped copy and the
+         * quantity would have to be de-duplicated back out again. */
+        $lootStmt = $db->prepare($gearReady
+            ? 'SELECT l.id, l.name, l.slug, l.description, l.tier, pl.quantity, pl.first_acquired_at,
+                      l.slot, l.bonus_strength, l.bonus_cunning, l.bonus_science, l.bonus_charisma,
+                      l.required_level, l.required_role, l.icon_url,
+                      (SELECT COUNT(*) FROM game_player_crew_gear g
+                        WHERE g.user_id = pl.user_id AND g.loot_definition_id = l.id) AS equipped_count
+               FROM game_player_loot pl
+               JOIN game_loot_definitions l ON l.id = pl.loot_definition_id
+               WHERE pl.user_id = ? AND pl.quantity > 0
+               ORDER BY FIELD(l.tier, "legendary", "rare", "uncommon", "common"), l.name ASC'
+            : 'SELECT l.id, l.name, l.slug, l.description, l.tier, pl.quantity, pl.first_acquired_at
+               FROM game_player_loot pl
+               JOIN game_loot_definitions l ON l.id = pl.loot_definition_id
+               WHERE pl.user_id = ? AND pl.quantity > 0
+               ORDER BY FIELD(l.tier, "legendary", "rare", "uncommon", "common"), l.name ASC');
         $lootStmt->execute([$userId]);
-        $loot = array_map(static function ($row) {
+        $loot = array_map(static function ($row) use ($gearReady) {
             $row['id'] = (int)$row['id'];
             $row['quantity'] = (int)$row['quantity'];
+            /* One shape either way, so the browser never has to know which
+             * migrations have run -- before the gear migration every item simply
+             * has no slot and no bonuses. */
+            $row['slot'] = $gearReady ? (string)$row['slot'] : '';
+            $row['icon_url'] = $gearReady ? pw_missions_gear_icon_url($row['icon_url']) : '';
+            $row['required_level'] = $gearReady ? (int)$row['required_level'] : 1;
+            $row['required_role'] = $gearReady ? (string)$row['required_role'] : '';
+            $row['equipped_count'] = $gearReady ? (int)$row['equipped_count'] : 0;
+            $row['bonus'] = [
+                'strength' => $gearReady ? (int)$row['bonus_strength'] : 0,
+                'cunning' => $gearReady ? (int)$row['bonus_cunning'] : 0,
+                'science' => $gearReady ? (int)$row['bonus_science'] : 0,
+                'charisma' => $gearReady ? (int)$row['bonus_charisma'] : 0,
+            ];
+            foreach (['bonus_strength', 'bonus_cunning', 'bonus_science', 'bonus_charisma'] as $key) unset($row[$key]);
             return $row;
         }, $lootStmt->fetchAll());
     }
@@ -282,6 +321,17 @@ try {
          * live on the server; the browser only ever displays them, and every
          * figure it shows is recomputed here at launch and again at claim. */
         'affinity_rules' => pw_missions_affinity_rules(),
+        /* The loadout's slots, in the order it draws them, and the ceiling a
+         * stat can reach with equipment on. Sent rather than hardcoded in the
+         * browser so the seven slots have one definition, on the server that
+         * enforces them. Empty until the gear migration has been run, which is
+         * how the page knows to leave loadouts out entirely. */
+        'gear_slots' => pw_mission_gear_ready($db)
+            ? array_map(static function ($key, $label) { return ['key' => $key, 'label' => $label]; },
+                array_keys(pw_missions_gear_slots()), array_values(pw_missions_gear_slots()))
+            : [],
+        'gear_ready' => pw_mission_gear_ready($db),
+        'max_gear_stat' => PW_MISSION_MAX_GEAR_STAT,
         'loot' => $loot,
         'stats_ready' => $statsReady,
         'missions' => $missions,

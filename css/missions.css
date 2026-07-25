@@ -12,6 +12,95 @@
   mix-blend-mode: screen;
 }
 .missions-page.has-watermark > * { position: relative; z-index: 1; }
+/* Gear.
+ *
+ * Rarity is one custom property, --gear-tier, set once per element by the tier
+ * class. Every square, card and pill reads it, so a new rarity needs one rule
+ * rather than an edit in six places -- the same approach --world-weather-icon
+ * takes for the weather card's icons. */
+.mission-gear-slot, .mission-loadout-slot, .mission-inventory-card, .mission-loadout-option { --gear-tier: 130,150,170; }
+.is-common { --gear-tier: 150,168,186; }
+.is-uncommon { --gear-tier: 158,219,168; }
+.is-rare { --gear-tier: 112,204,223; }
+.is-legendary { --gear-tier: 233,211,153; }
+
+/* The read-only strip on a crew card. Every square is a hover and focus target,
+ * because the tooltip is the entire point of it. */
+.mission-crew-loadout { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(88,142,181,0.24); }
+.mission-crew-loadout-label { color: #758fa7; font-size: 0.58rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.mission-crew-loadout-count { color: #90abba; font-size: 0.64rem; font-weight: 600; }
+.mission-gear-slots { display: flex; flex-wrap: wrap; gap: 4px; }
+.mission-gear-slot { display: flex; align-items: center; justify-content: center; width: 25px; height: 25px; border: 1px solid rgba(var(--gear-tier), 0.55); color: rgb(var(--gear-tier)); cursor: help; }
+.mission-gear-slot svg, .mission-gear-slot img { display: block; width: 15px; height: 15px; object-fit: cover; }
+.mission-gear-slot.is-filled { background: rgba(var(--gear-tier), 0.13); }
+.mission-gear-slot.is-empty { border-style: dashed; border-color: rgba(103,152,190,0.4); color: #5d7285; }
+.mission-gear-slot:focus-visible { outline: 2px solid rgba(126,227,232,0.7); outline-offset: 2px; }
+.mission-loadout-btn { margin-left: auto; padding: 5px 10px !important; font-size: 0.6rem !important; }
+.mission-loadout-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+
+/* Loadout modal: the slot grid on the left, the inventory for the selected slot
+ * on the right. Utility spans the grid because it is the odd seventh slot, and
+ * a lone square in a two-column grid reads as a gap. */
+.mission-loadout-modal { width: min(720px, calc(100vw - 28px)); padding: 0; border: 1px solid rgba(105,213,222,0.5); color: var(--text); background: #100d22; box-shadow: 0 24px 90px rgba(0,0,0,0.7), 0 0 45px rgba(71,207,218,0.13); }
+.mission-loadout-modal::backdrop { background: rgba(3,4,12,0.78); backdrop-filter: blur(4px); }
+.mission-loadout-inner { position: relative; padding: 28px; background: linear-gradient(145deg, rgba(17,48,66,0.96), rgba(20,12,42,0.98)); }
+.mission-loadout-modal .eyebrow { margin-bottom: 6px; color: #79d9df; font-size: 0.6rem; }
+.mission-loadout-modal h2 { margin: 0 32px 5px 0; font-size: 1.34rem; }
+.mission-loadout-modal > .mission-loadout-inner > p { margin: 0; color: #aec3cf; font-size: 0.8rem; }
+.mission-loadout-body { display: grid; grid-template-columns: 218px minmax(0, 1fr); gap: 18px; margin-top: 18px; }
+.mission-loadout-slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-content: start; }
+.mission-loadout-slot { display: grid; justify-items: center; gap: 3px; padding: 10px 6px; border: 1px solid rgba(103,152,190,0.38); background: rgba(6,15,28,0.42); color: rgb(var(--gear-tier)); cursor: pointer; font: inherit; }
+.mission-loadout-slot:not(.is-filled) { border-style: dashed; color: #5d7285; }
+.mission-loadout-slot.is-filled { border-color: rgba(var(--gear-tier), 0.55); background: rgba(var(--gear-tier), 0.1); }
+.mission-loadout-slot.is-active { box-shadow: inset 0 0 0 1px rgba(126,227,232,0.7); border-color: rgba(126,227,232,0.75); }
+.mission-loadout-slot svg, .mission-loadout-slot img { display: block; width: 24px; height: 24px; object-fit: cover; }
+.mission-loadout-slot-name { color: #9db3c2; font-size: 0.58rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.mission-loadout-slot small { display: block; max-width: 92px; overflow: hidden; color: #dfe8ef; font-size: 0.62rem; text-overflow: ellipsis; white-space: nowrap; }
+.mission-loadout-slot:nth-child(7) { grid-column: 1 / -1; grid-template-columns: auto auto auto; justify-items: start; align-items: center; gap: 4px 9px; }
+.mission-loadout-picker { min-width: 0; }
+.mission-loadout-picker-head { margin: 0 0 8px !important; color: #79d9df !important; font-size: 0.58rem !important; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-loadout-options { display: grid; gap: 6px; max-height: min(40vh, 320px); overflow-y: auto; }
+.mission-loadout-option { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid rgba(103,152,190,0.36); background: rgba(6,15,28,0.42); color: rgb(var(--gear-tier)); cursor: pointer; font: inherit; text-align: left; }
+.mission-loadout-option:hover:not(:disabled), .mission-loadout-option:focus-visible { border-color: rgba(126,227,232,0.7); }
+.mission-loadout-option.is-equipped { border-color: rgba(158,219,168,0.6); box-shadow: inset 3px 0 rgba(110,207,140,0.8); }
+.mission-loadout-option.is-blocked { cursor: not-allowed; opacity: 0.62; }
+.mission-loadout-option.is-remove { grid-template-columns: minmax(0, 1fr); border-color: rgba(224,138,114,0.42); }
+.mission-loadout-option.is-remove strong { color: #e0a894; }
+.mission-loadout-option-icon svg, .mission-loadout-option-icon img { display: block; width: 22px; height: 22px; object-fit: cover; }
+.mission-loadout-option-copy { display: grid; gap: 1px; min-width: 0; }
+.mission-loadout-option strong { overflow: hidden; color: #eef4f8; font-size: 0.8rem; text-overflow: ellipsis; white-space: nowrap; }
+.mission-loadout-option small { color: #9db3c2; font-size: 0.65rem; }
+/* Reserved height, so previewing a swap on hover cannot shift the list under
+ * the pointer that is doing the previewing. */
+.mission-loadout-delta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; min-height: 40px; margin-top: 10px; padding: 8px 10px; border: 1px solid rgba(88,142,181,0.3); background: rgba(8,18,33,0.55); }
+.mission-loadout-delta-label { color: #758fa7; font-size: 0.58rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.mission-loadout-delta-cell { color: #c2d5e0; font-size: 0.72rem; font-weight: 600; }
+.mission-loadout-delta-cell s { color: #6f889b; }
+.mission-loadout-delta-cell.is-better strong { color: #9edba8; }
+.mission-loadout-delta-cell.is-worse strong { color: #e0a894; }
+
+/* Inventory */
+.missions-inventory-controls { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px 12px; align-items: end; margin: -3px 0 16px; padding: 13px; border: 1px solid rgba(80,129,168,0.34); background: rgba(10,20,38,0.48); }
+.missions-inventory-controls .missions-crew-filter-summary { grid-column: 1 / -1; }
+.missions-inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 12px; }
+.mission-inventory-card { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; padding: 13px; border: 1px solid rgba(var(--gear-tier), 0.38); background: linear-gradient(140deg, rgba(16,33,57,0.9), rgba(22,13,45,0.86)); }
+.mission-inventory-card.is-salvage { border-color: rgba(88,142,181,0.3); }
+.mission-inventory-icon { display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border: 1px solid rgba(var(--gear-tier), 0.45); background: rgba(var(--gear-tier), 0.1); color: rgb(var(--gear-tier)); }
+.mission-inventory-icon svg, .mission-inventory-icon img { display: block; width: 26px; height: 26px; object-fit: cover; }
+.mission-inventory-copy { min-width: 0; }
+.mission-inventory-copy h3 { margin: 0 0 3px; color: #f0edf8; font-size: 0.9rem; }
+.mission-inventory-meta { margin: 0 !important; color: #90abba !important; font-size: 0.66rem !important; }
+.mission-inventory-tier { color: rgb(var(--gear-tier)); font-weight: 700; text-transform: capitalize; }
+.mission-inventory-bonus { margin: 6px 0 0 !important; color: #9edba8 !important; font-size: 0.7rem !important; font-weight: 600; }
+.mission-inventory-desc { margin: 6px 0 0 !important; color: #a9bdcb !important; font-size: 0.7rem !important; line-height: 1.5 !important; }
+.mission-inventory-requires { margin: 5px 0 0 !important; color: #d5b271 !important; font-size: 0.65rem !important; font-weight: 600; }
+.mission-inventory-state { margin: 6px 0 0 !important; color: #7d94a6 !important; font-size: 0.65rem !important; font-weight: 600; }
+.mission-inventory-state.is-active { color: #79d9df !important; }
+.crew-stat.has-gear .crew-stat-value i { margin-left: 3px; color: #9edba8; font-size: 0.66rem; font-style: normal; font-weight: 700; }
+@media (max-width: 620px) {
+  .mission-loadout-body { grid-template-columns: minmax(0, 1fr); }
+  .missions-inventory-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 @media (max-width: 760px) { .missions-page.has-watermark::before { background-size: min(78vmin, 420px); } }
 
 .missions-hero { position: relative; isolation: isolate; overflow: hidden; min-height: 285px; display: flex; align-items: end; border-bottom: 1px solid rgba(83,133,169,0.32); }

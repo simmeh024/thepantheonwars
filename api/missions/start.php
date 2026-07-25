@@ -55,6 +55,10 @@ try {
     $crewStmt->execute(array_merge([$userId], $crewIds));
     $selectedCrew = $crewStmt->fetchAll();
     if (count($selectedCrew) !== count($crewIds)) throw new RuntimeException('One selected crew member does not belong to you.');
+    /* Equipment counts towards the duration this launch locks in. Loadouts are
+     * frozen while a crew member is deployed, so what is read here is what the
+     * claim will read again. */
+    $selectedCrew = pw_missions_apply_gear($db, $userId, $selectedCrew);
     foreach ($selectedCrew as $member) {
         if ($member['status'] !== 'available') throw new RuntimeException('Every selected crew member must be available.');
     }

@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=315">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=316">
 </head>
 <body>
 
@@ -2061,11 +2061,13 @@
         <div class="admin-filter-tabs" id="mission-admin-tabs" role="tablist" aria-label="Mission Control views">
           <button type="button" class="admin-filter-tab active" data-mission-panel="definitions" role="tab" aria-selected="true">Mission Definitions</button>
           <button type="button" class="admin-filter-tab" data-mission-panel="crew" role="tab" aria-selected="false">Crew</button>
+          <button type="button" class="admin-filter-tab" data-mission-panel="gear" role="tab" aria-selected="false">Gear</button>
           <button type="button" class="admin-filter-tab" data-mission-panel="player-missions" role="tab" aria-selected="false" data-requires-permission="missions.player_missions">Player Missions</button>
           <button type="button" class="admin-filter-tab" data-mission-panel="presentation" role="tab" aria-selected="false">Presentation</button>
         </div>
         <button type="button" class="btn btn-solid" id="mission-definition-create-btn" data-requires-permission="missions.edit">+ Add Mission</button>
         <button type="button" class="btn btn-solid" id="mission-crew-create-btn" data-requires-permission="missions.edit" hidden>+ Add Crew Member</button>
+        <button type="button" class="btn btn-solid" id="mission-gear-create-btn" data-requires-permission="missions.edit" hidden>+ Add Equipment</button>
         <span class="admin-count" id="mission-admin-count"></span>
       </div>
 
@@ -2077,6 +2079,12 @@
       <div class="mission-admin-panel" id="mission-admin-crew-panel" hidden>
         <div class="mission-admin-columns mission-admin-crew-columns" aria-hidden="true"><span>Crew member</span><span>Role</span><span>World</span><span>Starter</span><span>Assigned</span><span>Status</span></div>
         <div class="admin-list mission-admin-list" id="mission-crew-list"><div class="admin-list-empty">Loading crew&hellip;</div></div>
+      </div>
+
+      <div class="mission-admin-panel" id="mission-admin-gear-panel" hidden>
+        <p class="admin-field-hint mission-gear-intro">Equipment is loot with a slot. An item with a slot can be equipped by a crew member and grants its stat bonuses; an item with no slot stays plain salvage. Both drop through the same weighted pool, so a rarity promotion can upgrade a player into better gear.</p>
+        <div class="mission-admin-columns mission-admin-gear-columns" aria-hidden="true"><span>Item</span><span>Slot</span><span>Rarity</span><span>Bonuses</span><span>Requires</span><span>Held</span><span>Status</span></div>
+        <div class="admin-list mission-admin-list" id="mission-gear-list"><div class="admin-list-empty">Loading equipment&hellip;</div></div>
       </div>
 
       <div class="mission-admin-panel" id="mission-admin-player-missions-panel" hidden>
@@ -4148,6 +4156,33 @@
   </div>
 </div>
 
+<div class="admin-modal" id="mission-gear-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="mission-gear-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="mission-gear-modal-title">Add Equipment</h3>
+    <p class="admin-modal-sub">An item with a slot is equippable gear. Leave the slot open and it stays plain salvage in a player's inventory, which is what every item authored before gear existed already is.</p>
+    <div class="admin-field-row"><div class="admin-field"><label for="mission-gear-name">Name</label><input type="text" id="mission-gear-name" maxlength="120"></div><div class="admin-field"><label for="mission-gear-slug">Slug</label><input type="text" id="mission-gear-slug" maxlength="120"></div></div>
+    <div class="admin-field"><label for="mission-gear-description">Description</label><textarea id="mission-gear-description" maxlength="2000"></textarea><p class="admin-field-hint">Shown in the player's inventory and in the loadout tooltip.</p></div>
+    <div class="admin-field-row"><div class="admin-field"><label for="mission-gear-slot">Slot</label><select id="mission-gear-slot"><option value="">No slot &mdash; salvage only</option></select></div><div class="admin-field"><label for="mission-gear-tier">Rarity</label><select id="mission-gear-tier"></select></div><div class="admin-field"><label for="mission-gear-drop-weight">Drop weight</label><input type="number" id="mission-gear-drop-weight" min="0" max="10000" step="1" value="100"></div></div>
+    <p class="admin-field-hint">Drop weight is relative within a rarity: an item at 200 is drawn twice as often as one at 100. Zero is treated as the minimum rather than never, so nothing in the pool becomes unreachable.</p>
+    <div class="admin-subsection-head"><h2>Stat bonuses</h2><p>Added to the crew member's own stats while equipped. Levelling stops at <span id="mission-gear-cap-natural">50</span>; equipment carries a crew member to <span id="mission-gear-cap-total">80</span>, so gear is still worth something on a maxed specialist. A negative value authors a trade-off item.</p></div>
+    <div class="admin-field-row mission-gear-bonus-row">
+      <div class="admin-field"><label for="mission-gear-bonus-strength">Strength</label><input type="number" id="mission-gear-bonus-strength" min="-10" max="15" step="1" value="0"></div>
+      <div class="admin-field"><label for="mission-gear-bonus-cunning">Cunning</label><input type="number" id="mission-gear-bonus-cunning" min="-10" max="15" step="1" value="0"></div>
+      <div class="admin-field"><label for="mission-gear-bonus-science">Science</label><input type="number" id="mission-gear-bonus-science" min="-10" max="15" step="1" value="0"></div>
+      <div class="admin-field"><label for="mission-gear-bonus-charisma">Charisma</label><input type="number" id="mission-gear-bonus-charisma" min="-10" max="15" step="1" value="0"></div>
+    </div>
+    <p class="admin-field-hint" id="mission-gear-bonus-summary"></p>
+    <div class="admin-field-row"><div class="admin-field"><label for="mission-gear-required-level">Required level</label><input type="number" id="mission-gear-required-level" min="1" max="50" step="1" value="1"></div><div class="admin-field"><label for="mission-gear-required-role">Required role</label><select id="mission-gear-required-role"><option value="">Any role</option></select></div><div class="admin-field"><label for="mission-gear-world">World</label><select id="mission-gear-world"><option value="neoh">Neoh</option></select></div></div>
+    <div class="admin-field"><label for="mission-gear-icon">Icon URL</label><div class="mission-portrait-field"><img id="mission-gear-icon-preview" alt="" hidden><input type="text" id="mission-gear-icon" maxlength="255" placeholder="images/gear-visor.jpg"><input type="file" id="mission-gear-icon-file" accept="image/jpeg,image/png,image/webp" hidden><button type="button" class="btn" id="mission-gear-icon-upload">Upload image</button><button type="button" class="btn" id="mission-gear-icon-browse">Choose image</button><button type="button" class="btn" id="mission-gear-icon-clear">Clear</button></div><p class="admin-field-hint">Optional. Left empty, the player's loadout draws the built-in line glyph for this slot, so an item never looks unfinished.</p></div>
+    <div class="admin-field-row"><label class="admin-setting-toggle"><span><strong>Enabled</strong><small>Disabled items stop dropping but stay in the inventories of players who already hold them.</small></span><input type="checkbox" id="mission-gear-enabled" checked></label></div>
+    <p class="admin-field-hint" id="mission-gear-usage"></p>
+    <p class="admin-modal-error" id="mission-gear-modal-error"></p><p class="admin-modal-status" id="mission-gear-modal-status"></p>
+    <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="mission-gear-save-btn">Save Equipment</button><button type="button" class="btn" id="mission-gear-cancel-btn">Cancel</button><button type="button" class="admin-delete-btn" id="mission-gear-delete-btn" hidden>Delete Equipment</button></div>
+  </div>
+</div>
+
 <div class="admin-modal" id="loot-table-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner admin-modal-inner-wide">
@@ -4337,7 +4372,7 @@
 </div>
 
 <script src="../js/members.js?v=40"></script>
-<script src="../js/admin-missions.js?v=7"></script><script src="../js/admin-loot-tables.js?v=1"></script>
+<script src="../js/admin-missions.js?v=8"></script><script src="../js/admin-loot-tables.js?v=1"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -6901,9 +6936,20 @@
     sessions_revoked_others: 'Other sessions revoked',
     member_sessions_revoked: "Member's sessions revoked",
     member_two_factor_reset: 'Two-factor reset',
+    mission_definition_created: 'Mission created',
+    mission_definition_updated: 'Mission updated',
+    mission_definition_deleted: 'Mission deleted',
+    mission_crew_created: 'Crew template created',
+    mission_crew_updated: 'Crew template updated',
+    mission_crew_deleted: 'Crew template deleted',
+    mission_gear_created: 'Equipment created',
+    mission_gear_updated: 'Equipment updated',
+    mission_gear_deleted: 'Equipment deleted',
+    loot_table_deleted: 'Loot table deleted',
     webhook_repository_rejected: 'Webhook rejected (wrong repository)'
   };
   var ACTIVITY_ICONS = {
+    mission_gear_created: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><path d="M12 3.5 19 7v5.6c0 4-2.9 6.9-7 7.9-4.1-1-7-3.9-7-7.9V7z"/><path d="m9.4 12 1.9 1.9 3.3-3.6"/></svg>',
     login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
     login_ok: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><rect x="3" y="11" width="18" height="10" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
     login_failed: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><line x1="8.5" y1="8.5" x2="15.5" y2="15.5"/><line x1="15.5" y1="8.5" x2="8.5" y2="15.5"/></svg>',
@@ -7047,6 +7093,10 @@
     if (action.indexOf('soundtrack_') === 0) return { key: 'worlds', label: 'Soundtracks', icon: ACTIVITY_ICONS.soundtrack_created };
     if (action.indexOf('session') === 0 || action === 'member_sessions_revoked' || action === 'member_two_factor_reset') return { key: 'members', label: 'Sessions', icon: ACTIVITY_ICONS.session_created };
     if (action === 'webhook_repository_rejected') return { key: 'system', label: 'Webhook Security', icon: ACTIVITY_ICONS.webhook_repository_rejected };
+    /* Mission Control and Loot Tables previously fell through to the generic
+     * System pill with the backup icon. Grouped under the same green pill as the
+     * other content-authoring sections, since that is what these are. */
+    if (action.indexOf('mission_') === 0 || action.indexOf('loot_table_') === 0) return { key: 'books', label: 'Game Control', icon: ACTIVITY_ICONS.mission_gear_created };
     return { key: 'system', label: 'System', icon: ACTIVITY_ICONS.backup_logged };
   }
 

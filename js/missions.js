@@ -1,7 +1,8 @@
 (function () {
   'use strict';
 
-  var state = { data: null, serverOffset: 0, launchMission: null, launchProjection: null, launchPenaltyAck: false, refreshQueued: false, feedSlot: null };
+  var state = { data: null, serverOffset: 0, launchMission: null, launchProjection: null, launchPenaltyAck: false,
+    loadoutCrewId: null, loadoutSlot: null, refreshQueued: false, feedSlot: null };
   var gate = document.getElementById('missions-gate');
   var content = document.getElementById('missions-content');
   var statusMessage = document.getElementById('missions-status-message');
@@ -27,6 +28,22 @@
   var launchRecommend = document.getElementById('mission-launch-recommend');
   var launchProjection = document.getElementById('mission-launch-projection');
   var weatherCard = document.getElementById('mission-weather-card');
+  var loadoutModal = document.getElementById('mission-loadout-modal');
+  var loadoutTitle = document.getElementById('mission-loadout-title');
+  var loadoutCopy = document.getElementById('mission-loadout-copy');
+  var loadoutSlots = document.getElementById('mission-loadout-slots');
+  var loadoutOptions = document.getElementById('mission-loadout-options');
+  var loadoutPickerHead = document.getElementById('mission-loadout-picker-head');
+  var loadoutDeltaBox = document.getElementById('mission-loadout-delta');
+  var loadoutError = document.getElementById('mission-loadout-error');
+  var inventorySection = document.getElementById('missions-inventory-section');
+  var inventoryList = document.getElementById('missions-inventory-list');
+  var inventoryCount = document.getElementById('missions-inventory-count');
+  var inventorySummary = document.getElementById('missions-inventory-summary');
+  var inventoryTypeFilter = document.getElementById('missions-inventory-type-filter');
+  var inventorySlotFilter = document.getElementById('missions-inventory-slot-filter');
+  var inventoryTierFilter = document.getElementById('missions-inventory-tier-filter');
+  var inventoryStateFilter = document.getElementById('missions-inventory-state-filter');
   var profileCard = document.getElementById('mission-profile-card');
   var dailyCard = document.getElementById('mission-daily-card');
   var resultModal = document.getElementById('mission-result-modal');
@@ -408,15 +425,22 @@
     var cells = ['strength', 'cunning', 'science', 'charisma'].map(function (key) {
       var info = STAT_INFO[key];
       var value = Math.max(0, Number(crew[key]) || 0);
+      /* The server sends the total the crew member actually fights with, gear
+       * included, and gear_bonus carries how much of it is equipment -- so the
+       * cell can name the source of a figure that would otherwise appear from
+       * nowhere. The bar still measures against the levelling ceiling, which a
+       * gear-boosted stat legitimately fills. */
+      var gearPart = crew.gear_bonus ? Number(crew.gear_bonus[key]) || 0 : 0;
       var pct = Math.min(100, Math.round((value / maxStat) * 100));
       var capped = value >= maxStat;
       /* The effect sentence lives only in the tooltip. Printed in every cell it
        * cost four lines per card to say "+0%" three times, since a crew member
        * only ever has two stats above zero. */
-      var tip = info.label + ' ' + value + ' / ' + maxStat + (capped ? ' (max)' : '') + ' — ' + info.effect(value) + '. ' + info.copy;
-      return '<div class="crew-stat' + (capped ? ' is-max' : '') + ' is-' + key + '" tabindex="0" title="' + escapeHtml(tip) + '">'
+      var tip = info.label + ' ' + value + ' / ' + maxStat + (capped ? ' (max)' : '') + ' — ' + info.effect(value) + '. ' + info.copy
+        + (gearPart !== 0 ? ' Equipment accounts for ' + (gearPart > 0 ? '+' : '') + gearPart + ' of this.' : '');
+      return '<div class="crew-stat' + (capped ? ' is-max' : '') + (gearPart !== 0 ? ' has-gear' : '') + ' is-' + key + '" tabindex="0" title="' + escapeHtml(tip) + '">'
         + '<span class="crew-stat-key">' + info.short + '</span>'
-        + '<span class="crew-stat-value">' + value + '</span>'
+        + '<span class="crew-stat-value">' + value + (gearPart !== 0 ? '<i>' + (gearPart > 0 ? '+' : '') + gearPart + '</i>' : '') + '</span>'
         + '<span class="crew-stat-bar"><i style="width:' + pct + '%"></i></span></div>';
     }).join('');
 
@@ -465,7 +489,7 @@
         + '<span class="mission-crew-portrait-wrap">' + portraitMarkup + statusDot + '</span>'
         + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3>' + missionCopy + '<p>' + escapeHtml(crew.description) + '</p>'
         + '<div class="crew-progression ' + profile.className + (atMaxLevel ? ' is-max-level' : '') + '"><div class="crew-rank-insignia" aria-label="' + escapeHtml(crew.role) + ' level ' + crew.level + '"><span>' + profile.code + '</span><small>L' + crew.level + '</small></div><div class="crew-progression-copy"><div><span>' + profile.rankLabel + '</span><strong>' + rankValue + '</strong></div><div class="crew-xp-track"><span style="width:' + progress + '%"></span></div></div></div>'
-        + crewStatCard(crew) + '</div></article>';
+        + crewStatCard(crew) + crewLoadoutStrip(crew) + '</div></article>';
     }).join('');
   }
 
@@ -522,7 +546,7 @@
     state.data = data;
     var server = apiDate(data.server_time);
     state.serverOffset = server && !isNaN(server) ? server.getTime() - Date.now() : 0;
-    applyWatermark(data.watermark); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderHistory(data); tickCountdowns();
+    applyWatermark(data.watermark); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderInventory(data); renderHistory(data); tickCountdowns();
   }
 
   /* Debrief shown after a claim. The server has already resolved everything by
@@ -673,9 +697,11 @@
   }
 
   function load() {
-    if (!window.PW_AUTH || !window.PW_AUTH.loggedIn) { gate.hidden = false; content.hidden = true; return; }
+    if (!window.PW_AUTH || !window.PW_AUTH.loggedIn) { gate.hidden = false; content.hidden = true; return Promise.resolve(); }
     gate.hidden = true; content.hidden = false; setStatus('');
-    fetch('/api/missions/overview.php', { credentials: 'same-origin' }).then(function (response) { return response.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'Mission command is unavailable.'); render(data); }).catch(function (error) { activeList.innerHTML = '<p class="missions-empty">' + escapeHtml(error.message || 'Mission command is unavailable.') + '</p>'; });
+    /* Returns its promise: a loadout change has to wait for the reloaded stat
+     * totals before it redraws, since the server owns those figures. */
+    return fetch('/api/missions/overview.php', { credentials: 'same-origin' }).then(function (response) { return response.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'Mission command is unavailable.'); render(data); }).catch(function (error) { activeList.innerHTML = '<p class="missions-empty">' + escapeHtml(error.message || 'Mission command is unavailable.') + '</p>'; });
   }
 
   /* ----------------------------------------------------------------------
@@ -1070,5 +1096,359 @@
   [crewRoleFilter, crewLevelFilter, crewWorldFilter, crewStatusFilter, crewSort].forEach(function (control) {
     control.addEventListener('change', function () { if (state.data) renderCrew(state.data); });
   });
+  /* ----------------------------------------------------------------------
+   * Gear.
+   *
+   * Equipment is loot that carries a slot, and its bonuses are the same four
+   * stats levelling already grants -- so nothing here computes an effect. The
+   * server folds equipped bonuses into each crew member's stats before it
+   * calculates anything, which is why a loadout change shows up in the launch
+   * projection and the payout without either of them knowing gear exists.
+   * -------------------------------------------------------------------- */
+
+  /* One line glyph per slot, drawn the same way the weather icons are. An
+   * administrator may upload real artwork per item; without it these keep every
+   * slot legible rather than leaving a bare square. */
+  var GEAR_SLOT_ICONS = {
+    head: '<path d="M32 10c11 0 18 7.5 18 18v10c0 8-8 14-18 14s-18-6-18-14V28c0-10.5 7-18 18-18z"/><path d="M22 34h9"/><circle cx="41" cy="34" r="4"/>',
+    chest: '<path d="M22 14 32 19l10-5 12 6-4 11-4-1v20H26V30l-4 1-4-11z"/>',
+    main_hand: '<path d="M16 44 40 20l6 6L22 50z"/><path d="m38 18 8 8"/><path d="M14 42v8h8"/>',
+    off_hand: '<path d="M32 12l18 6v14c0 11-7.5 17.5-18 21-10.5-3.5-18-10-18-21V18z"/><path d="M32 22v20"/>',
+    legs: '<path d="M22 12h20v14l-3 26h-8l-1-20-1 20h-8l-2-26z"/>',
+    feet: '<path d="M20 16h10v18l16 8v8H20z"/><path d="M20 40h16"/>',
+    utility: '<rect x="22" y="14" width="20" height="36" rx="3"/><path d="M28 10h8v4h-8z"/><path d="M28 24h8"/>'
+  };
+
+  function gearIconHtml(slotKey, iconUrl) {
+    if (iconUrl) return '<img src="' + escapeHtml(iconUrl) + '" alt="">';
+    var path = GEAR_SLOT_ICONS[slotKey] || GEAR_SLOT_ICONS.utility;
+    return '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + path + '</svg>';
+  }
+
+  function gearSlots() {
+    return (state.data && state.data.gear_slots) || [];
+  }
+  function gearReady() {
+    return !!(state.data && state.data.gear_ready && gearSlots().length);
+  }
+  function slotLabel(key) {
+    var match = gearSlots().filter(function (slot) { return slot.key === key; })[0];
+    return match ? match.label : key;
+  }
+
+  /* "+2 STR · +1 CUN". Empty when an item grants nothing, so a cosmetic piece
+   * reads as having no effect rather than as a row of zeroes. */
+  function gearBonusText(bonus) {
+    if (!bonus) return '';
+    return ['strength', 'cunning', 'science', 'charisma'].map(function (key) {
+      var value = Number(bonus[key]) || 0;
+      return value === 0 ? '' : (value > 0 ? '+' : '') + value + ' ' + STAT_INFO[key].short;
+    }).filter(Boolean).join(' · ');
+  }
+
+  function gearTooltip(item) {
+    var parts = [item.name, item.tier.charAt(0).toUpperCase() + item.tier.slice(1) + ' · ' + item.slot_label];
+    var bonus = gearBonusText(item.bonus);
+    parts.push(bonus ? 'While equipped: ' + bonus : 'No stat bonus');
+    if (item.description) parts.push(item.description);
+    return parts.join('\n');
+  }
+
+  /* The read-only strip on a crew card. Seven squares, filled or dashed, each
+   * its own hover/focus target -- the tooltip is the whole point of the strip,
+   * so every square is reachable by keyboard as well as pointer. */
+  function crewLoadoutStrip(crew) {
+    if (!gearReady()) return '';
+    var equipped = crew.gear || {};
+    var filled = 0;
+    var squares = gearSlots().map(function (slot) {
+      var item = equipped[slot.key];
+      if (item) filled++;
+      var label = item ? gearTooltip(item) : 'Empty — ' + slot.label;
+      return '<span class="mission-gear-slot' + (item ? ' is-filled is-' + escapeHtml(item.tier) : ' is-empty') + '"'
+        + ' tabindex="0" role="img" title="' + escapeHtml(label) + '" aria-label="' + escapeHtml(label.split('\n').join('. ')) + '">'
+        + gearIconHtml(slot.key, item ? item.icon_url : '') + '</span>';
+    }).join('');
+    var deployed = crewAvailability(crew) !== 'available';
+    return '<div class="mission-crew-loadout">'
+      + '<span class="mission-crew-loadout-label">Loadout</span>'
+      + '<span class="mission-gear-slots">' + squares + '</span>'
+      + '<span class="mission-crew-loadout-count">' + filled + ' / ' + gearSlots().length + '</span>'
+      + '<button type="button" class="btn mission-loadout-btn" data-crew-id="' + crew.id + '"' + (deployed ? ' disabled' : '')
+      + ' title="' + escapeHtml(deployed ? 'A crew member in the field cannot change equipment.' : 'Assign equipment to ' + crew.name) + '">'
+      + (deployed ? 'In field' : 'Loadout') + '</button></div>';
+  }
+
+  /* ---- Loadout modal --------------------------------------------------- */
+
+  function loadoutCrew() {
+    if (!state.loadoutCrewId) return null;
+    return (state.data && state.data.crew || []).filter(function (member) {
+      return Number(member.id) === Number(state.loadoutCrewId);
+    })[0] || null;
+  }
+
+  /* Items that fit the selected slot, with the reason any of them cannot be
+   * used by this crew member. Requirements are re-checked on the server at
+   * equip time -- this only explains, it never decides. */
+  function loadoutCandidates(crew, slotKey) {
+    return (state.data && state.data.loot || []).filter(function (item) {
+      return item.slot === slotKey;
+    }).map(function (item) {
+      var equippedHere = crew.gear && crew.gear[slotKey] && crew.gear[slotKey].loot_definition_id === item.id;
+      var spare = Number(item.quantity) - Number(item.equipped_count);
+      var reason = '';
+      if (Number(crew.level) < Number(item.required_level)) reason = 'Needs level ' + item.required_level;
+      else if (item.required_role && item.required_role !== crew.role) reason = item.required_role + ' only';
+      else if (!equippedHere && spare < 1) reason = 'Every copy is in use';
+      return { item: item, equipped: !!equippedHere, spare: spare, reason: reason };
+    });
+  }
+
+  function renderLoadoutSlots(crew) {
+    var equipped = crew.gear || {};
+    loadoutSlots.innerHTML = gearSlots().map(function (slot) {
+      var item = equipped[slot.key];
+      var active = slot.key === state.loadoutSlot;
+      var label = item ? gearTooltip(item) : 'Empty — ' + slot.label;
+      return '<button type="button" class="mission-loadout-slot' + (item ? ' is-filled is-' + escapeHtml(item.tier) : '')
+        + (active ? ' is-active' : '') + '" data-slot="' + escapeHtml(slot.key) + '"'
+        + ' title="' + escapeHtml(label) + '" aria-pressed="' + (active ? 'true' : 'false') + '">'
+        + gearIconHtml(slot.key, item ? item.icon_url : '')
+        + '<span class="mission-loadout-slot-name">' + escapeHtml(slot.label) + '</span>'
+        + '<small>' + escapeHtml(item ? item.name : 'Empty') + '</small></button>';
+    }).join('');
+  }
+
+  /* What equipping a candidate would do to the four stats, computed from the
+   * item being swapped out as well as the one going in -- a straight "+2 SCI"
+   * would be a lie whenever the slot already holds something. */
+  function loadoutDelta(crew, candidate) {
+    var current = crew.gear && crew.gear[state.loadoutSlot] ? crew.gear[state.loadoutSlot].bonus : null;
+    var rows = ['strength', 'cunning', 'science', 'charisma'].map(function (key) {
+      var now = Math.max(0, Number(crew[key]) || 0);
+      var next = now - (current ? Number(current[key]) || 0 : 0) + (candidate ? Number(candidate.bonus[key]) || 0 : 0);
+      next = Math.max(0, Math.min(Number(state.data.max_gear_stat) || 80, next));
+      if (next === now) return '';
+      return '<span class="mission-loadout-delta-cell' + (next > now ? ' is-better' : ' is-worse') + '">'
+        + STAT_INFO[key].short + ' <s>' + now + '</s> <strong>' + next + '</strong></span>';
+    }).filter(Boolean);
+    return rows.length ? rows.join('') : '<span class="mission-loadout-delta-cell">No change to this crew member’s stats</span>';
+  }
+
+  function renderLoadoutOptions(crew) {
+    var slotKey = state.loadoutSlot;
+    loadoutPickerHead.textContent = 'Inventory · ' + slotLabel(slotKey).toLowerCase();
+    var candidates = loadoutCandidates(crew, slotKey);
+    var current = crew.gear && crew.gear[slotKey] ? crew.gear[slotKey] : null;
+    var rows = candidates.map(function (entry) {
+      var bonus = gearBonusText(entry.item.bonus);
+      var meta = [entry.item.tier.charAt(0).toUpperCase() + entry.item.tier.slice(1)];
+      if (bonus) meta.push(bonus);
+      if (entry.equipped) meta.push('equipped');
+      else if (entry.item.quantity > 1) meta.push(entry.spare + ' spare of ' + entry.item.quantity);
+      return '<button type="button" class="mission-loadout-option' + (entry.equipped ? ' is-equipped' : '')
+        + (entry.reason && !entry.equipped ? ' is-blocked' : '') + ' is-' + escapeHtml(entry.item.tier) + '"'
+        + ' data-item-id="' + entry.item.id + '"' + (entry.reason && !entry.equipped ? ' disabled' : '')
+        + ' title="' + escapeHtml(gearTooltip(entry.item)) + '">'
+        + '<span class="mission-loadout-option-icon">' + gearIconHtml(slotKey, entry.item.icon_url) + '</span>'
+        + '<span class="mission-loadout-option-copy"><strong>' + escapeHtml(entry.item.name) + '</strong>'
+        + '<small>' + escapeHtml(meta.join(' · ')) + (entry.reason && !entry.equipped ? ' · ' + escapeHtml(entry.reason) : '') + '</small></span></button>';
+    }).join('');
+    loadoutOptions.innerHTML = (current
+      ? '<button type="button" class="mission-loadout-option is-remove" data-item-id="0">'
+        + '<span class="mission-loadout-option-copy"><strong>Remove ' + escapeHtml(current.name) + '</strong>'
+        + '<small>Leave this slot empty. The item stays in your inventory.</small></span></button>'
+      : '')
+      + (rows || '<p class="missions-empty">Nothing in your inventory fits this slot yet.</p>');
+    loadoutDeltaBox.innerHTML = '';
+  }
+
+  function renderLoadout() {
+    var crew = loadoutCrew();
+    if (!crew || !loadoutModal) return;
+    loadoutTitle.textContent = crew.name;
+    var bonus = gearBonusText(crew.gear_bonus);
+    loadoutCopy.textContent = crew.role + ' · Level ' + crew.level
+      + (bonus ? ' · equipment is worth ' + bonus : ' · carrying nothing yet');
+    renderLoadoutSlots(crew);
+    renderLoadoutOptions(crew);
+  }
+
+  function openLoadout(crewId) {
+    if (!gearReady()) return;
+    var crew = (state.data && state.data.crew || []).filter(function (member) { return Number(member.id) === Number(crewId); })[0];
+    if (!crew || crewAvailability(crew) !== 'available') return;
+    state.loadoutCrewId = Number(crewId);
+    state.loadoutSlot = gearSlots()[0].key;
+    loadoutError.textContent = '';
+    renderLoadout();
+    if (typeof loadoutModal.showModal === 'function') loadoutModal.showModal(); else loadoutModal.setAttribute('open', '');
+  }
+
+  function closeLoadout() {
+    if (!loadoutModal) return;
+    if (loadoutModal.open && typeof loadoutModal.close === 'function') loadoutModal.close(); else loadoutModal.removeAttribute('open');
+    state.loadoutCrewId = null;
+  }
+
+  function submitLoadout(itemId) {
+    var crew = loadoutCrew();
+    if (!crew) return;
+    var slot = state.loadoutSlot;
+    loadoutError.textContent = '';
+    var url = itemId ? '/api/missions/gear-equip.php' : '/api/missions/gear-unequip.php';
+    var payload = itemId
+      ? { crew_id: crew.id, loot_definition_id: itemId, csrf: window.PW_AUTH.csrf }
+      : { crew_id: crew.id, slot: slot, csrf: window.PW_AUTH.csrf };
+    loadoutOptions.querySelectorAll('button').forEach(function (button) { button.disabled = true; });
+    post(url, payload).then(function () {
+      /* Reloaded rather than patched locally: the server owns the stat totals,
+       * and every figure on the page -- the card's own bonus line, the roster
+       * headline, the next launch projection -- is derived from them. */
+      return load();
+    }).then(function () {
+      renderLoadout();
+      setStatus('Loadout updated.');
+    }).catch(function (error) {
+      loadoutError.textContent = error.message;
+      renderLoadoutOptions(crew);
+    });
+  }
+
+  if (loadoutSlots) {
+    loadoutSlots.addEventListener('click', function (event) {
+      var button = event.target.closest('.mission-loadout-slot');
+      if (!button) return;
+      state.loadoutSlot = button.getAttribute('data-slot');
+      renderLoadout();
+    });
+  }
+  if (loadoutOptions) {
+    loadoutOptions.addEventListener('click', function (event) {
+      var button = event.target.closest('.mission-loadout-option');
+      if (!button || button.disabled) return;
+      submitLoadout(Number(button.getAttribute('data-item-id')));
+    });
+    /* Hovering a candidate previews the swap. Focus counts too: a keyboard user
+     * gets the same preview, which :hover alone would never give them. */
+    ['mouseover', 'focusin'].forEach(function (type) {
+      loadoutOptions.addEventListener(type, function (event) {
+        var button = event.target.closest('.mission-loadout-option');
+        var crew = loadoutCrew();
+        if (!button || !crew) return;
+        var id = Number(button.getAttribute('data-item-id'));
+        var item = id ? (state.data.loot || []).filter(function (entry) { return entry.id === id; })[0] : null;
+        loadoutDeltaBox.innerHTML = '<span class="mission-loadout-delta-label">'
+          + escapeHtml(id ? 'If equipped' : 'If removed') + '</span>' + loadoutDelta(crew, item);
+      });
+    });
+    loadoutOptions.addEventListener('mouseleave', function () { loadoutDeltaBox.innerHTML = ''; });
+  }
+  if (loadoutModal) {
+    document.getElementById('mission-loadout-close').addEventListener('click', closeLoadout);
+    document.getElementById('mission-loadout-done').addEventListener('click', closeLoadout);
+    loadoutModal.addEventListener('click', function (event) { if (event.target === loadoutModal) closeLoadout(); });
+  }
+  if (crewList) {
+    crewList.addEventListener('click', function (event) {
+      var button = event.target.closest('.mission-loadout-btn');
+      if (button && !button.disabled) openLoadout(button.getAttribute('data-crew-id'));
+    });
+  }
+
+  /* ---- Inventory ------------------------------------------------------- */
+
+  function inventoryFilters() {
+    return {
+      type: inventoryTypeFilter ? inventoryTypeFilter.value : 'all',
+      slot: inventorySlotFilter ? inventorySlotFilter.value : 'all',
+      tier: inventoryTierFilter ? inventoryTierFilter.value : 'all',
+      state: inventoryStateFilter ? inventoryStateFilter.value : 'all'
+    };
+  }
+
+  function populateInventoryFilters(loot) {
+    if (!inventorySlotFilter || !inventoryTierFilter) return;
+    var slots = gearSlots();
+    var currentSlot = inventorySlotFilter.value || 'all';
+    inventorySlotFilter.innerHTML = '<option value="all">All slots</option>';
+    slots.forEach(function (slot) {
+      var option = document.createElement('option');
+      option.value = slot.key; option.textContent = slot.label;
+      inventorySlotFilter.appendChild(option);
+    });
+    inventorySlotFilter.value = slots.filter(function (slot) { return slot.key === currentSlot; }).length ? currentSlot : 'all';
+
+    var tiers = [];
+    loot.forEach(function (item) { if (tiers.indexOf(item.tier) === -1) tiers.push(item.tier); });
+    var currentTier = inventoryTierFilter.value || 'all';
+    inventoryTierFilter.innerHTML = '<option value="all">All rarities</option>';
+    tiers.forEach(function (tier) {
+      var option = document.createElement('option');
+      option.value = tier; option.textContent = tier.charAt(0).toUpperCase() + tier.slice(1);
+      inventoryTierFilter.appendChild(option);
+    });
+    inventoryTierFilter.value = tiers.indexOf(currentTier) !== -1 ? currentTier : 'all';
+  }
+
+  function renderInventory(data) {
+    if (!inventorySection || !inventoryList) return;
+    var loot = data.loot || [];
+    /* Hidden entirely while the player owns nothing: an empty quartermaster
+     * panel says less than no panel at all, and loot only arrives from a
+     * successful operation. */
+    if (!loot.length) { inventorySection.hidden = true; return; }
+    inventorySection.hidden = false;
+    populateInventoryFilters(loot);
+    var filters = inventoryFilters();
+    var visible = loot.filter(function (item) {
+      var isGear = item.slot !== '';
+      if (filters.type === 'gear' && !isGear) return false;
+      if (filters.type === 'salvage' && isGear) return false;
+      if (filters.slot !== 'all' && item.slot !== filters.slot) return false;
+      if (filters.tier !== 'all' && item.tier !== filters.tier) return false;
+      var spare = Number(item.quantity) - Number(item.equipped_count);
+      if (filters.state === 'equipped' && Number(item.equipped_count) < 1) return false;
+      if (filters.state === 'spare' && spare < 1) return false;
+      return true;
+    });
+    var totalItems = loot.reduce(function (sum, item) { return sum + Number(item.quantity); }, 0);
+    inventoryCount.textContent = totalItems + (totalItems === 1 ? ' item' : ' items');
+    inventorySummary.textContent = visible.length === loot.length
+      ? 'Showing everything you hold.'
+      : 'Showing ' + visible.length + ' of ' + loot.length + ' entries.';
+    if (!visible.length) { inventoryList.innerHTML = '<p class="missions-empty">Nothing matches these filters.</p>'; return; }
+    inventoryList.innerHTML = visible.map(function (item) {
+      var isGear = item.slot !== '';
+      var bonus = gearBonusText(item.bonus);
+      var spare = Number(item.quantity) - Number(item.equipped_count);
+      var requires = [];
+      if (Number(item.required_level) > 1) requires.push('Level ' + item.required_level);
+      if (item.required_role) requires.push(item.required_role + ' only');
+      return '<article class="mission-inventory-card is-' + escapeHtml(item.tier) + (isGear ? ' is-gear' : ' is-salvage') + '">'
+        + '<span class="mission-inventory-icon">' + gearIconHtml(item.slot, item.icon_url) + '</span>'
+        + '<div class="mission-inventory-copy"><h3>' + escapeHtml(item.name) + '</h3>'
+        + '<p class="mission-inventory-meta"><span class="mission-inventory-tier">' + escapeHtml(item.tier) + '</span>'
+        + (isGear ? ' · ' + escapeHtml(slotLabel(item.slot)) : ' · Salvage')
+        + ' · x' + item.quantity + '</p>'
+        + (bonus ? '<p class="mission-inventory-bonus">' + escapeHtml(bonus) + '</p>' : '')
+        + (item.description ? '<p class="mission-inventory-desc">' + escapeHtml(item.description) + '</p>' : '')
+        + (requires.length ? '<p class="mission-inventory-requires">' + escapeHtml(requires.join(' · ')) + '</p>' : '')
+        + (isGear
+          ? '<p class="mission-inventory-state' + (item.equipped_count > 0 ? ' is-active' : '') + '">'
+            + escapeHtml(item.equipped_count > 0
+              ? item.equipped_count + ' in use' + (spare > 0 ? ', ' + spare + ' spare' : '')
+              : 'Not assigned to anyone')
+            + '</p>'
+          : '<p class="mission-inventory-state">Kept in storage</p>')
+        + '</div></article>';
+    }).join('');
+  }
+
+  [inventoryTypeFilter, inventorySlotFilter, inventoryTierFilter, inventoryStateFilter].forEach(function (control) {
+    if (control) control.addEventListener('change', function () { if (state.data) renderInventory(state.data); });
+  });
+
   document.addEventListener('pw-auth-ready', load); window.setInterval(tickCountdowns, 1000); window.setInterval(tickCommandFeed, 1000); load();
 }());

@@ -3,17 +3,22 @@
 
   var definitions = [];
   var crew = [];
+  var gear = [];
+  var gearMeta = null;
   var playerMissions = [];
   var activePanel = 'definitions';
   var currentDefinition = null;
   var currentCrew = null;
+  var currentGear = null;
 
   var definitionList = document.getElementById('mission-definition-list');
   var crewList = document.getElementById('mission-crew-list');
+  var gearList = document.getElementById('mission-gear-list');
   var playerMissionList = document.getElementById('mission-player-missions-list');
   var count = document.getElementById('mission-admin-count');
   var definitionModal = document.getElementById('mission-definition-modal');
   var crewModal = document.getElementById('mission-crew-modal');
+  var gearModal = document.getElementById('mission-gear-modal');
   var imageModal = document.getElementById('mission-crew-image-modal');
 
   function can(permission) {
@@ -74,8 +79,14 @@
     // Presentation is a settings form, not a list, so there is nothing to
     // count -- printing "0 player missions" beside it would be wrong.
     if (activePanel === 'presentation') { count.textContent = ''; return; }
-    var total = activePanel === 'definitions' ? definitions.length : activePanel === 'crew' ? crew.length : playerMissions.length;
-    count.textContent = total + (activePanel === 'definitions' ? ' mission' : activePanel === 'crew' ? ' crew member' : ' player mission') + (total === 1 ? '' : 's');
+    var counts = {
+      definitions: [definitions.length, ' mission'],
+      crew: [crew.length, ' crew member'],
+      gear: [gear.length, ' item'],
+      'player-missions': [playerMissions.length, ' player mission']
+    };
+    var entry = counts[activePanel] || counts.definitions;
+    count.textContent = entry[0] + entry[1] + (entry[0] === 1 ? '' : 's');
   }
 
   function renderDefinitions() {
@@ -154,7 +165,7 @@
 
   function switchPanel(panel) {
     activePanel = panel;
-    ['definitions', 'crew', 'player-missions', 'presentation'].forEach(function (name) {
+    ['definitions', 'crew', 'gear', 'player-missions', 'presentation'].forEach(function (name) {
       var isActive = name === panel;
       var view = document.getElementById('mission-admin-' + name + '-panel');
       if (view) view.hidden = !isActive;
@@ -163,6 +174,7 @@
     });
     document.getElementById('mission-definition-create-btn').hidden = panel !== 'definitions' || !can('missions.edit');
     document.getElementById('mission-crew-create-btn').hidden = panel !== 'crew' || !can('missions.edit');
+    document.getElementById('mission-gear-create-btn').hidden = panel !== 'gear' || !can('missions.edit');
     refreshCount();
   }
 
@@ -174,6 +186,19 @@
     return request('/api/admin/missions/crew-list.php').then(function (data) { crew = data.crew || []; renderCrew(); refreshCount(); }).catch(function (error) { blank(crewList, error.message || 'Could not load crew definitions.'); });
   }
 
+  /* Gear is loot with a slot, so this list is every loot definition -- the Gear
+   * tab is the only management surface game_loot_definitions has ever had, and
+   * hiding the slotless items would leave the existing salvage unreachable. */
+  function loadGear() {
+    return request('/api/admin/missions/gear-list.php').then(function (data) {
+      gear = data.gear || [];
+      gearMeta = data;
+      populateGearOptions();
+      renderGear();
+      refreshCount();
+    }).catch(function (error) { blank(gearList, error.message || 'Could not load equipment. Run sql/migration_mission_gear.sql first.'); });
+  }
+
   function loadPlayerMissions() {
     if (!can('missions.player_missions')) { renderPlayerMissions(); return Promise.resolve(); }
     return request('/api/admin/missions/player-missions-list.php').then(function (data) { playerMissions = data.missions || []; renderPlayerMissions(); refreshCount(); }).catch(function (error) { blank(playerMissionList, error.message || 'Could not load player mission diagnostics.'); });
@@ -182,7 +207,7 @@
   window.loadMissionControl = function () {
     switchPanel(activePanel);
     applyPresentationPermissions();
-    return Promise.all([loadDefinitions(), loadCrew(), loadPlayerMissions(), loadWatermark()]);
+    return Promise.all([loadDefinitions(), loadCrew(), loadGear(), loadPlayerMissions(), loadWatermark()]);
   };
 
   /* A view-only session may inspect the watermark settings but not change them.
@@ -591,5 +616,232 @@
       document.getElementById('mission-watermark-status').textContent = 'Presentation saved.';
     }).catch(function (error) { showModalError('mission-watermark-error', error.message); })
       .then(function () { button.disabled = !can('missions.edit'); button.classList.remove('is-busy'); });
+  });
+  /* --- Gear ------------------------------------------------------------- */
+
+  var GEAR_STATS = [
+    { key: 'strength', short: 'STR' },
+    { key: 'cunning', short: 'CUN' },
+    { key: 'science', short: 'SCI' },
+    { key: 'charisma', short: 'CHA' }
+  ];
+
+  function gearBonusSummary(item) {
+    return GEAR_STATS.map(function (stat) {
+      var value = Number(item['bonus_' + stat.key]) || 0;
+      return value === 0 ? '' : (value > 0 ? '+' : '') + value + ' ' + stat.short;
+    }).filter(Boolean).join(' · ');
+  }
+
+  function populateGearOptions() {
+    if (!gearMeta) return;
+    var slotSelect = document.getElementById('mission-gear-slot');
+    var currentSlot = slotSelect.value;
+    slotSelect.innerHTML = '<option value="">No slot — salvage only</option>';
+    (gearMeta.slots || []).forEach(function (slot) {
+      var option = document.createElement('option');
+      option.value = slot.key; option.textContent = slot.label;
+      slotSelect.appendChild(option);
+    });
+    slotSelect.value = currentSlot;
+
+    var tierSelect = document.getElementById('mission-gear-tier');
+    var currentTier = tierSelect.value;
+    tierSelect.innerHTML = '';
+    (gearMeta.tiers || []).forEach(function (tier) {
+      var option = document.createElement('option');
+      option.value = tier; option.textContent = tier.charAt(0).toUpperCase() + tier.slice(1);
+      tierSelect.appendChild(option);
+    });
+    tierSelect.value = currentTier || 'common';
+
+    var roleSelect = document.getElementById('mission-gear-required-role');
+    var currentRole = roleSelect.value;
+    roleSelect.innerHTML = '<option value="">Any role</option>';
+    (gearMeta.roles || []).forEach(function (role) {
+      var option = document.createElement('option');
+      option.value = role; option.textContent = role;
+      roleSelect.appendChild(option);
+    });
+    roleSelect.value = currentRole;
+
+    document.getElementById('mission-gear-cap-natural').textContent = String(gearMeta.max_stat || 50);
+    document.getElementById('mission-gear-cap-total').textContent = String(gearMeta.max_gear_stat || 80);
+  }
+
+  function renderGear() {
+    if (!gearList) return;
+    if (!gear.length) { blank(gearList, 'No equipment or salvage defined yet.'); return; }
+    gearList.innerHTML = '';
+    gear.forEach(function (item) {
+      var row = document.createElement('div');
+      row.className = 'admin-row mission-admin-row mission-admin-gear-columns';
+      row.tabIndex = 0;
+      var bonuses = gearBonusSummary(item);
+      var requires = [];
+      if (Number(item.required_level) > 1) requires.push('Level ' + item.required_level);
+      if (item.required_role) requires.push(item.required_role);
+      /* Held counts what players own; worn counts copies currently equipped.
+       * Both matter before touching an item: the first blocks deletion, and the
+       * second is what a slot change would return to inventory. */
+      var held = item.owned_count + (item.equipped_count ? ' · ' + item.equipped_count + ' worn' : '');
+      row.innerHTML =
+        '<div class="mission-admin-title">' + (item.icon_url ? '<img class="mission-admin-portrait" src="' + escapeHtml(assetUrl(item.icon_url)) + '" alt="">' : '') +
+        '<div><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.slug) + '</small></div></div>' +
+        '<span class="mission-admin-cell-sub">' + escapeHtml(item.slot_label || 'Salvage') + '</span>' +
+        '<span class="mission-gear-tier is-' + escapeHtml(item.tier) + '">' + escapeHtml(item.tier) + '</span>' +
+        '<span class="mission-admin-cell-sub">' + escapeHtml(bonuses || '—') + '</span>' +
+        '<span class="mission-admin-cell-sub">' + escapeHtml(requires.length ? requires.join(' · ') : 'Anyone') + '</span>' +
+        '<span class="mission-admin-cell-sub">' + escapeHtml(String(held)) + '</span>' +
+        statusPill(item.is_enabled, 'Enabled', 'Disabled');
+      row.addEventListener('click', function () { openGear(item); });
+      row.addEventListener('keydown', function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openGear(item); } });
+      gearList.appendChild(row);
+    });
+  }
+
+  function updateGearIconPreview() {
+    var preview = document.getElementById('mission-gear-icon-preview');
+    var value = document.getElementById('mission-gear-icon').value.trim();
+    preview.hidden = !value;
+    if (value) preview.src = assetUrl(value);
+  }
+
+  /* Live feedback on what the item is worth, and on the one combination the
+   * server rejects: bonuses on an item with no slot to be equipped into. */
+  function updateGearBonusSummary() {
+    var slot = document.getElementById('mission-gear-slot').value;
+    var total = 0;
+    var parts = GEAR_STATS.map(function (stat) {
+      var value = Number(document.getElementById('mission-gear-bonus-' + stat.key).value) || 0;
+      total += Math.abs(value);
+      return value === 0 ? '' : (value > 0 ? '+' : '') + value + ' ' + stat.short;
+    }).filter(Boolean);
+    var summary = document.getElementById('mission-gear-bonus-summary');
+    if (slot === '' && total > 0) {
+      summary.textContent = 'An item with no slot can never be equipped, so it cannot carry bonuses. Choose a slot, or clear these values.';
+      summary.classList.add('is-warning');
+      return;
+    }
+    summary.classList.remove('is-warning');
+    summary.textContent = parts.length
+      ? 'While equipped: ' + parts.join(' · ') + '.'
+      : slot === '' ? 'Salvage only — no slot, no bonuses.' : 'No bonuses yet, so this item is cosmetic in its slot.';
+  }
+
+  function gearValues(item) {
+    document.getElementById('mission-gear-name').value = item ? item.name : '';
+    document.getElementById('mission-gear-slug').value = item ? item.slug : '';
+    document.getElementById('mission-gear-description').value = item ? (item.description || '') : '';
+    document.getElementById('mission-gear-slot').value = item ? item.slot : '';
+    document.getElementById('mission-gear-tier').value = item ? item.tier : 'common';
+    document.getElementById('mission-gear-drop-weight').value = item ? item.drop_weight : 100;
+    GEAR_STATS.forEach(function (stat) {
+      document.getElementById('mission-gear-bonus-' + stat.key).value = item ? item['bonus_' + stat.key] : 0;
+    });
+    document.getElementById('mission-gear-required-level').value = item ? item.required_level : 1;
+    document.getElementById('mission-gear-required-role').value = item ? (item.required_role || '') : '';
+    document.getElementById('mission-gear-world').value = item ? item.world_key : 'neoh';
+    document.getElementById('mission-gear-icon').value = item ? (item.icon_url || '') : '';
+    document.getElementById('mission-gear-enabled').checked = item ? item.is_enabled : true;
+    var usage = document.getElementById('mission-gear-usage');
+    usage.textContent = item
+      ? 'Players hold ' + item.owned_count + ' cop' + (item.owned_count === 1 ? 'y' : 'ies') + ' of this item, '
+        + item.equipped_count + ' of them currently equipped.'
+        + (item.owned_count > 0 ? ' A held item cannot be deleted — disable it instead.' : '')
+        + (item.equipped_count > 0 ? ' Changing the slot returns every equipped copy to its owner.' : '')
+      : '';
+    updateGearIconPreview();
+    updateGearBonusSummary();
+  }
+
+  function openGear(item) {
+    /* A view-only session may open an existing item to read it, matching the
+     * Members module's precedent -- only Save and Delete are withheld. Creating
+     * refuses outright, so a stale trigger cannot open an empty editor. */
+    if (!item && !can('missions.edit')) return;
+    currentGear = item || null;
+    populateGearOptions();
+    gearValues(currentGear);
+    document.getElementById('mission-gear-modal-title').textContent = currentGear ? 'Edit Equipment' : 'Add Equipment';
+    document.getElementById('mission-gear-delete-btn').hidden = !currentGear || !can('missions.delete') || currentGear.owned_count > 0;
+    document.getElementById('mission-gear-save-btn').disabled = !can('missions.edit');
+    resetModalMessage('mission-gear-modal');
+    gearModal.hidden = false;
+    setTimeout(function () { document.getElementById('mission-gear-name').focus(); }, 25);
+  }
+
+  function closeGear() { gearModal.hidden = true; currentGear = null; }
+
+  function gearPayload() {
+    var payload = {
+      name: document.getElementById('mission-gear-name').value.trim(),
+      slug: document.getElementById('mission-gear-slug').value.trim(),
+      description: document.getElementById('mission-gear-description').value.trim(),
+      slot: document.getElementById('mission-gear-slot').value,
+      tier: document.getElementById('mission-gear-tier').value,
+      drop_weight: document.getElementById('mission-gear-drop-weight').value,
+      required_level: document.getElementById('mission-gear-required-level').value,
+      required_role: document.getElementById('mission-gear-required-role').value,
+      world_key: document.getElementById('mission-gear-world').value,
+      icon_url: document.getElementById('mission-gear-icon').value.trim(),
+      is_enabled: document.getElementById('mission-gear-enabled').checked
+    };
+    GEAR_STATS.forEach(function (stat) {
+      payload['bonus_' + stat.key] = document.getElementById('mission-gear-bonus-' + stat.key).value;
+    });
+    return payload;
+  }
+
+  document.getElementById('mission-gear-create-btn').addEventListener('click', function () { openGear(null); });
+  document.getElementById('mission-gear-modal-close').addEventListener('click', closeGear);
+  document.getElementById('mission-gear-cancel-btn').addEventListener('click', closeGear);
+  gearModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeGear);
+  document.getElementById('mission-gear-name').addEventListener('input', function () {
+    var slug = document.getElementById('mission-gear-slug');
+    if (!currentGear && !slug.dataset.touched) slug.value = slugify(this.value);
+  });
+  document.getElementById('mission-gear-slug').addEventListener('input', function () { this.dataset.touched = 'true'; });
+  document.getElementById('mission-gear-slot').addEventListener('change', updateGearBonusSummary);
+  GEAR_STATS.forEach(function (stat) {
+    document.getElementById('mission-gear-bonus-' + stat.key).addEventListener('input', updateGearBonusSummary);
+  });
+  document.getElementById('mission-gear-icon-clear').addEventListener('click', function () {
+    if (!can('missions.edit')) return;
+    document.getElementById('mission-gear-icon').value = '';
+    updateGearIconPreview();
+  });
+  wireImageField({
+    input: 'mission-gear-icon', upload: 'mission-gear-icon-upload',
+    browse: 'mission-gear-icon-browse', file: 'mission-gear-icon-file',
+    kind: 'crew', errorTarget: 'mission-gear-modal-error', onChange: updateGearIconPreview,
+    pickerTitle: 'Choose Equipment Icon',
+    pickerSub: 'Select a previously uploaded image or a compatible site image. Left empty, the loadout draws the built-in glyph for this slot.',
+    emptyMessage: 'No compatible images were found. Upload one to start the library.',
+    uploadError: 'Could not upload this icon.'
+  });
+
+  document.getElementById('mission-gear-save-btn').addEventListener('click', function () {
+    if (!can('missions.edit')) return;
+    var button = this;
+    var payload = gearPayload();
+    if (currentGear) payload.id = currentGear.id;
+    button.disabled = true; button.classList.add('is-busy'); resetModalMessage('mission-gear-modal');
+    request('/api/admin/missions/gear-save.php', payload)
+      .then(function (result) {
+        closeGear();
+        if (result.unequipped > 0) {
+          window.alert('Slot changed, so ' + result.unequipped + ' equipped cop' + (result.unequipped === 1 ? 'y was' : 'ies were') + ' returned to their owners.');
+        }
+        return loadGear();
+      })
+      .catch(function (error) { showModalError('mission-gear-modal-error', error.message); })
+      .then(function () { button.disabled = !can('missions.edit'); button.classList.remove('is-busy'); });
+  });
+  document.getElementById('mission-gear-delete-btn').addEventListener('click', function () {
+    if (!currentGear || !can('missions.delete') || !window.confirm('Delete this item? Items any player already holds are protected.')) return;
+    request('/api/admin/missions/gear-delete.php', { id: currentGear.id })
+      .then(function () { closeGear(); return loadGear(); })
+      .catch(function (error) { showModalError('mission-gear-modal-error', error.message); });
   });
 }());

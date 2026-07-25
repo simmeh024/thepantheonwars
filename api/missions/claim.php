@@ -44,6 +44,10 @@ try {
         if ($member['status'] !== 'on_mission') throw new RuntimeException('Crew status no longer matches this mission.');
     }
     $crewIds = array_map(static function ($member) { return (int)$member['id']; }, $crew);
+    /* The loadout the crew went out with. Equipping is refused on a deployed
+     * crew member, so this is necessarily the same equipment start.php read when
+     * it fixed the clock -- there is no window in which the two could disagree. */
+    $crew = pw_missions_apply_gear($db, $userId, $crew);
 
     /* The conditions recorded when this crew launched, not today's. `pm.*` above
      * brings the columns in once the weather migration has been run; before that

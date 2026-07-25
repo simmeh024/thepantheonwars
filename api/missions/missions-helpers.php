@@ -374,6 +374,13 @@ function pw_missions_add_credits(PDO $db, int $userId, int $amount): int {
 
 const PW_MISSION_MAX_LEVEL = 50;
 const PW_MISSION_MAX_STAT = 50;
+/* Levelling alone stops at PW_MISSION_MAX_STAT; equipment carries a crew member
+ * past it, to here. Without the higher ceiling gear would be worthless on the
+ * crew who have earned the most -- a level-50 specialist is already at 50 in
+ * their primary stat, so every bonus would land on a clamp and vanish. This is
+ * the only place the two ceilings differ, and pw_missions_stats_for_level()
+ * still refuses to allocate past 50 from levels. */
+const PW_MISSION_MAX_GEAR_STAT = 80;
 const PW_MISSION_XP_PER_LEVEL = 100;
 
 /**
@@ -556,6 +563,172 @@ function pw_missions_affinity(?string $missionType, array $crew): array {
     return $result;
 }
 
+/* ------------------------------------------------------------------------
+ * Crew gear.
+ *
+ * Equipment is a loot definition that happens to carry a slot, so it drops
+ * through the loot pipeline that already exists and is held in the inventory
+ * that already exists. Its bonuses are the four crew stats and nothing else,
+ * which means every effect downstream -- success, loot draws, tier promotion,
+ * XP, and through them affinity and weather -- picks gear up without a single
+ * new term anywhere in the effects engine.
+ * ---------------------------------------------------------------------- */
+
+/**
+ * The seven slots, in the order the loadout draws them. A code constant rather
+ * than a table: which slots exist is an authored game rule, not content an
+ * administrator should be able to invent halfway through a season.
+ */
+function pw_missions_gear_slots(): array {
+    return [
+        'head' => 'Head',
+        'chest' => 'Chest',
+        'main_hand' => 'Main hand',
+        'off_hand' => 'Off hand',
+        'legs' => 'Legs',
+        'feet' => 'Feet',
+        'utility' => 'Utility',
+    ];
+}
+
+function pw_missions_gear_stat_keys(): array {
+    return ['strength', 'cunning', 'science', 'charisma'];
+}
+
+/**
+ * Whether sql/migration_mission_gear.sql has been run. Until it has, the page
+ * behaves exactly as it did before gear existed: no loadouts, no bonuses, and
+ * every mission resolved from level-derived stats alone.
+ */
+function pw_mission_gear_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_mission_stats_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT slot, bonus_strength, bonus_cunning, bonus_science, bonus_charisma, required_level, required_role, icon_url FROM `game_loot_definitions` LIMIT 1');
+        $db->query('SELECT player_crew_id, slot, loot_definition_id FROM `game_player_crew_gear` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+/**
+ * What a player's crew are wearing, keyed by player_crew_id then slot.
+ *
+ * One query for the whole roster rather than one per crew member -- the same
+ * N+1 avoidance the public worlds endpoint follows. Scoped by user_id as well
+ * as by crew id so a crafted crew id from another account returns nothing.
+ *
+ * @param int[] $playerCrewIds
+ */
+function pw_missions_load_crew_gear(PDO $db, int $userId, array $playerCrewIds): array {
+    $ids = array_values(array_unique(array_map('intval', $playerCrewIds)));
+    if (!$ids || !pw_mission_gear_ready($db)) return [];
+    $stmt = $db->prepare(
+        'SELECT g.player_crew_id, g.slot, g.loot_definition_id,
+                l.name, l.slug, l.tier, l.description, l.icon_url,
+                l.bonus_strength, l.bonus_cunning, l.bonus_science, l.bonus_charisma,
+                l.required_level, l.required_role
+         FROM game_player_crew_gear g
+         JOIN game_loot_definitions l ON l.id = g.loot_definition_id
+         WHERE g.user_id = ? AND g.player_crew_id IN (' . pw_missions_placeholders(count($ids)) . ')'
+    );
+    $stmt->execute(array_merge([$userId], $ids));
+    $slots = pw_missions_gear_slots();
+    $byCrew = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $slot = (string)$row['slot'];
+        // A slot no longer in the code list is ignored rather than rendered:
+        // removing a slot must not leave an item floating outside the loadout.
+        if (!isset($slots[$slot])) continue;
+        $byCrew[(int)$row['player_crew_id']][$slot] = [
+            'loot_definition_id' => (int)$row['loot_definition_id'],
+            'name' => (string)$row['name'],
+            'slug' => (string)$row['slug'],
+            'tier' => (string)$row['tier'],
+            'description' => (string)$row['description'],
+            'icon_url' => pw_missions_gear_icon_url($row['icon_url']),
+            'slot' => $slot,
+            'slot_label' => $slots[$slot],
+            'bonus' => [
+                'strength' => (int)$row['bonus_strength'],
+                'cunning' => (int)$row['bonus_cunning'],
+                'science' => (int)$row['bonus_science'],
+                'charisma' => (int)$row['bonus_charisma'],
+            ],
+            'required_level' => (int)$row['required_level'],
+            'required_role' => (string)$row['required_role'],
+        ];
+    }
+    return $byCrew;
+}
+
+/**
+ * Re-validated against the same allow-list the crew portraits use, since this
+ * value goes into a CSS/img URL. An unrecognised path becomes empty and the
+ * built-in slot glyph is drawn instead.
+ */
+function pw_missions_gear_icon_url($url): string {
+    $url = (string)$url;
+    return preg_match('/^(?:images\/[a-zA-Z0-9._-]{1,220}|\/uploads\/mission-crew-images\/img_[a-f0-9]{16}\.jpg)$/', $url) ? $url : '';
+}
+
+/**
+ * Folds equipped gear into a set of crew rows.
+ *
+ * The four stat fields become the totals the crew member actually fights with,
+ * so every existing consumer -- pw_missions_crew_effects() above, the launch
+ * projection, the claim payout -- reads gear without knowing gear exists. The
+ * pre-gear values stay available as base_<stat>, and gear_bonus carries the
+ * difference, which is what lets a crew card show "4 +2" rather than a total
+ * that appears out of nowhere.
+ *
+ * @param array $crewRows Rows carrying an `id` (player crew id) and the four stats.
+ */
+function pw_missions_apply_gear(PDO $db, int $userId, array $crewRows): array {
+    $stats = pw_missions_gear_stat_keys();
+    $gearByCrew = pw_missions_load_crew_gear($db, $userId, array_map(static function ($row) {
+        return (int)($row['id'] ?? 0);
+    }, $crewRows));
+
+    foreach ($crewRows as $index => $row) {
+        $bonus = array_fill_keys($stats, 0);
+        $equipped = $gearByCrew[(int)($row['id'] ?? 0)] ?? [];
+        foreach ($equipped as $item) {
+            foreach ($stats as $stat) $bonus[$stat] += (int)$item['bonus'][$stat];
+        }
+        foreach ($stats as $stat) {
+            $base = max(0, (int)($row[$stat] ?? 0));
+            $crewRows[$index]['base_' . $stat] = $base;
+            // Clamped at zero: a negative-bonus item may take a stat to nothing
+            // but never below it, where a percentage would turn into a penalty
+            // no part of the effects engine is written to express.
+            $crewRows[$index][$stat] = max(0, $base + $bonus[$stat]);
+        }
+        $crewRows[$index]['gear'] = $equipped;
+        $crewRows[$index]['gear_bonus'] = $bonus;
+        $crewRows[$index]['gear_slots_filled'] = count($equipped);
+    }
+    return $crewRows;
+}
+
+/**
+ * Whether this crew member may equip this item, and why not when they may not.
+ * Returns an empty string when the item is allowed.
+ */
+function pw_missions_gear_requirement_error(array $item, array $crew): string {
+    $requiredLevel = (int)($item['required_level'] ?? 1);
+    if ((int)($crew['level'] ?? 0) < $requiredLevel) {
+        return 'This equipment needs a level ' . $requiredLevel . ' crew member.';
+    }
+    $requiredRole = trim((string)($item['required_role'] ?? ''));
+    if ($requiredRole !== '' && strcasecmp($requiredRole, (string)($crew['role'] ?? '')) !== 0) {
+        return 'Only a ' . $requiredRole . ' can carry this equipment.';
+    }
+    return '';
+}
+
 /**
  * Whether sql/migration_mission_weather.sql has been run. Until it has, weather
  * still affects a launch -- the modifiers are computed from the live forecast,
@@ -723,7 +896,10 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?arr
     foreach ($crew as $member) {
         $level = max(0, min(PW_MISSION_MAX_LEVEL, (int)($member['level'] ?? 0)));
         foreach ($totals as $stat => $_) {
-            $totals[$stat] += max(0, min(PW_MISSION_MAX_STAT, (int)($member[$stat] ?? 0)));
+            // Clamped at the gear ceiling, not the levelling one: by the time a
+            // row reaches here pw_missions_apply_gear() may have raised a stat
+            // past 50, and clamping at 50 would silently discard the equipment.
+            $totals[$stat] += max(0, min(PW_MISSION_MAX_GEAR_STAT, (int)($member[$stat] ?? 0)));
         }
         $role = (string)($member['role'] ?? '');
         if (isset($rates[$role]['duration_percent_per_level'])) $durationPercent += $level * $rates[$role]['duration_percent_per_level'];

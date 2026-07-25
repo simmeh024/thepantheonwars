@@ -173,3 +173,81 @@ function pw_admin_mission_crew_input(array $input): array {
         'is_enabled' => !empty($input['is_enabled']) ? 1 : 0,
     ];
 }
+
+/**
+ * Validated input for a gear item -- a loot definition carrying a slot.
+ *
+ * Shares one function between create and update so the two cannot drift on what
+ * a valid item is, the same way the mission and crew inputs already do.
+ */
+function pw_admin_mission_gear_input(array $input): array {
+    $name = trim((string)($input['name'] ?? ''));
+    if ($name === '' || mb_strlen($name) > 120) pw_error('Equipment name must be between 1 and 120 characters.');
+    $slug = trim((string)($input['slug'] ?? ''));
+    if (!preg_match('/\A[a-z0-9][a-z0-9-]{0,119}\z/', $slug)) pw_error('Equipment slug may use lowercase letters, numbers, and hyphens only.');
+    $description = trim((string)($input['description'] ?? ''));
+    if (mb_strlen($description) > 2000) pw_error('Equipment description must be 2,000 characters or fewer.');
+    $tier = strtolower(trim((string)($input['tier'] ?? 'common')));
+    if (!in_array($tier, pw_missions_loot_tiers(), true)) pw_error('Choose a valid rarity tier.');
+    $worldKey = trim((string)($input['world_key'] ?? 'neoh'));
+    if ($worldKey !== 'neoh') pw_error('Neoh is the only playable mission world in V0.');
+
+    /* An empty slot is allowed and meaningful: it makes the item plain salvage,
+     * which is what every loot definition authored before gear existed already
+     * is. Only a value outside the seven slots is an error. */
+    $slot = strtolower(trim((string)($input['slot'] ?? '')));
+    if ($slot !== '' && !isset(pw_missions_gear_slots()[$slot])) pw_error('Choose a valid equipment slot.');
+
+    $dropWeight = filter_var($input['drop_weight'] ?? 100, FILTER_VALIDATE_INT);
+    if ($dropWeight === false || $dropWeight < 0 || $dropWeight > 10000) pw_error('Drop weight must be between 0 and 10,000.');
+
+    /* Bonuses are bounded well inside the gear ceiling in both directions. A
+     * single item able to fill the whole 30-point gap above the levelling cap
+     * would make every other item pointless, and the negative end exists so a
+     * trade-off item can be authored without a second migration. */
+    $bonuses = [];
+    foreach (pw_missions_gear_stat_keys() as $stat) {
+        $value = filter_var($input['bonus_' . $stat] ?? 0, FILTER_VALIDATE_INT);
+        if ($value === false || $value < -10 || $value > 15) pw_error('Each stat bonus must be between -10 and 15.');
+        $bonuses[$stat] = $value;
+    }
+    if ($slot === '' && array_filter($bonuses) !== []) {
+        pw_error('An item with no slot cannot carry stat bonuses, because it can never be equipped.');
+    }
+
+    $requiredLevel = filter_var($input['required_level'] ?? 1, FILTER_VALIDATE_INT);
+    if ($requiredLevel === false || $requiredLevel < 1 || $requiredLevel > PW_MISSION_MAX_LEVEL) {
+        pw_error('Required level must be between 1 and ' . PW_MISSION_MAX_LEVEL . '.');
+    }
+    $requiredRole = trim((string)($input['required_role'] ?? ''));
+    if ($requiredRole !== '' && !isset(pw_missions_role_rates()[$requiredRole])) pw_error('Choose a valid required role, or leave it open to any role.');
+
+    // Same closed allow-list and the same image library as the crew portraits.
+    $iconUrl = trim((string)($input['icon_url'] ?? ''));
+    if ($iconUrl !== '' && pw_missions_gear_icon_url($iconUrl) === '') pw_error('That icon is not a recognised uploaded image.');
+
+    return [
+        'name' => $name,
+        'slug' => $slug,
+        'description' => $description,
+        'tier' => $tier,
+        'world_key' => $worldKey,
+        'slot' => $slot,
+        'drop_weight' => $dropWeight,
+        'bonus_strength' => $bonuses['strength'],
+        'bonus_cunning' => $bonuses['cunning'],
+        'bonus_science' => $bonuses['science'],
+        'bonus_charisma' => $bonuses['charisma'],
+        'required_level' => $requiredLevel,
+        'required_role' => $requiredRole,
+        'icon_url' => $iconUrl,
+        'is_enabled' => !empty($input['is_enabled']) ? 1 : 0,
+    ];
+}
+
+function pw_admin_mission_gear_require_ready(PDO $db): void {
+    pw_admin_missions_require_ready($db);
+    if (!pw_mission_gear_ready($db)) {
+        pw_error('Run sql/migration_mission_gear.sql before managing equipment.', 409);
+    }
+}
