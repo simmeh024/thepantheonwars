@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=313">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=314">
 </head>
 <body>
 
@@ -58,13 +58,14 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="game" data-requires-permission="missions.view">
+    <div class="admin-nav-category is-collapsed" data-category="game" data-requires-permission="missions.view,loot_tables.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>Game Control</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
       </button>
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li data-requires-permission="missions.view"><button type="button" class="admin-nav-link" data-section="mission-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18V6l8-3 8 3v12l-8 3z"/><path d="m4 6 8 3 8-3M12 9v12"/><path d="m8 14 2 2 4-4"/></svg>Missions</button></li>
+        <li data-requires-permission="loot_tables.view"><button type="button" class="admin-nav-link" data-section="loot-tables"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M2 5h20v3H2z"/><path d="M12 8v13"/><path d="M12 5c-1.6-2.6-5.4-2.2-5.4.3 0 1.4 1.6 2 5.4 2s5.4-.6 5.4-2C17.4 2.8 13.6 2.4 12 5Z"/></svg>Loot Tables</button></li>
       </ul>
     </div>
 
@@ -2116,6 +2117,32 @@
       </div>
     </section>
 
+    <section class="admin-section" id="section-loot-tables" hidden>
+      <div class="admin-section-head">
+        <h1>Loot Table Management</h1>
+        <p>Reusable groups of possible rewards. A mission opens a table with its own chance, and each entry inside the table then rolls independently &mdash; so one run can award several characters, or none. Characters are the only loot type for now.</p>
+      </div>
+
+      <div class="admin-toolbar">
+        <div class="admin-filter-tabs" id="loot-admin-tabs" role="tablist" aria-label="Loot Table views">
+          <button type="button" class="admin-filter-tab active" data-loot-panel="tables" role="tab" aria-selected="true">Loot Tables</button>
+          <button type="button" class="admin-filter-tab" data-loot-panel="missions" role="tab" aria-selected="false">Mission Assignments</button>
+        </div>
+        <button type="button" class="btn btn-solid" id="loot-table-create-btn" data-requires-permission="loot_tables.edit">+ Add Loot Table</button>
+        <span class="admin-count" id="loot-admin-count"></span>
+      </div>
+
+      <div class="mission-admin-panel" id="loot-admin-tables-panel">
+        <div class="mission-admin-columns loot-admin-columns" aria-hidden="true"><span>Loot table</span><span>Characters</span><span>Best chance</span><span>Missions</span><span>Status</span></div>
+        <div class="admin-list mission-admin-list" id="loot-table-list"><div class="admin-list-empty">Loading loot tables&hellip;</div></div>
+      </div>
+
+      <div class="mission-admin-panel" id="loot-admin-missions-panel" hidden>
+        <div class="mission-admin-columns loot-mission-columns" aria-hidden="true"><span>Mission</span><span>Loot tables</span><span>Status</span></div>
+        <div class="admin-list mission-admin-list" id="loot-mission-list"><div class="admin-list-empty">Loading missions&hellip;</div></div>
+      </div>
+    </section>
+
     <section class="admin-section" id="section-book-control" hidden>
       <div class="admin-section-head">
         <h1>Book Control</h1>
@@ -4105,6 +4132,45 @@
   </div>
 </div>
 
+<div class="admin-modal" id="loot-table-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="loot-table-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="loot-table-modal-title">Add Loot Table</h3>
+    <p class="admin-modal-sub">Each character below rolls on its own when this table is opened, so the chances do not need to add up to 100%.</p>
+    <div class="admin-field-row">
+      <div class="admin-field"><label for="loot-table-name">Name</label><input type="text" id="loot-table-name" maxlength="150" placeholder="e.g. Lower District Recruits"></div>
+      <div class="admin-field"><label for="loot-table-slug">Slug</label><input type="text" id="loot-table-slug" maxlength="150" placeholder="e.g. lower-district-recruits"></div>
+      <label class="admin-setting-toggle"><span><strong>Enabled</strong><small>A disabled table stays attached but never drops.</small></span><input type="checkbox" id="loot-table-enabled" checked></label>
+    </div>
+    <div class="admin-field"><label for="loot-table-description">Description</label><textarea id="loot-table-description" maxlength="2000" placeholder="Internal note describing what this table is for."></textarea></div>
+    <div class="admin-subsection-head"><h2>Characters in this table</h2><p>Drop chance is per successful mission, once this table has been opened. Between 0.01% and 100%.</p></div>
+    <div class="loot-entry-list" id="loot-entry-list"></div>
+    <div class="loot-entry-add">
+      <select id="loot-entry-crew" aria-label="Character to add"></select>
+      <button type="button" class="btn" id="loot-entry-add-btn">Add Character</button>
+    </div>
+    <p class="admin-modal-error" id="loot-table-modal-error"></p><p class="admin-modal-status" id="loot-table-modal-status"></p>
+    <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="loot-table-save-btn">Save Loot Table</button><button type="button" class="btn" id="loot-table-cancel-btn">Cancel</button><button type="button" class="admin-delete-btn" id="loot-table-delete-btn" hidden>Delete Loot Table</button></div>
+  </div>
+</div>
+
+<div class="admin-modal" id="loot-mission-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide">
+    <button type="button" class="admin-modal-close" id="loot-mission-modal-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title" id="loot-mission-modal-title">Mission Loot</h3>
+    <p class="admin-modal-sub">Table chance is how often this mission opens that table on a successful run. Every table attached is checked separately.</p>
+    <div class="loot-entry-list" id="loot-mission-link-list"></div>
+    <div class="loot-entry-add">
+      <select id="loot-mission-table" aria-label="Loot table to attach"></select>
+      <button type="button" class="btn" id="loot-mission-add-btn">Attach Table</button>
+    </div>
+    <p class="admin-modal-error" id="loot-mission-modal-error"></p><p class="admin-modal-status" id="loot-mission-modal-status"></p>
+    <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="loot-mission-save-btn">Save Mission Loot</button><button type="button" class="btn" id="loot-mission-cancel-btn">Cancel</button></div>
+  </div>
+</div>
+
 <div class="admin-modal admin-modal-over" id="mission-crew-image-modal" hidden>
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner admin-modal-inner-wide">
@@ -4255,7 +4321,7 @@
 </div>
 
 <script src="../js/members.js?v=40"></script>
-<script src="../js/admin-missions.js?v=6"></script>
+<script src="../js/admin-missions.js?v=6"></script><script src="../js/admin-loot-tables.js?v=1"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -4501,6 +4567,7 @@
       if (name === 'forum-control') { loadForumCategories(); loadForumBoards(); }
       if (name === 'reputation-levels') loadReputationLevelList();
       if (name === 'mission-control') loadMissionControl();
+      if (name === 'loot-tables') loadLootTables();
       if (name === 'book-control') loadBookList();
       if (name === 'quiz-control') loadQuizQuestionList();
       if (name === 'world-control') loadWorldList();

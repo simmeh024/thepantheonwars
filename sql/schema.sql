@@ -1831,6 +1831,51 @@ CREATE TABLE IF NOT EXISTS game_player_loot (
   CONSTRAINT fk_game_player_loot_definition FOREIGN KEY (loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- sql/migration_mission_loot_tables.sql (also adds the loot_tables.view /
+-- loot_tables.edit permissions). A mission -> table link carries the chance the
+-- table is opened at all; each entry carries its own chance of dropping, rolled
+-- independently. Characters are the only entry_type in use.
+CREATE TABLE IF NOT EXISTS game_loot_tables (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(150) NOT NULL,
+  slug VARCHAR(150) NOT NULL,
+  description TEXT NULL,
+  is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_game_loot_table_slug (slug),
+  KEY idx_game_loot_table_enabled (is_enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS game_loot_table_entries (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  loot_table_id INT UNSIGNED NOT NULL,
+  entry_type VARCHAR(20) NOT NULL DEFAULT 'crew',
+  crew_definition_id INT UNSIGNED NULL,
+  chance_percent DECIMAL(6,3) NOT NULL DEFAULT 0.000,
+  sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_game_loot_table_entry_crew (loot_table_id, crew_definition_id),
+  KEY idx_game_loot_table_entry_order (loot_table_id, sort_order, id),
+  CONSTRAINT fk_game_loot_table_entry_table FOREIGN KEY (loot_table_id) REFERENCES game_loot_tables(id) ON DELETE CASCADE,
+  CONSTRAINT fk_game_loot_table_entry_crew FOREIGN KEY (crew_definition_id) REFERENCES game_crew_definitions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS game_mission_loot_tables (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  mission_definition_id INT UNSIGNED NOT NULL,
+  loot_table_id INT UNSIGNED NOT NULL,
+  chance_percent DECIMAL(6,3) NOT NULL DEFAULT 100.000,
+  sort_order SMALLINT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_game_mission_loot_table (mission_definition_id, loot_table_id),
+  KEY idx_game_mission_loot_table_order (mission_definition_id, sort_order, id),
+  CONSTRAINT fk_game_mission_loot_table_mission FOREIGN KEY (mission_definition_id) REFERENCES game_mission_definitions(id) ON DELETE CASCADE,
+  CONSTRAINT fk_game_mission_loot_table_table FOREIGN KEY (loot_table_id) REFERENCES game_loot_tables(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- sql/migration_mission_credits.sql (also adds game_mission_definitions.
 -- credit_reward and game_player_missions.credits_awarded). The balance lives
 -- here rather than on users because pw_current_user() runs on every

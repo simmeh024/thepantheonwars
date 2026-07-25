@@ -161,13 +161,19 @@
 .mission-result-inner.is-failed .mission-result-stat strong { color: #b6a3ad; }
 .mission-result-block { margin-top: 16px; }
 .mission-result-block h4 { margin: 0 0 7px; color: #79d9df; font-size: 0.6rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.mission-result-loot, .mission-result-levels { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
-.mission-result-loot li, .mission-result-levels li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 1px solid rgba(103,152,190,0.26); background: rgba(8,18,33,0.5); color: #dceaf3; font-size: 0.78rem; }
-.mission-result-loot em, .mission-result-levels em { color: #8ba5be; font-size: 0.63rem; font-style: normal; letter-spacing: .06em; text-transform: uppercase; }
+.mission-result-loot, .mission-result-levels, .mission-result-recruits { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.mission-result-loot li, .mission-result-levels li, .mission-result-recruits li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 1px solid rgba(103,152,190,0.26); background: rgba(8,18,33,0.5); color: #dceaf3; font-size: 0.78rem; }
+.mission-result-loot em, .mission-result-levels em, .mission-result-recruits em { color: #8ba5be; font-size: 0.63rem; font-style: normal; letter-spacing: .06em; text-transform: uppercase; }
 .mission-result-loot li.is-uncommon { border-color: rgba(110,211,220,0.4); } .mission-result-loot li.is-uncommon em { color: #83dce4; }
 .mission-result-loot li.is-rare { border-color: rgba(199,154,232,0.45); } .mission-result-loot li.is-rare em { color: #c79ae8; }
 .mission-result-loot li.is-legendary { border-color: rgba(235,209,138,0.55); box-shadow: inset 0 0 22px rgba(235,209,138,0.08); } .mission-result-loot li.is-legendary em { color: #ebd18a; }
 .mission-result-levels em { color: #9edba8; }
+/* A recruited character is the rarest outcome a mission has, so it is the one
+ * block in the debrief that carries a gold edge rather than the shared grey. */
+.mission-result-recruits li { border-color: rgba(235,209,138,0.5); box-shadow: inset 0 0 22px rgba(235,209,138,0.07); }
+.mission-result-recruits em { color: #ebd18a; }
+.mission-result-block.is-recruit h4 { color: #ebd18a; }
+.mission-result-note { margin: 10px 0 0; color: #8ba5be; font-size: 0.7rem; line-height: 1.45; }
 .mission-result-inner .mission-launch-actions { margin-top: 20px; }
 .mission-history-row.is-failed { opacity: .82; }
 .mission-history-status.is-failed { border-color: rgba(224,138,114,0.5); color: #e0a894; }

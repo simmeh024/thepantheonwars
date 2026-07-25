@@ -118,6 +118,14 @@ try {
         pw_missions_store_loot($db, $userId, $loot);
     }
 
+    /* Loot tables are independent of the item pool above: they are attached per
+     * mission in Loot Table Management and currently award characters. Rolled
+     * inside the same transaction, so a failure anywhere rolls the recruit back
+     * with everything else. */
+    $crewAwards = $succeeded
+        ? pw_missions_roll_loot_tables($db, $userId, (int)$mission['mission_definition_id'])
+        : ['granted' => [], 'duplicates' => []];
+
     $now = pw_missions_utc_now($db);
     $status = $succeeded ? 'claimed' : 'failed';
     /* Two independent migrations decide which columns exist here, so the SET
@@ -153,6 +161,8 @@ try {
         'credits_ready' => $creditsReady,
         'level_ups' => $levelUps,
         'loot' => $loot,
+        'crew_recruited' => $crewAwards['granted'],
+        'crew_duplicates' => $crewAwards['duplicates'],
     ]);
 } catch (Throwable $e) {
     if ($db->inTransaction()) $db->rollBack();

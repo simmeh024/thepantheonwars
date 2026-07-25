@@ -426,6 +426,21 @@
     }).join('');
 
     var extras = '';
+    /* A character award is the rarest thing a mission can produce, so it leads
+     * the extras rather than sitting under the item list. A roll that hit a
+     * character the player already has is reported too -- saying nothing would
+     * read as the table having failed. */
+    if (!failed && result.crew_recruited && result.crew_recruited.length) {
+      extras += '<div class="mission-result-block is-recruit"><h4>' + (result.crew_recruited.length === 1 ? 'New crew member' : 'New crew members') + '</h4><ul class="mission-result-recruits">'
+        + result.crew_recruited.map(function (member) {
+          return '<li><span>' + escapeHtml(member.name) + '</span><em>' + escapeHtml(member.role) + '</em></li>';
+        }).join('') + '</ul></div>';
+    }
+    if (!failed && result.crew_duplicates && result.crew_duplicates.length) {
+      var duplicateNames = result.crew_duplicates.map(function (member) { return member.name; }).join(', ');
+      extras += '<p class="mission-result-note">' + escapeHtml(duplicateNames) + (result.crew_duplicates.length === 1 ? ' was' : ' were')
+        + ' already on your roster, so nothing was added.</p>';
+    }
     if (!failed && result.loot && result.loot.length) {
       extras += '<div class="mission-result-block"><h4>Recovered</h4><ul class="mission-result-loot">'
         + result.loot.map(function (item) {
@@ -460,6 +475,9 @@
     if (result.loot && result.loot.length) {
       var names = result.loot.map(function (item) { return item.name + (item.upgraded ? ' (upgraded)' : ''); });
       parts.push('recovered ' + names.join(', '));
+    }
+    if (result.crew_recruited && result.crew_recruited.length) {
+      parts.push('recruited ' + result.crew_recruited.map(function (member) { return member.name; }).join(', '));
     }
     return parts.join(' · ') + '.';
   }

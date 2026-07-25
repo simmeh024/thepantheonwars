@@ -555,6 +555,103 @@ function pw_missions_store_loot(PDO $db, int $userId, array $awarded): void {
     }
 }
 
+/* ------------------------------------------------------------------------
+ * Loot tables.
+ *
+ * A loot table is a reusable named group of possible rewards. Two independent
+ * chances decide an award: the mission -> table link says how often the table
+ * is opened at all, and each entry inside says how often it drops. Entries are
+ * therefore independent rolls rather than a weighted pick -- one successful
+ * mission can award several characters, or none.
+ *
+ * Only characters are supported as loot for now. entry_type carries 'crew' on
+ * every row so items or credits can join later without a structural change.
+ * ---------------------------------------------------------------------- */
+
+function pw_mission_loot_tables_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_missions_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT id FROM `game_loot_tables` LIMIT 1');
+        $db->query('SELECT id FROM `game_loot_table_entries` LIMIT 1');
+        $db->query('SELECT id FROM `game_mission_loot_tables` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+function pw_missions_require_loot_tables_ready(PDO $db): void {
+    if (!pw_mission_loot_tables_ready($db)) {
+        pw_error('Loot tables are being prepared. Please try again after the Mission Loot Tables migration has been run.', 503);
+    }
+}
+
+/**
+ * Roll every loot table attached to one mission and grant what drops.
+ *
+ * Called only on a successful claim, inside the claim transaction. A character
+ * the player already owns is skipped rather than granted again -- crew is a
+ * roster, not a stack -- and is reported separately so the debrief can say the
+ * roll hit but changed nothing, instead of silently showing no reward.
+ *
+ * @return array{granted: array, duplicates: array}
+ */
+function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefinitionId): array {
+    $result = ['granted' => [], 'duplicates' => []];
+    if (!pw_mission_loot_tables_ready($db)) return $result;
+
+    $linkStmt = $db->prepare(
+        'SELECT link.loot_table_id, link.chance_percent
+         FROM game_mission_loot_tables link
+         JOIN game_loot_tables lt ON lt.id = link.loot_table_id
+         WHERE link.mission_definition_id = ? AND lt.is_enabled = 1
+         ORDER BY link.sort_order ASC, link.id ASC'
+    );
+    $linkStmt->execute([$missionDefinitionId]);
+    $links = $linkStmt->fetchAll();
+    if (!$links) return $result;
+
+    $entryStmt = $db->prepare(
+        'SELECT entry.crew_definition_id, entry.chance_percent, crew.name, crew.role, crew.portrait_url
+         FROM game_loot_table_entries entry
+         JOIN game_crew_definitions crew ON crew.id = entry.crew_definition_id
+         WHERE entry.loot_table_id = ? AND entry.entry_type = "crew" AND crew.is_enabled = 1
+         ORDER BY entry.sort_order ASC, entry.id ASC'
+    );
+    // A player's existing roster, read once: the duplicate check runs against
+    // every entry of every table and must not become a query per roll.
+    $ownedStmt = $db->prepare('SELECT crew_definition_id FROM game_player_crew WHERE user_id = ?');
+    $ownedStmt->execute([$userId]);
+    $owned = [];
+    foreach ($ownedStmt->fetchAll() as $row) $owned[(int)$row['crew_definition_id']] = true;
+
+    $grantStmt = $db->prepare(
+        'INSERT IGNORE INTO game_player_crew (user_id, crew_definition_id, level, xp, status)
+         SELECT ?, c.id, c.starting_level, 0, "available" FROM game_crew_definitions c WHERE c.id = ?'
+    );
+
+    foreach ($links as $link) {
+        if (!pw_missions_percent_roll((float)$link['chance_percent'])) continue;
+        $entryStmt->execute([(int)$link['loot_table_id']]);
+        foreach ($entryStmt->fetchAll() as $entry) {
+            if (!pw_missions_percent_roll((float)$entry['chance_percent'])) continue;
+            $crewId = (int)$entry['crew_definition_id'];
+            $award = ['id' => $crewId, 'name' => $entry['name'], 'role' => $entry['role'], 'portrait_url' => $entry['portrait_url']];
+            if (isset($owned[$crewId])) { $result['duplicates'][] = $award; continue; }
+            $grantStmt->execute([$userId, $crewId]);
+            // INSERT IGNORE is the real guard against a concurrent claim
+            // granting the same character twice; the in-memory set above only
+            // saves the query.
+            if ($grantStmt->rowCount() < 1) { $result['duplicates'][] = $award; continue; }
+            $owned[$crewId] = true;
+            $result['granted'][] = $award;
+        }
+    }
+    return $result;
+}
+
 function pw_missions_grant_starter_crew(PDO $db, int $userId): void {
     $stmt = $db->prepare(
         'INSERT IGNORE INTO game_player_crew (user_id, crew_definition_id, level, xp, status)
