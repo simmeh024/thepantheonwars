@@ -195,6 +195,40 @@
     document.getElementById('missions-command-copy').textContent = data.stats.active_missions ? 'Your crews are transmitting from the field. Mission time is verified by command.' : 'No active deployments. Review Neoh operations and assign an available crew.';
   }
 
+  /* Each active operation gets a small route diagram. The intermediate nodes
+   * are generated from a seeded random sequence instead of Math.random(), so
+   * a card retains its route through refreshes rather than visibly jumping as
+   * its countdown updates. Nothing here is gameplay data; it is command-room
+   * decoration, kept out of the accessibility tree below. */
+  function missionRouteMarkup(mission, isCompleted) {
+    var seed = (Math.abs(Number(mission.id)) || 1) >>> 0;
+    function random() {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    }
+    var start = { x: 18, y: 128 };
+    var end = { x: 242, y: 24 + Math.round(random() * 28) };
+    var nodeCount = 2 + Math.floor(random() * 3);
+    var points = [start];
+    for (var index = 1; index <= nodeCount; index++) {
+      points.push({
+        x: Math.round(18 + ((224 * index) / (nodeCount + 1)) + ((random() - 0.5) * 12)),
+        y: Math.round(32 + (random() * 92))
+      });
+    }
+    points.push(end);
+    var path = 'M' + points.map(function (point) { return point.x + ' ' + point.y; }).join(' L');
+    var nodes = points.slice(0, -1).map(function (point, index) {
+      return '<circle class="mission-route-node' + (index === 0 ? ' is-origin' : '') + '" cx="' + point.x + '" cy="' + point.y + '" r="2.4" />';
+    }).join('');
+    var packet = isCompleted ? '' : '<circle class="mission-route-packet" r="3"><animateMotion dur="8s" repeatCount="indefinite" path="' + path + '" /></circle>';
+    return '<div class="mission-route' + (isCompleted ? ' is-complete' : '') + '" aria-hidden="true"><svg viewBox="0 0 260 160" preserveAspectRatio="none" focusable="false">'
+      + '<path class="mission-route-base" d="' + path + '" />'
+      + '<path class="mission-route-signal" d="' + path + '" />'
+      + nodes + packet + '<circle class="mission-route-endpoint" cx="' + end.x + '" cy="' + end.y + '" r="4" /><circle class="mission-route-endpoint-pulse" cx="' + end.x + '" cy="' + end.y + '" r="7" />'
+      + '</svg></div>';
+  }
+
   function renderActive(data) {
     if (!data.active_missions.length) { activeList.innerHTML = '<p class="missions-empty">No crews are currently in the field.</p>'; return; }
     activeList.innerHTML = data.active_missions.map(function (mission) {
@@ -207,7 +241,7 @@
       // The same mission keeps its emblem while a crew is in the field, so the
       // operation reads as the same thing on both cards.
       var watermark = missionWatermark(mission);
-      return '<article class="mission-active-card is-' + escapeHtml(mission.status) + watermark.className + '"' + watermark.style + '><div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-world">' + escapeHtml(mission.world_key) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p class="mission-crew-line">' + escapeHtml((mission.crew_names || []).join(' · ')) + '</p><div class="mission-active-footer"><div><strong class="mission-countdown" data-completes-at="' + escapeHtml(mission.completes_at) + '">' + (isCompleted ? 'Mission complete' : 'Calculating…') + '</strong><small>' + (isCompleted ? 'Ready for reward claim' : 'Completion verified by command') + '</small></div>' + action + '</div></article>';
+      return '<article class="mission-active-card is-' + escapeHtml(mission.status) + watermark.className + '"' + watermark.style + '>' + missionRouteMarkup(mission, isCompleted) + '<div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-world">' + escapeHtml(mission.world_key) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p class="mission-crew-line">' + escapeHtml((mission.crew_names || []).join(' · ')) + '</p><div class="mission-active-footer"><div><strong class="mission-countdown" data-completes-at="' + escapeHtml(mission.completes_at) + '">' + (isCompleted ? 'Mission complete' : 'Calculating…') + '</strong><small>' + (isCompleted ? 'Ready for reward claim' : 'Completion verified by command') + '</small></div>' + action + '</div></article>';
     }).join('');
   }
 

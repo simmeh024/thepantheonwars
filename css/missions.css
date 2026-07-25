@@ -35,7 +35,7 @@
 .mission-gear-slot { display: flex; align-items: center; justify-content: center; min-width: 0; aspect-ratio: 1; border: 1px solid rgba(var(--gear-tier), 0.55); color: rgb(var(--gear-tier)); cursor: help; }
 .mission-gear-slot--head { grid-area: head; }.mission-gear-slot--utility { grid-area: utility; }.mission-gear-slot--off-hand { grid-area: off-hand; }.mission-gear-slot--chest { grid-area: chest; }.mission-gear-slot--main-hand { grid-area: main-hand; }.mission-gear-slot--legs { grid-area: legs; }.mission-gear-slot--feet { grid-area: feet; }
 .mission-gear-slot svg, .mission-gear-slot img { display: block; width: 15px; height: 15px; object-fit: cover; }
-.mission-gear-slot.is-filled { background: rgba(var(--gear-tier), 0.13); }
+.mission-gear-slot.is-filled { background: rgba(var(--gear-tier), 0.13); transition: border-color .25s ease, background .25s ease, box-shadow .25s ease, filter .25s ease; }
 .mission-gear-slot.is-empty { border-style: dashed; border-color: rgba(103,152,190,0.4); color: #5d7285; }
 .mission-gear-slot:focus-visible { outline: 2px solid rgba(126,227,232,0.7); outline-offset: 2px; }
 .mission-crew-loadout .mission-loadout-btn { width: 100%; margin: 0; padding: 5px 7px !important; font-size: 0.6rem !important; }
@@ -395,6 +395,23 @@
 }
 .mission-active-card.has-card-watermark > *,
 .mission-definition-card.has-card-watermark > * { position: relative; z-index: 1; }
+/* Active operations carry a low-contrast route plot behind their content. The
+ * travelling dash is intentionally decorative: it gives a live deployment a
+ * sense of movement without claiming to reveal a player's real location. */
+.mission-active-card > :not(.mission-route) { position: relative; z-index: 1; }
+.mission-route { position: absolute; z-index: 0; inset: 10px 11px 8px 12px; overflow: hidden; opacity: .58; pointer-events: none; }
+.mission-active-card.has-card-watermark > .mission-route { position: absolute; z-index: 0; }
+.mission-route svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.mission-route-base { fill: none; stroke: rgba(105,202,216,0.24); stroke-dasharray: 3 7; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.mission-route-signal { fill: none; stroke: rgba(121,226,234,0.9); stroke-width: 1.35; stroke-dasharray: 12 46; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; animation: mission-route-flow 8s linear infinite; }
+.mission-route-node { fill: #82dce4; stroke: rgba(10,29,47,0.92); stroke-width: 1.4; vector-effect: non-scaling-stroke; }
+.mission-route-node.is-origin { fill: #c8a8ff; }
+.mission-route-packet { fill: #e2fcff; filter: drop-shadow(0 0 3px rgba(121,226,234,0.95)); }
+.mission-route-endpoint { fill: #e8d18a; stroke: rgba(10,29,47,0.92); stroke-width: 1.8; vector-effect: non-scaling-stroke; }
+.mission-route-endpoint-pulse { fill: none; stroke: rgba(232,209,138,0.72); stroke-width: 1; vector-effect: non-scaling-stroke; transform-box: fill-box; transform-origin: center; animation: mission-route-endpoint 2.3s ease-out infinite; }
+.mission-route.is-complete { opacity: .46; }.mission-route.is-complete .mission-route-signal { stroke: rgba(232,209,138,0.9); animation-play-state: paused; }.mission-route.is-complete .mission-route-endpoint-pulse { animation: none; opacity: .55; }
+@keyframes mission-route-flow { to { stroke-dashoffset: -116; } }
+@keyframes mission-route-endpoint { 0% { opacity: .85; transform: scale(.56); } 75%,100% { opacity: 0; transform: scale(1.55); } }
 
 /* Operation types as collapsible shelves. The heading carries the type, so the
  * cards inside it drop their own type pill. */
@@ -446,7 +463,9 @@
 .missions-crew-control select { width: 100%; min-width: 0; border: 1px solid rgba(87,153,185,0.42); border-radius: 2px; background: rgba(5,13,27,0.76); color: #d9e5ed; padding: 8px 27px 8px 9px; font: 600 .68rem 'Jost', sans-serif; cursor: pointer; }
 .missions-crew-control select:hover, .missions-crew-control select:focus { border-color: rgba(111,217,226,0.75); outline: none; }
 .missions-crew-filter-summary { grid-column: 1 / -1; margin: 1px 0 0; color: #8ba8ba; font-size: .68rem; }
-.mission-crew-card { display: grid; grid-template-columns: 107px minmax(0,1fr); gap: 16px; padding: 15px; border: 1px solid rgba(80,129,168,0.35); background: linear-gradient(130deg, rgba(16,33,57,0.92), rgba(22,13,45,0.86)); }
+.mission-crew-card { position: relative; isolation: isolate; display: grid; grid-template-columns: 107px minmax(0,1fr); gap: 16px; overflow: hidden; padding: 15px; border: 1px solid rgba(80,129,168,0.35); background: linear-gradient(130deg, rgba(16,33,57,0.92), rgba(22,13,45,0.86)); transition: transform .28s ease, border-color .28s ease, box-shadow .28s ease; }
+.mission-crew-card > * { position: relative; z-index: 1; }
+.mission-crew-card::after { content: ''; position: absolute; z-index: 0; inset: -35% -55%; background: linear-gradient(108deg, transparent 44%, rgba(125,230,238,0.04) 47%, rgba(153,236,242,0.2) 50%, rgba(125,230,238,0.04) 53%, transparent 56%); opacity: 0; pointer-events: none; transform: translateX(-42%) skewX(-12deg); }
 .mission-crew-card.is-deployed { border-color: rgba(110,211,220,0.55); box-shadow: inset 0 0 30px rgba(77,204,216,0.06); }
 .mission-crew-card.is-unavailable { border-color: rgba(118,108,149,0.42); filter: saturate(.7); opacity: .76; }
 .mission-crew-visual { display: grid; align-content: start; width: 107px; }
@@ -465,8 +484,9 @@
  * an accessible name and a hover title, so nothing is lost but the two lines. */
 /* align-self keeps the wrapper the height of the portrait. Without it the grid
  * stretches it to the full card and the dot lands at the card's foot. */
-.mission-crew-portrait-wrap { position: relative; display: block; align-self: start; width: 100%; line-height: 0; }
-.crew-status-dot { position: absolute; right: -5px; bottom: -5px; width: 13px; height: 13px; border: 2px solid #101a2c; border-radius: 50%; background: #6f8496; }
+.mission-crew-portrait-wrap { position: relative; display: block; align-self: start; width: 100%; overflow: hidden; line-height: 0; }
+.mission-crew-portrait-wrap::after { content: ''; position: absolute; z-index: 1; top: 0; right: 0; left: 0; height: 28px; background: linear-gradient(to bottom, transparent, rgba(121,226,234,0.34) 48%, rgba(221,251,253,0.88) 50%, rgba(121,226,234,0.28) 54%, transparent); opacity: 0; pointer-events: none; transform: translateY(-110%); }
+.crew-status-dot { position: absolute; z-index: 2; right: 3px; bottom: 3px; width: 13px; height: 13px; border: 2px solid #101a2c; border-radius: 50%; background: #6f8496; }
 .crew-status-dot.is-available { background: #89e0b4; box-shadow: 0 0 9px rgba(137,224,180,0.6); }
 .crew-status-dot.is-deployed { background: #83dce4; box-shadow: 0 0 9px rgba(131,220,228,0.65); }
 .crew-status-dot.is-unavailable { background: #6f8496; }
@@ -475,6 +495,18 @@
 /* The shared .mission-countdown is display:block for the active-mission cards.
  * Here it must stay on the name's line, or the one-line summary becomes two. */
 .crew-mission-copy .mission-countdown { display: inline; color: #ead397; font: 600 0.68rem/1.45 'Jost', sans-serif; }
+@media (hover: hover) {
+  .mission-crew-card:not(.is-unavailable):hover { transform: perspective(900px) translateY(-3px) rotateX(1deg) rotateY(-.55deg); border-color: rgba(126,227,232,0.72); box-shadow: 0 15px 30px rgba(3,9,21,0.34), inset 0 0 32px rgba(81,211,223,0.08); }
+  .mission-crew-card:not(.is-unavailable):hover::after { opacity: 1; animation: mission-crew-holo-sweep 1.35s ease-out both; }
+  .mission-crew-card:not(.is-unavailable):hover .mission-crew-portrait-wrap::after { opacity: 1; animation: mission-crew-portrait-scan 1.45s ease-in-out infinite; }
+  .mission-crew-card:not(.is-unavailable):hover .mission-gear-slot.is-filled { border-color: rgba(var(--gear-tier),0.86); background: rgba(var(--gear-tier),0.21); box-shadow: 0 0 11px rgba(var(--gear-tier),0.42), inset 0 0 9px rgba(var(--gear-tier),0.16); filter: brightness(1.16); animation: mission-crew-gear-glow 2.1s ease-in-out infinite; }
+}
+.mission-crew-card:not(.is-unavailable):focus-within { border-color: rgba(126,227,232,0.72); box-shadow: 0 0 0 1px rgba(126,227,232,0.28), inset 0 0 32px rgba(81,211,223,0.08); }
+.mission-crew-card:not(.is-unavailable):focus-within .mission-gear-slot.is-filled { border-color: rgba(var(--gear-tier),0.86); box-shadow: 0 0 10px rgba(var(--gear-tier),0.36), inset 0 0 9px rgba(var(--gear-tier),0.14); }
+@keyframes mission-crew-holo-sweep { from { transform: translateX(-42%) skewX(-12deg); } to { transform: translateX(42%) skewX(-12deg); } }
+@keyframes mission-crew-portrait-scan { 0%,16% { opacity: 0; transform: translateY(-110%); } 26% { opacity: 1; } 60%,100% { opacity: 0; transform: translateY(510%); } }
+@keyframes mission-crew-gear-glow { 0%,100% { box-shadow: 0 0 7px rgba(var(--gear-tier),0.26), inset 0 0 7px rgba(var(--gear-tier),0.1); } 50% { box-shadow: 0 0 13px rgba(var(--gear-tier),0.5), inset 0 0 10px rgba(var(--gear-tier),0.2); } }
+@media (prefers-reduced-motion: reduce) { .mission-route-signal, .mission-route-endpoint-pulse, .mission-crew-card, .mission-crew-card::after, .mission-crew-portrait-wrap::after, .mission-gear-slot.is-filled { animation: none !important; transition: none !important; } .mission-route-packet { display: none; } .mission-crew-card:hover { transform: none !important; } }
 .missions-history-list { border: 1px solid rgba(80,129,168,0.34); background: rgba(12,16,32,0.52); }
 .mission-history-row { display: grid; grid-template-columns: minmax(210px, 1.35fr) minmax(135px,0.8fr) minmax(145px,0.85fr) auto; gap: 18px; align-items: center; padding: 14px 18px; border-bottom: 1px solid rgba(80,129,168,0.24); }
 .mission-history-row:last-child { border-bottom: 0; }
