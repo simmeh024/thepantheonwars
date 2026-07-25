@@ -14,7 +14,10 @@ $scan = static function ($directory, $prefix) use ($extensions) {
     }
     return $images;
 };
-$uploaded = $scan($webroot . '/uploads/mission-crew-images', '/uploads/mission-crew-images');
+/* The two upload libraries are returned separately so each picker can show its
+ * own, rather than mixing page backgrounds into the crew portrait grid. */
+$folder = ($_GET['kind'] ?? 'crew') === 'watermark' ? 'mission-images' : 'mission-crew-images';
+$uploaded = $scan($webroot . '/uploads/' . $folder, '/uploads/' . $folder);
 $site = $scan($webroot . '/images', 'images');
 usort($uploaded, static function ($a, $b) { return $b['modified'] <=> $a['modified']; });
 usort($site, static function ($a, $b) { return strcmp($a['name'], $b['name']); });

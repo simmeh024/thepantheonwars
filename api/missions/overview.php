@@ -215,6 +215,7 @@ try {
         'world' => ['key' => 'neoh', 'name' => 'Neoh', 'background' => 'images/world-neoh.jpg'],
         'server_time' => $serverTime['value'],
         'player' => $player,
+        'watermark' => pw_missions_watermark_settings(),
         'stats' => [
             'active_missions' => count($active),
             'available_crew' => $availableCrew,

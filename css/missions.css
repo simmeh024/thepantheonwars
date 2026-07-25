@@ -1,4 +1,19 @@
 .missions-page { min-height: 100vh; padding-top: 67px; background: radial-gradient(circle at 78% 9%, rgba(59, 201, 218, 0.11), transparent 27%), radial-gradient(circle at 12% 52%, rgba(124,79,214,0.14), transparent 37%), #090713; }
+/* Admin-configured page watermark. A fixed, centred emblem sitting behind
+ * everything: pointer-events none so it can never intercept a click, aria
+ * hidden by virtue of being a pseudo-element, and only painted once the class
+ * is added, so a page with no watermark configured costs nothing. It is fixed
+ * rather than scrolling because the page is long -- a scrolling emblem would
+ * pass through the content and read as a rendering fault. */
+.missions-page.has-watermark::before {
+  content: ''; position: fixed; z-index: 0; inset: 0; pointer-events: none;
+  background: var(--mission-watermark) center 54% / min(62vmin, 620px) no-repeat;
+  opacity: var(--mission-watermark-opacity, 0.08);
+  mix-blend-mode: screen;
+}
+.missions-page.has-watermark > * { position: relative; z-index: 1; }
+@media (max-width: 760px) { .missions-page.has-watermark::before { background-size: min(78vmin, 420px); } }
+
 .missions-hero { position: relative; isolation: isolate; overflow: hidden; min-height: 285px; display: flex; align-items: end; border-bottom: 1px solid rgba(83,133,169,0.32); }
 .missions-hero-art { position: absolute; z-index: -2; inset: 0; background: linear-gradient(90deg, rgba(6,7,16,0.94) 0%, rgba(7,10,21,0.72) 48%, rgba(7,9,21,0.45)), url('../images/world-neoh.jpg') center 47% / cover; filter: saturate(1.22) contrast(1.08) hue-rotate(8deg); }
 .missions-hero-art::after { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(112,228,242,0.035) 0, rgba(112,228,242,0.035) 1px, transparent 1px, transparent 4px); mix-blend-mode: screen; }

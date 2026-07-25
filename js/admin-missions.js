@@ -71,6 +71,9 @@
 
   function refreshCount() {
     if (!count) return;
+    // Presentation is a settings form, not a list, so there is nothing to
+    // count -- printing "0 player missions" beside it would be wrong.
+    if (activePanel === 'presentation') { count.textContent = ''; return; }
     var total = activePanel === 'definitions' ? definitions.length : activePanel === 'crew' ? crew.length : playerMissions.length;
     count.textContent = total + (activePanel === 'definitions' ? ' mission' : activePanel === 'crew' ? ' crew member' : ' player mission') + (total === 1 ? '' : 's');
   }
@@ -151,7 +154,7 @@
 
   function switchPanel(panel) {
     activePanel = panel;
-    ['definitions', 'crew', 'player-missions'].forEach(function (name) {
+    ['definitions', 'crew', 'player-missions', 'presentation'].forEach(function (name) {
       var isActive = name === panel;
       var view = document.getElementById('mission-admin-' + name + '-panel');
       if (view) view.hidden = !isActive;
@@ -178,8 +181,23 @@
 
   window.loadMissionControl = function () {
     switchPanel(activePanel);
-    return Promise.all([loadDefinitions(), loadCrew(), loadPlayerMissions()]);
+    applyPresentationPermissions();
+    return Promise.all([loadDefinitions(), loadCrew(), loadPlayerMissions(), loadWatermark()]);
   };
+
+  /* A view-only session may inspect the watermark settings but not change them.
+   * Computed here rather than left to the static data-requires-permission
+   * sweep, because updateWatermarkPreview() re-evaluates the toggle's disabled
+   * state on every change and would otherwise re-enable it. */
+  function applyPresentationPermissions() {
+    var editable = can('missions.edit');
+    ['mission-watermark-upload', 'mission-watermark-browse', 'mission-watermark-clear', 'mission-watermark-save-btn'].forEach(function (id) {
+      var element = document.getElementById(id);
+      if (element) element.disabled = !editable;
+    });
+    document.getElementById('mission-watermark-url').readOnly = !editable;
+    document.getElementById('mission-watermark-opacity').disabled = !editable;
+  }
 
   function populateMissionSuccessionOptions(mission) {
     var select = document.getElementById('mission-definition-unlocks-after');
@@ -378,7 +396,6 @@
       .catch(function (error) { showModalError('mission-definition-modal-error', error.message); });
   });
 
-  document.getElementById('mission-crew-portrait').addEventListener('input', updatePortraitPreview);
   document.getElementById('mission-crew-save-btn').addEventListener('click', function () {
     if (!can('missions.edit')) return;
     var button = this;
@@ -401,37 +418,135 @@
   document.getElementById('mission-crew-image-modal-close').addEventListener('click', closeImageModal);
   document.getElementById('mission-crew-image-cancel-btn').addEventListener('click', closeImageModal);
   imageModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeImageModal);
-  document.getElementById('mission-crew-portrait-browse').addEventListener('click', function () {
-    var list = document.getElementById('mission-crew-image-list');
-    list.innerHTML = '<div class="admin-list-empty">Loading images&hellip;</div>';
-    imageModal.hidden = false;
-    request('/api/admin/missions/list-images.php').then(function (data) {
-      var images = (data.uploaded || []).concat(data.site || []);
-      if (!images.length) { blank(list, 'No compatible images were found. Upload a JPEG to start the crew library.'); return; }
-      list.innerHTML = '';
-      images.forEach(function (image) {
-        var button = document.createElement('button');
-        button.type = 'button'; button.className = 'admin-image-choice';
-        button.innerHTML = '<img src="' + escapeHtml(assetUrl(image.url)) + '" alt=""><span>' + escapeHtml(image.name) + '</span>';
-        button.addEventListener('click', function () {
-          document.getElementById('mission-crew-portrait').value = image.url;
-          updatePortraitPreview(); closeImageModal();
+
+  /* Upload + choose-from-library, wired once and reused. Crew portraits and the
+   * page watermark are two libraries with the same three controls, so this
+   * follows the shared IMAGE_FIELDS/wireImageField pattern the rest of the
+   * console already uses rather than a second hand-copied block. */
+  function wireImageField(config) {
+    var input = document.getElementById(config.input);
+    var uploadButton = document.getElementById(config.upload);
+    var fileInput = document.getElementById(config.file);
+    var kind = config.kind || 'crew';
+
+    document.getElementById(config.browse).addEventListener('click', function () {
+      var list = document.getElementById('mission-crew-image-list');
+      document.getElementById('mission-image-modal-title').textContent = config.pickerTitle;
+      document.getElementById('mission-image-modal-sub').textContent = config.pickerSub;
+      list.innerHTML = '<div class="admin-list-empty">Loading images&hellip;</div>';
+      imageModal.hidden = false;
+      request('/api/admin/missions/list-images.php?kind=' + encodeURIComponent(kind)).then(function (data) {
+        var images = (data.uploaded || []).concat(data.site || []);
+        if (!images.length) { blank(list, config.emptyMessage); return; }
+        list.innerHTML = '';
+        images.forEach(function (image) {
+          var button = document.createElement('button');
+          button.type = 'button'; button.className = 'admin-image-choice';
+          button.innerHTML = '<img src="' + escapeHtml(assetUrl(image.url)) + '" alt=""><span>' + escapeHtml(image.name) + '</span>';
+          button.addEventListener('click', function () {
+            input.value = image.url;
+            config.onChange(); closeImageModal();
+          });
+          list.appendChild(button);
         });
-        list.appendChild(button);
-      });
-    }).catch(function (error) { blank(list, error.message || 'Could not load the image library.'); });
+      }).catch(function (error) { blank(list, error.message || 'Could not load the image library.'); });
+    });
+
+    uploadButton.addEventListener('click', function () { fileInput.click(); });
+    fileInput.addEventListener('change', function () {
+      if (!this.files || !this.files[0]) return;
+      var form = new FormData();
+      form.append('image', this.files[0]);
+      form.append('kind', kind);
+      form.append('csrf', window.PW_AUTH && window.PW_AUTH.csrf ? window.PW_AUTH.csrf : '');
+      uploadButton.disabled = true; uploadButton.classList.add('is-busy');
+      fetch('/api/admin/missions/upload-image.php', { method: 'POST', credentials: 'same-origin', body: form })
+        .then(function (response) { return response.json().catch(function () { return {}; }); })
+        .then(function (data) {
+          if (!data.ok) throw new Error(data.error || config.uploadError);
+          input.value = data.url; config.onChange();
+        }).catch(function (error) { showModalError(config.errorTarget, error.message); })
+        .then(function () {
+          uploadButton.disabled = !can('missions.edit');
+          uploadButton.classList.remove('is-busy');
+          fileInput.value = '';
+        });
+    });
+    input.addEventListener('input', config.onChange);
+  }
+
+  wireImageField({
+    input: 'mission-crew-portrait', upload: 'mission-crew-portrait-upload',
+    browse: 'mission-crew-portrait-browse', file: 'mission-crew-portrait-file',
+    kind: 'crew', errorTarget: 'mission-crew-modal-error', onChange: updatePortraitPreview,
+    pickerTitle: 'Choose Crew Portrait',
+    pickerSub: 'Select a previously uploaded mission portrait or a compatible site image.',
+    emptyMessage: 'No compatible images were found. Upload a JPEG to start the crew library.',
+    uploadError: 'Could not upload this portrait.'
   });
-  document.getElementById('mission-crew-portrait-upload').addEventListener('click', function () { document.getElementById('mission-crew-portrait-file').click(); });
-  document.getElementById('mission-crew-portrait-file').addEventListener('change', function () {
-    if (!this.files || !this.files[0]) return;
-    var form = new FormData(); form.append('image', this.files[0]); form.append('csrf', window.PW_AUTH && window.PW_AUTH.csrf ? window.PW_AUTH.csrf : '');
-    var uploadButton = document.getElementById('mission-crew-portrait-upload'); uploadButton.disabled = true;
-    fetch('/api/admin/missions/upload-image.php', { method: 'POST', credentials: 'same-origin', body: form })
-      .then(function (response) { return response.json().catch(function () { return {}; }); })
-      .then(function (data) {
-        if (!data.ok) throw new Error(data.error || 'Could not upload this portrait.');
-        document.getElementById('mission-crew-portrait').value = data.url; updatePortraitPreview();
-      }).catch(function (error) { showModalError('mission-crew-modal-error', error.message); })
-      .then(function () { uploadButton.disabled = !can('missions.edit'); document.getElementById('mission-crew-portrait-file').value = ''; });
+
+  /* --- Presentation: the Missions page watermark ------------------------- */
+
+  function updateWatermarkPreview() {
+    var url = document.getElementById('mission-watermark-url').value.trim();
+    var preview = document.getElementById('mission-watermark-preview');
+    preview.hidden = !url;
+    if (url) preview.src = assetUrl(url);
+    var enabled = document.getElementById('mission-watermark-enabled');
+    // Nothing to show means nothing to switch on, matching the server, which
+    // stores "off" whenever the image is empty.
+    enabled.disabled = !url || !can('missions.edit');
+    if (!url) enabled.checked = false;
+    var opacity = Math.max(1, Math.min(40, Number(document.getElementById('mission-watermark-opacity').value) || 8));
+    var art = document.getElementById('mission-watermark-demo-art');
+    art.style.backgroundImage = url && enabled.checked ? 'url("' + assetUrl(url) + '")' : 'none';
+    art.style.opacity = String(opacity / 100);
+    document.getElementById('mission-watermark-demo').classList.toggle('is-empty', !url || !enabled.checked);
+  }
+
+  function applyWatermark(watermark) {
+    document.getElementById('mission-watermark-url').value = watermark && watermark.url ? watermark.url : '';
+    document.getElementById('mission-watermark-opacity').value = watermark && watermark.opacity ? watermark.opacity : 8;
+    document.getElementById('mission-watermark-enabled').checked = !!(watermark && watermark.enabled);
+    updateWatermarkPreview();
+  }
+
+  function loadWatermark() {
+    return request('/api/admin/missions/settings-get.php')
+      .then(function (data) { applyWatermark(data.watermark); })
+      .catch(function (error) { showModalError('mission-watermark-error', error.message || 'Could not load the mission presentation settings.'); });
+  }
+
+  wireImageField({
+    input: 'mission-watermark-url', upload: 'mission-watermark-upload',
+    browse: 'mission-watermark-browse', file: 'mission-watermark-file',
+    kind: 'watermark', errorTarget: 'mission-watermark-error', onChange: updateWatermarkPreview,
+    pickerTitle: 'Choose Watermark',
+    pickerSub: 'Select a previously uploaded watermark or a compatible site image. A transparent PNG reads best behind the page.',
+    emptyMessage: 'No watermarks have been uploaded yet. Upload a transparent PNG to start the library.',
+    uploadError: 'Could not upload this watermark.'
+  });
+  document.getElementById('mission-watermark-opacity').addEventListener('input', updateWatermarkPreview);
+  document.getElementById('mission-watermark-enabled').addEventListener('change', updateWatermarkPreview);
+  document.getElementById('mission-watermark-clear').addEventListener('click', function () {
+    if (!can('missions.edit')) return;
+    document.getElementById('mission-watermark-url').value = '';
+    updateWatermarkPreview();
+  });
+  document.getElementById('mission-watermark-save-btn').addEventListener('click', function () {
+    if (!can('missions.edit')) return;
+    var button = this;
+    showModalError('mission-watermark-error', '');
+    document.getElementById('mission-watermark-status').textContent = '';
+    button.disabled = true; button.classList.add('is-busy');
+    request('/api/admin/missions/settings-save.php', {
+      url: document.getElementById('mission-watermark-url').value.trim(),
+      opacity: document.getElementById('mission-watermark-opacity').value,
+      enabled: document.getElementById('mission-watermark-enabled').checked
+    }).then(function (data) {
+      applyWatermark(data.watermark);
+      document.getElementById('mission-watermark-status').textContent = 'Presentation saved.';
+    }).catch(function (error) { showModalError('mission-watermark-error', error.message); })
+      .then(function () { button.disabled = !can('missions.edit'); button.classList.remove('is-busy'); });
   });
 }());

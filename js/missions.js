@@ -38,6 +38,34 @@
   function setStatus(message, isError) { statusMessage.textContent = message || ''; statusMessage.classList.toggle('is-error', !!isError); }
   function credits(value) { return (Math.max(0, Number(value) || 0)).toLocaleString(); }
 
+  /* The page watermark, configured once in Mission Control and the same for
+   * every player. Applied as two custom properties on the page element rather
+   * than as an <img>: it is decoration with no meaning to convey, so it stays
+   * out of the accessibility tree and out of the way of pointer events. The URL
+   * is re-validated here against the same allow-list the server applies --
+   * this value goes straight into a CSS url(), and a second check costs
+   * nothing. */
+  var WATERMARK_URL = /^(?:images\/[a-zA-Z0-9._-]{1,220}|\/uploads\/mission-images\/img_[a-f0-9]{16}\.(?:jpg|png))$/;
+  function applyWatermark(watermark) {
+    var page = document.querySelector('.missions-page');
+    if (!page) return;
+    var url = watermark && watermark.enabled ? String(watermark.url || '') : '';
+    if (!WATERMARK_URL.test(url)) {
+      page.classList.remove('has-watermark');
+      page.style.removeProperty('--mission-watermark');
+      page.style.removeProperty('--mission-watermark-opacity');
+      return;
+    }
+    /* Root-relative, not document-relative. A url() carried through a custom
+     * property resolves against the stylesheet that consumes it, not the page,
+     * so a stored "images/sigil.png" was being fetched from /css/images/ and
+     * silently failed -- only uploaded watermarks, which already start with a
+     * slash, would ever have appeared. */
+    page.style.setProperty('--mission-watermark', 'url("' + (url.charAt(0) === '/' ? url : '/' + url) + '")');
+    page.style.setProperty('--mission-watermark-opacity', String(Math.max(1, Math.min(40, Number(watermark.opacity) || 8)) / 100));
+    page.classList.add('has-watermark');
+  }
+
   /* Commander card in the right rail. The avatar is the site-wide
    * /uploads/avatars/<id>.jpg convention the header chip already uses, with the
    * same onerror fallback to an initial -- there is no avatar field on the
@@ -361,7 +389,7 @@
     state.data = data;
     var server = apiDate(data.server_time);
     state.serverOffset = server && !isNaN(server) ? server.getTime() - Date.now() : 0;
-    renderProfile(data); renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderHistory(data); tickCountdowns();
+    applyWatermark(data.watermark); renderProfile(data); renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderHistory(data); tickCountdowns();
   }
 
   /* Debrief shown after a claim. The server has already resolved everything by

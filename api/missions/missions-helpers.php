@@ -234,6 +234,47 @@ function pw_mission_stats_ready(PDO $db): bool {
     }
 }
 
+/* ------------------------------------------------------------------------
+ * Mission presentation.
+ *
+ * The watermark is a single site-wide image drawn softly behind the Missions
+ * page for every player. It lives in app_settings rather than a new table --
+ * there is exactly one of it, with no per-row identity to key on, which is the
+ * same reason Site Settings and Mail Settings live there.
+ * ---------------------------------------------------------------------- */
+
+/** Every path a watermark may point at. Anything else is discarded. */
+function pw_missions_watermark_url($value): string {
+    $url = trim((string)$value);
+    if ($url === '') return '';
+    return preg_match('~^(?:images/[a-zA-Z0-9._-]{1,220}|/uploads/mission-images/img_[a-f0-9]{16}\.(?:jpg|png))$~', $url) ? $url : '';
+}
+
+/**
+ * Read the watermark configuration.
+ *
+ * The stored URL is re-validated on the way out, not only on the way in: this
+ * value is written straight into a CSS url() on every player's page, so a row
+ * edited directly in the database must not be able to reach the browser.
+ */
+function pw_missions_watermark_settings(): array {
+    $settings = ['url' => '', 'enabled' => false, 'opacity' => 8];
+    try {
+        $stmt = pw_db()->prepare('SELECT `key`, value FROM app_settings WHERE `key` IN (?, ?, ?)');
+        $stmt->execute(['missions_watermark_url', 'missions_watermark_enabled', 'missions_watermark_opacity']);
+        foreach ($stmt->fetchAll() as $row) {
+            if ($row['key'] === 'missions_watermark_url') $settings['url'] = pw_missions_watermark_url($row['value']);
+            if ($row['key'] === 'missions_watermark_enabled') $settings['enabled'] = $row['value'] === '1';
+            if ($row['key'] === 'missions_watermark_opacity') $settings['opacity'] = max(1, min(40, (int)$row['value']));
+        }
+    } catch (Throwable $e) {
+        // app_settings is long-established, but a read failure here must never
+        // take the mission view down over a decorative background.
+    }
+    if ($settings['url'] === '') $settings['enabled'] = false;
+    return $settings;
+}
+
 /**
  * Mission Credits is a further additive migration. Same guarded-probe rule as
  * the migrations above: a missing column is a hard SQL error rather than NULL,

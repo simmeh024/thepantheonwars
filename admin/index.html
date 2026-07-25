@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=312">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=313">
 </head>
 <body>
 
@@ -2061,6 +2061,7 @@
           <button type="button" class="admin-filter-tab active" data-mission-panel="definitions" role="tab" aria-selected="true">Mission Definitions</button>
           <button type="button" class="admin-filter-tab" data-mission-panel="crew" role="tab" aria-selected="false">Crew</button>
           <button type="button" class="admin-filter-tab" data-mission-panel="player-missions" role="tab" aria-selected="false" data-requires-permission="missions.player_missions">Player Missions</button>
+          <button type="button" class="admin-filter-tab" data-mission-panel="presentation" role="tab" aria-selected="false">Presentation</button>
         </div>
         <button type="button" class="btn btn-solid" id="mission-definition-create-btn" data-requires-permission="missions.edit">+ Add Mission</button>
         <button type="button" class="btn btn-solid" id="mission-crew-create-btn" data-requires-permission="missions.edit" hidden>+ Add Crew Member</button>
@@ -2080,6 +2081,38 @@
       <div class="mission-admin-panel" id="mission-admin-player-missions-panel" hidden>
         <div class="mission-admin-columns mission-admin-player-columns" aria-hidden="true"><span>Player</span><span>Mission</span><span>Crew</span><span>Started</span><span>Completes</span><span>Status</span></div>
         <div class="admin-list mission-admin-list" id="mission-player-missions-list"><div class="admin-list-empty">Loading player missions&hellip;</div></div>
+      </div>
+
+      <div class="mission-admin-panel" id="mission-admin-presentation-panel" hidden>
+        <div class="admin-form-card">
+          <div class="admin-form-card-head">
+            <h2>Page watermark</h2>
+            <p>A single emblem drawn softly behind the Missions page for every player. It sits under all content and is never clickable, so it reads as part of the backdrop rather than as an image on the page.</p>
+          </div>
+          <div class="admin-field">
+            <label for="mission-watermark-url">Watermark image</label>
+            <div class="mission-portrait-field">
+              <img id="mission-watermark-preview" alt="" hidden>
+              <input type="text" id="mission-watermark-url" maxlength="255" placeholder="images/mission-sigil.png">
+              <input type="file" id="mission-watermark-file" accept="image/jpeg,image/png,image/webp" hidden>
+              <button type="button" class="btn" id="mission-watermark-upload">Upload image</button>
+              <button type="button" class="btn" id="mission-watermark-browse">Choose image</button>
+              <button type="button" class="btn" id="mission-watermark-clear">Clear</button>
+            </div>
+            <p class="admin-field-hint">A transparent PNG works best &mdash; uploads keep their transparency here rather than being flattened onto a panel the way crew portraits are. JPG and WEBP are accepted too. Leave this empty for no watermark.</p>
+          </div>
+          <div class="admin-field-row">
+            <div class="admin-field">
+              <label for="mission-watermark-opacity">Strength (%)</label>
+              <input type="number" id="mission-watermark-opacity" min="1" max="40" step="1" value="8">
+            </div>
+            <label class="admin-setting-toggle"><span><strong>Show watermark</strong><small>Turn off to hide it without losing the image or its settings.</small></span><input type="checkbox" id="mission-watermark-enabled"></label>
+          </div>
+          <p class="admin-field-hint">Strength is capped at 40% deliberately: past that the emblem starts competing with mission text for attention. Around 6&ndash;10% suits a light emblem on this page&rsquo;s dark backdrop.</p>
+          <div class="mission-watermark-demo" id="mission-watermark-demo" aria-hidden="true"><span class="mission-watermark-demo-art" id="mission-watermark-demo-art"></span><span class="mission-watermark-demo-copy"><strong>Neoh Operations</strong><small>Live preview at the current strength</small></span></div>
+          <p class="admin-modal-error" id="mission-watermark-error"></p><p class="admin-modal-status" id="mission-watermark-status"></p>
+          <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="mission-watermark-save-btn">Save Presentation</button></div>
+        </div>
       </div>
     </section>
 
@@ -4076,7 +4109,7 @@
   <div class="admin-modal-backdrop"></div>
   <div class="admin-modal-inner admin-modal-inner-wide">
     <button type="button" class="admin-modal-close" id="mission-crew-image-modal-close" aria-label="Close">&times;</button>
-    <h3 class="admin-modal-title">Choose Crew Portrait</h3><p class="admin-modal-sub">Select a previously uploaded mission portrait or a compatible site image.</p>
+    <h3 class="admin-modal-title" id="mission-image-modal-title">Choose Crew Portrait</h3><p class="admin-modal-sub" id="mission-image-modal-sub">Select a previously uploaded mission portrait or a compatible site image.</p>
     <div class="admin-image-grid" id="mission-crew-image-list"><div class="admin-list-empty">Loading images&hellip;</div></div>
     <div class="admin-modal-actions"><button type="button" class="btn" id="mission-crew-image-cancel-btn">Cancel</button></div>
   </div>
@@ -4222,7 +4255,7 @@
 </div>
 
 <script src="../js/members.js?v=40"></script>
-<script src="../js/admin-missions.js?v=5"></script>
+<script src="../js/admin-missions.js?v=6"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
