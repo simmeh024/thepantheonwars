@@ -1760,10 +1760,14 @@ CREATE TABLE IF NOT EXISTS game_mission_definitions (
   reputation_reward INT UNSIGNED NOT NULL DEFAULT 0,
   is_enabled TINYINT(1) NOT NULL DEFAULT 1,
   sort_order INT NOT NULL DEFAULT 0,
+  unlocks_after_mission_id INT UNSIGNED NULL,
+  unlocks_after_completion_count SMALLINT UNSIGNED NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_game_mission_definition_slug (slug),
-  KEY idx_game_mission_definition_world (world_key, is_enabled, sort_order)
+  KEY idx_game_mission_definition_world (world_key, is_enabled, sort_order),
+  KEY idx_game_mission_definition_successor (unlocks_after_mission_id),
+  CONSTRAINT fk_game_mission_definition_successor FOREIGN KEY (unlocks_after_mission_id) REFERENCES game_mission_definitions(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS game_player_missions (

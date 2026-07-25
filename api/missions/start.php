@@ -9,7 +9,7 @@ $missionId = filter_var($input['mission_id'] ?? null, FILTER_VALIDATE_INT);
 if ($missionId === false || $missionId < 1) pw_error('Choose a valid mission.');
 $crewIds = pw_missions_normalize_crew_ids($input['crew_ids'] ?? null);
 $db = pw_db();
-pw_missions_require_ready($db);
+pw_missions_require_successions_ready($db);
 $userId = (int)$user['id'];
 
 try {
@@ -21,6 +21,23 @@ try {
     $mission = $missionStmt->fetch();
     if (!$mission || !(bool)$mission['is_enabled'] || $mission['world_key'] !== 'neoh') {
         throw new RuntimeException('That mission is no longer available.');
+    }
+    if ($mission['unlocks_after_mission_id'] !== null) {
+        $requiredCompletions = max(1, (int)$mission['unlocks_after_completion_count']);
+        $completedStmt = $db->prepare(
+            'SELECT COUNT(*) FROM game_player_missions
+             WHERE user_id = ? AND mission_definition_id = ? AND status = "claimed"'
+        );
+        $completedStmt->execute([$userId, (int)$mission['unlocks_after_mission_id']]);
+        $completedCount = (int)$completedStmt->fetchColumn();
+        if ($completedCount < $requiredCompletions) {
+            $prerequisiteStmt = $db->prepare('SELECT name FROM game_mission_definitions WHERE id = ?');
+            $prerequisiteStmt->execute([(int)$mission['unlocks_after_mission_id']]);
+            $prerequisite = $prerequisiteStmt->fetch();
+            $remaining = $requiredCompletions - $completedCount;
+            $name = $prerequisite ? $prerequisite['name'] : 'the prerequisite mission';
+            throw new RuntimeException('Complete ' . $name . ' ' . $remaining . ' more ' . ($remaining === 1 ? 'time' : 'times') . ' to unlock this mission.');
+        }
     }
     if (count($crewIds) < (int)$mission['min_crew'] || count($crewIds) > (int)$mission['max_crew']) {
         throw new RuntimeException('This mission requires between ' . (int)$mission['min_crew'] . ' and ' . (int)$mission['max_crew'] . ' crew members.');

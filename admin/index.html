@@ -4039,6 +4039,11 @@
       <div class="admin-field"><label for="mission-definition-reputation">Reputation reward</label><input type="number" id="mission-definition-reputation" min="0" max="100000" step="1" value="0"></div>
       <label class="admin-setting-toggle"><span><strong>Enabled</strong><small>Disabled missions stay in history but cannot be launched.</small></span><input type="checkbox" id="mission-definition-enabled" checked></label>
     </div>
+    <div class="admin-field-row">
+      <div class="admin-field"><label for="mission-definition-unlocks-after">Unlocks after</label><select id="mission-definition-unlocks-after"><option value="">No prerequisite &mdash; available immediately</option></select></div>
+      <div class="admin-field"><label for="mission-definition-unlock-completions">Successful runs required</label><input type="number" id="mission-definition-unlock-completions" min="1" max="999" step="1" value="0" disabled></div>
+    </div>
+    <p class="admin-field-hint" id="mission-definition-unlock-hint">Choose a previous mission to make this a tougher follow-up operation.</p>
     <p class="admin-modal-error" id="mission-definition-modal-error"></p><p class="admin-modal-status" id="mission-definition-modal-status"></p>
     <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="mission-definition-save-btn">Save Mission</button><button type="button" class="btn" id="mission-definition-cancel-btn">Cancel</button><button type="button" class="admin-delete-btn" id="mission-definition-delete-btn" hidden>Delete Mission</button></div>
   </div>
@@ -4209,7 +4214,7 @@
 </div>
 
 <script src="../js/members.js?v=40"></script>
-<script src="../js/admin-missions.js?v=1"></script>
+<script src="../js/admin-missions.js?v=2"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };

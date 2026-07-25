@@ -39,6 +39,30 @@ function pw_missions_require_ready(PDO $db): void {
 }
 
 /**
+ * Mission Successions is an additive migration on top of Missions V0. Keep it
+ * separate from the base table probe so an older, otherwise working mission
+ * installation receives an actionable migration message instead of a generic
+ * SQL failure when progression data is requested.
+ */
+function pw_mission_successions_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_missions_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT unlocks_after_mission_id, unlocks_after_completion_count FROM `game_mission_definitions` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+function pw_missions_require_successions_ready(PDO $db): void {
+    if (!pw_mission_successions_ready($db)) {
+        pw_error('Mission progressions are being prepared. Please try again after the Mission Successions migration has been run.', 503);
+    }
+}
+
+/**
  * Starter templates are cloned into a player-owned crew record the first time
  * the player visits Missions. INSERT IGNORE and the unique user/template key
  * make this safe across simultaneous page loads and future starter additions.

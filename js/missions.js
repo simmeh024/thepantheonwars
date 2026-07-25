@@ -60,8 +60,15 @@
     var available = availableCrew().length;
     if (!data.missions.length) { definitionList.innerHTML = '<p class="missions-empty">No Neoh operations are available at the moment.</p>'; return; }
     definitionList.innerHTML = data.missions.map(function (mission) {
-      var canLaunch = available >= mission.min_crew;
-      return '<article class="mission-definition-card"><div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p><dl class="mission-definition-meta"><div><dt>Crew</dt><dd>' + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + '</dd></div><div><dt>XP</dt><dd>+' + mission.xp_reward + ' per crew</dd></div><div><dt>Reputation</dt><dd>' + (mission.reputation_reward ? '+' + mission.reputation_reward : '—') + '</dd></div></dl><button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + (canLaunch ? 'Select Crew' : 'Crew Unavailable') + '</button></article>';
+      var unlocked = !!mission.is_unlocked;
+      var canLaunch = unlocked && available >= mission.min_crew;
+      var unlockState = mission.unlocks_after_mission_id
+        ? '<p class="mission-unlock-state ' + (unlocked ? 'is-unlocked' : 'is-locked') + '">' + (unlocked
+          ? 'Unlocked through ' + escapeHtml(mission.unlocks_after_mission_name || 'a previous operation')
+          : 'Locked: ' + escapeHtml(mission.unlocks_after_mission_name || 'previous operation') + ' — ' + Number(mission.unlocks_after_completed_count || 0) + ' / ' + Number(mission.unlocks_after_completion_count || 0) + ' successful runs') + '</p>'
+        : '<p class="mission-unlock-state is-base">Available immediately</p>';
+      var launchLabel = !unlocked ? 'Mission Locked' : canLaunch ? 'Select Crew' : 'Crew Unavailable';
+      return '<article class="mission-definition-card ' + (unlocked ? '' : 'is-locked') + '"><div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p>' + unlockState + '<dl class="mission-definition-meta"><div><dt>Crew</dt><dd>' + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + '</dd></div><div><dt>XP</dt><dd>+' + mission.xp_reward + ' per crew</dd></div><div><dt>Reputation</dt><dd>' + (mission.reputation_reward ? '+' + mission.reputation_reward : '—') + '</dd></div></dl><button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + launchLabel + '</button></article>';
     }).join('');
   }
 

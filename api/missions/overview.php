@@ -3,7 +3,7 @@ require_once __DIR__ . '/missions-helpers.php';
 
 $user = pw_require_login();
 $db = pw_db();
-pw_missions_require_ready($db);
+pw_missions_require_successions_ready($db);
 $userId = (int)$user['id'];
 
 try {
@@ -34,15 +34,33 @@ try {
         return $row;
     }, $crewStmt->fetchAll());
 
-    $missions = $db->query(
-        'SELECT id, world_key, name, slug, description, mission_type, duration_seconds,
-                min_crew, max_crew, xp_reward, reputation_reward, sort_order
-         FROM game_mission_definitions
-         WHERE is_enabled = 1 AND world_key = "neoh"
-         ORDER BY sort_order ASC, id ASC'
-    )->fetchAll();
+    $missionsStmt = $db->prepare(
+        'SELECT mission.id, mission.world_key, mission.name, mission.slug, mission.description, mission.mission_type, mission.duration_seconds,
+                mission.min_crew, mission.max_crew, mission.xp_reward, mission.reputation_reward, mission.sort_order,
+                mission.unlocks_after_mission_id, mission.unlocks_after_completion_count,
+                prerequisite.name AS unlocks_after_mission_name,
+                COALESCE(completions.completed_count, 0) AS unlocks_after_completed_count
+         FROM game_mission_definitions mission
+         LEFT JOIN game_mission_definitions prerequisite ON prerequisite.id = mission.unlocks_after_mission_id
+         LEFT JOIN (
+             SELECT mission_definition_id, COUNT(*) AS completed_count
+             FROM game_player_missions
+             WHERE user_id = ? AND status = "claimed"
+             GROUP BY mission_definition_id
+         ) completions ON completions.mission_definition_id = mission.unlocks_after_mission_id
+         WHERE mission.is_enabled = 1 AND mission.world_key = "neoh"
+         ORDER BY mission.sort_order ASC, mission.id ASC'
+    );
+    $missionsStmt->execute([$userId]);
+    $missions = $missionsStmt->fetchAll();
     $missions = array_map(static function ($row) {
-        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order'] as $field) $row[$field] = (int)$row[$field];
+        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order', 'unlocks_after_completion_count', 'unlocks_after_completed_count'] as $field) $row[$field] = (int)$row[$field];
+        $row['unlocks_after_mission_id'] = $row['unlocks_after_mission_id'] !== null ? (int)$row['unlocks_after_mission_id'] : null;
+        if ($row['unlocks_after_mission_id'] !== null) {
+            $row['unlocks_after_completion_count'] = max(1, $row['unlocks_after_completion_count']);
+        }
+        $row['is_unlocked'] = $row['unlocks_after_mission_id'] === null
+            || $row['unlocks_after_completed_count'] >= $row['unlocks_after_completion_count'];
         return $row;
     }, $missions);
 

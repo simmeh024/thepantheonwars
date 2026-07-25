@@ -5,6 +5,10 @@ function pw_admin_missions_require_ready(PDO $db): void {
     pw_missions_require_ready($db);
 }
 
+function pw_admin_mission_successions_require_ready(PDO $db): void {
+    pw_missions_require_successions_ready($db);
+}
+
 function pw_admin_mission_definition_input(array $input): array {
     $name = trim((string)($input['name'] ?? ''));
     if ($name === '' || mb_strlen($name) > 150) pw_error('Mission name must be between 1 and 150 characters.');
@@ -30,12 +34,48 @@ function pw_admin_mission_definition_input(array $input): array {
     }
     $sortOrder = filter_var($input['sort_order'] ?? 0, FILTER_VALIDATE_INT);
     if ($sortOrder === false || $sortOrder < 0 || $sortOrder > 100000) pw_error('Sort order must be between 0 and 100000.');
+    $unlocksAfterRaw = trim((string)($input['unlocks_after_mission_id'] ?? ''));
+    $unlocksAfterMissionId = null;
+    if ($unlocksAfterRaw !== '') {
+        $unlocksAfterMissionId = filter_var($unlocksAfterRaw, FILTER_VALIDATE_INT);
+        if ($unlocksAfterMissionId === false || $unlocksAfterMissionId < 1) pw_error('Choose a valid mission prerequisite.');
+    }
+    $unlocksAfterCompletionCount = $unlocksAfterMissionId === null ? 0 : filter_var($input['unlocks_after_completion_count'] ?? null, FILTER_VALIDATE_INT);
+    if ($unlocksAfterMissionId !== null && ($unlocksAfterCompletionCount === false || $unlocksAfterCompletionCount < 1 || $unlocksAfterCompletionCount > 999)) {
+        pw_error('A mission succession requires between 1 and 999 completed runs.');
+    }
     return [
         'name' => $name, 'slug' => $slug, 'world_key' => $worldKey, 'description' => $description,
         'mission_type' => $missionType, 'duration_seconds' => $duration, 'min_crew' => $minCrew, 'max_crew' => $maxCrew,
         'xp_reward' => $xpReward, 'reputation_reward' => $reputationReward,
         'is_enabled' => !empty($input['is_enabled']) ? 1 : 0, 'sort_order' => $sortOrder,
+        'unlocks_after_mission_id' => $unlocksAfterMissionId,
+        'unlocks_after_completion_count' => $unlocksAfterCompletionCount,
     ];
+}
+
+/**
+ * Successor links form a directed chain. A mission may not use itself, a
+ * different world, or any of its own successors as the prerequisite.
+ */
+function pw_admin_validate_mission_succession(PDO $db, ?int $missionId, array $data): void {
+    $prerequisiteId = $data['unlocks_after_mission_id'];
+    if ($prerequisiteId === null) return;
+    if ($missionId !== null && $prerequisiteId === $missionId) pw_error('A mission cannot unlock after itself.');
+
+    $lookup = $db->prepare('SELECT id, world_key, unlocks_after_mission_id FROM game_mission_definitions WHERE id = ?');
+    $cursor = $prerequisiteId;
+    $visited = [];
+    while ($cursor !== null) {
+        if (isset($visited[$cursor])) pw_error('Mission succession cannot contain a loop.');
+        $visited[$cursor] = true;
+        if ($missionId !== null && $cursor === $missionId) pw_error('A mission cannot unlock after one of its own successors.');
+        $lookup->execute([$cursor]);
+        $mission = $lookup->fetch();
+        if (!$mission) pw_error('The selected prerequisite mission no longer exists.', 404);
+        if ($mission['world_key'] !== $data['world_key']) pw_error('A mission can only follow another mission in the same world.');
+        $cursor = $mission['unlocks_after_mission_id'] !== null ? (int)$mission['unlocks_after_mission_id'] : null;
+    }
 }
 
 function pw_admin_mission_crew_portrait($value): string {

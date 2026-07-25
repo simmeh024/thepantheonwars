@@ -61,12 +61,16 @@
 .missions-neoh-section { position: relative; padding: 26px; border: 1px solid rgba(65,148,178,0.38); background: linear-gradient(135deg, rgba(15,54,72,0.25), rgba(17,10,36,0.42)); }
 .missions-neoh-section::before { content: 'NEOH'; position: absolute; top: 18px; right: 26px; color: rgba(102,220,230,0.055); font: 600 clamp(3rem,10vw,8rem)/1 'Cinzel', serif; letter-spacing: 0.08em; pointer-events: none; }
 .mission-definition-card { display: flex; flex-direction: column; min-height: 290px; background: rgba(11,24,43,0.72); }
+.mission-definition-card.is-locked { border-color: rgba(113,105,146,0.4); background: linear-gradient(145deg, rgba(21,27,47,0.78), rgba(26,17,44,0.86)); }
 .mission-definition-card p { margin: 0; color: #a9bdcb; font-size: 0.8rem; line-height: 1.58; }
+.mission-unlock-state { min-height: 20px; margin: 12px 0 0 !important; color: #87a7bb !important; font-size: .66rem !important; font-weight: 600; letter-spacing: .035em; line-height: 1.4 !important; }
+.mission-unlock-state.is-base { color: #73cbd6 !important; }.mission-unlock-state.is-unlocked { color: #9edba8 !important; }.mission-unlock-state.is-locked { color: #d5b271 !important; }
 .mission-definition-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: auto 0 17px; padding-top: 18px; }
 .mission-definition-meta div { min-width: 0; }
 .mission-definition-meta dt { margin-bottom: 3px; color: #758fa7; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; }
 .mission-definition-meta dd { margin: 0; color: #e9d399; font-size: 0.72rem; line-height: 1.35; }
 .mission-definition-card .btn:disabled { cursor: not-allowed; opacity: 0.42; }
+.mission-definition-card.is-locked .mission-launch-btn:disabled { border-color: rgba(192,153,96,0.4); color: #d4ad71; }
 .missions-crew-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(305px, 1fr)); gap: 14px; }
 .missions-crew-controls { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 10px 12px; align-items: end; margin: -3px 0 16px; padding: 13px; border: 1px solid rgba(80,129,168,0.34); background: rgba(10,20,38,0.48); }
 .missions-crew-control { display: grid; min-width: 0; gap: 5px; }
