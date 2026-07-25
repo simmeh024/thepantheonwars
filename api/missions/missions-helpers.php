@@ -17,12 +17,13 @@ function pw_missions_ready(PDO $db): bool {
             'game_player_missions',
             'game_player_mission_crew',
         ] as $table) {
-            $stmt = $db->prepare('SHOW TABLES LIKE ?');
-            $stmt->execute([$table]);
-            if (!$stmt->fetch()) {
-                $ready = false;
-                return false;
-            }
+            /* MariaDB/PDO does not consistently support the previous
+             * parameterized table-listing probe as a native prepared
+             * statement. It can throw even when the table exists, and the
+             * catch below then incorrectly reports that Missions V0 has not
+             * been migrated. Table names here are an internal fixed allow-list,
+             * so a direct, quoted probe is safe. */
+            $db->query('SELECT 1 FROM `' . $table . '` LIMIT 1');
         }
         $ready = true;
     } catch (Throwable $e) {
