@@ -193,42 +193,58 @@
    * cleared blocks are filled, the block in progress fills by the share of
    * successful runs it still needs, and every later block stays blank and
    * unnamed -- it is the only acknowledgement that further operations exist. */
-  function campaignTrackMarkup(campaign) {
-    var blocks = campaign.steps.map(function (step) {
-      var fill = step.is_complete ? 100 : step.state === 'current' && step.runs_required > 0
-        ? Math.min(100, Math.round((step.runs_done / step.runs_required) * 100))
-        : 0;
-      var label = step.state === 'offline'
-        ? 'Operation ' + step.position + ': ' + (step.name || 'sealed') + ' — off the roster'
-        : step.name
-          ? 'Operation ' + step.position + ': ' + step.name
-          : 'Operation ' + step.position + ': sealed until reached';
-      return '<span class="mission-campaign-block is-' + step.state + '" title="' + escapeHtml(label) + '"><i style="width:' + fill + '%"></i></span>';
-    }).join('');
-    return '<div class="mission-campaign-track" role="img" aria-label="Campaign progress: '
-      + campaign.completed_steps + ' of ' + campaign.total_steps + ' operations complete.">' + blocks + '</div>';
+  function campaignStepLabel(step) {
+    if (step.state === 'offline') return 'Operation ' + step.position + ': ' + (step.name || 'sealed') + ' — off the roster';
+    if (!step.name) return 'Operation ' + step.position + ': sealed until reached';
+    return 'Operation ' + step.position + ': ' + step.name
+      + (step.is_complete ? ' — complete' : step.state === 'current'
+        ? ' — ' + step.runs_done + ' / ' + step.runs_required + ' run' + (step.runs_required === 1 ? '' : 's')
+        : '');
   }
 
-  function campaignStateMarkup(campaign) {
-    var current = campaign.steps[campaign.current_index];
-    var line = campaign.is_complete
-      ? 'Campaign complete — all ' + campaign.total_steps + ' operations secured.'
-      : 'Operation ' + current.position + ' of ' + campaign.total_steps + ' · '
-        + current.runs_done + ' / ' + current.runs_required + ' successful run' + (current.runs_required === 1 ? '' : 's');
+  function campaignStateLine(campaign) {
     /* The track has rolled back to an earlier operation because the next one is
      * off the roster. Say so plainly -- being handed an operation you already
      * cleared, with no explanation, reads as lost progress. */
     if (campaign.rolled_back) {
       var offline = campaign.steps[campaign.offline_index];
       var shown = campaign.steps[campaign.display_index];
-      line = 'Operation ' + offline.position + ' is off the roster. Operation ' + shown.position
+      return 'Operation ' + offline.position + ' is off the roster. Operation ' + shown.position
         + ' is available to run again in the meantime — your progress is held.';
     }
-    return '<div class="mission-campaign-strip' + (campaign.is_complete ? ' is-complete' : '')
-      + (campaign.rolled_back ? ' is-rolled-back' : '') + '">'
-      + '<div class="mission-campaign-strip-head"><span>Campaign track</span><strong>' + campaign.completed_steps + ' / ' + campaign.total_steps + '</strong></div>'
-      + campaignTrackMarkup(campaign)
-      + '<small class="mission-campaign-strip-note">' + escapeHtml(line) + '</small></div>';
+    if (campaign.is_complete) return 'Campaign complete — all ' + campaign.total_steps + ' operations secured.';
+    var current = campaign.steps[campaign.current_index];
+    return 'Operation ' + current.position + ' of ' + campaign.total_steps + ' · '
+      + current.runs_done + ' / ' + current.runs_required + ' successful run' + (current.runs_required === 1 ? '' : 's');
+  }
+
+  /* Everything the old heading and note said, moved into one hover/focus
+   * tooltip on the bar itself. Deliberately one target rather than a title per
+   * block: a block is only a few pixels wide, and a browser shows the innermost
+   * title, so per-block tooltips would leave the summary reachable only in the
+   * 3px gaps between them. */
+  function campaignDetailText(campaign) {
+    var lines = ['Campaign track — ' + campaign.completed_steps + ' / ' + campaign.total_steps + ' operations complete'];
+    campaign.steps.forEach(function (step) { lines.push(campaignStepLabel(step)); });
+    lines.push(campaignStateLine(campaign));
+    return lines.join('\n');
+  }
+
+  /* The campaign track drawn under a chain's card. One block per operation:
+   * cleared blocks are filled, the block in progress fills by the share of
+   * successful runs it still needs, and every later block stays blank and
+   * unnamed -- it is the only acknowledgement that further operations exist. */
+  function campaignBarMarkup(campaign) {
+    var blocks = campaign.steps.map(function (step) {
+      var fill = step.is_complete ? 100 : step.state === 'current' && step.runs_required > 0
+        ? Math.min(100, Math.round((step.runs_done / step.runs_required) * 100))
+        : 0;
+      return '<span class="mission-campaign-block is-' + step.state + '"><i style="width:' + fill + '%"></i></span>';
+    }).join('');
+    var detail = campaignDetailText(campaign);
+    return '<div class="mission-campaign-track mission-campaign-bar' + (campaign.is_complete ? ' is-complete' : '')
+      + (campaign.rolled_back ? ' is-rolled-back' : '') + '" tabindex="0" title="' + escapeHtml(detail)
+      + '" role="img" aria-label="' + escapeHtml(detail.split('\n').join(' ')) + '">' + blocks + '</div>';
   }
 
   /* A mission that can fail must say so before a crew is committed. The base
@@ -252,26 +268,50 @@
   /* Each entry is one slot: a standalone mission, or a campaign track showing
    * only its current step. The server sends nothing about a sealed operation,
    * so there is no locked-card branch here by design. */
+  function definitionCardMarkup(mission, available) {
+    var campaign = mission.campaign;
+
+    if (mission.is_offline) {
+      return '<article class="mission-definition-card is-offline">'
+        + '<h3>Operation offline</h3><p>Command has taken this operation off the roster for now. Your progress is held.</p>'
+        + (campaign ? campaignBarMarkup(campaign) : '') + '</article>';
+    }
+
+    var canLaunch = available >= mission.min_crew;
+    var watermark = missionWatermark(mission);
+    /* No type pill on the card: the group heading above it already says which
+     * kind of operation this is. */
+    return '<article class="mission-definition-card' + (campaign ? ' has-campaign' : '') + watermark.className + '"' + watermark.style + '><div class="mission-card-top"><span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p>'
+      + (campaign ? '' : '<p class="mission-unlock-state is-base">Available immediately</p>')
+      + '<dl class="mission-definition-meta"><div><dt>Crew</dt><dd>' + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + '</dd></div><div><dt>XP</dt><dd>+' + mission.xp_reward + ' per crew</dd></div><div><dt>Reputation</dt><dd>' + (mission.reputation_reward ? '+' + mission.reputation_reward : '—') + '</dd></div>'
+        + (Number(mission.credit_reward) > 0 ? '<div><dt>Credits</dt><dd class="is-credits">+' + credits(mission.credit_reward) + '</dd></div>' : '') + '</dl>'
+      + missionRiskMarkup(mission)
+      + '<button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + (canLaunch ? 'Select Crew' : 'Crew Unavailable') + '</button>'
+      + (campaign ? campaignBarMarkup(campaign) : '') + '</article>';
+  }
+
+  /* Grouped by operation type (Recon, Survey, Salvage, ...) so the roster reads
+   * as a few short shelves instead of one long run of cards. Group order
+   * follows the server's own sort_order via first appearance, never
+   * alphabetical -- the roster is authored in a deliberate order. An offline
+   * slot carries no mission_type (the server sends only its bar), so it gets
+   * its own group rather than a guessed one. */
   function renderDefinitions(data) {
     var available = availableCrew().length;
     if (!data.missions.length) { definitionList.innerHTML = '<p class="missions-empty">No Neoh operations are available at the moment.</p>'; return; }
-    definitionList.innerHTML = data.missions.map(function (mission) {
-      var campaign = mission.campaign;
-
-      if (mission.is_offline) {
-        return '<article class="mission-definition-card is-offline"><div class="mission-card-top"><span class="mission-type">Campaign</span></div>'
-          + '<h3>Operation offline</h3><p>Command has taken this operation off the roster for now. Your progress is held.</p>'
-          + (campaign ? campaignStateMarkup(campaign) : '') + '</article>';
-      }
-
-      var canLaunch = available >= mission.min_crew;
-      var watermark = missionWatermark(mission);
-      return '<article class="mission-definition-card' + (campaign ? ' has-campaign' : '') + watermark.className + '"' + watermark.style + '><div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p>'
-        + (campaign ? campaignStateMarkup(campaign) : '<p class="mission-unlock-state is-base">Available immediately</p>')
-        + '<dl class="mission-definition-meta"><div><dt>Crew</dt><dd>' + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + '</dd></div><div><dt>XP</dt><dd>+' + mission.xp_reward + ' per crew</dd></div><div><dt>Reputation</dt><dd>' + (mission.reputation_reward ? '+' + mission.reputation_reward : '—') + '</dd></div>'
-          + (Number(mission.credit_reward) > 0 ? '<div><dt>Credits</dt><dd class="is-credits">+' + credits(mission.credit_reward) + '</dd></div>' : '') + '</dl>'
-        + missionRiskMarkup(mission)
-        + '<button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + (canLaunch ? 'Select Crew' : 'Crew Unavailable') + '</button></article>';
+    var order = [];
+    var groups = {};
+    data.missions.forEach(function (mission) {
+      var label = mission.is_offline ? 'Off the roster' : String(mission.mission_type || 'Operations');
+      if (!groups[label]) { groups[label] = []; order.push(label); }
+      groups[label].push(mission);
+    });
+    definitionList.innerHTML = order.map(function (label) {
+      var cards = groups[label].map(function (mission) { return definitionCardMarkup(mission, available); }).join('');
+      return '<details class="mission-type-group" open><summary class="mission-type-group-head">'
+        + '<span class="mission-type-group-name">' + escapeHtml(label) + '</span>'
+        + '<span class="mission-type-group-count">' + groups[label].length + ' operation' + (groups[label].length === 1 ? '' : 's') + '</span>'
+        + '</summary><div class="missions-definition-grid">' + cards + '</div></details>';
     }).join('');
   }
 

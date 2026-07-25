@@ -52,14 +52,14 @@
 .mission-feed-entry p { margin: 5px 0 0; color: #b4c9d6; font-size: .72rem; line-height: 1.42; }
 .mission-feed-entry.is-live .mission-feed-code { color: #7ce2e8; }.mission-feed-entry.is-ready .mission-feed-code { color: #ebd18a; }.mission-feed-entry.is-watch .mission-feed-code { color: #d6a777; }.mission-feed-entry.is-muted { opacity: .76; }
 .mission-feed-empty { padding: 16px 0 0; color: #88a2b2; font-size: .74rem; }
-/* Campaign track, drawn inside a chain's own mission card. One block per
- * operation; blocks the player has not reached carry no name, so the strip
- * communicates how far the campaign runs without revealing what is in it. */
-.mission-campaign-strip { margin: 12px 0 0; padding: 10px 11px 9px; border: 1px solid rgba(88,142,181,0.3); background: rgba(8,18,33,0.55); }
-.mission-campaign-strip-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 7px; }
-.mission-campaign-strip-head span { color: #79d9df; font-size: 0.58rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.mission-campaign-strip-head strong { color: #cfe3ef; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+/* Campaign track, drawn under a chain's own mission card, below its action. One
+ * block per operation; blocks the player has not reached carry no name, so the
+ * bar communicates how far the campaign runs without revealing what is in it.
+ * The counts and the current-operation state live in its hover/focus tooltip
+ * rather than in printed lines, which is what keeps the card compact. */
 .mission-campaign-track { display: flex; gap: 3px; }
+.mission-campaign-bar { margin-top: 13px; cursor: help; }
+.mission-campaign-bar:focus-visible { outline: 2px solid rgba(126,227,232,0.65); outline-offset: 3px; }
 .mission-campaign-block { position: relative; flex: 1 1 0; min-width: 0; height: 10px; overflow: hidden; border: 1px solid rgba(103,152,190,0.4); background: rgba(9,19,35,0.7); }
 .mission-campaign-block i { display: block; height: 100%; background: linear-gradient(90deg, #4fc6d6, #7ee3e8); box-shadow: 0 0 10px rgba(110,224,232,0.45); transition: width .5s ease; }
 .mission-campaign-block.is-current { border-color: rgba(235,209,138,0.6); }
@@ -68,14 +68,10 @@
 /* An operation taken off the roster. Hatched rather than simply dimmed, so it
  * cannot be mistaken for a step the player has not reached yet. */
 .mission-campaign-block.is-offline { border-color: rgba(214,167,119,0.55); background: repeating-linear-gradient(135deg, rgba(214,167,119,0.22) 0 3px, rgba(9,19,35,0.7) 3px 6px); }
-.mission-campaign-strip.is-rolled-back { border-color: rgba(214,167,119,0.4); }
-.mission-campaign-strip.is-rolled-back .mission-campaign-strip-note { color: #d6a777; }
-.mission-campaign-strip.is-complete .mission-campaign-block i { background: linear-gradient(90deg, #6ad2a2, #9edba8); box-shadow: 0 0 10px rgba(158,219,168,0.45); }
-.mission-campaign-strip-note { display: block; margin-top: 7px; color: #a9bdcb; font-size: 0.66rem; letter-spacing: .02em; line-height: 1.4; }
-.mission-campaign-strip.is-complete .mission-campaign-strip-note { color: #9edba8; font-weight: 600; }
+.mission-campaign-bar.is-complete .mission-campaign-block i { background: linear-gradient(90deg, #6ad2a2, #9edba8); box-shadow: 0 0 10px rgba(158,219,168,0.45); }
 .mission-definition-card.is-offline { border-color: rgba(113,105,146,0.4); background: linear-gradient(145deg, rgba(21,27,47,0.78), rgba(26,17,44,0.86)); }
 .mission-definition-card.is-offline h3 { color: #b9b3cc; }
-@media (prefers-reduced-motion: reduce) { .mission-campaign-block i { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .mission-campaign-block i, .mission-type-group-head::after { transition: none; } }
 @media (max-width: 620px) { .mission-campaign-block { height: 9px; } }
 
 /* Crew stat card. Stats are allocated automatically on level up, so this is a
@@ -251,7 +247,23 @@
 .mission-active-card.has-card-watermark > *,
 .mission-definition-card.has-card-watermark > * { position: relative; z-index: 1; }
 
+/* Operation types as collapsible shelves. The heading carries the type, so the
+ * cards inside it drop their own type pill. */
+.missions-definition-groups { display: grid; gap: 20px; }
+.mission-type-group { min-width: 0; }
+/* auto-fill, not auto-fit: a type with a single operation keeps a card the same
+ * width as every other card instead of stretching across the whole shelf. */
+.mission-type-group .missions-definition-grid { grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); }
+.mission-type-group-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 13px; padding-bottom: 7px; border-bottom: 1px solid rgba(88,142,181,0.28); cursor: pointer; list-style: none; }
+.mission-type-group-head::-webkit-details-marker { display: none; }
+.mission-type-group-head::after { content: '⌄'; margin-left: auto; color: #7f9bb0; font-size: 0.8rem; line-height: 1; transition: transform .2s ease; }
+.mission-type-group[open] > .mission-type-group-head::after { transform: rotate(180deg); }
+.mission-type-group-head:hover { border-bottom-color: rgba(126,227,232,0.5); }
+.mission-type-group-head:hover .mission-type-group-name { color: #b6f0f3; }
+.mission-type-group-name { color: #9ae2e6; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+.mission-type-group-count { color: #7f9bb0; font-size: 0.64rem; font-weight: 600; letter-spacing: 0.04em; }
 .mission-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 14px; }
+.mission-definition-card .mission-card-top { justify-content: flex-end; }
 .mission-type, .mission-duration { color: #9ae2e6; font-size: 0.64rem; font-weight: 700; letter-spacing: 0.11em; text-transform: uppercase; }
 .mission-duration { color: #d6c18b; }
 .mission-active-card h3, .mission-definition-card h3 { margin: 0 0 7px; color: #f0edf8; font-size: 1.02rem; }
