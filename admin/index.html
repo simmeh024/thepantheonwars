@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=311">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=312">
 </head>
 <body>
 
@@ -4034,10 +4034,10 @@
       <div class="admin-field"><label for="mission-definition-max-crew">Maximum crew</label><input type="number" id="mission-definition-max-crew" min="1" max="8" step="1" value="1"></div>
       <div class="admin-field"><label for="mission-definition-sort-order">Display order</label><input type="number" id="mission-definition-sort-order" min="0" max="9999" step="1" value="0"></div>
     </div>
-    <div class="admin-field-row">
+    <div class="admin-field-row mission-definition-settings-row">
       <div class="admin-field"><label for="mission-definition-xp">XP per crew member</label><input type="number" id="mission-definition-xp" min="0" max="100000" step="1" value="20"></div>
       <div class="admin-field"><label for="mission-definition-reputation">Reputation reward</label><input type="number" id="mission-definition-reputation" min="0" max="100000" step="1" value="0"></div>
-      <label class="member-ban-toggle"><span><strong>Enabled</strong><small>Disabled missions stay in history but cannot be launched.</small></span><input type="checkbox" id="mission-definition-enabled" checked></label>
+      <label class="admin-setting-toggle"><span><strong>Enabled</strong><small>Disabled missions stay in history but cannot be launched.</small></span><input type="checkbox" id="mission-definition-enabled" checked></label>
     </div>
     <p class="admin-modal-error" id="mission-definition-modal-error"></p><p class="admin-modal-status" id="mission-definition-modal-status"></p>
     <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="mission-definition-save-btn">Save Mission</button><button type="button" class="btn" id="mission-definition-cancel-btn">Cancel</button><button type="button" class="admin-delete-btn" id="mission-definition-delete-btn" hidden>Delete Mission</button></div>
@@ -4053,7 +4053,7 @@
     <div class="admin-field-row"><div class="admin-field"><label for="mission-crew-name">Name</label><input type="text" id="mission-crew-name" maxlength="100"></div><div class="admin-field"><label for="mission-crew-slug">Slug</label><input type="text" id="mission-crew-slug" maxlength="100"></div><div class="admin-field"><label for="mission-crew-role">Role</label><select id="mission-crew-role"><option value="Vanguard">Vanguard</option><option value="Pathfinder">Pathfinder</option><option value="Engineer">Engineer</option></select></div></div>
     <div class="admin-field"><label for="mission-crew-description">Description</label><textarea id="mission-crew-description" maxlength="2000"></textarea></div>
     <div class="admin-field"><label for="mission-crew-portrait">Portrait URL</label><div class="mission-portrait-field"><img id="mission-crew-portrait-preview" alt="" hidden><input type="text" id="mission-crew-portrait" maxlength="255" placeholder="images/crew-member.jpg"><input type="file" id="mission-crew-portrait-file" accept="image/jpeg,image/png,image/webp" hidden><button type="button" class="btn" id="mission-crew-portrait-upload">Upload image</button><button type="button" class="btn" id="mission-crew-portrait-browse">Choose image</button></div><p class="admin-field-hint">Upload a JPG, PNG, or WEBP image, or select an approved crew portrait.</p></div>
-    <div class="admin-field-row"><div class="admin-field"><label for="mission-crew-starting-level">Starting level</label><input type="number" id="mission-crew-starting-level" min="1" max="999" step="1" value="1"></div><div class="admin-field"><label for="mission-crew-world-affinity">World affinity</label><select id="mission-crew-world-affinity"><option value="neoh">Neoh</option></select></div><label class="member-ban-toggle"><span><strong>Starter crew</strong><small>Granted once to every player who opens Missions.</small></span><input type="checkbox" id="mission-crew-starter" checked></label><label class="member-ban-toggle"><span><strong>Enabled</strong><small>Disabled definitions are retained for history.</small></span><input type="checkbox" id="mission-crew-enabled" checked></label></div>
+    <div class="admin-field-row mission-crew-settings-row"><div class="admin-field"><label for="mission-crew-starting-level">Starting level</label><input type="number" id="mission-crew-starting-level" min="1" max="999" step="1" value="1"></div><div class="admin-field"><label for="mission-crew-world-affinity">World affinity</label><select id="mission-crew-world-affinity"><option value="neoh">Neoh</option></select></div><label class="admin-setting-toggle"><span><strong>Starter crew</strong><small>Granted once to every player who opens Missions.</small></span><input type="checkbox" id="mission-crew-starter" checked></label><label class="admin-setting-toggle"><span><strong>Enabled</strong><small>Disabled definitions are retained for history.</small></span><input type="checkbox" id="mission-crew-enabled" checked></label></div>
     <p class="admin-modal-error" id="mission-crew-modal-error"></p><p class="admin-modal-status" id="mission-crew-modal-status"></p>
     <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="mission-crew-save-btn">Save Crew Member</button><button type="button" class="btn" id="mission-crew-cancel-btn">Cancel</button><button type="button" class="admin-delete-btn" id="mission-crew-delete-btn" hidden>Delete Crew Member</button></div>
   </div>
@@ -4196,7 +4196,7 @@
     <h3 class="admin-modal-title" id="quiz-question-modal-title">Edit Quiz Question</h3>
     <p class="admin-modal-sub" id="quiz-question-modal-sub">Give each answer a weight against one or more Overlords. A higher weight pulls the result harder towards that Overlord; leave a column at 0 if the answer says nothing about them.</p>
     <div class="admin-field"><label for="quiz-question-text-input">Question</label><textarea id="quiz-question-text-input" maxlength="500"></textarea></div>
-    <div class="admin-field-row"><div class="admin-field"><label for="quiz-question-order-input">Display order</label><input type="number" id="quiz-question-order-input" min="0" step="1"></div><label class="member-ban-toggle"><span><strong>Active</strong><small>Inactive questions remain saved but do not appear publicly.</small></span><input type="checkbox" id="quiz-question-active-input" checked></label></div>
+    <div class="admin-field-row quiz-question-settings-row"><div class="admin-field"><label for="quiz-question-order-input">Display order</label><input type="number" id="quiz-question-order-input" min="0" step="1"></div><label class="admin-setting-toggle"><span><strong>Active</strong><small>Inactive questions remain saved but do not appear publicly.</small></span><input type="checkbox" id="quiz-question-active-input" checked></label></div>
     <p class="admin-field-group-label">Answer options</p>
     <div class="quiz-option-editor" id="quiz-option-editor"></div>
     <div class="quiz-option-editor-actions">

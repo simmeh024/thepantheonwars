@@ -4072,6 +4072,57 @@
 .mission-portrait-field .btn { flex: 0 0 auto; padding: 8px 10px; font-size: .66rem; }
 .mission-admin-panel[hidden] { display: none; }
 
+/* Reusable, non-destructive form switches. These intentionally do not reuse
+   .member-ban-toggle: Mission and quiz state controls sit directly in field
+   rows, whereas the member control is nested inside an .admin-field. Giving
+   them their own layout prevents the inline label styles from collapsing into
+   the narrow, overlapping layout shown in the crew editor. */
+.admin-setting-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex: 1 1 190px;
+  min-width: 0;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  background: rgba(255,255,255,0.018);
+  color: var(--text);
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: normal;
+}
+.admin-setting-toggle:hover { border-color: var(--purple); background: rgba(124,79,214,.055); }
+.admin-setting-toggle > span { display: grid; min-width: 0; gap: 3px; }
+.admin-setting-toggle strong {
+  color: var(--text);
+  font-family: 'Jost', sans-serif;
+  font-size: .76rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.admin-setting-toggle small { color: var(--text-faint); font-size: .65rem; line-height: 1.35; }
+.admin-setting-toggle input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--purple-bright);
+  cursor: pointer;
+}
+.mission-definition-settings-row .admin-field { min-width: 0; }
+.mission-crew-settings-row {
+  display: grid;
+  grid-template-columns: minmax(108px, .72fr) minmax(132px, .9fr) minmax(176px, 1.45fr) minmax(176px, 1.45fr);
+  gap: 12px;
+  align-items: stretch;
+}
+.mission-crew-settings-row .admin-field { min-width: 0; }
+.mission-crew-settings-row .admin-setting-toggle { height: 100%; }
+.quiz-question-settings-row .admin-field { min-width: 0; }
+
 @media (max-width: 980px) {
   .mission-admin-columns { display: none; }
   .mission-admin-row,
@@ -4085,4 +4136,10 @@
   .mission-admin-crew-columns,
   .mission-admin-player-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .mission-portrait-field { flex-wrap: wrap; }
+}
+@media (max-width: 760px) {
+  .mission-crew-settings-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 460px) {
+  .mission-crew-settings-row { grid-template-columns: minmax(0, 1fr); }
 }
