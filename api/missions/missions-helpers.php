@@ -234,6 +234,48 @@ function pw_mission_stats_ready(PDO $db): bool {
     }
 }
 
+/**
+ * Mission Credits is a further additive migration. Same guarded-probe rule as
+ * the migrations above: a missing column is a hard SQL error rather than NULL,
+ * so every read and write path falls back to "this world has no currency yet"
+ * and missions stay fully playable while the migration is pending.
+ */
+function pw_mission_credits_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_missions_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT credit_reward FROM `game_mission_definitions` LIMIT 1');
+        $db->query('SELECT user_id, credits FROM `game_player_wallet` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+/** Current balance. A player with no wallet row simply holds nothing. */
+function pw_missions_credit_balance(PDO $db, int $userId): int {
+    $stmt = $db->prepare('SELECT credits FROM game_player_wallet WHERE user_id = ?');
+    $stmt->execute([$userId]);
+    $credits = $stmt->fetchColumn();
+    return $credits === false ? 0 : (int)$credits;
+}
+
+/**
+ * Add to a player's balance and return the new total. The upsert is what makes
+ * the wallet row appear on first payment, so nothing has to create one at
+ * registration and an account that predates this feature needs no backfill.
+ */
+function pw_missions_add_credits(PDO $db, int $userId, int $amount): int {
+    if ($amount <= 0) return pw_missions_credit_balance($db, $userId);
+    $stmt = $db->prepare(
+        'INSERT INTO game_player_wallet (user_id, credits) VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE credits = credits + VALUES(credits)'
+    );
+    $stmt->execute([$userId, $amount]);
+    return pw_missions_credit_balance($db, $userId);
+}
+
 /* ------------------------------------------------------------------------
  * Crew stats, levelling, and the effects a crew brings to a mission.
  *

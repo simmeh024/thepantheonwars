@@ -4042,8 +4042,9 @@
     <div class="admin-field-row">
       <div class="admin-field"><label for="mission-definition-success">Base success chance (%)</label><input type="number" id="mission-definition-success" min="1" max="100" step="1" value="100"></div>
       <div class="admin-field"><label for="mission-definition-loot-rolls">Loot rolls on success</label><input type="number" id="mission-definition-loot-rolls" min="0" max="10" step="1" value="0"></div>
+      <div class="admin-field"><label for="mission-definition-credits">Credit reward</label><input type="number" id="mission-definition-credits" min="0" max="1000000" step="1" value="0"></div>
     </div>
-    <p class="admin-field-hint">100% means this operation can never fail. Crew Strength adds 0.5% per point on top of this figure, and the outcome is rolled on the server when the player claims. A failed mission returns its crew with no rewards and does not count towards a campaign unlock. Loot rolls of 0 means this operation drops nothing; Cunning adds extra draws and Science can promote a drop to a higher tier.</p>
+    <p class="admin-field-hint">100% means this operation can never fail. Crew Strength adds 0.5% per point on top of this figure, and the outcome is rolled on the server when the player claims. A failed mission returns its crew with no rewards and does not count towards a campaign unlock. Loot rolls of 0 means this operation drops nothing; Cunning adds extra draws and Science can promote a drop to a higher tier. The credit reward is the operation&rsquo;s flat contract fee, paid only on success and deliberately not scaled by any crew stat.</p>
     <div class="admin-field-row">
       <div class="admin-field"><label for="mission-definition-unlocks-after">Unlocks after</label><select id="mission-definition-unlocks-after"><option value="">No prerequisite &mdash; available immediately</option></select></div>
       <div class="admin-field"><label for="mission-definition-unlock-completions">Successful runs required</label><input type="number" id="mission-definition-unlock-completions" min="1" max="999" step="1" value="0" disabled></div>
@@ -4221,7 +4222,7 @@
 </div>
 
 <script src="../js/members.js?v=40"></script>
-<script src="../js/admin-missions.js?v=4"></script>
+<script src="../js/admin-missions.js?v=5"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };

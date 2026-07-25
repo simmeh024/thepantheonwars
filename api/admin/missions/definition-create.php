@@ -11,17 +11,28 @@ if ($duplicate->fetch()) pw_error('A mission with that slug already exists.', 40
 pw_admin_validate_mission_succession($db, null, $data);
 $campaignReady = pw_mission_campaign_ready($db);
 $statsReady = pw_mission_stats_ready($db);
+$creditsReady = pw_mission_credits_ready($db);
+/* Column list and value list are built from one array of pairs so the
+ * placeholder count can never drift from the value count as further optional
+ * migrations are added -- PDO only reports that mismatch at execute() against a
+ * live database, which makes it invisible to any static check here. */
+$columns = [
+    'world_key' => $data['world_key'], 'name' => $data['name'], 'slug' => $data['slug'],
+    'description' => $data['description'], 'mission_type' => $data['mission_type'],
+    'duration_seconds' => $data['duration_seconds'], 'min_crew' => $data['min_crew'], 'max_crew' => $data['max_crew'],
+    'xp_reward' => $data['xp_reward'], 'reputation_reward' => $data['reputation_reward'],
+    'is_enabled' => $data['is_enabled'], 'sort_order' => $data['sort_order'],
+    'unlocks_after_mission_id' => $data['unlocks_after_mission_id'],
+    'unlocks_after_completion_count' => $data['unlocks_after_completion_count'],
+];
+if ($campaignReady) $columns['is_campaign_final'] = $data['is_campaign_final'];
+if ($statsReady) { $columns['base_success_percent'] = $data['base_success_percent']; $columns['loot_rolls'] = $data['loot_rolls']; }
+if ($creditsReady) $columns['credit_reward'] = $data['credit_reward'];
 $stmt = $db->prepare(
-    'INSERT INTO game_mission_definitions
-     (world_key, name, slug, description, mission_type, duration_seconds, min_crew, max_crew, xp_reward, reputation_reward, is_enabled, sort_order, unlocks_after_mission_id, unlocks_after_completion_count'
-    . ($campaignReady ? ', is_campaign_final' : '')
-    . ($statsReady ? ', base_success_percent, loot_rolls' : '') . ')'
-    . ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?' . ($campaignReady ? ', ?' : '') . ($statsReady ? ', ?, ?' : '') . ')'
+    'INSERT INTO game_mission_definitions (' . implode(', ', array_keys($columns)) . ')'
+    . ' VALUES (' . pw_missions_placeholders(count($columns)) . ')'
 );
-$values = [$data['world_key'], $data['name'], $data['slug'], $data['description'], $data['mission_type'], $data['duration_seconds'], $data['min_crew'], $data['max_crew'], $data['xp_reward'], $data['reputation_reward'], $data['is_enabled'], $data['sort_order'], $data['unlocks_after_mission_id'], $data['unlocks_after_completion_count']];
-if ($campaignReady) $values[] = $data['is_campaign_final'];
-if ($statsReady) { $values[] = $data['base_success_percent']; $values[] = $data['loot_rolls']; }
-$stmt->execute($values);
+$stmt->execute(array_values($columns));
 $id = (int)$db->lastInsertId();
 if ($campaignReady) pw_admin_apply_campaign_final($db, $id, $data);
 pw_log_admin_activity('mission_definition_created', 'Created mission definition "' . $data['name'] . '".', $admin);

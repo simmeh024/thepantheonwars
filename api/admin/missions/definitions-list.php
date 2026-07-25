@@ -6,11 +6,13 @@ $db = pw_db();
 pw_admin_mission_successions_require_ready($db);
 $campaignReady = pw_mission_campaign_ready($db);
 $statsReady = pw_mission_stats_ready($db);
+$creditsReady = pw_mission_credits_ready($db);
 $rows = $db->query(
     'SELECT mission.id, mission.world_key, mission.name, mission.slug, mission.description, mission.mission_type,
             mission.duration_seconds, mission.min_crew, mission.max_crew, mission.xp_reward, mission.reputation_reward,
             mission.is_enabled, mission.sort_order, mission.unlocks_after_mission_id, mission.unlocks_after_completion_count,'
     . ($campaignReady ? ' mission.is_campaign_final,' : ' 0 AS is_campaign_final,')
+    . ($creditsReady ? ' mission.credit_reward,' : ' 0 AS credit_reward,')
     . ($statsReady ? ' mission.base_success_percent, mission.loot_rolls,' : ' 100 AS base_success_percent, 0 AS loot_rolls,') .
            ' prerequisite.name AS unlocks_after_mission_name, mission.created_at, mission.updated_at
      FROM game_mission_definitions mission
@@ -18,7 +20,7 @@ $rows = $db->query(
      ORDER BY mission.world_key ASC, mission.sort_order ASC, mission.id ASC'
 )->fetchAll();
 $rows = array_map(static function ($row) {
-    foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls'] as $field) $row[$field] = (int)$row[$field];
+    foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls'] as $field) $row[$field] = (int)$row[$field];
     $row['unlocks_after_mission_id'] = $row['unlocks_after_mission_id'] !== null ? (int)$row['unlocks_after_mission_id'] : null;
     $row['is_enabled'] = (bool)$row['is_enabled'];
     $row['is_campaign_final'] = (bool)$row['is_campaign_final'];

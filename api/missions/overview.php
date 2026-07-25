@@ -62,10 +62,12 @@ try {
      * chain keeps its real length even while a mid-chain operation is switched
      * off in Mission Control. Card rendering filters to enabled missions below. */
     $campaignReady = pw_mission_campaign_ready($db);
+    $creditsReady = pw_mission_credits_ready($db);
     $missionsStmt = $db->prepare(
         'SELECT mission.id, mission.world_key, mission.name, mission.slug, mission.description, mission.mission_type, mission.duration_seconds,
                 mission.min_crew, mission.max_crew, mission.xp_reward, mission.reputation_reward, mission.sort_order, mission.is_enabled,
                 mission.unlocks_after_mission_id, mission.unlocks_after_completion_count,'
+        . ($creditsReady ? ' mission.credit_reward,' : ' 0 AS credit_reward,')
         . ($statsReady ? ' mission.base_success_percent, mission.loot_rolls,' : ' 100 AS base_success_percent, 0 AS loot_rolls,')
         . ($campaignReady ? ' mission.is_campaign_final,' : ' 0 AS is_campaign_final,') .
                ' prerequisite.name AS unlocks_after_mission_name
@@ -76,7 +78,7 @@ try {
     );
     $missionsStmt->execute();
     $worldMissions = array_map(static function ($row) use ($claimedCounts) {
-        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls'] as $field) $row[$field] = (int)$row[$field];
+        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls'] as $field) $row[$field] = (int)$row[$field];
         $row['unlocks_after_mission_id'] = $row['unlocks_after_mission_id'] !== null ? (int)$row['unlocks_after_mission_id'] : null;
         $row['is_enabled'] = (bool)$row['is_enabled'];
         $row['is_campaign_final'] = (bool)$row['is_campaign_final'];
@@ -101,7 +103,7 @@ try {
      * than dimming it in the browser. The bar is the only acknowledgement that
      * further operations exist. */
     $publicFields = ['id', 'world_key', 'name', 'slug', 'description', 'mission_type', 'duration_seconds',
-        'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order', 'base_success_percent', 'loot_rolls'];
+        'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'base_success_percent', 'loot_rolls'];
     $slots = [];
     foreach (pw_missions_build_campaign_tracks($missionsById) as $chain) {
         $progress = pw_missions_track_progress($chain, $claimedCounts);
@@ -135,7 +137,7 @@ try {
 
     $playerMissionStmt = $db->prepare(
         'SELECT pm.id, pm.world_key, pm.status, pm.started_at, pm.completes_at, pm.completed_at, pm.claimed_at,
-                pm.xp_reward, pm.reputation_reward, md.name, md.slug, md.mission_type,
+                pm.xp_reward, pm.reputation_reward, ' . ($creditsReady ? 'pm.credits_awarded,' : '0 AS credits_awarded,') . ' md.name, md.slug, md.mission_type,
                 (pm.completes_at <= UTC_TIMESTAMP()) AS is_ready,
                 GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR "|~|") AS crew_names
          FROM game_player_missions pm
@@ -152,6 +154,7 @@ try {
         $row['id'] = (int)$row['id'];
         $row['xp_reward'] = (int)$row['xp_reward'];
         $row['reputation_reward'] = (int)$row['reputation_reward'];
+        $row['credits_awarded'] = (int)$row['credits_awarded'];
         $row['is_ready'] = (bool)$row['is_ready'];
         $row['crew_names'] = $row['crew_names'] !== null && $row['crew_names'] !== '' ? explode('|~|', $row['crew_names']) : [];
         return $row;
@@ -159,8 +162,11 @@ try {
     $active = array_values(array_filter($allPlayerMissions, static function ($mission) {
         return in_array($mission['status'], ['active', 'completed'], true);
     }));
+    /* Failed runs belong in the archive too. Without them a mission that fails
+     * simply disappears from the page moments after the player is told it
+     * failed, which reads as a bug rather than an outcome. */
     $history = array_values(array_filter($allPlayerMissions, static function ($mission) {
-        return $mission['status'] === 'claimed';
+        return in_array($mission['status'], ['claimed', 'failed'], true);
     }));
 
     /* Loot the player already holds. Only ever their own rows, and only the
@@ -189,16 +195,34 @@ try {
         return $member['status'] === 'available' && $member['definition_enabled'];
     }));
 
+    /* The commander card in the right rail. Only ever this player's own record,
+     * and only what the card actually draws -- name, reputation standing and
+     * balance. The avatar is not sent: it is the site-wide
+     * /uploads/avatars/<id>.jpg convention the header chip already uses, so
+     * there is nothing here for the server to resolve. */
+    $player = [
+        'id' => $userId,
+        'display_name' => $user['display_name'] ?? $user['username'],
+        'reputation' => pw_reputation_info((int)($user['reputation'] ?? 0)),
+        'credits' => $creditsReady ? pw_missions_credit_balance($db, $userId) : 0,
+        'credits_ready' => $creditsReady,
+    ];
+
     $availableCrew = count(array_filter($crew, static function ($member) { return $member['status'] === 'available'; }));
     $serverTime = $db->query('SELECT UTC_TIMESTAMP() AS value')->fetch();
     pw_json([
         'ok' => true,
         'world' => ['key' => 'neoh', 'name' => 'Neoh', 'background' => 'images/world-neoh.jpg'],
         'server_time' => $serverTime['value'],
+        'player' => $player,
         'stats' => [
             'active_missions' => count($active),
             'available_crew' => $availableCrew,
-            'completed_missions' => count($history),
+            // Claimed only. History now also carries failed runs, so counting it
+            // here would report a failure as a completed mission.
+            'completed_missions' => count(array_filter($allPlayerMissions, static function ($mission) {
+                return $mission['status'] === 'claimed';
+            })),
             'total_missions' => count($allPlayerMissions),
         ],
         'crew' => $crew,

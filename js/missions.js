@@ -22,6 +22,10 @@
   var launchCrew = document.getElementById('mission-launch-crew');
   var launchError = document.getElementById('mission-launch-error');
   var launchConfirm = document.getElementById('mission-launch-confirm');
+  var profileCard = document.getElementById('mission-profile-card');
+  var resultModal = document.getElementById('mission-result-modal');
+  var resultInner = document.getElementById('mission-result-inner');
+  var resultBody = document.getElementById('mission-result-body');
 
   function escapeHtml(value) { var node = document.createElement('div'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
   function apiDate(value) { return value ? new Date(String(value).replace(' ', 'T') + 'Z') : null; }
@@ -32,6 +36,39 @@
   function safeImage(url) { return /^(?:images\/[a-zA-Z0-9._-]+|\/uploads\/mission-crew-images\/img_[a-f0-9]{16}\.jpg)$/.test(String(url || '')) ? url : ''; }
   function availableCrew() { return (state.data && state.data.crew || []).filter(function (crew) { return crew.status === 'available' && crew.definition_enabled; }); }
   function setStatus(message, isError) { statusMessage.textContent = message || ''; statusMessage.classList.toggle('is-error', !!isError); }
+  function credits(value) { return (Math.max(0, Number(value) || 0)).toLocaleString(); }
+
+  /* Commander card in the right rail. The avatar is the site-wide
+   * /uploads/avatars/<id>.jpg convention the header chip already uses, with the
+   * same onerror fallback to an initial -- there is no avatar field on the
+   * mission payload because there is nothing for the server to resolve. */
+  function renderProfile(data) {
+    if (!profileCard) return;
+    var player = data.player;
+    if (!player) { profileCard.innerHTML = ''; return; }
+    var reputation = player.reputation || {};
+    var name = String(player.display_name || 'Commander');
+    var rank = reputation.level_name || 'Unranked';
+    var rankColor = reputation.level_color || '#c7ccd6';
+    var progress = Math.max(0, Math.min(100, Number(reputation.progress_percent) || 0));
+    var nextLine = reputation.next_level_name
+      ? Number(reputation.points || 0).toLocaleString() + ' / ' + Number(reputation.next_level_threshold || 0).toLocaleString() + ' to ' + reputation.next_level_name
+      : Number(reputation.points || 0).toLocaleString() + ' reputation · highest standing reached';
+    profileCard.innerHTML = '<span class="eyebrow">Commander</span>'
+      + '<div class="mission-profile-head">'
+        + '<span class="mission-profile-avatar" style="--rank-color:' + escapeHtml(rankColor) + '">'
+          + '<img src="/uploads/avatars/' + encodeURIComponent(player.id) + '.jpg" alt="" onerror="this.hidden=true">'
+          + '<span class="mission-profile-avatar-fallback">' + escapeHtml(name.charAt(0).toUpperCase()) + '</span></span>'
+        + '<span class="mission-profile-identity"><strong>' + escapeHtml(name) + '</strong>'
+          + '<span class="mission-profile-rank" style="color:' + escapeHtml(rankColor) + '">'
+          + (reputation.level_number ? '<i>' + reputation.level_number + '</i>' : '') + escapeHtml(rank) + '</span></span>'
+      + '</div>'
+      + '<div class="mission-profile-rep"><span class="mission-profile-rep-track"><i style="width:' + progress + '%;background:' + escapeHtml(rankColor) + '"></i></span>'
+        + '<small>' + escapeHtml(nextLine) + '</small></div>'
+      + (player.credits_ready
+        ? '<div class="mission-profile-credits"><span>Total credits</span><strong>' + credits(player.credits) + '</strong></div>'
+        : '<div class="mission-profile-credits is-pending"><span>Total credits</span><small>Available once the credits migration has been run.</small></div>');
+  }
 
   function renderStats(data) {
     document.getElementById('missions-stat-active').textContent = data.stats.active_missions;
@@ -122,7 +159,8 @@
       var canLaunch = available >= mission.min_crew;
       return '<article class="mission-definition-card' + (campaign ? ' has-campaign' : '') + '"><div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p>'
         + (campaign ? campaignStateMarkup(campaign) : '<p class="mission-unlock-state is-base">Available immediately</p>')
-        + '<dl class="mission-definition-meta"><div><dt>Crew</dt><dd>' + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + '</dd></div><div><dt>XP</dt><dd>+' + mission.xp_reward + ' per crew</dd></div><div><dt>Reputation</dt><dd>' + (mission.reputation_reward ? '+' + mission.reputation_reward : '—') + '</dd></div></dl>'
+        + '<dl class="mission-definition-meta"><div><dt>Crew</dt><dd>' + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + '</dd></div><div><dt>XP</dt><dd>+' + mission.xp_reward + ' per crew</dd></div><div><dt>Reputation</dt><dd>' + (mission.reputation_reward ? '+' + mission.reputation_reward : '—') + '</dd></div>'
+          + (Number(mission.credit_reward) > 0 ? '<div><dt>Credits</dt><dd class="is-credits">+' + credits(mission.credit_reward) + '</dd></div>' : '') + '</dl>'
         + missionRiskMarkup(mission)
         + '<button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + (canLaunch ? 'Select Crew' : 'Crew Unavailable') + '</button></article>';
     }).join('');
@@ -308,7 +346,14 @@
   function renderHistory(data) {
     if (!data.history.length) { historyList.innerHTML = '<p class="missions-empty">Your completed operations will be recorded here.</p>'; return; }
     historyList.innerHTML = data.history.map(function (mission) {
-      return '<article class="mission-history-row"><div><span class="mission-world">' + escapeHtml(mission.world_key) + '</span><strong>' + escapeHtml(mission.name) + '</strong><p>' + escapeHtml((mission.crew_names || []).join(' · ')) + '</p></div><div><small>Completed</small><span>' + formatDate(mission.completed_at) + '</span></div><div><small>Rewards</small><span>+' + mission.xp_reward + ' XP · +' + mission.reputation_reward + ' rep</span></div><div><span class="mission-history-status">Claimed</span></div></article>';
+      // A failed run is archived alongside a claimed one, but it paid nothing,
+      // so its rewards column states that rather than printing the operation's
+      // advertised figures as though they had been collected.
+      var failed = mission.status === 'failed';
+      var rewards = failed
+        ? 'No rewards recovered'
+        : '+' + mission.xp_reward + ' XP · +' + mission.reputation_reward + ' rep' + (mission.credits_awarded > 0 ? ' · +' + credits(mission.credits_awarded) + ' cr' : '');
+      return '<article class="mission-history-row' + (failed ? ' is-failed' : '') + '"><div><span class="mission-world">' + escapeHtml(mission.world_key) + '</span><strong>' + escapeHtml(mission.name) + '</strong><p>' + escapeHtml((mission.crew_names || []).join(' · ')) + '</p></div><div><small>Completed</small><span>' + formatDate(mission.completed_at) + '</span></div><div><small>Rewards</small><span>' + escapeHtml(rewards) + '</span></div><div><span class="mission-history-status' + (failed ? ' is-failed' : '') + '">' + (failed ? 'Failed' : 'Claimed') + '</span></div></article>';
     }).join('');
   }
 
@@ -316,8 +361,64 @@
     state.data = data;
     var server = apiDate(data.server_time);
     state.serverOffset = server && !isNaN(server) ? server.getTime() - Date.now() : 0;
-    renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderHistory(data); tickCountdowns();
+    renderProfile(data); renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderHistory(data); tickCountdowns();
   }
+
+  /* Debrief shown after a claim. The server has already resolved everything by
+   * the time this runs -- the roll, the payment and the loot draw all happened
+   * inside one transaction -- so this only reports an outcome, never decides
+   * one. The status line still receives the same summary for screen readers and
+   * for anyone who dismisses the report before reading it. */
+  function showResult(result) {
+    if (!resultModal || !resultBody) return;
+    var failed = result.succeeded === false;
+    resultInner.classList.toggle('is-failed', failed);
+    resultInner.classList.toggle('is-success', !failed);
+    var title = failed ? 'Mission failed' : 'Mission complete';
+    var lead = failed
+      ? 'The operation broke down at ' + result.success_percent + '% success. Your crew is back at command with nothing recovered, and this run does not count towards a campaign unlock.'
+      : 'Your crew has returned. Command has logged the following against your record.';
+
+    var rows = [];
+    if (!failed) {
+      var xpNote = result.xp_bonus_percent > 0 ? 'includes +' + fmt(result.xp_bonus_percent) + '% crew bonus' : 'per crew member';
+      rows.push({ key: 'xp', label: 'Experience', value: '+' + result.xp_awarded_per_crew + ' XP', note: xpNote });
+      rows.push({ key: 'rep', label: 'Reputation', value: result.reputation_awarded > 0 ? '+' + result.reputation_awarded : '—', note: result.reputation_awarded > 0 ? 'added to your standing' : 'this operation pays no reputation' });
+      if (result.credits_ready) {
+        rows.push({ key: 'credits', label: 'Credits', value: result.credits_awarded > 0 ? '+' + credits(result.credits_awarded) : '—', note: 'total ' + credits(result.credits_total) });
+      }
+    } else {
+      rows.push({ key: 'xp', label: 'Experience', value: '—', note: 'no experience awarded' });
+      rows.push({ key: 'rep', label: 'Reputation', value: '—', note: 'no reputation awarded' });
+      if (result.credits_ready) rows.push({ key: 'credits', label: 'Credits', value: '—', note: 'total ' + credits(result.credits_total) });
+    }
+
+    var grid = rows.map(function (row) {
+      return '<div class="mission-result-stat is-' + row.key + '"><span>' + escapeHtml(row.label) + '</span><strong>' + escapeHtml(row.value) + '</strong><small>' + escapeHtml(row.note) + '</small></div>';
+    }).join('');
+
+    var extras = '';
+    if (!failed && result.loot && result.loot.length) {
+      extras += '<div class="mission-result-block"><h4>Recovered</h4><ul class="mission-result-loot">'
+        + result.loot.map(function (item) {
+          return '<li class="is-' + escapeHtml(item.tier) + '"><span>' + escapeHtml(item.name) + '</span><em>' + escapeHtml(item.tier) + (item.upgraded ? ' · upgraded' : '') + '</em></li>';
+        }).join('') + '</ul></div>';
+    }
+    if (!failed && result.level_ups && result.level_ups.length) {
+      extras += '<div class="mission-result-block"><h4>Promotions</h4><ul class="mission-result-levels">'
+        + result.level_ups.map(function (member) {
+          return '<li><span>' + escapeHtml(member.name || 'Crew member') + '</span><em>Level ' + member.level + '</em></li>';
+        }).join('') + '</ul></div>';
+    }
+
+    resultBody.innerHTML = '<span class="eyebrow">' + (failed ? 'Debrief · loss' : 'Debrief · recovery') + '</span>'
+      + '<h2 id="mission-result-title">' + escapeHtml(title) + '</h2>'
+      + '<p class="mission-result-mission">' + escapeHtml(result.mission_name || '') + '</p>'
+      + '<p class="mission-result-lead">' + escapeHtml(lead) + '</p>'
+      + '<div class="mission-result-grid">' + grid + '</div>' + extras;
+    if (typeof resultModal.showModal === 'function') resultModal.showModal(); else resultModal.setAttribute('open', '');
+  }
+  function closeResult() { if (resultModal.open && typeof resultModal.close === 'function') resultModal.close(); else resultModal.removeAttribute('open'); }
 
   function claimSummary(result) {
     if (result.succeeded === false) {
@@ -326,6 +427,7 @@
     var parts = ['Rewards claimed: +' + result.xp_awarded_per_crew + ' XP per crew'];
     if (result.xp_bonus_percent > 0) parts[0] += ' (includes +' + fmt(result.xp_bonus_percent) + '% crew bonus)';
     if (result.reputation_awarded > 0) parts.push('+' + result.reputation_awarded + ' reputation');
+    if (result.credits_awarded > 0) parts.push('+' + credits(result.credits_awarded) + ' credits (total ' + credits(result.credits_total) + ')');
     if (result.level_ups && result.level_ups.length) parts.push(result.level_ups.length + ' crew levelled up');
     if (result.loot && result.loot.length) {
       var names = result.loot.map(function (item) { return item.name + (item.upgraded ? ' (upgraded)' : ''); });
@@ -373,6 +475,9 @@
     var selected = launchCrew.querySelectorAll('input:checked');
     if (selected.length > state.launchMission.max_crew) { event.target.checked = false; launchError.textContent = 'This mission allows a maximum of ' + state.launchMission.max_crew + ' crew members.'; } else { launchError.textContent = ''; }
   });
+  document.getElementById('mission-result-close').addEventListener('click', closeResult);
+  document.getElementById('mission-result-dismiss').addEventListener('click', closeResult);
+  resultModal.addEventListener('click', function (event) { if (event.target === resultModal) closeResult(); });
   document.getElementById('mission-launch-close').addEventListener('click', closeLaunch); document.getElementById('mission-launch-cancel').addEventListener('click', closeLaunch);
   launchModal.addEventListener('click', function (event) { if (event.target === launchModal) closeLaunch(); });
   launchConfirm.addEventListener('click', function () {
@@ -386,7 +491,15 @@
     var button = event.target.closest('.mission-action'); if (!button) return;
     var action = button.getAttribute('data-action'); var missionId = Number(button.getAttribute('data-mission-id'));
     button.disabled = true; button.classList.add('is-busy');
-    post('/api/missions/' + action + '.php', { mission_id: missionId, csrf: window.PW_AUTH.csrf }).then(function (result) { setStatus(action === 'claim' ? claimSummary(result) : 'Mission completed. Rewards are ready to claim.', action === 'claim' && result.succeeded === false); load(); }).catch(function (error) { setStatus(error.message, true); button.disabled = false; button.classList.remove('is-busy'); });
+    post('/api/missions/' + action + '.php', { mission_id: missionId, csrf: window.PW_AUTH.csrf }).then(function (result) {
+      /* load() clears the status line synchronously before its own fetch
+       * resolves, so the summary has to be written after it -- set before, it
+       * was wiped in the same tick and no mission action has ever actually
+       * reported an outcome there. */
+      load();
+      if (action === 'claim') { setStatus(claimSummary(result), result.succeeded === false); showResult(result); }
+      else { setStatus('Mission completed. Rewards are ready to claim.'); }
+    }).catch(function (error) { setStatus(error.message, true); button.disabled = false; button.classList.remove('is-busy'); });
   });
   [crewRoleFilter, crewLevelFilter, crewWorldFilter, crewStatusFilter, crewSort].forEach(function (control) {
     control.addEventListener('change', function () { if (state.data) renderCrew(state.data); });

@@ -14,6 +14,8 @@ $userId = (int)$user['id'];
 try {
     $db->beginTransaction();
     $statsColumns = pw_mission_stats_ready($db) ? ', md.base_success_percent, md.loot_rolls' : '';
+    $creditsReady = pw_mission_credits_ready($db);
+    if ($creditsReady) $statsColumns .= ', md.credit_reward';
     $missionStmt = $db->prepare(
         'SELECT pm.*, md.name AS mission_name' . $statsColumns . '
          FROM game_player_missions pm
@@ -28,7 +30,7 @@ try {
 
     $statsReady = pw_mission_stats_ready($db);
     $crewStmt = $db->prepare(
-        'SELECT pc.id, pc.status, pc.level, pc.xp, c.role, c.starting_level'
+        'SELECT pc.id, pc.status, pc.level, pc.xp, c.name, c.role, c.starting_level'
         . ($statsReady ? ', pc.strength, pc.cunning, pc.science, pc.charisma' : '') .
         ' FROM game_player_mission_crew link
          JOIN game_player_crew pc ON pc.id = link.player_crew_id
@@ -58,10 +60,15 @@ try {
 
     $xpAwarded = 0;
     $reputationAwarded = 0;
+    $creditsAwarded = 0;
     $loot = [];
     if ($succeeded) {
         $xpAwarded = (int)round((int)$mission['xp_reward'] * (1 + ($effects['xp_percent'] / 100)));
         $reputationAwarded = (int)$mission['reputation_reward'] + (int)$effects['reputation_flat'];
+        /* Credits are the operation's flat contract fee. Deliberately not scaled
+         * by any crew stat: Cunning already buys extra loot draws, and paying a
+         * second bonus off the same roster would compound one advantage twice. */
+        $creditsAwarded = $creditsReady ? (int)($mission['credit_reward'] ?? 0) : 0;
     }
 
     /* A failed mission returns its crew with no XP, no reputation and no loot,
@@ -85,7 +92,7 @@ try {
             if ($newLevel === (int)$member['level']) continue;
             $stats = pw_missions_stats_for_level((string)$member['role'], $newLevel);
             $levelStmt->execute([$newLevel, $stats['strength'], $stats['cunning'], $stats['science'], $stats['charisma'], (int)$member['id'], $userId]);
-            $levelUps[] = ['id' => (int)$member['id'], 'level' => $newLevel];
+            $levelUps[] = ['id' => (int)$member['id'], 'name' => $member['name'], 'level' => $newLevel];
         }
     }
 
@@ -104,6 +111,8 @@ try {
         );
     }
 
+    $creditBalance = $creditsReady ? pw_missions_add_credits($db, $userId, $creditsAwarded) : 0;
+
     if ($succeeded && $statsReady) {
         $loot = pw_missions_roll_loot($db, (string)$mission['world_key'], (int)($mission['loot_rolls'] ?? 0), $effects);
         pw_missions_store_loot($db, $userId, $loot);
@@ -111,21 +120,37 @@ try {
 
     $now = pw_missions_utc_now($db);
     $status = $succeeded ? 'claimed' : 'failed';
-    $missionUpdate = $statsReady
-        ? $db->prepare('UPDATE game_player_missions SET status = ?, claimed_at = ?, success_percent = ?, xp_bonus_percent = ?, reputation_bonus = ? WHERE id = ? AND status = "completed"')
-        : $db->prepare('UPDATE game_player_missions SET status = ?, claimed_at = ? WHERE id = ? AND status = "completed"');
-    $missionUpdate->execute($statsReady
-        ? [$status, pw_missions_datetime($now), $successPercent, (int)round($effects['xp_percent']), (int)$effects['reputation_flat'], $missionId]
-        : [$status, pw_missions_datetime($now), $missionId]);
+    /* Two independent migrations decide which columns exist here, so the SET
+     * clause and its values are built from one list rather than as a matrix of
+     * hand-written branches -- that is exactly how a placeholder/value count
+     * silently desyncs, and PDO only reports it at execute() against the live
+     * database. */
+    $sets = ['status = ?', 'claimed_at = ?'];
+    $values = [$status, pw_missions_datetime($now)];
+    if ($statsReady) {
+        array_push($sets, 'success_percent = ?', 'xp_bonus_percent = ?', 'reputation_bonus = ?');
+        array_push($values, $successPercent, (int)round($effects['xp_percent']), (int)$effects['reputation_flat']);
+    }
+    if ($creditsReady) {
+        $sets[] = 'credits_awarded = ?';
+        $values[] = $creditsAwarded;
+    }
+    $values[] = $missionId;
+    $missionUpdate = $db->prepare('UPDATE game_player_missions SET ' . implode(', ', $sets) . ' WHERE id = ? AND status = "completed"');
+    $missionUpdate->execute($values);
     if ($missionUpdate->rowCount() !== 1) throw new RuntimeException('This mission reward was already claimed.');
     $db->commit();
     pw_json([
         'ok' => true,
         'succeeded' => $succeeded,
+        'mission_name' => $mission['mission_name'],
         'success_percent' => $successPercent,
         'xp_awarded_per_crew' => $xpAwarded,
         'reputation_awarded' => $reputationAwarded,
         'xp_bonus_percent' => $effects['xp_percent'],
+        'credits_awarded' => $creditsAwarded,
+        'credits_total' => $creditBalance,
+        'credits_ready' => $creditsReady,
         'level_ups' => $levelUps,
         'loot' => $loot,
     ]);

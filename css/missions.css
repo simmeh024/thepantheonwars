@@ -94,6 +94,89 @@
 @media (prefers-reduced-motion: reduce) { .crew-stat-bar i { transition: none; } }
 @media (max-width: 470px) { .crew-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
+/* Two-column shell: everything the page already had on the left, a sticky
+ * commander rail on the right. The rail stacks first on narrow screens -- a
+ * player's own standing and balance are the summary the rest of the page is
+ * measured against, so they belong above it rather than after a long roster. */
+.missions-layout { display: grid; grid-template-columns: minmax(0, 1fr) 262px; gap: 26px; align-items: start; }
+.missions-primary { min-width: 0; }
+.missions-rail { position: sticky; top: 84px; min-width: 0; }
+.mission-profile-card { padding: 17px 16px 15px; border: 1px solid rgba(94,183,198,0.34); background: linear-gradient(150deg, rgba(11,35,53,0.82), rgba(21,13,46,0.88)); box-shadow: inset 0 1px rgba(133,229,237,0.06); }
+.mission-profile-card .eyebrow { display: block; margin-bottom: 11px; color: #79d9df; font-size: 0.6rem; }
+.mission-profile-loading { margin: 0; color: #86a0b2; font-size: 0.74rem; }
+.mission-profile-head { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 12px; align-items: center; }
+.mission-profile-avatar { position: relative; display: grid; place-items: center; width: 52px; height: 52px; overflow: hidden; border: 2px solid var(--rank-color, #79d9df); border-radius: 50%; background: linear-gradient(145deg, #20394d, #241641); box-shadow: 0 0 14px rgba(121,217,223,0.2); }
+.mission-profile-avatar img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.mission-profile-avatar-fallback { color: #e7d092; font: 600 1.3rem 'Cinzel', serif; }
+.mission-profile-identity { display: grid; gap: 3px; min-width: 0; }
+.mission-profile-identity strong { overflow: hidden; color: #f0edf8; font-size: 0.94rem; text-overflow: ellipsis; white-space: nowrap; }
+.mission-profile-rank { display: inline-flex; align-items: center; gap: 6px; font-size: 0.68rem; font-weight: 600; letter-spacing: .05em; }
+.mission-profile-rank i { display: grid; place-items: center; width: 15px; height: 15px; border: 1px solid currentColor; color: inherit; font: 700 .55rem/1 'Cinzel', serif; font-style: normal; }
+.mission-profile-rep { margin-top: 13px; }
+.mission-profile-rep-track { display: block; height: 5px; overflow: hidden; background: rgba(3,6,14,0.8); box-shadow: inset 0 1px 2px rgba(0,0,0,0.38); }
+.mission-profile-rep-track i { display: block; height: 100%; transition: width .5s ease; }
+.mission-profile-rep small { display: block; margin-top: 6px; color: #8ba5be; font-size: 0.63rem; line-height: 1.4; }
+.mission-profile-credits { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(92,163,181,0.24); }
+.mission-profile-credits span { color: #8ba5be; font-size: 0.6rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-profile-credits strong { color: #e9d399; font: 600 1.2rem/1 'Cinzel', serif; }
+.mission-profile-credits.is-pending { display: grid; }
+.mission-profile-credits.is-pending small { color: #86a0b2; font-size: 0.63rem; line-height: 1.4; }
+
+/* Mission debrief. The two outcomes share a shape so the report always reads
+ * the same way; only the accent and the figures differ. */
+.mission-result-modal { width: min(560px, calc(100vw - 28px)); padding: 0; border: 1px solid rgba(105,213,222,0.5); color: var(--text); background: #100d22; box-shadow: 0 24px 90px rgba(0,0,0,0.7), 0 0 45px rgba(71,207,218,0.13); }
+.mission-result-modal::backdrop { background: rgba(3,4,12,0.8); backdrop-filter: blur(4px); }
+.mission-result-inner { position: relative; padding: 28px; background: linear-gradient(150deg, rgba(17,48,66,0.96), rgba(20,12,42,0.98)); }
+.mission-result-inner.is-failed { background: linear-gradient(150deg, rgba(62,25,30,0.9), rgba(23,11,30,0.98)); }
+.mission-result-inner::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #6ce5eb, #8d67d3); }
+.mission-result-inner.is-failed::before { background: linear-gradient(90deg, #e0705c, #a2506e); }
+.mission-result-body .eyebrow { display: block; margin-bottom: 6px; color: #79d9df; font-size: 0.62rem; }
+.mission-result-inner.is-failed .mission-result-body .eyebrow { color: #e8a08e; }
+.mission-result-body h2 { margin: 0 34px 4px 0; font-size: 1.42rem; }
+.mission-result-mission { margin: 0 0 9px; color: #9ae2e6; font-size: 0.68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-result-inner.is-failed .mission-result-mission { color: #e0a894; }
+.mission-result-lead { margin: 0; color: #aec3cf; font-size: 0.82rem; line-height: 1.55; }
+.mission-result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 9px; margin-top: 18px; }
+.mission-result-stat { padding: 11px 12px; border: 1px solid rgba(103,152,190,0.3); background: rgba(8,18,33,0.55); }
+.mission-result-stat span { display: block; color: #8ba5be; font-size: 0.58rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-result-stat strong { display: block; margin: 5px 0 3px; color: #f0edf8; font: 600 1.24rem/1 'Cinzel', serif; }
+.mission-result-stat.is-credits strong { color: #e9d399; }
+.mission-result-stat.is-rep strong { color: #9edba8; }
+.mission-result-stat small { display: block; color: #7e97ab; font-size: 0.62rem; line-height: 1.35; }
+.mission-result-inner.is-failed .mission-result-stat strong { color: #b6a3ad; }
+.mission-result-block { margin-top: 16px; }
+.mission-result-block h4 { margin: 0 0 7px; color: #79d9df; font-size: 0.6rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-result-loot, .mission-result-levels { display: grid; gap: 5px; margin: 0; padding: 0; list-style: none; }
+.mission-result-loot li, .mission-result-levels li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 1px solid rgba(103,152,190,0.26); background: rgba(8,18,33,0.5); color: #dceaf3; font-size: 0.78rem; }
+.mission-result-loot em, .mission-result-levels em { color: #8ba5be; font-size: 0.63rem; font-style: normal; letter-spacing: .06em; text-transform: uppercase; }
+.mission-result-loot li.is-uncommon { border-color: rgba(110,211,220,0.4); } .mission-result-loot li.is-uncommon em { color: #83dce4; }
+.mission-result-loot li.is-rare { border-color: rgba(199,154,232,0.45); } .mission-result-loot li.is-rare em { color: #c79ae8; }
+.mission-result-loot li.is-legendary { border-color: rgba(235,209,138,0.55); box-shadow: inset 0 0 22px rgba(235,209,138,0.08); } .mission-result-loot li.is-legendary em { color: #ebd18a; }
+.mission-result-levels em { color: #9edba8; }
+.mission-result-inner .mission-launch-actions { margin-top: 20px; }
+.mission-history-row.is-failed { opacity: .82; }
+.mission-history-status.is-failed { border-color: rgba(224,138,114,0.5); color: #e0a894; }
+.mission-definition-meta dd.is-credits { color: #f0d591; }
+@media (prefers-reduced-motion: reduce) { .mission-profile-rep-track i { transition: none; } }
+@media (max-width: 1080px) {
+  .missions-layout { grid-template-columns: minmax(0, 1fr); gap: 20px; }
+  .missions-rail { position: static; order: -1; }
+  .mission-profile-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 22px; align-items: center; }
+  .mission-profile-card .eyebrow { grid-column: 1 / -1; margin-bottom: 4px; order: 0; }
+  /* The balance has to be auto-placed before the reputation bar or it lands on
+   * its own row and the second column collapses to zero -- a full-width item
+   * between them ends the row. Explicit order rather than moving it in the DOM,
+   * which would put the balance ahead of the rank in reading order. */
+  .mission-profile-head { order: 1; }
+  .mission-profile-credits { order: 2; }
+  .mission-profile-rep { grid-column: 1 / -1; margin-top: 4px; order: 3; }
+  .mission-profile-credits { margin-top: 0; padding-top: 0; border-top: 0; }
+}
+@media (max-width: 560px) {
+  .mission-profile-card { grid-template-columns: minmax(0, 1fr); }
+  .mission-profile-credits { margin-top: 12px; padding-top: 11px; border-top: 1px solid rgba(92,163,181,0.24); }
+}
+
 .missions-section { margin-top: 42px; }
 .missions-section-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
 .missions-section-head .eyebrow { margin-bottom: 6px; color: #79d9df; font-size: 0.62rem; }
@@ -122,7 +205,10 @@
 .mission-definition-card p { margin: 0; color: #a9bdcb; font-size: 0.8rem; line-height: 1.58; }
 .mission-unlock-state { min-height: 20px; margin: 12px 0 0 !important; color: #87a7bb !important; font-size: .66rem !important; font-weight: 600; letter-spacing: .035em; line-height: 1.4 !important; }
 .mission-unlock-state.is-base { color: #73cbd6 !important; }.mission-unlock-state.is-unlocked { color: #9edba8 !important; }.mission-unlock-state.is-locked { color: #d5b271 !important; }
-.mission-definition-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: auto 0 17px; padding-top: 18px; }
+/* Three entries, or four once an operation pays credits. auto-fit rather than a
+ * fixed count so the fourth joins the row where there is space and wraps
+ * cleanly where there is not. */
+.mission-definition-meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(66px, 1fr)); gap: 8px; margin: auto 0 17px; padding-top: 18px; }
 .mission-definition-meta div { min-width: 0; }
 .mission-definition-meta dt { margin-bottom: 3px; color: #758fa7; font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; }
 .mission-definition-meta dd { margin: 0; color: #e9d399; font-size: 0.72rem; line-height: 1.35; }

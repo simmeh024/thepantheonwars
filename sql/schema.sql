@@ -1799,3 +1799,45 @@ CREATE TABLE IF NOT EXISTS game_player_mission_crew (
   CONSTRAINT fk_game_player_mission_crew_mission FOREIGN KEY (player_mission_id) REFERENCES game_player_missions(id) ON DELETE CASCADE,
   CONSTRAINT fk_game_player_mission_crew_member FOREIGN KEY (player_crew_id) REFERENCES game_player_crew(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- sql/migration_mission_crew_stats.sql (also adds the crew stat columns, the
+-- mission base_success_percent/loot_rolls columns, and the per-run outcome
+-- columns on game_player_missions).
+CREATE TABLE IF NOT EXISTS game_loot_definitions (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(120) NOT NULL,
+  slug VARCHAR(120) NOT NULL,
+  description TEXT NULL,
+  tier VARCHAR(20) NOT NULL DEFAULT 'common',
+  world_key VARCHAR(50) NOT NULL DEFAULT 'neoh',
+  drop_weight SMALLINT UNSIGNED NOT NULL DEFAULT 100,
+  is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_game_loot_definition_slug (slug),
+  KEY idx_game_loot_definition_pool (world_key, tier, is_enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS game_player_loot (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  loot_definition_id INT UNSIGNED NOT NULL,
+  quantity INT UNSIGNED NOT NULL DEFAULT 0,
+  first_acquired_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_game_player_loot_item (user_id, loot_definition_id),
+  KEY idx_game_player_loot_user (user_id),
+  CONSTRAINT fk_game_player_loot_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_game_player_loot_definition FOREIGN KEY (loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- sql/migration_mission_credits.sql (also adds game_mission_definitions.
+-- credit_reward and game_player_missions.credits_awarded). The balance lives
+-- here rather than on users because pw_current_user() runs on every
+-- authenticated request site-wide.
+CREATE TABLE IF NOT EXISTS game_player_wallet (
+  user_id INT UNSIGNED NOT NULL PRIMARY KEY,
+  credits BIGINT UNSIGNED NOT NULL DEFAULT 0,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_game_player_wallet_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

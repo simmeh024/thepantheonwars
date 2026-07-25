@@ -32,6 +32,8 @@ function pw_admin_mission_definition_input(array $input): array {
     if ($xpReward === false || $xpReward < 0 || $xpReward > 10000 || $reputationReward === false || $reputationReward < 0 || $reputationReward > 1000) {
         pw_error('Mission rewards are outside the allowed range.');
     }
+    $creditReward = filter_var($input['credit_reward'] ?? 0, FILTER_VALIDATE_INT);
+    if ($creditReward === false || $creditReward < 0 || $creditReward > 1000000) pw_error('Credit reward must be between 0 and 1,000,000.');
     $sortOrder = filter_var($input['sort_order'] ?? 0, FILTER_VALIDATE_INT);
     if ($sortOrder === false || $sortOrder < 0 || $sortOrder > 100000) pw_error('Sort order must be between 0 and 100000.');
     $baseSuccess = filter_var($input['base_success_percent'] ?? 100, FILTER_VALIDATE_INT);
@@ -51,7 +53,7 @@ function pw_admin_mission_definition_input(array $input): array {
     return [
         'name' => $name, 'slug' => $slug, 'world_key' => $worldKey, 'description' => $description,
         'mission_type' => $missionType, 'duration_seconds' => $duration, 'min_crew' => $minCrew, 'max_crew' => $maxCrew,
-        'xp_reward' => $xpReward, 'reputation_reward' => $reputationReward,
+        'xp_reward' => $xpReward, 'reputation_reward' => $reputationReward, 'credit_reward' => $creditReward,
         'is_enabled' => !empty($input['is_enabled']) ? 1 : 0, 'sort_order' => $sortOrder,
         'unlocks_after_mission_id' => $unlocksAfterMissionId,
         'unlocks_after_completion_count' => $unlocksAfterCompletionCount,

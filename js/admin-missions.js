@@ -227,6 +227,7 @@
     document.getElementById('mission-definition-campaign-final').checked = mission ? !!mission.is_campaign_final : false;
     document.getElementById('mission-definition-success').value = mission && mission.base_success_percent !== undefined ? mission.base_success_percent : 100;
     document.getElementById('mission-definition-loot-rolls').value = mission && mission.loot_rolls !== undefined ? mission.loot_rolls : 0;
+    document.getElementById('mission-definition-credits').value = mission && mission.credit_reward !== undefined ? mission.credit_reward : 0;
     syncMissionSuccessionFields();
   }
 
@@ -270,7 +271,8 @@
       unlocks_after_completion_count: document.getElementById('mission-definition-unlock-completions').value,
       is_campaign_final: document.getElementById('mission-definition-campaign-final').checked,
       base_success_percent: document.getElementById('mission-definition-success').value,
-      loot_rolls: document.getElementById('mission-definition-loot-rolls').value
+      loot_rolls: document.getElementById('mission-definition-loot-rolls').value,
+      credit_reward: document.getElementById('mission-definition-credits').value
     };
   }
 
