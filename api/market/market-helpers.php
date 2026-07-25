@@ -157,6 +157,93 @@ function pw_market_public_offers(PDO $db, int $rotationId, string $offerType, in
     }, $stmt->fetchAll());
 }
 
+/** A Market feature is a live, eligible piece of contraband, never a separate
+ * discounted record. It therefore shares the exact price, stock and purchase
+ * path that the player sees in the equipment rotation below it. */
+function pw_market_featured_offer(array $gear): ?array {
+    if (!$gear) return null;
+    $tierValue = ['legendary' => 4, 'rare' => 3, 'uncommon' => 2, 'common' => 1];
+    usort($gear, static function (array $left, array $right) use ($tierValue): int {
+        $leftAvailable = (int)$left['stock_remaining'] > 0 ? 1 : 0;
+        $rightAvailable = (int)$right['stock_remaining'] > 0 ? 1 : 0;
+        $leftTier = $tierValue[strtolower((string)($left['tier'] ?? 'common'))] ?? 0;
+        $rightTier = $tierValue[strtolower((string)($right['tier'] ?? 'common'))] ?? 0;
+        return [$rightAvailable, $rightTier, (int)$right['required_reputation_level'], (int)$right['credit_price'], -(int)$right['id']]
+            <=> [$leftAvailable, $leftTier, (int)$left['required_reputation_level'], (int)$left['credit_price'], -(int)$left['id']];
+    });
+    return ['type' => 'gear', 'offer' => $gear[0]];
+}
+
+/** Returns the strongest currently worn item for each slot. The Market has no
+ * selected crew context, so this is deliberately a loadout-wide comparison
+ * rather than implying that a new item is already compatible with one person. */
+function pw_market_equipped_gear(PDO $db, int $userId): array {
+    if (!pw_mission_gear_ready($db)) return [];
+    $stmt = $db->prepare(
+        'SELECT l.slot, l.name, l.tier, l.bonus_strength, l.bonus_cunning, l.bonus_science, l.bonus_charisma,
+                c.name AS crew_name
+         FROM game_player_crew_gear g
+         JOIN game_loot_definitions l ON l.id = g.loot_definition_id
+         JOIN game_player_crew pc ON pc.id = g.player_crew_id
+         JOIN game_crew_definitions c ON c.id = pc.crew_definition_id
+         WHERE g.user_id = ?'
+    );
+    $stmt->execute([$userId]);
+    $tierValue = ['legendary' => 4, 'rare' => 3, 'uncommon' => 2, 'common' => 1];
+    $best = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $slot = (string)$row['slot'];
+        if (!isset(pw_missions_gear_slots()[$slot])) continue;
+        foreach (['bonus_strength', 'bonus_cunning', 'bonus_science', 'bonus_charisma'] as $field) $row[$field] = (int)$row[$field];
+        $score = $row['bonus_strength'] + $row['bonus_cunning'] + $row['bonus_science'] + $row['bonus_charisma'];
+        $row['score'] = $score;
+        if (!isset($best[$slot])
+            || $score > $best[$slot]['score']
+            || ($score === $best[$slot]['score'] && ($tierValue[strtolower((string)$row['tier'])] ?? 0) > ($tierValue[strtolower((string)$best[$slot]['tier'])] ?? 0))) {
+            $best[$slot] = $row;
+        }
+    }
+    foreach ($best as &$item) unset($item['score']);
+    unset($item);
+    return $best;
+}
+
+/** The Market only previews broad access at the next rank. Exact catalogue
+ * entries remain on the Reputation page until that clearance is earned. */
+function pw_market_next_rank_categories(PDO $db, int $nextRank): array {
+    if ($nextRank < 1) return [];
+    try {
+        $stmt = $db->prepare(
+            'SELECT "gear" AS offer_type,
+                    COUNT(*) AS entry_count,
+                    MAX(CASE l.tier WHEN "legendary" THEN 4 WHEN "rare" THEN 3 WHEN "uncommon" THEN 2 WHEN "common" THEN 1 ELSE 0 END) AS tier_value
+             FROM game_market_entries e
+             JOIN game_loot_definitions l ON l.id = e.loot_definition_id
+             WHERE e.offer_type = "gear" AND e.is_enabled = 1 AND l.is_enabled = 1 AND l.slot <> "" AND e.required_reputation_level = ?
+             UNION ALL
+             SELECT "character" AS offer_type, COUNT(*) AS entry_count, 0 AS tier_value
+             FROM game_market_entries e
+             JOIN game_crew_definitions c ON c.id = e.crew_definition_id
+             WHERE e.offer_type = "character" AND e.is_enabled = 1 AND c.is_enabled = 1 AND c.is_starter = 0 AND e.required_reputation_level = ?'
+        );
+        $stmt->execute([$nextRank, $nextRank]);
+        $tiers = [1 => 'field', 2 => 'uncommon', 3 => 'rare', 4 => 'legendary'];
+        $categories = [];
+        foreach ($stmt->fetchAll() as $row) {
+            if ((string)$row['offer_type'] === 'gear' && (int)$row['entry_count'] > 0 && (int)$row['tier_value'] > 0) {
+                $tier = $tiers[(int)$row['tier_value']] ?? 'higher-grade';
+                $categories[] = ['type' => 'gear', 'label' => ucfirst($tier) . ' equipment clearance', 'copy' => 'A stronger equipment class can enter future rotations.'];
+            }
+            if ((string)$row['offer_type'] === 'character' && (int)$row['entry_count'] > 0) {
+                $categories[] = ['type' => 'character', 'label' => 'Recruitment clearance', 'copy' => 'Additional specialist dossiers can enter future rotations.'];
+            }
+        }
+        return $categories;
+    } catch (Throwable $e) {
+        return [];
+    }
+}
+
 function pw_market_next_rank_unlocks(PDO $db, int $rankNumber, int $threshold, string $accent): array {
     try {
         $stmt = $db->prepare(

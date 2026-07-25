@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS game_market_purchases (
   credit_price INT UNSIGNED NOT NULL,
   purchased_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   KEY idx_game_market_purchase_user (user_id, purchased_at),
+  KEY idx_game_market_purchase_recent (purchased_at, id),
   KEY idx_game_market_purchase_item (rotation_item_id),
   CONSTRAINT fk_game_market_purchase_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
