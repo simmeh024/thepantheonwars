@@ -65,6 +65,11 @@
 .mission-campaign-block.is-current { border-color: rgba(235,209,138,0.6); }
 .mission-campaign-block.is-current i { background: linear-gradient(90deg, #c9a24e, #ebd18a); box-shadow: 0 0 10px rgba(235,209,138,0.5); }
 .mission-campaign-block.is-locked { border-color: rgba(105,101,134,0.4); background: rgba(16,16,30,0.66); }
+/* An operation taken off the roster. Hatched rather than simply dimmed, so it
+ * cannot be mistaken for a step the player has not reached yet. */
+.mission-campaign-block.is-offline { border-color: rgba(214,167,119,0.55); background: repeating-linear-gradient(135deg, rgba(214,167,119,0.22) 0 3px, rgba(9,19,35,0.7) 3px 6px); }
+.mission-campaign-strip.is-rolled-back { border-color: rgba(214,167,119,0.4); }
+.mission-campaign-strip.is-rolled-back .mission-campaign-strip-note { color: #d6a777; }
 .mission-campaign-strip.is-complete .mission-campaign-block i { background: linear-gradient(90deg, #6ad2a2, #9edba8); box-shadow: 0 0 10px rgba(158,219,168,0.45); }
 .mission-campaign-strip-note { display: block; margin-top: 7px; color: #a9bdcb; font-size: 0.66rem; letter-spacing: .02em; line-height: 1.4; }
 .mission-campaign-strip.is-complete .mission-campaign-strip-note { color: #9edba8; font-weight: 600; }

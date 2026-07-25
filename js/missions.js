@@ -149,9 +149,11 @@
       var fill = step.is_complete ? 100 : step.state === 'current' && step.runs_required > 0
         ? Math.min(100, Math.round((step.runs_done / step.runs_required) * 100))
         : 0;
-      var label = step.name
-        ? 'Operation ' + step.position + ': ' + step.name
-        : 'Operation ' + step.position + ': sealed until reached';
+      var label = step.state === 'offline'
+        ? 'Operation ' + step.position + ': ' + (step.name || 'sealed') + ' — off the roster'
+        : step.name
+          ? 'Operation ' + step.position + ': ' + step.name
+          : 'Operation ' + step.position + ': sealed until reached';
       return '<span class="mission-campaign-block is-' + step.state + '" title="' + escapeHtml(label) + '"><i style="width:' + fill + '%"></i></span>';
     }).join('');
     return '<div class="mission-campaign-track" role="img" aria-label="Campaign progress: '
@@ -164,7 +166,17 @@
       ? 'Campaign complete — all ' + campaign.total_steps + ' operations secured.'
       : 'Operation ' + current.position + ' of ' + campaign.total_steps + ' · '
         + current.runs_done + ' / ' + current.runs_required + ' successful run' + (current.runs_required === 1 ? '' : 's');
-    return '<div class="mission-campaign-strip' + (campaign.is_complete ? ' is-complete' : '') + '">'
+    /* The track has rolled back to an earlier operation because the next one is
+     * off the roster. Say so plainly -- being handed an operation you already
+     * cleared, with no explanation, reads as lost progress. */
+    if (campaign.rolled_back) {
+      var offline = campaign.steps[campaign.offline_index];
+      var shown = campaign.steps[campaign.display_index];
+      line = 'Operation ' + offline.position + ' is off the roster. Operation ' + shown.position
+        + ' is available to run again in the meantime — your progress is held.';
+    }
+    return '<div class="mission-campaign-strip' + (campaign.is_complete ? ' is-complete' : '')
+      + (campaign.rolled_back ? ' is-rolled-back' : '') + '">'
       + '<div class="mission-campaign-strip-head"><span>Campaign track</span><strong>' + campaign.completed_steps + ' / ' + campaign.total_steps + '</strong></div>'
       + campaignTrackMarkup(campaign)
       + '<small class="mission-campaign-strip-note">' + escapeHtml(line) + '</small></div>';

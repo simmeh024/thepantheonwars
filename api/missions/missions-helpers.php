@@ -215,6 +215,35 @@ function pw_missions_track_progress(array $chain, array $claimedCounts): array {
 }
 
 /**
+ * Decide which step of a track is actually playable right now.
+ *
+ * Normally that is the current step. When an administrator disables the current
+ * operation, the track rolls back to the most recent earlier step that is still
+ * enabled, so the campaign keeps something to run instead of going dark -- an
+ * earlier operation the player has already cleared is replayable, and offering
+ * it back is far better than an offline card with no action on it.
+ *
+ * Real progress is untouched: the rolled-back step is already complete, so
+ * replaying it cannot advance or rewind the campaign, and the bar still shows
+ * the true position. Only if every step from the current one back to the start
+ * is disabled does the track have nothing to offer.
+ *
+ * @return array{index: ?int, rolled_back: bool, offline_index: ?int}
+ */
+function pw_missions_resolve_playable_step(array $chain, array $progress): array {
+    $currentIndex = (int)$progress['current_index'];
+    if (!empty($chain[$currentIndex]['is_enabled'])) {
+        return ['index' => $currentIndex, 'rolled_back' => false, 'offline_index' => null];
+    }
+    for ($index = $currentIndex - 1; $index >= 0; $index--) {
+        if (!empty($chain[$index]['is_enabled'])) {
+            return ['index' => $index, 'rolled_back' => true, 'offline_index' => $currentIndex];
+        }
+    }
+    return ['index' => null, 'rolled_back' => false, 'offline_index' => $currentIndex];
+}
+
+/**
  * Crew Stats is a further additive migration. Every read and write path probes
  * for it and falls back to the pre-stats behaviour, so a deploy landing ahead
  * of the migration keeps missions fully playable -- they simply award no loot

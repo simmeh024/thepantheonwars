@@ -114,16 +114,30 @@ try {
     $slots = [];
     foreach (pw_missions_build_campaign_tracks($missionsById) as $chain) {
         $progress = pw_missions_track_progress($chain, $claimedCounts);
-        $current = $chain[$progress['current_index']];
         $isCampaign = count($chain) > 1;
 
-        // A disabled operation is never playable. On a standalone mission that
-        // simply removes the card; mid-campaign it leaves the bar in place so
-        // the player still sees where they are, without naming the mission.
-        if (!$current['is_enabled']) {
+        /* A disabled operation is never playable, but the track does not have to
+         * go dark for it: it rolls back to the most recent earlier operation
+         * that is still enabled, which the player can run again while the next
+         * one is off the roster. Progress is unaffected -- that step is already
+         * complete, so replaying it neither advances nor rewinds the campaign. */
+        $playable = pw_missions_resolve_playable_step($chain, $progress);
+        $progress['display_index'] = $playable['index'];
+        $progress['rolled_back'] = $playable['rolled_back'];
+        $progress['offline_index'] = $playable['offline_index'];
+        // The bar marks the offline step so it does not read as the step the
+        // player is being asked to run.
+        if ($playable['offline_index'] !== null && isset($progress['steps'][$playable['offline_index']])) {
+            $progress['steps'][$playable['offline_index']]['state'] = 'offline';
+        }
+
+        // Nothing left to offer: every step from the current one back to the
+        // start is disabled. A standalone mission simply loses its card;
+        // mid-campaign the bar stays so the player still sees where they are.
+        if ($playable['index'] === null) {
             if ($isCampaign) {
                 $slots[] = [
-                    'sort_order' => (int)$current['sort_order'],
+                    'sort_order' => (int)$chain[$progress['current_index']]['sort_order'],
                     'is_offline' => true,
                     'campaign' => $progress,
                 ];
@@ -131,6 +145,7 @@ try {
             continue;
         }
 
+        $current = $chain[$playable['index']];
         $slot = [];
         foreach ($publicFields as $field) $slot[$field] = $current[$field];
         $slot['is_offline'] = false;
