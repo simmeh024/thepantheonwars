@@ -63,6 +63,101 @@ function pw_missions_require_successions_ready(PDO $db): void {
 }
 
 /**
+ * Campaign Progress is a further additive migration on top of Mission
+ * Successions. A missing column is a hard SQL error rather than NULL, so every
+ * read path probes for it and falls back to "no campaign configured" instead of
+ * failing the whole mission view. Deploy order is therefore not load-bearing.
+ */
+function pw_mission_campaign_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_mission_successions_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT is_campaign_final FROM `game_mission_definitions` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+/**
+ * Resolve one world's campaign into ordered steps.
+ *
+ * The chain is walked backwards from the administrator-flagged final mission
+ * through unlocks_after_mission_id, then reversed, so the bar always reflects
+ * the real gating relationships rather than a separately maintained list.
+ *
+ * A step's requirement is stored on its *successor*: mission B carrying
+ * unlocks_after_completion_count = 3 means step A needs three claimed runs.
+ * The final step needs a single claimed run to finish the campaign. This is the
+ * same rule the unlock gate itself uses, so the bar can never disagree with
+ * which missions are actually playable.
+ *
+ * @param array $missionsById   Every mission in the world, keyed by id.
+ * @param array $claimedCounts  mission_definition_id => claimed run count.
+ */
+function pw_missions_campaign_progress(array $missionsById, array $claimedCounts): ?array {
+    $final = null;
+    foreach ($missionsById as $mission) {
+        if (!empty($mission['is_campaign_final'])) { $final = $mission; break; }
+    }
+    if ($final === null) return null;
+
+    $chain = [];
+    $visited = [];
+    $cursor = $final;
+    while ($cursor !== null) {
+        $cursorId = (int)$cursor['id'];
+        // Defensive: the admin save path rejects loops, but a chain read on
+        // every page load must never be able to hang on damaged data.
+        if (isset($visited[$cursorId])) break;
+        $visited[$cursorId] = true;
+        array_unshift($chain, $cursor);
+        $previousId = $cursor['unlocks_after_mission_id'] !== null ? (int)$cursor['unlocks_after_mission_id'] : null;
+        $cursor = $previousId !== null && isset($missionsById[$previousId]) ? $missionsById[$previousId] : null;
+    }
+    if (!$chain) return null;
+
+    $steps = [];
+    $completedSteps = 0;
+    $currentIndex = null;
+    foreach ($chain as $index => $mission) {
+        $missionId = (int)$mission['id'];
+        $successor = $chain[$index + 1] ?? null;
+        $required = $successor !== null ? max(1, (int)$successor['unlocks_after_completion_count']) : 1;
+        $done = min($required, (int)($claimedCounts[$missionId] ?? 0));
+        $isComplete = $done >= $required;
+        if ($isComplete) $completedSteps++;
+        if (!$isComplete && $currentIndex === null) $currentIndex = $index;
+        $steps[] = [
+            'position' => $index + 1,
+            'runs_done' => $done,
+            'runs_required' => $required,
+            'is_complete' => $isComplete,
+            // A step the player has never reached must not leak its mission
+            // name; only completed and in-progress steps are named.
+            'name' => null,
+            'state' => $isComplete ? 'complete' : 'locked',
+        ];
+    }
+    if ($currentIndex !== null) {
+        $steps[$currentIndex]['state'] = 'current';
+    }
+    foreach ($steps as $index => $step) {
+        if ($step['state'] !== 'locked') $steps[$index]['name'] = $chain[$index]['name'];
+    }
+
+    $total = count($chain);
+    return [
+        'total_steps' => $total,
+        'completed_steps' => $completedSteps,
+        'is_complete' => $completedSteps >= $total,
+        'final_name' => $completedSteps >= $total ? $final['name'] : null,
+        'steps' => $steps,
+    ];
+}
+
+/**
  * Starter templates are cloned into a player-owned crew record the first time
  * the player visits Missions. INSERT IGNORE and the unique user/template key
  * make this safe across simultaneous page loads and future starter additions.

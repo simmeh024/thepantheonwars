@@ -34,35 +34,63 @@ try {
         return $row;
     }, $crewStmt->fetchAll());
 
+    $claimedStmt = $db->prepare(
+        'SELECT mission_definition_id, COUNT(*) AS claimed_count
+         FROM game_player_missions
+         WHERE user_id = ? AND status = "claimed"
+         GROUP BY mission_definition_id'
+    );
+    $claimedStmt->execute([$userId]);
+    $claimedCounts = [];
+    foreach ($claimedStmt->fetchAll() as $row) {
+        $claimedCounts[(int)$row['mission_definition_id']] = (int)$row['claimed_count'];
+    }
+
+    /* The whole world is loaded, including disabled missions, so the campaign
+     * chain keeps its real length even while a mid-chain operation is switched
+     * off in Mission Control. Card rendering filters to enabled missions below. */
+    $campaignReady = pw_mission_campaign_ready($db);
     $missionsStmt = $db->prepare(
         'SELECT mission.id, mission.world_key, mission.name, mission.slug, mission.description, mission.mission_type, mission.duration_seconds,
-                mission.min_crew, mission.max_crew, mission.xp_reward, mission.reputation_reward, mission.sort_order,
-                mission.unlocks_after_mission_id, mission.unlocks_after_completion_count,
-                prerequisite.name AS unlocks_after_mission_name,
-                COALESCE(completions.completed_count, 0) AS unlocks_after_completed_count
+                mission.min_crew, mission.max_crew, mission.xp_reward, mission.reputation_reward, mission.sort_order, mission.is_enabled,
+                mission.unlocks_after_mission_id, mission.unlocks_after_completion_count,'
+        . ($campaignReady ? ' mission.is_campaign_final,' : ' 0 AS is_campaign_final,') .
+               ' prerequisite.name AS unlocks_after_mission_name
          FROM game_mission_definitions mission
          LEFT JOIN game_mission_definitions prerequisite ON prerequisite.id = mission.unlocks_after_mission_id
-         LEFT JOIN (
-             SELECT mission_definition_id, COUNT(*) AS completed_count
-             FROM game_player_missions
-             WHERE user_id = ? AND status = "claimed"
-             GROUP BY mission_definition_id
-         ) completions ON completions.mission_definition_id = mission.unlocks_after_mission_id
-         WHERE mission.is_enabled = 1 AND mission.world_key = "neoh"
+         WHERE mission.world_key = "neoh"
          ORDER BY mission.sort_order ASC, mission.id ASC'
     );
-    $missionsStmt->execute([$userId]);
-    $missions = $missionsStmt->fetchAll();
-    $missions = array_map(static function ($row) {
-        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order', 'unlocks_after_completion_count', 'unlocks_after_completed_count'] as $field) $row[$field] = (int)$row[$field];
+    $missionsStmt->execute();
+    $worldMissions = array_map(static function ($row) use ($claimedCounts) {
+        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order', 'unlocks_after_completion_count'] as $field) $row[$field] = (int)$row[$field];
         $row['unlocks_after_mission_id'] = $row['unlocks_after_mission_id'] !== null ? (int)$row['unlocks_after_mission_id'] : null;
+        $row['is_enabled'] = (bool)$row['is_enabled'];
+        $row['is_campaign_final'] = (bool)$row['is_campaign_final'];
         if ($row['unlocks_after_mission_id'] !== null) {
             $row['unlocks_after_completion_count'] = max(1, $row['unlocks_after_completion_count']);
         }
         $row['is_unlocked'] = $row['unlocks_after_mission_id'] === null
-            || $row['unlocks_after_completed_count'] >= $row['unlocks_after_completion_count'];
+            || ($claimedCounts[$row['unlocks_after_mission_id']] ?? 0) >= $row['unlocks_after_completion_count'];
         return $row;
-    }, $missions);
+    }, $missionsStmt->fetchAll());
+
+    $missionsById = [];
+    foreach ($worldMissions as $mission) $missionsById[(int)$mission['id']] = $mission;
+    $campaign = pw_missions_campaign_progress($missionsById, $claimedCounts);
+
+    /* A locked mission is omitted from the response entirely -- name, slug,
+     * description, rewards and crew requirements included. Sending it and
+     * hiding it in CSS would hand every unreleased operation to anyone opening
+     * the network tab, the same reason api/timeline.php seals a gated event
+     * server-side rather than dimming it in the browser. The campaign bar above
+     * is the only thing that acknowledges those missions exist. */
+    $missions = array_values(array_map(static function ($mission) {
+        unset($mission['is_enabled'], $mission['is_campaign_final'], $mission['is_unlocked']);
+        return $mission;
+    }, array_filter($worldMissions, static function ($mission) {
+        return $mission['is_enabled'] && $mission['is_unlocked'];
+    })));
 
     $playerMissionStmt = $db->prepare(
         'SELECT pm.id, pm.world_key, pm.status, pm.started_at, pm.completes_at, pm.completed_at, pm.claimed_at,
@@ -107,6 +135,7 @@ try {
             'total_missions' => count($allPlayerMissions),
         ],
         'crew' => $crew,
+        'campaign' => $campaign,
         'missions' => $missions,
         'active_missions' => $active,
         'history' => array_slice($history, 0, 30),

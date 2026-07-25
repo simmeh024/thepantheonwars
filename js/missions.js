@@ -15,6 +15,11 @@
   var crewSort = document.getElementById('missions-crew-sort');
   var crewFilterSummary = document.getElementById('missions-crew-filter-summary');
   var historyList = document.getElementById('missions-history-list');
+  var campaignSection = document.getElementById('mission-campaign');
+  var campaignTrack = document.getElementById('mission-campaign-track');
+  var campaignCount = document.getElementById('mission-campaign-count');
+  var campaignCopy = document.getElementById('mission-campaign-copy');
+  var campaignStep = document.getElementById('mission-campaign-step');
   var commandFeedList = document.getElementById('mission-feed-list');
   var launchModal = document.getElementById('mission-launch-modal');
   var launchTitle = document.getElementById('mission-launch-title');
@@ -56,20 +61,55 @@
     }).join('');
   }
 
+  /* The server sends unlocked operations only, so there is no locked-card
+   * branch here by design -- a mission the player has not reached is absent
+   * from the payload entirely and is represented solely by the campaign bar. */
   function renderDefinitions(data) {
     var available = availableCrew().length;
     if (!data.missions.length) { definitionList.innerHTML = '<p class="missions-empty">No Neoh operations are available at the moment.</p>'; return; }
     definitionList.innerHTML = data.missions.map(function (mission) {
-      var unlocked = !!mission.is_unlocked;
-      var canLaunch = unlocked && available >= mission.min_crew;
+      var canLaunch = available >= mission.min_crew;
       var unlockState = mission.unlocks_after_mission_id
-        ? '<p class="mission-unlock-state ' + (unlocked ? 'is-unlocked' : 'is-locked') + '">' + (unlocked
-          ? 'Unlocked through ' + escapeHtml(mission.unlocks_after_mission_name || 'a previous operation')
-          : 'Locked: ' + escapeHtml(mission.unlocks_after_mission_name || 'previous operation') + ' — ' + Number(mission.unlocks_after_completed_count || 0) + ' / ' + Number(mission.unlocks_after_completion_count || 0) + ' successful runs') + '</p>'
+        ? '<p class="mission-unlock-state is-unlocked">Unlocked through ' + escapeHtml(mission.unlocks_after_mission_name || 'a previous operation') + '</p>'
         : '<p class="mission-unlock-state is-base">Available immediately</p>';
-      var launchLabel = !unlocked ? 'Mission Locked' : canLaunch ? 'Select Crew' : 'Crew Unavailable';
-      return '<article class="mission-definition-card ' + (unlocked ? '' : 'is-locked') + '"><div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p>' + unlockState + '<dl class="mission-definition-meta"><div><dt>Crew</dt><dd>' + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + '</dd></div><div><dt>XP</dt><dd>+' + mission.xp_reward + ' per crew</dd></div><div><dt>Reputation</dt><dd>' + (mission.reputation_reward ? '+' + mission.reputation_reward : '—') + '</dd></div></dl><button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + launchLabel + '</button></article>';
+      return '<article class="mission-definition-card"><div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p>' + unlockState + '<dl class="mission-definition-meta"><div><dt>Crew</dt><dd>' + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + '</dd></div><div><dt>XP</dt><dd>+' + mission.xp_reward + ' per crew</dd></div><div><dt>Reputation</dt><dd>' + (mission.reputation_reward ? '+' + mission.reputation_reward : '—') + '</dd></div></dl><button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + (canLaunch ? 'Select Crew' : 'Crew Unavailable') + '</button></article>';
     }).join('');
+  }
+
+  /* One block per mission in the chain leading to the administrator's campaign
+   * finale. A completed block is filled, the block in progress fills by the
+   * share of successful runs it still needs, and every later block stays blank
+   * and unnamed -- it is the only acknowledgement that further operations
+   * exist at all. */
+  function renderCampaign(data) {
+    var campaign = data.campaign;
+    if (!campaign || !campaign.total_steps) { campaignSection.hidden = true; return; }
+    campaignSection.hidden = false;
+    var current = null;
+    campaign.steps.forEach(function (step) { if (step.state === 'current') current = step; });
+
+    campaignCount.textContent = campaign.completed_steps + ' / ' + campaign.total_steps + ' operations';
+    campaignSection.classList.toggle('is-complete', !!campaign.is_complete);
+    campaignCopy.textContent = campaign.is_complete
+      ? 'Every operation in the Neoh chain is on record. Command has nothing further to assign.'
+      : 'Command releases the next operation only once the one before it is secured.';
+
+    campaignTrack.innerHTML = campaign.steps.map(function (step) {
+      var fill = step.is_complete ? 100 : step.state === 'current' && step.runs_required > 0
+        ? Math.min(100, Math.round((step.runs_done / step.runs_required) * 100))
+        : 0;
+      var label = step.name
+        ? 'Operation ' + step.position + ': ' + step.name
+        : 'Operation ' + step.position + ': classified until reached';
+      return '<span class="mission-campaign-block is-' + step.state + '" title="' + escapeHtml(label) + '"><i style="width:' + fill + '%"></i></span>';
+    }).join('');
+    campaignTrack.setAttribute('aria-label', 'Campaign progress: ' + campaign.completed_steps + ' of ' + campaign.total_steps + ' operations complete.');
+
+    campaignStep.textContent = campaign.is_complete
+      ? 'Campaign complete' + (campaign.final_name ? ' — ' + campaign.final_name + ' secured.' : '.')
+      : current
+        ? 'Operation ' + current.position + ' of ' + campaign.total_steps + ': ' + (current.name || 'classified') + ' — ' + current.runs_done + ' / ' + current.runs_required + ' successful run' + (current.runs_required === 1 ? '' : 's') + ' logged.'
+        : '';
   }
 
   function crewAvailability(crew) {
@@ -191,7 +231,7 @@
     state.data = data;
     var server = apiDate(data.server_time);
     state.serverOffset = server && !isNaN(server) ? server.getTime() - Date.now() : 0;
-    renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderHistory(data); tickCountdowns();
+    renderStats(data); renderCampaign(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderHistory(data); tickCountdowns();
   }
 
   function tickCountdowns() {

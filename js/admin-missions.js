@@ -91,10 +91,11 @@
         '<span>' + mission.min_crew + '–' + mission.max_crew + '</span>' +
         '<span class="mission-admin-reward">+' + mission.xp_reward + ' XP <small class="mission-admin-cell-sub">+' + mission.reputation_reward + ' rep</small></span>' +
         statusPill(mission.is_enabled, 'Enabled', 'Disabled');
-      if (mission.unlocks_after_mission_name) {
-        var detail = row.querySelector('.mission-admin-title small');
-        if (detail) detail.textContent += ' | Unlocks after ' + mission.unlocks_after_mission_name + ' × ' + mission.unlocks_after_completion_count;
+      var detail = row.querySelector('.mission-admin-title small');
+      if (mission.unlocks_after_mission_name && detail) {
+        detail.textContent += ' | Unlocks after ' + mission.unlocks_after_mission_name + ' × ' + mission.unlocks_after_completion_count;
       }
+      if (mission.is_campaign_final && detail) detail.textContent += ' | Campaign finale';
       if (can('missions.edit')) {
         row.addEventListener('click', function () { openDefinition(mission); });
         row.addEventListener('keydown', function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDefinition(mission); } });
@@ -223,6 +224,7 @@
     document.getElementById('mission-definition-enabled').checked = mission ? mission.is_enabled : true;
     populateMissionSuccessionOptions(mission);
     document.getElementById('mission-definition-unlock-completions').value = mission && mission.unlocks_after_mission_id ? mission.unlocks_after_completion_count : 0;
+    document.getElementById('mission-definition-campaign-final').checked = mission ? !!mission.is_campaign_final : false;
     syncMissionSuccessionFields();
   }
 
@@ -263,7 +265,8 @@
       sort_order: document.getElementById('mission-definition-sort-order').value,
       is_enabled: document.getElementById('mission-definition-enabled').checked,
       unlocks_after_mission_id: document.getElementById('mission-definition-unlocks-after').value,
-      unlocks_after_completion_count: document.getElementById('mission-definition-unlock-completions').value
+      unlocks_after_completion_count: document.getElementById('mission-definition-unlock-completions').value,
+      is_campaign_final: document.getElementById('mission-definition-campaign-final').checked
     };
   }
 

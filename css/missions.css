@@ -37,6 +37,27 @@
 .mission-feed-entry p { margin: 5px 0 0; color: #b4c9d6; font-size: .72rem; line-height: 1.42; }
 .mission-feed-entry.is-live .mission-feed-code { color: #7ce2e8; }.mission-feed-entry.is-ready .mission-feed-code { color: #ebd18a; }.mission-feed-entry.is-watch .mission-feed-code { color: #d6a777; }.mission-feed-entry.is-muted { opacity: .76; }
 .mission-feed-empty { padding: 16px 0 0; color: #88a2b2; font-size: .74rem; }
+/* Campaign progress bar. One block per operation in the chain leading to the
+ * administrator-flagged finale; blocks the player has not reached carry no
+ * name, so the bar communicates length without revealing content. */
+.mission-campaign { margin-top: 34px; padding: 20px 22px; border: 1px solid rgba(88,142,181,0.34); background: linear-gradient(145deg, rgba(17,38,59,0.72), rgba(23,14,46,0.82)); }
+.mission-campaign-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
+.mission-campaign-head .eyebrow { margin-bottom: 6px; color: #79d9df; font-size: 0.62rem; }
+.mission-campaign-head h2 { margin: 0; font-size: 1.18rem; }
+.mission-campaign-head p { max-width: 620px; margin: 7px 0 0; color: #a3b8c8; font-size: 0.78rem; line-height: 1.5; }
+.mission-campaign-count { color: #cfe3ef; font-size: 0.78rem; font-weight: 600; white-space: nowrap; }
+.mission-campaign-track { display: flex; gap: 5px; }
+.mission-campaign-block { position: relative; flex: 1 1 0; min-width: 0; height: 16px; overflow: hidden; border: 1px solid rgba(103,152,190,0.4); background: rgba(9,19,35,0.7); }
+.mission-campaign-block i { display: block; height: 100%; background: linear-gradient(90deg, #4fc6d6, #7ee3e8); box-shadow: 0 0 12px rgba(110,224,232,0.45); transition: width .5s ease; }
+.mission-campaign-block.is-current { border-color: rgba(235,209,138,0.6); }
+.mission-campaign-block.is-current i { background: linear-gradient(90deg, #c9a24e, #ebd18a); box-shadow: 0 0 12px rgba(235,209,138,0.5); }
+.mission-campaign-block.is-locked { border-color: rgba(105,101,134,0.4); background: rgba(16,16,30,0.66); }
+.mission-campaign.is-complete .mission-campaign-block i { background: linear-gradient(90deg, #6ad2a2, #9edba8); box-shadow: 0 0 12px rgba(158,219,168,0.45); }
+.mission-campaign-step { margin: 12px 0 0; color: #b6cad8; font-size: 0.74rem; line-height: 1.5; }
+.mission-campaign.is-complete .mission-campaign-step { color: #9edba8; font-weight: 600; }
+@media (prefers-reduced-motion: reduce) { .mission-campaign-block i { transition: none; } }
+@media (max-width: 620px) { .mission-campaign { padding: 17px 15px; } .mission-campaign-head { flex-direction: column; align-items: start; gap: 8px; } .mission-campaign-track { gap: 3px; } .mission-campaign-block { height: 13px; } }
+
 .missions-section { margin-top: 42px; }
 .missions-section-head { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 16px; }
 .missions-section-head .eyebrow { margin-bottom: 6px; color: #79d9df; font-size: 0.62rem; }

@@ -4044,6 +4044,8 @@
       <div class="admin-field"><label for="mission-definition-unlock-completions">Successful runs required</label><input type="number" id="mission-definition-unlock-completions" min="1" max="999" step="1" value="0" disabled></div>
     </div>
     <p class="admin-field-hint" id="mission-definition-unlock-hint">Choose a previous mission to make this a tougher follow-up operation.</p>
+    <label class="admin-setting-toggle"><span><strong>Final mission of this campaign</strong><small>Ends the progress bar players see on the Missions page. Only one mission per world can be the finale; marking a new one clears the previous.</small></span><input type="checkbox" id="mission-definition-campaign-final"></label>
+    <p class="admin-field-hint" id="mission-definition-campaign-hint">The bar counts every mission in the chain leading back from this one. Locked missions stay completely hidden from players until they are reached.</p>
     <p class="admin-modal-error" id="mission-definition-modal-error"></p><p class="admin-modal-status" id="mission-definition-modal-status"></p>
     <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="mission-definition-save-btn">Save Mission</button><button type="button" class="btn" id="mission-definition-cancel-btn">Cancel</button><button type="button" class="admin-delete-btn" id="mission-definition-delete-btn" hidden>Delete Mission</button></div>
   </div>
@@ -4214,7 +4216,7 @@
 </div>
 
 <script src="../js/members.js?v=40"></script>
-<script src="../js/admin-missions.js?v=2"></script>
+<script src="../js/admin-missions.js?v=3"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };

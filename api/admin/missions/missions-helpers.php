@@ -51,7 +51,20 @@ function pw_admin_mission_definition_input(array $input): array {
         'is_enabled' => !empty($input['is_enabled']) ? 1 : 0, 'sort_order' => $sortOrder,
         'unlocks_after_mission_id' => $unlocksAfterMissionId,
         'unlocks_after_completion_count' => $unlocksAfterCompletionCount,
+        'is_campaign_final' => !empty($input['is_campaign_final']) ? 1 : 0,
     ];
+}
+
+/**
+ * A world has at most one campaign finale, so flagging a new one clears the
+ * previous flag rather than rejecting the save. Last write wins, which matches
+ * how an administrator actually re-plans a campaign: the old ending simply
+ * stops being the ending.
+ */
+function pw_admin_apply_campaign_final(PDO $db, int $missionId, array $data): void {
+    if (!$data['is_campaign_final']) return;
+    $stmt = $db->prepare('UPDATE game_mission_definitions SET is_campaign_final = 0 WHERE world_key = ? AND id != ? AND is_campaign_final = 1');
+    $stmt->execute([$data['world_key'], $missionId]);
 }
 
 /**
