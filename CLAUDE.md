@@ -619,6 +619,51 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Game Tuning (Game Control -> Game Tuning).** **Run
+  `sql/migration_game_tuning.sql` once.** A read-only balance simulator:
+  pick a crew member, drag a loadout, toggle research protocols, and sweep
+  their progression against up to six operations at once.
+  **The governing rule: it computes nothing itself.** Every figure comes
+  from the same helpers the live launch and claim paths call. A tuning tool
+  that re-implements the game's arithmetic is wrong exactly when it is being
+  trusted to find something wrong, and this codebase already carries one
+  deliberate second copy of that maths in `js/missions.js`'s
+  `projectLaunch()`. Making that possible needed one refactor:
+  `pw_missions_apply_gear()` coupled the DB read to the bonus summing, so the
+  arithmetic half is now `pw_missions_apply_gear_bonuses()`, which takes items
+  directly and is shared by both.
+  **Expected values are closed-form, not sampled.** Every random element has
+  one -- the outcome is a Bernoulli trial at the success percentage, the extra
+  loot draw is one at the fractional Cunning bonus, an upgrade is one per item
+  at the Science percentage. Sampling would only add noise to numbers that can
+  be stated exactly.
+  Per-hour metrics are the ones that actually expose a dominant operation; a
+  15-minute mission and a two-hour one are not comparable until divided.
+  `outliers.php` scans the whole catalogue at a common baseline (one level-1
+  crew member of a role the operation prefers, no gear, no research) and
+  flags missions that cannot fail, pay rates more than double the median,
+  items outclassing their own tier, and research nodes eating most of their
+  own cap. Advisory only.
+  The chart is hand-built inline SVG following the System Status CPU chart --
+  no chart library, per the standing rule. Axis ticks come from the real data
+  range, so a metric spanning 70-72% still fills the plot; a flat line is
+  drawn through the middle of a padded band rather than collapsed onto an
+  axis, because "this item changes nothing" is a real finding. Six series
+  differ by colour **and** dash pattern, so the lines separate without relying
+  on hue.
+  Its own `game_tuning.view` permission rather than reusing `missions.view`:
+  the page puts the entire reward economy on one screen.
+  **Two harness lessons.** Re-rendering a list of checkboxes discards the
+  focused element, so a keyboard user was returned to the top of the page on
+  every toggle and could not select a second operation -- `keepFocus()` puts
+  it back. And an admin harness must reveal `.admin-shell`, which the real
+  console un-hides only after its auth check: without that everything renders
+  into a `display: none` subtree, all geometry reads zero and focus silently
+  fails, which looks exactly like a product bug.
+  **Known, not introduced here:** `--text-dim` (#b0a2cf) gives every admin
+  form label and card description 4.20:1. That is console-wide and a separate
+  decision; all 44 text nodes this page owns clear AA at 5.12:1 or better.
+
 - **Daily Overlord contracts.** **Run `sql/migration_overlord_contracts.sql`
   once.** The quiz has always written `users.overlord_affinity` and no
   gameplay system has ever read it -- a player declared an allegiance and it

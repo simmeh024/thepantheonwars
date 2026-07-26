@@ -1,0 +1,598 @@
+/* Game Tuning: a read-only balance simulator.
+ *
+ * This file draws and collects input. It computes no game figure of its own --
+ * every number on screen came from api/admin/game-tuning/simulate.php, which
+ * calls the same helpers the live launch and claim paths call. A tuning tool
+ * that re-derives the game's arithmetic is wrong exactly when it is being
+ * trusted to find something wrong.
+ *
+ * The chart is hand-built inline SVG, matching the System Status CPU chart:
+ * this codebase carries no chart library and deliberately keeps it that way. */
+(function () {
+  'use strict';
+
+  var catalog = null;
+  var state = {
+    crewId: null, itemIds: [], researchIds: [], missionIds: [],
+    mode: 'level', metric: 'success_percent',
+    levelFrom: 1, levelTo: 50, level: 1, crewCount: 1,
+    result: null, dragItemId: null, loaded: false
+  };
+  /* One colour per series. Distinguishable without relying on hue alone --
+   * every line also carries its own dash pattern and marker, so a reader who
+   * cannot separate the colours can still separate the lines. */
+  var SERIES = [
+    { color: '#7ee3e8', dash: '' },
+    { color: '#edc179', dash: '6 4' },
+    { color: '#9edba8', dash: '2 3' },
+    { color: '#c79aef', dash: '9 3 2 3' },
+    { color: '#e8a894', dash: '1 4' },
+    { color: '#8fb6ff', dash: '12 4' }
+  ];
+
+  function el(id) { return document.getElementById(id); }
+  function esc(value) { var n = document.createElement('div'); n.textContent = value == null ? '' : String(value); return n.innerHTML; }
+  function can(key) { return typeof window.pwHasPermission === 'function' && window.pwHasPermission(key); }
+  function setError(message) { var box = el('tuning-error'); if (box) box.textContent = message || ''; }
+
+  function request(url, payload) {
+    var options = { credentials: 'same-origin', cache: 'no-store' };
+    if (payload) {
+      payload.csrf = window.PW_AUTH && window.PW_AUTH.csrf ? window.PW_AUTH.csrf : '';
+      options.method = 'POST';
+      options.headers = { 'Content-Type': 'application/json' };
+      options.body = JSON.stringify(payload);
+    }
+    return fetch(url, options).then(function (r) { return r.json().catch(function () { return {}; }); }).then(function (data) {
+      if (!data.ok) throw new Error(data.error || 'The tuning request could not be completed.');
+      return data;
+    });
+  }
+
+  function itemById(id) {
+    var list = (catalog && catalog.items) || [];
+    for (var i = 0; i < list.length; i++) if (Number(list[i].id) === Number(id)) return list[i];
+    return null;
+  }
+  function crewById(id) {
+    var list = (catalog && catalog.crew) || [];
+    for (var i = 0; i < list.length; i++) if (Number(list[i].id) === Number(id)) return list[i];
+    return null;
+  }
+  function bonusText(item) {
+    return ['strength', 'cunning', 'science', 'charisma'].map(function (stat) {
+      var value = Number(item['bonus_' + stat]) || 0;
+      return value ? (value > 0 ? '+' : '') + value + ' ' + stat.slice(0, 3).toUpperCase() : '';
+    }).filter(Boolean).join(' ') || 'No bonus';
+  }
+  function slotLabel(key) { return (catalog && catalog.gear_slots && catalog.gear_slots[key]) || key; }
+
+  /* ---- Loadout ---------------------------------------------------------
+   * One item per slot, which is the live loadout rule. Choosing a second item
+   * for an occupied slot replaces it rather than being refused, because the
+   * point of this page is rapid comparison. */
+  function itemInSlot(slot) {
+    for (var i = 0; i < state.itemIds.length; i++) {
+      var item = itemById(state.itemIds[i]);
+      if (item && item.slot === slot) return item;
+    }
+    return null;
+  }
+  function assignItem(id) {
+    var item = itemById(id);
+    if (!item) return;
+    state.itemIds = state.itemIds.filter(function (existing) {
+      var other = itemById(existing);
+      return other && other.slot !== item.slot;
+    });
+    state.itemIds.push(Number(id));
+    renderSlots(); renderItems(); run();
+  }
+  function clearSlot(slot) {
+    state.itemIds = state.itemIds.filter(function (id) {
+      var item = itemById(id);
+      return item && item.slot !== slot;
+    });
+    renderSlots(); renderItems(); run();
+  }
+
+  /* Re-rendering a whole list of checkboxes throws away the focused element,
+   * so a keyboard user is returned to the top of the page on every toggle and
+   * cannot select a second operation without tabbing back down. The series
+   * swatches genuinely have to be redrawn -- adding one operation renumbers the
+   * colours of all of them -- so the list is rebuilt and the focus put back on
+   * the control that caused it. */
+  function keepFocus(host, render) {
+    var active = document.activeElement;
+    var key = active && host.contains(active) ? active.getAttribute('data-mission-id') || active.getAttribute('data-research-id') : null;
+    var attr = active && active.hasAttribute && active.hasAttribute('data-mission-id') ? 'data-mission-id' : 'data-research-id';
+    render();
+    if (key === null) return;
+    var restored = host.querySelector('[' + attr + '="' + key + '"]');
+    if (restored) restored.focus();
+  }
+
+  function renderSlots() {
+    var host = el('tuning-slots');
+    if (!host) return;
+    var slots = (catalog && catalog.gear_slots) || {};
+    var crew = crewById(state.crewId);
+    host.innerHTML = Object.keys(slots).map(function (key) {
+      var item = itemInSlot(key);
+      if (!item) {
+        return '<div class="tuning-slot is-empty" data-slot="' + esc(key) + '">'
+          + '<span class="tuning-slot-label">' + esc(slots[key]) + '</span>'
+          + '<span class="tuning-slot-hint">Drop an item</span></div>';
+      }
+      /* Stated on the slot, because a requirement the subject can never meet
+       * is the difference between a loadout and a wish. */
+      var blocked = crew && item.required_role && item.required_role !== crew.role
+        ? item.required_role + ' only'
+        : (Number(item.required_level) > 1 ? 'From level ' + item.required_level : '');
+      return '<div class="tuning-slot is-filled is-' + esc(item.tier) + '" data-slot="' + esc(key) + '">'
+        + '<span class="tuning-slot-label">' + esc(slots[key]) + '</span>'
+        + '<strong>' + esc(item.name) + '</strong>'
+        + '<span class="tuning-slot-bonus">' + esc(bonusText(item)) + '</span>'
+        + (blocked ? '<span class="tuning-slot-req">' + esc(blocked) + '</span>' : '')
+        + '<button type="button" class="tuning-slot-clear" data-clear-slot="' + esc(key) + '" aria-label="' + esc('Remove ' + item.name) + '">&times;</button></div>';
+    }).join('');
+  }
+
+  function renderItems() {
+    var host = el('tuning-item-list');
+    if (!host) return;
+    if (!catalog || !catalog.gear_ready) {
+      host.innerHTML = '<p class="admin-empty">Equipment needs the mission gear migration before it can be simulated.</p>';
+      return;
+    }
+    var term = (el('tuning-item-search').value || '').trim().toLowerCase();
+    var rows = (catalog.items || []).filter(function (item) {
+      if (!term) return true;
+      return (item.name + ' ' + item.slot + ' ' + item.tier).toLowerCase().indexOf(term) !== -1;
+    });
+    host.innerHTML = rows.length ? rows.map(function (item) {
+      var chosen = state.itemIds.indexOf(Number(item.id)) !== -1;
+      return '<button type="button" class="tuning-item is-' + esc(item.tier) + (chosen ? ' is-chosen' : '') + '"'
+        + ' draggable="true" data-item-id="' + Number(item.id) + '">'
+        + '<span class="tuning-item-name">' + esc(item.name) + '</span>'
+        + '<span class="tuning-item-meta">' + esc(slotLabel(item.slot)) + ' &middot; ' + esc(item.tier)
+        + (Number(item.required_level) > 1 ? ' &middot; L' + item.required_level : '')
+        + (item.required_role ? ' &middot; ' + esc(item.required_role) : '') + '</span>'
+        + '<span class="tuning-item-bonus">' + esc(bonusText(item)) + '</span></button>';
+    }).join('') : '<p class="admin-empty">No items match that filter.</p>';
+  }
+
+  function renderResearch() {
+    var host = el('tuning-research-list');
+    if (!host) return;
+    if (!catalog || !catalog.research_ready || !(catalog.research || []).length) {
+      host.innerHTML = '<p class="admin-empty">No research protocols are published, so every simulation runs with none online.</p>';
+      el('tuning-research-count').textContent = '';
+      return;
+    }
+    host.innerHTML = (catalog.research || []).map(function (node) {
+      var on = state.researchIds.indexOf(Number(node.id)) !== -1;
+      var type = (catalog.effect_types || {})[node.effect_type] || {};
+      var flat = node.effect_type === 'crew_capacity' || node.effect_type === 'crew_fatigue';
+      var special = node.effect_type === 'secret_mission' || node.effect_type === 'rare_loot_table';
+      var value = special ? 'unlock' : flat ? '+' + Math.floor(node.effect_value) : '+' + node.effect_value + '%';
+      return '<label class="tuning-research' + (on ? ' is-on' : '') + '">'
+        + '<input type="checkbox" data-research-id="' + Number(node.id) + '"' + (on ? ' checked' : '') + '>'
+        + '<span class="tuning-research-copy"><strong>' + esc(node.name) + '</strong>'
+        + '<small>' + esc((node.category_name ? node.category_name + ' · ' : '') + (type.label || node.effect_type)) + '</small></span>'
+        + '<b>' + esc(value) + '</b></label>';
+    }).join('');
+    el('tuning-research-count').textContent = state.researchIds.length + ' of ' + (catalog.research || []).length + ' online';
+  }
+
+  function renderMissions() {
+    var host = el('tuning-mission-list');
+    if (!host) return;
+    host.innerHTML = ((catalog && catalog.missions) || []).map(function (mission) {
+      var on = state.missionIds.indexOf(Number(mission.id)) !== -1;
+      var index = state.missionIds.indexOf(Number(mission.id));
+      var swatch = on ? '<i style="background:' + SERIES[index % SERIES.length].color + '"></i>' : '<i class="is-off"></i>';
+      return '<label class="tuning-mission' + (on ? ' is-on' : '') + (mission.is_enabled ? '' : ' is-disabled') + '">'
+        + '<input type="checkbox" data-mission-id="' + Number(mission.id) + '"' + (on ? ' checked' : '') + '>'
+        + swatch
+        + '<span class="tuning-mission-copy"><strong>' + esc(mission.name) + (mission.overlord_name ? ' <em>' + esc(mission.overlord_name) + '</em>' : '') + '</strong>'
+        + '<small>' + esc(String(mission.mission_type).toUpperCase()) + ' &middot; ' + Math.round(mission.duration_seconds / 60) + 'm &middot; '
+        + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + ' crew'
+        + (mission.is_enabled ? '' : ' &middot; disabled') + '</small></span></label>';
+    }).join('') || '<p class="admin-empty">No operations have been authored yet.</p>';
+  }
+
+  /* ---- The chart -------------------------------------------------------
+   * Hand-built inline SVG on a fixed viewBox, scaled by the container. Axis
+   * ticks come from the real data range rather than a fixed scale, so a metric
+   * whose whole span is 70-72% still fills the plot and its shape is visible.
+   * -------------------------------------------------------------------- */
+  var CHART = { w: 900, h: 380, left: 62, right: 18, top: 20, bottom: 40 };
+
+  function niceTicks(min, max, count) {
+    if (max <= min) { max = min + 1; }
+    var raw = (max - min) / Math.max(1, count);
+    var mag = Math.pow(10, Math.floor(Math.log(raw) / Math.LN10));
+    var norm = raw / mag;
+    var step = (norm >= 5 ? 10 : norm >= 2 ? 5 : norm >= 1 ? 2 : 1) * mag;
+    var start = Math.floor(min / step) * step;
+    var ticks = [];
+    for (var v = start; v <= max + step * 0.5; v += step) ticks.push(Math.round(v * 1000) / 1000);
+    return ticks;
+  }
+
+  function formatValue(value, metric) {
+    var meta = ((catalog && catalog.metrics) || {})[metric] || {};
+    if (metric === 'duration_seconds') {
+      var s = Math.max(0, Math.round(value));
+      var h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60);
+      return h ? h + 'h ' + m + 'm' : m ? m + 'm' : s + 's';
+    }
+    var rounded = Math.abs(value) >= 100 ? Math.round(value) : Math.round(value * 100) / 100;
+    return rounded + (meta.unit === '%' ? '%' : '');
+  }
+
+  function renderChart() {
+    var host = el('tuning-chart');
+    if (!host) return;
+    var result = state.result;
+    if (!result || !result.series.length) {
+      host.innerHTML = '<p class="admin-empty">Choose a crew member and at least one operation to plot.</p>';
+      el('tuning-legend').innerHTML = '';
+      return;
+    }
+    var metric = state.metric;
+    var xKey = result.mode === 'crew_count' ? 'crew_count' : 'level';
+    var xs = [], ys = [];
+    result.series.forEach(function (s) {
+      s.points.forEach(function (p) { xs.push(Number(p[xKey])); ys.push(Number(p[metric]) || 0); });
+    });
+    if (!xs.length) { host.innerHTML = '<p class="admin-empty">Nothing to plot for this combination.</p>'; return; }
+    var xMin = Math.min.apply(null, xs), xMax = Math.max.apply(null, xs);
+    var yMin = Math.min.apply(null, ys), yMax = Math.max.apply(null, ys);
+    /* A flat line is real information -- an item that changes nothing, say --
+     * so it is drawn through the middle of a padded band rather than collapsed
+     * onto an axis where it would look like missing data. */
+    if (yMax === yMin) { yMax = yMin + Math.max(1, Math.abs(yMin) * 0.1); yMin = Math.max(0, yMin - Math.max(1, Math.abs(yMin) * 0.1)); }
+    else { var pad = (yMax - yMin) * 0.08; yMax += pad; yMin = Math.max(0, yMin - pad); }
+    if (xMax === xMin) xMax = xMin + 1;
+
+    var plotW = CHART.w - CHART.left - CHART.right;
+    var plotH = CHART.h - CHART.top - CHART.bottom;
+    var px = function (x) { return CHART.left + ((x - xMin) / (xMax - xMin)) * plotW; };
+    var py = function (y) { return CHART.top + plotH - ((y - yMin) / (yMax - yMin)) * plotH; };
+
+    var yTicks = niceTicks(yMin, yMax, 5).filter(function (t) { return t >= yMin - 0.001 && t <= yMax + 0.001; });
+    var xTicks = niceTicks(xMin, xMax, Math.min(10, xMax - xMin)).filter(function (t) {
+      return t >= xMin && t <= xMax && Math.abs(t - Math.round(t)) < 0.001;
+    });
+
+    var grid = yTicks.map(function (t) {
+      return '<line class="tuning-grid" x1="' + CHART.left + '" y1="' + py(t).toFixed(1) + '" x2="' + (CHART.w - CHART.right) + '" y2="' + py(t).toFixed(1) + '"></line>'
+        + '<text class="tuning-axis" x="' + (CHART.left - 8) + '" y="' + (py(t) + 3.5).toFixed(1) + '" text-anchor="end">' + esc(formatValue(t, metric)) + '</text>';
+    }).join('');
+    var xAxis = xTicks.map(function (t) {
+      return '<text class="tuning-axis" x="' + px(t).toFixed(1) + '" y="' + (CHART.h - CHART.bottom + 18) + '" text-anchor="middle">' + t + '</text>';
+    }).join('');
+
+    var lines = result.series.map(function (s, index) {
+      var style = SERIES[index % SERIES.length];
+      var d = s.points.map(function (p, i) {
+        return (i ? 'L' : 'M') + px(Number(p[xKey])).toFixed(1) + ' ' + py(Number(p[metric]) || 0).toFixed(1);
+      }).join(' ');
+      var dots = s.points.length <= 26 ? s.points.map(function (p) {
+        return '<circle class="tuning-dot" cx="' + px(Number(p[xKey])).toFixed(1) + '" cy="' + py(Number(p[metric]) || 0).toFixed(1) + '" r="2.6" fill="' + style.color + '"></circle>';
+      }).join('') : '';
+      return '<path class="tuning-line" d="' + d + '" stroke="' + style.color + '"'
+        + (style.dash ? ' stroke-dasharray="' + style.dash + '"' : '') + '></path>' + dots;
+    }).join('');
+
+    var meta = ((catalog && catalog.metrics) || {})[metric] || {};
+    host.innerHTML = '<svg viewBox="0 0 ' + CHART.w + ' ' + CHART.h + '" preserveAspectRatio="xMidYMid meet" role="img">'
+      + '<line class="tuning-axis-line" x1="' + CHART.left + '" y1="' + CHART.top + '" x2="' + CHART.left + '" y2="' + (CHART.h - CHART.bottom) + '"></line>'
+      + '<line class="tuning-axis-line" x1="' + CHART.left + '" y1="' + (CHART.h - CHART.bottom) + '" x2="' + (CHART.w - CHART.right) + '" y2="' + (CHART.h - CHART.bottom) + '"></line>'
+      + grid + xAxis + lines
+      + '<text class="tuning-axis-title" x="' + (CHART.left + plotW / 2) + '" y="' + (CHART.h - 4) + '" text-anchor="middle">'
+      + (result.mode === 'crew_count' ? 'Crew assigned' : 'Crew level') + '</text>'
+      + '</svg>';
+
+    el('tuning-legend').innerHTML = result.series.map(function (s, index) {
+      var style = SERIES[index % SERIES.length];
+      var last = s.points[s.points.length - 1];
+      return '<span class="tuning-legend-item"><i style="background:' + style.color + '"></i>'
+        + esc(s.mission_name) + ' <b>' + esc(formatValue(Number(last[metric]) || 0, metric)) + '</b></span>';
+    }).join('');
+    el('tuning-chart-title').textContent = (meta.label || metric) + ' · ' + result.crew.name;
+    el('tuning-chart-sub').textContent = result.mode === 'crew_count'
+      ? 'At level ' + state.level + ', swept across each operation’s own crew limits.'
+      : 'Levels ' + state.levelFrom + '–' + state.levelTo + ' with ' + state.crewCount + ' crew assigned.';
+  }
+
+  /* Every metric at the far end of the sweep, so the chart's single line can be
+   * read against everything it did not plot. */
+  function renderTable() {
+    var body = el('tuning-table').querySelector('tbody');
+    var result = state.result;
+    if (!result || !result.series.length) { body.innerHTML = ''; return; }
+    var metrics = catalog.metrics || {};
+    var head = '<tr><th>Metric</th>' + result.series.map(function (s, i) {
+      return '<th><i style="background:' + SERIES[i % SERIES.length].color + '"></i>' + esc(s.mission_name) + '</th>';
+    }).join('') + '</tr>';
+    var rows = Object.keys(metrics).map(function (key) {
+      var cells = result.series.map(function (s) {
+        var last = s.points[s.points.length - 1];
+        return '<td>' + esc(last ? formatValue(Number(last[key]) || 0, key) : '—') + '</td>';
+      }).join('');
+      return '<tr' + (key === state.metric ? ' class="is-current"' : '') + '><th scope="row">' + esc(metrics[key].label) + '</th>' + cells + '</tr>';
+    }).join('');
+    body.innerHTML = head + rows;
+  }
+
+  function renderReadout() {
+    var host = el('tuning-readout');
+    var result = state.result;
+    if (!result || !result.series.length) { host.innerHTML = ''; return; }
+    var first = result.series[0];
+    var last = first.points[first.points.length - 1];
+    if (!last) { host.innerHTML = ''; return; }
+    var research = result.research_effects || {};
+    var active = ['mission_speed_percent', 'xp_percent', 'reputation_percent', 'credit_percent', 'luck_percent']
+      .filter(function (key) { return Number(research[key]) > 0; })
+      .map(function (key) { return '+' + research[key] + '% ' + key.replace('_percent', '').replace('_', ' '); });
+    host.innerHTML = '<p>At level ' + last.level + ' with ' + last.crew_count + ' crew, <strong>' + esc(first.mission_name)
+      + '</strong> runs in ' + esc(formatValue(last.duration_seconds, 'duration_seconds')) + ' at ' + last.success_percent
+      + '% success, costs ' + last.fatigue_cost + ' fatigue, and moves each crew member '
+      + last.level_progress_percent + '% toward their next level.</p>'
+      + '<p class="tuning-readout-sub">Stat totals STR ' + last.stat_totals.strength + ' &middot; CUN ' + last.stat_totals.cunning
+      + ' &middot; SCI ' + last.stat_totals.science + ' &middot; CHA ' + last.stat_totals.charisma
+      + ' &middot; ' + last.gear_slots_used + ' of ' + last.gear_slots_chosen + ' chosen items worn at this level'
+      + (active.length ? ' &middot; research ' + esc(active.join(', ')) : ' &middot; no research online') + '.</p>';
+  }
+
+  var runTimer = null;
+  function run() {
+    if (!state.crewId || !state.missionIds.length) {
+      state.result = null; renderChart(); renderTable(); renderReadout();
+      return;
+    }
+    window.clearTimeout(runTimer);
+    // Debounced: dragging a slider or ticking through protocols would otherwise
+    // fire a request per keystroke.
+    runTimer = window.setTimeout(function () {
+      request('/api/admin/game-tuning/simulate.php', {
+        crew_definition_id: state.crewId,
+        mission_ids: state.missionIds,
+        item_ids: state.itemIds,
+        research_node_ids: state.researchIds,
+        mode: state.mode,
+        level: state.level,
+        level_from: state.levelFrom,
+        level_to: state.levelTo,
+        crew_count: state.crewCount
+      }).then(function (data) {
+        setError('');
+        state.result = data;
+        renderChart(); renderTable(); renderReadout();
+      }).catch(function (error) { setError(error.message); });
+    }, 160);
+  }
+
+  function renderFindings(data) {
+    var host = el('tuning-findings');
+    var findings = data.findings || [];
+    el('tuning-scan-summary').textContent = findings.length
+      ? findings.length + ' finding' + (findings.length === 1 ? '' : 's') + ' across ' + data.baseline.missions_scanned + ' operations'
+      : 'Nothing looks out of step across ' + data.baseline.missions_scanned + ' operations.';
+    host.innerHTML = findings.map(function (f) {
+      return '<div class="tuning-finding is-' + esc(f.severity) + '">'
+        + '<span class="tuning-finding-area">' + esc(f.area) + '</span>'
+        + '<strong>' + esc(f.subject) + '</strong>'
+        + '<p>' + esc(f.detail) + '</p></div>';
+    }).join('');
+  }
+
+  function renderScenarios(list) {
+    var host = el('tuning-scenario-list');
+    if (!host) return;
+    host.innerHTML = (list || []).length ? list.map(function (row) {
+      return '<div class="tuning-scenario"><button type="button" class="tuning-scenario-load" data-scenario="'
+        + esc(JSON.stringify(row.config)) + '">' + esc(row.name) + '</button>'
+        + '<button type="button" class="tuning-scenario-delete" data-scenario-delete="' + Number(row.id) + '" aria-label="'
+        + esc('Delete ' + row.name) + '">&times;</button></div>';
+    }).join('') : '<p class="admin-empty">No saved scenarios yet.</p>';
+  }
+
+  function loadScenarios() {
+    if (!catalog || !catalog.scenarios_ready) {
+      var card = el('tuning-scenario-card');
+      if (card) card.hidden = true;
+      return;
+    }
+    request('/api/admin/game-tuning/scenarios.php').then(function (data) { renderScenarios(data.scenarios); }).catch(function () {});
+  }
+
+  function applyScenario(config) {
+    state.crewId = Number(config.crew_definition_id) || state.crewId;
+    state.missionIds = (config.mission_ids || []).map(Number);
+    state.itemIds = (config.item_ids || []).map(Number);
+    state.researchIds = (config.research_node_ids || []).map(Number);
+    state.mode = config.mode || 'level';
+    state.metric = config.metric || 'success_percent';
+    state.level = Number(config.level) || 1;
+    state.levelFrom = Number(config.level_from) || 1;
+    state.levelTo = Number(config.level_to) || catalog.max_level;
+    state.crewCount = Number(config.crew_count) || 1;
+    syncInputs();
+    renderSlots(); renderItems(); renderResearch(); renderMissions(); run();
+  }
+
+  function syncInputs() {
+    el('tuning-crew').value = state.crewId ? String(state.crewId) : '';
+    el('tuning-mode').value = state.mode;
+    el('tuning-metric').value = state.metric;
+    el('tuning-level-from').value = state.levelFrom;
+    el('tuning-level-to').value = state.levelTo;
+    el('tuning-fixed-level').value = state.level;
+    el('tuning-crew-count').value = state.crewCount;
+    el('tuning-level-range').hidden = state.mode !== 'level';
+    el('tuning-fixed-level-field').hidden = state.mode !== 'crew_count';
+    el('tuning-crew-count-field').hidden = state.mode !== 'level';
+  }
+
+  function wire() {
+    el('tuning-crew').addEventListener('change', function () { state.crewId = Number(this.value) || null; renderSlots(); run(); });
+    el('tuning-mode').addEventListener('change', function () { state.mode = this.value; syncInputs(); run(); });
+    el('tuning-metric').addEventListener('change', function () { state.metric = this.value; renderChart(); renderTable(); });
+    el('tuning-level-from').addEventListener('input', function () { state.levelFrom = Math.max(1, Number(this.value) || 1); run(); });
+    el('tuning-level-to').addEventListener('input', function () { state.levelTo = Math.max(1, Number(this.value) || 1); run(); });
+    el('tuning-fixed-level').addEventListener('input', function () { state.level = Math.max(1, Number(this.value) || 1); run(); });
+    el('tuning-crew-count').addEventListener('input', function () { state.crewCount = Math.max(1, Number(this.value) || 1); run(); });
+    el('tuning-item-search').addEventListener('input', renderItems);
+
+    el('tuning-item-list').addEventListener('click', function (event) {
+      var button = event.target.closest('[data-item-id]');
+      if (button) assignItem(Number(button.getAttribute('data-item-id')));
+    });
+    /* Drag is the enhancement; the click above is the route that works on
+     * touch and for a keyboard user, since every item is a real button. */
+    el('tuning-item-list').addEventListener('dragstart', function (event) {
+      var button = event.target.closest('[data-item-id]');
+      if (!button) return;
+      state.dragItemId = Number(button.getAttribute('data-item-id'));
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'copy';
+        try { event.dataTransfer.setData('text/plain', String(state.dragItemId)); } catch (ignore) {}
+      }
+    });
+    el('tuning-slots').addEventListener('dragover', function (event) {
+      var slot = event.target.closest('[data-slot]');
+      if (!slot || !state.dragItemId) return;
+      var item = itemById(state.dragItemId);
+      // Only a slot the item actually fits accepts the drop.
+      if (!item || item.slot !== slot.getAttribute('data-slot')) return;
+      event.preventDefault();
+      slot.classList.add('is-drop-target');
+    });
+    el('tuning-slots').addEventListener('dragleave', function (event) {
+      var slot = event.target.closest('[data-slot]');
+      if (slot) slot.classList.remove('is-drop-target');
+    });
+    el('tuning-slots').addEventListener('drop', function (event) {
+      var slot = event.target.closest('[data-slot]');
+      if (!slot || !state.dragItemId) return;
+      event.preventDefault();
+      slot.classList.remove('is-drop-target');
+      var id = state.dragItemId;
+      state.dragItemId = null;
+      assignItem(id);
+    });
+    el('tuning-slots').addEventListener('click', function (event) {
+      var clear = event.target.closest('[data-clear-slot]');
+      if (clear) clearSlot(clear.getAttribute('data-clear-slot'));
+    });
+
+    el('tuning-research-list').addEventListener('change', function (event) {
+      var box = event.target.closest('[data-research-id]');
+      if (!box) return;
+      var id = Number(box.getAttribute('data-research-id'));
+      state.researchIds = box.checked
+        ? state.researchIds.concat([id])
+        : state.researchIds.filter(function (existing) { return existing !== id; });
+      keepFocus(el('tuning-research-list'), renderResearch); run();
+    });
+    el('tuning-research-none').addEventListener('click', function () { state.researchIds = []; renderResearch(); run(); });
+    el('tuning-research-all').addEventListener('click', function () {
+      state.researchIds = ((catalog && catalog.research) || []).map(function (n) { return Number(n.id); });
+      renderResearch(); run();
+    });
+
+    el('tuning-mission-list').addEventListener('change', function (event) {
+      var box = event.target.closest('[data-mission-id]');
+      if (!box) return;
+      var id = Number(box.getAttribute('data-mission-id'));
+      if (box.checked) {
+        if (state.missionIds.length >= 6) { box.checked = false; setError('Compare at most six operations at once.'); return; }
+        state.missionIds = state.missionIds.concat([id]);
+      } else {
+        state.missionIds = state.missionIds.filter(function (existing) { return existing !== id; });
+      }
+      setError('');
+      keepFocus(el('tuning-mission-list'), renderMissions); run();
+    });
+
+    el('tuning-scan').addEventListener('click', function () {
+      var button = this;
+      button.disabled = true; button.classList.add('is-busy');
+      request('/api/admin/game-tuning/outliers.php')
+        .then(renderFindings)
+        .catch(function (error) { setError(error.message); })
+        .finally(function () { button.disabled = false; button.classList.remove('is-busy'); });
+    });
+
+    var saveBtn = el('tuning-scenario-save');
+    if (saveBtn) saveBtn.addEventListener('click', function () {
+      var name = (el('tuning-scenario-name').value || '').trim();
+      if (!name) { setError('Give the scenario a name before saving it.'); return; }
+      saveBtn.disabled = true; saveBtn.classList.add('is-busy');
+      request('/api/admin/game-tuning/scenarios.php', {
+        action: 'save', name: name,
+        config: {
+          crew_definition_id: state.crewId, mission_ids: state.missionIds, item_ids: state.itemIds,
+          research_node_ids: state.researchIds, mode: state.mode, metric: state.metric,
+          level: state.level, level_from: state.levelFrom, level_to: state.levelTo, crew_count: state.crewCount
+        }
+      }).then(function () { setError(''); el('tuning-scenario-name').value = ''; loadScenarios(); })
+        .catch(function (error) { setError(error.message); })
+        .finally(function () { saveBtn.disabled = false; saveBtn.classList.remove('is-busy'); });
+    });
+    var scenarioList = el('tuning-scenario-list');
+    if (scenarioList) scenarioList.addEventListener('click', function (event) {
+      var load = event.target.closest('[data-scenario]');
+      if (load) {
+        var config = {};
+        try { config = JSON.parse(load.getAttribute('data-scenario')); } catch (ignore) { return; }
+        applyScenario(config);
+        return;
+      }
+      var remove = event.target.closest('[data-scenario-delete]');
+      if (!remove) return;
+      request('/api/admin/game-tuning/scenarios.php', { action: 'delete', id: Number(remove.getAttribute('data-scenario-delete')) })
+        .then(loadScenarios).catch(function (error) { setError(error.message); });
+    });
+  }
+
+  function boot() {
+    if (state.loaded || !can('game_tuning.view')) return;
+    state.loaded = true;
+    request('/api/admin/game-tuning/catalog.php').then(function (data) {
+      catalog = data;
+      state.levelTo = data.max_level;
+      el('tuning-level-to').max = data.max_level;
+      el('tuning-level-from').max = data.max_level;
+      el('tuning-fixed-level').max = data.max_level;
+      el('tuning-crew').innerHTML = '<option value="">Choose a crew member</option>'
+        + (data.crew || []).map(function (c) {
+          return '<option value="' + Number(c.id) + '">' + esc(c.name + ' · ' + c.role) + '</option>';
+        }).join('');
+      el('tuning-metric').innerHTML = Object.keys(data.metrics || {}).map(function (key) {
+        return '<option value="' + esc(key) + '">' + esc(data.metrics[key].label) + '</option>';
+      }).join('');
+      // Opens on something rather than nothing: the first crew member and the
+      // first enabled operation, which is the comparison most often wanted.
+      if ((data.crew || []).length) state.crewId = Number(data.crew[0].id);
+      var firstMission = (data.missions || []).filter(function (m) { return m.is_enabled; })[0];
+      if (firstMission) state.missionIds = [Number(firstMission.id)];
+      syncInputs();
+      renderSlots(); renderItems(); renderResearch(); renderMissions(); loadScenarios(); run();
+    }).catch(function (error) { setError(error.message); });
+  }
+
+  document.addEventListener('DOMContentLoaded', function () {
+    if (!el('section-game-tuning')) return;
+    wire();
+  });
+  /* Loaded on first view rather than on page load -- the catalogue is four
+   * queries the other admin sections have no use for. showSection() calls
+   * this, the same hook every other section script in this console exposes. */
+  window.loadGameTuning = function () { return boot(); };
+}());

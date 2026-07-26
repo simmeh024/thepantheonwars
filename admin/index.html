@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=319"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=4">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=319"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=4"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=1">
 </head>
 <body>
 
@@ -58,7 +58,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="game" data-requires-permission="missions.view,loot_tables.view,market.view,research.view">
+    <div class="admin-nav-category is-collapsed" data-category="game" data-requires-permission="missions.view,loot_tables.view,market.view,research.view,game_tuning.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>Game Control</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -68,6 +68,7 @@
         <li data-requires-permission="loot_tables.view"><button type="button" class="admin-nav-link" data-section="loot-tables"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M2 5h20v3H2z"/><path d="M12 8v13"/><path d="M12 5c-1.6-2.6-5.4-2.2-5.4.3 0 1.4 1.6 2 5.4 2s5.4-.6 5.4-2C17.4 2.8 13.6 2.4 12 5Z"/></svg>Loot Tables</button></li>
         <li data-requires-permission="market.view"><button type="button" class="admin-nav-link" data-section="market-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v12H4z"/><path d="M3 5h18v3H3z"/><path d="M8 12h8M8 16h5"/><circle cx="17" cy="16" r="1"/></svg>Market Control</button></li>
         <li data-requires-permission="research.view"><button type="button" class="admin-nav-link" data-section="research-management"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="5" cy="7" r="2"/><circle cx="19" cy="7" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="m7 8.5 3 2M17 8.5l-3 2M7 16.5l3-2M17 16.5l-3-2"/></svg>Research Management</button></li>
+        <li data-requires-permission="game_tuning.view"><button type="button" class="admin-nav-link" data-section="game-tuning"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20h-20"/><circle cx="10" cy="4" r="1.6"/><circle cx="16" cy="13" r="1.6"/></svg>Game Tuning</button></li>
       </ul>
     </div>
 
@@ -2210,6 +2211,95 @@
         <div class="research-category-admin-head"><div><span class="eyebrow">Lattice branches</span><h2 id="research-category-title">Research categories</h2><p>Create reusable branches such as Fieldcraft, Market Operations or Signal Intelligence. Assign one to each protocol when editing its dossier.</p></div><button type="button" class="btn btn-solid" id="research-category-create-btn" data-requires-permission="research.manage">+ Add Category</button></div>
         <div class="research-category-admin-layout"><div class="research-category-list" id="research-category-list"><p class="admin-list-empty">Loading research categories&hellip;</p></div><div class="research-category-editor"><div><span class="eyebrow">Category dossier</span><h3 id="research-category-editor-title">Select a category</h3><p id="research-category-editor-copy">Choose a category to refine its branch, or add a new one for future protocols.</p></div><div class="research-category-fields" id="research-category-fields" hidden><div class="admin-field"><label for="research-category-name">Category name</label><input type="text" id="research-category-name" maxlength="80" placeholder="e.g. Fieldcraft"></div><div class="admin-field"><label for="research-category-slug">Slug</label><input type="text" id="research-category-slug" maxlength="80" placeholder="fieldcraft"><p class="admin-field-hint">Lowercase letters, numbers and hyphens only.</p></div><div class="admin-field"><label for="research-category-description">Branch briefing</label><textarea id="research-category-description" rows="3" maxlength="255" placeholder="A short description for this research branch."></textarea></div><div class="admin-field"><label for="research-category-sort-order">List order</label><input type="number" id="research-category-sort-order" min="0" max="100000" step="1" value="0"></div><label class="admin-setting-toggle"><span><strong>Final Neoh gate</strong><small>Hide this category from players until every enabled protocol outside it is online.</small></span><input type="checkbox" id="research-category-final-gate"></label><p class="admin-modal-error" id="research-category-error"></p><p class="admin-modal-status" id="research-category-status"></p><div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="research-category-save-btn" data-requires-permission="research.manage">Save Category</button><button type="button" class="btn" id="research-category-cancel-btn">Cancel</button><button type="button" class="admin-delete-btn" id="research-category-delete-btn" data-requires-permission="research.manage" hidden>Delete Category</button></div></div></div></div>
       </section>
+    </section>
+
+        <section class="admin-section" id="section-game-tuning" hidden>
+      <div class="admin-section-head">
+        <h1>Game Tuning</h1>
+        <p>Simulate a crew member against any operation, at any level, with any loadout and any set of research protocols. Every figure is produced by the same code the live game runs, and nothing here writes to a player&rsquo;s record.</p>
+      </div>
+      <p class="admin-modal-error" id="tuning-error" role="alert"></p>
+
+      <div class="tuning-layout">
+        <div class="tuning-controls">
+          <div class="admin-form-card">
+            <div class="admin-form-card-head"><h2>Subject</h2><p>The crew member whose progression is being measured. The team is that many copies of them, so the curve is theirs alone.</p></div>
+            <div class="admin-field"><label for="tuning-crew">Crew member</label><select id="tuning-crew"></select></div>
+            <div class="admin-field-row">
+              <div class="admin-field"><label for="tuning-mode">Sweep</label><select id="tuning-mode"><option value="level">Across levels</option><option value="crew_count">Across crew count</option></select></div>
+              <div class="admin-field"><label for="tuning-metric">Metric</label><select id="tuning-metric"></select></div>
+            </div>
+            <div class="admin-field-row" id="tuning-level-range">
+              <div class="admin-field"><label for="tuning-level-from">From level</label><input type="number" id="tuning-level-from" min="1" value="1"></div>
+              <div class="admin-field"><label for="tuning-level-to">To level</label><input type="number" id="tuning-level-to" min="1" value="50"></div>
+            </div>
+            <div class="admin-field-row">
+              <div class="admin-field" id="tuning-fixed-level-field"><label for="tuning-fixed-level">Level</label><input type="number" id="tuning-fixed-level" min="1" value="1"></div>
+              <div class="admin-field" id="tuning-crew-count-field"><label for="tuning-crew-count">Crew assigned</label><input type="number" id="tuning-crew-count" min="1" max="8" value="1"><small class="admin-field-hint">Clamped to each operation&rsquo;s own crew limits.</small></div>
+            </div>
+          </div>
+
+          <div class="admin-form-card">
+            <div class="admin-form-card-head"><h2>Loadout</h2><p>Drag an item onto a slot, or select a slot and choose from the list. An item is only worn once its level requirement is met, so a late requirement shows as a step in the curve.</p></div>
+            <div class="tuning-slots" id="tuning-slots"></div>
+            <div class="admin-field"><label for="tuning-item-search">Item catalogue</label><input type="search" id="tuning-item-search" placeholder="Filter by name, slot or tier"></div>
+            <div class="tuning-item-list" id="tuning-item-list"></div>
+          </div>
+
+          <div class="admin-form-card">
+            <div class="admin-form-card-head"><h2>Research</h2><p>Which protocols are online for this simulation. Ceilings apply exactly as they do for a real player, so a line past its cap contributes nothing extra here either.</p></div>
+            <div class="tuning-research-actions">
+              <button type="button" class="btn" id="tuning-research-none">All off</button>
+              <button type="button" class="btn" id="tuning-research-all">All on</button>
+              <span class="tuning-research-count" id="tuning-research-count"></span>
+            </div>
+            <div class="tuning-research-list" id="tuning-research-list"></div>
+          </div>
+
+          <div class="admin-form-card">
+            <div class="admin-form-card-head"><h2>Operations</h2><p>Up to six at once. Each becomes its own line on the chart.</p></div>
+            <div class="tuning-mission-list" id="tuning-mission-list"></div>
+          </div>
+        </div>
+
+        <div class="tuning-output">
+          <div class="admin-form-card">
+            <div class="admin-form-card-head">
+              <h2 id="tuning-chart-title">Simulation</h2>
+              <p id="tuning-chart-sub">Choose a crew member and at least one operation.</p>
+            </div>
+            <div class="tuning-chart" id="tuning-chart" role="img" aria-label="Simulation chart"></div>
+            <div class="tuning-legend" id="tuning-legend"></div>
+            <div class="tuning-readout" id="tuning-readout"></div>
+          </div>
+
+          <div class="admin-form-card">
+            <div class="admin-form-card-head"><h2>At a glance</h2><p>Every metric for the selected operations at the current end of the sweep.</p></div>
+            <div class="tuning-table-wrap"><table class="tuning-table" id="tuning-table"><tbody></tbody></table></div>
+          </div>
+
+          <div class="admin-form-card">
+            <div class="admin-form-card-head">
+              <h2>Catalogue review</h2>
+              <p>A scan of every enabled operation, item and protocol for figures that look out of step. Advisory only &mdash; a deliberate outlier is still an outlier.</p>
+            </div>
+            <div class="tuning-outlier-actions">
+              <button type="button" class="btn" id="tuning-scan">Run scan</button>
+              <span class="tuning-scan-summary" id="tuning-scan-summary"></span>
+            </div>
+            <div class="tuning-findings" id="tuning-findings"></div>
+          </div>
+
+          <div class="admin-form-card" id="tuning-scenario-card">
+            <div class="admin-form-card-head"><h2>Scenarios</h2><p>Save this configuration to return to after editing an item, and re-run the same comparison.</p></div>
+            <div class="tuning-scenario-save">
+              <input type="text" id="tuning-scenario-name" placeholder="Scenario name" maxlength="120">
+              <button type="button" class="btn btn-solid" id="tuning-scenario-save">Save</button>
+            </div>
+            <div class="tuning-scenario-list" id="tuning-scenario-list"></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="admin-section" id="section-book-control" hidden>
@@ -4460,7 +4550,7 @@
 </div>
 
 <script src="../js/members.js?v=42"></script>
-<script src="../js/admin-missions.js?v=11"></script><script src="../js/admin-loot-tables.js?v=3"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=9"></script>
+<script src="../js/admin-missions.js?v=11"></script><script src="../js/admin-loot-tables.js?v=3"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=9"></script><script src="../js/admin-game-tuning.js?v=1"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -4709,6 +4799,7 @@
       if (name === 'loot-tables') loadLootTables();
       if (name === 'market-control') loadMarketControl();
       if (name === 'research-management') loadResearchManagement();
+      if (name === 'game-tuning') loadGameTuning();
       if (name === 'book-control') loadBookList();
       if (name === 'quiz-control') loadQuizQuestionList();
       if (name === 'world-control') loadWorldList();

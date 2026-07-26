@@ -1,0 +1,118 @@
+/* Game Tuning. A read-only balance simulator: controls on the left, the chart
+ * and its readouts on the right. Loaded only by the admin console. */
+
+.tuning-layout { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 18px; align-items: start; }
+.tuning-controls, .tuning-output { display: grid; gap: 16px; align-content: start; min-width: 0; }
+
+/* ---- Loadout slots ----------------------------------------------------- */
+.tuning-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 7px; margin-bottom: 14px; }
+.tuning-slot { position: relative; display: grid; gap: 2px; padding: 8px 9px; min-height: 62px; border: 1px solid rgba(90,149,185,0.38); background: rgba(6,15,28,0.42); }
+.tuning-slot.is-empty { align-content: center; border-style: dashed; }
+.tuning-slot.is-drop-target { border-color: rgba(126,227,232,0.95); background: rgba(20,48,72,0.72); }
+.tuning-slot-label { color: #7d9bb0; font-size: .52rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
+.tuning-slot-hint { color: #6f8798; font-size: .58rem; }
+.tuning-slot strong { overflow: hidden; padding-right: 16px; color: #eef1f6; font-size: .7rem; text-overflow: ellipsis; white-space: nowrap; }
+.tuning-slot-bonus { color: #9edba8; font-size: .58rem; font-weight: 600; }
+.tuning-slot-req { color: #edc179; font-size: .55rem; }
+.tuning-slot-clear { position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; padding: 0; border: 1px solid rgba(103,152,190,0.34); background: rgba(4,10,20,0.7); color: #a9c2d0; font: .78rem/1 'Jost', sans-serif; cursor: pointer; }
+.tuning-slot-clear:hover, .tuning-slot-clear:focus-visible { border-color: rgba(224,138,114,0.6); color: #e8a894; }
+.tuning-slot.is-uncommon { box-shadow: inset 3px 0 0 #6ecf8c; }
+.tuning-slot.is-rare { box-shadow: inset 3px 0 0 #69b4eb; }
+.tuning-slot.is-legendary { box-shadow: inset 3px 0 0 #ebb45a; }
+
+/* ---- Item catalogue ---------------------------------------------------- */
+.tuning-item-list { display: grid; gap: 5px; max-height: 260px; overflow-y: auto; }
+.tuning-item { display: grid; gap: 1px; padding: 7px 9px; border: 1px solid rgba(90,149,185,0.3); background: rgba(6,15,28,0.4); color: inherit; text-align: left; cursor: grab; font: inherit; }
+.tuning-item:hover, .tuning-item:focus-visible { border-color: rgba(126,227,232,0.7); outline: none; }
+.tuning-item:active { cursor: grabbing; }
+.tuning-item.is-chosen { border-color: rgba(110,207,140,0.6); background: rgba(12,38,32,0.5); }
+.tuning-item-name { color: #eef1f6; font-size: .7rem; font-weight: 600; }
+.tuning-item-meta { color: #8ba3b4; font-size: .56rem; letter-spacing: .04em; text-transform: uppercase; }
+.tuning-item-bonus { color: #9edba8; font-size: .58rem; }
+.tuning-item.is-rare .tuning-item-name { color: #a9d6f6; }
+.tuning-item.is-legendary .tuning-item-name { color: #f0cd85; }
+
+/* ---- Research toggles -------------------------------------------------- */
+.tuning-research-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.tuning-research-actions .btn { padding: 6px 10px !important; font-size: .6rem !important; }
+.tuning-research-count { color: #8ba3b4; font-size: .6rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.tuning-research-list { display: grid; gap: 4px; max-height: 260px; overflow-y: auto; }
+.tuning-research { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 6px 9px; border: 1px solid rgba(90,149,185,0.26); background: rgba(6,15,28,0.36); cursor: pointer; }
+.tuning-research.is-on { border-color: rgba(126,227,232,0.55); background: rgba(10,32,48,0.55); }
+.tuning-research input { accent-color: #69dce3; }
+.tuning-research-copy { display: grid; gap: 1px; min-width: 0; }
+.tuning-research-copy strong { overflow: hidden; color: #eef1f6; font-size: .67rem; text-overflow: ellipsis; white-space: nowrap; }
+.tuning-research-copy small { color: #8ba3b4; font-size: .55rem; }
+.tuning-research b { color: #7ee3e8; font-size: .62rem; white-space: nowrap; }
+
+/* ---- Mission picker ---------------------------------------------------- */
+.tuning-mission-list { display: grid; gap: 5px; max-height: 300px; overflow-y: auto; }
+.tuning-mission { display: grid; grid-template-columns: auto 10px minmax(0, 1fr); align-items: center; gap: 8px; padding: 7px 9px; border: 1px solid rgba(90,149,185,0.26); background: rgba(6,15,28,0.36); cursor: pointer; }
+.tuning-mission.is-on { border-color: rgba(126,227,232,0.6); background: rgba(10,32,48,0.55); }
+.tuning-mission.is-disabled { opacity: .62; }
+.tuning-mission input { accent-color: #69dce3; }
+.tuning-mission i { display: block; width: 10px; height: 10px; }
+.tuning-mission i.is-off { border: 1px solid rgba(122,152,172,0.5); }
+.tuning-mission-copy { display: grid; gap: 1px; min-width: 0; }
+.tuning-mission-copy strong { overflow: hidden; color: #eef1f6; font-size: .69rem; text-overflow: ellipsis; white-space: nowrap; }
+.tuning-mission-copy strong em { color: #c79aef; font-size: .58rem; font-style: normal; }
+.tuning-mission-copy small { color: #8ba3b4; font-size: .55rem; letter-spacing: .04em; }
+
+/* ---- The chart ---------------------------------------------------------
+ * Hand-built inline SVG on a fixed viewBox that scales to the container, so
+ * the whole plot stays legible without a resize observer. */
+.tuning-chart { width: 100%; margin-bottom: 10px; }
+.tuning-chart svg { display: block; width: 100%; height: auto; }
+.tuning-chart .tuning-axis-line { stroke: rgba(122,152,172,0.55); stroke-width: 1; }
+.tuning-chart .tuning-grid { stroke: rgba(122,152,172,0.16); stroke-width: 1; }
+.tuning-chart .tuning-axis { fill: #93aebd; font: 600 11px 'Jost', sans-serif; }
+.tuning-chart .tuning-axis-title { fill: #7d9bb0; font: 700 10px 'Jost', sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.tuning-chart .tuning-line { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
+.tuning-chart .tuning-dot { stroke: rgba(4,10,20,0.85); stroke-width: 1; }
+.tuning-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+.tuning-legend-item { display: inline-flex; align-items: center; gap: 6px; color: #a9c2d0; font-size: .64rem; }
+.tuning-legend-item i { display: block; width: 12px; height: 3px; }
+.tuning-legend-item b { color: #eef1f6; }
+.tuning-readout p { margin: 0 0 5px; color: #bcd0dc; font-size: .7rem; line-height: 1.5; }
+.tuning-readout strong { color: #eef1f6; }
+.tuning-readout-sub { color: #8ba3b4 !important; font-size: .63rem !important; }
+
+/* ---- Metric table ------------------------------------------------------ */
+.tuning-table-wrap { overflow-x: auto; }
+.tuning-table { width: 100%; border-collapse: collapse; font-size: .66rem; }
+.tuning-table th, .tuning-table td { padding: 6px 9px; border-bottom: 1px solid rgba(90,149,185,0.2); text-align: right; }
+.tuning-table th[scope="row"], .tuning-table tr:first-child th { text-align: left; }
+.tuning-table tr:first-child th { color: #8ba3b4; font-size: .58rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; white-space: nowrap; }
+.tuning-table tr:first-child th i { display: inline-block; width: 10px; height: 3px; margin-right: 6px; vertical-align: middle; }
+.tuning-table th[scope="row"] { color: #a9c2d0; font-weight: 500; }
+.tuning-table td { color: #eef1f6; font-variant-numeric: tabular-nums; }
+.tuning-table tr.is-current { background: rgba(20,48,72,0.5); }
+.tuning-table tr.is-current th[scope="row"] { color: #7ee3e8; font-weight: 700; }
+
+/* ---- Catalogue review -------------------------------------------------- */
+.tuning-outlier-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px; }
+.tuning-scan-summary { color: #8ba3b4; font-size: .64rem; }
+.tuning-findings { display: grid; gap: 6px; max-height: 380px; overflow-y: auto; }
+.tuning-finding { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid rgba(90,149,185,0.28); background: rgba(6,15,28,0.4); }
+/* Amber for something that is probably a mistake, neutral for something that is
+ * merely worth knowing. Never red: nothing here is broken, and colouring an
+ * advisory as an error would train the reader to ignore it. */
+.tuning-finding.is-warn { border-color: rgba(237,193,121,0.5); box-shadow: inset 3px 0 0 #edc179; }
+.tuning-finding-area { color: #7d9bb0; font-size: .52rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.tuning-finding strong { color: #eef1f6; font-size: .72rem; }
+.tuning-finding p { margin: 0; color: #a9c2d0; font-size: .65rem; line-height: 1.45; }
+.tuning-finding.is-warn strong { color: #f0cd85; }
+
+/* ---- Scenarios --------------------------------------------------------- */
+.tuning-scenario-save { display: flex; gap: 8px; margin-bottom: 10px; }
+.tuning-scenario-save input { flex: 1 1 auto; min-width: 0; padding: 7px 9px; border: 1px solid rgba(90,149,185,0.38); background: rgba(6,15,28,0.7); color: #cfe0ea; font: inherit; font-size: .68rem; }
+.tuning-scenario-list { display: grid; gap: 5px; }
+.tuning-scenario { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px; }
+.tuning-scenario-load { padding: 7px 10px; border: 1px solid rgba(90,149,185,0.34); background: rgba(6,15,28,0.4); color: #cfe0ea; font: 600 .68rem 'Jost', sans-serif; text-align: left; cursor: pointer; }
+.tuning-scenario-load:hover, .tuning-scenario-load:focus-visible { border-color: rgba(126,227,232,0.7); color: #eef1f6; outline: none; }
+.tuning-scenario-delete { width: 30px; border: 1px solid rgba(103,152,190,0.3); background: none; color: #8ba3b4; font: .85rem/1 'Jost', sans-serif; cursor: pointer; }
+.tuning-scenario-delete:hover, .tuning-scenario-delete:focus-visible { border-color: rgba(224,138,114,0.6); color: #e8a894; }
+
+@media (max-width: 1180px) {
+  .tuning-layout { grid-template-columns: minmax(0, 1fr); }
+}

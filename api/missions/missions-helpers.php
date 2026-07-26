@@ -1152,11 +1152,25 @@ function pw_missions_gear_icon_url($url): string {
  * @param array $crewRows Rows carrying an `id` (player crew id) and the four stats.
  */
 function pw_missions_apply_gear(PDO $db, int $userId, array $crewRows): array {
-    $stats = pw_missions_gear_stat_keys();
-    $gearByCrew = pw_missions_load_crew_gear($db, $userId, array_map(static function ($row) {
+    return pw_missions_apply_gear_bonuses($crewRows, pw_missions_load_crew_gear($db, $userId, array_map(static function ($row) {
         return (int)($row['id'] ?? 0);
-    }, $crewRows));
+    }, $crewRows)));
+}
 
+/**
+ * The arithmetic half of the above, with no database in it: fold a set of
+ * equipped items into each crew row's stats.
+ *
+ * Split out so Game Tuning can simulate a hypothetical loadout on a
+ * hypothetical crew member through the same code the live paths use. Without
+ * the split a simulator would have to re-implement this summing, and a tuning
+ * tool that disagrees with the game is worse than no tuning tool -- it is wrong
+ * exactly when it is being trusted to find something wrong.
+ *
+ * @param array $gearByCrew Equipped items keyed by crew row id, then by slot.
+ */
+function pw_missions_apply_gear_bonuses(array $crewRows, array $gearByCrew): array {
+    $stats = pw_missions_gear_stat_keys();
     foreach ($crewRows as $index => $row) {
         $bonus = array_fill_keys($stats, 0);
         $equipped = $gearByCrew[(int)($row['id'] ?? 0)] ?? [];
