@@ -812,3 +812,98 @@
 .mission-launch-actions .btn { padding: 10px 15px; font-size: 0.68rem; }
 @media (max-width: 760px) { .missions-page { padding-top: 62px; } .missions-hero { min-height: 235px; } .missions-hero-content { padding-bottom: 30px; } .missions-command-header { align-items: start; flex-direction: column; } .missions-status-message { max-width: none; text-align: left; } .missions-stats { grid-template-columns: repeat(2, 1fr); } .missions-stats article:nth-child(2) { border-right: 0; } .missions-stats article:nth-child(-n+2) { border-bottom: 1px solid rgba(80,129,168,0.27); } .mission-command-feed { padding: 18px; }.mission-feed-list { grid-template-columns: 1fr; }.mission-feed-entry,.mission-feed-entry:first-child,.mission-feed-entry:last-child { min-height: 0; padding: 12px 0; border-right: 0; border-bottom: 1px solid rgba(92,163,181,0.2); }.mission-feed-entry:last-child { border-bottom: 0; padding-bottom: 0; }.mission-feed-entry p { max-width: 540px; }.missions-neoh-section { padding: 18px; } .missions-crew-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); } .mission-history-row { grid-template-columns: 1fr 1fr; gap: 11px; } .mission-history-row > div:last-child { justify-self: start; } }
 @media (max-width: 470px) { .missions-main { padding-top: 24px; } .missions-stats article { min-height: 76px; padding: 14px; } .mission-active-footer { align-items: start; flex-direction: column; } .missions-crew-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); } .mission-crew-card { grid-template-columns: 96px minmax(0,1fr); gap: 12px; } .mission-crew-visual { width: 96px; } .mission-crew-portrait { height: 128px; } .mission-definition-meta { grid-template-columns: 1fr 1fr; } .mission-history-row { grid-template-columns: 1fr; } .mission-launch-modal-inner { padding: 24px 18px; } }
+
+/* ---- Mission debrief ---------------------------------------------------
+ * Wider than the 560px it started at, and scroll-contained. A large haul used
+ * to grow the modal until "Return to Command" was pushed off the bottom of the
+ * screen with no way back to it; the body scrolls now and the action row is
+ * pinned to the foot of the dialog. */
+.mission-result-modal { width: min(880px, calc(100vw - 28px)); max-height: calc(100vh - 40px); }
+.mission-result-inner { display: flex; flex-direction: column; max-height: calc(100vh - 40px); }
+.mission-result-body { overflow-y: auto; min-height: 0; padding-right: 4px; }
+.mission-result-actions { position: sticky; bottom: 0; margin-top: 4px; padding-top: 14px; background: linear-gradient(180deg, rgba(16,13,34,0), rgba(16,13,34,0.92) 40%); }
+.mission-result-actions .btn { flex: 0 0 auto; }
+#mission-result-error:empty { display: none; }
+
+/* The roll, against the odds. A bar with the success threshold filled and a
+ * marker where the roll landed -- the number alone does not show how close it
+ * was, which is the whole point of reporting it. */
+.mission-result-roll { display: grid; gap: 3px; margin: 14px 0 0; padding: 11px 13px; border: 1px solid rgba(90,149,185,0.34); background: rgba(6,15,28,0.45); }
+.mission-result-roll > span:first-child { color: #8ba3b4; font-size: 0.57rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-result-roll strong { color: #eef1f6; font-size: 0.94rem; }
+.mission-result-roll em { color: #a9c2d0; font-size: 0.7rem; font-style: normal; }
+.mission-result-roll.is-won { border-color: rgba(110,207,140,0.42); }
+.mission-result-roll.is-won strong { color: #9edba8; }
+.mission-result-roll.is-lost { border-color: rgba(224,138,114,0.45); }
+.mission-result-roll.is-lost strong { color: #e8a894; }
+.mission-result-roll.is-certain strong { color: #7ee3e8; }
+.mission-result-roll-track { position: relative; display: block; height: 6px; margin-top: 6px; background: rgba(3,6,14,0.85); }
+.mission-result-roll-fill { display: block; height: 100%; background: linear-gradient(90deg, rgba(110,207,140,0.55), rgba(110,207,140,0.28)); }
+.mission-result-roll-marker { position: absolute; top: -3px; width: 2px; height: 12px; background: #eef1f6; box-shadow: 0 0 6px rgba(238,241,246,0.7); }
+
+/* Best find: the rarest item promoted above the list, so a haul of four does
+ * not read as four identical lines whatever was actually in it. */
+.mission-result-bestfind { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; margin: 0 0 9px; padding: 8px 11px; border: 1px solid rgba(var(--gear-tier), 0.55); background: rgba(var(--gear-tier), 0.09); }
+.mission-result-bestfind > span { color: rgb(var(--gear-tier)); font-size: 0.55rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-result-bestfind strong { color: #eef1f6; font-size: 0.88rem; }
+.mission-result-bestfind em { color: rgb(var(--gear-tier)); font-size: 0.66rem; font-style: normal; text-transform: capitalize; }
+
+/* Two columns of loot on a wide modal. Gear rows are compact enough to pair,
+ * and a haul of six otherwise ran the modal off the screen. */
+.mission-result-loot.is-gear { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 8px; }
+.mission-result-gear { position: relative; align-items: start; box-shadow: inset 3px 0 0 rgb(var(--gear-tier)); }
+.mission-result-gear-count { margin-left: 6px; padding: 0 5px; border: 1px solid rgba(126,227,232,0.4); color: #7ee3e8; font-size: 0.62rem; font-weight: 700; }
+.mission-result-gear-actions { display: flex; flex-direction: column; align-items: stretch; gap: 5px; }
+.mission-result-equip { padding: 6px 10px !important; font-size: 0.63rem !important; white-space: nowrap; }
+.mission-result-equip.is-done { opacity: 0.7; }
+/* Destroy is a quiet control beside Equip, not the loudest thing on a reward
+ * screen. It only turns red once it is armed and actually about to destroy. */
+.mission-result-destroy { padding: 5px 9px; border: 1px solid rgba(103,152,190,0.3); background: none; color: #8ba3b4; font: 600 0.6rem/1.3 'Jost', sans-serif; cursor: pointer; }
+.mission-result-destroy:hover, .mission-result-destroy:focus-visible { border-color: rgba(224,138,114,0.6); color: #e8a894; }
+.mission-result-destroy.is-arming { border-color: rgba(224,138,114,0.9); background: rgba(78,26,26,0.5); color: #f2b6a4; }
+.mission-result-gear.is-equipped { border-color: rgba(110,207,140,0.5); }
+.mission-result-gear-upgrade.is-empty { color: #7ee3e8; }
+.mission-result-gear-upgrade.is-none { color: #7d94a5; }
+/* The advice now names the crew member and what it replaces, which does not fit
+ * the single nowrap line this was written for -- measured clipping at 191px
+ * into a 169px column. Wrapped to at most two lines instead of ellipsised: a
+ * truncated "Fills an empty chest slot for Elias Wa..." loses exactly the part
+ * that makes it useful. */
+.mission-result-gear-upgrade { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; }
+/* No up-arrow on a line that reports the absence of an upgrade. */
+.mission-result-gear-upgrade.is-none::before { content: ''; }
+
+/* Crew aftermath: where each crew member's experience now sits, and how long
+ * before they can go out again. */
+.mission-result-crewlist { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+.mission-result-crew { display: grid; gap: 4px; padding: 9px 11px; border: 1px solid rgba(90,149,185,0.32); background: rgba(6,15,28,0.4); }
+.mission-result-crew.is-promoted { border-color: rgba(235,209,138,0.5); background: rgba(46,36,14,0.35); }
+.mission-result-crew-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 6px; }
+.mission-result-crew-head strong { color: #eef1f6; font-size: 0.78rem; }
+.mission-result-crew-head em { color: #90abba; font-size: 0.64rem; font-style: normal; }
+.mission-result-crew-promo { color: #ebd18a !important; font-weight: 600; }
+.mission-result-crew-xp { display: block; height: 4px; overflow: hidden; background: rgba(3,6,14,0.8); }
+.mission-result-crew-xp i { display: block; height: 100%; background: linear-gradient(90deg, #62d9e1, #8b6bd4); }
+.mission-result-crew.is-promoted .mission-result-crew-xp i { background: linear-gradient(90deg, #e6bd71, #d88758); }
+.mission-result-crew-meta { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; color: #a9c2d0; font-size: 0.63rem; }
+.mission-result-crew-rest { color: #edc179; }
+.mission-result-crew-rest.is-rested { color: #9edba8; }
+
+/* What would have helped, on a loss only. */
+.mission-result-block.is-factors { border-color: rgba(224,138,114,0.38); }
+.mission-result-factors { display: grid; gap: 5px; margin: 0; padding: 0 0 0 16px; color: #dcc4bd; font-size: 0.7rem; line-height: 1.45; }
+
+/* The reveal. Each direct child of the body carries its own --reveal-index, set
+ * in js/missions.js, so the debrief arrives in reading order rather than all at
+ * once -- this is the payoff moment of the loop and it used to appear like a
+ * receipt. Skipped entirely under prefers-reduced-motion, where every block is
+ * simply present from the first frame. */
+@media (prefers-reduced-motion: no-preference) {
+  .mission-result-body > * { animation: mission-result-reveal .34s ease-out both; animation-delay: calc(var(--reveal-index, 0) * 70ms); }
+  @keyframes mission-result-reveal { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+}
+
+@media (max-width: 640px) {
+  .mission-result-loot.is-gear, .mission-result-crewlist { grid-template-columns: minmax(0, 1fr); }
+  .mission-result-gear-actions { flex-direction: row; }
+}

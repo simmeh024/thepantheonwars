@@ -1285,10 +1285,27 @@ function pw_missions_loot_tiers(): array {
 
 /** Percent chance expressed to two decimals, rolled against a 0-10000 range. */
 function pw_missions_percent_roll(float $percent): bool {
+    return pw_missions_percent_roll_detail($percent)['hit'];
+}
+
+/**
+ * The same roll, with the number it produced. The mission debrief reports what
+ * was actually rolled against the odds, so a loss at 90% reads as bad luck
+ * rather than as the game having lied about the odds -- and a win at 40% reads
+ * as the escape it was.
+ *
+ * Kept as one implementation with pw_missions_percent_roll() delegating to it,
+ * so the reported roll can never be a second, differently-behaved draw from the
+ * one that decided the outcome.
+ *
+ * @return array{hit: bool, roll: float} roll is a percentage to two decimals.
+ */
+function pw_missions_percent_roll_detail(float $percent): array {
     $percent = max(0.0, min(100.0, $percent));
-    if ($percent <= 0) return false;
-    if ($percent >= 100) return true;
-    return random_int(1, 10000) <= (int)round($percent * 100);
+    $roll = random_int(1, 10000);
+    if ($percent <= 0) return ['hit' => false, 'roll' => $roll / 100];
+    if ($percent >= 100) return ['hit' => true, 'roll' => $roll / 100];
+    return ['hit' => $roll <= (int)round($percent * 100), 'roll' => $roll / 100];
 }
 
 function pw_missions_loot_roll_count(int $baseRolls, array $effects): int {

@@ -43,7 +43,8 @@ try {
     $statsReady = pw_mission_stats_ready($db);
     $crewStmt = $db->prepare(
         'SELECT pc.id, pc.status, pc.level, pc.xp, c.name, c.role, c.starting_level'
-        . ($statsReady ? ', pc.strength, pc.cunning, pc.science, pc.charisma' : '') .
+        . ($statsReady ? ', pc.strength, pc.cunning, pc.science, pc.charisma' : '')
+        . (pw_mission_fatigue_ready($db) ? ', pc.fatigue' : '') .
         ' FROM game_player_mission_crew link
          JOIN game_player_crew pc ON pc.id = link.player_crew_id
          JOIN game_crew_definitions c ON c.id = pc.crew_definition_id
@@ -95,7 +96,12 @@ try {
      * once an administrator lowers it. */
     $baseSuccess = $statsReady ? (int)($mission['base_success_percent'] ?? 100) : 100;
     $successPercent = pw_missions_effective_success($baseSuccess, $effects);
-    $succeeded = $successPercent >= 100 ? true : pw_missions_percent_roll((float)$successPercent);
+    /* The roll itself is reported to the debrief, not just the verdict. A loss
+     * at 90% reads as bad luck when the number is shown and as the game lying
+     * about its odds when it is not. A guaranteed operation is not rolled at
+     * all and reports no number, because there was none. */
+    $rollDetail = $successPercent >= 100 ? null : pw_missions_percent_roll_detail((float)$successPercent);
+    $succeeded = $rollDetail === null ? true : $rollDetail['hit'];
 
     $xpAwarded = 0;
     $reputationAwarded = 0;
@@ -159,6 +165,43 @@ try {
             $levelsGained += $newLevel - (int)$member['level'];
             $levelUps[] = ['id' => (int)$member['id'], 'name' => $member['name'], 'level' => $newLevel];
         }
+    }
+
+    /* Per-crew aftermath for the debrief: where each crew member's experience
+     * now sits against their next level, and how long they need before they can
+     * be sent out again. The two things that just changed about the roster and
+     * that the debrief previously never mentioned -- a promotion was listed, a
+     * near miss was invisible, and fatigue was not reported at all.
+     *
+     * Recomputed from the post-award figures rather than the row read at the
+     * top, so it reflects the state the player will find on the crew page. */
+    $fatigueReady = pw_mission_fatigue_ready($db);
+    $fatigueMax = $fatigueReady
+        ? pw_missions_fatigue_max($db, $userId, pw_research_ready($db) ? pw_research_player_effects($db, $userId) : [])
+        : 0;
+    $crewResults = [];
+    foreach ($crew as $member) {
+        $newXp = (int)$member['xp'] + $xpAwarded;
+        $levelFloor = max((int)$member['starting_level'], (int)$member['level']);
+        $newLevel = $statsReady && $xpAwarded > 0 ? pw_missions_level_for_xp($newXp, $levelFloor) : (int)$member['level'];
+        $progress = pw_missions_xp_progress($newXp, $newLevel);
+        $fatigue = $fatigueReady ? max(0, min($fatigueMax, (int)($member['fatigue'] ?? $fatigueMax))) : 0;
+        $crewResults[] = [
+            'id' => (int)$member['id'],
+            'name' => (string)$member['name'],
+            'role' => (string)$member['role'],
+            'level' => $newLevel,
+            'levelled_up' => $newLevel > (int)$member['level'],
+            'levels_gained' => max(0, $newLevel - (int)$member['level']),
+            'xp_awarded' => $xpAwarded,
+            'xp_into_level' => $progress['xp_into_level'],
+            'xp_for_next_level' => $progress['xp_for_next_level'],
+            'xp_percent' => $progress['xp_percent'],
+            'fatigue_ready' => $fatigueReady,
+            'fatigue' => $fatigue,
+            'fatigue_max' => $fatigueMax,
+            'fatigue_recovery_seconds' => $fatigueReady ? pw_missions_fatigue_recovery_seconds($fatigue, $fatigueMax) : 0,
+        ];
     }
 
     if ($reputationAwarded > 0) {
@@ -235,6 +278,15 @@ try {
         'succeeded' => $succeeded,
         'mission_name' => $mission['mission_name'],
         'success_percent' => $successPercent,
+        // The number actually rolled against those odds, or null for an
+        // operation that carried no risk and so was never rolled.
+        'roll_percent' => $rollDetail === null ? null : $rollDetail['roll'],
+        'base_success_percent' => $baseSuccess,
+        // What the whole crew contributed to the odds, so a loss can point at
+        // something rather than only reporting itself.
+        'success_bonus_percent' => round((float)($effects['success_percent'] ?? 0), 2),
+        'mission_id' => (int)$mission['mission_definition_id'],
+        'crew_ids' => $crewIds,
         'xp_awarded_per_crew' => $xpAwarded,
         'reputation_awarded' => $reputationAwarded,
         'xp_bonus_percent' => $effects['xp_percent'],
@@ -249,6 +301,7 @@ try {
         'credits_total' => $creditBalance,
         'credits_ready' => $creditsReady,
         'level_ups' => $levelUps,
+        'crew_results' => $crewResults,
         'loot' => $loot,
         'crew_recruited' => $lootTableAwards['granted'],
         'crew_duplicates' => $lootTableAwards['duplicates'],

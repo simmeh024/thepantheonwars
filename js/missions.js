@@ -9,7 +9,9 @@
     loadedAt: 0,
     /* The crew selection: one entry per max_crew slot, a crew id or null. The
      * source of truth for the launch modal -- see the rack section below. */
-    launchSlots: [], dragCrewId: null };
+    launchSlots: [], dragCrewId: null,
+    /* Mission id and crew of the run just claimed, for the debrief's re-run. */
+    resultRerun: null };
   var gate = document.getElementById('missions-gate');
   var content = document.getElementById('missions-content');
   var statusMessage = document.getElementById('missions-status-message');
@@ -70,6 +72,8 @@
   var resultModal = document.getElementById('mission-result-modal');
   var resultInner = document.getElementById('mission-result-inner');
   var resultBody = document.getElementById('mission-result-body');
+  var resultRerun = document.getElementById('mission-result-rerun');
+  var resultError = document.getElementById('mission-result-error');
 
   function escapeHtml(value) { var node = document.createElement('div'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
   function apiDate(value) { return value ? new Date(String(value).replace(' ', 'T') + 'Z') : null; }
@@ -755,68 +759,209 @@
    * considers the lowest-ranked compatible equipped item first, then the
    * lowest-ranked compatible inventory item. Requirements are included on the
    * reward payload so a role-locked drop is never advertised to the wrong crew. */
+  /* ----------------------------------------------------------------------
+   * Mission debrief.
+   *
+   * The payoff screen of the whole loop, so it does three jobs rather than
+   * one: it reports what happened (including the roll, not only the verdict),
+   * it lets the player act on what they were given without leaving it, and on
+   * a loss it says what would have helped.
+   *
+   * Every figure shown here was computed by api/missions/claim.php. Nothing is
+   * re-derived from a reward value, and the two actions this modal offers
+   * (equip, destroy) go through the same endpoints the loadout modal uses.
+   * -------------------------------------------------------------------- */
+
   function resultGearFitsCrew(item, crew) {
     return Number(crew.level) >= Number(item.required_level || 1)
       && (!item.required_role || item.required_role === crew.role);
   }
 
-  function lowestRankedGear(items) {
-    return items.sort(function (left, right) {
-      return gearPower(left.item) - gearPower(right.item)
-        || String(left.item.name).localeCompare(String(right.item.name));
-    })[0] || null;
-  }
-
-  function resultGearUpgrade(item) {
+  /* The crew member this item most improves, and by how much.
+   *
+   * An empty slot counts. The previous version required a crew member to
+   * already hold something in the slot before it would report anything, so a
+   * player whose crew were carrying nothing -- exactly the player who most
+   * needs the advice -- was told nothing at all about any drop.
+   *
+   * Deployed crew are excluded: gear-equip.php refuses a crew member in the
+   * field, so offering their name on a button that cannot work is worse than
+   * offering no button. */
+  function bestEquipTarget(item) {
     if (!item || !item.slot || !state.data) return null;
     var score = gearPower(item);
-    var equipped = [];
-    var compatibleCrew = (state.data.crew || []).filter(function (crew) {
-      return resultGearFitsCrew(item, crew);
+    var best = null;
+    (state.data.crew || []).forEach(function (crew) {
+      if (!resultGearFitsCrew(item, crew)) return;
+      if (crewAvailability(crew) !== 'available') return;
+      var current = crew.gear && crew.gear[item.slot] ? crew.gear[item.slot] : null;
+      var gain = score - gearPower(current);
+      if (gain <= 0) return;
+      /* An empty slot wins ties against an equal-power replacement: filling a
+       * gap is worth more than swapping like for like. */
+      var rank = gain + (current ? 0 : 0.5);
+      if (!best || rank > best.rank) best = { crew: crew, current: current, gain: gain, rank: rank };
     });
-    compatibleCrew.forEach(function (crew) {
-      var current = crew.gear && crew.gear[item.slot];
-      if (current && score > gearPower(current)) {
-        equipped.push({ item: current, crew: crew });
-      }
-    });
-    var lowestEquipped = lowestRankedGear(equipped);
-    if (lowestEquipped) {
-      return {
-        kind: 'crew',
-        text: 'Upgrade for ' + lowestEquipped.crew.name + ' — better than ' + lowestEquipped.item.name,
-        detail: 'Better than the lowest-ranked compatible ' + slotLabel(item.slot).toLowerCase() + ' currently equipped.'
-      };
-    }
-    if (!compatibleCrew.length) return null;
-    var inventory = (state.data.loot || []).filter(function (owned) {
-      return owned.slot === item.slot && Number(owned.quantity) > 0 && score > gearPower(owned)
-        && compatibleCrew.some(function (crew) { return resultGearFitsCrew(owned, crew); });
-    }).map(function (owned) { return { item: owned }; });
-    var lowestInventory = lowestRankedGear(inventory);
-    if (lowestInventory) {
-      return {
-        kind: 'inventory',
-        text: 'Inventory upgrade — better than ' + lowestInventory.item.name,
-        detail: 'Better than the lowest-ranked ' + slotLabel(item.slot).toLowerCase() + ' already in your inventory.'
-      };
-    }
-    return null;
+    return best;
   }
 
-  /* Debrief shown after a claim. The server has already resolved everything by
-   * the time this runs -- the roll, the payment and the loot draw all happened
-   * inside one transaction -- so this only reports an outcome, never decides
-   * one. The status line still receives the same summary for screen readers and
-   * for anyone who dismisses the report before reading it. */
+  /* "+1 STR" says nothing about whether it is an improvement. This states the
+   * move: what the target has now and what they would have. */
+  function gearDeltaText(item, target) {
+    if (!target) return '';
+    if (!target.current) return 'Fills an empty ' + slotLabel(item.slot).toLowerCase() + ' slot for ' + target.crew.name + '.';
+    return 'Replaces ' + target.current.name + ' on ' + target.crew.name + '.';
+  }
+
+  var TIER_ORDER = { common: 1, uncommon: 2, rare: 3, legendary: 4 };
+
+  /* Identical drops are one row with a count. Three separate rows for three
+   * copies of the same item buries the one genuinely different thing in a
+   * haul. Keyed by loot definition id, which is what every action here sends. */
+  function stackLoot(items) {
+    var order = [];
+    var byId = {};
+    items.forEach(function (item) {
+      var key = String(item.id);
+      if (!byId[key]) { byId[key] = { item: item, count: 0, upgraded: 0 }; order.push(key); }
+      byId[key].count++;
+      if (item.upgraded) byId[key].upgraded++;
+    });
+    return order.map(function (key) { return byId[key]; });
+  }
+
+  function resultLootRow(entry) {
+    var item = entry.item;
+    var target = bestEquipTarget(item);
+    var bonus = gearBonusText(item.bonus);
+    var meta = [slotLabel(item.slot), item.tier];
+    if (entry.upgraded) meta.push(entry.upgraded === entry.count ? 'upgraded' : entry.upgraded + ' upgraded');
+    var advice = target
+      ? '<span class="mission-result-gear-upgrade is-' + (target.current ? 'crew' : 'empty') + '">'
+        + escapeHtml(gearDeltaText(item, target)) + '</span>'
+      : '<span class="mission-result-gear-upgrade is-none">No crew member is improved by this.</span>';
+    /* Equip is the primary action and Destroy a quiet one beside it. They were
+     * the other way round -- Destroy was the only action and the loudest thing
+     * on the card, on a screen whose whole purpose is a reward. */
+    /* The button says only "Equip": the advice line directly above it already
+     * names the crew member, and repeating a long name inside the button
+     * squeezed the copy column until that advice clipped. The name stays in the
+     * accessible label, where it is not competing for width. */
+    var equip = target
+      ? '<button type="button" class="btn btn-solid mission-result-equip" data-loot-equip="' + Number(item.id) + '" data-equip-crew="' + Number(target.crew.id) + '"'
+        + ' aria-label="' + escapeHtml('Equip ' + item.name + ' on ' + target.crew.name) + '">Equip</button>'
+      : '';
+    return '<li class="mission-result-gear is-' + escapeHtml(item.tier) + '" data-loot-definition-id="' + Number(item.id) + '">'
+      + '<span class="mission-result-gear-icon">' + gearIconHtml(item.slot, item.icon_url) + '</span>'
+      + '<span class="mission-result-gear-copy"><strong>' + escapeHtml(item.name)
+      + (entry.count > 1 ? '<b class="mission-result-gear-count">&times;' + entry.count + '</b>' : '') + '</strong>'
+      + '<small>' + escapeHtml(meta.join(' · ')) + '</small>'
+      + (bonus ? '<b>' + escapeHtml(bonus) + '</b>' : '<b class="is-neutral">No stat bonus</b>')
+      + advice
+      + '<i class="mission-result-gear-status" role="status" aria-live="polite"></i></span>'
+      + '<span class="mission-result-gear-actions">' + equip
+      + '<button type="button" class="mission-result-destroy" data-gear-destroy="' + Number(item.id) + '">Destroy</button></span></li>';
+  }
+
+  /* The rarest thing recovered, promoted above the list. A haul of four reads
+   * as four identical lines otherwise, whatever was actually in it. */
+  function bestFindMarkup(entries) {
+    if (entries.length < 2) return '';
+    var best = entries.slice().sort(function (a, b) {
+      return (TIER_ORDER[b.item.tier] || 0) - (TIER_ORDER[a.item.tier] || 0) || gearPower(b.item) - gearPower(a.item);
+    })[0];
+    if (!best || (TIER_ORDER[best.item.tier] || 0) < 2) return '';
+    return '<p class="mission-result-bestfind is-' + escapeHtml(best.item.tier) + '">'
+      + '<span>Best find</span><strong>' + escapeHtml(best.item.name) + '</strong>'
+      + '<em>' + escapeHtml(best.item.tier) + '</em></p>';
+  }
+
+  /* The roll, against the odds it was rolled against. Shown whether it was won
+   * or lost: a loss at 90% is bad luck and a win at 40% is an escape, and
+   * neither reads that way from the verdict alone. */
+  function rollMarkup(result) {
+    var chance = Number(result.success_percent);
+    if (!isFinite(chance)) return '';
+    if (result.roll_percent === null || result.roll_percent === undefined) {
+      return '<p class="mission-result-roll is-certain"><span>Outcome</span>'
+        + '<strong>Guaranteed</strong><em>This operation carried no risk of failure.</em></p>';
+    }
+    var roll = Number(result.roll_percent);
+    var won = result.succeeded !== false;
+    var margin = Math.abs(chance - roll);
+    var flavour = won
+      ? (margin <= 5 ? 'A narrow success.' : 'Comfortably inside the odds.')
+      : (margin <= 5 ? 'Missed by a fraction.' : 'Well outside the odds.');
+    return '<p class="mission-result-roll ' + (won ? 'is-won' : 'is-lost') + '">'
+      + '<span>Roll</span><strong>' + fmt(roll) + ' against ' + fmt(chance) + '%</strong>'
+      + '<em>' + escapeHtml(flavour) + '</em>'
+      + '<span class="mission-result-roll-track" aria-hidden="true">'
+      + '<i class="mission-result-roll-fill" style="width:' + Math.max(0, Math.min(100, chance)) + '%"></i>'
+      + '<i class="mission-result-roll-marker" style="left:' + Math.max(0, Math.min(100, roll)) + '%"></i></span></p>';
+  }
+
+  /* On a loss, what would have moved the number. The three levers that
+   * actually exist, reported only when they applied -- a debrief that lists
+   * advice the player already followed teaches nothing. */
+  function failureFactorsMarkup(result) {
+    var factors = [];
+    var affinity = result.affinity;
+    if (affinity && affinity.penalty) {
+      factors.push('No ' + (affinity.preferred_roles || []).join(' or ') + ' was assigned, costing '
+        + fmt(affinity.penalty_success_percent) + '% of the odds.');
+    }
+    if (result.weather && result.weather.active && result.weather.storm) {
+      factors.push(result.weather.condition + ' cost this run part of its chance of success.');
+    }
+    var bonus = Number(result.success_bonus_percent) || 0;
+    factors.push(bonus > 0
+      ? 'Your crew added +' + fmt(bonus) + '% from Strength and specialism. More Strength, or better equipment carrying it, raises this further.'
+      : 'Your crew added nothing to the odds. Strength raises them by 0.5% a point, from levels and from equipment.');
+    return '<div class="mission-result-block is-factors"><h4>What would have helped</h4><ul class="mission-result-factors">'
+      + factors.map(function (line) { return '<li>' + escapeHtml(line) + '</li>'; }).join('') + '</ul></div>';
+  }
+
+  /* What the run did to the crew: how close each one now is to their next
+   * level, and how long before they can go out again. Both were invisible --
+   * a promotion was listed but a near miss was not, and fatigue was never
+   * mentioned anywhere in the debrief at all. */
+  function crewAftermathMarkup(result) {
+    var crew = result.crew_results || [];
+    if (!crew.length) return '';
+    var rows = crew.map(function (member) {
+      var atCeiling = !Number(member.xp_for_next_level);
+      var xpLine = atCeiling
+        ? 'Level ' + member.level + ' — fully trained'
+        : member.xp_into_level + ' / ' + member.xp_for_next_level + ' XP to level ' + (Number(member.level) + 1);
+      var rest = '';
+      if (member.fatigue_ready) {
+        rest = Number(member.fatigue_recovery_seconds) > 0
+          ? '<span class="mission-result-crew-rest">' + escapeHtml(member.fatigue + ' / ' + member.fatigue_max + ' fatigue · full in ')
+            + '<span class="mission-fatigue-countdown" data-ready-at="' + (Date.now() + Number(member.fatigue_recovery_seconds) * 1000) + '">…</span></span>'
+          : '<span class="mission-result-crew-rest is-rested">' + escapeHtml(member.fatigue + ' / ' + member.fatigue_max + ' fatigue · rested') + '</span>';
+      }
+      return '<li class="mission-result-crew' + (member.levelled_up ? ' is-promoted' : '') + '">'
+        + '<span class="mission-result-crew-head"><strong>' + escapeHtml(member.name) + '</strong>'
+        + (member.levelled_up
+          ? '<em class="mission-result-crew-promo">' + escapeHtml(member.levels_gained > 1 ? '+' + member.levels_gained + ' levels · now ' + member.level : 'Promoted to level ' + member.level) + '</em>'
+          : '<em>' + escapeHtml(member.role + ' · Level ' + member.level) + '</em>') + '</span>'
+        + '<span class="mission-result-crew-xp"><i style="width:' + Math.max(0, Math.min(100, Number(member.xp_percent) || 0)) + '%"></i></span>'
+        + '<span class="mission-result-crew-meta">' + escapeHtml(xpLine) + rest + '</span></li>';
+    }).join('');
+    return '<div class="mission-result-block is-crew"><h4>Crew</h4><ul class="mission-result-crewlist">' + rows + '</ul></div>';
+  }
+
   function showResult(result) {
     if (!resultModal || !resultBody) return;
+    state.resultRerun = result.mission_id && (result.crew_ids || []).length
+      ? { missionId: Number(result.mission_id), crewIds: (result.crew_ids || []).map(Number) }
+      : null;
     var failed = result.succeeded === false;
     resultInner.classList.toggle('is-failed', failed);
     resultInner.classList.toggle('is-success', !failed);
     var title = failed ? 'Mission failed' : 'Mission complete';
     var lead = failed
-      ? 'The operation broke down at ' + result.success_percent + '% success. Your crew is back at command with nothing recovered, and this run does not count towards a campaign unlock.'
+      ? 'Your crew is back at command with nothing recovered, and this run does not count towards a campaign unlock.'
       : 'Your crew has returned. Command has logged the following against your record.';
 
     var rows = [];
@@ -899,41 +1044,44 @@
     var recoveredSalvage = !failed && result.loot ? result.loot.filter(function (item) { return !item.slot; }) : [];
     if (recoveredSalvage.length) {
       extras += '<div class="mission-result-block"><h4>Recovered</h4><ul class="mission-result-loot">'
-        + recoveredSalvage.map(function (item) {
-          return '<li class="is-' + escapeHtml(item.tier) + '"><span>' + escapeHtml(item.name) + '</span><em>' + escapeHtml(item.tier) + (item.upgraded ? ' · upgraded' : '') + '</em></li>';
+        + stackLoot(recoveredSalvage).map(function (entry) {
+          return '<li class="is-' + escapeHtml(entry.item.tier) + '"><span>' + escapeHtml(entry.item.name)
+            + (entry.count > 1 ? ' <b class="mission-result-gear-count">&times;' + entry.count + '</b>' : '') + '</span>'
+            + '<em>' + escapeHtml(entry.item.tier) + (entry.upgraded ? ' · upgraded' : '') + '</em></li>';
         }).join('') + '</ul></div>';
     }
     if (!failed && result.loot && result.loot.length) {
-      var recoveredGear = result.loot.filter(function (item) { return !!item.slot; });
+      var recoveredGear = stackLoot(result.loot.filter(function (item) { return !!item.slot; }));
       if (recoveredGear.length) {
-        extras += '<div class="mission-result-block"><h4>Equipment recovered</h4><ul class="mission-result-loot">'
-          + recoveredGear.map(function (item) {
-            var bonus = gearBonusText(item.bonus);
-            var upgrade = resultGearUpgrade(item);
-            return '<li class="mission-result-gear is-' + escapeHtml(item.tier) + '" data-loot-definition-id="' + Number(item.id) + '">'
-              + '<span class="mission-result-gear-icon">' + gearIconHtml(item.slot, item.icon_url) + '</span>'
-              + '<span class="mission-result-gear-copy"><strong>' + escapeHtml(item.name) + '</strong>'
-              + '<small>' + escapeHtml(slotLabel(item.slot)) + ' &middot; ' + escapeHtml(item.tier) + (item.upgraded ? ' &middot; upgraded' : '') + '</small>'
-              + (bonus ? '<b>' + escapeHtml(bonus) + '</b>' : '<b class="is-neutral">No stat bonus</b>')
-              + (upgrade ? '<span class="mission-result-gear-upgrade is-' + upgrade.kind + '" title="' + escapeHtml(upgrade.detail) + '">' + escapeHtml(upgrade.text) + '</span>' : '')
-              + '<i class="mission-result-gear-status" role="status" aria-live="polite"></i></span>'
-              + '<button type="button" class="mission-result-destroy" data-gear-destroy="' + Number(item.id) + '">Destroy</button></li>';
-          }).join('') + '</ul></div>';
+        extras += '<div class="mission-result-block is-loot">' + bestFindMarkup(recoveredGear)
+          + '<h4>Equipment recovered</h4><ul class="mission-result-loot is-gear">'
+          + recoveredGear.map(resultLootRow).join('') + '</ul></div>';
       }
     }
-    if (!failed && result.level_ups && result.level_ups.length) {
-      extras += '<div class="mission-result-block"><h4>Promotions</h4><ul class="mission-result-levels">'
-        + result.level_ups.map(function (member) {
-          return '<li><span>' + escapeHtml(member.name || 'Crew member') + '</span><em>Level ' + member.level + '</em></li>';
-        }).join('') + '</ul></div>';
-    }
+    extras += crewAftermathMarkup(result);
+    if (failed) extras += failureFactorsMarkup(result);
 
     resultBody.innerHTML = '<span class="eyebrow">' + (failed ? 'Debrief · loss' : 'Debrief · recovery') + '</span>'
       + '<h2 id="mission-result-title">' + escapeHtml(title) + '</h2>'
       + '<p class="mission-result-mission">' + escapeHtml(result.mission_name || '') + '</p>'
       + '<p class="mission-result-lead">' + escapeHtml(lead) + '</p>'
+      + rollMarkup(result)
       + affinityLine + weatherLine
       + '<div class="mission-result-grid">' + grid + '</div>' + extras;
+
+    /* The reveal order. Each block carries its own index so the CSS can stagger
+     * them; the whole effect is skipped under prefers-reduced-motion, where the
+     * blocks are simply present from the first frame. */
+    Array.prototype.forEach.call(resultBody.children, function (node, index) {
+      node.style.setProperty('--reveal-index', Math.min(index, 9));
+    });
+    if (resultRerun) {
+      resultRerun.hidden = !state.resultRerun;
+      resultRerun.disabled = false;
+      resultRerun.classList.remove('is-busy');
+      resultRerun.textContent = failed ? 'Try again with the same crew' : 'Run again with the same crew';
+    }
+    tickCountdowns();
     if (typeof resultModal.showModal === 'function') resultModal.showModal(); else resultModal.setAttribute('open', '');
   }
   function closeResult() { if (resultModal.open && typeof resultModal.close === 'function') resultModal.close(); else resultModal.removeAttribute('open'); }
@@ -1828,6 +1976,22 @@
   });
   document.getElementById('mission-result-close').addEventListener('click', closeResult);
   document.getElementById('mission-result-dismiss').addEventListener('click', closeResult);
+  /* Relaunch the operation that was just claimed with the same crew, closing
+   * the loop without a round trip through the mission list. The rack's own
+   * eligibility rules are not re-run here: start.php is the authority, and it
+   * refuses a crew member who is deployed or too tired with a message that says
+   * which one -- which is more useful than this button quietly dropping them. */
+  if (resultRerun) resultRerun.addEventListener('click', function () {
+    var rerun = state.resultRerun;
+    if (!rerun) return;
+    resultRerun.disabled = true;
+    resultRerun.classList.add('is-busy');
+    if (resultError) resultError.textContent = '';
+    post('/api/missions/start.php', { mission_id: rerun.missionId, crew_ids: rerun.crewIds, csrf: window.PW_AUTH.csrf })
+      .then(function () { closeResult(); setStatus('Mission relaunched. Your crew is back in the field.'); load(); })
+      .catch(function (error) { if (resultError) resultError.textContent = error.message; })
+      .finally(function () { resultRerun.disabled = false; resultRerun.classList.remove('is-busy'); });
+  });
   function resolveCrewOffer(button) {
     if (!button || button.disabled) return;
     var offerId = Number(button.getAttribute('data-crew-offer-id'));
@@ -1860,12 +2024,71 @@
     if (event.target === resultModal) { closeResult(); return; }
     var offerButton = event.target.closest('[data-crew-offer-action]');
     if (offerButton && resultModal.contains(offerButton)) { resolveCrewOffer(offerButton); return; }
+    /* Equip straight from the debrief. Before this the only per-item action was
+     * Destroy, and putting a new item on a crew member meant closing the modal,
+     * finding them and opening their loadout -- three steps away from the
+     * moment the item was handed over. Goes through gear-equip.php exactly as
+     * the loadout modal does, so every requirement is still checked there. */
+    var equip = event.target.closest('[data-loot-equip]');
+    if (equip && resultModal.contains(equip)) {
+      if (equip.disabled) return;
+      var equipItemId = Number(equip.getAttribute('data-loot-equip'));
+      var equipCrewId = Number(equip.getAttribute('data-equip-crew'));
+      var equipRow = equip.closest('.mission-result-gear');
+      var equipStatus = equipRow && equipRow.querySelector('.mission-result-gear-status');
+      if (!isFinite(equipItemId) || !isFinite(equipCrewId)) return;
+      equip.disabled = true;
+      equip.classList.add('is-busy');
+      if (equipStatus) equipStatus.textContent = '';
+      post('/api/missions/gear-equip.php', { crew_id: equipCrewId, loot_definition_id: equipItemId, csrf: window.PW_AUTH.csrf })
+        .then(function (result) {
+          equip.textContent = 'Equipped';
+          equip.classList.add('is-done');
+          if (equipRow) equipRow.classList.add('is-equipped');
+          if (equipStatus) equipStatus.textContent = result.message || 'Equipped.';
+          /* Reloads so a second copy in the same haul re-evaluates its own best
+           * target against the roster this equip just changed. */
+          return load();
+        })
+        .catch(function (error) {
+          equip.disabled = false;
+          equip.textContent = 'Equip';
+          if (equipStatus) equipStatus.textContent = error.message;
+        })
+        .finally(function () { equip.classList.remove('is-busy'); });
+      return;
+    }
+
     var destroy = event.target.closest('[data-gear-destroy]');
     if (!destroy || destroy.disabled) return;
     var itemId = Number(destroy.getAttribute('data-gear-destroy'));
     if (!isFinite(itemId) || itemId < 1) return;
     var row = destroy.closest('.mission-result-gear');
     var status = row && row.querySelector('.mission-result-gear-status');
+    /* Destroying is permanent and was one unconfirmed click on an item the
+     * player had just been given. A second deliberate click is required, the
+     * same pattern the launch button already uses to accept a mismatch penalty
+     * rather than a blocking window.confirm(), which has stalled flows on this
+     * page before. The armed state times out so it cannot be triggered later by
+     * a stray click on a button the player has forgotten about. */
+    if (!destroy.classList.contains('is-arming')) {
+      Array.prototype.forEach.call(resultModal.querySelectorAll('.mission-result-destroy.is-arming'), function (other) {
+        other.classList.remove('is-arming');
+        other.textContent = 'Destroy';
+        if (other.pwDisarmTimer) window.clearTimeout(other.pwDisarmTimer);
+      });
+      destroy.classList.add('is-arming');
+      destroy.textContent = 'Destroy for good?';
+      if (status) status.textContent = 'This cannot be undone.';
+      destroy.pwDisarmTimer = window.setTimeout(function () {
+        destroy.classList.remove('is-arming');
+        destroy.textContent = 'Destroy';
+        if (status) status.textContent = '';
+      }, 5000);
+      return;
+    }
+    if (destroy.pwDisarmTimer) window.clearTimeout(destroy.pwDisarmTimer);
+    destroy.classList.remove('is-arming');
     destroy.disabled = true;
     destroy.textContent = 'Destroying…';
     if (status) status.textContent = '';
