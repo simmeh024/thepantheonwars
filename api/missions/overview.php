@@ -57,6 +57,12 @@ try {
         $row['active_mission_id'] = $row['active_mission_id'] !== null ? (int)$row['active_mission_id'] : null;
         $row['max_level'] = PW_MISSION_MAX_LEVEL;
         $row['max_stat'] = PW_MISSION_MAX_STAT;
+        /* The XP curve is exponential, so the crew card can no longer derive
+         * its own progress from a fixed per-level figure. The server resolves
+         * it against the same curve the claim path levels from. */
+        foreach (pw_missions_xp_progress($row['xp'], $row['level']) as $field => $value) {
+            $row[$field] = $value;
+        }
         return $row;
     }, $crewStmt->fetchAll());
 

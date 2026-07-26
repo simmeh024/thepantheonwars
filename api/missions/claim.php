@@ -125,7 +125,14 @@ try {
         $levelStmt = $db->prepare('UPDATE game_player_crew SET level = ?, strength = ?, cunning = ?, science = ?, charisma = ? WHERE id = ? AND user_id = ?');
         foreach ($crew as $member) {
             $newXp = (int)$member['xp'] + $xpAwarded;
-            $newLevel = pw_missions_level_for_xp($newXp, (int)$member['starting_level']);
+            /* The stored level is a floor alongside the template's starting
+             * level. Crew who earned their rank under the old flat 100-XP-per-
+             * level curve hold every level they were awarded; the exponential
+             * curve only governs what they earn from here. Without this floor
+             * the steeper curve would silently demote long-serving crew -- and
+             * strip the stats those levels allocated -- on their next claim. */
+            $levelFloor = max((int)$member['starting_level'], (int)$member['level']);
+            $newLevel = pw_missions_level_for_xp($newXp, $levelFloor);
             $stats = pw_missions_stats_for_level((string)$member['role'], $newLevel);
             $levelStmt->execute([$newLevel, $stats['strength'], $stats['cunning'], $stats['science'], $stats['charisma'], (int)$member['id'], $userId]);
             /* Persist the rebuilt values even when XP did not cross a level

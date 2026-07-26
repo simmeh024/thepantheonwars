@@ -583,14 +583,15 @@
       var profile = crewRoleProfile(crew.role);
       var maxLevel = Number(crew.max_level) || 50;
       var atMaxLevel = (Number(crew.level) || 0) >= maxLevel;
-      var totalXp = Math.max(0, Number(crew.xp) || 0);
-      var cycleXp = totalXp % 100;
-      // At the level ceiling the XP cycle keeps turning but buys nothing, so
-      // the bar reads full rather than restarting from a misleading zero.
-      var progress = atMaxLevel ? 100 : (totalXp > 0 && cycleXp === 0 ? 100 : cycleXp);
-      /* No "N XP to next threshold" line: it is exactly 100 minus the figure
-       * already shown beside it, so it cost a line per card to restate one. */
-      var rankValue = atMaxLevel ? 'Level ' + maxLevel : progress + ' / 100 XP';
+      /* Levelling is exponential, so the span of the current level is resolved
+       * server-side by pw_missions_xp_progress() against the same curve the
+       * claim path levels from -- the card must never re-derive it from a fixed
+       * per-level figure. At the ceiling the bar reads full because further XP
+       * buys nothing. */
+      var xpSpan = Math.max(0, Number(crew.xp_for_next_level) || 0);
+      var xpInto = Math.max(0, Number(crew.xp_into_level) || 0);
+      var progress = atMaxLevel || !xpSpan ? 100 : Math.max(0, Math.min(100, Number(crew.xp_percent) || 0));
+      var rankValue = atMaxLevel || !xpSpan ? 'Level ' + maxLevel : xpInto + ' / ' + xpSpan + ' XP';
       var portraitMarkup = portrait
         ? '<img src="' + escapeHtml(portrait) + '" alt="" class="mission-crew-portrait">'
         : '<div class="mission-crew-portrait mission-crew-fallback" aria-hidden="true">' + escapeHtml(crew.name.charAt(0)) + '</div>';

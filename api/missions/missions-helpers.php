@@ -411,7 +411,16 @@ const PW_MISSION_MAX_STAT = 50;
  * the only place the two ceilings differ, and pw_missions_stats_for_level()
  * still refuses to allocate past 50 from levels. */
 const PW_MISSION_MAX_GEAR_STAT = 80;
-const PW_MISSION_XP_PER_LEVEL = 100;
+/* Crew levelling is exponential: each level costs PW_MISSION_XP_GROWTH times
+ * the one before it, starting from PW_MISSION_XP_BASE for level 1 -> 2. A flat
+ * 100 per level made the last promotion cost exactly as much as the first, so a
+ * veteran crew member kept advancing at recruit pace and the level ceiling
+ * stopped meaning anything. At 8% the early game is almost unchanged (level 10
+ * costs 1,249 XP against the old 900) while reaching level 50 costs 53,039
+ * rather than 4,900. These two numbers are the only dials -- every threshold,
+ * progress bar and level lookup is derived from them. */
+const PW_MISSION_XP_BASE = 100;
+const PW_MISSION_XP_GROWTH = 1.08;
 
 /**
  * Stats a crew member has automatically allocated by this level: two points per
@@ -459,14 +468,66 @@ function pw_missions_apply_level_stats(array $crewRows): array {
 }
 
 /**
- * Level implied by total XP, at a flat 100 XP per level -- the same threshold
- * the crew card has always displayed. A crew template may start above level 1,
- * and levelling must never demote it, so the definition's starting level acts
- * as a floor.
+ * Cumulative XP required to reach each level, level 1 costing nothing. The
+ * table is built once per request by stepping the growth rate and rounding each
+ * individual step, rather than evaluating a closed-form power per lookup: a
+ * rounded running total is exact and identical everywhere it is read, while
+ * rounding a float sum could put a crew member one XP short of the threshold
+ * their own progress bar just showed them cross.
+ */
+function pw_missions_xp_curve(): array {
+    static $curve = null;
+    if ($curve !== null) return $curve;
+    $curve = [1 => 0];
+    $step = (float)PW_MISSION_XP_BASE;
+    $total = 0;
+    for ($level = 2; $level <= PW_MISSION_MAX_LEVEL; $level++) {
+        $total += (int)round($step);
+        $curve[$level] = $total;
+        $step *= PW_MISSION_XP_GROWTH;
+    }
+    return $curve;
+}
+
+function pw_missions_xp_for_level(int $level): int {
+    return pw_missions_xp_curve()[max(1, min(PW_MISSION_MAX_LEVEL, $level))];
+}
+
+/**
+ * Level implied by total XP against the exponential curve above. A crew
+ * template may start above level 1, and levelling must never demote it, so the
+ * definition's starting level acts as a floor.
  */
 function pw_missions_level_for_xp(int $xp, int $startingLevel = 1): int {
-    $earned = (int)floor(max(0, $xp) / PW_MISSION_XP_PER_LEVEL) + 1;
+    $xp = max(0, $xp);
+    $earned = 1;
+    foreach (pw_missions_xp_curve() as $level => $required) {
+        if ($xp < $required) break;
+        $earned = $level;
+    }
     return max(1, min(PW_MISSION_MAX_LEVEL, max($earned, $startingLevel)));
+}
+
+/**
+ * Progress through the current level, resolved server-side so the crew card
+ * never has to know the curve. Two edge cases are handled here rather than in
+ * the browser: at the ceiling the bar reads full because further XP buys
+ * nothing, and a crew member whose starting level floors them above what their
+ * XP has actually earned reads as zero into the level rather than negative.
+ */
+function pw_missions_xp_progress(int $xp, int $level): array {
+    $level = max(1, min(PW_MISSION_MAX_LEVEL, $level));
+    if ($level >= PW_MISSION_MAX_LEVEL) {
+        return ['xp_into_level' => 0, 'xp_for_next_level' => 0, 'xp_percent' => 100];
+    }
+    $floor = pw_missions_xp_for_level($level);
+    $span = max(1, pw_missions_xp_for_level($level + 1) - $floor);
+    $into = max(0, min($span, max(0, $xp) - $floor));
+    return [
+        'xp_into_level' => $into,
+        'xp_for_next_level' => $span,
+        'xp_percent' => (int)round($into / $span * 100),
+    ];
 }
 
 /**
