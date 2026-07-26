@@ -689,11 +689,28 @@
       extras += '<p class="mission-result-note">' + escapeHtml(duplicateNames) + (result.crew_duplicates.length === 1 ? ' was' : ' were')
         + ' already on your roster, so nothing was added.</p>';
     }
-    if (!failed && result.loot && result.loot.length) {
+    var recoveredSalvage = !failed && result.loot ? result.loot.filter(function (item) { return !item.slot; }) : [];
+    if (recoveredSalvage.length) {
       extras += '<div class="mission-result-block"><h4>Recovered</h4><ul class="mission-result-loot">'
-        + result.loot.map(function (item) {
+        + recoveredSalvage.map(function (item) {
           return '<li class="is-' + escapeHtml(item.tier) + '"><span>' + escapeHtml(item.name) + '</span><em>' + escapeHtml(item.tier) + (item.upgraded ? ' · upgraded' : '') + '</em></li>';
         }).join('') + '</ul></div>';
+    }
+    if (!failed && result.loot && result.loot.length) {
+      var recoveredGear = result.loot.filter(function (item) { return !!item.slot; });
+      if (recoveredGear.length) {
+        extras += '<div class="mission-result-block"><h4>Equipment recovered</h4><ul class="mission-result-loot">'
+          + recoveredGear.map(function (item) {
+            var bonus = gearBonusText(item.bonus);
+            return '<li class="mission-result-gear is-' + escapeHtml(item.tier) + '" data-loot-definition-id="' + Number(item.id) + '">'
+              + '<span class="mission-result-gear-icon">' + gearIconHtml(item.slot, item.icon_url) + '</span>'
+              + '<span class="mission-result-gear-copy"><strong>' + escapeHtml(item.name) + '</strong>'
+              + '<small>' + escapeHtml(slotLabel(item.slot)) + ' &middot; ' + escapeHtml(item.tier) + (item.upgraded ? ' &middot; upgraded' : '') + '</small>'
+              + (bonus ? '<b>' + escapeHtml(bonus) + '</b>' : '<b class="is-neutral">No stat bonus</b>')
+              + '<i class="mission-result-gear-status" role="status" aria-live="polite"></i></span>'
+              + '<button type="button" class="mission-result-destroy" data-gear-destroy="' + Number(item.id) + '">Destroy</button></li>';
+          }).join('') + '</ul></div>';
+      }
     }
     if (!failed && result.level_ups && result.level_ups.length) {
       extras += '<div class="mission-result-block"><h4>Promotions</h4><ul class="mission-result-levels">'
@@ -1093,7 +1110,29 @@
   if (launchRecommend) launchRecommend.addEventListener('click', recommendLaunchCrew);
   document.getElementById('mission-result-close').addEventListener('click', closeResult);
   document.getElementById('mission-result-dismiss').addEventListener('click', closeResult);
-  resultModal.addEventListener('click', function (event) { if (event.target === resultModal) closeResult(); });
+  resultModal.addEventListener('click', function (event) {
+    if (event.target === resultModal) { closeResult(); return; }
+    var destroy = event.target.closest('[data-gear-destroy]');
+    if (!destroy || destroy.disabled) return;
+    var itemId = Number(destroy.getAttribute('data-gear-destroy'));
+    if (!isFinite(itemId) || itemId < 1) return;
+    var row = destroy.closest('.mission-result-gear');
+    var status = row && row.querySelector('.mission-result-gear-status');
+    destroy.disabled = true;
+    destroy.textContent = 'Destroying…';
+    if (status) status.textContent = '';
+    post('/api/missions/gear-destroy.php', { loot_definition_id: itemId, csrf: window.PW_AUTH.csrf }).then(function (result) {
+      destroy.textContent = 'Destroyed';
+      destroy.classList.add('is-destroyed');
+      if (row) row.classList.add('is-destroyed');
+      if (status) status.textContent = result.message || 'Removed from inventory.';
+      load();
+    }).catch(function (error) {
+      destroy.disabled = false;
+      destroy.textContent = 'Destroy';
+      if (status) status.textContent = error.message;
+    });
+  });
   document.getElementById('mission-launch-close').addEventListener('click', closeLaunch); document.getElementById('mission-launch-cancel').addEventListener('click', closeLaunch);
   launchModal.addEventListener('click', function (event) { if (event.target === launchModal) closeLaunch(); });
   launchConfirm.addEventListener('click', function () {

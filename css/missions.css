@@ -18,7 +18,7 @@
  * class. Every square, card and pill reads it, so a new rarity needs one rule
  * rather than an edit in six places -- the same approach --world-weather-icon
  * takes for the weather card's icons. */
-.mission-gear-slot, .mission-loadout-slot, .mission-inventory-card, .mission-loadout-option { --gear-tier: 130,150,170; }
+.mission-gear-slot, .mission-loadout-slot, .mission-inventory-card, .mission-loadout-option, .mission-result-gear { --gear-tier: 130,150,170; }
 .is-common { --gear-tier: 150,168,186; }
 .is-uncommon { --gear-tier: 158,219,168; }
 .is-rare { --gear-tier: 112,204,223; }
@@ -326,6 +326,16 @@
 .mission-result-loot li.is-uncommon { border-color: rgba(110,211,220,0.4); } .mission-result-loot li.is-uncommon em { color: #83dce4; }
 .mission-result-loot li.is-rare { border-color: rgba(199,154,232,0.45); } .mission-result-loot li.is-rare em { color: #c79ae8; }
 .mission-result-loot li.is-legendary { border-color: rgba(235,209,138,0.55); box-shadow: inset 0 0 22px rgba(235,209,138,0.08); } .mission-result-loot li.is-legendary em { color: #ebd18a; }
+.mission-result-loot li.mission-result-gear { display: grid; grid-template-columns: 38px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 10px; border-color: rgba(var(--gear-tier), 0.48); }
+.mission-result-gear-icon { display: flex; align-items: center; justify-content: center; width: 38px; height: 38px; border: 1px solid rgba(var(--gear-tier), 0.56); background: rgba(var(--gear-tier), 0.11); color: rgb(var(--gear-tier)); }
+.mission-result-gear-icon svg, .mission-result-gear-icon img { display: block; width: 24px; height: 24px; object-fit: cover; }
+.mission-result-gear-copy { display: grid; min-width: 0; gap: 2px; }
+.mission-result-gear-copy strong { overflow: hidden; color: #eef4f8; font-size: 0.78rem; text-overflow: ellipsis; white-space: nowrap; }
+.mission-result-gear-copy small { color: #8ba5be; font-size: 0.6rem; letter-spacing: .05em; text-transform: uppercase; }
+.mission-result-gear-copy b { color: #9edba8; font-size: 0.65rem; font-weight: 700; }.mission-result-gear-copy b.is-neutral { color: #8ba5be; font-weight: 500; }
+.mission-result-gear-status { min-height: 1em; color: #8ddde1; font-size: 0.6rem; font-style: normal; line-height: 1.35; }.mission-result-gear.is-destroyed { opacity: .58; }.mission-result-gear.is-destroyed .mission-result-gear-status { color: #9edba8; }
+.mission-result-destroy { min-height: 29px; padding: 0 8px; border: 1px solid rgba(224,138,114,0.58); background: rgba(78,28,39,0.4); color: #efa5a1; font: 700 0.56rem/1 'Jost', sans-serif; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }.mission-result-destroy:hover:not(:disabled), .mission-result-destroy:focus-visible { border-color: #efa5a1; background: rgba(116,41,54,0.58); color: #fff2f0; }.mission-result-destroy:disabled { cursor: default; }.mission-result-destroy.is-destroyed { border-color: rgba(158,219,168,0.45); background: rgba(48,91,70,0.42); color: #9edba8; }
+@media (max-width: 460px) { .mission-result-loot li.mission-result-gear { grid-template-columns: 34px minmax(0, 1fr); }.mission-result-gear-icon { width: 34px; height: 34px; }.mission-result-destroy { grid-column: 2; justify-self: start; }.mission-result-gear-status { margin-top: 2px; } }
 .mission-result-levels em { color: #9edba8; }
 /* A recruited character is the rarest outcome a mission has, so it is the one
  * block in the debrief that carries a gold edge rather than the shared grey. */

@@ -1003,14 +1003,19 @@ function pw_missions_loot_roll_count(int $baseRolls, array $effects): int {
 }
 
 /**
- * Draw loot for one mission. Returns rows of definition id, name and tier, one
- * entry per item awarded, with the Science upgrade already applied.
+ * Draw loot for one mission. Returns the player-safe reward fields needed by
+ * the debrief -- including equipment art and bonuses when gear is available --
+ * one entry per item awarded, with the Science upgrade already applied.
  */
 function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array $effects): array {
     $rolls = pw_missions_loot_roll_count($baseRolls, $effects);
     if ($rolls < 1) return [];
 
-    $stmt = $db->prepare('SELECT id, name, slug, tier, drop_weight FROM game_loot_definitions WHERE world_key = ? AND is_enabled = 1');
+    $gearReady = pw_mission_gear_ready($db);
+    $gearColumns = $gearReady
+        ? ', slot, bonus_strength, bonus_cunning, bonus_science, bonus_charisma, icon_url'
+        : '';
+    $stmt = $db->prepare('SELECT id, name, slug, tier, drop_weight' . $gearColumns . ' FROM game_loot_definitions WHERE world_key = ? AND is_enabled = 1');
     $stmt->execute([$worldKey]);
     $pool = $stmt->fetchAll();
     if (!$pool) return [];
@@ -1054,6 +1059,14 @@ function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array 
             'name' => $item['name'],
             'tier' => $item['tier'],
             'upgraded' => !empty($item['upgraded']),
+            'slot' => $gearReady ? (string)($item['slot'] ?? '') : '',
+            'icon_url' => $gearReady ? pw_missions_gear_icon_url($item['icon_url'] ?? '') : '',
+            'bonus' => [
+                'strength' => $gearReady ? (int)($item['bonus_strength'] ?? 0) : 0,
+                'cunning' => $gearReady ? (int)($item['bonus_cunning'] ?? 0) : 0,
+                'science' => $gearReady ? (int)($item['bonus_science'] ?? 0) : 0,
+                'charisma' => $gearReady ? (int)($item['bonus_charisma'] ?? 0) : 0,
+            ],
         ];
     }
     return $awarded;
@@ -1161,7 +1174,10 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
         ? $db->prepare(
             'SELECT entry.entry_type, entry.crew_definition_id, entry.loot_definition_id, entry.chance_percent,
                     crew.name AS crew_name, crew.role, crew.portrait_url,
-                    gear.name AS gear_name, gear.tier
+                    gear.name AS gear_name, gear.tier, gear.slot AS gear_slot,
+                    gear.bonus_strength AS gear_bonus_strength, gear.bonus_cunning AS gear_bonus_cunning,
+                    gear.bonus_science AS gear_bonus_science, gear.bonus_charisma AS gear_bonus_charisma,
+                    gear.icon_url AS gear_icon_url
              FROM game_loot_table_entries entry
              LEFT JOIN game_crew_definitions crew ON crew.id = entry.crew_definition_id
              LEFT JOIN game_loot_definitions gear ON gear.id = entry.loot_definition_id
@@ -1202,6 +1218,14 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
                     'name' => $entry['gear_name'],
                     'tier' => $entry['tier'],
                     'upgraded' => false,
+                    'slot' => (string)($entry['gear_slot'] ?? ''),
+                    'icon_url' => pw_missions_gear_icon_url($entry['gear_icon_url'] ?? ''),
+                    'bonus' => [
+                        'strength' => (int)($entry['gear_bonus_strength'] ?? 0),
+                        'cunning' => (int)($entry['gear_bonus_cunning'] ?? 0),
+                        'science' => (int)($entry['gear_bonus_science'] ?? 0),
+                        'charisma' => (int)($entry['gear_bonus_charisma'] ?? 0),
+                    ],
                 ];
                 continue;
             }
