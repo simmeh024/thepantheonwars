@@ -352,7 +352,10 @@ function initWeatherWidget() {
   var root = document.createElement('div');
   root.className = 'pw-weather';
   root.id = 'pw-weather-widget';
-  root.hidden = true;   // stays hidden until there is something real to show
+  // Keep a compact, honest control in the header while the world feed resolves.
+  // A missing or delayed feed must not make the requested weather route vanish.
+  root.hidden = false;
+  root.classList.add('is-loading');
   root.innerHTML =
     '<a class="pw-weather-bar" href="#" aria-label="World weather">'
     + '<span class="pw-weather-icon"></span>'
@@ -380,6 +383,20 @@ function initWeatherWidget() {
   var hourCache = {};
   var hoursPending = null;
   var hoursWanted = false;
+
+  function renderUnavailable() {
+    iconEl.innerHTML = weatherIconSvg('overcast');
+    tempEl.textContent = '--';
+    condEl.textContent = 'World weather';
+    barEl.href = 'worlds.html';
+    barEl.setAttribute('aria-label', 'World weather is loading. Open the Worlds.');
+    barEl.title = 'World weather';
+    toggleEl.disabled = true;
+    root.hidden = false;
+    root.classList.add('is-loading');
+  }
+
+  renderUnavailable();
 
   // --- preference -----------------------------------------------------------
 
@@ -427,7 +444,7 @@ function initWeatherWidget() {
 
   function render() {
     var world = resolveWorld();
-    if (!world) { root.hidden = true; return; }
+    if (!world) { renderUnavailable(); return; }
 
     var current = world.current || {};
     iconEl.innerHTML = weatherIconSvg(current.icon);
@@ -463,7 +480,9 @@ function initWeatherWidget() {
     utility.classList.remove('is-accent-swap');
 
     renderMenu(world.slug);
+    toggleEl.disabled = false;
     root.hidden = false;
+    root.classList.remove('is-loading');
     fitToHeader();
   }
 
@@ -476,10 +495,10 @@ function initWeatherWidget() {
   // profile chip is far wider than a "Login" link, which no media query can
   // distinguish.
   //
-  // So measure the symptom instead. When the header runs out of room its links
-  // wrap and .nav-inner grows taller, so compare against its height with the
-  // widget removed: drop the condition text first, and only hide the widget
-  // outright if even the compact bar does not fit.
+    // So measure the symptom instead. When the header runs out of room its links
+    // wrap and .nav-inner grows taller, so compare against its height with the
+    // widget removed: drop the condition text first, then the temperature, but
+    // keep the weather route itself available.
   function fitToHeader() {
     var inner = root.closest('.nav-inner');
     if (!inner || !worlds.length) return;
@@ -511,11 +530,11 @@ function initWeatherWidget() {
       return utility.getBoundingClientRect().right > contentRight + 1;
     }
 
-    root.classList.remove('is-compact');
+    root.classList.remove('is-compact', 'is-icon-only');
     if (!doesNotFit()) return;
     root.classList.add('is-compact');
     if (!doesNotFit()) return;
-    root.hidden = true;
+    root.classList.add('is-icon-only');
   }
 
   var fitTimer = null;
@@ -688,7 +707,8 @@ function initWeatherWidget() {
         applyWorlds(data.worlds);
       })
       .catch(function () {
-        // The header is fully usable without this; the widget just stays hidden.
+        // Keep the visible Worlds fallback in place when the live feed cannot
+        // resolve. It is still a useful, honest way into the weather system.
       });
   }
 
