@@ -30,6 +30,7 @@ function pw_research_ready(PDO $db): bool {
         foreach (['game_research_categories', 'game_research_nodes', 'game_research_prerequisites', 'game_player_research'] as $table) {
             $db->query('SELECT 1 FROM `' . $table . '` LIMIT 1');
         }
+        $db->query('SELECT requires_all_other_unlocked FROM `game_research_categories` LIMIT 1');
         return $ready = true;
     } catch (Throwable $e) {
         return $ready = false;
@@ -96,18 +97,45 @@ function pw_research_player_effects(PDO $db, int $userId): array {
     return $effects;
 }
 
-/** Classifed missions are hidden in the mission response and re-checked at
- * launch. A disabled research node stops classifying its target, allowing an
- * administrator to retire a gate without taking anything away from owners. */
+/** Classified missions are hidden in the mission response and re-checked at
+ * launch. Once the Mission Management research-lock migration is active, that
+ * checkbox is the source of truth: an unchecked mission is never classified,
+ * while a checked mission stays sealed until an enabled Secret mission access
+ * protocol targeting it is owned. The legacy query preserves the original
+ * behaviour while an older database is still awaiting that migration. */
 function pw_research_secret_missions(PDO $db, int $userId): array {
-    if (!pw_research_ready($db)) return ['locked' => [], 'unlocked' => []];
-    $stmt = $db->prepare(
-        'SELECT n.target_mission_definition_id, (pr.user_id IS NOT NULL) AS is_unlocked
-         FROM game_research_nodes n
-         LEFT JOIN game_player_research pr ON pr.research_node_id = n.id AND pr.user_id = ?
-         WHERE n.is_enabled = 1 AND n.effect_type = "secret_mission" AND n.target_mission_definition_id IS NOT NULL'
-    );
-    $stmt->execute([$userId]);
+    $researchReady = pw_research_ready($db);
+    $missionLocksReady = pw_mission_research_locks_ready($db);
+    if (!$researchReady && !$missionLocksReady) return ['locked' => [], 'unlocked' => []];
+
+    if ($missionLocksReady) {
+        /* When Research itself is still being prepared, all explicitly sealed
+         * missions remain hidden. Failing closed avoids a migration race ever
+         * revealing an operation the author marked as research-gated. */
+        $unlockExpression = $researchReady
+            ? 'EXISTS (
+                SELECT 1
+                FROM game_research_nodes n
+                JOIN game_player_research pr ON pr.research_node_id = n.id AND pr.user_id = ?
+                WHERE n.is_enabled = 1 AND n.effect_type = "secret_mission"
+                  AND n.target_mission_definition_id = mission.id
+              )'
+            : '0';
+        $stmt = $db->prepare(
+            'SELECT mission.id AS target_mission_definition_id, ' . $unlockExpression . ' AS is_unlocked
+             FROM game_mission_definitions mission
+             WHERE mission.requires_research_unlock = 1'
+        );
+        $stmt->execute($researchReady ? [$userId] : []);
+    } else {
+        $stmt = $db->prepare(
+            'SELECT n.target_mission_definition_id, (pr.user_id IS NOT NULL) AS is_unlocked
+             FROM game_research_nodes n
+             LEFT JOIN game_player_research pr ON pr.research_node_id = n.id AND pr.user_id = ?
+             WHERE n.is_enabled = 1 AND n.effect_type = "secret_mission" AND n.target_mission_definition_id IS NOT NULL'
+        );
+        $stmt->execute([$userId]);
+    }
     $secret = ['locked' => [], 'unlocked' => []];
     foreach ($stmt->fetchAll() as $row) {
         $key = !empty($row['is_unlocked']) ? 'unlocked' : 'locked';

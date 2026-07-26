@@ -110,6 +110,7 @@
         detail.textContent += ' | Unlocks after ' + mission.unlocks_after_mission_name + ' × ' + mission.unlocks_after_completion_count;
       }
       if (mission.is_campaign_final && detail) detail.textContent += ' | Campaign finale';
+      if (mission.requires_research_unlock && detail) detail.textContent += ' | Research locked';
       if (can('missions.edit')) {
         row.addEventListener('click', function () { openDefinition(mission); });
         row.addEventListener('keydown', function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDefinition(mission); } });
@@ -265,6 +266,7 @@
     document.getElementById('mission-definition-reputation').value = mission ? mission.reputation_reward : 0;
     document.getElementById('mission-definition-sort-order').value = mission ? mission.sort_order : 0;
     document.getElementById('mission-definition-enabled').checked = mission ? mission.is_enabled : true;
+    document.getElementById('mission-definition-research-locked').checked = mission ? !!mission.requires_research_unlock : false;
     populateMissionSuccessionOptions(mission);
     document.getElementById('mission-definition-unlock-completions').value = mission && mission.unlocks_after_mission_id ? mission.unlocks_after_completion_count : 0;
     document.getElementById('mission-definition-campaign-final').checked = mission ? !!mission.is_campaign_final : false;
@@ -321,6 +323,7 @@
       reputation_reward: document.getElementById('mission-definition-reputation').value,
       sort_order: document.getElementById('mission-definition-sort-order').value,
       is_enabled: document.getElementById('mission-definition-enabled').checked,
+      requires_research_unlock: document.getElementById('mission-definition-research-locked').checked,
       unlocks_after_mission_id: document.getElementById('mission-definition-unlocks-after').value,
       unlocks_after_completion_count: document.getElementById('mission-definition-unlock-completions').value,
       is_campaign_final: document.getElementById('mission-definition-campaign-final').checked,

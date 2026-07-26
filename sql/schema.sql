@@ -1776,6 +1776,7 @@ CREATE TABLE IF NOT EXISTS game_mission_definitions (
   xp_reward INT UNSIGNED NOT NULL DEFAULT 0,
   reputation_reward INT UNSIGNED NOT NULL DEFAULT 0,
   is_enabled TINYINT(1) NOT NULL DEFAULT 1,
+  requires_research_unlock TINYINT(1) NOT NULL DEFAULT 0,
   sort_order INT NOT NULL DEFAULT 0,
   unlocks_after_mission_id INT UNSIGNED NULL,
   unlocks_after_completion_count SMALLINT UNSIGNED NOT NULL DEFAULT 0,
@@ -1848,7 +1849,8 @@ CREATE TABLE IF NOT EXISTS game_player_loot (
   CONSTRAINT fk_game_player_loot_definition FOREIGN KEY (loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- sql/migration_research_system.sql and sql/migration_research_categories.sql.
+-- sql/migration_research_system.sql, sql/migration_research_categories.sql,
+-- and sql/migration_research_final_category.sql.
 -- Categories are administrator-authored branches that organise the shared
 -- protocol lattice. A Research node is shared configuration;
 -- game_player_research is the account-owned, permanent unlock record. The
@@ -1860,6 +1862,7 @@ CREATE TABLE IF NOT EXISTS game_research_categories (
   slug VARCHAR(80) NOT NULL,
   description VARCHAR(255) NOT NULL DEFAULT '',
   sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+  requires_all_other_unlocked TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_game_research_category_slug (slug),

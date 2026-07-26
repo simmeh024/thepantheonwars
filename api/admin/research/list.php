@@ -28,17 +28,27 @@ try {
         $node['prerequisite_ids'] = $byNode[(int)$node['id']] ?? [];
     }
     unset($node);
-    $categories = $db->query('SELECT id, name, slug, description, sort_order FROM game_research_categories ORDER BY sort_order ASC, id ASC')->fetchAll();
+    $categories = $db->query('SELECT id, name, slug, description, sort_order, requires_all_other_unlocked FROM game_research_categories ORDER BY sort_order ASC, id ASC')->fetchAll();
     foreach ($categories as &$category) {
         $category['id'] = (int)$category['id'];
         $category['sort_order'] = (int)$category['sort_order'];
+        $category['requires_all_other_unlocked'] = (bool)$category['requires_all_other_unlocked'];
     }
     unset($category);
     $salvage = $db->query('SELECT id, name, tier, icon_url FROM game_loot_definitions WHERE slot = "" ORDER BY name ASC')->fetchAll();
     foreach ($salvage as &$item) { $item['id'] = (int)$item['id']; $item['icon_url'] = pw_missions_gear_icon_url($item['icon_url']); }
     unset($item);
-    $missions = $db->query('SELECT id, name, mission_type, is_enabled FROM game_mission_definitions WHERE world_key = "neoh" ORDER BY sort_order ASC, id ASC')->fetchAll();
-    foreach ($missions as &$mission) { $mission['id'] = (int)$mission['id']; $mission['is_enabled'] = (bool)$mission['is_enabled']; }
+    $missionLocksReady = pw_mission_research_locks_ready($db);
+    $missions = $db->query(
+        'SELECT id, name, mission_type, is_enabled, '
+        . ($missionLocksReady ? 'requires_research_unlock' : '0 AS requires_research_unlock')
+        . ' FROM game_mission_definitions WHERE world_key = "neoh" ORDER BY sort_order ASC, id ASC'
+    )->fetchAll();
+    foreach ($missions as &$mission) {
+        $mission['id'] = (int)$mission['id'];
+        $mission['is_enabled'] = (bool)$mission['is_enabled'];
+        $mission['requires_research_unlock'] = (bool)$mission['requires_research_unlock'];
+    }
     unset($mission);
     pw_json(['ok' => true, 'nodes' => $nodes, 'categories' => $categories, 'salvage' => $salvage, 'missions' => $missions, 'effect_types' => pw_research_effect_types(), 'board' => ['width' => PW_RESEARCH_BOARD_WIDTH, 'height' => PW_RESEARCH_BOARD_HEIGHT]]);
 } catch (Throwable $e) {

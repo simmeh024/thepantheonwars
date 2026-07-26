@@ -66,6 +66,7 @@ function pw_admin_mission_definition_input(array $input): array {
         'xp_reward' => $xpReward, 'reputation_reward' => $reputationReward, 'credit_reward' => $creditReward,
         'watermark_url' => $watermarkUrl, 'watermark_opacity' => $watermarkOpacity,
         'is_enabled' => !empty($input['is_enabled']) ? 1 : 0, 'sort_order' => $sortOrder,
+        'requires_research_unlock' => !empty($input['requires_research_unlock']) ? 1 : 0,
         'unlocks_after_mission_id' => $unlocksAfterMissionId,
         'unlocks_after_completion_count' => $unlocksAfterCompletionCount,
         'is_campaign_final' => !empty($input['is_campaign_final']) ? 1 : 0,

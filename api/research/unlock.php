@@ -13,7 +13,12 @@ $userId = (int)$user['id'];
 
 try {
     $db->beginTransaction();
-    $nodeStmt = $db->prepare('SELECT * FROM game_research_nodes WHERE id = ? FOR UPDATE');
+    $nodeStmt = $db->prepare(
+        'SELECT n.*, COALESCE(category.requires_all_other_unlocked, 0) AS category_requires_all_other_unlocked
+         FROM game_research_nodes n
+         LEFT JOIN game_research_categories category ON category.id = n.research_category_id
+         WHERE n.id = ? FOR UPDATE'
+    );
     $nodeStmt->execute([$nodeId]);
     $node = $nodeStmt->fetch();
     if (!$node || !(bool)$node['is_enabled']) throw new RuntimeException('That research protocol is no longer available.');
@@ -21,6 +26,23 @@ try {
     $owned = $db->prepare('SELECT 1 FROM game_player_research WHERE user_id = ? AND research_node_id = ? FOR UPDATE');
     $owned->execute([$userId, $nodeId]);
     if ($owned->fetch()) throw new RuntimeException('That research protocol is already unlocked.');
+
+    if (!empty($node['category_requires_all_other_unlocked'])) {
+        $remaining = $db->prepare(
+            'SELECT COUNT(*) AS total_protocols, SUM(pr.user_id IS NULL) AS remaining_protocols
+             FROM game_research_nodes n
+             LEFT JOIN game_research_categories category ON category.id = n.research_category_id
+             LEFT JOIN game_player_research pr ON pr.research_node_id = n.id AND pr.user_id = ?
+             WHERE n.is_enabled = 1
+               AND (category.requires_all_other_unlocked = 0 OR category.id IS NULL)
+               AND pr.user_id IS NULL'
+        );
+        $remaining->execute([$userId]);
+        $finalGate = $remaining->fetch();
+        if ((int)($finalGate['total_protocols'] ?? 0) < 1 || (int)($finalGate['remaining_protocols'] ?? 0) > 0) {
+            throw new RuntimeException('The Final Neoh Protocol remains sealed until every other research protocol is online.');
+        }
+    }
 
     $rankStmt = $db->prepare('SELECT reputation FROM users WHERE id = ? FOR UPDATE');
     $rankStmt->execute([$userId]);

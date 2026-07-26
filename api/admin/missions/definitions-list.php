@@ -8,6 +8,7 @@ $campaignReady = pw_mission_campaign_ready($db);
 $statsReady = pw_mission_stats_ready($db);
 $creditsReady = pw_mission_credits_ready($db);
 $watermarkReady = pw_mission_watermark_ready($db);
+$researchLocksReady = pw_mission_research_locks_ready($db);
 $rows = $db->query(
     'SELECT mission.id, mission.world_key, mission.name, mission.slug, mission.description, mission.mission_type,
             mission.duration_seconds, mission.min_crew, mission.max_crew, mission.xp_reward, mission.reputation_reward,
@@ -16,6 +17,7 @@ $rows = $db->query(
     . ($creditsReady ? ' mission.credit_reward,' : ' 0 AS credit_reward,')
     . ($watermarkReady ? ' mission.watermark_url, mission.watermark_opacity,' : ' "" AS watermark_url, 10 AS watermark_opacity,')
     . ($statsReady ? ' mission.base_success_percent, mission.loot_rolls,' : ' 100 AS base_success_percent, 0 AS loot_rolls,') .
+    ($researchLocksReady ? ' mission.requires_research_unlock,' : ' 0 AS requires_research_unlock,') .
            ' prerequisite.name AS unlocks_after_mission_name, mission.created_at, mission.updated_at
      FROM game_mission_definitions mission
      LEFT JOIN game_mission_definitions prerequisite ON prerequisite.id = mission.unlocks_after_mission_id
@@ -26,6 +28,7 @@ $rows = array_map(static function ($row) {
     $row['unlocks_after_mission_id'] = $row['unlocks_after_mission_id'] !== null ? (int)$row['unlocks_after_mission_id'] : null;
     $row['is_enabled'] = (bool)$row['is_enabled'];
     $row['is_campaign_final'] = (bool)$row['is_campaign_final'];
+    $row['requires_research_unlock'] = (bool)$row['requires_research_unlock'];
     return $row;
 }, $rows);
 pw_json(['ok' => true, 'missions' => $rows, 'campaign_ready' => $campaignReady]);

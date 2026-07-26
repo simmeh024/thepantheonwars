@@ -14,7 +14,10 @@ function pw_admin_research_category_input(array $input): array {
     if (mb_strlen($description) > 255) pw_error('Category description may not exceed 255 characters.');
     $sortOrder = filter_var($input['sort_order'] ?? 0, FILTER_VALIDATE_INT);
     if ($sortOrder === false || $sortOrder < 0 || $sortOrder > 100000) pw_error('Category sort order must be between 0 and 100000.');
-    return ['name' => $name, 'slug' => $slug, 'description' => $description, 'sort_order' => $sortOrder];
+    return [
+        'name' => $name, 'slug' => $slug, 'description' => $description, 'sort_order' => $sortOrder,
+        'requires_all_other_unlocked' => !empty($input['requires_all_other_unlocked']) ? 1 : 0,
+    ];
 }
 
 function pw_admin_research_node_input(PDO $db, array $input): array {
@@ -48,11 +51,14 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
     $targetMissionId = null;
     $targetRaw = trim((string)($input['target_mission_definition_id'] ?? ''));
     if ($effectType === 'secret_mission') {
+        if (!pw_mission_research_locks_ready($db)) {
+            pw_error('Mission research locks are being prepared. Run the Final Research Category migration before creating a classified mission unlock.', 503);
+        }
         $targetMissionId = filter_var($targetRaw, FILTER_VALIDATE_INT);
         if ($targetMissionId === false || $targetMissionId < 1) pw_error('Choose the secret mission this research should reveal.');
-        $target = $db->prepare('SELECT id FROM game_mission_definitions WHERE id = ? AND world_key = "neoh"');
+        $target = $db->prepare('SELECT id FROM game_mission_definitions WHERE id = ? AND world_key = "neoh" AND requires_research_unlock = 1');
         $target->execute([$targetMissionId]);
-        if (!$target->fetch()) pw_error('Choose a valid Neoh mission for this secret research.', 404);
+        if (!$target->fetch()) pw_error('Choose a Neoh mission marked as Research locked in Mission Management.', 404);
     } elseif ($targetRaw !== '') {
         pw_error('Only Secret mission access research may target a mission.');
     }

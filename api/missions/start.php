@@ -23,7 +23,8 @@ try {
     if (!$mission || !(bool)$mission['is_enabled'] || $mission['world_key'] !== 'neoh') {
         throw new RuntimeException('That mission is no longer available.');
     }
-    if (pw_research_ready($db) && !pw_research_mission_is_unlocked($db, $userId, (int)$mission['id'])) {
+    if ((pw_mission_research_locks_ready($db) || pw_research_ready($db))
+        && !pw_research_mission_is_unlocked($db, $userId, (int)$mission['id'])) {
         throw new RuntimeException('This classified mission requires its Research Facility protocol first.');
     }
     if ($mission['unlocks_after_mission_id'] !== null) {

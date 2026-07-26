@@ -133,6 +133,10 @@
     effectType.innerHTML = Object.keys(effectTypes).map(function (key) { return '<option value="' + esc(key) + '">' + esc(effectTypes[key].label) + '</option>'; }).join('');
     effectType.value = current ? current.effect_type : 'mission_speed'; effectValue.value = current ? current.effect_value : 5;
     fillSelect(targetMission, missions, current ? current.target_mission_definition_id : null, 'Choose mission', function (item) { return item.name + ' · ' + item.mission_type + (item.is_enabled ? '' : ' (disabled)'); });
+    Array.prototype.slice.call(targetMission.options).forEach(function (option) {
+      var mission = missions.filter(function (item) { return Number(item.id) === Number(option.value); })[0];
+      if (option.value && mission && !mission.requires_research_unlock) option.remove();
+    });
     fillPrerequisites(current ? current.prerequisite_ids : [], current ? current.id : null);
     document.getElementById('research-node-rank').value = current ? current.required_reputation_level : 1;
     document.getElementById('research-node-credit-cost').value = current ? current.credit_cost : 0;
@@ -204,7 +208,8 @@
     categoryList.innerHTML = categories.length ? categories.map(function (category) {
       var selected = categoryCurrent && Number(categoryCurrent.id) === Number(category.id);
       var assigned = nodes.filter(function (node) { return Number(node.research_category_id) === Number(category.id); }).length;
-      return '<button type="button" class="research-category-row' + (selected ? ' is-selected' : '') + '" data-research-category="' + Number(category.id) + '"><span><strong>' + esc(category.name) + '</strong><small>' + esc(category.description || 'No branch briefing yet.') + '</small></span><span>' + assigned + ' protocol' + (assigned === 1 ? '' : 's') + '</span></button>';
+      var gate = category.requires_all_other_unlocked ? '<small>Final gate</small>' : '';
+      return '<button type="button" class="research-category-row' + (selected ? ' is-selected' : '') + '" data-research-category="' + Number(category.id) + '"><span><strong>' + esc(category.name) + '</strong><small>' + esc(category.description || 'No branch briefing yet.') + '</small></span><span>' + gate + assigned + ' protocol' + (assigned === 1 ? '' : 's') + '</span></button>';
     }).join('') : '<p class="admin-list-empty">No research categories yet. Add one to begin organising protocol branches.</p>';
   }
   function showCategoryEditor(category) {
@@ -217,6 +222,8 @@
     document.getElementById('research-category-slug').dataset.touched = categoryCurrent ? '1' : '';
     document.getElementById('research-category-description').value = categoryCurrent ? categoryCurrent.description || '' : '';
     document.getElementById('research-category-sort-order').value = categoryCurrent ? categoryCurrent.sort_order : categories.length * 10;
+    document.getElementById('research-category-final-gate').checked = categoryCurrent ? !!categoryCurrent.requires_all_other_unlocked : false;
+    document.getElementById('research-category-final-gate').disabled = !can('research.manage');
     document.getElementById('research-category-save-btn').disabled = !can('research.manage');
     document.getElementById('research-category-delete-btn').hidden = !categoryCurrent || !can('research.manage');
     setCategoryError(''); setCategoryNotice(''); renderCategories();
@@ -233,7 +240,8 @@
       name: document.getElementById('research-category-name').value,
       slug: document.getElementById('research-category-slug').value,
       description: document.getElementById('research-category-description').value,
-      sort_order: document.getElementById('research-category-sort-order').value
+      sort_order: document.getElementById('research-category-sort-order').value,
+      requires_all_other_unlocked: document.getElementById('research-category-final-gate').checked
     };
   }
   function saveCategory() {

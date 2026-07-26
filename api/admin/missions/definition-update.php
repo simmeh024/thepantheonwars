@@ -17,6 +17,7 @@ $campaignReady = pw_mission_campaign_ready($db);
 $statsReady = pw_mission_stats_ready($db);
 $creditsReady = pw_mission_credits_ready($db);
 $watermarkReady = pw_mission_watermark_ready($db);
+$researchLocksReady = pw_mission_research_locks_ready($db);
 // Same one-array rule as definition-create.php: the SET clause and its values
 // come from a single source so they cannot drift apart.
 $columns = [
@@ -32,6 +33,7 @@ if ($campaignReady) $columns['is_campaign_final'] = $data['is_campaign_final'];
 if ($statsReady) { $columns['base_success_percent'] = $data['base_success_percent']; $columns['loot_rolls'] = $data['loot_rolls']; }
 if ($creditsReady) $columns['credit_reward'] = $data['credit_reward'];
 if ($watermarkReady) { $columns['watermark_url'] = $data['watermark_url']; $columns['watermark_opacity'] = $data['watermark_opacity']; }
+if ($researchLocksReady) $columns['requires_research_unlock'] = $data['requires_research_unlock'];
 $assignments = array_map(static function ($column) { return $column . ' = ?'; }, array_keys($columns));
 $stmt = $db->prepare('UPDATE game_mission_definitions SET ' . implode(', ', $assignments) . ' WHERE id = ?');
 $values = array_values($columns);

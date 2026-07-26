@@ -13,8 +13,9 @@ try {
     $statsReady = pw_mission_stats_ready($db);
     $crewFavoritesReady = pw_mission_crew_favorites_ready($db);
     $researchReady = pw_research_ready($db);
+    $researchLocksReady = pw_mission_research_locks_ready($db);
     $researchEffects = $researchReady ? pw_research_player_effects($db, $userId) : pw_research_default_effects();
-    $researchSecrets = $researchReady ? pw_research_secret_missions($db, $userId) : ['locked' => [], 'unlocked' => []];
+    $researchSecrets = ($researchReady || $researchLocksReady) ? pw_research_secret_missions($db, $userId) : ['locked' => [], 'unlocked' => []];
     $crewStmt = $db->prepare(
         'SELECT pc.id, pc.level, pc.xp, pc.status, pc.created_at,'
         . ($statsReady ? ' pc.strength, pc.cunning, pc.science, pc.charisma,' : '') . '

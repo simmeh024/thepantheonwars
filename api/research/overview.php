@@ -34,12 +34,39 @@ try {
     );
     $nodesStmt->execute([$userId]);
     $nodes = $nodesStmt->fetchAll();
-    $categories = $db->query('SELECT id, name, slug, description, sort_order FROM game_research_categories ORDER BY sort_order ASC, id ASC')->fetchAll();
+    $categories = $db->query('SELECT id, name, slug, description, sort_order, requires_all_other_unlocked FROM game_research_categories ORDER BY sort_order ASC, id ASC')->fetchAll();
     foreach ($categories as &$category) {
         $category['id'] = (int)$category['id'];
         $category['sort_order'] = (int)$category['sort_order'];
+        $category['requires_all_other_unlocked'] = (bool)$category['requires_all_other_unlocked'];
     }
     unset($category);
+
+    $unlocked = array_flip(pw_research_player_unlocked_ids($db, $userId));
+    $finalCategoryIds = [];
+    foreach ($categories as $category) {
+        if (!empty($category['requires_all_other_unlocked'])) $finalCategoryIds[(int)$category['id']] = true;
+    }
+    /* The Final Neoh branch is intentionally evaluated against every enabled
+     * non-final node, irrespective of canvas position or category filter. A
+     * disabled protocol is retired from new progress and therefore cannot
+     * permanently prevent the final branch from being revealed. */
+    $normalEnabledNodes = array_values(array_filter($nodes, static function ($node) use ($finalCategoryIds) {
+        $categoryId = $node['research_category_id'] !== null ? (int)$node['research_category_id'] : 0;
+        return !empty($node['is_enabled']) && !isset($finalCategoryIds[$categoryId]);
+    }));
+    $allOtherProtocolsUnlocked = !empty($normalEnabledNodes) && !array_filter($normalEnabledNodes, static function ($node) use ($unlocked) {
+        return !isset($unlocked[(int)$node['id']]);
+    });
+    if ($finalCategoryIds && !$allOtherProtocolsUnlocked) {
+        $nodes = array_values(array_filter($nodes, static function ($node) use ($finalCategoryIds, $unlocked) {
+            $categoryId = $node['research_category_id'] !== null ? (int)$node['research_category_id'] : 0;
+            return !isset($finalCategoryIds[$categoryId]) || isset($unlocked[(int)$node['id']]);
+        }));
+        $categories = array_values(array_filter($categories, static function ($category) {
+            return empty($category['requires_all_other_unlocked']);
+        }));
+    }
     $nodeIds = array_map(static function ($row) { return (int)$row['id']; }, $nodes);
 
     $prerequisites = [];
@@ -57,7 +84,6 @@ try {
         }
     }
 
-    $unlocked = array_flip(pw_research_player_unlocked_ids($db, $userId));
     $salvageIds = array_values(array_unique(array_filter(array_map(static function ($row) {
         return $row['salvage_loot_definition_id'] !== null ? (int)$row['salvage_loot_definition_id'] : 0;
     }, $nodes))));
@@ -117,6 +143,9 @@ try {
             'canvas_y' => max(0, min(PW_RESEARCH_BOARD_HEIGHT - 126, (int)$node['canvas_y'])),
             'is_enabled' => (bool)$node['is_enabled'],
             'is_unlocked' => $isUnlocked,
+            'rank_met' => $rankMet,
+            'prerequisites_met' => !$missing,
+            'funds_met' => $creditsMet && $salvageMet,
             'can_unlock' => $canUnlock,
             'unlocked_at' => $node['unlocked_at'],
         ];

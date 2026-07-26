@@ -63,6 +63,23 @@ function pw_missions_require_successions_ready(PDO $db): void {
 }
 
 /**
+ * Research locks are an additive Mission Management migration. Keep the probe
+ * separate so older installations retain the original Secret mission access
+ * behaviour while the new explicit checkbox is unavailable.
+ */
+function pw_mission_research_locks_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_missions_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT requires_research_unlock FROM `game_mission_definitions` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+/**
  * Campaign Progress is a further additive migration on top of Mission
  * Successions. A missing column is a hard SQL error rather than NULL, so every
  * read path probes for it and falls back to "no campaign configured" instead of

@@ -19,16 +19,20 @@ try {
     }
     $data = pw_admin_research_category_input($input);
     if ($id === null) {
-        $insert = $db->prepare('INSERT INTO game_research_categories (name, slug, description, sort_order) VALUES (?, ?, ?, ?)');
+        $insert = $db->prepare('INSERT INTO game_research_categories (name, slug, description, sort_order, requires_all_other_unlocked) VALUES (?, ?, ?, ?, ?)');
         $insert->execute(array_values($data));
         $id = (int)$db->lastInsertId();
         $action = 'research_category_created';
         $verb = 'Created';
     } else {
-        $update = $db->prepare('UPDATE game_research_categories SET name = ?, slug = ?, description = ?, sort_order = ? WHERE id = ?');
+        $update = $db->prepare('UPDATE game_research_categories SET name = ?, slug = ?, description = ?, sort_order = ?, requires_all_other_unlocked = ? WHERE id = ?');
         $update->execute(array_merge(array_values($data), [$id]));
         $action = 'research_category_updated';
         $verb = 'Updated';
+    }
+    if ($data['requires_all_other_unlocked']) {
+        $clearOtherFinals = $db->prepare('UPDATE game_research_categories SET requires_all_other_unlocked = 0 WHERE id != ? AND requires_all_other_unlocked = 1');
+        $clearOtherFinals->execute([$id]);
     }
     $db->commit();
     pw_log_admin_activity($action, $verb . ' research category "' . $data['name'] . '".', $admin);
