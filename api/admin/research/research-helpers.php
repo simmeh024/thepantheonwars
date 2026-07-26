@@ -27,6 +27,8 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
     if (!preg_match('/\A[a-z0-9][a-z0-9-]{0,119}\z/', $slug)) pw_error('Research slug may use lowercase letters, numbers, and hyphens only.');
     $description = trim((string)($input['description'] ?? ''));
     if ($description === '' || mb_strlen($description) > 2000) pw_error('Research description must be between 1 and 2,000 characters.');
+    $transmission = trim((string)($input['activation_transmission'] ?? ''));
+    if (mb_strlen($transmission) > 2000) pw_error('Activation transmission may not exceed 2,000 characters.');
     $categoryId = null;
     $categoryRaw = trim((string)($input['research_category_id'] ?? ''));
     if ($categoryRaw !== '') {
@@ -123,7 +125,7 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
     $imageUrl = trim((string)($input['image_url'] ?? ''));
     if ($imageUrl !== '' && pw_research_image_url($imageUrl) === '') pw_error('Choose a research image from the uploaded image library.');
     return [
-        'name' => $name, 'slug' => $slug, 'description' => $description, 'image_url' => pw_research_image_url($imageUrl), 'research_category_id' => $categoryId,
+        'name' => $name, 'slug' => $slug, 'description' => $description, 'activation_transmission' => $transmission, 'image_url' => pw_research_image_url($imageUrl), 'research_category_id' => $categoryId,
         'effect_type' => $effectType, 'effect_value' => $effectValue, 'target_mission_definition_id' => $targetMissionId, 'target_loot_table_id' => $targetLootTableId,
         'required_reputation_level' => $rank, 'credit_cost' => $creditCost,
         'salvage_loot_definition_id' => $salvageId, 'salvage_quantity' => $salvageQuantity,

@@ -83,6 +83,24 @@ function pw_research_loot_table_locks_ready(PDO $db): bool {
     }
 }
 
+/** Queue selections and authored activation transmissions were added after the
+ * first Research Facility release. Keep their probe independent so existing
+ * players can still use the lattice while this optional migration is pending. */
+function pw_research_queue_transmissions_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_research_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT activation_transmission FROM `game_research_nodes` LIMIT 1');
+        foreach (['game_player_research_queue', 'game_player_research_transmissions'] as $table) {
+            $db->query('SELECT 1 FROM `' . $table . '` LIMIT 1');
+        }
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
 /** Active bonuses are account-owned and therefore read only from the server.
  * Each aggregate has a conservative ceiling so a large future tree can deepen
  * a build without turning a mission instant or a market offer free. */

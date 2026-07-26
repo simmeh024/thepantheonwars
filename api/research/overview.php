@@ -16,6 +16,7 @@ try {
      * This makes a retired protocol explainable without offering it to a new
      * account or silently removing an earned benefit. */
     $lootTableLocksReady = pw_research_loot_table_locks_ready($db);
+    $queueTransmissionsReady = pw_research_queue_transmissions_ready($db);
     $nodesStmt = $db->prepare(
         'SELECT n.id, n.name, n.slug, n.description, n.image_url, n.research_category_id,
                 category.name AS category_name, category.slug AS category_slug, category.description AS category_description,
@@ -101,6 +102,29 @@ try {
     }
 
     $credits = pw_missions_credit_balance($db, $userId);
+    $queuedNodeId = null;
+    $transmissions = [];
+    if ($queueTransmissionsReady) {
+        $queue = $db->prepare('SELECT research_node_id FROM game_player_research_queue WHERE user_id = ?');
+        $queue->execute([$userId]);
+        $queuedNodeId = $queue->fetchColumn();
+        $queuedNodeId = $queuedNodeId === false ? null : (int)$queuedNodeId;
+        $log = $db->prepare(
+            'SELECT protocol_name, transmission_text, created_at
+             FROM game_player_research_transmissions
+             WHERE user_id = ?
+             ORDER BY created_at DESC, id DESC
+             LIMIT 8'
+        );
+        $log->execute([$userId]);
+        foreach ($log->fetchAll() as $entry) {
+            $transmissions[] = [
+                'protocol_name' => (string)$entry['protocol_name'],
+                'text' => (string)$entry['transmission_text'],
+                'created_at' => (string)$entry['created_at'],
+            ];
+        }
+    }
     $publicNodes = [];
     foreach ($nodes as $node) {
         $id = (int)$node['id'];
@@ -151,8 +175,22 @@ try {
             'prerequisites_met' => !$missing,
             'funds_met' => $creditsMet && $salvageMet,
             'can_unlock' => $canUnlock,
+            'is_queued' => $queuedNodeId !== null && $queuedNodeId === $id,
             'unlocked_at' => $node['unlocked_at'],
         ];
+    }
+
+    $queueNode = null;
+    if ($queuedNodeId !== null) {
+        foreach ($publicNodes as $publicNode) {
+            if ((int)$publicNode['id'] === $queuedNodeId && !$publicNode['is_unlocked']) {
+                $queueNode = $publicNode;
+                break;
+            }
+        }
+        if ($queueNode === null) {
+            $db->prepare('DELETE FROM game_player_research_queue WHERE user_id = ?')->execute([$userId]);
+        }
     }
 
     $effects = pw_research_player_effects($db, $userId);
@@ -161,6 +199,9 @@ try {
         'credits' => $credits,
         'reputation' => array_merge($reputation, ['level_number' => $rank]),
         'effects' => $effects,
+        'queue_transmissions_ready' => $queueTransmissionsReady,
+        'queue' => $queueNode,
+        'transmissions' => $transmissions,
         'categories' => $categories,
         'nodes' => $publicNodes,
         'board' => ['width' => PW_RESEARCH_BOARD_WIDTH, 'height' => PW_RESEARCH_BOARD_HEIGHT],

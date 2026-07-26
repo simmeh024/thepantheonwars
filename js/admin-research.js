@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  var nodes = [], categories = [], salvage = [], missions = [], rareLootTables = [], effectTypes = {}, boardSize = { width: 1560, height: 900 }, missionLocksReady = false, lootTableLocksReady = false;
+  var nodes = [], categories = [], salvage = [], missions = [], rareLootTables = [], effectTypes = {}, boardSize = { width: 1560, height: 900 }, missionLocksReady = false, lootTableLocksReady = false, queueTransmissionsReady = false;
   var current = null, categoryCurrent = null, dragging = null, panning = null, linkMode = false, linkSource = null, draftPosition = null, suppressClick = false;
   var canvas = document.getElementById('research-admin-canvas'), viewport = document.getElementById('research-admin-canvas-viewport');
   var count = document.getElementById('research-admin-count'), editorFields = document.getElementById('research-editor-fields');
@@ -146,6 +146,12 @@
     document.getElementById('research-node-slug').value = current ? current.slug || '' : '';
     document.getElementById('research-node-slug').dataset.touched = current && current.id ? '1' : '';
     document.getElementById('research-node-description').value = current ? current.description || '' : '';
+    var transmission = document.getElementById('research-node-activation-transmission');
+    transmission.value = current ? current.activation_transmission || '' : '';
+    transmission.disabled = !queueTransmissionsReady || !can('research.manage');
+    document.getElementById('research-node-activation-transmission-hint').textContent = queueTransmissionsReady
+      ? 'Optional. This is saved to the player command log when the protocol is activated.'
+      : 'Run sql/migration_research_queue_transmissions.sql before authoring activation transmissions.';
     imageUrl.value = current ? current.image_url || '' : ''; previewImage();
     fillSelect(categorySelect, categories, current ? current.research_category_id : null, 'Uncategorised', function (category) { return category.name; });
     effectType.innerHTML = Object.keys(effectTypes).map(function (key) { return '<option value="' + esc(key) + '">' + esc(effectTypes[key].label) + '</option>'; }).join('');
@@ -184,7 +190,7 @@
     return {
       id: current && current.id ? current.id : undefined,
       name: document.getElementById('research-node-name').value, slug: document.getElementById('research-node-slug').value,
-      description: document.getElementById('research-node-description').value, image_url: imageUrl.value,
+      description: document.getElementById('research-node-description').value, activation_transmission: document.getElementById('research-node-activation-transmission').value, image_url: imageUrl.value,
       research_category_id: categorySelect.value,
       effect_type: effectType.value, effect_value: effectValue.value, target_mission_definition_id: targetMission.value, target_loot_table_id: targetLootTable.value,
       prerequisite_ids: selectedIds(prerequisites), required_reputation_level: document.getElementById('research-node-rank').value,
@@ -293,7 +299,7 @@
   }
   function load() {
     return request('/api/admin/research/list.php?refresh=' + Date.now()).then(function (data) {
-      nodes = data.nodes || []; categories = data.categories || []; salvage = data.salvage || []; missions = data.missions || []; rareLootTables = data.rare_loot_tables || []; missionLocksReady = !!data.mission_locks_ready; lootTableLocksReady = !!data.loot_table_locks_ready; effectTypes = data.effect_types || {}; boardSize = data.board || boardSize;
+      nodes = data.nodes || []; categories = data.categories || []; salvage = data.salvage || []; missions = data.missions || []; rareLootTables = data.rare_loot_tables || []; missionLocksReady = !!data.mission_locks_ready; lootTableLocksReady = !!data.loot_table_locks_ready; queueTransmissionsReady = !!data.queue_transmissions_ready; effectTypes = data.effect_types || {}; boardSize = data.board || boardSize;
       if (categoryCurrent && categoryCurrent.id) categoryCurrent = categoryById(categoryCurrent.id);
       if (!editorFields.hidden) fillSelect(categorySelect, categories, categorySelect.value, 'Uncategorised', function (category) { return category.name; });
       renderCanvas(); renderCategories();

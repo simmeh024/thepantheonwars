@@ -3,7 +3,7 @@
 (function () {
   'use strict';
 
-  var state = { data: null, busyId: null, categoryFilter: '', zoom: 1 };
+  var state = { data: null, busyId: null, queueBusyId: null, justActivatedId: null, categoryFilter: '', zoom: 1 };
   var gate = document.getElementById('research-gate');
   var content = document.getElementById('research-content');
   var board = document.getElementById('research-tree-board');
@@ -19,6 +19,15 @@
   var zoomIn = document.getElementById('research-zoom-in');
   var zoomLevel = document.getElementById('research-zoom-level');
   var fullscreenButton = document.getElementById('research-fullscreen');
+  var queueCard = document.getElementById('research-queue-card');
+  var queueContent = document.getElementById('research-queue-content');
+  var transmissionsCard = document.getElementById('research-transmissions-card');
+  var transmissionsList = document.getElementById('research-transmissions-list');
+  var transmissionModal = document.getElementById('research-transmission-modal');
+  var transmissionTitle = document.getElementById('research-transmission-title');
+  var transmissionCopy = document.getElementById('research-transmission-copy');
+  var transmissionClose = document.getElementById('research-transmission-close');
+  var transmissionAcknowledge = document.getElementById('research-transmission-acknowledge');
   var minZoom = 0.6, maxZoom = 1.6, zoomStep = 0.1;
 
   function esc(value) { var node = document.createElement('div'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
@@ -77,7 +86,11 @@
     var canUnlock = node.can_unlock && state.busyId !== Number(node.id);
     var actionLabel = state.busyId === Number(node.id) ? 'Authorising...' : (node.is_unlocked ? 'Protocol online' : 'Unlock now');
     var reason = node.can_unlock ? 'Ready to activate this protocol.' : nodeStatus(node, stateName) + '.';
-    return '<div class="research-node-hover"><span class="research-node-hover-effect">' + esc(effectText(node)) + '</span><p>' + esc(node.description) + '</p><span class="research-node-costs">' + nodeCosts(node) + '</span><button type="button" class="research-node-unlock" data-research-unlock="' + Number(node.id) + '"' + (canUnlock ? '' : ' disabled') + '>' + esc(actionLabel) + '</button><span class="research-node-hover-reason' + (canUnlock ? ' is-ready' : '') + '">' + esc(reason) + '</span></div>';
+    var queueAvailable = state.data && state.data.queue_transmissions_ready && !node.is_unlocked;
+    var queueBusy = state.queueBusyId === Number(node.id);
+    var queueLabel = queueBusy ? 'Queueing...' : (node.is_queued ? 'Queued protocol' : 'Queue next');
+    var queueAction = queueAvailable ? '<button type="button" class="research-node-queue" data-research-queue="' + Number(node.id) + '"' + (queueBusy || node.is_queued ? ' disabled' : '') + '>' + esc(queueLabel) + '</button>' : '';
+    return '<div class="research-node-hover"><span class="research-node-hover-effect">' + esc(effectText(node)) + '</span><p>' + esc(node.description) + '</p><span class="research-node-costs">' + nodeCosts(node) + '</span><button type="button" class="research-node-unlock" data-research-unlock="' + Number(node.id) + '"' + (canUnlock ? '' : ' disabled') + '>' + esc(actionLabel) + '</button>' + queueAction + '<span class="research-node-hover-reason' + (canUnlock ? ' is-ready' : '') + '">' + esc(reason) + '</span></div>';
   }
   function filteredNodes(data) {
     var nodes = Array.isArray(data && data.nodes) ? data.nodes : [];
@@ -115,6 +128,62 @@
     ].filter(function (row) { return Number(effects[row[0]]) > 0; });
     document.getElementById('research-effects-title').textContent = rows.length ? rows.length + ' online' : 'No protocols online';
     effectsList.innerHTML = rows.length ? '<ul>' + rows.map(function (row) { return '<li><b>+' + percent(effects[row[0]]) + '%</b>' + esc(row[1]) + '</li>'; }).join('') + '</ul>' : '<p>Activate your first protocol to establish a permanent expedition advantage.</p>';
+  }
+
+  function queueRequirements(node) {
+    var missing = [];
+    if (!node.rank_met) missing.push('Reach Rank ' + number(node.required_reputation_level));
+    var creditGap = Math.max(0, Number(node.credit_cost) - Number(state.data.credits));
+    if (creditGap) missing.push(number(creditGap) + ' cr needed');
+    if (node.salvage) {
+      var salvageGap = Math.max(0, Number(node.salvage.quantity) - Number(node.salvage.held));
+      if (salvageGap) missing.push(number(salvageGap) + ' ' + node.salvage.name + ' needed');
+    }
+    if (!node.prerequisites_met) {
+      var prerequisites = node.missing_prerequisites || [];
+      missing.push(prerequisites.length === 1 ? 'Unlock ' + prerequisites[0].name : 'Unlock ' + prerequisites.length + ' prerequisite protocols');
+    }
+    return missing;
+  }
+  function renderQueue(data) {
+    if (!queueCard || !queueContent) return;
+    queueCard.hidden = !data.queue_transmissions_ready;
+    if (!data.queue_transmissions_ready) return;
+    var node = data.queue;
+    if (!node) {
+      queueContent.innerHTML = '<p>No protocol queued. Hover any offline protocol and choose <b>Queue next</b> to track its remaining requirements.</p>';
+      return;
+    }
+    var remaining = queueRequirements(node);
+    var stateCopy = remaining.length ? '<ul>' + remaining.map(function (item) { return '<li>' + esc(item) + '</li>'; }).join('') + '</ul>' : '<p class="research-queue-ready">All requirements met. Activate this protocol from the lattice.</p>';
+    queueContent.innerHTML = '<strong>' + esc(node.name) + '</strong><span>' + esc(effectText(node)) + '</span>' + stateCopy + '<button type="button" class="research-queue-clear" data-research-queue-clear>Clear queue</button>';
+  }
+  function renderTransmissions(data) {
+    if (!transmissionsCard || !transmissionsList) return;
+    transmissionsCard.hidden = !data.queue_transmissions_ready;
+    if (!data.queue_transmissions_ready) return;
+    var entries = Array.isArray(data.transmissions) ? data.transmissions : [];
+    transmissionsList.innerHTML = entries.length ? '<ul>' + entries.map(function (entry) {
+      return '<li><strong>' + esc(entry.protocol_name) + '</strong><p>' + esc(entry.text) + '</p><small>Protocol activation recorded</small></li>';
+    }).join('') + '</ul>' : '<p>No activation transmissions have been recorded for this command.</p>';
+  }
+  function showTransmission(transmission) {
+    if (!transmissionModal || !transmission) return;
+    transmissionTitle.textContent = transmission.protocol_name || 'Protocol activated';
+    transmissionCopy.textContent = transmission.text || '';
+    transmissionModal.hidden = false;
+    window.setTimeout(function () { if (transmissionAcknowledge) transmissionAcknowledge.focus(); }, 0);
+  }
+  function hideTransmission() {
+    if (transmissionModal) transmissionModal.hidden = true;
+  }
+  function markActivation(nodeId) {
+    state.justActivatedId = Number(nodeId);
+    window.setTimeout(function () {
+      if (state.justActivatedId !== Number(nodeId)) return;
+      state.justActivatedId = null;
+      if (state.data) renderTree(state.data);
+    }, 1900);
   }
 
   function clampZoom(value) { return Math.max(minZoom, Math.min(maxZoom, Math.round(value * 10) / 10)); }
@@ -158,7 +227,8 @@
       return (node.prerequisites || []).map(function (prerequisite) {
         var from = byId[Number(prerequisite.id)]; if (!from) return '';
         var startX = Number(from.canvas_x) + 196, startY = Number(from.canvas_y) + 63, endX = Number(node.canvas_x), endY = Number(node.canvas_y) + 63;
-        var gap = Math.max(48, (endX - startX) * .52), stateClass = ' is-' + nodeState(node);
+        var activatedLink = Number(node.id) === Number(state.justActivatedId) || Number(from.id) === Number(state.justActivatedId);
+        var gap = Math.max(48, (endX - startX) * .52), stateClass = ' is-' + nodeState(node) + (activatedLink ? ' is-just-activated' : '');
         return '<path class="' + stateClass.trim() + '" d="M ' + startX + ' ' + startY + ' C ' + (startX + gap) + ' ' + startY + ', ' + (endX - gap) + ' ' + endY + ', ' + endX + ' ' + endY + '"></path>';
       }).join('');
     }).join('');
@@ -167,7 +237,7 @@
       var nodeLabel = (node.category ? node.category.name + ' / ' : '') + node.effect_label;
       var specialEffect = node.effect_type === 'secret_mission' || node.effect_type === 'rare_loot_table';
       var effectValue = specialEffect ? 'CLASSIFIED' : (node.effect_type === 'crew_capacity' ? '+' + Math.floor(Number(node.effect_value) || 0) + ' slots' : '+' + percent(node.effect_value) + '%');
-      return '<article class="research-node is-' + stateName + '" style="left:' + Number(node.canvas_x) + 'px;top:' + Number(node.canvas_y) + 'px"><button type="button" class="research-node-select" aria-label="' + esc(node.name + ': ' + statusText) + '"><span class="research-node-top"><span class="research-node-art">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(nodeLabel) + '</small><strong>' + esc(node.name) + '</strong></span></span><p>' + esc(node.effect_short) + '</p><span class="research-node-foot"><span class="research-node-state is-' + stateName + '">' + esc(statusText) + '</span><b>' + esc(effectValue) + '</b></span></button>' + nodeHoverPanel(node, stateName) + '</article>';
+      return '<article class="research-node is-' + stateName + (node.is_queued ? ' is-queued' : '') + (Number(node.id) === Number(state.justActivatedId) ? ' is-just-activated' : '') + '" style="left:' + Number(node.canvas_x) + 'px;top:' + Number(node.canvas_y) + 'px"><button type="button" class="research-node-select" aria-label="' + esc(node.name + ': ' + statusText) + '"><span class="research-node-top"><span class="research-node-art">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(nodeLabel) + '</small><strong>' + esc(node.name) + '</strong></span></span><p>' + esc(node.effect_short) + '</p><span class="research-node-foot"><span class="research-node-state is-' + stateName + '">' + esc(statusText) + '</span><b>' + esc(effectValue) + '</b></span></button>' + nodeHoverPanel(node, stateName) + '</article>';
     }).join('');
     board.innerHTML = '<svg class="research-tree-lines" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" aria-hidden="true">' + lines + '</svg>' + nodeMarkup;
     syncMapScale();
@@ -176,7 +246,7 @@
   function render(data) {
     state.data = data;
     renderCategoryFilter(data);
-    renderCommand(data); renderEffects(data.effects || {}); renderTree(data);
+    renderCommand(data); renderEffects(data.effects || {}); renderQueue(data); renderTransmissions(data); renderTree(data);
   }
 
   function load() {
@@ -188,7 +258,24 @@
   function unlock(nodeId) {
     if (state.busyId || !nodeId) return;
     state.busyId = Number(nodeId); renderTree(state.data);
-    post('/api/research/unlock.php', { research_node_id: nodeId, csrf: window.PW_AUTH && window.PW_AUTH.csrf ? window.PW_AUTH.csrf : '' }).then(function (result) { setStatus(result.message || 'Research protocol activated.'); return load(); }).catch(function (error) { setStatus(error.message || 'Could not unlock that protocol.', true); }).then(function () { state.busyId = null; if (state.data) renderTree(state.data); });
+    post('/api/research/unlock.php', { research_node_id: nodeId, csrf: window.PW_AUTH && window.PW_AUTH.csrf ? window.PW_AUTH.csrf : '' }).then(function (result) {
+      markActivation(nodeId);
+      if (result.transmission) showTransmission(result.transmission);
+      setStatus(result.message || 'Research protocol activated.');
+      return load();
+    }).catch(function (error) { setStatus(error.message || 'Could not unlock that protocol.', true); }).then(function () { state.busyId = null; if (state.data) renderTree(state.data); });
+  }
+  function queue(nodeId) {
+    if (state.queueBusyId !== null) return;
+    state.queueBusyId = nodeId === null ? 'clear' : Number(nodeId);
+    if (state.data) renderTree(state.data);
+    post('/api/research/queue.php', { research_node_id: nodeId || '', csrf: window.PW_AUTH && window.PW_AUTH.csrf ? window.PW_AUTH.csrf : '' }).then(function (result) {
+      setStatus(result.message || 'Research queue updated.');
+      return load();
+    }).catch(function (error) { setStatus(error.message || 'Could not update the research queue.', true); }).then(function () {
+      state.queueBusyId = null;
+      if (state.data) renderTree(state.data);
+    });
   }
 
   var mousePan = null;
@@ -219,8 +306,11 @@
   board.addEventListener('click', function (event) {
     var unlockButton = event.target.closest('[data-research-unlock]');
     if (unlockButton && board.contains(unlockButton)) { unlock(Number(unlockButton.getAttribute('data-research-unlock'))); return; }
+    var queueButton = event.target.closest('[data-research-queue]');
+    if (queueButton && board.contains(queueButton)) { queue(Number(queueButton.getAttribute('data-research-queue'))); }
   });
   categoryFilter.addEventListener('change', function () { state.categoryFilter = categoryFilter.value; renderTree(state.data); });
+  if (queueContent) queueContent.addEventListener('click', function (event) { if (event.target.closest('[data-research-queue-clear]')) queue(null); });
   zoomOut.addEventListener('click', function () { setZoom(state.zoom - zoomStep); });
   zoomIn.addEventListener('click', function () { setZoom(state.zoom + zoomStep); });
   fullscreenButton.addEventListener('click', function () {
@@ -230,6 +320,10 @@
   });
   document.addEventListener('fullscreenchange', syncFullscreenButton);
   document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
+  if (transmissionClose) transmissionClose.addEventListener('click', hideTransmission);
+  if (transmissionAcknowledge) transmissionAcknowledge.addEventListener('click', hideTransmission);
+  if (transmissionModal) transmissionModal.addEventListener('click', function (event) { if (event.target === transmissionModal) hideTransmission(); });
+  document.addEventListener('keydown', function (event) { if (event.key === 'Escape' && transmissionModal && !transmissionModal.hidden) hideTransmission(); });
   document.addEventListener('pw-auth-ready', load);
   load();
 }());

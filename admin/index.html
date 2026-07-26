@@ -2175,7 +2175,7 @@
     <section class="admin-section" id="section-research-management" hidden>
       <div class="admin-section-head">
         <h1>Research Management</h1>
-        <p>Build the permanent protocol lattice used by the Research Facility. Place nodes on the canvas, connect their prerequisites, attach a field effect, and set the reputation, credit and salvage requirements that authorise it.</p>
+        <p>Build the permanent protocol lattice used by the Research Facility. Place nodes on the canvas, connect their prerequisites, attach a field effect, author activation transmissions, and set the reputation, credit and salvage requirements that authorise it.</p>
       </div>
       <div class="admin-toolbar research-admin-toolbar">
         <div><span class="eyebrow">Protocol architecture</span><p class="admin-field-hint">Drag the open grid to pan. Drag a node to reposition it, or use the canvas controls to add and connect protocols.</p></div>
@@ -2190,6 +2190,7 @@
             <div class="admin-field"><label for="research-node-name">Protocol name</label><input type="text" id="research-node-name" maxlength="120" placeholder="e.g. Relay Compression"></div>
             <div class="admin-field"><label for="research-node-slug">Slug</label><input type="text" id="research-node-slug" maxlength="120" placeholder="relay-compression"><p class="admin-field-hint">Lowercase letters, numbers and hyphens only. This permanent identifier cannot be reused.</p></div>
             <div class="admin-field"><label for="research-node-description">Field briefing</label><textarea id="research-node-description" rows="4" maxlength="2000" placeholder="Describe what this protocol delivers to a command."></textarea></div>
+            <div class="admin-field"><label for="research-node-activation-transmission">Activation transmission</label><textarea id="research-node-activation-transmission" rows="4" maxlength="2000" placeholder="A short Neoh transmission shown when this protocol comes online."></textarea><p class="admin-field-hint" id="research-node-activation-transmission-hint">Optional. This is saved to the player command log when the protocol is activated.</p></div>
             <div class="admin-field"><label for="research-node-category">Research category</label><select id="research-node-category"><option value="">Uncategorised</option></select><p class="admin-field-hint">Categories are managed below. Leave this unassigned when a protocol should remain in the shared lattice.</p></div>
             <div class="admin-field"><label for="research-node-image-url">Protocol image</label><div class="research-image-field"><img id="research-node-image-preview" alt="" hidden><input type="text" id="research-node-image-url" maxlength="255" placeholder="Upload an image to attach it"><input type="file" id="research-node-image-file" accept="image/jpeg,image/png,image/webp" hidden><button type="button" class="btn" id="research-node-image-upload">Upload image</button><button type="button" class="btn" id="research-node-image-clear">Clear</button></div><p class="admin-field-hint">JPG, PNG and WEBP up to 8MB. Uploads are resized and stored in the Research Facility image library.</p></div>
             <div class="admin-field-row"><div class="admin-field"><label for="research-node-effect-type">Field effect</label><select id="research-node-effect-type"><option value="mission_speed">Mission speed</option><option value="xp_gain">Experience gain</option><option value="reputation_gain">Reputation gain</option><option value="credit_gain">Credit gain</option><option value="crew_capacity">Crew capacity</option><option value="luck">Rarity promotion</option><option value="market_discount">Market discount</option><option value="market_refresh">Market refresh</option><option value="secret_mission">Secret mission access</option><option value="rare_loot_table">Rare loot table access</option></select></div><div class="admin-field" id="research-node-effect-value-field"><label for="research-node-effect-value">Effect value (%)</label><input type="number" id="research-node-effect-value" min="0.01" max="50" step="0.01" value="5"></div></div>
@@ -4458,7 +4459,7 @@
 </div>
 
 <script src="../js/members.js?v=42"></script>
-<script src="../js/admin-missions.js?v=10"></script><script src="../js/admin-loot-tables.js?v=3"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=6"></script>
+<script src="../js/admin-missions.js?v=10"></script><script src="../js/admin-loot-tables.js?v=3"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=7"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };

@@ -7,6 +7,7 @@ pw_admin_research_require_ready($db);
 
 try {
     $lootTableLocksReady = pw_research_loot_table_locks_ready($db);
+    $queueTransmissionsReady = pw_research_queue_transmissions_ready($db);
     $nodes = $db->query(
         'SELECT n.*, category.name AS category_name, category.slug AS category_slug,
                 target.name AS target_mission_name, salvage.name AS salvage_name'
@@ -68,7 +69,7 @@ try {
         }
         unset($table);
     }
-    pw_json(['ok' => true, 'nodes' => $nodes, 'categories' => $categories, 'salvage' => $salvage, 'missions' => $missions, 'rare_loot_tables' => $rareLootTables, 'mission_locks_ready' => $missionLocksReady, 'loot_table_locks_ready' => $lootTableLocksReady, 'effect_types' => pw_research_effect_types(), 'board' => ['width' => PW_RESEARCH_BOARD_WIDTH, 'height' => PW_RESEARCH_BOARD_HEIGHT]]);
+    pw_json(['ok' => true, 'nodes' => $nodes, 'categories' => $categories, 'salvage' => $salvage, 'missions' => $missions, 'rare_loot_tables' => $rareLootTables, 'mission_locks_ready' => $missionLocksReady, 'loot_table_locks_ready' => $lootTableLocksReady, 'queue_transmissions_ready' => $queueTransmissionsReady, 'effect_types' => pw_research_effect_types(), 'board' => ['width' => PW_RESEARCH_BOARD_WIDTH, 'height' => PW_RESEARCH_BOARD_HEIGHT]]);
 } catch (Throwable $e) {
     pw_error('Could not load Research Management. Confirm that the research migrations have been run.', 503);
 }

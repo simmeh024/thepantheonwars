@@ -8,7 +8,7 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
-<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/public.css?v=315"><link rel="stylesheet" href="css/research.css?v=6">
+<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/public.css?v=315"><link rel="stylesheet" href="css/research.css?v=7">
 </head>
 <body class="research-body">
 <header class="site-header"><div class="nav-inner"><button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button><a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a>    <nav class="main-nav">
@@ -57,7 +57,9 @@
       <aside class="research-sidebar">
         <a class="research-missions-link" href="missions.html"><span class="eyebrow">Mission control</span><strong><span aria-hidden="true">←</span> Back to Missions</strong><p>Return to your crew roster, mission board and command record.</p><span>Open mission control <b aria-hidden="true">↗</b></span></a>
         <section class="research-command-card" aria-labelledby="research-command-title"><span class="eyebrow">Command clearance</span><h2 id="research-command-title">Synchronising record</h2><div class="research-command-metrics"><span><small>Reputation</small><strong id="research-reputation">0</strong></span><span><small>Credits</small><strong id="research-credits">0</strong></span></div><p id="research-command-copy">Checking your field authority and available resources.</p></section>
+        <section class="research-queue-card" id="research-queue-card" aria-labelledby="research-queue-title" hidden><div><span class="eyebrow">Next protocol</span><h2 id="research-queue-title">Research queue</h2></div><div id="research-queue-content"><p>Synchronising queue…</p></div></section>
         <section class="research-effects-card" aria-labelledby="research-effects-title"><div><span class="eyebrow">Active protocols</span><h2 id="research-effects-title">No data yet</h2></div><div id="research-effects-list"><p>Reading your protocol ledger…</p></div></section>
+        <section class="research-transmissions-card" id="research-transmissions-card" aria-labelledby="research-transmissions-title" hidden><div><span class="eyebrow">Permanent command log</span><h2 id="research-transmissions-title">Neoh transmissions</h2></div><div id="research-transmissions-list"><p>Decoding command log…</p></div></section>
       </aside>
       <div class="research-content-main">
         <header class="research-command"><div><span class="eyebrow">Protocol architecture</span><h2>Neoh development lattice</h2><p id="research-command-status">Every activation is permanent for this command. Hover or focus a protocol to inspect its requirements.</p></div><div class="research-unlocked-readout"><span>Protocols online</span><strong id="research-unlocked-count">0</strong><small id="research-available-count">0 available now</small></div></header>
@@ -67,7 +69,8 @@
     </div></div>
   </div></section>
 </main>
+<div class="research-transmission-modal" id="research-transmission-modal" role="dialog" aria-modal="true" aria-labelledby="research-transmission-title" hidden><div class="research-transmission-dialog"><button type="button" class="research-transmission-close" id="research-transmission-close" aria-label="Close transmission">&times;</button><span class="eyebrow">Neoh // signal received</span><h2 id="research-transmission-title">Protocol activated</h2><p id="research-transmission-copy"></p><button type="button" class="btn btn-solid" id="research-transmission-acknowledge">Acknowledge signal</button></div></div>
 
-<script src="js/main.js?v=20"></script><script src="js/members.js?v=42"></script><script src="js/research.js?v=6"></script>
+<script src="js/main.js?v=20"></script><script src="js/members.js?v=42"></script><script src="js/research.js?v=7"></script>
 </body>
 </html>

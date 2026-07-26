@@ -10,6 +10,7 @@ if ($nodeId === false || $nodeId < 1) pw_error('Choose a valid research protocol
 $db = pw_db();
 pw_research_require_ready($db);
 $userId = (int)$user['id'];
+$transmissionPayload = null;
 
 try {
     $db->beginTransaction();
@@ -92,8 +93,20 @@ try {
 
     $unlock = $db->prepare('INSERT INTO game_player_research (user_id, research_node_id) VALUES (?, ?)');
     $unlock->execute([$userId, $nodeId]);
+    if (pw_research_queue_transmissions_ready($db)) {
+        $db->prepare('DELETE FROM game_player_research_queue WHERE user_id = ? AND research_node_id = ?')->execute([$userId, $nodeId]);
+        $transmission = trim((string)($node['activation_transmission'] ?? ''));
+        if ($transmission !== '') {
+            $logTransmission = $db->prepare(
+                'INSERT INTO game_player_research_transmissions (user_id, research_node_id, protocol_name, transmission_text)
+                 VALUES (?, ?, ?, ?)'
+            );
+            $logTransmission->execute([$userId, $nodeId, (string)$node['name'], $transmission]);
+            $transmissionPayload = ['protocol_name' => (string)$node['name'], 'text' => $transmission];
+        }
+    }
     $db->commit();
-    pw_json(['ok' => true, 'message' => $node['name'] . ' is now active.']);
+    pw_json(['ok' => true, 'message' => $node['name'] . ' is now active.', 'transmission' => $transmissionPayload]);
 } catch (Throwable $e) {
     if ($db->inTransaction()) $db->rollBack();
     pw_error($e instanceof RuntimeException ? $e->getMessage() : 'Could not unlock that research protocol. Please try again.', 409);

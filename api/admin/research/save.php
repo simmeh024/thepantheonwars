@@ -23,6 +23,7 @@ try {
         'name', 'slug', 'description', 'image_url', 'research_category_id', 'effect_type', 'effect_value',
         'target_mission_definition_id',
     ];
+    if (pw_research_queue_transmissions_ready($db)) $nodeFields[] = 'activation_transmission';
     if (pw_research_loot_table_locks_ready($db)) $nodeFields[] = 'target_loot_table_id';
     array_push($nodeFields, 'required_reputation_level', 'credit_cost', 'salvage_loot_definition_id', 'salvage_quantity', 'canvas_x', 'canvas_y', 'sort_order', 'is_enabled');
     $nodeValues = array_map(static function ($field) use ($data) { return $data[$field]; }, $nodeFields);
