@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=317"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=1">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=317"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=2">
 </head>
 <body>
 
@@ -2178,12 +2178,12 @@
         <p>Build the permanent protocol lattice used by the Research Facility. Place nodes on the canvas, connect their prerequisites, attach a field effect, and set the reputation, credit and salvage requirements that authorise it.</p>
       </div>
       <div class="admin-toolbar research-admin-toolbar">
-        <div><span class="eyebrow">Protocol architecture</span><p class="admin-field-hint">Drag an existing node to reposition it. Select a node to edit its dossier; every change is stored server-side.</p></div>
+        <div><span class="eyebrow">Protocol architecture</span><p class="admin-field-hint">Drag the open grid to pan. Drag a node to reposition it, or use the canvas controls to add and connect protocols.</p></div>
         <button type="button" class="btn btn-solid" id="research-node-create-btn" data-requires-permission="research.manage">+ Add Research Unlock</button>
         <span class="admin-count" id="research-admin-count"></span>
       </div>
       <div class="research-admin-layout">
-        <div class="research-admin-canvas-card"><div class="research-admin-canvas-head"><div><span class="eyebrow">Lattice canvas</span><h2>Neoh protocol map</h2></div><span>Drag to arrange · links are prerequisites</span></div><div class="research-admin-canvas-viewport" id="research-admin-canvas-viewport" tabindex="0" aria-label="Scrollable research management canvas"><div class="research-admin-canvas" id="research-admin-canvas"><p class="admin-list-empty">Loading research protocols&hellip;</p></div></div></div>
+        <div class="research-admin-canvas-card"><div class="research-admin-canvas-head"><div><span class="eyebrow">Lattice canvas</span><h2>Neoh protocol map</h2></div><span>Drag the grid to pan · links are prerequisites</span></div><div class="research-admin-canvas-viewport" id="research-admin-canvas-viewport" tabindex="0" aria-label="Research management canvas. Drag the open grid to pan; drag nodes to reposition them."><div class="research-admin-canvas" id="research-admin-canvas"><p class="admin-list-empty">Loading research protocols&hellip;</p></div></div></div>
         <div class="admin-form-card research-admin-editor" id="research-admin-editor">
           <div class="admin-form-card-head"><h2 id="research-editor-title">Select a protocol</h2><p id="research-editor-copy">Choose an existing research node from the canvas, or add a new one to begin its dossier.</p></div>
           <div class="research-editor-fields" id="research-editor-fields" hidden>
@@ -4450,7 +4450,7 @@
 </div>
 
 <script src="../js/members.js?v=41"></script>
-<script src="../js/admin-missions.js?v=8"></script><script src="../js/admin-loot-tables.js?v=2"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=1"></script>
+<script src="../js/admin-missions.js?v=8"></script><script src="../js/admin-loot-tables.js?v=2"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=2"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
