@@ -24,7 +24,12 @@
    * 456px, which scales the 760-wide viewBox to 0.6 and renders its axis
    * labels at about seven pixels. The lists lose nothing by being narrower --
    * they are single-column rows that already ellipsise. */
-  grid-template-columns: minmax(0, 360px) minmax(480px, 1fr) minmax(280px, 340px);
+  /* Controls carry a minimum too. Without one they were the only flexible
+   * track left and absorbed the whole shortfall -- measured at a 1450px window,
+   * the pickers held their full 340 while the controls fell to 241, which is
+   * under the width two loadout slots need to sit side by side. The pickers and
+   * the reference are single-column lists and lose less by being narrow. */
+  grid-template-columns: minmax(300px, 360px) minmax(480px, 1fr) minmax(280px, 340px);
   grid-template-areas: "controls output aside";
   gap: 18px; align-items: start;
 }
