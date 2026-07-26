@@ -2,7 +2,7 @@
   'use strict';
 
   var state = { data: null, serverOffset: 0, launchMission: null, launchProjection: null, launchPenaltyAck: false,
-    loadoutCrewId: null, loadoutSlot: null, refreshQueued: false, feedSlot: null };
+    loadoutCrewId: null, loadoutSlot: null, loadoutAutoRunning: false, refreshQueued: false, feedSlot: null };
   var gate = document.getElementById('missions-gate');
   var content = document.getElementById('missions-content');
   var statusMessage = document.getElementById('missions-status-message');
@@ -31,11 +31,15 @@
   var loadoutModal = document.getElementById('mission-loadout-modal');
   var loadoutTitle = document.getElementById('mission-loadout-title');
   var loadoutCopy = document.getElementById('mission-loadout-copy');
+  var loadoutSummary = document.getElementById('mission-loadout-summary');
+  var loadoutBody = document.getElementById('mission-loadout-body');
   var loadoutSlots = document.getElementById('mission-loadout-slots');
   var loadoutOptions = document.getElementById('mission-loadout-options');
   var loadoutPickerHead = document.getElementById('mission-loadout-picker-head');
   var loadoutDeltaBox = document.getElementById('mission-loadout-delta');
   var loadoutError = document.getElementById('mission-loadout-error');
+  var loadoutBest = document.getElementById('mission-loadout-best');
+  var loadoutAuto = document.getElementById('mission-loadout-auto');
   var inventorySection = document.getElementById('missions-inventory-section');
   var inventoryList = document.getElementById('missions-inventory-list');
   var inventoryCount = document.getElementById('missions-inventory-count');
@@ -1300,21 +1304,6 @@
     });
   }
 
-  function renderLoadoutSlots(crew) {
-    var equipped = crew.gear || {};
-    loadoutSlots.innerHTML = gearSlots().map(function (slot) {
-      var item = equipped[slot.key];
-      var active = slot.key === state.loadoutSlot;
-      var label = item ? gearTooltip(item) : 'Empty — ' + slot.label;
-      return '<button type="button" class="mission-loadout-slot' + (item ? ' is-filled is-' + escapeHtml(item.tier) : '')
-        + (active ? ' is-active' : '') + '" data-slot="' + escapeHtml(slot.key) + '"'
-        + ' title="' + escapeHtml(label) + '" aria-pressed="' + (active ? 'true' : 'false') + '">'
-        + gearIconHtml(slot.key, item ? item.icon_url : '')
-        + '<span class="mission-loadout-slot-name">' + escapeHtml(slot.label) + '</span>'
-        + '<small>' + escapeHtml(item ? item.name : 'Empty') + '</small></button>';
-    }).join('');
-  }
-
   /* What equipping a candidate would do to the four stats, computed from the
    * item being swapped out as well as the one going in -- a straight "+2 SCI"
    * would be a lie whenever the slot already holds something. */
@@ -1329,45 +1318,6 @@
         + STAT_INFO[key].short + ' <s>' + now + '</s> <strong>' + next + '</strong></span>';
     }).filter(Boolean);
     return rows.length ? rows.join('') : '<span class="mission-loadout-delta-cell">No change to this crew member’s stats</span>';
-  }
-
-  function renderLoadoutOptions(crew) {
-    var slotKey = state.loadoutSlot;
-    loadoutPickerHead.textContent = 'Inventory · ' + slotLabel(slotKey).toLowerCase();
-    var candidates = loadoutCandidates(crew, slotKey);
-    var current = crew.gear && crew.gear[slotKey] ? crew.gear[slotKey] : null;
-    var rows = candidates.map(function (entry) {
-      var bonus = gearBonusText(entry.item.bonus);
-      var meta = [entry.item.tier.charAt(0).toUpperCase() + entry.item.tier.slice(1)];
-      if (bonus) meta.push(bonus);
-      if (entry.equipped) meta.push('equipped');
-      else if (entry.item.quantity > 1) meta.push(entry.spare + ' spare of ' + entry.item.quantity);
-      return '<button type="button" class="mission-loadout-option' + (entry.equipped ? ' is-equipped' : '')
-        + (entry.reason && !entry.equipped ? ' is-blocked' : '') + ' is-' + escapeHtml(entry.item.tier) + '"'
-        + ' data-item-id="' + entry.item.id + '"' + (entry.reason && !entry.equipped ? ' disabled' : '')
-        + ' title="' + escapeHtml(gearTooltip(entry.item)) + '">'
-        + '<span class="mission-loadout-option-icon">' + gearIconHtml(slotKey, entry.item.icon_url) + '</span>'
-        + '<span class="mission-loadout-option-copy"><strong>' + escapeHtml(entry.item.name) + '</strong>'
-        + '<small>' + escapeHtml(meta.join(' · ')) + (entry.reason && !entry.equipped ? ' · ' + escapeHtml(entry.reason) : '') + '</small></span></button>';
-    }).join('');
-    loadoutOptions.innerHTML = (current
-      ? '<button type="button" class="mission-loadout-option is-remove" data-item-id="0">'
-        + '<span class="mission-loadout-option-copy"><strong>Remove ' + escapeHtml(current.name) + '</strong>'
-        + '<small>Leave this slot empty. The item stays in your inventory.</small></span></button>'
-      : '')
-      + (rows || '<p class="missions-empty">Nothing in your inventory fits this slot yet.</p>');
-    loadoutDeltaBox.innerHTML = '';
-  }
-
-  function renderLoadout() {
-    var crew = loadoutCrew();
-    if (!crew || !loadoutModal) return;
-    loadoutTitle.textContent = crew.name;
-    var bonus = gearBonusText(crew.gear_bonus);
-    loadoutCopy.textContent = crew.role + ' · Level ' + crew.level
-      + (bonus ? ' · equipment is worth ' + bonus : ' · carrying nothing yet');
-    renderLoadoutSlots(crew);
-    renderLoadoutOptions(crew);
   }
 
   function openLoadout(crewId) {
@@ -1387,28 +1337,207 @@
     state.loadoutCrewId = null;
   }
 
+  /* Enhanced loadout command surface. These helpers keep the crew silhouette,
+   * recommendation logic and loadout-wide actions on the same
+   * server-authoritative equip endpoints as an individual gear change. */
+  function gearPower(item) {
+    if (!item) return 0;
+    var bonus = item.bonus || {};
+    var score = (Number(bonus.strength) || 0) * 0.5
+      + (Number(bonus.cunning) || 0)
+      + (Number(bonus.science) || 0) * 1.5
+      + (Number(bonus.charisma) || 0) * 0.5;
+    var tierValue = { common: 1, uncommon: 2, rare: 3, legendary: 4 }[item.tier] || 0;
+    return score * 100 + tierValue;
+  }
+
+  function bestLoadoutCandidate(crew, slotKey) {
+    return loadoutCandidates(crew, slotKey).filter(function (entry) {
+      return !entry.reason;
+    }).sort(function (a, b) {
+      return gearPower(b.item) - gearPower(a.item) || Number(b.item.id) - Number(a.item.id);
+    })[0] || null;
+  }
+
+  function updateLoadoutConnector() {
+    if (!loadoutBody || !loadoutSlots) return;
+    window.requestAnimationFrame(function () {
+      var active = loadoutSlots.querySelector('.mission-loadout-slot.is-active');
+      var bodyRect = loadoutBody.getBoundingClientRect();
+      var slotRect = active && active.getBoundingClientRect();
+      if (!slotRect || !bodyRect.width) return;
+      loadoutBody.style.setProperty('--loadout-connector-y', (slotRect.top - bodyRect.top + slotRect.height / 2) + 'px');
+    });
+  }
+
+  function renderLoadoutSlots(crew) {
+    var equipped = crew.gear || {};
+    var portrait = safeImage(crew.portrait_url);
+    loadoutSlots.style.setProperty('--loadout-crew-image', portrait ? 'url("' + portrait + '")' : 'none');
+    loadoutSlots.innerHTML = gearSlots().map(function (slot) {
+      var item = equipped[slot.key];
+      var active = slot.key === state.loadoutSlot;
+      var recommended = !item ? bestLoadoutCandidate(crew, slot.key) : null;
+      var label = item ? gearTooltip(item) : 'Empty - ' + slot.label + (recommended ? '. Recommended: ' + recommended.item.name : '. No compatible equipment available.');
+      return '<div class="mission-loadout-slot-card' + (active ? ' is-active' : '') + '">'
+        + '<button type="button" class="mission-loadout-slot' + (item ? ' is-filled is-' + escapeHtml(item.tier) : ' is-empty')
+        + (active ? ' is-active' : '') + '" data-slot="' + escapeHtml(slot.key) + '"'
+        + ' title="' + escapeHtml(label) + '" aria-pressed="' + (active ? 'true' : 'false') + '">'
+        + gearIconHtml(slot.key, item ? item.icon_url : '')
+        + '<span class="mission-loadout-slot-name">' + escapeHtml(slot.label) + '</span>'
+        + '<small>' + escapeHtml(item ? item.name : (recommended ? 'Recommended: ' + recommended.item.name : 'Empty')) + '</small></button>'
+        + (item ? '<button type="button" class="mission-loadout-slot-remove" data-remove-slot="' + escapeHtml(slot.key) + '" aria-label="Unequip ' + escapeHtml(item.name) + '" title="Unequip ' + escapeHtml(item.name) + '">&times;</button>' : '')
+        + '</div>';
+    }).join('');
+    updateLoadoutConnector();
+  }
+
+  function renderLoadoutSummary(crew) {
+    if (!loadoutSummary) return;
+    var equipped = crew.gear || {};
+    var filled = gearSlots().filter(function (slot) { return !!equipped[slot.key]; }).length;
+    var bonus = crew.gear_bonus || {};
+    var bonusText = gearBonusText(bonus);
+    var effects = ['strength', 'cunning', 'science', 'charisma'].map(function (key) {
+      var value = Number(bonus[key]) || 0;
+      return value ? STAT_INFO[key].effect(value) : '';
+    }).filter(Boolean);
+    loadoutSummary.innerHTML = '<span class="mission-loadout-summary-slots"><strong>' + filled + ' / ' + gearSlots().length + '</strong><small>slots fitted</small></span>'
+      + '<span class="mission-loadout-summary-bonus"><strong>' + escapeHtml(bonusText || 'No gear bonus') + '</strong><small>'
+      + escapeHtml(effects.length ? effects.join(' · ') : 'Fit equipment to improve mission outcomes') + '</small></span>';
+  }
+
+  function renderLoadoutOptions(crew) {
+    var slotKey = state.loadoutSlot;
+    loadoutPickerHead.textContent = 'Inventory · ' + slotLabel(slotKey).toLowerCase();
+    var candidates = loadoutCandidates(crew, slotKey);
+    var current = crew.gear && crew.gear[slotKey] ? crew.gear[slotKey] : null;
+    var recommended = bestLoadoutCandidate(crew, slotKey);
+    var rows = candidates.map(function (entry) {
+      var bonus = gearBonusText(entry.item.bonus);
+      var meta = [entry.item.tier.charAt(0).toUpperCase() + entry.item.tier.slice(1)];
+      if (bonus) meta.push(bonus);
+      if (entry.equipped) meta.push('equipped');
+      else if (entry.item.quantity > 1) meta.push(entry.spare + ' spare of ' + entry.item.quantity);
+      var isRecommended = recommended && recommended.item.id === entry.item.id && !entry.equipped;
+      return '<button type="button" class="mission-loadout-option' + (entry.equipped ? ' is-equipped' : '')
+        + (isRecommended ? ' is-recommended' : '')
+        + (entry.reason && !entry.equipped ? ' is-blocked' : '') + ' is-' + escapeHtml(entry.item.tier) + '"'
+        + ' data-item-id="' + entry.item.id + '"' + (entry.reason && !entry.equipped ? ' disabled' : '')
+        + ' title="' + escapeHtml(gearTooltip(entry.item)) + '">'
+        + '<span class="mission-loadout-option-icon">' + gearIconHtml(slotKey, entry.item.icon_url) + '</span>'
+        + '<span class="mission-loadout-option-copy"><strong>' + escapeHtml(entry.item.name)
+        + (isRecommended ? '<em>Best available</em>' : '') + '</strong>'
+        + '<small>' + escapeHtml(meta.join(' · ')) + (entry.reason && !entry.equipped ? ' · ' + escapeHtml(entry.reason) : '') + '</small></span></button>';
+    }).join('');
+    loadoutOptions.innerHTML = (current
+      ? '<button type="button" class="mission-loadout-option is-remove" data-item-id="0">'
+        + '<span class="mission-loadout-option-copy"><strong>Remove ' + escapeHtml(current.name) + '</strong>'
+        + '<small>Leave this slot empty. The item stays in your inventory.</small></span></button>'
+      : '')
+      + (rows || '<p class="missions-empty">Nothing in your inventory fits this slot yet.</p>');
+    loadoutDeltaBox.innerHTML = '';
+  }
+
+  function renderLoadoutActions(crew) {
+    var current = crew.gear && crew.gear[state.loadoutSlot] ? crew.gear[state.loadoutSlot] : null;
+    var best = bestLoadoutCandidate(crew, state.loadoutSlot);
+    var canImprove = best && !best.equipped && gearPower(best.item) > gearPower(current);
+    if (loadoutBest) {
+      loadoutBest.disabled = !canImprove || state.loadoutAutoRunning;
+      loadoutBest.textContent = canImprove ? 'Equip best ' + slotLabel(state.loadoutSlot).toLowerCase() : 'Best ' + slotLabel(state.loadoutSlot).toLowerCase() + ' equipped';
+    }
+    if (loadoutAuto) loadoutAuto.disabled = state.loadoutAutoRunning;
+    if (loadoutModal) loadoutModal.classList.toggle('is-auto-equipping', state.loadoutAutoRunning);
+  }
+
+  function renderLoadout() {
+    var crew = loadoutCrew();
+    if (!crew || !loadoutModal) return;
+    loadoutTitle.textContent = crew.name;
+    var bonus = gearBonusText(crew.gear_bonus);
+    loadoutCopy.textContent = crew.role + ' · Level ' + crew.level
+      + (bonus ? ' · equipment is worth ' + bonus : ' · carrying nothing yet');
+    renderLoadoutSummary(crew);
+    renderLoadoutSlots(crew);
+    renderLoadoutOptions(crew);
+    renderLoadoutActions(crew);
+  }
+
+  function requestLoadoutChange(crew, slot, itemId) {
+    return post(itemId ? '/api/missions/gear-equip.php' : '/api/missions/gear-unequip.php', itemId
+      ? { crew_id: crew.id, loot_definition_id: itemId, csrf: window.PW_AUTH.csrf }
+      : { crew_id: crew.id, slot: slot, csrf: window.PW_AUTH.csrf });
+  }
+
   function submitLoadout(itemId) {
     var crew = loadoutCrew();
-    if (!crew) return;
+    if (!crew || state.loadoutAutoRunning) return;
     var slot = state.loadoutSlot;
     loadoutError.textContent = '';
-    var url = itemId ? '/api/missions/gear-equip.php' : '/api/missions/gear-unequip.php';
-    var payload = itemId
-      ? { crew_id: crew.id, loot_definition_id: itemId, csrf: window.PW_AUTH.csrf }
-      : { crew_id: crew.id, slot: slot, csrf: window.PW_AUTH.csrf };
     loadoutOptions.querySelectorAll('button').forEach(function (button) { button.disabled = true; });
-    post(url, payload).then(function () {
-      /* Reloaded rather than patched locally: the server owns the stat totals,
-       * and every figure on the page -- the card's own bonus line, the roster
-       * headline, the next launch projection -- is derived from them. */
+    return requestLoadoutChange(crew, slot, itemId).then(function () {
       return load();
     }).then(function () {
       renderLoadout();
       setStatus('Loadout updated.');
     }).catch(function (error) {
       loadoutError.textContent = error.message;
-      renderLoadoutOptions(crew);
+      renderLoadout();
     });
+  }
+
+  function autoEquipBestLoadout() {
+    var crew = loadoutCrew();
+    if (!crew || state.loadoutAutoRunning) return;
+    state.loadoutAutoRunning = true;
+    loadoutError.textContent = '';
+    renderLoadout();
+    var slots = gearSlots().map(function (slot) { return slot.key; });
+    var changed = 0;
+    function equipNext(index) {
+      var currentCrew = loadoutCrew();
+      if (!currentCrew || index >= slots.length) return Promise.resolve();
+      var slot = slots[index];
+      var current = currentCrew.gear && currentCrew.gear[slot] ? currentCrew.gear[slot] : null;
+      var best = bestLoadoutCandidate(currentCrew, slot);
+      if (!best || best.equipped || gearPower(best.item) <= gearPower(current)) return equipNext(index + 1);
+      state.loadoutSlot = slot;
+      renderLoadout();
+      return requestLoadoutChange(currentCrew, slot, best.item.id).then(function () {
+        changed++;
+        return load();
+      }).then(function () {
+        return equipNext(index + 1);
+      });
+    }
+    equipNext(0).then(function () {
+      state.loadoutAutoRunning = false;
+      renderLoadout();
+      setStatus(changed ? 'Best available equipment fitted to ' + crew.name + '.' : crew.name + ' already has the best available loadout.');
+    }).catch(function (error) {
+      state.loadoutAutoRunning = false;
+      loadoutError.textContent = error.message;
+      renderLoadout();
+    });
+  }
+
+  function showLoadoutPreview(button) {
+    var crew = loadoutCrew();
+    if (!button || !crew) return;
+    var id = Number(button.getAttribute('data-item-id'));
+    var item = id ? (state.data.loot || []).filter(function (entry) { return Number(entry.id) === id; })[0] : null;
+    loadoutSlots.classList.add('is-previewing');
+    var active = loadoutSlots.querySelector('.mission-loadout-slot-card.is-active');
+    if (active) active.classList.add('is-preview-target');
+    loadoutDeltaBox.innerHTML = '<span class="mission-loadout-delta-label">' + escapeHtml(id ? 'Preview equip' : 'Preview removal') + '</span>' + loadoutDelta(crew, item);
+  }
+
+  function clearLoadoutPreview() {
+    if (!loadoutSlots) return;
+    loadoutSlots.classList.remove('is-previewing');
+    loadoutSlots.querySelectorAll('.is-preview-target').forEach(function (slot) { slot.classList.remove('is-preview-target'); });
+    loadoutDeltaBox.innerHTML = '';
   }
 
   if (loadoutSlots) {
@@ -1417,6 +1546,12 @@
       if (!button) return;
       state.loadoutSlot = button.getAttribute('data-slot');
       renderLoadout();
+    });
+    loadoutSlots.addEventListener('click', function (event) {
+      var remove = event.target.closest('[data-remove-slot]');
+      if (!remove || state.loadoutAutoRunning) return;
+      state.loadoutSlot = remove.getAttribute('data-remove-slot');
+      submitLoadout(0);
     });
   }
   if (loadoutOptions) {
@@ -1439,7 +1574,24 @@
       });
     });
     loadoutOptions.addEventListener('mouseleave', function () { loadoutDeltaBox.innerHTML = ''; });
+    ['mouseover', 'focusin'].forEach(function (type) {
+      loadoutOptions.addEventListener(type, function (event) {
+        showLoadoutPreview(event.target.closest('.mission-loadout-option'));
+      });
+    });
+    loadoutOptions.addEventListener('mouseleave', clearLoadoutPreview);
+    loadoutOptions.addEventListener('focusout', function (event) {
+      if (!loadoutOptions.contains(event.relatedTarget)) clearLoadoutPreview();
+    });
   }
+  if (loadoutBest) {
+    loadoutBest.addEventListener('click', function () {
+      var crew = loadoutCrew();
+      var best = crew && bestLoadoutCandidate(crew, state.loadoutSlot);
+      if (best && !best.equipped) submitLoadout(best.item.id);
+    });
+  }
+  if (loadoutAuto) loadoutAuto.addEventListener('click', autoEquipBestLoadout);
   if (loadoutModal) {
     document.getElementById('mission-loadout-close').addEventListener('click', closeLoadout);
     document.getElementById('mission-loadout-done').addEventListener('click', closeLoadout);

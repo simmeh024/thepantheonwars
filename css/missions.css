@@ -85,6 +85,46 @@
 .mission-loadout-delta-cell.is-better strong { color: #9edba8; }
 .mission-loadout-delta-cell.is-worse strong { color: #e0a894; }
 
+/* Loadout command enhancements: the actual crew appears as a deliberately
+ * quiet figure behind its gear, while the selected slot gets a live visual
+ * connection to the inventory it controls. The image is set only after the
+ * URL passes the same allow-list used everywhere else on the missions page. */
+.mission-loadout-command { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: stretch; margin-top: 16px; padding: 10px 12px; border: 1px solid rgba(100,161,194,0.34); background: linear-gradient(100deg, rgba(6,17,31,0.62), rgba(25,14,47,0.5)); }
+.mission-loadout-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; min-width: 0; }
+.mission-loadout-summary > span { display: grid; gap: 2px; min-width: 0; }
+.mission-loadout-summary > span + span { padding-left: 14px; border-left: 1px solid rgba(105,163,197,0.28); }
+.mission-loadout-summary strong { overflow: hidden; color: #eaf4f8; font-size: 0.76rem; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
+.mission-loadout-summary-slots strong { color: #79d9df; }
+.mission-loadout-summary small { color: #8fa8b9; font-size: 0.59rem; line-height: 1.35; }
+.mission-loadout-quick-actions { display: flex; align-items: center; gap: 7px; }
+.mission-loadout-quick-actions .btn { margin: 0; padding: 7px 9px !important; font-size: 0.6rem !important; white-space: nowrap; }
+.mission-loadout-quick-actions .btn:disabled { cursor: not-allowed; opacity: .5; }
+.mission-loadout-body { position: relative; }
+.mission-loadout-body::before { content: ''; position: absolute; z-index: 2; top: var(--loadout-connector-y, 50%); left: 218px; width: 18px; height: 1px; pointer-events: none; background: linear-gradient(90deg, rgba(110,219,226,0.72), rgba(110,219,226,0.05)); box-shadow: 0 0 8px rgba(110,219,226,0.38); transform: translateY(-50%); animation: loadout-connector-pulse 2.4s ease-in-out infinite; }
+.mission-loadout-slots { position: relative; isolation: isolate; }
+.mission-loadout-slots::before { content: ''; position: absolute; z-index: 0; inset: 13% 16%; pointer-events: none; background: var(--loadout-crew-image) center / contain no-repeat; filter: saturate(.7) contrast(1.16) grayscale(.25); opacity: .16; mask-image: radial-gradient(ellipse at center, #000 22%, transparent 72%); }
+.mission-loadout-slot-card { position: relative; z-index: 1; min-height: 88px; }
+.mission-loadout-slot-card:nth-child(7) { grid-column: 1 / -1; }
+.mission-loadout-slot-card:nth-child(7) .mission-loadout-slot { grid-template-columns: auto auto minmax(0, 1fr); justify-items: start; align-items: center; gap: 4px 9px; padding-right: 31px; }
+.mission-loadout-slot-card:nth-child(7) .mission-loadout-slot small { max-width: none; }
+.mission-loadout-slot { width: 100%; height: 100%; min-height: 88px; transition: border-color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease; }
+.mission-loadout-slot.is-filled { box-shadow: inset 0 0 22px rgba(var(--gear-tier), .16), 0 0 13px rgba(var(--gear-tier), .1); }
+.mission-loadout-slot.is-filled:hover, .mission-loadout-slot.is-filled:focus-visible { transform: translateY(-1px); box-shadow: inset 0 0 28px rgba(var(--gear-tier), .22), 0 0 17px rgba(var(--gear-tier), .2); }
+.mission-loadout-slot.is-active { position: relative; overflow: hidden; }
+.mission-loadout-slot.is-active::before { content: ''; position: absolute; z-index: 3; right: 0; left: 0; height: 2px; pointer-events: none; background: linear-gradient(90deg, transparent, rgba(190,250,255,.96), transparent); box-shadow: 0 0 9px rgba(120,231,240,.9); animation: loadout-slot-scan 2.8s ease-in-out infinite; }
+.mission-loadout-slot.is-empty small { color: #7fd3d9; }
+.mission-loadout-slot-remove { position: absolute; z-index: 5; top: 5px; right: 5px; display: grid; width: 21px; height: 21px; place-items: center; padding: 0; border: 1px solid rgba(224,168,148,.72); background: rgba(24,10,28,.9); color: #f0b0a0; cursor: pointer; font: inherit; line-height: 1; opacity: 0; transform: translateY(-3px); transition: opacity .16s ease, transform .16s ease, background .16s ease; }
+.mission-loadout-slot-card:hover .mission-loadout-slot-remove, .mission-loadout-slot-card:focus-within .mission-loadout-slot-remove { opacity: 1; transform: translateY(0); }
+.mission-loadout-slot-remove:hover, .mission-loadout-slot-remove:focus-visible { border-color: #f0b0a0; background: rgba(80,24,36,.94); }
+.mission-loadout-slot-card.is-preview-target .mission-loadout-slot { border-color: rgba(230,201,120,.9); box-shadow: inset 0 0 0 1px rgba(230,201,120,.65), 0 0 15px rgba(230,201,120,.26); }
+.mission-loadout-slots.is-previewing::after { content: 'COMPARING'; position: absolute; z-index: 3; right: 5px; bottom: 5px; color: #e5c978; font-size: .5rem; font-weight: 700; letter-spacing: .12em; text-shadow: 0 1px 3px #050914; }
+.mission-loadout-option.is-recommended { border-color: rgba(229,201,120,.66); box-shadow: inset 3px 0 rgba(229,201,120,.75), 0 0 13px rgba(229,201,120,.08); }
+.mission-loadout-option strong { display: flex; align-items: center; gap: 7px; }
+.mission-loadout-option strong em { flex: 0 0 auto; padding: 2px 4px; border: 1px solid rgba(229,201,120,.5); color: #e5c978; font-size: .5rem; font-style: normal; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.mission-loadout-modal.is-auto-equipping .mission-loadout-slots, .mission-loadout-modal.is-auto-equipping .mission-loadout-picker { pointer-events: none; opacity: .64; }
+@keyframes loadout-slot-scan { 0%, 100% { top: 13%; opacity: .45; } 50% { top: 82%; opacity: 1; } }
+@keyframes loadout-connector-pulse { 0%, 100% { opacity: .34; } 50% { opacity: 1; } }
+
 /* Inventory */
 .missions-inventory-controls { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px 12px; align-items: end; margin: -3px 0 16px; padding: 13px; border: 1px solid rgba(80,129,168,0.34); background: rgba(10,20,38,0.48); }
 .missions-inventory-controls .missions-crew-filter-summary { grid-column: 1 / -1; }
@@ -104,7 +144,12 @@
 .mission-inventory-state.is-active { color: #79d9df !important; }
 .crew-stat.has-gear .crew-stat-value i { margin-left: 3px; color: #9edba8; font-size: 0.66rem; font-style: normal; font-weight: 700; }
 @media (max-width: 620px) {
+  .mission-loadout-command { grid-template-columns: minmax(0, 1fr); }
+  .mission-loadout-quick-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mission-loadout-quick-actions .btn { width: 100%; white-space: normal; }
   .mission-loadout-body { grid-template-columns: minmax(0, 1fr); }
+  .mission-loadout-body::before { display: none; }
+  .mission-loadout-slots::before { inset: 10% 28%; opacity: .12; }
   .missions-inventory-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) { .missions-page.has-watermark::before { background-size: min(78vmin, 420px); } }
