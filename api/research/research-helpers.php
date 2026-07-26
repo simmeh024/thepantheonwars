@@ -17,6 +17,7 @@ function pw_research_effect_types(): array {
         'reputation_gain' => ['label' => 'Reputation gain', 'short' => 'Mission reputation increased', 'value_label' => 'Reputation boost (%)', 'description' => 'Increases reputation paid by successful missions.'],
         'credit_gain' => ['label' => 'Credit gain', 'short' => 'Mission credits increased', 'value_label' => 'Credit boost (%)', 'description' => 'Increases credits paid by successful missions, after the crew assignment bonus.'],
         'crew_capacity' => ['label' => 'Crew capacity', 'short' => 'Crew berth capacity expanded', 'value_label' => 'Additional crew slots', 'description' => 'Adds permanent room for more crew members to join the expedition.'],
+        'crew_fatigue' => ['label' => 'Crew endurance', 'short' => 'Crew fatigue capacity raised', 'value_label' => 'Additional fatigue', 'description' => 'Raises the fatigue ceiling of every crew member, so they can run more operations back to back before resting.'],
         'luck' => ['label' => 'Rarity promotion', 'short' => 'Loot rarity improved', 'value_label' => 'Promotion chance (%)', 'description' => 'Raises the chance that a recovered item is promoted one rarity tier.'],
         'market_discount' => ['label' => 'Market discount', 'short' => 'Market prices reduced', 'value_label' => 'Discount (%)', 'description' => 'Reduces the credit price shown for every Market offer.'],
         'market_refresh' => ['label' => 'Market refresh', 'short' => 'Market signal cycles faster', 'value_label' => 'Refresh boost (%)', 'description' => 'Moves this command\'s Market rotation onto a faster signal cadence.'],
@@ -148,6 +149,7 @@ function pw_research_default_effects(): array {
         'reputation_percent' => 0.0,
         'credit_percent' => 0.0,
         'crew_capacity' => 0,
+        'crew_fatigue' => 0,
         'luck_percent' => 0.0,
         'market_discount_percent' => 0.0,
         'market_refresh_percent' => 0.0,
@@ -214,6 +216,7 @@ function pw_research_player_effects(PDO $db, int $userId): array {
             case 'reputation_gain': $effects['reputation_percent'] += $value; break;
             case 'credit_gain': $effects['credit_percent'] += $value; break;
             case 'crew_capacity': $effects['crew_capacity'] += $value; break;
+            case 'crew_fatigue': $effects['crew_fatigue'] += $value; break;
             case 'luck': $effects['luck_percent'] += $value; break;
             case 'market_discount': $effects['market_discount_percent'] += $value; break;
             case 'market_refresh': $effects['market_refresh_percent'] += $value; break;
@@ -230,6 +233,7 @@ function pw_research_player_effects(PDO $db, int $userId): array {
     $effects['reputation_percent'] = round(min(75.0, $effects['reputation_percent']), 2);
     $effects['credit_percent'] = round(min(75.0, $effects['credit_percent']), 2);
     $effects['crew_capacity'] = (int)min(24, floor($effects['crew_capacity']));
+    $effects['crew_fatigue'] = (int)min(PW_MISSION_FATIGUE_RESEARCH_CAP, floor($effects['crew_fatigue']));
     $effects['luck_percent'] = round(min(75.0, $effects['luck_percent']), 2);
     $effects['market_discount_percent'] = round(min(50.0, $effects['market_discount_percent']), 2);
     $effects['market_refresh_percent'] = round(min(50.0, $effects['market_refresh_percent']), 2);

@@ -132,8 +132,13 @@
     var effect = effectTypes[effectType.value] || {};
     var valueLabel = document.querySelector('label[for="research-node-effect-value"]');
     if (valueLabel) valueLabel.textContent = effect.value_label || 'Effect value (%)';
-    effectValue.min = effectType.value === 'crew_capacity' ? '1' : '0.01';
-    effectValue.step = effectType.value === 'crew_capacity' ? '1' : '0.01';
+    /* Crew capacity and crew endurance are whole-number effects, not
+     * percentages, and each has its own ceiling -- the same three shapes
+     * api/admin/research/research-helpers.php validates. */
+    var wholeNumberMax = { crew_capacity: '24', crew_fatigue: '200' }[effectType.value];
+    effectValue.min = wholeNumberMax ? '1' : '0.01';
+    effectValue.step = wholeNumberMax ? '1' : '0.01';
+    effectValue.max = wholeNumberMax || '50';
   }
   function showEditor(node, placement) {
     current = node || null;

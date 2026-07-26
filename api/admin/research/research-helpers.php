@@ -41,11 +41,26 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
     $effectType = trim((string)($input['effect_type'] ?? ''));
     if (!isset(pw_research_effect_types()[$effectType])) pw_error('Choose a valid research effect.');
 
+    /* Three shapes of value, branched explicitly rather than chained.
+     *
+     * The previous chain fell through a whole-number effect into the percentage
+     * check, which only happened to work because crew capacity's ceiling (24)
+     * sits under the percentage ceiling (50). Crew endurance adds up to 200
+     * fatigue, so the same structure would have rejected every valid value
+     * above 50 with a message about percentages. */
     $rawValue = $input['effect_value'] ?? 0;
+    $wholeNumberEffects = [
+        'crew_capacity' => ['max' => 24, 'error' => 'Crew capacity must add a whole number of slots between 1 and 24.'],
+        'crew_fatigue' => ['max' => PW_MISSION_FATIGUE_RESEARCH_CAP, 'error' => 'Crew endurance must add a whole number of fatigue between 1 and ' . PW_MISSION_FATIGUE_RESEARCH_CAP . '.'],
+    ];
     if (in_array($effectType, ['secret_mission', 'rare_loot_table'], true)) {
         $effectValue = 0.0;
-    } elseif ($effectType === 'crew_capacity' && (!is_numeric($rawValue) || (int)$rawValue != (float)$rawValue || (int)$rawValue < 1 || (int)$rawValue > 24)) {
-        pw_error('Crew capacity must add a whole number of slots between 1 and 24.');
+    } elseif (isset($wholeNumberEffects[$effectType])) {
+        $rule = $wholeNumberEffects[$effectType];
+        if (!is_numeric($rawValue) || (int)$rawValue != (float)$rawValue || (int)$rawValue < 1 || (int)$rawValue > $rule['max']) {
+            pw_error($rule['error']);
+        }
+        $effectValue = (float)(int)$rawValue;
     } elseif (!is_numeric($rawValue) || (float)$rawValue <= 0 || (float)$rawValue > 50) {
         pw_error('A percentage research effect must be greater than 0% and no higher than 50%.');
     } else {

@@ -50,9 +50,11 @@ try {
 
     $statsReady = pw_mission_stats_ready($db);
     $placeholders = pw_missions_placeholders(count($crewIds));
+    $fatigueReady = pw_mission_fatigue_ready($db);
     $crewStmt = $db->prepare(
-        'SELECT pc.id, pc.status, pc.level, c.role'
-        . ($statsReady ? ', pc.strength, pc.cunning, pc.science, pc.charisma' : '') .
+        'SELECT pc.id, pc.status, pc.level, c.role, c.name'
+        . ($statsReady ? ', pc.strength, pc.cunning, pc.science, pc.charisma' : '')
+        . ($fatigueReady ? ', pc.fatigue, pc.fatigue_updated_at' : '') .
         ' FROM game_player_crew pc
          JOIN game_crew_definitions c ON c.id = pc.crew_definition_id AND c.is_enabled = 1
          WHERE pc.user_id = ? AND pc.id IN (' . $placeholders . ') FOR UPDATE'
@@ -94,6 +96,37 @@ try {
     $duration = pw_missions_effective_duration((int)$mission['duration_seconds'], $effects);
 
     $now = pw_missions_utc_now($db);
+
+    /* Fatigue is charged here, at launch, from the mission's authored length
+     * rather than the effective duration computed just above -- the cost the
+     * player was shown on the card before choosing any crew has to be the cost
+     * they pay, and an effective figure would move as they added an Engineer.
+     *
+     * Re-checked server-side even though the browser disables a crew member it
+     * believes is too tired: this is a separate entry point, and a crafted POST
+     * must not be able to field an exhausted roster. Every row was locked FOR
+     * UPDATE above, so two concurrent launches cannot both spend the same
+     * crew member's pool. */
+    if ($fatigueReady) {
+        $fatigueCost = pw_missions_fatigue_cost((int)$mission['duration_seconds']);
+        if ($fatigueCost > 0) {
+            $fatigueMax = pw_missions_fatigue_max($db, $userId, pw_research_ready($db) ? pw_research_player_effects($db, $userId) : []);
+            $spend = $db->prepare('UPDATE game_player_crew SET fatigue = ?, fatigue_updated_at = ? WHERE id = ? AND user_id = ?');
+            foreach ($selectedCrew as $member) {
+                $current = pw_missions_resolve_fatigue($member, $fatigueMax, $now);
+                if ($current < $fatigueCost) {
+                    $wait = pw_missions_fatigue_recovery_seconds($current, $fatigueCost);
+                    $minutes = max(1, (int)ceil($wait / 60));
+                    throw new RuntimeException(
+                        $member['name'] . ' is too fatigued for this operation. '
+                        . $minutes . ' more ' . ($minutes === 1 ? 'minute' : 'minutes') . ' of rest needed.'
+                    );
+                }
+                $spend->execute([$current - $fatigueCost, pw_missions_datetime($now), (int)$member['id'], $userId]);
+            }
+        }
+    }
+
     $completesAt = $now->modify('+' . $duration . ' seconds');
     $weatherReady = pw_mission_weather_ready($db);
     $columns = ['user_id', 'mission_definition_id', 'world_key', 'status', 'started_at', 'completes_at', 'xp_reward', 'reputation_reward'];

@@ -2,7 +2,11 @@
   'use strict';
 
   var state = { data: null, serverOffset: 0, launchMission: null, launchProjection: null, launchPenaltyAck: false,
-    loadoutCrewId: null, loadoutSlot: null, loadoutAutoRunning: false, crewPage: 1, refreshQueued: false, feedSlot: null };
+    loadoutCrewId: null, loadoutSlot: null, loadoutAutoRunning: false, crewPage: 1, refreshQueued: false, feedSlot: null,
+    /* When the current payload was received. Fatigue arrives already caught up
+     * to that instant, so the page ages it forward from here rather than
+     * polling the server for a value it can derive. */
+    loadedAt: 0 };
   var gate = document.getElementById('missions-gate');
   var content = document.getElementById('missions-content');
   var statusMessage = document.getElementById('missions-status-message');
@@ -396,7 +400,11 @@
     return '<article class="mission-definition-card' + (campaign ? ' has-campaign' : '') + watermark.className + '"' + watermark.style + '><div class="mission-card-top"><span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p>'
       + (campaign ? '' : '<p class="mission-unlock-state is-base">Available immediately</p>')
       + '<dl class="mission-definition-meta"><div><dt>Crew</dt><dd>' + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + '</dd></div><div><dt>XP</dt><dd>+' + mission.xp_reward + ' per crew</dd></div><div><dt>Reputation</dt><dd>' + (mission.reputation_reward ? '+' + mission.reputation_reward : '—') + '</dd></div>'
-        + (Number(mission.credit_reward) > 0 ? '<div><dt>Credits</dt><dd class="is-credits">+' + credits(mission.credit_reward) + '</dd></div>' : '') + '</dl>'
+        + (Number(mission.credit_reward) > 0 ? '<div><dt>Credits</dt><dd class="is-credits">+' + credits(mission.credit_reward) + '</dd></div>' : '')
+        /* Stated on the card, before any crew is chosen, because that is the
+         * figure start.php charges -- it is a property of the operation's
+         * authored length, not of who is sent on it. */
+        + (Number(mission.fatigue_cost) > 0 ? '<div><dt>Fatigue</dt><dd class="is-fatigue">−' + Number(mission.fatigue_cost) + ' per crew</dd></div>' : '') + '</dl>'
       + missionRiskMarkup(mission)
       + '<button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + (canLaunch ? 'Select Crew' : 'Crew Unavailable') + '</button>'
       + (campaign ? campaignBarMarkup(campaign) : '') + '</article>';
@@ -608,8 +616,60 @@
         + '<div class="mission-crew-visual"><span class="mission-crew-portrait-wrap">' + portraitMarkup + statusDot + '</span>' + crewLoadoutStrip(crew) + '</div>'
         + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3>' + missionCopy + '<p>' + escapeHtml(crew.description) + '</p>'
         + '<div class="crew-progression ' + profile.className + (atMaxLevel ? ' is-max-level' : '') + '"><div class="crew-rank-insignia" aria-label="' + escapeHtml(crew.role) + ' level ' + crew.level + '"><span>' + profile.code + '</span><small>L' + crew.level + '</small></div><div class="crew-progression-copy"><div><span>' + profile.rankLabel + '</span><strong>' + rankValue + '</strong></div><div class="crew-xp-track"><span style="width:' + progress + '%"></span></div></div></div>'
+        + fatigueMarkup(crew)
         + crewStatCard(crew) + '</div></article>';
     }).join('');
+  }
+
+  /* ----------------------------------------------------------------------
+   * Crew fatigue.
+   *
+   * The server sends each crew member's pool already caught up to the moment
+   * the payload was built, plus the regeneration rate. These read it forward
+   * from there so a countdown can tick between loads without asking the server
+   * for a number that is a pure function of elapsed time. Every figure here is
+   * display only -- api/missions/start.php recomputes the pool from the stored
+   * row and refuses an exhausted crew member regardless of what this decides.
+   * -------------------------------------------------------------------- */
+  function fatigueReady(member) {
+    return !!(member && member.fatigue_ready);
+  }
+
+  function crewFatigue(member) {
+    if (!fatigueReady(member)) return 0;
+    var stored = Math.max(0, Number(member.fatigue) || 0);
+    var max = Math.max(1, Number(member.fatigue_max) || 100);
+    // Rest only accrues while available, exactly as the server resolves it.
+    if (crewAvailability(member) !== 'available') return Math.min(max, stored);
+    var rate = Number(member.fatigue_regen_per_minute) || 0;
+    var minutes = Math.floor(Math.max(0, Date.now() - (state.loadedAt || Date.now())) / 60000);
+    return Math.min(max, stored + Math.floor(minutes * rate));
+  }
+
+  function fatigueRecoverySeconds(member, cost) {
+    var rate = Number(member.fatigue_regen_per_minute) || 0;
+    var short = cost - crewFatigue(member);
+    if (short <= 0 || rate <= 0) return 0;
+    return Math.ceil(short / rate * 60);
+  }
+
+  /** True when this crew member cannot afford an operation right now. */
+  function crewIsResting(member, cost) {
+    return fatigueReady(member) && Number(cost) > 0 && crewFatigue(member) < Number(cost);
+  }
+
+  function fatigueMarkup(member) {
+    if (!fatigueReady(member)) return '';
+    var max = Math.max(1, Number(member.fatigue_max) || 100);
+    var value = crewFatigue(member);
+    var percent = Math.max(0, Math.min(100, Math.round(value / max * 100)));
+    var tone = percent >= 60 ? ' is-rested' : percent >= 25 ? ' is-worn' : ' is-spent';
+    var hint = value + ' of ' + max + ' fatigue. Operations spend 10 for every whole 10 minutes of their length, '
+      + 'and crew recover ' + fmt(Number(member.fatigue_regen_per_minute) || 0) + ' per minute while available.';
+    return '<div class="crew-fatigue' + tone + '" title="' + escapeHtml(hint) + '">'
+      + '<span class="crew-fatigue-label">Fatigue</span>'
+      + '<span class="crew-fatigue-track"><span style="width:' + percent + '%"></span></span>'
+      + '<b>' + value + ' / ' + max + '</b></div>';
   }
 
   function crewRoleProfile(role) {
@@ -886,6 +946,16 @@
       element.textContent = remaining > 0 ? formatDuration(remaining) + ' remaining' : 'Ready for completion';
       if (remaining === 0 && !state.refreshQueued) { state.refreshQueued = true; window.setTimeout(function () { state.refreshQueued = false; load(); }, 1500); }
     });
+    /* "3 minutes until recovered", counted down in place. When it reaches zero
+     * the launch list is redrawn rather than only re-enabled, because the row's
+     * affinity tag and ordering both change once the crew member is eligible. */
+    document.querySelectorAll('.mission-fatigue-countdown[data-ready-at]').forEach(function (element) {
+      var readyAt = Number(element.getAttribute('data-ready-at'));
+      if (!readyAt) return;
+      var remaining = Math.max(0, Math.ceil((readyAt - Date.now()) / 1000));
+      element.textContent = remaining > 0 ? formatDuration(remaining) + ' until recovered' : 'Recovered';
+      if (remaining === 0 && state.launchMission) renderLaunchCrew();
+    });
     updateMissionRouteProgress();
     tickDailyReset();
   }
@@ -901,7 +971,7 @@
     gate.hidden = true; content.hidden = false; setStatus('');
     /* Returns its promise: a loadout change has to wait for the reloaded stat
      * totals before it redraws, since the server owns those figures. */
-    return fetch('/api/missions/overview.php', { credentials: 'same-origin' }).then(function (response) { return response.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'Mission command is unavailable.'); render(data); }).catch(function (error) { activeList.innerHTML = '<p class="missions-empty">' + escapeHtml(error.message || 'Mission command is unavailable.') + '</p>'; });
+    return fetch('/api/missions/overview.php', { credentials: 'same-origin' }).then(function (response) { return response.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'Mission command is unavailable.'); state.loadedAt = Date.now(); render(data); }).catch(function (error) { activeList.innerHTML = '<p class="missions-empty">' + escapeHtml(error.message || 'Mission command is unavailable.') + '</p>'; });
   }
 
   /* ----------------------------------------------------------------------
@@ -1107,9 +1177,15 @@
    * always sink to the bottom: they are shown for context, not for choosing. */
   function launchCrewOrder(mission) {
     var crew = (state.data && state.data.crew || []).slice();
+    var cost = Number(mission.fatigue_cost) || 0;
+    /* A crew member too fatigued for this operation sinks with the deployed
+     * ones: they are shown for context, not for choosing. */
+    var eligible = function (member) {
+      return crewAvailability(member) === 'available' && !crewIsResting(member, cost) ? 0 : 1;
+    };
     return crew.sort(function (a, b) {
-      var aOpen = crewAvailability(a) === 'available' ? 0 : 1;
-      var bOpen = crewAvailability(b) === 'available' ? 0 : 1;
+      var aOpen = eligible(a);
+      var bOpen = eligible(b);
       if (aOpen !== bOpen) return aOpen - bOpen;
       var aMatch = affinityFor(mission.mission_type, a.role) ? 0 : 1;
       var bMatch = affinityFor(mission.mission_type, b.role) ? 0 : 1;
@@ -1130,7 +1206,9 @@
 
   function launchCrewRow(mission, member) {
     var availability = crewAvailability(member);
-    var open = availability === 'available';
+    var cost = Number(mission.fatigue_cost) || 0;
+    var resting = crewIsResting(member, cost);
+    var open = availability === 'available' && !resting;
     var match = affinityFor(mission.mission_type, member.role);
     var portrait = safeImage(member.portrait_url);
     var portraitMarkup = portrait
@@ -1139,14 +1217,26 @@
     /* Deployed crew are listed rather than omitted, with the run that is
      * holding them and when it returns. Left out entirely, a fully committed
      * roster looked identical to owning no crew at all. */
-    var tag = !open
+    /* A resting crew member is listed with a live countdown to the moment they
+     * can take this specific operation -- not to a full pool, which would
+     * overstate the wait for a short mission. The target instant is computed
+     * once here and counted down by the shared ticker, the same way a deployed
+     * crew member's return is. */
+    var restingTag = '';
+    if (resting) {
+      var readyAt = Date.now() + fatigueRecoverySeconds(member, cost) * 1000;
+      restingTag = '<span class="mission-launch-crew-tag is-resting" title="'
+        + escapeHtml('This operation costs ' + cost + ' fatigue and ' + member.name + ' has ' + crewFatigue(member) + '.') + '">'
+        + 'Recovering · <span class="mission-fatigue-countdown" data-ready-at="' + escapeHtml(readyAt) + '">Calculating…</span></span>';
+    }
+    var tag = restingTag ? restingTag : !open
       ? '<span class="mission-launch-crew-tag is-unavailable">' + (availability === 'deployed'
           ? escapeHtml(member.active_mission_name || 'On mission') + ' · <span class="mission-countdown" data-completes-at="' + escapeHtml(member.active_mission_completes_at || '') + '">Calculating…</span>'
           : 'Unavailable') + '</span>'
       : match
         ? '<span class="mission-launch-crew-tag is-affinity" title="' + escapeHtml(member.role + 's are suited to ' + String(mission.mission_type).toLowerCase() + ' work. Every one you assign adds this bonus again.') + '">' + escapeHtml(match.label) + '</span>'
         : '<span class="mission-launch-crew-tag is-neutral" title="' + escapeHtml('No affinity with this operation type. A crew carrying none of its preferred roles takes a time and success penalty.') + '">No affinity</span>';
-    return '<label class="mission-launch-crew-choice' + (open ? '' : ' is-unavailable') + (match && open ? ' is-affinity' : '') + '">'
+    return '<label class="mission-launch-crew-choice' + (open ? '' : ' is-unavailable') + (resting ? ' is-resting' : '') + (match && open ? ' is-affinity' : '') + '">'
       /* data-locked marks a checkbox that is disabled for a reason of its own,
        * so the cap logic in updateLaunchState() leaves it alone rather than
        * re-enabling an unavailable crew member the moment a slot frees up. */
@@ -1192,8 +1282,9 @@
   function recommendLaunchCrew() {
     var mission = state.launchMission;
     if (!mission) return;
+    var restCost = Number(mission.fatigue_cost) || 0;
     var picks = launchCrewOrder(mission)
-      .filter(function (member) { return crewAvailability(member) === 'available'; })
+      .filter(function (member) { return crewAvailability(member) === 'available' && !crewIsResting(member, restCost); })
       .slice(0, mission.max_crew)
       .map(function (member) { return String(member.id); });
     Array.prototype.forEach.call(launchCrew.querySelectorAll('input[type="checkbox"]'), function (input) {
@@ -1221,16 +1312,38 @@
         : '';
       launchBrief.hidden = !rule;
     }
-    var roster = launchCrewOrder(mission);
-    var openCount = roster.filter(function (member) { return crewAvailability(member) === 'available'; }).length;
-    launchCrew.innerHTML = roster.length
-      ? roster.map(function (member) { return launchCrewRow(mission, member); }).join('')
-      : '<p class="missions-empty">No crew members are available.</p>';
-    if (launchRecommend) launchRecommend.disabled = openCount === 0;
-    updateLaunchState();
+    renderLaunchCrew();
     tickCountdowns();
     if (typeof launchModal.showModal === 'function') launchModal.showModal(); else launchModal.setAttribute('open', '');
   }
+  /* Redraws the crew list for the open launch modal. Extracted from openLaunch()
+   * so the fatigue ticker can rebuild it the moment a resting crew member
+   * becomes eligible -- their row's tag, its disabled state and their position
+   * in the ordering all change at once, so re-enabling the checkbox alone would
+   * leave the row still reading "Recovering". Ticked boxes are carried across
+   * the redraw; a crew member who has since become ineligible simply is not
+   * restored. */
+  function renderLaunchCrew() {
+    var mission = state.launchMission;
+    if (!mission) return;
+    var chosen = Array.prototype.slice.call(launchCrew.querySelectorAll('input[type="checkbox"]'))
+      .filter(function (input) { return input.checked; })
+      .map(function (input) { return input.value; });
+    var roster = launchCrewOrder(mission);
+    var cost = Number(mission.fatigue_cost) || 0;
+    var openCount = roster.filter(function (member) {
+      return crewAvailability(member) === 'available' && !crewIsResting(member, cost);
+    }).length;
+    launchCrew.innerHTML = roster.length
+      ? roster.map(function (member) { return launchCrewRow(mission, member); }).join('')
+      : '<p class="missions-empty">No crew members are available.</p>';
+    Array.prototype.forEach.call(launchCrew.querySelectorAll('input[type="checkbox"]'), function (input) {
+      if (!input.disabled && chosen.indexOf(input.value) !== -1) input.checked = true;
+    });
+    if (launchRecommend) launchRecommend.disabled = openCount === 0;
+    updateLaunchState();
+  }
+
   function closeLaunch() {
     if (launchModal.open && typeof launchModal.close === 'function') launchModal.close(); else launchModal.removeAttribute('open');
     state.launchMission = null; state.launchProjection = null; state.launchPenaltyAck = false;

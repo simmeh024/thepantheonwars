@@ -1401,7 +1401,7 @@ function pw_log_admin_activity($action, $description, $user = null) {
 // newly introduced ones, so this only ever needs to read, never backfill on
 // account creation.
 function pw_notifications_enabled($userId, $type) {
-    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved', 'world_available' => 'notif_world_available', 'news_published' => 'notif_news_published', 'topic_reply' => 'notif_topic_reply', 'icon_unlocked' => 'notif_icon_unlocked', 'new_device_login' => 'notif_new_device_login', 'warning_issued' => 'notif_warning_issued', 'weather_alert' => 'notif_weather_alert'];
+    $columns = ['like' => 'notif_like', 'mention' => 'notif_mention', 'quote' => 'notif_quote', 'report_resolved' => 'notif_report_resolved', 'world_available' => 'notif_world_available', 'news_published' => 'notif_news_published', 'topic_reply' => 'notif_topic_reply', 'icon_unlocked' => 'notif_icon_unlocked', 'new_device_login' => 'notif_new_device_login', 'warning_issued' => 'notif_warning_issued', 'weather_alert' => 'notif_weather_alert', 'mission_ready' => 'notif_mission_ready'];
     if (!isset($columns[$type])) {
         return true;
     }

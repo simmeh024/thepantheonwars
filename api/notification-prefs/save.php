@@ -27,17 +27,18 @@ $iconUnlocked = !empty($input['icon_unlocked']) ? 1 : 0;
 $newDeviceLogin = !empty($input['new_device_login']) ? 1 : 0;
 $warningIssued = !empty($input['warning_issued']) ? 1 : 0;
 $weatherAlert = !empty($input['weather_alert']) ? 1 : 0;
+$missionReady = !empty($input['mission_ready']) ? 1 : 0;
 
 $stmt = pw_db()->prepare(
-    'INSERT INTO notification_preferences (user_id, notif_like, notif_mention, notif_quote, notif_report_resolved, notif_world_available, notif_news_published, notif_topic_reply, notif_icon_unlocked, notif_new_device_login, notif_warning_issued, notif_weather_alert)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    'INSERT INTO notification_preferences (user_id, notif_like, notif_mention, notif_quote, notif_report_resolved, notif_world_available, notif_news_published, notif_topic_reply, notif_icon_unlocked, notif_new_device_login, notif_warning_issued, notif_weather_alert, notif_mission_ready)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
      ON DUPLICATE KEY UPDATE notif_like = VALUES(notif_like), notif_mention = VALUES(notif_mention),
        notif_quote = VALUES(notif_quote), notif_report_resolved = VALUES(notif_report_resolved),
        notif_world_available = VALUES(notif_world_available), notif_news_published = VALUES(notif_news_published),
        notif_topic_reply = VALUES(notif_topic_reply), notif_icon_unlocked = VALUES(notif_icon_unlocked),
        notif_new_device_login = VALUES(notif_new_device_login), notif_warning_issued = VALUES(notif_warning_issued),
-       notif_weather_alert = VALUES(notif_weather_alert)'
+       notif_weather_alert = VALUES(notif_weather_alert), notif_mission_ready = VALUES(notif_mission_ready)'
 );
-$stmt->execute([$user['id'], $like, $mention, $quote, $reportResolved, $worldAvailable, $newsPublished, $topicReply, $iconUnlocked, $newDeviceLogin, $warningIssued, $weatherAlert]);
+$stmt->execute([$user['id'], $like, $mention, $quote, $reportResolved, $worldAvailable, $newsPublished, $topicReply, $iconUnlocked, $newDeviceLogin, $warningIssued, $weatherAlert, $missionReady]);
 
 pw_json(['ok' => true]);

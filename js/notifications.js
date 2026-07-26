@@ -38,6 +38,7 @@ function initNotifications() {
     new_device_login: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="13" rx="1.5"/><path d="M8 21h8M12 17v4"/><path d="m9 10 2 2 4-4"/></svg>',
     warning_issued: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4"/><path d="M12 17h.01"/></svg>',
     weather_alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16a4 4 0 0 1 .4-8 6 6 0 0 1 11.3 2A3.5 3.5 0 0 1 17.5 16z"/><path d="m13 13-2.5 4h3L11 21"/></svg>',
+    mission_ready: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 6v6c0 5 3.4 8.6 8 10 4.6-1.4 8-5 8-10V6l-8-4z"/><path d="m9 12 2 2 4-4"/></svg>',
   };
   var EMPTY_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>';
 
@@ -70,6 +71,7 @@ function initNotifications() {
     if (n.type === 'news_published' && n.news_slug) return 'news-post.html?slug=' + encodeURIComponent(n.news_slug);
     if (n.type === 'icon_unlocked') return 'profile.html?tab=settings';
     if (n.type === 'new_device_login') return 'profile.html?tab=sessions';
+    if (n.type === 'mission_ready') return 'missions.html';
     if (!n.topic_id) return 'notifications.html';
     return 'community.html?topic=' + encodeURIComponent(n.topic_id) +
       (n.comment_id ? '&comment=' + encodeURIComponent(n.comment_id) : '');
@@ -131,6 +133,8 @@ function initNotifications() {
         return excerpt || 'You have received a warning.';
       case 'weather_alert':
         return 'Severe weather recorded' + (excerpt ? ': <strong>' + excerpt + '</strong>' : '') + '.';
+      case 'mission_ready':
+        return 'Your crew have returned' + (excerpt ? ' from <strong>' + excerpt + '</strong>' : '') + '. Claim the operation to collect its rewards.';
       default:
         return 'You have a new notification.';
     }

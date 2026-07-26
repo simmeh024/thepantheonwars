@@ -355,6 +355,24 @@ the same trust boundary. Requires
 `sql/migration_dispatch_quality_reports.sql` to have been run first; until
 then the endpoint 500s harmlessly (no partial/corrupt row is ever written).
 
+4. Every five minutes, mission run settling (cPanel cron fields: minute
+   `*/5`, hour `*`, day `*`, month `*`, weekday `*`):
+```
+curl -s -o /dev/null "https://thepantheonwars.com/api/cron/complete-missions.php?key=<CRON_SAMPLE_KEY>"
+```
+Marks every `game_player_missions` run whose `completes_at` has passed as
+`completed` and sends its owner a `mission_ready` notification. Before this,
+a run only ever completed when the player's own open browser tab posted to
+`api/missions/complete.php` from its one-second countdown, so closing the
+tab left a finished operation sitting at `active` indefinitely. Reuses
+`CRON_SAMPLE_KEY` like the three above. **Not load-bearing for rewards**:
+`api/missions/overview.php` settles the current player's runs on load, and
+`api/missions/claim.php` independently treats an `active` run past its
+completion time as claimable, so an unscheduled cron costs the notification
+and nothing else. Requires `sql/migration_mission_fatigue.sql` for the
+notification type; without it the sweep still settles runs and the notify
+call fails soft.
+
 ## Permission-aware UI is a standing requirement, not a one-off audit
 
 The backend permission system (`permissions` table, `role_permissions`,
@@ -600,6 +618,54 @@ at that time.
   deleting data) -- a question from the user is not authorization to act.
 
 ## Recent history (most recent first)
+
+- **Missions finish while you are away, and crew now tire.** Two changes,
+  one migration (`sql/migration_mission_fatigue.sql`) and one new cron job.
+  **Offline completion.** A run reached `completed` only when the player's
+  open tab posted to `api/missions/complete.php` from its one-second
+  countdown, so an operation that finished while they were logged out sat at
+  `active` forever -- the mechanic that makes long missions interesting was
+  the one the player could not be present for. Settling now happens in three
+  independent places, deliberately: `pw_missions_settle_due_runs()` swept by
+  the new five-minute cron (which is what reaches a player who is away, and
+  is the only thing that sends the new `mission_ready` notification),
+  the same helper called by `overview.php` on load, and `claim.php` treating
+  a due `active` run as complete on its own. Only the cron is optional; the
+  other two mean an unscheduled cron costs the notification and nothing
+  else. The status transition is the notification guard -- the UPDATE names
+  the old status, so only the request that actually moved the row notifies,
+  and `complete.php` was changed to do the same so whether the player was
+  watching cannot decide whether the run reaches their bell.
+  **Crew fatigue** is a spendable pool, not accumulating debt: 100 at rest,
+  charged at launch, regenerated while available. **The cost comes from the
+  mission's authored `duration_seconds`, never the effective duration** --
+  the effective figure moves as crew are added, and the number on the card
+  before anyone is chosen has to be the number charged. 10 fatigue per whole
+  10 minutes, rounded down, so a sub-ten-minute operation is free.
+  **Regeneration is derived from those same two constants rather than
+  declared** (1/minute), so a crew member rests exactly as long as the
+  mission they ran and the two halves cannot drift.
+  **The load-bearing rule: rest only accrues while `status = 'available'`.**
+  Without it a sixty-minute mission charges 60 and hands back 60 while the
+  crew are still out, making every long operation free and the whole
+  mechanic decorative. `claim.php` therefore restamps `fatigue_updated_at`
+  when crew return, so rest starts from the return, not the launch.
+  The ceiling is `100 + floor(rank / 5) * 10` plus a new `crew_fatigue`
+  research effect (capped at +200) -- which is what makes it an endgame
+  dial: the pool is how many operations run back to back before the wait
+  starts. Found while adding that effect: `api/admin/research/
+  research-helpers.php` validated effect values in an if/elif chain where a
+  whole-number effect fell through into the percentage check, working only
+  because crew capacity's ceiling (24) happens to sit under the percentage
+  ceiling (50). Rewritten as an explicit three-shape branch. `js/research.js`
+  also rendered every flat effect as a percentage ("+8% Crew capacity" for
+  eight berths); both flat effects now carry a unit.
+  Verified by porting the fatigue rules to Python (no PHP CLI in this
+  sandbox) and asserting nine invariant groups, including the deployed-crew
+  regeneration rule above and the rest/run symmetry. **Not verified in a
+  browser** -- the missions page needs an authenticated session this sandbox
+  cannot reach. `missions.css?v=33` / `missions.js?v=34` /
+  `research.js?v=8` / `admin-research.js?v=8` / `notifications.js?v=15`.
 
 - **Quiz Activity in Visitor Statistics.** The unused space below the
   day-and-hour heatmap now reports quiz starts, completions, completion rate,

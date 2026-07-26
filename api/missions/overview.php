@@ -9,17 +9,24 @@ $userId = (int)$user['id'];
 
 try {
     pw_missions_grant_starter_crew($db, $userId);
+    /* Settle anything that finished while this player was away, before any of
+     * the queries below read run status. Without this the page would show a
+     * run whose timer expired hours ago as still active, because completion
+     * used to happen only in the open tab. */
+    pw_missions_settle_due_runs($db, $userId);
 
     $statsReady = pw_mission_stats_ready($db);
     $crewFavoritesReady = pw_mission_crew_favorites_ready($db);
     $crewCapacityReady = pw_mission_crew_capacity_ready($db);
     $researchReady = pw_research_ready($db);
     $researchLocksReady = pw_mission_research_locks_ready($db);
+    $fatigueReady = pw_mission_fatigue_ready($db);
     $researchEffects = $researchReady ? pw_research_player_effects($db, $userId) : pw_research_default_effects();
     $researchSecrets = ($researchReady || $researchLocksReady) ? pw_research_secret_missions($db, $userId) : ['locked' => [], 'unlocked' => []];
     $crewStmt = $db->prepare(
         'SELECT pc.id, pc.level, pc.xp, pc.status, pc.created_at,'
-        . ($statsReady ? ' pc.strength, pc.cunning, pc.science, pc.charisma,' : '') . '
+        . ($statsReady ? ' pc.strength, pc.cunning, pc.science, pc.charisma,' : '')
+        . ($fatigueReady ? ' pc.fatigue, pc.fatigue_updated_at,' : '') . '
         ' . ($crewFavoritesReady ? ' pc.is_favorite,' : ' 0 AS is_favorite,') . '
                 c.name, c.slug, c.description, c.role, c.portrait_url, c.world_affinity, '
         . ($crewCapacityReady ? 'c.tier,' : '"common" AS tier,') . ' c.is_enabled AS definition_enabled,
@@ -50,7 +57,12 @@ try {
          ORDER BY c.is_starter DESC, c.role ASC, c.name ASC'
     );
     $crewStmt->execute([$userId, $userId]);
-    $crew = array_map(static function ($row) use ($crewFavoritesReady) {
+    /* Resolved once for the whole roster: the ceiling is a property of the
+     * player (reputation rank plus research), not of the individual, and the
+     * clock is read once so every card on one response agrees. */
+    $fatigueNow = pw_missions_utc_now($db);
+    $fatigueMax = $fatigueReady ? pw_missions_fatigue_max($db, $userId, $researchEffects) : 0;
+    $crew = array_map(static function ($row) use ($crewFavoritesReady, $fatigueReady, $fatigueMax, $fatigueNow) {
         foreach (['id', 'level', 'xp'] as $field) $row[$field] = (int)$row[$field];
         $row['definition_enabled'] = (bool)$row['definition_enabled'];
         $row['is_favorite'] = $crewFavoritesReady && !empty($row['is_favorite']);
@@ -63,6 +75,14 @@ try {
         foreach (pw_missions_xp_progress($row['xp'], $row['level']) as $field => $value) {
             $row[$field] = $value;
         }
+        /* Fatigue is sent already caught up to now, with the regeneration rate
+         * beside it so the page can run its own countdown between loads rather
+         * than polling for a number it can derive. */
+        $row['fatigue_ready'] = $fatigueReady;
+        $row['fatigue'] = $fatigueReady ? pw_missions_resolve_fatigue($row, $fatigueMax, $fatigueNow) : 0;
+        $row['fatigue_max'] = $fatigueMax;
+        $row['fatigue_regen_per_minute'] = pw_missions_fatigue_regen_per_minute();
+        unset($row['fatigue_updated_at']);
         return $row;
     }, $crewStmt->fetchAll());
 
@@ -113,7 +133,7 @@ try {
          ORDER BY mission.sort_order ASC, mission.id ASC'
     );
     $missionsStmt->execute();
-    $worldMissions = array_map(static function ($row) use ($claimedCounts) {
+    $worldMissions = array_map(static function ($row) use ($claimedCounts, $fatigueReady) {
         foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls', 'watermark_opacity'] as $field) $row[$field] = (int)$row[$field];
         // Re-validated on the way out, not only on the way in: this reaches the
         // browser as a CSS url(), so a row edited straight in the database must
@@ -125,6 +145,11 @@ try {
         if ($row['unlocks_after_mission_id'] !== null) {
             $row['unlocks_after_completion_count'] = max(1, $row['unlocks_after_completion_count']);
         }
+        /* A pure function of the authored duration, so the figure on the card
+         * is the figure start.php charges -- see pw_missions_fatigue_cost().
+         * Zero until the migration has run, because start.php charges nothing
+         * then and a card must not advertise a cost that is not taken. */
+        $row['fatigue_cost'] = $fatigueReady ? pw_missions_fatigue_cost($row['duration_seconds']) : 0;
         return $row;
     }, $missionsStmt->fetchAll());
 
@@ -144,7 +169,7 @@ try {
      * further operations exist. */
     $publicFields = ['id', 'world_key', 'name', 'slug', 'description', 'mission_type', 'duration_seconds',
         'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'base_success_percent', 'loot_rolls',
-        'watermark_url', 'watermark_opacity'];
+        'watermark_url', 'watermark_opacity', 'fatigue_cost'];
     $slots = [];
     foreach (pw_missions_build_campaign_tracks($missionsById) as $chain) {
         $progress = pw_missions_track_progress($chain, $claimedCounts);

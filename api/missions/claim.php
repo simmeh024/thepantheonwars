@@ -27,6 +27,17 @@ try {
     $mission = $missionStmt->fetch();
     if (!$mission) throw new RuntimeException('Mission not found.');
     if ($mission['status'] === 'claimed') throw new RuntimeException('This mission has already been claimed.');
+    /* An active run whose time has passed is claimable directly. Completion is
+     * settled by the cron sweep and by overview.php, but neither is a guarantee
+     * -- the cron may not be scheduled, and a page held open across the
+     * completion moment reaches here without a fresh overview. Treating a due
+     * run as complete makes the reward path correct on its own rather than
+     * dependent on something else having run first. */
+    if ($mission['status'] === 'active' && pw_missions_datetime(pw_missions_utc_now($db)) >= $mission['completes_at']) {
+        $settle = $db->prepare('UPDATE game_player_missions SET status = "completed", completed_at = UTC_TIMESTAMP() WHERE id = ? AND status = "active"');
+        $settle->execute([$missionId]);
+        $mission['status'] = 'completed';
+    }
     if ($mission['status'] !== 'completed') throw new RuntimeException('Complete this mission before claiming its rewards.');
 
     $statsReady = pw_mission_stats_ready($db);
@@ -108,8 +119,14 @@ try {
     /* A failed mission returns its crew with no XP, no reputation and no loot,
      * and is recorded as "failed" rather than "claimed" -- the campaign unlock
      * gate counts claimed runs only, so a failure can never advance a chain. */
+    /* Rest is restarted from the moment the crew get back, not from the moment
+     * they left. Regeneration only accrues while a crew member is available, so
+     * without this stamp the whole time they were deployed would be paid back
+     * as rest the instant they returned -- a long operation would refund more
+     * fatigue than it charged and cost nothing at all. */
     $crewUpdate = $db->prepare(
-        'UPDATE game_player_crew SET xp = xp + ?, status = "available"
+        'UPDATE game_player_crew SET xp = xp + ?, status = "available"'
+        . (pw_mission_fatigue_ready($db) ? ', fatigue_updated_at = UTC_TIMESTAMP()' : '') . '
          WHERE user_id = ? AND id IN (' . pw_missions_placeholders(count($crewIds)) . ') AND status = "on_mission"'
     );
     $crewUpdate->execute(array_merge([$xpAwarded, $userId], $crewIds));

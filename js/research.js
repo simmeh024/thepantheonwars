@@ -44,6 +44,7 @@
     if (node.effect_type === 'secret_mission') return 'Unlocks ' + (node.target_mission_name || 'classified mission');
     if (node.effect_type === 'rare_loot_table') return 'Unlocks ' + (node.target_loot_table_name || 'rare loot table');
     if (node.effect_type === 'crew_capacity') return '+' + Math.floor(Number(node.effect_value) || 0) + ' crew slots';
+    if (node.effect_type === 'crew_fatigue') return '+' + Math.floor(Number(node.effect_value) || 0) + ' crew fatigue';
     return '+' + percent(node.effect_value) + '% ' + node.effect_short;
   }
   function nodeState(node) {
@@ -122,12 +123,19 @@
   }
 
   function renderEffects(effects) {
+    /* The third element marks a flat effect. Crew capacity is a count of berths
+     * and crew endurance a count of fatigue -- neither is a percentage, and
+     * both used to render as one ("+8% Crew capacity" for eight slots). */
     var rows = [
-      ['mission_speed_percent', 'Mission speed'], ['xp_percent', 'Mission XP'], ['reputation_percent', 'Mission reputation'], ['credit_percent', 'Mission credits'], ['crew_capacity', 'Crew capacity'],
+      ['mission_speed_percent', 'Mission speed'], ['xp_percent', 'Mission XP'], ['reputation_percent', 'Mission reputation'], ['credit_percent', 'Mission credits'],
+      ['crew_capacity', 'Crew capacity', 'slots'], ['crew_fatigue', 'Crew endurance', 'fatigue'],
       ['luck_percent', 'Rarity promotion'], ['market_discount_percent', 'Market discount'], ['market_refresh_percent', 'Market refresh']
     ].filter(function (row) { return Number(effects[row[0]]) > 0; });
     document.getElementById('research-effects-title').textContent = rows.length ? rows.length + ' online' : 'No protocols online';
-    effectsList.innerHTML = rows.length ? '<ul>' + rows.map(function (row) { return '<li><b>+' + percent(effects[row[0]]) + '%</b>' + esc(row[1]) + '</li>'; }).join('') + '</ul>' : '<p>Activate your first protocol to establish a permanent expedition advantage.</p>';
+    effectsList.innerHTML = rows.length ? '<ul>' + rows.map(function (row) {
+      var value = row[2] ? '+' + Math.floor(Number(effects[row[0]]) || 0) + ' ' + row[2] : '+' + percent(effects[row[0]]) + '%';
+      return '<li><b>' + esc(value) + '</b>' + esc(row[1]) + '</li>';
+    }).join('') + '</ul>' : '<p>Activate your first protocol to establish a permanent expedition advantage.</p>';
   }
 
   function queueRequirements(node) {
@@ -236,7 +244,8 @@
       var stateName = nodeState(node), statusText = nodeStatus(node, stateName), image = safeImage(node.image_url);
       var nodeLabel = (node.category ? node.category.name + ' / ' : '') + node.effect_label;
       var specialEffect = node.effect_type === 'secret_mission' || node.effect_type === 'rare_loot_table';
-      var effectValue = specialEffect ? 'CLASSIFIED' : (node.effect_type === 'crew_capacity' ? '+' + Math.floor(Number(node.effect_value) || 0) + ' slots' : '+' + percent(node.effect_value) + '%');
+      var flatUnit = { crew_capacity: 'slots', crew_fatigue: 'fatigue' }[node.effect_type];
+      var effectValue = specialEffect ? 'CLASSIFIED' : (flatUnit ? '+' + Math.floor(Number(node.effect_value) || 0) + ' ' + flatUnit : '+' + percent(node.effect_value) + '%');
       return '<article class="research-node is-' + stateName + (node.is_queued ? ' is-queued' : '') + (Number(node.id) === Number(state.justActivatedId) ? ' is-just-activated' : '') + '" style="left:' + Number(node.canvas_x) + 'px;top:' + Number(node.canvas_y) + 'px"><button type="button" class="research-node-select" aria-label="' + esc(node.name + ': ' + statusText) + '"><span class="research-node-top"><span class="research-node-art">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(nodeLabel) + '</small><strong>' + esc(node.name) + '</strong></span></span><p>' + esc(node.effect_short) + '</p><span class="research-node-foot"><span class="research-node-state is-' + stateName + '">' + esc(statusText) + '</span><b>' + esc(effectValue) + '</b></span></button>' + nodeHoverPanel(node, stateName) + '</article>';
     }).join('');
     board.innerHTML = '<svg class="research-tree-lines" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" aria-hidden="true">' + lines + '</svg>' + nodeMarkup;

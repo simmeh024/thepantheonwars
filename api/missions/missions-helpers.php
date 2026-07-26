@@ -98,6 +98,24 @@ function pw_mission_campaign_ready(PDO $db): bool {
 }
 
 /**
+ * Crew fatigue is an additive migration like every other optional mission
+ * feature: a missing column is a hard SQL error rather than NULL, so every read
+ * and write path probes first and falls back to the pre-fatigue behaviour.
+ * Deploy order is therefore not load-bearing.
+ */
+function pw_mission_fatigue_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_missions_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT fatigue, fatigue_updated_at FROM `game_player_crew` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+/**
  * Group one world's missions into ordered campaign tracks.
  *
  * A track is a succession chain followed forward from a mission that has no
@@ -421,6 +439,179 @@ const PW_MISSION_MAX_GEAR_STAT = 80;
  * progress bar and level lookup is derived from them. */
 const PW_MISSION_XP_BASE = 100;
 const PW_MISSION_XP_GROWTH = 1.08;
+
+/* ---------------------------------------------------------------------------
+ * Crew fatigue
+ *
+ * A spendable stamina pool rather than an accumulating debt: full at rest,
+ * spent at launch, regenerated while a crew member is available. It exists so
+ * roster breadth means something -- before it, the optimal play was to field
+ * the same three best crew forever, and the 8 berths, the capacity research and
+ * the whole keep-or-sell decision on a recruit offer had no pressure behind
+ * them.
+ *
+ * A mission costs PW_MISSION_FATIGUE_PER_BLOCK for each whole
+ * PW_MISSION_FATIGUE_BLOCK_SECONDS of its length, rounded down -- so an
+ * operation under ten minutes is free and a fifteen-minute one costs the same
+ * as a ten-minute one. The cost is read from the mission's authored
+ * duration_seconds, NOT the effective duration a particular crew achieves:
+ * charging the shortened time would make the cost move while the player was
+ * still picking crew, and the figure shown on the mission card before any crew
+ * is chosen has to be the figure charged.
+ *
+ * Regeneration is derived from those same two constants rather than declared
+ * separately, so the two halves can never drift: a crew member rests for
+ * exactly as long as the mission they just ran. That is what makes the maximum
+ * matter -- the pool is the number of back-to-back operations a crew member can
+ * absorb before the wait starts, and raising it is what turns a rested roster
+ * into a deeper one.
+ * ------------------------------------------------------------------------- */
+const PW_MISSION_FATIGUE_BASE_MAX = 100;
+const PW_MISSION_FATIGUE_PER_BLOCK = 10;
+const PW_MISSION_FATIGUE_BLOCK_SECONDS = 600;
+/* Every this many reputation ranks raises every crew member's ceiling by
+ * PW_MISSION_FATIGUE_REPUTATION_BONUS. Ranks are the ladder position, so the
+ * bonus arrives at ranks 5, 10, 15 and so on. */
+const PW_MISSION_FATIGUE_REPUTATION_STEP = 5;
+const PW_MISSION_FATIGUE_REPUTATION_BONUS = 10;
+/* A ceiling on what research alone may add, in the same spirit as the caps
+ * pw_research_player_effects() already applies to every other effect. */
+const PW_MISSION_FATIGUE_RESEARCH_CAP = 200;
+
+/**
+ * Marks every run whose completion time has passed as completed, and tells the
+ * player each one is waiting.
+ *
+ * A run used to reach "completed" only when the open browser tab's one-second
+ * countdown posted to api/missions/complete.php, so closing the tab left a
+ * finished operation sitting at "active" indefinitely -- the mechanic that
+ * makes long missions interesting was the one the player could not be present
+ * for. This is the settling path: api/cron/complete-missions.php sweeps every
+ * player on a schedule, and api/missions/overview.php calls it for the current
+ * player on load so the page is correct even if that cron is never scheduled.
+ *
+ * The status transition is the notification guard: the UPDATE names the old
+ * status, so only the request that actually moved the row sends the message and
+ * two concurrent sweeps cannot notify twice.
+ *
+ * @param int|null $userId One player, or null for every player (cron).
+ * @return int Runs settled.
+ */
+function pw_missions_settle_due_runs(PDO $db, ?int $userId = null, int $limit = 500): int {
+    if (!pw_missions_ready($db)) return 0;
+    try {
+        $stmt = $db->prepare(
+            'SELECT pm.id, pm.user_id, md.name
+             FROM game_player_missions pm
+             JOIN game_mission_definitions md ON md.id = pm.mission_definition_id
+             WHERE pm.status = "active" AND pm.completes_at <= UTC_TIMESTAMP()'
+            . ($userId !== null ? ' AND pm.user_id = ?' : '') . '
+             ORDER BY pm.completes_at ASC
+             LIMIT ' . max(1, $limit)
+        );
+        $stmt->execute($userId !== null ? [$userId] : []);
+        $due = $stmt->fetchAll();
+    } catch (Throwable $e) {
+        return 0;
+    }
+    if (!$due) return 0;
+
+    $settle = $db->prepare('UPDATE game_player_missions SET status = "completed", completed_at = UTC_TIMESTAMP() WHERE id = ? AND status = "active"');
+    $settled = 0;
+    foreach ($due as $run) {
+        try {
+            $settle->execute([(int)$run['id']]);
+            if ($settle->rowCount() !== 1) continue;
+            $settled++;
+            pw_missions_notify_run_ready((int)$run['user_id'], (string)$run['name']);
+        } catch (Throwable $e) {
+            // One unsettleable run must not abandon the rest of the sweep.
+        }
+    }
+    return $settled;
+}
+
+/**
+ * "Your operation has returned." Sent on the active -> completed transition
+ * only, so it fires once per run whichever path settled it.
+ */
+function pw_missions_notify_run_ready(int $userId, string $missionName): void {
+    try {
+        // Positional: (userId, type, actorUserId, topicId, commentId, reportId,
+        // excerpt). The mission name is the excerpt; there is no actor, because
+        // nobody did this to the player -- a timer elapsed.
+        pw_notify($userId, 'mission_ready', null, null, null, null, $missionName);
+    } catch (Throwable $e) {
+        // The notification type arrives with this feature's migration. Settling
+        // a finished run must never depend on it having been run.
+    }
+}
+
+/** Fatigue restored per minute of rest. Derived, never declared -- see above. */
+function pw_missions_fatigue_regen_per_minute(): float {
+    return PW_MISSION_FATIGUE_PER_BLOCK / (PW_MISSION_FATIGUE_BLOCK_SECONDS / 60);
+}
+
+/** Fatigue an operation of this authored length costs each crew member. */
+function pw_missions_fatigue_cost(int $durationSeconds): int {
+    $blocks = (int)floor(max(0, $durationSeconds) / PW_MISSION_FATIGUE_BLOCK_SECONDS);
+    return $blocks * PW_MISSION_FATIGUE_PER_BLOCK;
+}
+
+/**
+ * This player's fatigue ceiling, shared by every crew member they own.
+ *
+ * Research effects are passed in rather than looked up: research-helpers.php
+ * requires this file, so calling back into it here would be circular. Every
+ * caller that has the research layer loaded already computes the effects array
+ * for other reasons and simply hands it over.
+ */
+function pw_missions_fatigue_max(PDO $db, int $userId, array $researchEffects = []): int {
+    $max = PW_MISSION_FATIGUE_BASE_MAX;
+    try {
+        $stmt = $db->prepare('SELECT reputation FROM users WHERE id = ?');
+        $stmt->execute([$userId]);
+        $rank = (int)(pw_reputation_info(max(0, (int)$stmt->fetchColumn()))['level_number'] ?? 0);
+        $max += (int)floor($rank / PW_MISSION_FATIGUE_REPUTATION_STEP) * PW_MISSION_FATIGUE_REPUTATION_BONUS;
+    } catch (Throwable $e) {
+        // Reputation is a separate rollout. Its absence costs the bonus, never
+        // the base pool.
+    }
+    $research = (int)floor(max(0.0, (float)($researchEffects['crew_fatigue'] ?? 0)));
+    return $max + min(PW_MISSION_FATIGUE_RESEARCH_CAP, $research);
+}
+
+/**
+ * Current fatigue for one crew row, catching up the rest they have earned since
+ * the value was last written.
+ *
+ * Rest only accrues while a crew member is available. Without that condition a
+ * long operation would regenerate more than it cost -- a sixty-minute mission
+ * charges 60 and would hand back 60 while the crew were still out on it, making
+ * every long operation free and the whole mechanic decorative.
+ */
+function pw_missions_resolve_fatigue(array $crew, int $max, DateTimeImmutable $now): int {
+    $current = max(0, min($max, (int)($crew['fatigue'] ?? $max)));
+    if ((string)($crew['status'] ?? '') !== 'available') return $current;
+    $since = $crew['fatigue_updated_at'] ?? null;
+    if ($since === null || $since === '') return $current;
+    try {
+        $from = new DateTimeImmutable((string)$since, new DateTimeZone('UTC'));
+    } catch (Throwable $e) {
+        return $current;
+    }
+    $minutes = (int)floor(max(0, $now->getTimestamp() - $from->getTimestamp()) / 60);
+    if ($minutes < 1) return $current;
+    return (int)min($max, $current + (int)floor($minutes * pw_missions_fatigue_regen_per_minute()));
+}
+
+/** Seconds of rest before this crew member can afford a cost, 0 if they can. */
+function pw_missions_fatigue_recovery_seconds(int $current, int $needed): int {
+    if ($current >= $needed) return 0;
+    $rate = pw_missions_fatigue_regen_per_minute();
+    if ($rate <= 0) return 0;
+    return (int)ceil(($needed - $current) / $rate * 60);
+}
 
 /**
  * Stats a crew member has automatically allocated by this level: two points per

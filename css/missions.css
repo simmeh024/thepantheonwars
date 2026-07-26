@@ -676,6 +676,26 @@
  * and the muted tone the rest of them use measured 3.4:1 once that opacity was
  * applied. This one clears 6:1 through the same dimming. */
 .mission-launch-crew-tag.is-unavailable { color: #ccdde8; cursor: default; }
+/* Amber rather than the muted unavailable tone: a resting crew member is a wait
+ * the player can plan around, not a crew member they cannot use at all. */
+.mission-launch-crew-tag.is-resting { color: #edc179; }
+.mission-launch-crew-choice.is-resting { opacity: .78; }
+
+/* Crew fatigue. The pool a crew member spends to launch, shown on the roster
+ * card under the XP bar it deliberately mirrors -- same track height, same
+ * inset well -- so the two read as one progression block rather than two
+ * unrelated meters. Colour steps with the pool rather than the role, because
+ * unlike rank this is a state that changes hour to hour. */
+.crew-fatigue { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 8px; margin-top: 9px; cursor: help; }
+.crew-fatigue-label { color: #8ba3b4; font-size: .58rem; font-weight: 600; letter-spacing: .09em; text-transform: uppercase; }
+.crew-fatigue-track { height: 5px; overflow: hidden; background: rgba(3,6,14,.8); box-shadow: inset 0 1px 2px rgba(0,0,0,.38); }
+.crew-fatigue-track span { display: block; height: 100%; transition: width .4s ease; }
+.crew-fatigue b { color: #c9dbe6; font-size: .6rem; font-weight: 600; letter-spacing: .03em; white-space: nowrap; }
+.crew-fatigue.is-rested .crew-fatigue-track span { background: linear-gradient(90deg, #6fd8a4, #62d9e1); box-shadow: 0 0 9px rgba(111,216,164,.45); }
+.crew-fatigue.is-worn .crew-fatigue-track span { background: linear-gradient(90deg, #e6bd71, #d88758); box-shadow: 0 0 9px rgba(230,189,113,.42); }
+.crew-fatigue.is-spent .crew-fatigue-track span { background: linear-gradient(90deg, #e0806f, #c4566b); box-shadow: 0 0 9px rgba(224,128,111,.42); }
+.mission-definition-meta .is-fatigue { color: #edc179; }
+@media (prefers-reduced-motion: reduce) { .crew-fatigue-track span { transition: none; } }
 /* Projection. Every figure here is recomputed on the server at launch and again
  * at claim; this is only what the current selection is expected to produce. */
 .mission-launch-projection { margin-bottom: 4px; padding: 12px 13px; border: 1px solid rgba(88,142,181,0.32); background: rgba(8,18,33,0.55); }
