@@ -16,7 +16,9 @@ try {
      * This makes a retired protocol explainable without offering it to a new
      * account or silently removing an earned benefit. */
     $nodesStmt = $db->prepare(
-        'SELECT n.id, n.name, n.slug, n.description, n.image_url, n.effect_type, n.effect_value,
+        'SELECT n.id, n.name, n.slug, n.description, n.image_url, n.research_category_id,
+                category.name AS category_name, category.slug AS category_slug, category.description AS category_description,
+                n.effect_type, n.effect_value,
                 n.target_mission_definition_id, target.name AS target_mission_name,
                 n.required_reputation_level, n.credit_cost, n.salvage_loot_definition_id, n.salvage_quantity,
                 salvage.name AS salvage_name, salvage.tier AS salvage_tier, salvage.icon_url AS salvage_icon_url,
@@ -24,6 +26,7 @@ try {
                 pr.unlocked_at
          FROM game_research_nodes n
          LEFT JOIN game_player_research pr ON pr.research_node_id = n.id AND pr.user_id = ?
+         LEFT JOIN game_research_categories category ON category.id = n.research_category_id
          LEFT JOIN game_loot_definitions salvage ON salvage.id = n.salvage_loot_definition_id
          LEFT JOIN game_mission_definitions target ON target.id = n.target_mission_definition_id
          WHERE n.is_enabled = 1 OR pr.user_id IS NOT NULL
@@ -31,6 +34,12 @@ try {
     );
     $nodesStmt->execute([$userId]);
     $nodes = $nodesStmt->fetchAll();
+    $categories = $db->query('SELECT id, name, slug, description, sort_order FROM game_research_categories ORDER BY sort_order ASC, id ASC')->fetchAll();
+    foreach ($categories as &$category) {
+        $category['id'] = (int)$category['id'];
+        $category['sort_order'] = (int)$category['sort_order'];
+    }
+    unset($category);
     $nodeIds = array_map(static function ($row) { return (int)$row['id']; }, $nodes);
 
     $prerequisites = [];
@@ -80,6 +89,7 @@ try {
         $canUnlock = !$isUnlocked && (bool)$node['is_enabled'] && !$missing && $rankMet && $creditsMet && $salvageMet;
         $effect = pw_research_effect_types()[(string)$node['effect_type']] ?? null;
         if ($effect === null) continue;
+        $categoryId = $node['research_category_id'] !== null ? (int)$node['research_category_id'] : null;
         $publicNodes[] = [
             'id' => $id,
             'name' => (string)$node['name'],
@@ -89,6 +99,10 @@ try {
             'effect_label' => $effect['label'],
             'effect_short' => $effect['short'],
             'effect_value' => (float)$node['effect_value'],
+            'category' => $categoryId === null ? null : [
+                'id' => $categoryId, 'name' => (string)($node['category_name'] ?? 'Uncategorised'),
+                'slug' => (string)($node['category_slug'] ?? ''), 'description' => (string)($node['category_description'] ?? ''),
+            ],
             'target_mission_name' => (string)($node['target_mission_name'] ?? ''),
             'required_reputation_level' => (int)$node['required_reputation_level'],
             'credit_cost' => (int)$node['credit_cost'],
@@ -114,6 +128,7 @@ try {
         'credits' => $credits,
         'reputation' => array_merge($reputation, ['level_number' => $rank]),
         'effects' => $effects,
+        'categories' => $categories,
         'nodes' => $publicNodes,
         'board' => ['width' => PW_RESEARCH_BOARD_WIDTH, 'height' => PW_RESEARCH_BOARD_HEIGHT],
         'summary' => ['unlocked_count' => count($unlocked), 'available_count' => count(array_filter($publicNodes, static function ($node) { return $node['can_unlock']; }))],

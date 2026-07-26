@@ -4,13 +4,14 @@
 (function () {
   'use strict';
 
-  var nodes = [], salvage = [], missions = [], effectTypes = {}, boardSize = { width: 1560, height: 900 };
-  var current = null, dragging = null, panning = null, linkMode = false, linkSource = null, draftPosition = null, suppressClick = false;
+  var nodes = [], categories = [], salvage = [], missions = [], effectTypes = {}, boardSize = { width: 1560, height: 900 };
+  var current = null, categoryCurrent = null, dragging = null, panning = null, linkMode = false, linkSource = null, draftPosition = null, suppressClick = false;
   var canvas = document.getElementById('research-admin-canvas'), viewport = document.getElementById('research-admin-canvas-viewport');
   var count = document.getElementById('research-admin-count'), editorFields = document.getElementById('research-editor-fields');
   var imageUrl = document.getElementById('research-node-image-url'), imagePreview = document.getElementById('research-node-image-preview'), imageFile = document.getElementById('research-node-image-file');
   var effectType = document.getElementById('research-node-effect-type'), effectValue = document.getElementById('research-node-effect-value'), targetField = document.getElementById('research-node-target-field'), targetMission = document.getElementById('research-node-target-mission');
-  var prerequisites = document.getElementById('research-node-prerequisites'), salvageSelect = document.getElementById('research-node-salvage');
+  var prerequisites = document.getElementById('research-node-prerequisites'), salvageSelect = document.getElementById('research-node-salvage'), categorySelect = document.getElementById('research-node-category');
+  var categoryList = document.getElementById('research-category-list'), categoryFields = document.getElementById('research-category-fields');
 
   function can(key) { return typeof window.pwHasPermission === 'function' && window.pwHasPermission(key); }
   function esc(value) { var node = document.createElement('div'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
@@ -27,6 +28,7 @@
     });
   }
   function byId(id) { return nodes.filter(function (node) { return Number(node.id) === Number(id); })[0] || null; }
+  function categoryById(id) { return categories.filter(function (category) { return Number(category.id) === Number(id); })[0] || null; }
   function setError(message) { document.getElementById('research-node-error').textContent = message || ''; }
   function setNotice(message) { document.getElementById('research-node-status').textContent = message || ''; }
   function selectedIds(select) { return Array.prototype.slice.call(select.options).filter(function (option) { return option.selected; }).map(function (option) { return Number(option.value); }); }
@@ -88,9 +90,10 @@
       var selected = current && Number(current.id) === Number(node.id);
       var source = linkSource && Number(linkSource.id) === Number(node.id);
       var image = safeImage(node.image_url), type = effectTypes[node.effect_type] || {};
+      var nodeLabel = (node.category_name ? node.category_name + ' / ' : '') + (type.label || node.effect_type);
       var classes = 'research-admin-node' + (selected ? ' is-selected' : '') + (source ? ' is-link-source' : '') + (linkMode && !source ? ' is-link-target' : '') + (!node.is_enabled ? ' is-disabled' : '');
       return '<button type="button" class="' + classes + '" data-research-admin-node="' + Number(node.id) + '" style="left:' + Number(node.canvas_x) + 'px;top:' + Number(node.canvas_y) + 'px">' +
-        '<span class="research-admin-node-head"><span class="research-admin-node-mark">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(type.label || node.effect_type) + '</small><strong>' + esc(node.name) + '</strong></span></span>' +
+        '<span class="research-admin-node-head"><span class="research-admin-node-mark">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(nodeLabel) + '</small><strong>' + esc(node.name) + '</strong></span></span>' +
         '<p>' + esc(node.description || 'No field briefing yet.') + '</p><span class="research-admin-node-foot"><span>' + ((node.prerequisite_ids || []).length ? (node.prerequisite_ids || []).length + ' prerequisite' + ((node.prerequisite_ids || []).length === 1 ? '' : 's') : 'Root protocol') + '</span><b>' + esc(valueText(node)) + '</b></span>' +
       '</button>';
     }).join('');
@@ -126,6 +129,7 @@
     document.getElementById('research-node-slug').dataset.touched = current && current.id ? '1' : '';
     document.getElementById('research-node-description').value = current ? current.description || '' : '';
     imageUrl.value = current ? current.image_url || '' : ''; previewImage();
+    fillSelect(categorySelect, categories, current ? current.research_category_id : null, 'Uncategorised', function (category) { return category.name; });
     effectType.innerHTML = Object.keys(effectTypes).map(function (key) { return '<option value="' + esc(key) + '">' + esc(effectTypes[key].label) + '</option>'; }).join('');
     effectType.value = current ? current.effect_type : 'mission_speed'; effectValue.value = current ? current.effect_value : 5;
     fillSelect(targetMission, missions, current ? current.target_mission_definition_id : null, 'Choose mission', function (item) { return item.name + ' · ' + item.mission_type + (item.is_enabled ? '' : ' (disabled)'); });
@@ -152,6 +156,7 @@
       id: current && current.id ? current.id : undefined,
       name: document.getElementById('research-node-name').value, slug: document.getElementById('research-node-slug').value,
       description: document.getElementById('research-node-description').value, image_url: imageUrl.value,
+      research_category_id: categorySelect.value,
       effect_type: effectType.value, effect_value: effectValue.value, target_mission_definition_id: targetMission.value,
       prerequisite_ids: selectedIds(prerequisites), required_reputation_level: document.getElementById('research-node-rank').value,
       credit_cost: document.getElementById('research-node-credit-cost').value, salvage_loot_definition_id: salvageSelect.value,
@@ -192,13 +197,73 @@
     linkMode = false; linkSource = null; showEditor(null, visibleCanvasPosition());
     window.setTimeout(function () { document.getElementById('research-node-name').focus(); }, 0);
   }
+  function setCategoryError(message) { document.getElementById('research-category-error').textContent = message || ''; }
+  function setCategoryNotice(message) { document.getElementById('research-category-status').textContent = message || ''; }
+  function renderCategories() {
+    if (!categoryList) return;
+    categoryList.innerHTML = categories.length ? categories.map(function (category) {
+      var selected = categoryCurrent && Number(categoryCurrent.id) === Number(category.id);
+      var assigned = nodes.filter(function (node) { return Number(node.research_category_id) === Number(category.id); }).length;
+      return '<button type="button" class="research-category-row' + (selected ? ' is-selected' : '') + '" data-research-category="' + Number(category.id) + '"><span><strong>' + esc(category.name) + '</strong><small>' + esc(category.description || 'No branch briefing yet.') + '</small></span><span>' + assigned + ' protocol' + (assigned === 1 ? '' : 's') + '</span></button>';
+    }).join('') : '<p class="admin-list-empty">No research categories yet. Add one to begin organising protocol branches.</p>';
+  }
+  function showCategoryEditor(category) {
+    categoryCurrent = category || null;
+    categoryFields.hidden = false;
+    document.getElementById('research-category-editor-title').textContent = categoryCurrent ? 'Edit Research Category' : 'Add Research Category';
+    document.getElementById('research-category-editor-copy').textContent = categoryCurrent ? 'Refine this branch without changing the protocols already assigned to it.' : 'Create a reusable branch for the public research lattice.';
+    document.getElementById('research-category-name').value = categoryCurrent ? categoryCurrent.name || '' : '';
+    document.getElementById('research-category-slug').value = categoryCurrent ? categoryCurrent.slug || '' : '';
+    document.getElementById('research-category-slug').dataset.touched = categoryCurrent ? '1' : '';
+    document.getElementById('research-category-description').value = categoryCurrent ? categoryCurrent.description || '' : '';
+    document.getElementById('research-category-sort-order').value = categoryCurrent ? categoryCurrent.sort_order : categories.length * 10;
+    document.getElementById('research-category-save-btn').disabled = !can('research.manage');
+    document.getElementById('research-category-delete-btn').hidden = !categoryCurrent || !can('research.manage');
+    setCategoryError(''); setCategoryNotice(''); renderCategories();
+  }
+  function hideCategoryEditor() {
+    categoryCurrent = null; categoryFields.hidden = true;
+    document.getElementById('research-category-editor-title').textContent = 'Select a category';
+    document.getElementById('research-category-editor-copy').textContent = 'Choose a category to refine its branch, or add a new one for future protocols.';
+    setCategoryError(''); setCategoryNotice(''); renderCategories();
+  }
+  function categoryPayload() {
+    return {
+      id: categoryCurrent ? categoryCurrent.id : undefined,
+      name: document.getElementById('research-category-name').value,
+      slug: document.getElementById('research-category-slug').value,
+      description: document.getElementById('research-category-description').value,
+      sort_order: document.getElementById('research-category-sort-order').value
+    };
+  }
+  function saveCategory() {
+    if (!can('research.manage')) return;
+    var button = document.getElementById('research-category-save-btn');
+    button.disabled = true; button.classList.add('is-busy'); setCategoryError('');
+    request('/api/admin/research/category-save.php', categoryPayload()).then(function (result) {
+      categoryCurrent = { id: result.id };
+      return load().then(function () { showCategoryEditor(categoryById(result.id)); setCategoryNotice('Research category saved.'); });
+    }).catch(function (error) { setCategoryError(error.message); }).then(function () { button.disabled = !can('research.manage'); button.classList.remove('is-busy'); });
+  }
+  function deleteCategory() {
+    if (!can('research.manage') || !categoryCurrent) return;
+    if (!window.confirm('Delete this research category? Assigned protocols will remain available as uncategorised.')) return;
+    var button = document.getElementById('research-category-delete-btn');
+    button.disabled = true; setCategoryError('');
+    request('/api/admin/research/category-delete.php', { id: categoryCurrent.id }).then(function () {
+      return load().then(function () { hideCategoryEditor(); setCategoryNotice('Research category deleted. Assigned protocols are now uncategorised.'); });
+    }).catch(function (error) { setCategoryError(error.message); }).then(function () { button.disabled = !can('research.manage'); });
+  }
   function toggleLinkMode() {
     if (!can('research.manage') || nodes.length < 2) return;
     linkMode = !linkMode; linkSource = null; setError(''); setNotice(''); renderCanvas();
   }
   function load() {
     return request('/api/admin/research/list.php?refresh=' + Date.now()).then(function (data) {
-      nodes = data.nodes || []; salvage = data.salvage || []; missions = data.missions || []; effectTypes = data.effect_types || {}; boardSize = data.board || boardSize; renderCanvas();
+      nodes = data.nodes || []; categories = data.categories || []; salvage = data.salvage || []; missions = data.missions || []; effectTypes = data.effect_types || {}; boardSize = data.board || boardSize;
+      if (categoryCurrent && categoryCurrent.id) categoryCurrent = categoryById(categoryCurrent.id);
+      if (!editorFields.hidden) fillSelect(categorySelect, categories, categorySelect.value, 'Uncategorised', function (category) { return category.name; });
+      renderCanvas(); renderCategories();
     }).catch(function (error) {
       canvas.innerHTML = '<p class="admin-list-empty">' + esc(error.message || 'Could not load Research Management.') + '</p>'; count.textContent = '';
     });
@@ -273,6 +338,21 @@
   canvas.addEventListener('pointercancel', finishPointer);
 
   document.getElementById('research-node-create-btn').addEventListener('click', beginAddProtocol);
+  document.getElementById('research-category-create-btn').addEventListener('click', function () { if (can('research.manage')) showCategoryEditor(null); });
+  categoryList.addEventListener('click', function (event) {
+    var row = event.target.closest('[data-research-category]');
+    if (!row || !categoryList.contains(row)) return;
+    var category = categoryById(Number(row.getAttribute('data-research-category')));
+    if (category) showCategoryEditor(category);
+  });
+  document.getElementById('research-category-save-btn').addEventListener('click', saveCategory);
+  document.getElementById('research-category-cancel-btn').addEventListener('click', hideCategoryEditor);
+  document.getElementById('research-category-delete-btn').addEventListener('click', deleteCategory);
+  document.getElementById('research-category-name').addEventListener('input', function () {
+    var slug = document.getElementById('research-category-slug');
+    if ((!categoryCurrent || !categoryCurrent.id) && (!slug.dataset.touched || !slug.value)) slug.value = slugify(this.value).slice(0, 80);
+  });
+  document.getElementById('research-category-slug').addEventListener('input', function () { this.dataset.touched = '1'; });
   document.getElementById('research-node-save-btn').addEventListener('click', save);
   document.getElementById('research-node-cancel-btn').addEventListener('click', function () { if (current && current.id) showEditor(byId(current.id)); else hideEditor(); });
   effectType.addEventListener('change', toggleEffectFields);

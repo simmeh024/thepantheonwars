@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=318"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=2">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=318"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=3">
 </head>
 <body>
 
@@ -2190,6 +2190,7 @@
             <div class="admin-field"><label for="research-node-name">Protocol name</label><input type="text" id="research-node-name" maxlength="120" placeholder="e.g. Relay Compression"></div>
             <div class="admin-field"><label for="research-node-slug">Slug</label><input type="text" id="research-node-slug" maxlength="120" placeholder="relay-compression"><p class="admin-field-hint">Lowercase letters, numbers and hyphens only. This permanent identifier cannot be reused.</p></div>
             <div class="admin-field"><label for="research-node-description">Field briefing</label><textarea id="research-node-description" rows="4" maxlength="2000" placeholder="Describe what this protocol delivers to a command."></textarea></div>
+            <div class="admin-field"><label for="research-node-category">Research category</label><select id="research-node-category"><option value="">Uncategorised</option></select><p class="admin-field-hint">Categories are managed below. Leave this unassigned when a protocol should remain in the shared lattice.</p></div>
             <div class="admin-field"><label for="research-node-image-url">Protocol image</label><div class="research-image-field"><img id="research-node-image-preview" alt="" hidden><input type="text" id="research-node-image-url" maxlength="255" placeholder="Upload an image to attach it"><input type="file" id="research-node-image-file" accept="image/jpeg,image/png,image/webp" hidden><button type="button" class="btn" id="research-node-image-upload">Upload image</button><button type="button" class="btn" id="research-node-image-clear">Clear</button></div><p class="admin-field-hint">JPG, PNG and WEBP up to 8MB. Uploads are resized and stored in the Research Facility image library.</p></div>
             <div class="admin-field-row"><div class="admin-field"><label for="research-node-effect-type">Field effect</label><select id="research-node-effect-type"><option value="mission_speed">Mission speed</option><option value="xp_gain">Experience gain</option><option value="reputation_gain">Reputation gain</option><option value="luck">Recovery luck</option><option value="market_discount">Market discount</option><option value="market_refresh">Market refresh</option><option value="secret_mission">Secret mission access</option></select></div><div class="admin-field" id="research-node-effect-value-field"><label for="research-node-effect-value">Effect value (%)</label><input type="number" id="research-node-effect-value" min="0.01" max="50" step="0.01" value="5"></div></div>
             <div class="admin-field" id="research-node-target-field" hidden><label for="research-node-target-mission">Classified mission revealed</label><select id="research-node-target-mission"><option value="">Choose mission</option></select><p class="admin-field-hint">The selected Neoh mission is hidden from players until this protocol is unlocked.</p></div>
@@ -2203,6 +2204,10 @@
           </div>
         </div>
       </div>
+      <section class="research-category-admin-card" aria-labelledby="research-category-title">
+        <div class="research-category-admin-head"><div><span class="eyebrow">Lattice branches</span><h2 id="research-category-title">Research categories</h2><p>Create reusable branches such as Fieldcraft, Market Operations or Signal Intelligence. Assign one to each protocol when editing its dossier.</p></div><button type="button" class="btn btn-solid" id="research-category-create-btn" data-requires-permission="research.manage">+ Add Category</button></div>
+        <div class="research-category-admin-layout"><div class="research-category-list" id="research-category-list"><p class="admin-list-empty">Loading research categories&hellip;</p></div><div class="research-category-editor"><div><span class="eyebrow">Category dossier</span><h3 id="research-category-editor-title">Select a category</h3><p id="research-category-editor-copy">Choose a category to refine its branch, or add a new one for future protocols.</p></div><div class="research-category-fields" id="research-category-fields" hidden><div class="admin-field"><label for="research-category-name">Category name</label><input type="text" id="research-category-name" maxlength="80" placeholder="e.g. Fieldcraft"></div><div class="admin-field"><label for="research-category-slug">Slug</label><input type="text" id="research-category-slug" maxlength="80" placeholder="fieldcraft"><p class="admin-field-hint">Lowercase letters, numbers and hyphens only.</p></div><div class="admin-field"><label for="research-category-description">Branch briefing</label><textarea id="research-category-description" rows="3" maxlength="255" placeholder="A short description for this research branch."></textarea></div><div class="admin-field"><label for="research-category-sort-order">List order</label><input type="number" id="research-category-sort-order" min="0" max="100000" step="1" value="0"></div><p class="admin-modal-error" id="research-category-error"></p><p class="admin-modal-status" id="research-category-status"></p><div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="research-category-save-btn" data-requires-permission="research.manage">Save Category</button><button type="button" class="btn" id="research-category-cancel-btn">Cancel</button><button type="button" class="admin-delete-btn" id="research-category-delete-btn" data-requires-permission="research.manage" hidden>Delete Category</button></div></div></div></div>
+      </section>
     </section>
 
     <section class="admin-section" id="section-book-control" hidden>
@@ -4450,7 +4455,7 @@
 </div>
 
 <script src="../js/members.js?v=42"></script>
-<script src="../js/admin-missions.js?v=8"></script><script src="../js/admin-loot-tables.js?v=2"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=2"></script>
+<script src="../js/admin-missions.js?v=8"></script><script src="../js/admin-loot-tables.js?v=2"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=3"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };

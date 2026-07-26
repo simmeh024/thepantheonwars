@@ -21,8 +21,8 @@ try {
     $prerequisites = pw_admin_research_prerequisites($db, $id, $input['prerequisite_ids'] ?? []);
     if ($id === null) {
         $insert = $db->prepare(
-            'INSERT INTO game_research_nodes (name, slug, description, image_url, effect_type, effect_value, target_mission_definition_id, required_reputation_level, credit_cost, salvage_loot_definition_id, salvage_quantity, canvas_x, canvas_y, sort_order, is_enabled)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO game_research_nodes (name, slug, description, image_url, research_category_id, effect_type, effect_value, target_mission_definition_id, required_reputation_level, credit_cost, salvage_loot_definition_id, salvage_quantity, canvas_x, canvas_y, sort_order, is_enabled)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
         );
         $insert->execute(array_values($data));
         $id = (int)$db->lastInsertId();
@@ -30,7 +30,7 @@ try {
         $verb = 'Created';
     } else {
         $update = $db->prepare(
-            'UPDATE game_research_nodes SET name = ?, slug = ?, description = ?, image_url = ?, effect_type = ?, effect_value = ?, target_mission_definition_id = ?, required_reputation_level = ?, credit_cost = ?, salvage_loot_definition_id = ?, salvage_quantity = ?, canvas_x = ?, canvas_y = ?, sort_order = ?, is_enabled = ? WHERE id = ?'
+            'UPDATE game_research_nodes SET name = ?, slug = ?, description = ?, image_url = ?, research_category_id = ?, effect_type = ?, effect_value = ?, target_mission_definition_id = ?, required_reputation_level = ?, credit_cost = ?, salvage_loot_definition_id = ?, salvage_quantity = ?, canvas_x = ?, canvas_y = ?, sort_order = ?, is_enabled = ? WHERE id = ?'
         );
         $update->execute(array_merge(array_values($data), [$id]));
         $action = 'research_node_updated';

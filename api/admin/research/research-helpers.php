@@ -5,6 +5,18 @@ function pw_admin_research_require_ready(PDO $db): void {
     pw_research_require_ready($db);
 }
 
+function pw_admin_research_category_input(array $input): array {
+    $name = trim((string)($input['name'] ?? ''));
+    if ($name === '' || mb_strlen($name) > 80) pw_error('Category name must be between 1 and 80 characters.');
+    $slug = trim((string)($input['slug'] ?? ''));
+    if (!preg_match('/\A[a-z0-9][a-z0-9-]{0,79}\z/', $slug)) pw_error('Category slug may use lowercase letters, numbers, and hyphens only.');
+    $description = trim((string)($input['description'] ?? ''));
+    if (mb_strlen($description) > 255) pw_error('Category description may not exceed 255 characters.');
+    $sortOrder = filter_var($input['sort_order'] ?? 0, FILTER_VALIDATE_INT);
+    if ($sortOrder === false || $sortOrder < 0 || $sortOrder > 100000) pw_error('Category sort order must be between 0 and 100000.');
+    return ['name' => $name, 'slug' => $slug, 'description' => $description, 'sort_order' => $sortOrder];
+}
+
 function pw_admin_research_node_input(PDO $db, array $input): array {
     $name = trim((string)($input['name'] ?? ''));
     if ($name === '' || mb_strlen($name) > 120) pw_error('Research name must be between 1 and 120 characters.');
@@ -12,6 +24,15 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
     if (!preg_match('/\A[a-z0-9][a-z0-9-]{0,119}\z/', $slug)) pw_error('Research slug may use lowercase letters, numbers, and hyphens only.');
     $description = trim((string)($input['description'] ?? ''));
     if ($description === '' || mb_strlen($description) > 2000) pw_error('Research description must be between 1 and 2,000 characters.');
+    $categoryId = null;
+    $categoryRaw = trim((string)($input['research_category_id'] ?? ''));
+    if ($categoryRaw !== '') {
+        $categoryId = filter_var($categoryRaw, FILTER_VALIDATE_INT);
+        if ($categoryId === false || $categoryId < 1) pw_error('Choose a valid research category.');
+        $category = $db->prepare('SELECT id FROM game_research_categories WHERE id = ?');
+        $category->execute([$categoryId]);
+        if (!$category->fetch()) pw_error('The selected research category no longer exists.', 404);
+    }
     $effectType = trim((string)($input['effect_type'] ?? ''));
     if (!isset(pw_research_effect_types()[$effectType])) pw_error('Choose a valid research effect.');
 
@@ -65,7 +86,7 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
     $imageUrl = trim((string)($input['image_url'] ?? ''));
     if ($imageUrl !== '' && pw_research_image_url($imageUrl) === '') pw_error('Choose a research image from the uploaded image library.');
     return [
-        'name' => $name, 'slug' => $slug, 'description' => $description, 'image_url' => pw_research_image_url($imageUrl),
+        'name' => $name, 'slug' => $slug, 'description' => $description, 'image_url' => pw_research_image_url($imageUrl), 'research_category_id' => $categoryId,
         'effect_type' => $effectType, 'effect_value' => $effectValue, 'target_mission_definition_id' => $targetMissionId,
         'required_reputation_level' => $rank, 'credit_cost' => $creditCost,
         'salvage_loot_definition_id' => $salvageId, 'salvage_quantity' => $salvageQuantity,

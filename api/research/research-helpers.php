@@ -27,7 +27,7 @@ function pw_research_ready(PDO $db): bool {
     if ($ready !== null) return $ready;
     if (!pw_mission_credits_ready($db) || !pw_mission_gear_ready($db)) return $ready = false;
     try {
-        foreach (['game_research_nodes', 'game_research_prerequisites', 'game_player_research'] as $table) {
+        foreach (['game_research_categories', 'game_research_nodes', 'game_research_prerequisites', 'game_player_research'] as $table) {
             $db->query('SELECT 1 FROM `' . $table . '` LIMIT 1');
         }
         return $ready = true;
@@ -38,7 +38,7 @@ function pw_research_ready(PDO $db): bool {
 
 function pw_research_require_ready(PDO $db): void {
     if (!pw_research_ready($db)) {
-        pw_error('The Research Facility is being prepared. Please try again after sql/migration_research_system.sql has been run.', 503);
+        pw_error('The Research Facility is being prepared. Please try again after the research migrations have been run.', 503);
     }
 }
 

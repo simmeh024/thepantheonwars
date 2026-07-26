@@ -1848,16 +1848,31 @@ CREATE TABLE IF NOT EXISTS game_player_loot (
   CONSTRAINT fk_game_player_loot_definition FOREIGN KEY (loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- sql/migration_research_system.sql. A Research node is shared configuration;
+-- sql/migration_research_system.sql and sql/migration_research_categories.sql.
+-- Categories are administrator-authored branches that organise the shared
+-- protocol lattice. A Research node is shared configuration;
 -- game_player_research is the account-owned, permanent unlock record. The
 -- prerequisite join table permits a real branching tree without serialising
 -- relationships into a fragile comma-separated field.
+CREATE TABLE IF NOT EXISTS game_research_categories (
+  id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(80) NOT NULL,
+  slug VARCHAR(80) NOT NULL,
+  description VARCHAR(255) NOT NULL DEFAULT '',
+  sort_order INT UNSIGNED NOT NULL DEFAULT 0,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_game_research_category_slug (slug),
+  KEY idx_game_research_categories_sort (sort_order, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS game_research_nodes (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(120) NOT NULL,
   slug VARCHAR(120) NOT NULL,
   description TEXT NULL,
   image_url VARCHAR(255) NOT NULL DEFAULT '',
+  research_category_id INT UNSIGNED NULL,
   effect_type VARCHAR(32) NOT NULL,
   effect_value DECIMAL(7,2) NOT NULL DEFAULT 0,
   target_mission_definition_id INT UNSIGNED NULL,
@@ -1874,7 +1889,9 @@ CREATE TABLE IF NOT EXISTS game_research_nodes (
   UNIQUE KEY uq_game_research_node_slug (slug),
   UNIQUE KEY uq_game_research_secret_mission (target_mission_definition_id),
   KEY idx_game_research_nodes_enabled (is_enabled, sort_order),
+  KEY idx_game_research_nodes_category (research_category_id, sort_order),
   KEY idx_game_research_salvage (salvage_loot_definition_id),
+  CONSTRAINT fk_game_research_node_category FOREIGN KEY (research_category_id) REFERENCES game_research_categories(id) ON DELETE SET NULL,
   CONSTRAINT fk_game_research_target_mission FOREIGN KEY (target_mission_definition_id) REFERENCES game_mission_definitions(id) ON DELETE SET NULL,
   CONSTRAINT fk_game_research_salvage FOREIGN KEY (salvage_loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

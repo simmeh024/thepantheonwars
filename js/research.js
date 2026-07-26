@@ -3,7 +3,7 @@
 (function () {
   'use strict';
 
-  var state = { data: null, selectedId: null, busyId: null };
+  var state = { data: null, selectedId: null, busyId: null, categoryFilter: '' };
   var gate = document.getElementById('research-gate');
   var content = document.getElementById('research-content');
   var board = document.getElementById('research-tree-board');
@@ -11,6 +11,8 @@
   var detail = document.getElementById('research-detail');
   var status = document.getElementById('research-status');
   var effectsList = document.getElementById('research-effects-list');
+  var categoryFilter = document.getElementById('research-category-filter');
+  var categoryFilterWrap = document.getElementById('research-category-filter-wrap');
 
   function esc(value) { var node = document.createElement('div'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
   function number(value) { return Math.max(0, Number(value) || 0).toLocaleString(); }
@@ -21,6 +23,24 @@
   function nodeById(id) { return (state.data && state.data.nodes || []).filter(function (node) { return Number(node.id) === Number(id); })[0] || null; }
   function effectText(node) { return node.effect_type === 'secret_mission' ? 'Unlocks ' + (node.target_mission_name || 'classified mission') : '+' + percent(node.effect_value) + '% ' + node.effect_short; }
   function nodeState(node) { if (node.is_unlocked) return 'unlocked'; if (node.can_unlock) return 'available'; return node.is_enabled ? 'locked' : 'retired'; }
+  function filteredNodes(data) {
+    var nodes = Array.isArray(data && data.nodes) ? data.nodes : [];
+    if (!state.categoryFilter) return nodes;
+    if (state.categoryFilter === 'uncategorized') return nodes.filter(function (node) { return !node.category; });
+    var categoryId = Number(state.categoryFilter.replace('category-', ''));
+    return nodes.filter(function (node) { return node.category && Number(node.category.id) === categoryId; });
+  }
+  function renderCategoryFilter(data) {
+    var categories = Array.isArray(data && data.categories) ? data.categories : [];
+    var hasUncategorised = (data.nodes || []).some(function (node) { return !node.category; });
+    var options = '<option value="">All categories</option>' + categories.map(function (category) {
+      return '<option value="category-' + Number(category.id) + '">' + esc(category.name) + '</option>';
+    }).join('') + (hasUncategorised ? '<option value="uncategorized">Uncategorised</option>' : '');
+    categoryFilter.innerHTML = options;
+    if (state.categoryFilter && !categoryFilter.querySelector('option[value="' + state.categoryFilter + '"]')) state.categoryFilter = '';
+    categoryFilter.value = state.categoryFilter;
+    categoryFilterWrap.hidden = !(categories.length || hasUncategorised);
+  }
 
   function renderCommand(data) {
     var reputation = data.reputation || {};
@@ -42,8 +62,8 @@
   }
 
   function renderTree(data) {
-    var nodes = Array.isArray(data.nodes) ? data.nodes : [];
-    if (!nodes.length) { board.style.width = ''; board.style.minHeight = ''; board.innerHTML = '<p class="research-empty">Research command has not published any protocols yet.</p>'; return; }
+    var nodes = filteredNodes(data);
+    if (!nodes.length) { board.style.width = ''; board.style.minHeight = ''; board.innerHTML = '<p class="research-empty">' + (state.categoryFilter ? 'No protocols have been assigned to this category yet.' : 'Research command has not published any protocols yet.') + '</p>'; return; }
     var dimensions = data.board || {}, width = Math.max(960, Number(dimensions.width) || 1560), height = Math.max(600, Number(dimensions.height) || 900);
     board.style.width = width + 'px'; board.style.minHeight = height + 'px';
     var byId = {}; nodes.forEach(function (node) { byId[Number(node.id)] = node; });
@@ -57,7 +77,8 @@
     }).join('');
     var nodeMarkup = nodes.map(function (node) {
       var stateName = nodeState(node), image = safeImage(node.image_url), selected = Number(node.id) === Number(state.selectedId);
-      return '<button type="button" class="research-node is-' + stateName + (selected ? ' is-selected' : '') + '" data-research-node="' + Number(node.id) + '" style="left:' + Number(node.canvas_x) + 'px;top:' + Number(node.canvas_y) + 'px" aria-pressed="' + (selected ? 'true' : 'false') + '"><span class="research-node-top"><span class="research-node-art">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(node.effect_label) + '</small><strong>' + esc(node.name) + '</strong></span></span><p>' + esc(node.effect_short) + '</p><span class="research-node-foot"><span>' + (node.is_unlocked ? 'Protocol active' : (node.can_unlock ? 'Ready to unlock' : 'Requirements pending')) + '</span><b>' + esc(node.effect_type === 'secret_mission' ? 'CLASSIFIED' : '+' + percent(node.effect_value) + '%') + '</b></span></button>';
+      var nodeLabel = (node.category ? node.category.name + ' / ' : '') + node.effect_label;
+      return '<button type="button" class="research-node is-' + stateName + (selected ? ' is-selected' : '') + '" data-research-node="' + Number(node.id) + '" style="left:' + Number(node.canvas_x) + 'px;top:' + Number(node.canvas_y) + 'px" aria-pressed="' + (selected ? 'true' : 'false') + '"><span class="research-node-top"><span class="research-node-art">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(nodeLabel) + '</small><strong>' + esc(node.name) + '</strong></span></span><p>' + esc(node.effect_short) + '</p><span class="research-node-foot"><span>' + (node.is_unlocked ? 'Protocol active' : (node.can_unlock ? 'Ready to unlock' : 'Requirements pending')) + '</span><b>' + esc(node.effect_type === 'secret_mission' ? 'CLASSIFIED' : '+' + percent(node.effect_value) + '%') + '</b></span></button>';
     }).join('');
     board.innerHTML = '<svg class="research-tree-lines" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" aria-hidden="true">' + lines + '</svg>' + nodeMarkup;
   }
@@ -77,13 +98,14 @@
       : (!node.is_enabled ? '<p class="research-detail-state is-retired">This protocol has been retired from new research.</p>'
         : (missing.length ? '<p class="research-detail-state is-locked">Missing prerequisite: ' + missing.map(function (item) { return esc(item.name); }).join(', ') + '.</p>' : '<p class="research-detail-state is-locked">Meet every listed requirement to authorise this protocol.</p>'));
     var action = node.can_unlock ? '<button type="button" class="btn btn-solid research-unlock-btn" data-research-unlock="' + Number(node.id) + '"' + (state.busyId === Number(node.id) ? ' disabled' : '') + '>' + (state.busyId === Number(node.id) ? 'Authorising…' : 'Unlock protocol') + '</button>' : '';
-    detail.innerHTML = '<div class="research-detail-grid"><div><span class="eyebrow">' + esc(node.effect_label) + '</span><h2>' + esc(node.name) + '</h2><p>' + esc(node.description) + '</p><p class="research-detail-effect">' + esc(effectText(node)) + '</p><p class="research-detail-prereqs"><b>Research path:</b> ' + prerequisiteCopy + '</p>' + stateCopy + action + '</div><div class="research-detail-meta">' + requirements + '</div></div>';
+    detail.innerHTML = '<div class="research-detail-grid"><div><span class="eyebrow">' + esc((node.category ? node.category.name + ' / ' : '') + node.effect_label) + '</span><h2>' + esc(node.name) + '</h2><p>' + esc(node.description) + '</p><p class="research-detail-effect">' + esc(effectText(node)) + '</p><p class="research-detail-prereqs"><b>Research path:</b> ' + prerequisiteCopy + '</p>' + stateCopy + action + '</div><div class="research-detail-meta">' + requirements + '</div></div>';
   }
 
   function render(data) {
     state.data = data;
-    var nodes = data.nodes || [];
-    if (!nodeById(state.selectedId)) {
+    renderCategoryFilter(data);
+    var nodes = filteredNodes(data);
+    if (!nodes.some(function (node) { return Number(node.id) === Number(state.selectedId); })) {
       var available = nodes.filter(function (node) { return node.can_unlock; })[0];
       state.selectedId = available ? available.id : (nodes[0] ? nodes[0].id : null);
     }
@@ -128,6 +150,7 @@
   board.addEventListener('pointerup', finishMousePan);
   board.addEventListener('pointercancel', finishMousePan);
   board.addEventListener('click', function (event) { var button = event.target.closest('[data-research-node]'); if (!button) return; state.selectedId = Number(button.getAttribute('data-research-node')); renderTree(state.data); renderDetail(); });
+  categoryFilter.addEventListener('change', function () { state.categoryFilter = categoryFilter.value; var nodes = filteredNodes(state.data); state.selectedId = nodes.length ? nodes[0].id : null; renderTree(state.data); renderDetail(); });
   detail.addEventListener('click', function (event) { var button = event.target.closest('[data-research-unlock]'); if (button) unlock(Number(button.getAttribute('data-research-unlock'))); });
   document.addEventListener('pw-auth-ready', load);
   load();
