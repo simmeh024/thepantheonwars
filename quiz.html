@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=311">
+<link rel="stylesheet" href="css/public.css?v=312">
 </head>
 <body>
 
@@ -149,16 +149,22 @@
 
           <div class="result-share">
             <div class="result-share-card" aria-label="Shareable quiz result card">
+              <span class="result-share-card-corner result-share-card-corner--tl" aria-hidden="true"></span><span class="result-share-card-corner result-share-card-corner--tr" aria-hidden="true"></span><span class="result-share-card-corner result-share-card-corner--br" aria-hidden="true"></span><span class="result-share-card-corner result-share-card-corner--bl" aria-hidden="true"></span>
+              <div class="result-share-card-sigil" aria-hidden="true"><span class="result-share-card-sigil-mark"></span></div>
+              <div class="result-share-card-network" aria-hidden="true"><i class="result-share-card-network-line result-share-card-network-line--one"></i><i class="result-share-card-network-line result-share-card-network-line--two"></i><i class="result-share-card-network-line result-share-card-network-line--three"></i><b class="result-share-card-network-node result-share-card-network-node--one"></b><b class="result-share-card-network-node result-share-card-network-node--two"></b><b class="result-share-card-network-node result-share-card-network-node--three"></b><b class="result-share-card-network-node result-share-card-network-node--four"></b></div>
+              <img class="result-share-card-portrait" src="" alt="">
+              <span class="result-share-card-portrait-wash" aria-hidden="true"></span>
               <span class="result-share-card-brand">The Pantheon Wars</span>
               <div class="result-share-card-body">
-                <img class="result-share-card-portrait" src="" alt="">
                 <div>
                   <span class="result-share-card-kicker">My Overlord Resonance</span>
                   <strong class="result-share-card-name"></strong>
                   <span class="result-share-card-epithet"></span>
-                  <span class="result-share-card-score"></span>
+                  <p class="result-share-card-verdict"></p>
+                  <div class="result-share-card-stats"><span><small>Resonance</small><strong class="result-share-card-score"></strong></span><span><small>World</small><strong class="result-share-card-world"></strong></span><span><small>Signal</small><strong class="result-share-card-signal"></strong></span><span><small>Completed</small><strong class="result-share-card-date"></strong></span></div>
                 </div>
               </div>
+              <span class="result-share-card-footer">Which Overlord are you? · thepantheonwars.com</span>
             </div>
             <span class="share-label">Share Your Overlord</span>
             <div class="share-btns">
@@ -1578,104 +1584,147 @@ document.addEventListener('DOMContentLoaded', function () {
     }, responseDelay);
   }
 
+  function resultShareMetadata(ov, resonance) {
+    var profile = resultProfile(ov);
+    var signal = profile.traits && profile.traits[0] ? profile.traits[0][0] : 'Potential';
+    var initials = String(ov.name || '?').split(/\s+/).map(function (part) { return part.charAt(0); }).join('').slice(0, 2).toUpperCase();
+    var world = String(ov.domain || 'Nexus Veil').replace(/^Overlord of\s+/i, '');
+    var date = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    return {
+      initials: initials,
+      signal: signal,
+      world: world,
+      date: date,
+      verdict: 'The Nexus Veil recognizes your ' + signal.toLowerCase() + '.',
+      resonance: resonance + '%'
+    };
+  }
+
   function renderResultShareCard(ov, resonance) {
+    var meta = resultShareMetadata(ov, resonance);
+    var card = resultEl.querySelector('.result-share-card');
     var portrait = resultEl.querySelector('.result-share-card-portrait');
     portrait.src = ov.portrait;
     portrait.alt = ov.name;
+    card.setAttribute('data-overlord', ov.slug || 'unknown');
+    resultEl.querySelector('.result-share-card-sigil-mark').textContent = meta.initials;
     resultEl.querySelector('.result-share-card-name').textContent = ov.name;
     resultEl.querySelector('.result-share-card-epithet').textContent = ov.epithet;
-    resultEl.querySelector('.result-share-card-score').textContent = resonance + '% resonance';
+    resultEl.querySelector('.result-share-card-verdict').textContent = meta.verdict;
+    resultEl.querySelector('.result-share-card-score').textContent = meta.resonance;
+    resultEl.querySelector('.result-share-card-world').textContent = meta.world;
+    resultEl.querySelector('.result-share-card-signal').textContent = meta.signal;
+    resultEl.querySelector('.result-share-card-date').textContent = meta.date;
   }
 
   function downloadResultShareCard(ov, resonance, button) {
     var originalLabel = button.textContent;
-    button.disabled = true;
-    button.textContent = 'Preparing card\u2026';
-    var canvas = document.createElement('canvas');
-    canvas.width = 1200;
-    canvas.height = 630;
-    var ctx = canvas.getContext('2d');
+    var meta = resultShareMetadata(ov, resonance);
     var accent = ov.accent_color || '#a279ec';
-    ctx.fillStyle = '#0a0718';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    var glow = ctx.createRadialGradient(925, 180, 20, 925, 180, 520);
-    glow.addColorStop(0, accent + '88');
-    glow.addColorStop(1, 'rgba(10,7,24,0)');
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    var line = ctx.createLinearGradient(70, 0, 720, 0);
-    line.addColorStop(0, '#e4bd70');
-    line.addColorStop(1, accent);
-    ctx.fillStyle = line;
-    ctx.fillRect(70, 56, 630, 6);
-    ctx.fillStyle = '#e4bd70';
-    ctx.font = '600 20px Jost, sans-serif';
-    ctx.fillText('THE PANTHEON WARS', 72, 112);
-    ctx.fillStyle = '#a99bc6';
-    ctx.font = '600 18px Jost, sans-serif';
-    ctx.fillText('MY OVERLORD RESONANCE', 72, 178);
-    ctx.fillStyle = '#f8f3ff';
-    ctx.font = '600 68px Cinzel, Georgia, serif';
-    ctx.fillText(ov.name.toUpperCase(), 72, 260);
-    ctx.fillStyle = accent;
-    ctx.font = '500 30px Cinzel, Georgia, serif';
-    ctx.fillText(ov.epithet.toUpperCase(), 72, 310);
-    ctx.strokeStyle = 'rgba(236,201,135,0.45)';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(72, 370, 360, 118);
-    ctx.fillStyle = '#a99bc6';
-    ctx.font = '500 19px Jost, sans-serif';
-    ctx.fillText('RESONANCE', 98, 410);
-    ctx.fillStyle = '#f8f3ff';
-    ctx.font = '600 62px Cinzel, Georgia, serif';
-    ctx.fillText(resonance + '%', 98, 465);
-    ctx.fillStyle = '#a99bc6';
-    ctx.font = '400 20px Jost, sans-serif';
-    ctx.fillText('Which Overlord are you?', 72, 560);
+    button.disabled = true;
+    button.textContent = 'Preparing poster\u2026';
+    var canvas = document.createElement('canvas');
+    canvas.width = 1600;
+    canvas.height = 900;
+    var ctx = canvas.getContext('2d');
 
-    var finish = function () {
+    function accentAlpha(alpha) {
+      var value = String(accent).replace('#', '');
+      if (!/^[a-f0-9]{6}$/i.test(value)) return 'rgba(162,121,236,' + alpha + ')';
+      return 'rgba(' + parseInt(value.slice(0, 2), 16) + ',' + parseInt(value.slice(2, 4), 16) + ',' + parseInt(value.slice(4, 6), 16) + ',' + alpha + ')';
+    }
+    function drawCover(image, x, y, width, height) {
+      var imageRatio = image.width / image.height;
+      var targetRatio = width / height;
+      var drawWidth = width, drawHeight = height, drawX = x, drawY = y;
+      if (imageRatio > targetRatio) {
+        drawWidth = height * imageRatio;
+        drawX = x - ((drawWidth - width) / 2);
+      } else {
+        drawHeight = width / imageRatio;
+        drawY = y - ((drawHeight - height) / 2);
+      }
+      ctx.drawImage(image, drawX, drawY, drawWidth, drawHeight);
+    }
+    function drawWrappedText(text, x, y, maxWidth, lineHeight) {
+      var words = String(text).split(/\s+/), line = '', lines = [];
+      words.forEach(function (word) {
+        var candidate = line ? line + ' ' + word : word;
+        if (line && ctx.measureText(candidate).width > maxWidth) { lines.push(line); line = word; }
+        else line = candidate;
+      });
+      if (line) lines.push(line);
+      lines.forEach(function (lineText, index) { ctx.fillText(lineText, x, y + (index * lineHeight)); });
+      return y + (Math.max(0, lines.length - 1) * lineHeight);
+    }
+    function drawNetwork() {
+      var points = [[104, 285], [278, 210], [445, 330], [610, 235], [735, 365]];
+      ctx.save();
+      ctx.strokeStyle = accentAlpha(0.45); ctx.lineWidth = 2;
+      [[0, 1], [1, 2], [1, 3], [2, 4]].forEach(function (link) {
+        ctx.beginPath(); ctx.moveTo(points[link[0]][0], points[link[0]][1]); ctx.lineTo(points[link[1]][0], points[link[1]][1]); ctx.stroke();
+      });
+      points.forEach(function (point, index) {
+        ctx.beginPath(); ctx.arc(point[0], point[1], index === 1 ? 6 : 4, 0, Math.PI * 2);
+        ctx.fillStyle = index === 1 ? '#e4bd70' : accent; ctx.fill();
+      });
+      ctx.restore();
+    }
+    function drawCorners() {
+      var corners = [[40, 40, 1, 1], [1560, 40, -1, 1], [1560, 860, -1, -1], [40, 860, 1, -1]];
+      ctx.save(); ctx.strokeStyle = '#e4bd70'; ctx.lineWidth = 3;
+      corners.forEach(function (corner) {
+        ctx.beginPath(); ctx.moveTo(corner[0], corner[1] + (corner[3] * 36)); ctx.lineTo(corner[0], corner[1]); ctx.lineTo(corner[0] + (corner[2] * 36), corner[1]); ctx.stroke();
+      });
+      ctx.restore();
+    }
+    function paintPoster(portrait) {
+      ctx.fillStyle = '#080512'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      for (var y = 0; y < canvas.height; y += 8) { ctx.fillStyle = y % 16 === 0 ? 'rgba(255,255,255,0.021)' : 'rgba(255,255,255,0.008)'; ctx.fillRect(0, y, canvas.width, 1); }
+      var bloom = ctx.createRadialGradient(1200, 200, 20, 1200, 200, 660);
+      bloom.addColorStop(0, accentAlpha(0.46)); bloom.addColorStop(1, 'rgba(8,5,18,0)'); ctx.fillStyle = bloom; ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (portrait) {
+        ctx.save(); ctx.globalAlpha = 0.88; drawCover(portrait, 970, 0, 630, 900); ctx.restore();
+        var portraitFade = ctx.createLinearGradient(860, 0, 1335, 0);
+        portraitFade.addColorStop(0, '#080512'); portraitFade.addColorStop(0.56, 'rgba(8,5,18,0.42)'); portraitFade.addColorStop(1, 'rgba(8,5,18,0.06)');
+        ctx.fillStyle = portraitFade; ctx.fillRect(820, 0, 780, 900);
+      }
+      drawNetwork();
+      ctx.save(); ctx.translate(1190, 205); ctx.strokeStyle = accentAlpha(0.38); ctx.lineWidth = 2;
+      [116, 86, 56].forEach(function (radius) { ctx.beginPath(); ctx.arc(0, 0, radius, 0, Math.PI * 2); ctx.stroke(); });
+      ctx.fillStyle = accentAlpha(0.48); ctx.font = '600 70px Cinzel, Georgia, serif'; ctx.textAlign = 'center'; ctx.fillText(meta.initials, 0, 23); ctx.restore();
+      ctx.strokeStyle = accentAlpha(0.72); ctx.lineWidth = 1; ctx.strokeRect(28, 28, 1544, 844); drawCorners();
+      var topLine = ctx.createLinearGradient(74, 0, 770, 0); topLine.addColorStop(0, '#e4bd70'); topLine.addColorStop(1, accent); ctx.fillStyle = topLine; ctx.fillRect(76, 78, 640, 5);
+      ctx.fillStyle = '#e4bd70'; ctx.font = '600 22px Jost, sans-serif'; ctx.fillText('THE PANTHEON WARS', 76, 134);
+      ctx.fillStyle = accent; ctx.font = '600 19px Jost, sans-serif'; ctx.fillText('MY OVERLORD RESONANCE', 76, 190);
+      ctx.fillStyle = '#f8f3ff'; ctx.font = '600 70px Cinzel, Georgia, serif'; ctx.fillText(ov.name.toUpperCase(), 76, 276);
+      ctx.fillStyle = accent; ctx.font = '500 28px Cinzel, Georgia, serif'; ctx.fillText(ov.epithet.toUpperCase(), 76, 326);
+      ctx.fillStyle = '#d6cde3'; ctx.font = '400 25px Jost, sans-serif'; drawWrappedText(meta.verdict, 76, 394, 660, 36);
+      var stats = [['RESONANCE', meta.resonance], ['WORLD', meta.world], ['SIGNAL', meta.signal], ['COMPLETED', meta.date]];
+      stats.forEach(function (stat, index) {
+        var x = 76 + (index * 205);
+        ctx.fillStyle = 'rgba(8,5,18,0.74)'; ctx.fillRect(x, 528, 185, 128);
+        ctx.strokeStyle = index === 0 ? '#e4bd70' : accentAlpha(0.48); ctx.lineWidth = 1; ctx.strokeRect(x, 528, 185, 128);
+        ctx.fillStyle = '#a99bc6'; ctx.font = '600 15px Jost, sans-serif'; ctx.fillText(stat[0], x + 16, 558);
+        ctx.fillStyle = index === 0 ? '#ffe7aa' : '#f8f3ff'; ctx.font = index === 0 ? '600 36px Cinzel, Georgia, serif' : '500 21px Cinzel, Georgia, serif';
+        drawWrappedText(String(stat[1]).toUpperCase(), x + 16, index === 0 ? 612 : 600, 153, 27);
+      });
+      ctx.fillStyle = '#a99bc6'; ctx.font = '400 19px Jost, sans-serif'; ctx.fillText('WHICH OVERLORD ARE YOU?  ·  THEPANTHEONWARS.COM', 76, 810);
+    }
+    function finish() {
       var save = function (blob) {
-        if (!blob) { button.disabled = false; button.textContent = 'Could not prepare card'; return; }
-        var url = URL.createObjectURL(blob);
-        var link = document.createElement('a');
-        link.href = url;
-        link.download = 'my-' + ov.slug + '-overlord-result.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        if (!blob) { button.disabled = false; button.textContent = 'Could not prepare poster'; return; }
+        var url = URL.createObjectURL(blob); var link = document.createElement('a');
+        link.href = url; link.download = 'my-' + ov.slug + '-overlord-result.png'; document.body.appendChild(link); link.click(); document.body.removeChild(link);
         setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-        button.disabled = false;
-        button.textContent = 'Downloaded';
-        setTimeout(function () { button.textContent = originalLabel; }, 1800);
+        button.disabled = false; button.textContent = 'Downloaded'; setTimeout(function () { button.textContent = originalLabel; }, 1800);
       };
       if (canvas.toBlob) canvas.toBlob(save, 'image/png');
-      else {
-        var fallback = document.createElement('a');
-        fallback.href = canvas.toDataURL('image/png');
-        fallback.download = 'my-' + ov.slug + '-overlord-result.png';
-        fallback.click();
-        button.disabled = false;
-        button.textContent = originalLabel;
-      }
-    };
-
+      else { var fallback = document.createElement('a'); fallback.href = canvas.toDataURL('image/png'); fallback.download = 'my-' + ov.slug + '-overlord-result.png'; fallback.click(); button.disabled = false; button.textContent = originalLabel; }
+    }
     var portrait = new Image();
-    portrait.onload = function () {
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(930, 300, 175, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-      ctx.drawImage(portrait, 755, 125, 350, 350);
-      ctx.restore();
-      ctx.strokeStyle = accent;
-      ctx.lineWidth = 5;
-      ctx.beginPath();
-      ctx.arc(930, 300, 177, 0, Math.PI * 2);
-      ctx.stroke();
-      finish();
-    };
-    portrait.onerror = finish;
+    portrait.onload = function () { paintPoster(portrait); finish(); };
+    portrait.onerror = function () { paintPoster(null); finish(); };
     portrait.src = ov.portrait;
   }
 
