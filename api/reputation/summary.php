@@ -47,15 +47,9 @@ try {
             'threshold' => (int)$reputation['next_level_threshold'],
             'color' => (string)($reputation['next_level_color'] ?? '#a279ec'),
         ], (int)$reputation['next_level_number']);
-        /* Market offers remain hidden in the storefront until the player has
-         * earned their rank. The reputation page is the purposeful preview of
-         * the entries that will become eligible in its next rotation. */
-        $nextRankUnlocks = array_merge($nextRankUnlocks, pw_market_next_rank_unlocks(
-            $db,
-            (int)$reputation['next_level_number'],
-            (int)$reputation['next_level_threshold'],
-            (string)($reputation['next_level_color'] ?? '#a279ec')
-        ));
+        /* Market, Research and classified-mission previews are merged inside
+         * pw_reputation_level_unlocks() so this page and the admin rank preview
+         * always describe the same rank identically. */
     }
     pw_json(['ok' => true, 'reputation' => $reputation, 'next_rank_unlocks' => $nextRankUnlocks, 'achievements' => $achievements, 'showcase_keys' => $showcaseKeys]);
 } catch (Throwable $e) {

@@ -686,15 +686,10 @@ function pw_take_reputation_rank_up_events(PDO $db, int $userId): array {
                 'threshold' => (int)$row['threshold'],
                 'color' => $color,
             ];
+            // Market entries used to be merged here as well; they now come from
+            // pw_reputation_level_unlocks() itself, so merging again would list
+            // every market offer twice in the rank-up announcement.
             $unlocks = pw_reputation_level_unlocks($db, $level, $rankNumber);
-            if (function_exists('pw_market_next_rank_unlocks')) {
-                $unlocks = array_merge($unlocks, pw_market_next_rank_unlocks(
-                    $db,
-                    $rankNumber,
-                    (int)$row['threshold'],
-                    $color
-                ));
-            }
 
             $events[] = [
                 'title' => (string)$row['level_name'],
@@ -788,11 +783,50 @@ function pw_reputation_level_unlocks(PDO $db, array $level, int $rankNumber): ar
         $unlocks[] = $unlock;
     }
 
+    /* Market and Research own their own gate columns, so their previews live
+     * beside the queries that enforce them. They are pulled in here rather than
+     * at each caller so the player page and the admin preview can never show a
+     * different set of unlocks for the same rank. Both fail closed to an empty
+     * list when their migrations have not been run. */
+    require_once __DIR__ . '/market/market-helpers.php';
+    foreach (pw_market_next_rank_unlocks($db, $rankNumber, $threshold, $levelColor) as $unlock) {
+        $unlocks[] = $unlock;
+    }
+    require_once __DIR__ . '/research/research-helpers.php';
+    foreach (pw_research_next_rank_unlocks($db, $rankNumber, $threshold, $levelColor) as $unlock) {
+        $unlocks[] = $unlock;
+    }
+
     foreach ($unlocks as &$unlock) {
         $unlock['threshold'] = $threshold;
         $unlock['rank_name'] = $levelName;
     }
     unset($unlock);
+    return pw_reputation_sort_unlocks($unlocks);
+}
+
+/**
+ * Orders a rank's unlocks so the teaser grid's first three cards are the ones a
+ * player can act on. Missions lead because they are the largest single thing a
+ * rank can open; the built-in rank distinctions follow, since they are true of
+ * every level and therefore carry the least new information. A usort is stable
+ * in PHP 8, so entries sharing a bucket keep the order their source produced.
+ */
+function pw_reputation_sort_unlocks(array $unlocks): array {
+    $order = [
+        'mission' => 0,
+        'research' => 1,
+        'market_gear' => 2,
+        'market_character' => 3,
+        'forum_rank' => 4,
+        'profile_aura' => 5,
+        'rank_marker' => 6,
+        'timeline' => 7,
+        'dialogue_choice' => 8,
+    ];
+    usort($unlocks, function ($a, $b) use ($order) {
+        return ($order[$a['type'] ?? ''] ?? 99) <=> ($order[$b['type'] ?? ''] ?? 99);
+    });
     return $unlocks;
 }
 

@@ -46,6 +46,96 @@ function pw_research_require_ready(PDO $db): void {
     }
 }
 
+/**
+ * Renders one research node's effect as a single reader-facing sentence, using
+ * the same closed effect vocabulary the Research Facility itself renders from
+ * so the reputation preview can never promise a bonus the tree does not grant.
+ */
+function pw_research_effect_sentence(array $node): string {
+    $types = pw_research_effect_types();
+    $effect = (string)$node['effect_type'];
+    $meta = $types[$effect] ?? null;
+    $value = (float)$node['effect_value'];
+    if ($effect === 'crew_capacity') {
+        return 'Adds ' . max(1, (int)$value) . ' permanent crew ' . ((int)$value === 1 ? 'berth' : 'berths') . ' to your expedition.';
+    }
+    if ($effect === 'rare_loot_table') {
+        return 'Opens a rare recovery table for the missions that carry it.';
+    }
+    if ($meta === null) {
+        return 'Adds a permanent expedition advantage.';
+    }
+    $percent = rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
+    if ($percent === '' || $percent === '0') {
+        return (string)$meta['description'];
+    }
+    return $meta['short'] . ' by ' . $percent . '%. ' . $meta['description'];
+}
+
+/**
+ * The research protocols and classified missions that a reputation rank makes
+ * researchable. `game_research_nodes.required_reputation_level` is a rank
+ * number (1-based ladder position), matching the gate `api/research/unlock.php`
+ * enforces, so this preview and that check can never disagree.
+ *
+ * A `secret_mission` node is deliberately reported as a mission unlock rather
+ * than a research one: the mission is what the player actually gains, and it is
+ * the only route by which a mission becomes reachable from a reputation rank.
+ */
+function pw_research_next_rank_unlocks(PDO $db, int $rankNumber, int $threshold, string $accent): array {
+    if ($rankNumber < 1) return [];
+    try {
+        $stmt = $db->prepare(
+            'SELECT n.name, n.description, n.effect_type, n.effect_value, n.credit_cost,
+                    c.name AS category_name, m.name AS mission_name, m.description AS mission_description,
+                    m.world_key AS mission_world, m.mission_type AS mission_type
+             FROM game_research_nodes n
+             LEFT JOIN game_research_categories c ON c.id = n.research_category_id
+             LEFT JOIN game_mission_definitions m ON m.id = n.target_mission_definition_id AND m.is_enabled = 1
+             WHERE n.is_enabled = 1 AND n.required_reputation_level = ?
+             ORDER BY n.sort_order ASC, n.id ASC'
+        );
+        $stmt->execute([$rankNumber]);
+        $unlocks = [];
+        foreach ($stmt->fetchAll() as $node) {
+            $protocol = trim((string)$node['name']);
+            $isMission = (string)$node['effect_type'] === 'secret_mission' && trim((string)$node['mission_name']) !== '';
+            if ($isMission) {
+                $detail = trim((string)$node['mission_description']);
+                if ($detail === '') {
+                    $type = trim((string)$node['mission_type']);
+                    $detail = 'A classified ' . ($type !== '' ? $type . ' ' : '') . 'operation joins your mission board.';
+                }
+                $unlocks[] = [
+                    'type' => 'mission',
+                    'title' => trim((string)$node['mission_name']),
+                    'eyebrow' => 'Classified mission',
+                    'description' => $detail . ' Revealed by the ' . ($protocol !== '' ? $protocol : 'classified') . ' protocol, which becomes researchable at this rank.',
+                    'accent' => $accent,
+                    'threshold' => $threshold,
+                ];
+                continue;
+            }
+            $category = trim((string)$node['category_name']);
+            $cost = (int)$node['credit_cost'];
+            $unlocks[] = [
+                'type' => 'research',
+                'title' => $protocol !== '' ? $protocol : 'Research protocol',
+                'eyebrow' => $category !== '' ? 'Research · ' . $category : 'Research protocol',
+                'description' => pw_research_effect_sentence($node)
+                    . ($cost > 0 ? ' Research cost: ' . number_format($cost) . ' credits.' : ''),
+                'accent' => $accent,
+                'threshold' => $threshold,
+            ];
+        }
+        return $unlocks;
+    } catch (Throwable $e) {
+        // Reputation predates the Research Facility and must keep its preview
+        // when those migrations have not been run yet.
+        return [];
+    }
+}
+
 function pw_research_image_url($value): string {
     $url = trim((string)$value);
     return preg_match('~^/uploads/research-images/img_[a-f0-9]{16}\.jpg$~', $url) ? $url : '';

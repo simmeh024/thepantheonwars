@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
-<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/community-bundle.css?v=316"><link rel="stylesheet" href="css/reputation.css?v=7"><link rel="stylesheet" href="css/reputation-unlocks.css?v=2">
+<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/community-bundle.css?v=316"><link rel="stylesheet" href="css/reputation.css?v=7"><link rel="stylesheet" href="css/reputation-unlocks.css?v=3">
 </head>
 <body>
 <header class="site-header"><div class="nav-inner"><button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button><a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a>    <nav class="main-nav">
@@ -76,7 +76,7 @@
   function esc(value) { var element = document.createElement('div'); element.textContent = value || ''; return element.innerHTML; }
   function safeAccent(value) { return /^#[a-f0-9]{6}$/i.test(String(value || '')) ? value : '#a279ec'; }
   function unlockCard(unlock) {
-    var type = ['forum_rank', 'profile_aura', 'rank_marker', 'timeline', 'market_gear', 'market_character'].indexOf(unlock.type) !== -1 ? unlock.type : 'rank';
+    var type = ['mission', 'research', 'forum_rank', 'profile_aura', 'rank_marker', 'timeline', 'market_gear', 'market_character', 'dialogue_choice'].indexOf(unlock.type) !== -1 ? unlock.type : 'rank';
     var card = document.createElement('article');
     card.className = 'reputation-unlock-card is-' + type;
     card.style.setProperty('--unlock-accent', safeAccent(unlock.accent));
