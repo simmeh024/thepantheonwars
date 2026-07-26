@@ -14,6 +14,7 @@ $userId = (int)$user['id'];
 try {
     $db->beginTransaction();
     $now = pw_missions_utc_now($db);
+    $researchEffects = pw_research_ready($db) ? pw_research_player_effects($db, $userId) : pw_research_default_effects();
     $offerStmt = $db->prepare(
         'SELECT i.id, i.market_rotation_id, i.market_entry_id, i.credit_price, i.required_reputation_level, i.stock_remaining,
                 r.offer_type, r.window_started_at, r.window_ends_at,
@@ -26,7 +27,7 @@ try {
     $offerStmt->execute([$itemId]);
     $offer = $offerStmt->fetch();
     if (!$offer || !(int)$offer['entry_enabled']) throw new RuntimeException('That market offer is no longer available.');
-    [$expectedStart] = pw_market_window($now, (string)$offer['offer_type']);
+    [$expectedStart] = pw_market_window($now, (string)$offer['offer_type'], (float)$researchEffects['market_refresh_percent']);
     if ($offer['window_started_at'] !== pw_missions_datetime($expectedStart) || $offer['window_ends_at'] <= pw_missions_datetime($now)) {
         throw new RuntimeException('That market rotation has ended. Refresh to see the new offers.');
     }
@@ -58,16 +59,17 @@ try {
         throw new RuntimeException('That market offer is invalid.');
     }
 
+    $discountedPrice = pw_market_discounted_price((int)$offer['credit_price'], (float)$researchEffects['market_discount_percent']);
     $db->prepare('INSERT IGNORE INTO game_player_wallet (user_id, credits) VALUES (?, 0)')->execute([$userId]);
     $wallet = $db->prepare('SELECT credits FROM game_player_wallet WHERE user_id = ? FOR UPDATE');
     $wallet->execute([$userId]);
-    if ((int)$wallet->fetchColumn() < (int)$offer['credit_price']) throw new RuntimeException('You do not have enough credits for that offer.');
+    if ((int)$wallet->fetchColumn() < $discountedPrice) throw new RuntimeException('You do not have enough credits for that offer.');
 
     $stock = $db->prepare('UPDATE game_market_rotation_items SET stock_remaining = stock_remaining - 1 WHERE id = ? AND stock_remaining > 0');
     $stock->execute([$itemId]);
     if ($stock->rowCount() !== 1) throw new RuntimeException('That offer has sold out.');
     $debit = $db->prepare('UPDATE game_player_wallet SET credits = credits - ? WHERE user_id = ? AND credits >= ?');
-    $debit->execute([(int)$offer['credit_price'], $userId, (int)$offer['credit_price']]);
+    $debit->execute([$discountedPrice, $userId, $discountedPrice]);
     if ($debit->rowCount() !== 1) throw new RuntimeException('Your credit balance changed. Refresh and try again.');
 
     if ($offer['offer_type'] === 'gear') {
@@ -79,7 +81,7 @@ try {
         if ($grant->rowCount() !== 1) throw new RuntimeException('That character could not be recruited.');
     }
     $purchase = $db->prepare('INSERT INTO game_market_purchases (user_id, rotation_item_id, offer_type, loot_definition_id, crew_definition_id, item_name, credit_price) VALUES (?, ?, ?, ?, ?, ?, ?)');
-    $purchase->execute([$userId, $itemId, $offer['offer_type'], $offer['loot_definition_id'], $offer['crew_definition_id'], $name, (int)$offer['credit_price']]);
+    $purchase->execute([$userId, $itemId, $offer['offer_type'], $offer['loot_definition_id'], $offer['crew_definition_id'], $name, $discountedPrice]);
     $balance = pw_missions_credit_balance($db, $userId);
     $db->commit();
     pw_json(['ok' => true, 'message' => $name . ' added to your expedition.', 'credits' => $balance]);

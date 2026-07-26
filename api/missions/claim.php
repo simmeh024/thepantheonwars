@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/missions-helpers.php';
+require_once __DIR__ . '/../research/research-helpers.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') pw_error('Method not allowed.', 405);
 $user = pw_require_login();
@@ -69,6 +70,12 @@ try {
         'reputation_flat' => 0, 'reputation_percent' => 0.0, 'credit_percent' => 0.0,
         'success_percent' => 0.0, 'loot_percent' => 0.0, 'upgrade_percent' => 0.0,
     ];
+    if (pw_research_ready($db)) {
+        $research = pw_research_player_effects($db, $userId);
+        $effects['xp_percent'] = round((float)$effects['xp_percent'] + (float)$research['xp_percent'], 2);
+        $effects['reputation_percent'] = round((float)$effects['reputation_percent'] + (float)$research['reputation_percent'], 2);
+        $effects['upgrade_percent'] = round(min(95.0, (float)$effects['upgrade_percent'] + (float)$research['luck_percent']), 2);
+    }
 
     /* The outcome is rolled here, on the server, from the mission's own base
      * chance plus the crew's Strength -- never from anything the client sends.

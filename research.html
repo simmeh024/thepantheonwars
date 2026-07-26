@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Research Facility — The Pantheon Wars</title>
+<meta name="description" content="Unlock permanent expedition protocols in the Neoh Research Facility.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
+<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/public.css?v=311"><link rel="stylesheet" href="css/research.css?v=1">
+</head>
+<body class="research-body">
+<header class="site-header"><div class="nav-inner"><button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button><a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a><nav class="main-nav"><a href="index.html">Home</a><div class="nav-item has-dropdown"><span class="nav-parent">The Universe<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="books.html">The Books</a><a href="worlds.html">The Worlds</a><a href="overlords.html">The Overlords</a><a href="known-figures.html">Known Figures</a><a href="timeline.html">The Timeline</a><a href="soundtracks.html">The Soundtracks</a></div></div><div class="nav-item has-dropdown"><span class="nav-parent">News<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="news.html">Latest News</a><a href="dev-dispatches.html">Development Dispatches</a></div></div><div class="nav-item has-dropdown nav-current"><span class="nav-parent">Missions<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="missions.html">The Missions</a><a href="market.html">The Market</a><a href="research.html" class="active">Research Facility</a></div></div><div class="nav-item has-dropdown"><span class="nav-parent">Community<span class="nav-caret">⌄</span></span><div class="nav-dropdown"><a href="community.html">Nexus Veil (Forum)</a><a href="memberlist.html">Member List</a><a href="quiz.html">Quiz</a></div></div></nav><span class="nav-utility"><span class="auth-nav-item" id="auth-nav-item"><a href="#" class="auth-trigger">Login</a></span></span></div></header>
+
+<main class="research-page">
+  <section class="research-hero"><div class="research-hero-grid" aria-hidden="true"></div><div class="container research-hero-content"><span class="eyebrow">Expedition development</span><h1>Research Facility</h1><p>Convert standing, credits and recovered salvage into permanent field protocols for your command.</p></div></section>
+  <section class="research-main"><div class="container">
+    <div class="research-gate" id="research-gate" hidden><span class="eyebrow">Members only</span><h2>Clearance required</h2><p>Log in to inspect and activate your expedition research protocols.</p><button type="button" class="btn btn-solid auth-trigger" data-tab="login">Log In</button></div>
+    <div id="research-content" hidden><div class="research-layout">
+      <aside class="research-sidebar">
+        <a class="research-missions-link" href="missions.html"><span class="eyebrow">Mission control</span><strong><span aria-hidden="true">←</span> Back to Missions</strong><p>Return to your crew roster, mission board and command record.</p><span>Open mission control <b aria-hidden="true">↗</b></span></a>
+        <section class="research-command-card" aria-labelledby="research-command-title"><span class="eyebrow">Command clearance</span><h2 id="research-command-title">Synchronising record</h2><div class="research-command-metrics"><span><small>Reputation</small><strong id="research-reputation">0</strong></span><span><small>Credits</small><strong id="research-credits">0</strong></span></div><p id="research-command-copy">Checking your field authority and available resources.</p></section>
+        <section class="research-effects-card" aria-labelledby="research-effects-title"><div><span class="eyebrow">Active protocols</span><h2 id="research-effects-title">No data yet</h2></div><div id="research-effects-list"><p>Reading your protocol ledger…</p></div></section>
+      </aside>
+      <div class="research-content-main">
+        <header class="research-command"><div><span class="eyebrow">Protocol architecture</span><h2>Neoh development lattice</h2><p id="research-command-status">Every activation is permanent for this command. Select a protocol to inspect its requirements.</p></div><div class="research-unlocked-readout"><span>Protocols online</span><strong id="research-unlocked-count">0</strong><small id="research-available-count">0 available now</small></div></header>
+        <p class="research-status" id="research-status" role="status" aria-live="polite"></p>
+        <section class="research-tree-section" aria-labelledby="research-tree-title"><div class="research-section-head"><div><span class="eyebrow">Signal map</span><h2 id="research-tree-title">Research tree</h2><p>Follow linked protocols to build a specialised expedition. Lines show the required research path.</p></div><span class="research-tree-key"><i class="is-active"></i> Online <i class="is-available"></i> Available <i></i> Locked</span></div><div class="research-tree-scroll" tabindex="0" aria-label="Scrollable research tree"><div class="research-tree-board" id="research-tree-board"><p class="research-empty">Synchronising the research lattice…</p></div></div></section>
+        <section class="research-detail-card" id="research-detail" aria-live="polite"><span class="eyebrow">Protocol dossier</span><h2>Select a research protocol</h2><p>Choose a node in the lattice to review its effect, dependencies and field costs.</p></section>
+      </div>
+    </div></div>
+  </div></section>
+</main>
+
+<script src="js/main.js?v=19"></script><script src="js/members.js?v=41"></script><script src="js/research.js?v=1"></script>
+</body>
+</html>

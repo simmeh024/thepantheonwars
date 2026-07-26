@@ -1,6 +1,6 @@
 <?php
 /** Shared, server-authoritative rules for the player market. */
-require_once __DIR__ . '/../missions/missions-helpers.php';
+require_once __DIR__ . '/../research/research-helpers.php';
 
 const PW_MARKET_WINDOW_SECONDS = 21600;
 const PW_MARKET_GEAR_OFFERS = 6;
@@ -20,6 +20,20 @@ function pw_market_ready(PDO $db): bool {
     }
 }
 
+/** The research migration scopes accelerated rotations by their effective
+ * cadence. Keeping the scope in the unique key prevents a three-hour research
+ * window from accidentally reusing a coincident six-hour global window. */
+function pw_market_research_refresh_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    try {
+        $db->query('SELECT research_refresh_percent FROM `game_market_rotations` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
 function pw_market_require_ready(PDO $db): void {
     if (!pw_market_ready($db)) {
         pw_error('The Market is being prepared. Please try again after sql/migration_market.sql has been run.', 503);
@@ -27,12 +41,17 @@ function pw_market_require_ready(PDO $db): void {
 }
 
 /** The gear window is 00/06/12/18 UTC; characters are the same clock plus 1h. */
-function pw_market_window(DateTimeImmutable $now, string $offerType): array {
+function pw_market_window(DateTimeImmutable $now, string $offerType, float $refreshPercent = 0.0): array {
     $offset = $offerType === 'character' ? 3600 : 0;
+    /* Research cohorts use a shorter but still shared server window. A player
+     * never controls a client-side timer: their unlocked cadence is resolved
+     * here, and the rotation record plus purchase check use this same clock. */
+    $refreshPercent = max(0.0, min(50.0, $refreshPercent));
+    $windowSeconds = max(10800, (int)round(PW_MARKET_WINDOW_SECONDS * (1 - ($refreshPercent / 100))));
     $timestamp = $now->getTimestamp();
-    $startTimestamp = (int)(floor(($timestamp - $offset) / PW_MARKET_WINDOW_SECONDS) * PW_MARKET_WINDOW_SECONDS + $offset);
+    $startTimestamp = (int)(floor(($timestamp - $offset) / $windowSeconds) * $windowSeconds + $offset);
     $start = (new DateTimeImmutable('@' . $startTimestamp))->setTimezone(new DateTimeZone('UTC'));
-    return [$start, $start->modify('+' . PW_MARKET_WINDOW_SECONDS . ' seconds')];
+    return [$start, $start->modify('+' . $windowSeconds . ' seconds')];
 }
 
 function pw_market_offer_count(string $offerType): int {
@@ -61,12 +80,17 @@ function pw_market_weighted_pick(array $entries, int $count): array {
     return $picked;
 }
 
-function pw_market_rotation(PDO $db, string $offerType, DateTimeImmutable $now): array {
+function pw_market_rotation(PDO $db, string $offerType, DateTimeImmutable $now, float $refreshPercent = 0.0): array {
     if (!in_array($offerType, ['gear', 'character'], true)) throw new InvalidArgumentException('Unknown market offer type.');
-    [$start, $ends] = pw_market_window($now, $offerType);
+    if (!pw_market_research_refresh_ready($db)) $refreshPercent = 0.0;
+    $refreshPercent = round(max(0.0, min(50.0, $refreshPercent)), 2);
+    [$start, $ends] = pw_market_window($now, $offerType, $refreshPercent);
     $startText = pw_missions_datetime($start);
-    $lookup = $db->prepare('SELECT id, offer_type, window_started_at, window_ends_at FROM game_market_rotations WHERE offer_type = ? AND window_started_at = ? FOR UPDATE');
-    $lookup->execute([$offerType, $startText]);
+    $refreshReady = pw_market_research_refresh_ready($db);
+    $lookup = $refreshReady
+        ? $db->prepare('SELECT id, offer_type, window_started_at, window_ends_at, research_refresh_percent FROM game_market_rotations WHERE offer_type = ? AND window_started_at = ? AND research_refresh_percent = ? FOR UPDATE')
+        : $db->prepare('SELECT id, offer_type, window_started_at, window_ends_at FROM game_market_rotations WHERE offer_type = ? AND window_started_at = ? FOR UPDATE');
+    $lookup->execute($refreshReady ? [$offerType, $startText, $refreshPercent] : [$offerType, $startText]);
     $rotation = $lookup->fetch();
     if ($rotation) return $rotation;
 
@@ -86,13 +110,15 @@ function pw_market_rotation(PDO $db, string $offerType, DateTimeImmutable $now):
     $chosen = pw_market_weighted_pick($candidates->fetchAll(), pw_market_offer_count($offerType));
 
     try {
-        $insert = $db->prepare('INSERT INTO game_market_rotations (offer_type, window_started_at, window_ends_at) VALUES (?, ?, ?)');
-        $insert->execute([$offerType, $startText, pw_missions_datetime($ends)]);
-        $rotation = ['id' => (int)$db->lastInsertId(), 'offer_type' => $offerType, 'window_started_at' => $startText, 'window_ends_at' => pw_missions_datetime($ends)];
+        $insert = $refreshReady
+            ? $db->prepare('INSERT INTO game_market_rotations (offer_type, research_refresh_percent, window_started_at, window_ends_at) VALUES (?, ?, ?, ?)')
+            : $db->prepare('INSERT INTO game_market_rotations (offer_type, window_started_at, window_ends_at) VALUES (?, ?, ?)');
+        $insert->execute($refreshReady ? [$offerType, $refreshPercent, $startText, pw_missions_datetime($ends)] : [$offerType, $startText, pw_missions_datetime($ends)]);
+        $rotation = ['id' => (int)$db->lastInsertId(), 'offer_type' => $offerType, 'window_started_at' => $startText, 'window_ends_at' => pw_missions_datetime($ends), 'research_refresh_percent' => $refreshPercent];
     } catch (PDOException $e) {
         // A second request may have won the unique window insert while this
         // worker rolled candidates. Read that canonical result instead.
-        $lookup->execute([$offerType, $startText]);
+        $lookup->execute($refreshReady ? [$offerType, $startText, $refreshPercent] : [$offerType, $startText]);
         $rotation = $lookup->fetch();
         if (!$rotation) throw $e;
         return $rotation;
@@ -112,13 +138,13 @@ function pw_market_rotation(PDO $db, string $offerType, DateTimeImmutable $now):
     return $rotation;
 }
 
-function pw_market_current_rotations(PDO $db, DateTimeImmutable $now): array {
+function pw_market_current_rotations(PDO $db, DateTimeImmutable $now, float $refreshPercent = 0.0): array {
     $started = false;
     if (!$db->inTransaction()) { $db->beginTransaction(); $started = true; }
     try {
         $rotations = [
-            'gear' => pw_market_rotation($db, 'gear', $now),
-            'character' => pw_market_rotation($db, 'character', $now),
+            'gear' => pw_market_rotation($db, 'gear', $now, $refreshPercent),
+            'character' => pw_market_rotation($db, 'character', $now, $refreshPercent),
         ];
         if ($started) $db->commit();
         return $rotations;
@@ -133,7 +159,11 @@ function pw_market_reputation_level(int $points): int {
     return max(0, (int)($info['level_number'] ?? 0));
 }
 
-function pw_market_public_offers(PDO $db, int $rotationId, string $offerType, int $reputationLevel): array {
+function pw_market_discounted_price(int $creditPrice, float $discountPercent): int {
+    return max(0, (int)round($creditPrice * (1 - max(0.0, min(50.0, $discountPercent)) / 100)));
+}
+
+function pw_market_public_offers(PDO $db, int $rotationId, string $offerType, int $reputationLevel, float $discountPercent = 0.0): array {
     $isGear = $offerType === 'gear';
     $details = $isGear
         ? 'd.name, d.slug, d.description, d.tier, d.slot, d.icon_url, d.bonus_strength, d.bonus_cunning, d.bonus_science, d.bonus_charisma, d.required_level, d.required_role'
@@ -149,8 +179,10 @@ function pw_market_public_offers(PDO $db, int $rotationId, string $offerType, in
          ORDER BY i.sort_order ASC, i.id ASC'
     );
     $stmt->execute([$rotationId, $offerType, $reputationLevel]);
-    return array_map(static function ($row) use ($isGear) {
+    return array_map(static function ($row) use ($isGear, $discountPercent) {
         foreach (['id', 'credit_price', 'required_reputation_level', 'stock_initial', 'stock_remaining', 'sort_order'] as $field) $row[$field] = (int)$row[$field];
+        $row['base_credit_price'] = $row['credit_price'];
+        $row['credit_price'] = pw_market_discounted_price($row['base_credit_price'], $discountPercent);
         if ($isGear) foreach (['bonus_strength', 'bonus_cunning', 'bonus_science', 'bonus_charisma', 'required_level'] as $field) $row[$field] = (int)$row[$field];
         else $row['starting_level'] = (int)$row['starting_level'];
         return $row;

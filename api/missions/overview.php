@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/missions-helpers.php';
+require_once __DIR__ . '/../research/research-helpers.php';
 
 $user = pw_require_login();
 $db = pw_db();
@@ -11,6 +12,9 @@ try {
 
     $statsReady = pw_mission_stats_ready($db);
     $crewFavoritesReady = pw_mission_crew_favorites_ready($db);
+    $researchReady = pw_research_ready($db);
+    $researchEffects = $researchReady ? pw_research_player_effects($db, $userId) : pw_research_default_effects();
+    $researchSecrets = $researchReady ? pw_research_secret_missions($db, $userId) : ['locked' => [], 'unlocked' => []];
     $crewStmt = $db->prepare(
         'SELECT pc.id, pc.level, pc.xp, pc.status, pc.created_at,'
         . ($statsReady ? ' pc.strength, pc.cunning, pc.science, pc.charisma,' : '') . '
@@ -173,7 +177,12 @@ try {
     usort($slots, static function ($a, $b) {
         return [$a['sort_order'], $a['id'] ?? 0] <=> [$b['sort_order'], $b['id'] ?? 0];
     });
-    $missions = array_values($slots);
+    /* A classified operation does not reach the browser until its research
+     * protocol is owned. The same check is repeated by start.php, so changing
+     * an API payload in devtools cannot launch a sealed mission. */
+    $missions = array_values(array_filter($slots, static function ($slot) use ($researchSecrets) {
+        return !isset($slot['id']) || !in_array((int)$slot['id'], $researchSecrets['locked'], true);
+    }));
 
     $playerMissionStmt = $db->prepare(
         'SELECT pm.id, pm.world_key, pm.status, pm.started_at, pm.completes_at, pm.completed_at, pm.claimed_at,
@@ -333,6 +342,11 @@ try {
         'loot' => $loot,
         'stats_ready' => $statsReady,
         'crew_favorites_ready' => $crewFavoritesReady,
+        'research' => [
+            'ready' => $researchReady,
+            'effects' => $researchEffects,
+            'unlocked_secret_mission_count' => count($researchSecrets['unlocked']),
+        ],
         'missions' => $missions,
         'active_missions' => $active,
         'history' => array_slice($history, 0, 30),

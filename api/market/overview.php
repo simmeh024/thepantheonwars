@@ -10,10 +10,11 @@ try {
     $userStmt->execute([(int)$user['id']]);
     $points = (int)$userStmt->fetchColumn();
     $now = pw_missions_utc_now($db);
-    $rotations = pw_market_current_rotations($db, $now);
+    $researchEffects = pw_research_ready($db) ? pw_research_player_effects($db, (int)$user['id']) : pw_research_default_effects();
+    $rotations = pw_market_current_rotations($db, $now, (float)$researchEffects['market_refresh_percent']);
     $rank = pw_market_reputation_level($points);
-    $gear = pw_market_public_offers($db, (int)$rotations['gear']['id'], 'gear', $rank);
-    $characters = pw_market_public_offers($db, (int)$rotations['character']['id'], 'character', $rank);
+    $gear = pw_market_public_offers($db, (int)$rotations['gear']['id'], 'gear', $rank, (float)$researchEffects['market_discount_percent']);
+    $characters = pw_market_public_offers($db, (int)$rotations['character']['id'], 'character', $rank, (float)$researchEffects['market_discount_percent']);
     $reputation = array_merge(pw_reputation_info($points), ['level_number' => $rank]);
     $featuredOffer = pw_market_featured_offer($gear);
     $equippedGear = pw_market_equipped_gear($db, (int)$user['id']);
@@ -69,9 +70,10 @@ try {
         'gear_slots' => array_map(static function ($key, $label) { return ['key' => $key, 'label' => $label]; }, array_keys(pw_missions_gear_slots()), array_values(pw_missions_gear_slots())),
         'next_market_categories' => $nextMarketCategories,
         'global_activity' => $globalActivity,
+        'research_effects' => $researchEffects,
         'rotations' => [
-            'gear' => ['ends_at' => $rotations['gear']['window_ends_at'], 'offers' => $gear],
-            'character' => ['ends_at' => $rotations['character']['window_ends_at'], 'offers' => $characters],
+            'gear' => ['ends_at' => $rotations['gear']['window_ends_at'], 'window_seconds' => max(1, strtotime($rotations['gear']['window_ends_at'] . ' UTC') - strtotime($rotations['gear']['window_started_at'] . ' UTC')), 'offers' => $gear],
+            'character' => ['ends_at' => $rotations['character']['window_ends_at'], 'window_seconds' => max(1, strtotime($rotations['character']['window_ends_at'] . ' UTC') - strtotime($rotations['character']['window_started_at'] . ' UTC')), 'offers' => $characters],
         ],
     ]);
 } catch (Throwable $e) {

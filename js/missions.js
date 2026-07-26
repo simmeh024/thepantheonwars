@@ -981,10 +981,15 @@
     var weatherDuration = conditions ? Number(conditions.duration_percent) || 0 : 0;
     var weatherSuccess = conditions ? Number(conditions.success_percent) || 0 : 0;
     var weatherUpgrade = conditions ? Number(conditions.upgrade_percent) || 0 : 0;
+    var research = (state.data && state.data.research && state.data.research.effects) || {};
+    var researchSpeed = Number(research.mission_speed_percent) || 0;
+    var researchXp = Number(research.xp_percent) || 0;
+    var researchReputation = Number(research.reputation_percent) || 0;
+    var researchLuck = Number(research.luck_percent) || 0;
     var penaltyDuration = (penalty ? Number(rule.penalty.duration_percent) || 0 : 0) + weatherDuration;
     var penaltySuccess = (penalty ? Number(rule.penalty.success_percent) || 0 : 0) + weatherSuccess;
-    durationPercent = Math.min(90, durationPercent + affinity.duration_percent);
-    xpPercent += (totals.charisma * 0.5) + affinity.xp_percent;
+    durationPercent = Math.min(90, durationPercent + affinity.duration_percent + researchSpeed);
+    xpPercent += (totals.charisma * 0.5) + affinity.xp_percent + researchXp;
 
     var baseSeconds = Number(mission.duration_seconds) || 0;
     var seconds = Math.round(baseSeconds * (1 - (durationPercent / 100)) * (1 + (penaltyDuration / 100)));
@@ -1004,12 +1009,12 @@
       base_success_percent: baseSuccess,
       credits: Math.round((Number(mission.credit_reward) || 0) * (1 + (affinity.credit_percent / 100))),
       base_credits: Number(mission.credit_reward) || 0,
-      reputation: Math.round((Number(mission.reputation_reward) || 0) * (1 + (affinity.reputation_percent / 100))) + Math.floor(reputationFlat),
+      reputation: Math.round((Number(mission.reputation_reward) || 0) * (1 + ((affinity.reputation_percent + researchReputation) / 100))) + Math.floor(reputationFlat),
       base_reputation: Number(mission.reputation_reward) || 0,
       xp: Math.round((Number(mission.xp_reward) || 0) * (1 + (xpPercent / 100))),
       base_xp: Number(mission.xp_reward) || 0,
       loot_percent: totals.cunning * 1.0,
-      upgrade_percent: Math.max(0, Math.min(95, (totals.science * 1.5) + affinity.upgrade_percent) - weatherUpgrade)
+      upgrade_percent: Math.min(95, Math.max(0, Math.min(95, (totals.science * 1.5) + affinity.upgrade_percent) - weatherUpgrade) + researchLuck)
     };
   }
 

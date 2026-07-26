@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/missions-helpers.php';
+require_once __DIR__ . '/../research/research-helpers.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') pw_error('Method not allowed.', 405);
 $user = pw_require_login();
@@ -21,6 +22,9 @@ try {
     $mission = $missionStmt->fetch();
     if (!$mission || !(bool)$mission['is_enabled'] || $mission['world_key'] !== 'neoh') {
         throw new RuntimeException('That mission is no longer available.');
+    }
+    if (pw_research_ready($db) && !pw_research_mission_is_unlocked($db, $userId, (int)$mission['id'])) {
+        throw new RuntimeException('This classified mission requires its Research Facility protocol first.');
     }
     if ($mission['unlocks_after_mission_id'] !== null) {
         $requiredCompletions = max(1, (int)$mission['unlocks_after_completion_count']);
@@ -82,6 +86,10 @@ try {
     $effects = $statsReady
         ? pw_missions_crew_effects($selectedCrew, (string)$mission['mission_type'], $weather)
         : ['duration_percent' => 0.0, 'duration_penalty_percent' => 0.0, 'success_percent' => 0.0];
+    if (pw_research_ready($db)) {
+        $research = pw_research_player_effects($db, $userId);
+        $effects['duration_percent'] = min(90.0, (float)$effects['duration_percent'] + (float)$research['mission_speed_percent']);
+    }
     $duration = pw_missions_effective_duration((int)$mission['duration_seconds'], $effects);
 
     $now = pw_missions_utc_now($db);

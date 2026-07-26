@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=317"><link rel="stylesheet" href="../css/admin-market.css?v=1">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=317"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=1">
 </head>
 <body>
 
@@ -58,7 +58,7 @@
       </ul>
     </div>
 
-    <div class="admin-nav-category is-collapsed" data-category="game" data-requires-permission="missions.view,loot_tables.view,market.view">
+    <div class="admin-nav-category is-collapsed" data-category="game" data-requires-permission="missions.view,loot_tables.view,market.view,research.view">
       <button type="button" class="admin-nav-category-toggle" aria-expanded="false">
         <span>Game Control</span>
         <svg class="admin-nav-category-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
@@ -67,6 +67,7 @@
         <li data-requires-permission="missions.view"><button type="button" class="admin-nav-link" data-section="mission-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18V6l8-3 8 3v12l-8 3z"/><path d="m4 6 8 3 8-3M12 9v12"/><path d="m8 14 2 2 4-4"/></svg>Missions</button></li>
         <li data-requires-permission="loot_tables.view"><button type="button" class="admin-nav-link" data-section="loot-tables"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M2 5h20v3H2z"/><path d="M12 8v13"/><path d="M12 5c-1.6-2.6-5.4-2.2-5.4.3 0 1.4 1.6 2 5.4 2s5.4-.6 5.4-2C17.4 2.8 13.6 2.4 12 5Z"/></svg>Loot Tables</button></li>
         <li data-requires-permission="market.view"><button type="button" class="admin-nav-link" data-section="market-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v12H4z"/><path d="M3 5h18v3H3z"/><path d="M8 12h8M8 16h5"/><circle cx="17" cy="16" r="1"/></svg>Market Control</button></li>
+        <li data-requires-permission="research.view"><button type="button" class="admin-nav-link" data-section="research-management"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="5" cy="7" r="2"/><circle cx="19" cy="7" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="m7 8.5 3 2M17 8.5l-3 2M7 16.5l3-2M17 16.5l-3-2"/></svg>Research Management</button></li>
       </ul>
     </div>
 
@@ -2169,6 +2170,39 @@
       <div class="market-rotation-summary" id="market-rotation-summary"><div class="admin-list-empty">Loading current rotations…</div></div>
       <div class="market-admin-columns" aria-hidden="true"><span>Catalogue entry</span><span>Type</span><span>Price</span><span>Reputation rank</span><span>Weight / stock</span><span>Status</span></div>
       <div class="admin-list market-admin-list" id="market-entry-list"><div class="admin-list-empty">Loading market catalogue…</div></div>
+    </section>
+
+    <section class="admin-section" id="section-research-management" hidden>
+      <div class="admin-section-head">
+        <h1>Research Management</h1>
+        <p>Build the permanent protocol lattice used by the Research Facility. Place nodes on the canvas, connect their prerequisites, attach a field effect, and set the reputation, credit and salvage requirements that authorise it.</p>
+      </div>
+      <div class="admin-toolbar research-admin-toolbar">
+        <div><span class="eyebrow">Protocol architecture</span><p class="admin-field-hint">Drag an existing node to reposition it. Select a node to edit its dossier; every change is stored server-side.</p></div>
+        <button type="button" class="btn btn-solid" id="research-node-create-btn" data-requires-permission="research.manage">+ Add Research Unlock</button>
+        <span class="admin-count" id="research-admin-count"></span>
+      </div>
+      <div class="research-admin-layout">
+        <div class="research-admin-canvas-card"><div class="research-admin-canvas-head"><div><span class="eyebrow">Lattice canvas</span><h2>Neoh protocol map</h2></div><span>Drag to arrange · links are prerequisites</span></div><div class="research-admin-canvas-viewport" id="research-admin-canvas-viewport" tabindex="0" aria-label="Scrollable research management canvas"><div class="research-admin-canvas" id="research-admin-canvas"><p class="admin-list-empty">Loading research protocols&hellip;</p></div></div></div>
+        <div class="admin-form-card research-admin-editor" id="research-admin-editor">
+          <div class="admin-form-card-head"><h2 id="research-editor-title">Select a protocol</h2><p id="research-editor-copy">Choose an existing research node from the canvas, or add a new one to begin its dossier.</p></div>
+          <div class="research-editor-fields" id="research-editor-fields" hidden>
+            <div class="admin-field"><label for="research-node-name">Protocol name</label><input type="text" id="research-node-name" maxlength="120" placeholder="e.g. Relay Compression"></div>
+            <div class="admin-field"><label for="research-node-slug">Slug</label><input type="text" id="research-node-slug" maxlength="120" placeholder="relay-compression"><p class="admin-field-hint">Lowercase letters, numbers and hyphens only. This permanent identifier cannot be reused.</p></div>
+            <div class="admin-field"><label for="research-node-description">Field briefing</label><textarea id="research-node-description" rows="4" maxlength="2000" placeholder="Describe what this protocol delivers to a command."></textarea></div>
+            <div class="admin-field"><label for="research-node-image-url">Protocol image</label><div class="research-image-field"><img id="research-node-image-preview" alt="" hidden><input type="text" id="research-node-image-url" maxlength="255" placeholder="Upload an image to attach it"><input type="file" id="research-node-image-file" accept="image/jpeg,image/png,image/webp" hidden><button type="button" class="btn" id="research-node-image-upload">Upload image</button><button type="button" class="btn" id="research-node-image-clear">Clear</button></div><p class="admin-field-hint">JPG, PNG and WEBP up to 8MB. Uploads are resized and stored in the Research Facility image library.</p></div>
+            <div class="admin-field-row"><div class="admin-field"><label for="research-node-effect-type">Field effect</label><select id="research-node-effect-type"><option value="mission_speed">Mission speed</option><option value="xp_gain">Experience gain</option><option value="reputation_gain">Reputation gain</option><option value="luck">Recovery luck</option><option value="market_discount">Market discount</option><option value="market_refresh">Market refresh</option><option value="secret_mission">Secret mission access</option></select></div><div class="admin-field" id="research-node-effect-value-field"><label for="research-node-effect-value">Effect value (%)</label><input type="number" id="research-node-effect-value" min="0.01" max="50" step="0.01" value="5"></div></div>
+            <div class="admin-field" id="research-node-target-field" hidden><label for="research-node-target-mission">Classified mission revealed</label><select id="research-node-target-mission"><option value="">Choose mission</option></select><p class="admin-field-hint">The selected Neoh mission is hidden from players until this protocol is unlocked.</p></div>
+            <div class="admin-field"><label for="research-node-prerequisites">Prerequisite protocols</label><select id="research-node-prerequisites" multiple size="5"></select><p class="admin-field-hint">Hold Ctrl or Command to select multiple requirements. The system rejects loops before saving.</p></div>
+            <div class="admin-field-row research-cost-row"><div class="admin-field"><label for="research-node-rank">Required reputation rank</label><input type="number" id="research-node-rank" min="1" max="99" step="1" value="1"></div><div class="admin-field"><label for="research-node-credit-cost">Credit cost</label><input type="number" id="research-node-credit-cost" min="0" max="1000000" step="1" value="0"></div></div>
+            <div class="admin-field-row research-cost-row"><div class="admin-field"><label for="research-node-salvage">Salvage cost</label><select id="research-node-salvage"><option value="">No salvage required</option></select></div><div class="admin-field"><label for="research-node-salvage-quantity">Salvage quantity</label><input type="number" id="research-node-salvage-quantity" min="0" max="999" step="1" value="0"></div></div>
+            <div class="admin-field-row"><div class="admin-field"><label for="research-node-sort-order">List order</label><input type="number" id="research-node-sort-order" min="0" max="100000" step="1" value="0"></div><div class="admin-field research-layout-readout"><label>Canvas position</label><p id="research-node-position">Choose a node on the lattice.</p></div></div>
+            <label class="admin-setting-toggle"><span><strong>Protocol available</strong><small>Disable to retire it from new research. Existing owners retain its permanent benefit.</small></span><input type="checkbox" id="research-node-enabled" checked></label>
+            <p class="admin-modal-error" id="research-node-error"></p><p class="admin-modal-status" id="research-node-status"></p>
+            <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="research-node-save-btn" data-requires-permission="research.manage">Save Research Protocol</button><button type="button" class="btn" id="research-node-cancel-btn">Cancel</button></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="admin-section" id="section-book-control" hidden>
@@ -4416,7 +4450,7 @@
 </div>
 
 <script src="../js/members.js?v=41"></script>
-<script src="../js/admin-missions.js?v=8"></script><script src="../js/admin-loot-tables.js?v=2"></script><script src="../js/admin-market.js?v=2"></script>
+<script src="../js/admin-missions.js?v=8"></script><script src="../js/admin-loot-tables.js?v=2"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=1"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -4664,6 +4698,7 @@
       if (name === 'mission-control') loadMissionControl();
       if (name === 'loot-tables') loadLootTables();
       if (name === 'market-control') loadMarketControl();
+      if (name === 'research-management') loadResearchManagement();
       if (name === 'book-control') loadBookList();
       if (name === 'quiz-control') loadQuizQuestionList();
       if (name === 'world-control') loadWorldList();
