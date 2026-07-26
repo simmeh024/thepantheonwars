@@ -1230,7 +1230,14 @@ function pw_missions_crew_capacity(PDO $db, int $userId): int {
 }
 
 function pw_missions_active_crew_count(PDO $db, int $userId): int {
-    $count = $db->prepare('SELECT COUNT(*) FROM game_player_crew WHERE user_id = ? AND status <> "retired"');
+    /* A disabled definition is intentionally absent from the public roster;
+     * it must not occupy one of the command's purchasable berths either. */
+    $count = $db->prepare(
+        'SELECT COUNT(*)
+         FROM game_player_crew player_crew
+         JOIN game_crew_definitions crew ON crew.id = player_crew.crew_definition_id AND crew.is_enabled = 1
+         WHERE player_crew.user_id = ? AND player_crew.status <> "retired"'
+    );
     $count->execute([$userId]);
     return (int)$count->fetchColumn();
 }
@@ -1291,7 +1298,12 @@ function pw_missions_receive_crew(PDO $db, int $userId, int $crewDefinitionId, s
     $owned->execute([$userId, $crewDefinitionId]);
     if ($owned->fetch()) return ['state' => 'duplicate', 'crew' => $award];
 
-    $roster = $db->prepare('SELECT id FROM game_player_crew WHERE user_id = ? AND status <> "retired" FOR UPDATE');
+    $roster = $db->prepare(
+        'SELECT player_crew.id
+         FROM game_player_crew player_crew
+         JOIN game_crew_definitions crew ON crew.id = player_crew.crew_definition_id AND crew.is_enabled = 1
+         WHERE player_crew.user_id = ? AND player_crew.status <> "retired" FOR UPDATE'
+    );
     $roster->execute([$userId]);
     $rosterCount = count($roster->fetchAll());
     $capacity = pw_missions_crew_capacity($db, $userId);

@@ -32,7 +32,7 @@ try {
     $rosterStmt = $db->prepare(
         'SELECT pc.id, pc.crew_definition_id, pc.status, crew.name
          FROM game_player_crew pc
-         JOIN game_crew_definitions crew ON crew.id = pc.crew_definition_id
+         JOIN game_crew_definitions crew ON crew.id = pc.crew_definition_id AND crew.is_enabled = 1
          WHERE pc.user_id = ? AND pc.status <> "retired" FOR UPDATE'
     );
     $rosterStmt->execute([$userId]);
