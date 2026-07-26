@@ -604,6 +604,60 @@
     applyWatermark(data.watermark); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderInventory(data); renderHistory(data); tickCountdowns();
   }
 
+  /* A recovery is useful only when it answers the immediate question: can this
+   * replace something the player already owns? The comparison deliberately
+   * considers the lowest-ranked compatible equipped item first, then the
+   * lowest-ranked compatible inventory item. Requirements are included on the
+   * reward payload so a role-locked drop is never advertised to the wrong crew. */
+  function resultGearFitsCrew(item, crew) {
+    return Number(crew.level) >= Number(item.required_level || 1)
+      && (!item.required_role || item.required_role === crew.role);
+  }
+
+  function lowestRankedGear(items) {
+    return items.sort(function (left, right) {
+      return gearPower(left.item) - gearPower(right.item)
+        || String(left.item.name).localeCompare(String(right.item.name));
+    })[0] || null;
+  }
+
+  function resultGearUpgrade(item) {
+    if (!item || !item.slot || !state.data) return null;
+    var score = gearPower(item);
+    var equipped = [];
+    var compatibleCrew = (state.data.crew || []).filter(function (crew) {
+      return resultGearFitsCrew(item, crew);
+    });
+    compatibleCrew.forEach(function (crew) {
+      var current = crew.gear && crew.gear[item.slot];
+      if (current && score > gearPower(current)) {
+        equipped.push({ item: current, crew: crew });
+      }
+    });
+    var lowestEquipped = lowestRankedGear(equipped);
+    if (lowestEquipped) {
+      return {
+        kind: 'crew',
+        text: 'Upgrade for ' + lowestEquipped.crew.name + ' — better than ' + lowestEquipped.item.name,
+        detail: 'Better than the lowest-ranked compatible ' + slotLabel(item.slot).toLowerCase() + ' currently equipped.'
+      };
+    }
+    if (!compatibleCrew.length) return null;
+    var inventory = (state.data.loot || []).filter(function (owned) {
+      return owned.slot === item.slot && Number(owned.quantity) > 0 && score > gearPower(owned)
+        && compatibleCrew.some(function (crew) { return resultGearFitsCrew(owned, crew); });
+    }).map(function (owned) { return { item: owned }; });
+    var lowestInventory = lowestRankedGear(inventory);
+    if (lowestInventory) {
+      return {
+        kind: 'inventory',
+        text: 'Inventory upgrade — better than ' + lowestInventory.item.name,
+        detail: 'Better than the lowest-ranked ' + slotLabel(item.slot).toLowerCase() + ' already in your inventory.'
+      };
+    }
+    return null;
+  }
+
   /* Debrief shown after a claim. The server has already resolved everything by
    * the time this runs -- the roll, the payment and the loot draw all happened
    * inside one transaction -- so this only reports an outcome, never decides
@@ -705,11 +759,13 @@
         extras += '<div class="mission-result-block"><h4>Equipment recovered</h4><ul class="mission-result-loot">'
           + recoveredGear.map(function (item) {
             var bonus = gearBonusText(item.bonus);
+            var upgrade = resultGearUpgrade(item);
             return '<li class="mission-result-gear is-' + escapeHtml(item.tier) + '" data-loot-definition-id="' + Number(item.id) + '">'
               + '<span class="mission-result-gear-icon">' + gearIconHtml(item.slot, item.icon_url) + '</span>'
               + '<span class="mission-result-gear-copy"><strong>' + escapeHtml(item.name) + '</strong>'
               + '<small>' + escapeHtml(slotLabel(item.slot)) + ' &middot; ' + escapeHtml(item.tier) + (item.upgraded ? ' &middot; upgraded' : '') + '</small>'
               + (bonus ? '<b>' + escapeHtml(bonus) + '</b>' : '<b class="is-neutral">No stat bonus</b>')
+              + (upgrade ? '<span class="mission-result-gear-upgrade is-' + upgrade.kind + '" title="' + escapeHtml(upgrade.detail) + '">' + escapeHtml(upgrade.text) + '</span>' : '')
               + '<i class="mission-result-gear-status" role="status" aria-live="polite"></i></span>'
               + '<button type="button" class="mission-result-destroy" data-gear-destroy="' + Number(item.id) + '">Destroy</button></li>';
           }).join('') + '</ul></div>';

@@ -1029,7 +1029,7 @@ function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array 
 
     $gearReady = pw_mission_gear_ready($db);
     $gearColumns = $gearReady
-        ? ', slot, bonus_strength, bonus_cunning, bonus_science, bonus_charisma, icon_url'
+        ? ', slot, bonus_strength, bonus_cunning, bonus_science, bonus_charisma, required_level, required_role, icon_url'
         : '';
     $stmt = $db->prepare('SELECT id, name, slug, tier, drop_weight' . $gearColumns . ' FROM game_loot_definitions WHERE world_key = ? AND is_enabled = 1');
     $stmt->execute([$worldKey]);
@@ -1077,6 +1077,8 @@ function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array 
             'upgraded' => !empty($item['upgraded']),
             'slot' => $gearReady ? (string)($item['slot'] ?? '') : '',
             'icon_url' => $gearReady ? pw_missions_gear_icon_url($item['icon_url'] ?? '') : '',
+            'required_level' => $gearReady ? (int)($item['required_level'] ?? 1) : 1,
+            'required_role' => $gearReady ? (string)($item['required_role'] ?? '') : '',
             'bonus' => [
                 'strength' => $gearReady ? (int)($item['bonus_strength'] ?? 0) : 0,
                 'cunning' => $gearReady ? (int)($item['bonus_cunning'] ?? 0) : 0,
@@ -1193,6 +1195,7 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
                     gear.name AS gear_name, gear.tier, gear.slot AS gear_slot,
                     gear.bonus_strength AS gear_bonus_strength, gear.bonus_cunning AS gear_bonus_cunning,
                     gear.bonus_science AS gear_bonus_science, gear.bonus_charisma AS gear_bonus_charisma,
+                    gear.required_level AS gear_required_level, gear.required_role AS gear_required_role,
                     gear.icon_url AS gear_icon_url
              FROM game_loot_table_entries entry
              LEFT JOIN game_crew_definitions crew ON crew.id = entry.crew_definition_id
@@ -1236,6 +1239,8 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
                     'upgraded' => false,
                     'slot' => (string)($entry['gear_slot'] ?? ''),
                     'icon_url' => pw_missions_gear_icon_url($entry['gear_icon_url'] ?? ''),
+                    'required_level' => (int)($entry['gear_required_level'] ?? 1),
+                    'required_role' => (string)($entry['gear_required_role'] ?? ''),
                     'bonus' => [
                         'strength' => (int)($entry['gear_bonus_strength'] ?? 0),
                         'cunning' => (int)($entry['gear_bonus_cunning'] ?? 0),
