@@ -51,6 +51,24 @@
     }
     return 'Ready to activate';
   }
+  function nodeCosts(node) {
+    var creditsMissing = Number(state.data.credits) < Number(node.credit_cost);
+    var costs = [
+      '<span' + (node.rank_met ? '' : ' class="is-missing"') + '>Rank ' + Number(node.required_reputation_level) + '</span>',
+      '<span' + (creditsMissing ? ' class="is-missing"' : '') + '>' + number(node.credit_cost) + ' cr</span>'
+    ];
+    if (node.salvage) {
+      var salvageMissing = Number(node.salvage.held) < Number(node.salvage.quantity);
+      costs.push('<span' + (salvageMissing ? ' class="is-missing"' : '') + '>' + number(node.salvage.quantity) + ' ' + esc(node.salvage.name) + '</span>');
+    }
+    return costs.join('');
+  }
+  function nodeHoverPanel(node, stateName) {
+    var canUnlock = node.can_unlock && state.busyId !== Number(node.id);
+    var actionLabel = state.busyId === Number(node.id) ? 'Authorising...' : (node.is_unlocked ? 'Protocol online' : 'Unlock now');
+    var reason = node.can_unlock ? 'Ready to activate this protocol.' : nodeStatus(node, stateName) + '.';
+    return '<div class="research-node-hover"><span class="research-node-hover-effect">' + esc(effectText(node)) + '</span><p>' + esc(node.description) + '</p><span class="research-node-costs">' + nodeCosts(node) + '</span><button type="button" class="research-node-unlock" data-research-unlock="' + Number(node.id) + '"' + (canUnlock ? '' : ' disabled') + '>' + esc(actionLabel) + '</button><span class="research-node-hover-reason' + (canUnlock ? ' is-ready' : '') + '">' + esc(reason) + '</span></div>';
+  }
   function filteredNodes(data) {
     var nodes = Array.isArray(data && data.nodes) ? data.nodes : [];
     if (!state.categoryFilter) return nodes;
@@ -107,7 +125,7 @@
     var nodeMarkup = nodes.map(function (node) {
       var stateName = nodeState(node), statusText = nodeStatus(node, stateName), image = safeImage(node.image_url), selected = Number(node.id) === Number(state.selectedId);
       var nodeLabel = (node.category ? node.category.name + ' / ' : '') + node.effect_label;
-      return '<button type="button" class="research-node is-' + stateName + (selected ? ' is-selected' : '') + '" data-research-node="' + Number(node.id) + '" style="left:' + Number(node.canvas_x) + 'px;top:' + Number(node.canvas_y) + 'px" aria-label="' + esc(node.name + ': ' + statusText) + '" aria-pressed="' + (selected ? 'true' : 'false') + '"><span class="research-node-top"><span class="research-node-art">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(nodeLabel) + '</small><strong>' + esc(node.name) + '</strong></span></span><p>' + esc(node.effect_short) + '</p><span class="research-node-foot"><span class="research-node-state is-' + stateName + '">' + esc(statusText) + '</span><b>' + esc(node.effect_type === 'secret_mission' ? 'CLASSIFIED' : '+' + percent(node.effect_value) + '%') + '</b></span></button>';
+      return '<article class="research-node is-' + stateName + (selected ? ' is-selected' : '') + '" style="left:' + Number(node.canvas_x) + 'px;top:' + Number(node.canvas_y) + 'px"><button type="button" class="research-node-select" data-research-node="' + Number(node.id) + '" aria-label="' + esc(node.name + ': ' + statusText) + '" aria-pressed="' + (selected ? 'true' : 'false') + '"><span class="research-node-top"><span class="research-node-art">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(nodeLabel) + '</small><strong>' + esc(node.name) + '</strong></span></span><p>' + esc(node.effect_short) + '</p><span class="research-node-foot"><span class="research-node-state is-' + stateName + '">' + esc(statusText) + '</span><b>' + esc(node.effect_type === 'secret_mission' ? 'CLASSIFIED' : '+' + percent(node.effect_value) + '%') + '</b></span></button>' + nodeHoverPanel(node, stateName) + '</article>';
     }).join('');
     board.innerHTML = '<svg class="research-tree-lines" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" aria-hidden="true">' + lines + '</svg>' + nodeMarkup;
   }
@@ -155,7 +173,7 @@
 
   var mousePan = null;
   function startMousePan(event) {
-    if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('[data-research-node]')) return;
+    if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('.research-node')) return;
     mousePan = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, scrollLeft: treeViewport.scrollLeft, scrollTop: treeViewport.scrollTop };
     treeViewport.classList.add('is-panning');
     try { board.setPointerCapture(event.pointerId); } catch (ignore) {}
@@ -178,7 +196,13 @@
   board.addEventListener('pointermove', moveMousePan);
   board.addEventListener('pointerup', finishMousePan);
   board.addEventListener('pointercancel', finishMousePan);
-  board.addEventListener('click', function (event) { var button = event.target.closest('[data-research-node]'); if (!button) return; state.selectedId = Number(button.getAttribute('data-research-node')); renderTree(state.data); renderDetail(); });
+  board.addEventListener('click', function (event) {
+    var unlockButton = event.target.closest('[data-research-unlock]');
+    if (unlockButton && board.contains(unlockButton)) { unlock(Number(unlockButton.getAttribute('data-research-unlock'))); return; }
+    var button = event.target.closest('[data-research-node]');
+    if (!button) return;
+    state.selectedId = Number(button.getAttribute('data-research-node')); renderTree(state.data); renderDetail();
+  });
   categoryFilter.addEventListener('change', function () { state.categoryFilter = categoryFilter.value; var nodes = filteredNodes(state.data); state.selectedId = nodes.length ? nodes[0].id : null; renderTree(state.data); renderDetail(); });
   detail.addEventListener('click', function (event) { var button = event.target.closest('[data-research-unlock]'); if (button) unlock(Number(button.getAttribute('data-research-unlock'))); });
   document.addEventListener('pw-auth-ready', load);

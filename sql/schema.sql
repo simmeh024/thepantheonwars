@@ -1850,7 +1850,8 @@ CREATE TABLE IF NOT EXISTS game_player_loot (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- sql/migration_research_system.sql, sql/migration_research_categories.sql,
--- and sql/migration_research_final_category.sql.
+-- sql/migration_research_final_category.sql, and
+-- sql/migration_mission_research_locks.sql.
 -- Categories are administrator-authored branches that organise the shared
 -- protocol lattice. A Research node is shared configuration;
 -- game_player_research is the account-owned, permanent unlock record. The

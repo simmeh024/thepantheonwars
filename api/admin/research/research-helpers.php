@@ -52,13 +52,21 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
     $targetRaw = trim((string)($input['target_mission_definition_id'] ?? ''));
     if ($effectType === 'secret_mission') {
         if (!pw_mission_research_locks_ready($db)) {
-            pw_error('Mission research locks are being prepared. Run the Final Research Category migration before creating a classified mission unlock.', 503);
+            pw_error('Mission research locks are being prepared. Run sql/migration_mission_research_locks.sql before creating a classified mission unlock.', 503);
         }
         $targetMissionId = filter_var($targetRaw, FILTER_VALIDATE_INT);
         if ($targetMissionId === false || $targetMissionId < 1) pw_error('Choose the secret mission this research should reveal.');
-        $target = $db->prepare('SELECT id FROM game_mission_definitions WHERE id = ? AND world_key = "neoh" AND requires_research_unlock = 1');
+        $target = $db->prepare('SELECT id FROM game_mission_definitions WHERE id = ? AND world_key = "neoh"');
         $target->execute([$targetMissionId]);
-        if (!$target->fetch()) pw_error('Choose a Neoh mission marked as Research locked in Mission Management.', 404);
+        if (!$target->fetch()) pw_error('Choose a valid Neoh mission for this secret research.', 404);
+        /* Selecting a mission for Secret mission access makes the intent
+         * explicit in both authoring surfaces. This avoids an empty dropdown
+         * dead-end when the mission has not yet been manually ticked, while
+         * Mission Management retains the same checkbox for later review or
+         * deliberate retirement. The node save transaction owns this change,
+         * so a rejected node save never hides a mission by itself. */
+        $markResearchLocked = $db->prepare('UPDATE game_mission_definitions SET requires_research_unlock = 1 WHERE id = ?');
+        $markResearchLocked->execute([$targetMissionId]);
     } elseif ($targetRaw !== '') {
         pw_error('Only Secret mission access research may target a mission.');
     }

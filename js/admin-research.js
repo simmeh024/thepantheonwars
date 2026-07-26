@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  var nodes = [], categories = [], salvage = [], missions = [], effectTypes = {}, boardSize = { width: 1560, height: 900 };
+  var nodes = [], categories = [], salvage = [], missions = [], effectTypes = {}, boardSize = { width: 1560, height: 900 }, missionLocksReady = false;
   var current = null, categoryCurrent = null, dragging = null, panning = null, linkMode = false, linkSource = null, draftPosition = null, suppressClick = false;
   var canvas = document.getElementById('research-admin-canvas'), viewport = document.getElementById('research-admin-canvas-viewport');
   var count = document.getElementById('research-admin-count'), editorFields = document.getElementById('research-editor-fields');
@@ -135,8 +135,10 @@
     fillSelect(targetMission, missions, current ? current.target_mission_definition_id : null, 'Choose mission', function (item) { return item.name + ' · ' + item.mission_type + (item.is_enabled ? '' : ' (disabled)'); });
     Array.prototype.slice.call(targetMission.options).forEach(function (option) {
       var mission = missions.filter(function (item) { return Number(item.id) === Number(option.value); })[0];
-      if (option.value && mission && !mission.requires_research_unlock) option.remove();
+      if (mission) option.textContent += mission.requires_research_unlock ? ' · research locked' : ' · locks when saved';
     });
+    targetMission.disabled = !missionLocksReady;
+    if (!missionLocksReady) targetMission.options[0].textContent = 'Mission research locks migration required';
     fillPrerequisites(current ? current.prerequisite_ids : [], current ? current.id : null);
     document.getElementById('research-node-rank').value = current ? current.required_reputation_level : 1;
     document.getElementById('research-node-credit-cost').value = current ? current.credit_cost : 0;
@@ -268,7 +270,7 @@
   }
   function load() {
     return request('/api/admin/research/list.php?refresh=' + Date.now()).then(function (data) {
-      nodes = data.nodes || []; categories = data.categories || []; salvage = data.salvage || []; missions = data.missions || []; effectTypes = data.effect_types || {}; boardSize = data.board || boardSize;
+      nodes = data.nodes || []; categories = data.categories || []; salvage = data.salvage || []; missions = data.missions || []; missionLocksReady = !!data.mission_locks_ready; effectTypes = data.effect_types || {}; boardSize = data.board || boardSize;
       if (categoryCurrent && categoryCurrent.id) categoryCurrent = categoryById(categoryCurrent.id);
       if (!editorFields.hidden) fillSelect(categorySelect, categories, categorySelect.value, 'Uncategorised', function (category) { return category.name; });
       renderCanvas(); renderCategories();

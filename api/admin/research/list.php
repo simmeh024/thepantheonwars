@@ -50,7 +50,7 @@ try {
         $mission['requires_research_unlock'] = (bool)$mission['requires_research_unlock'];
     }
     unset($mission);
-    pw_json(['ok' => true, 'nodes' => $nodes, 'categories' => $categories, 'salvage' => $salvage, 'missions' => $missions, 'effect_types' => pw_research_effect_types(), 'board' => ['width' => PW_RESEARCH_BOARD_WIDTH, 'height' => PW_RESEARCH_BOARD_HEIGHT]]);
+    pw_json(['ok' => true, 'nodes' => $nodes, 'categories' => $categories, 'salvage' => $salvage, 'missions' => $missions, 'mission_locks_ready' => $missionLocksReady, 'effect_types' => pw_research_effect_types(), 'board' => ['width' => PW_RESEARCH_BOARD_WIDTH, 'height' => PW_RESEARCH_BOARD_HEIGHT]]);
 } catch (Throwable $e) {
     pw_error('Could not load Research Management. Confirm that the research migrations have been run.', 503);
 }
