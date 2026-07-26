@@ -464,10 +464,23 @@
 .mission-active-card.has-card-watermark::after,
 .mission-definition-card.has-card-watermark::after {
   content: ''; position: absolute; z-index: 0; inset: 0; pointer-events: none;
-  background: var(--card-watermark) right -12% bottom -8% / auto 78% no-repeat;
+  background: var(--card-watermark) right bottom / contain no-repeat;
   opacity: var(--card-watermark-opacity, 0.1);
   mix-blend-mode: screen;
 }
+/* Flush to the corner and contained, rather than the `right -12% bottom -8% /
+ * auto 78%` this used to carry. Those negative offsets pushed the artwork
+ * outside the card on every aspect ratio -- measured against a 390x400 card it
+ * lost 46px off the right and 32px off the bottom whatever the image was -- and
+ * `auto 78%` additionally overflowed a landscape image by 117px on the left,
+ * because the width is derived from the height and a 16:9 picture at 78% of the
+ * card height is far wider than the card. The result was a crop that lined up
+ * with nothing.
+ *
+ * `contain` fits the whole image inside the card whichever way round it is: a
+ * wide picture becomes a band along the foot, a tall emblem fills the height on
+ * the right, and neither is cut off. The active card keeps its own deliberate
+ * bleed below. */
 /* Active-card artwork is a right-side transmission image, not a rectangular
  * panel. Centre it vertically and fade its left edge into the card so artwork
  * with opaque edges never looks like it was abruptly dropped over the route. */
