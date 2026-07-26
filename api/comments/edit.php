@@ -29,8 +29,8 @@ $body = isset($input['body']) ? trim($input['body']) : '';
 if ($body === '') {
     pw_error('Your message is empty.');
 }
-if (function_exists('mb_strlen') ? mb_strlen($body) > 3500 : strlen($body) > 3500) {
-    pw_error('That message is too long (3500 characters max).');
+if (function_exists('mb_strlen') ? mb_strlen($body) > 5000 : strlen($body) > 5000) {
+    pw_error('That message is too long (5000 characters max).');
 }
 
 $db = pw_db();

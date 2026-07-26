@@ -185,7 +185,7 @@
             <form id="community-form" class="community-form" hidden>
               <div class="auth-field">
                 <label for="community-body">Post a reply</label>
-                <textarea id="community-body" maxlength="3500" placeholder="What's on your mind, traveler?" required></textarea>
+                <textarea id="community-body" maxlength="5000" placeholder="What's on your mind, traveler?" required></textarea>
               </div>
               <p class="auth-error" id="community-error"></p>
               <button type="submit" class="btn btn-solid">Reply</button>
@@ -2973,7 +2973,7 @@
     wrap.hidden = true;
 
     var ta = document.createElement('textarea');
-    ta.maxLength = 3500;
+    ta.maxLength = 5000;
     ta.placeholder = 'Write a reply...';
     wrap.appendChild(ta);
     attachEditorToolbar(ta);
@@ -3100,7 +3100,7 @@
       editWrap.className = 'inline-edit-form';
 
       var ta = document.createElement('textarea');
-      ta.maxLength = 3500;
+      ta.maxLength = 5000;
       ta.value = c.body;
       editWrap.appendChild(ta);
       attachEditorToolbar(ta);
