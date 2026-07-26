@@ -11,8 +11,12 @@ ALTER TABLE game_loot_tables
 
 ALTER TABLE game_research_nodes
   ADD COLUMN IF NOT EXISTS target_loot_table_id INT UNSIGNED NULL AFTER target_mission_definition_id,
-  ADD UNIQUE KEY IF NOT EXISTS uq_game_research_rare_loot_table (target_loot_table_id),
-  ADD CONSTRAINT IF NOT EXISTS fk_game_research_target_loot_table
+  ADD UNIQUE KEY IF NOT EXISTS uq_game_research_rare_loot_table (target_loot_table_id);
+
+-- MariaDB accepts IF NOT EXISTS for the column/key clauses above, but not for
+-- ADD CONSTRAINT. This is a one-off migration, so add the FK conventionally.
+ALTER TABLE game_research_nodes
+  ADD CONSTRAINT fk_game_research_target_loot_table
     FOREIGN KEY (target_loot_table_id) REFERENCES game_loot_tables(id) ON DELETE SET NULL;
 
 -- Preserve any rare-table research nodes authored during a staged deployment.
