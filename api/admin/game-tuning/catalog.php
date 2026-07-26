@@ -95,6 +95,8 @@ pw_json([
     'research' => $research,
     'effect_types' => pw_research_effect_types(),
     'metrics' => pw_tuning_metrics(),
+    // Generated from the engine's own constants -- see pw_missions_stat_reference().
+    'stat_reference' => pw_missions_stat_reference(),
     'gear_slots' => pw_missions_gear_slots(),
     'max_level' => PW_MISSION_MAX_LEVEL,
     'max_points' => PW_TUNING_MAX_POINTS,

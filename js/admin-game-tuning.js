@@ -138,6 +138,64 @@
     }).join('');
   }
 
+  /* ---- Stat reference ---------------------------------------------------
+   * What each stat and each role is worth, generated server-side from the
+   * engine's own constants by pw_missions_stat_reference(). Not written out
+   * here: a page that explains the rules by restating them will eventually
+   * explain a rule the game no longer follows.
+   *
+   * The selected crew member's own role is called out, because which of the
+   * three per-level bonuses applies is the single most useful thing to know
+   * while reading their curve.
+   * -------------------------------------------------------------------- */
+  function renderStatReference() {
+    var host = el('tuning-stat-reference');
+    if (!host) return;
+    var ref = catalog && catalog.stat_reference;
+    if (!ref) { host.innerHTML = ''; return; }
+    var crew = crewById(state.crewId);
+    var caps = ref.caps || {};
+
+    var stats = (ref.stats || []).map(function (stat) {
+      return '<div class="tuning-stat-row is-' + esc(stat.key) + '">'
+        + '<span class="tuning-stat-key"><i>' + esc(stat.short) + '</i>' + esc(stat.label) + '</span>'
+        + '<span class="tuning-stat-rate">+' + stat.per_point + esc(stat.unit) + ' <small>per point</small></span>'
+        + '<span class="tuning-stat-affects">' + esc(stat.affects) + '</span>'
+        + '<p>' + esc(stat.detail) + '</p></div>';
+    }).join('');
+
+    var roles = (ref.roles || []).map(function (role) {
+      var mine = crew && crew.role === role.role;
+      return '<div class="tuning-stat-row is-role' + (mine ? ' is-subject' : '') + '">'
+        + '<span class="tuning-stat-key">' + esc(role.role) + (mine ? '<em>this subject</em>' : '') + '</span>'
+        + '<span class="tuning-stat-rate">+' + role.per_level + esc(role.unit) + ' <small>per level</small></span>'
+        + '<span class="tuning-stat-affects">' + esc(role.affects) + '</span>'
+        + '<p>' + esc(role.detail) + '</p></div>';
+    }).join('');
+
+    var affinity = ref.affinity || {};
+    var preferred = Object.keys(affinity.preferred_by_type || {}).map(function (type) {
+      return '<span class="tuning-affinity-type"><b>' + esc(String(type).toUpperCase()) + '</b> '
+        + esc((affinity.preferred_by_type[type] || []).join(', ')) + '</span>';
+    }).join('');
+
+    host.innerHTML = '<div class="tuning-stat-group"><h3>Stats</h3>'
+      + '<p class="tuning-stat-note">Summed across the whole assigned crew, then applied once. '
+      + 'Levels allocate 2 points a level into the role&rsquo;s primary stat and 1 into Cunning, capped at '
+      + Number(caps.max_stat_from_levels) + '; equipment carries a stat to ' + Number(caps.max_stat_with_gear) + '.</p>'
+      + stats + '</div>'
+      + '<div class="tuning-stat-group"><h3>Roles</h3>'
+      + '<p class="tuning-stat-note">A per-level bonus on top of the stats above, contributed by every crew member of that role.</p>'
+      + roles + '</div>'
+      + '<div class="tuning-stat-group"><h3>Operation affinity</h3>'
+      + '<p class="tuning-stat-note">' + esc(affinity.detail || '') + '</p>'
+      + '<div class="tuning-affinity-list">' + preferred + '</div>'
+      + '<p class="tuning-stat-note is-warn">Neither preferred role assigned: +'
+      + Number(affinity.penalty_duration_percent) + '% duration and &minus;'
+      + Number(affinity.penalty_success_percent) + '% success. Each matching crew member adds +'
+      + Number(affinity.percent) + '% of that operation type&rsquo;s own bonus.</p></div>';
+  }
+
   function renderItems() {
     var host = el('tuning-item-list');
     if (!host) return;
@@ -146,7 +204,15 @@
       return;
     }
     var term = (el('tuning-item-search').value || '').trim().toLowerCase();
+    var crew = crewById(state.crewId);
     var rows = (catalog.items || []).filter(function (item) {
+      /* Role only, never level. A role requirement is permanent for this crew
+       * member, so an item they can never wear is noise in a list they are
+       * choosing from. A level requirement is temporary -- the page is a sweep
+       * across levels, and watching an item become legal partway up is one of
+       * the things it exists to show -- so those stay listed, with the level
+       * called out on the row. */
+      if (crew && item.required_role && item.required_role !== crew.role) return false;
       if (!term) return true;
       return (item.name + ' ' + item.slot + ' ' + item.tier).toLowerCase().indexOf(term) !== -1;
     });
@@ -159,7 +225,9 @@
         + (Number(item.required_level) > 1 ? ' &middot; L' + item.required_level : '')
         + (item.required_role ? ' &middot; ' + esc(item.required_role) : '') + '</span>'
         + '<span class="tuning-item-bonus">' + esc(bonusText(item)) + '</span></button>';
-    }).join('') : '<p class="admin-empty">No items match that filter.</p>';
+    }).join('') : '<p class="admin-empty">' + (term
+      ? 'No items match that filter.'
+      : esc(crew ? 'Nothing in the catalogue can be worn by a ' + crew.role + '.' : 'No equipment has been authored yet.')) + '</p>';
   }
 
   function renderResearch() {
@@ -440,7 +508,7 @@
     state.levelTo = Number(config.level_to) || catalog.max_level;
     state.crewCount = Number(config.crew_count) || 1;
     syncInputs();
-    renderSlots(); renderItems(); renderResearch(); renderMissions(); run();
+    renderSlots(); renderItems(); renderStatReference(); renderResearch(); renderMissions(); run();
   }
 
   function syncInputs() {
@@ -464,7 +532,21 @@
       window.clearTimeout(resizeTimer);
       resizeTimer = window.setTimeout(function () { if (state.result) renderChart(); }, 140);
     });
-    el('tuning-crew').addEventListener('change', function () { state.crewId = Number(this.value) || null; renderSlots(); run(); });
+    el('tuning-crew').addEventListener('change', function () {
+      state.crewId = Number(this.value) || null;
+      /* A loadout outlives the crew member it was built for. Anything the new
+       * subject may never wear is dropped rather than left sitting in a slot
+       * contributing nothing -- which is what the server does with it, so
+       * leaving it visible would misreport the simulation. */
+      var crew = crewById(state.crewId);
+      if (crew) {
+        state.itemIds = state.itemIds.filter(function (id) {
+          var item = itemById(id);
+          return item && (!item.required_role || item.required_role === crew.role);
+        });
+      }
+      renderSlots(); renderItems(); renderStatReference(); run();
+    });
     el('tuning-mode').addEventListener('change', function () { state.mode = this.value; syncInputs(); run(); });
     el('tuning-metric').addEventListener('change', function () { state.metric = this.value; renderChart(); renderTable(); });
     el('tuning-level-from').addEventListener('input', function () { state.levelFrom = Math.max(1, Number(this.value) || 1); run(); });
@@ -607,7 +689,7 @@
       var firstMission = (data.missions || []).filter(function (m) { return m.is_enabled; })[0];
       if (firstMission) state.missionIds = [Number(firstMission.id)];
       syncInputs();
-      renderSlots(); renderItems(); renderResearch(); renderMissions(); loadScenarios(); run();
+      renderSlots(); renderItems(); renderStatReference(); renderResearch(); renderMissions(); loadScenarios(); run();
     }).catch(function (error) { setError(error.message); });
   }
 

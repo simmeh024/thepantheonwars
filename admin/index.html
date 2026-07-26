@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=319"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=4"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=2">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=319"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=4"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=3">
 </head>
 <body>
 
@@ -2242,8 +2242,13 @@
           <div class="admin-form-card">
             <div class="admin-form-card-head"><h2>Loadout</h2><p>Drag an item onto a slot, or select a slot and choose from the list. An item is only worn once its level requirement is met, so a late requirement shows as a step in the curve.</p></div>
             <div class="tuning-slots" id="tuning-slots"></div>
-            <div class="admin-field"><label for="tuning-item-search">Item catalogue</label><input type="search" id="tuning-item-search" placeholder="Filter by name, slot or tier"></div>
+            <div class="admin-field"><label for="tuning-item-search">Item catalogue</label><input type="search" id="tuning-item-search" placeholder="Filter by name, slot or tier"><small class="admin-field-hint">Only equipment this crew member&rsquo;s role can wear is listed. A level requirement is shown rather than filtered, since the sweep passes through it.</small></div>
             <div class="tuning-item-list" id="tuning-item-list"></div>
+          </div>
+
+          <div class="admin-form-card">
+            <div class="admin-form-card-head"><h2>What the stats do</h2><p>Every rate below is read from the same constants the mission engine multiplies by, so this cannot describe a rule the game no longer follows.</p></div>
+            <div class="tuning-stat-reference" id="tuning-stat-reference"></div>
           </div>
 
         </div>
@@ -4552,7 +4557,7 @@
 </div>
 
 <script src="../js/members.js?v=42"></script>
-<script src="../js/admin-missions.js?v=11"></script><script src="../js/admin-loot-tables.js?v=3"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=9"></script><script src="../js/admin-game-tuning.js?v=2"></script>
+<script src="../js/admin-missions.js?v=11"></script><script src="../js/admin-loot-tables.js?v=3"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=9"></script><script src="../js/admin-game-tuning.js?v=3"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };

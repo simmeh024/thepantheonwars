@@ -927,9 +927,98 @@ function pw_missions_role_rates(): array {
  * the mission not worth running rather than merely worse.
  * ---------------------------------------------------------------------- */
 
+/* What one point of each stat is worth. These were the only tuning figures in
+ * this file still written as literals inside pw_missions_crew_effects(), which
+ * meant anything describing them to a reader -- the crew card, the launch
+ * projection, Game Tuning's stat reference -- had to restate them and could
+ * drift. Named here so every description is generated from the same number the
+ * engine multiplies by. */
+const PW_MISSION_STRENGTH_SUCCESS_PER_POINT = 0.5;
+const PW_MISSION_CUNNING_LOOT_PER_POINT = 1.0;
+const PW_MISSION_SCIENCE_UPGRADE_PER_POINT = 1.5;
+const PW_MISSION_CHARISMA_XP_PER_POINT = 0.5;
+
 const PW_MISSION_AFFINITY_PERCENT = 5.0;
 const PW_MISSION_AFFINITY_PENALTY_DURATION = 20.0;
 const PW_MISSION_AFFINITY_PENALTY_SUCCESS = 5.0;
+
+/**
+ * A plain-language reference for every figure that turns a crew member into a
+ * mission outcome: the four stats, the three roles, and what a mismatch costs.
+ *
+ * Generated from the constants and rate tables above rather than written out,
+ * so it cannot describe a rate the engine no longer uses. Anything that wants
+ * to explain the system to a reader should read this rather than restate it.
+ */
+function pw_missions_stat_reference(): array {
+    $roleRates = pw_missions_role_rates();
+    $affinity = [];
+    foreach (pw_missions_affinity_matrix() as $type => $roles) {
+        $affinity[$type] = array_keys($roles);
+    }
+    return [
+        'stats' => [
+            [
+                'key' => 'strength', 'label' => 'Strength', 'short' => 'STR',
+                'per_point' => PW_MISSION_STRENGTH_SUCCESS_PER_POINT, 'unit' => '%',
+                'affects' => 'Success chance',
+                'detail' => 'Raises the chance the operation succeeds at all, added to its own base chance. Shared across the whole assigned crew, so it is the total that counts rather than any one member.',
+            ],
+            [
+                'key' => 'cunning', 'label' => 'Cunning', 'short' => 'CUN',
+                'per_point' => PW_MISSION_CUNNING_LOOT_PER_POINT, 'unit' => '%',
+                'affects' => 'Loot draws',
+                'detail' => 'Buys extra draws from the loot pool. Every whole 100% is one guaranteed additional item and the remainder is the chance of one more, capped at 12 draws for a single operation.',
+            ],
+            [
+                'key' => 'science', 'label' => 'Science', 'short' => 'SCI',
+                'per_point' => PW_MISSION_SCIENCE_UPGRADE_PER_POINT, 'unit' => '%',
+                'affects' => 'Rarity promotion',
+                'detail' => 'A separate roll on each item recovered for it to be promoted one rarity tier. Capped at 95%, and a storm takes its toll after that cap.',
+            ],
+            [
+                'key' => 'charisma', 'label' => 'Charisma', 'short' => 'CHA',
+                'per_point' => PW_MISSION_CHARISMA_XP_PER_POINT, 'unit' => '%',
+                'affects' => 'Crew experience',
+                'detail' => 'Adds to the experience the whole crew earns, stacking with the Pathfinder role bonus into one figure.',
+            ],
+        ],
+        'roles' => [
+            [
+                'role' => 'Vanguard', 'stat' => 'strength',
+                'per_level' => $roleRates['Vanguard']['reputation_per_level'] ?? 0,
+                'unit' => ' reputation', 'affects' => 'Reputation',
+                'detail' => 'Adds flat reputation to a successful operation, per level, floored to a whole number once the crew is summed.',
+            ],
+            [
+                'role' => 'Pathfinder', 'stat' => 'charisma',
+                'per_level' => $roleRates['Pathfinder']['xp_percent_per_level'] ?? 0,
+                'unit' => '% XP', 'affects' => 'Crew experience',
+                'detail' => 'Raises the experience the whole crew earns, per level, on top of their own Charisma.',
+            ],
+            [
+                'role' => 'Engineer', 'stat' => 'science',
+                'per_level' => $roleRates['Engineer']['duration_percent_per_level'] ?? 0,
+                'unit' => '% faster', 'affects' => 'Duration',
+                'detail' => 'Shortens every operation they join, per level. Locked in at launch, so a crew member who levels mid-mission does not shorten a run already under way.',
+            ],
+        ],
+        'caps' => [
+            'max_level' => PW_MISSION_MAX_LEVEL,
+            'max_stat_from_levels' => PW_MISSION_MAX_STAT,
+            'max_stat_with_gear' => PW_MISSION_MAX_GEAR_STAT,
+            'primary_per_level' => 2,
+            'cunning_per_level' => 1,
+        ],
+        'affinity' => [
+            'percent' => PW_MISSION_AFFINITY_PERCENT,
+            'penalty_duration_percent' => PW_MISSION_AFFINITY_PENALTY_DURATION,
+            'penalty_success_percent' => PW_MISSION_AFFINITY_PENALTY_SUCCESS,
+            'preferred_by_type' => $affinity,
+            'detail' => 'Each crew member of a preferred role adds the bonus again, so two of the same role is a real choice. The penalty applies only when the team carries neither preferred role, and is charged once however many mismatched crew are assigned.',
+        ],
+    ];
+}
 
 /**
  * Which role earns which bonus on which operation type. Keyed by the lowercase
@@ -1387,7 +1476,7 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?arr
     }
 
     // Charisma adds to the same XP pool the Pathfinder role bonus feeds.
-    $xpPercent += $totals['charisma'] * 0.5;
+    $xpPercent += $totals['charisma'] * PW_MISSION_CHARISMA_XP_PER_POINT;
 
     /* Affinity is added to the same pools the stats and role bonuses feed, so
      * every consumer downstream keeps reading one figure per effect rather than
@@ -1416,13 +1505,13 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?arr
         'reputation_flat' => (int)floor($reputationFlat),
         'reputation_percent' => round($affinity['reputation_percent'], 2),
         'credit_percent' => round($affinity['credit_percent'], 2),
-        'success_percent' => round(($totals['strength'] * 0.5) + $affinity['success_percent']
+        'success_percent' => round(($totals['strength'] * PW_MISSION_STRENGTH_SUCCESS_PER_POINT) + $affinity['success_percent']
             - $affinity['penalty_success_percent'] - $conditions['success_percent'], 2),
-        'loot_percent' => round($totals['cunning'] * 1.0, 2),
+        'loot_percent' => round($totals['cunning'] * PW_MISSION_CUNNING_LOOT_PER_POINT, 2),
         // The storm's toll on the promotion roll comes off after the cap, and is
         // floored at zero: a storm can take the whole bonus away, never turn it
         // into a penalty on a crew that had none to begin with.
-        'upgrade_percent' => round(max(0.0, min(95.0, ($totals['science'] * 1.5) + $affinity['upgrade_percent']) - $conditions['upgrade_percent']), 2),
+        'upgrade_percent' => round(max(0.0, min(95.0, ($totals['science'] * PW_MISSION_SCIENCE_UPGRADE_PER_POINT) + $affinity['upgrade_percent']) - $conditions['upgrade_percent']), 2),
         'stat_totals' => $totals,
         'affinity' => $affinity,
         'weather' => $conditions,

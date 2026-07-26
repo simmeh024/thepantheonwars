@@ -67,6 +67,33 @@
 .tuning-item.is-rare .tuning-item-name { color: #a9d6f6; }
 .tuning-item.is-legendary .tuning-item-name { color: #f0cd85; }
 
+/* ---- Stat reference ----------------------------------------------------
+ * Three short groups rather than one long table: the four stats, the three
+ * roles, and what a mismatched team costs. Each row leads with the figure,
+ * because the number is what a tuning pass is looking for and the sentence is
+ * the explanation of it. */
+.tuning-stat-reference { display: grid; gap: 16px; }
+.tuning-stat-group h3 { margin: 0 0 6px; color: #cfe0ea; font: 700 .7rem 'Jost', sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.tuning-stat-note { margin: 0 0 9px; color: #a9c2d0; font-size: .64rem; line-height: 1.5; }
+.tuning-stat-note.is-warn { margin: 9px 0 0; color: #edc179; }
+.tuning-stat-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 10px; padding: 8px 10px; margin-bottom: 5px; border: 1px solid rgba(90,149,185,0.26); background: rgba(6,15,28,0.36); }
+.tuning-stat-key { display: flex; align-items: baseline; gap: 7px; color: #eef1f6; font-size: .7rem; font-weight: 600; }
+.tuning-stat-key i { padding: 1px 5px; border: 1px solid rgba(103,152,190,0.4); color: #8ba3b4; font-size: .53rem; font-style: normal; font-weight: 700; letter-spacing: .06em; }
+.tuning-stat-key em { color: #7ee3e8; font-size: .55rem; font-style: normal; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+.tuning-stat-rate { color: #9edba8; font-size: .68rem; font-weight: 700; text-align: right; white-space: nowrap; }
+.tuning-stat-rate small { color: #8ba3b4; font-size: .55rem; font-weight: 500; }
+.tuning-stat-affects { grid-column: 1 / -1; color: #7ee3e8; font-size: .57rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.tuning-stat-row p { grid-column: 1 / -1; margin: 2px 0 0; color: #a9c2d0; font-size: .63rem; line-height: 1.45; }
+/* The subject's own role, so which per-level bonus is in play is obvious. */
+.tuning-stat-row.is-subject { border-color: rgba(126,227,232,0.6); background: rgba(10,32,48,0.55); }
+.tuning-stat-row.is-strength .tuning-stat-key i { border-color: rgba(224,138,114,0.44); }
+.tuning-stat-row.is-cunning .tuning-stat-key i { border-color: rgba(199,154,232,0.44); }
+.tuning-stat-row.is-science .tuning-stat-key i { border-color: rgba(126,227,232,0.44); }
+.tuning-stat-row.is-charisma .tuning-stat-key i { border-color: rgba(235,209,138,0.44); }
+.tuning-affinity-list { display: grid; gap: 4px; }
+.tuning-affinity-type { color: #a9c2d0; font-size: .63rem; }
+.tuning-affinity-type b { color: #eef1f6; font-size: .57rem; letter-spacing: .08em; }
+
 /* ---- Research toggles -------------------------------------------------- */
 .tuning-research-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
 .tuning-research-actions .btn { padding: 6px 10px !important; font-size: .6rem !important; }
