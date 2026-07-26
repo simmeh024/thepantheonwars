@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  var nodes = [], categories = [], salvage = [], missions = [], rareLootTables = [], effectTypes = {}, boardSize = { width: 1560, height: 900 }, missionLocksReady = false, lootTableLocksReady = false, queueTransmissionsReady = false;
+  var nodes = [], categories = [], salvage = [], missions = [], rareLootTables = [], effectTypes = {}, boardSize = { width: 2040, height: 1080 }, missionLocksReady = false, lootTableLocksReady = false, queueTransmissionsReady = false;
   var current = null, categoryCurrent = null, dragging = null, panning = null, linkMode = false, linkSource = null, draftPosition = null, suppressClick = false;
   var canvas = document.getElementById('research-admin-canvas'), viewport = document.getElementById('research-admin-canvas-viewport');
   var count = document.getElementById('research-admin-count'), editorFields = document.getElementById('research-editor-fields');
@@ -41,12 +41,15 @@
     if (node.effect_type === 'crew_capacity') return '+' + Math.floor(Number(node.effect_value || 0)) + ' slots';
     return '+' + Number(node.effect_value || 0) + '%';
   }
-  function boardWidth() { return Math.max(960, Number(boardSize.width) || 1560); }
-  function boardHeight() { return Math.max(600, Number(boardSize.height) || 900); }
+  function boardWidth() { return Math.max(960, Number(boardSize.width) || 2040); }
+  function boardHeight() { return Math.max(600, Number(boardSize.height) || 1080); }
   function clampPosition(position) {
     return {
       x: Math.max(0, Math.min(boardWidth() - 196, Math.round(Number(position.x) || 0))),
-      y: Math.max(0, Math.min(boardHeight() - 116, Math.round(Number(position.y) || 0)))
+      /* 126, not 116: api/admin/research/layout-save.php rejects anything past
+       * boardHeight() - 126, so the extra ten pixels this used to allow were a
+       * band where a drag looked accepted and then failed to save. */
+      y: Math.max(0, Math.min(boardHeight() - 126, Math.round(Number(position.y) || 0)))
     };
   }
   function visibleCanvasPosition() {

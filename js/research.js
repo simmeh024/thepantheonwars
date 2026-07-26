@@ -228,7 +228,7 @@
     renderTreeKey();
     var nodes = filteredNodes(data);
     if (!nodes.length) { board.style.width = ''; board.style.minHeight = ''; board.innerHTML = '<p class="research-empty">' + (state.categoryFilter ? 'No protocols have been assigned to this category yet.' : 'Research command has not published any protocols yet.') + '</p>'; syncMapScale(); return; }
-    var dimensions = data.board || {}, width = Math.max(960, Number(dimensions.width) || 1560), height = Math.max(600, Number(dimensions.height) || 900);
+    var dimensions = data.board || {}, width = Math.max(960, Number(dimensions.width) || 2040), height = Math.max(600, Number(dimensions.height) || 1080);
     board.style.width = width + 'px'; board.style.minHeight = height + 'px';
     var byId = {}; nodes.forEach(function (node) { byId[Number(node.id)] = node; });
     var lines = nodes.map(function (node) {

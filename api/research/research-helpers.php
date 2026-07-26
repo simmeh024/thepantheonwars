@@ -2,8 +2,18 @@
 /** Shared, server-authoritative rules for the player Research Facility. */
 require_once __DIR__ . '/../missions/missions-helpers.php';
 
-const PW_RESEARCH_BOARD_WIDTH = 1560;
-const PW_RESEARCH_BOARD_HEIGHT = 900;
+/* The authoring canvas. A node card is 196x126 and the board draws a 30px
+ * grid, so both dimensions are kept as multiples of 30 and both pitches below
+ * are grid-aligned: 240 across (196 + 44) and 180 down (126 + 54).
+ *
+ * Widened from 1560 by two column pitches, which is room for two more steps on
+ * the longest chain, and deepened from 900 by one row pitch for another row of
+ * cards beneath the existing tree. Four places hold these numbers -- these
+ * constants, the CSS fallback on .research-tree-board, and the fallback
+ * defaults in js/research.js and js/admin-research.js -- and all four must
+ * agree or nodes place outside a board that clips them. */
+const PW_RESEARCH_BOARD_WIDTH = 2040;
+const PW_RESEARCH_BOARD_HEIGHT = 1080;
 
 /**
  * Research is deliberately a small closed vocabulary. The player never sends a
