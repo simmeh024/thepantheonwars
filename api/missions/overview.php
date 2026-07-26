@@ -12,6 +12,7 @@ try {
 
     $statsReady = pw_mission_stats_ready($db);
     $crewFavoritesReady = pw_mission_crew_favorites_ready($db);
+    $crewCapacityReady = pw_mission_crew_capacity_ready($db);
     $researchReady = pw_research_ready($db);
     $researchLocksReady = pw_mission_research_locks_ready($db);
     $researchEffects = $researchReady ? pw_research_player_effects($db, $userId) : pw_research_default_effects();
@@ -20,7 +21,8 @@ try {
         'SELECT pc.id, pc.level, pc.xp, pc.status, pc.created_at,'
         . ($statsReady ? ' pc.strength, pc.cunning, pc.science, pc.charisma,' : '') . '
         ' . ($crewFavoritesReady ? ' pc.is_favorite,' : ' 0 AS is_favorite,') . '
-                c.name, c.slug, c.description, c.role, c.portrait_url, c.world_affinity, c.is_enabled AS definition_enabled,
+                c.name, c.slug, c.description, c.role, c.portrait_url, c.world_affinity, '
+        . ($crewCapacityReady ? 'c.tier,' : '"common" AS tier,') . ' c.is_enabled AS definition_enabled,
                 active.id AS active_mission_id, active.status AS active_mission_status,
                 active.completes_at AS active_mission_completes_at, active.active_mission_name
          FROM game_player_crew pc
@@ -44,7 +46,7 @@ try {
           * A run already in the field is unaffected: claim.php joins the
           * definition without this condition, so an operation launched before
           * the switch still completes and still pays out. */
-         WHERE pc.user_id = ? AND c.is_enabled = 1
+         WHERE pc.user_id = ? AND c.is_enabled = 1 AND pc.status <> "retired"
          ORDER BY c.is_starter DESC, c.role ASC, c.name ASC'
     );
     $crewStmt->execute([$userId, $userId]);
@@ -68,6 +70,9 @@ try {
     foreach ($crew as $index => $row) {
         $crew[$index]['role_effect'] = pw_missions_crew_effects([$row]);
     }
+    $crewCapacityUsed = $crewCapacityReady ? pw_missions_active_crew_count($db, $userId) : count($crew);
+    $crewCapacity = $crewCapacityReady ? pw_missions_crew_capacity($db, $userId) : 8;
+    $pendingCrewOffers = $crewCapacityReady ? pw_missions_pending_crew_offers($db, $userId) : [];
 
     $claimedStmt = $db->prepare(
         'SELECT mission_definition_id, COUNT(*) AS claimed_count
@@ -321,8 +326,10 @@ try {
                 return $mission['status'] === 'claimed';
             })),
             'total_missions' => count($allPlayerMissions),
+            'crew_capacity' => $crewCapacity,
         ],
         'crew' => $crew,
+        'crew_capacity' => ['ready' => $crewCapacityReady, 'used' => $crewCapacityUsed, 'capacity' => $crewCapacity, 'offers' => $pendingCrewOffers],
         'roster_effects' => $rosterEffects,
         /* The affinity matrix, so the launch screen can label each crew member
          * for the operation being launched and project the result. The rates

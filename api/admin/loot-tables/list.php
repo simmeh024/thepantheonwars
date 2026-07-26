@@ -4,9 +4,12 @@ require_once __DIR__ . '/loot-helpers.php';
 pw_require_permission('loot_tables.view');
 $db = pw_db();
 pw_missions_require_loot_table_gear_ready($db);
+$researchLocksReady = pw_mission_loot_table_research_locks_ready($db);
 
 $tables = $db->query(
-    'SELECT lt.id, lt.name, lt.slug, lt.description, lt.is_enabled, lt.created_at, lt.updated_at,
+    'SELECT lt.id, lt.name, lt.slug, lt.description, lt.is_enabled, '
+    . ($researchLocksReady ? 'lt.is_research_rare, lt.requires_research_unlock, ' : '0 AS is_research_rare, 0 AS requires_research_unlock, ')
+    . 'lt.created_at, lt.updated_at,
             (SELECT COUNT(*) FROM game_mission_loot_tables link WHERE link.loot_table_id = lt.id) AS mission_count
      FROM game_loot_tables lt
      ORDER BY lt.name ASC, lt.id ASC'
@@ -46,6 +49,8 @@ foreach ($entryRows as $row) {
 $tables = array_map(static function ($row) use ($entriesByTable) {
     $row['id'] = (int)$row['id'];
     $row['is_enabled'] = (bool)$row['is_enabled'];
+    $row['is_research_rare'] = (bool)$row['is_research_rare'];
+    $row['requires_research_unlock'] = (bool)$row['requires_research_unlock'];
     $row['mission_count'] = (int)$row['mission_count'];
     $row['entries'] = $entriesByTable[$row['id']] ?? [];
     return $row;
@@ -99,4 +104,4 @@ foreach ($db->query(
     ];
 }
 
-pw_json(['ok' => true, 'tables' => $tables, 'crew' => $crew, 'gear' => $gear, 'missions' => $missions]);
+pw_json(['ok' => true, 'tables' => $tables, 'crew' => $crew, 'gear' => $gear, 'missions' => $missions, 'research_locks_ready' => $researchLocksReady]);

@@ -33,6 +33,7 @@ function pw_admin_loot_table_input(array $input): array {
         'slug' => $slug,
         'description' => $description,
         'is_enabled' => !empty($input['is_enabled']) ? 1 : 0,
+        'is_research_rare' => !empty($input['is_research_rare']) ? 1 : 0,
     ];
 }
 

@@ -26,7 +26,12 @@
     treeKey.innerHTML = '<i class="is-online"></i> Online <i class="is-ready"></i> Ready <i class="is-funds-missing"></i> Funds missing <i class="is-rank-locked"></i> Rank locked';
   }
   function nodeById(id) { return (state.data && state.data.nodes || []).filter(function (node) { return Number(node.id) === Number(id); })[0] || null; }
-  function effectText(node) { return node.effect_type === 'secret_mission' ? 'Unlocks ' + (node.target_mission_name || 'classified mission') : '+' + percent(node.effect_value) + '% ' + node.effect_short; }
+  function effectText(node) {
+    if (node.effect_type === 'secret_mission') return 'Unlocks ' + (node.target_mission_name || 'classified mission');
+    if (node.effect_type === 'rare_loot_table') return 'Unlocks ' + (node.target_loot_table_name || 'rare loot table');
+    if (node.effect_type === 'crew_capacity') return '+' + Math.floor(Number(node.effect_value) || 0) + ' crew slots';
+    return '+' + percent(node.effect_value) + '% ' + node.effect_short;
+  }
   function nodeState(node) {
     if (node.is_unlocked) return 'online';
     if (!node.is_enabled) return 'retired';
@@ -100,8 +105,8 @@
 
   function renderEffects(effects) {
     var rows = [
-      ['mission_speed_percent', 'Mission speed'], ['xp_percent', 'Mission XP'], ['reputation_percent', 'Mission reputation'],
-      ['luck_percent', 'Recovery luck'], ['market_discount_percent', 'Market discount'], ['market_refresh_percent', 'Market refresh']
+      ['mission_speed_percent', 'Mission speed'], ['xp_percent', 'Mission XP'], ['reputation_percent', 'Mission reputation'], ['credit_percent', 'Mission credits'], ['crew_capacity', 'Crew capacity'],
+      ['luck_percent', 'Rarity promotion'], ['market_discount_percent', 'Market discount'], ['market_refresh_percent', 'Market refresh']
     ].filter(function (row) { return Number(effects[row[0]]) > 0; });
     document.getElementById('research-effects-title').textContent = rows.length ? rows.length + ' online' : 'No protocols online';
     effectsList.innerHTML = rows.length ? '<ul>' + rows.map(function (row) { return '<li><b>+' + percent(effects[row[0]]) + '%</b>' + esc(row[1]) + '</li>'; }).join('') + '</ul>' : '<p>Activate your first protocol to establish a permanent expedition advantage.</p>';
@@ -125,7 +130,9 @@
     var nodeMarkup = nodes.map(function (node) {
       var stateName = nodeState(node), statusText = nodeStatus(node, stateName), image = safeImage(node.image_url), selected = Number(node.id) === Number(state.selectedId);
       var nodeLabel = (node.category ? node.category.name + ' / ' : '') + node.effect_label;
-      return '<article class="research-node is-' + stateName + (selected ? ' is-selected' : '') + '" style="left:' + Number(node.canvas_x) + 'px;top:' + Number(node.canvas_y) + 'px"><button type="button" class="research-node-select" data-research-node="' + Number(node.id) + '" aria-label="' + esc(node.name + ': ' + statusText) + '" aria-pressed="' + (selected ? 'true' : 'false') + '"><span class="research-node-top"><span class="research-node-art">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(nodeLabel) + '</small><strong>' + esc(node.name) + '</strong></span></span><p>' + esc(node.effect_short) + '</p><span class="research-node-foot"><span class="research-node-state is-' + stateName + '">' + esc(statusText) + '</span><b>' + esc(node.effect_type === 'secret_mission' ? 'CLASSIFIED' : '+' + percent(node.effect_value) + '%') + '</b></span></button>' + nodeHoverPanel(node, stateName) + '</article>';
+      var specialEffect = node.effect_type === 'secret_mission' || node.effect_type === 'rare_loot_table';
+      var effectValue = specialEffect ? 'CLASSIFIED' : (node.effect_type === 'crew_capacity' ? '+' + Math.floor(Number(node.effect_value) || 0) + ' slots' : '+' + percent(node.effect_value) + '%');
+      return '<article class="research-node is-' + stateName + (selected ? ' is-selected' : '') + '" style="left:' + Number(node.canvas_x) + 'px;top:' + Number(node.canvas_y) + 'px"><button type="button" class="research-node-select" data-research-node="' + Number(node.id) + '" aria-label="' + esc(node.name + ': ' + statusText) + '" aria-pressed="' + (selected ? 'true' : 'false') + '"><span class="research-node-top"><span class="research-node-art">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(nodeLabel) + '</small><strong>' + esc(node.name) + '</strong></span></span><p>' + esc(node.effect_short) + '</p><span class="research-node-foot"><span class="research-node-state is-' + stateName + '">' + esc(statusText) + '</span><b>' + esc(effectValue) + '</b></span></button>' + nodeHoverPanel(node, stateName) + '</article>';
     }).join('');
     board.innerHTML = '<svg class="research-tree-lines" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" aria-hidden="true">' + lines + '</svg>' + nodeMarkup;
   }

@@ -6,12 +6,15 @@ $db = pw_db();
 pw_admin_research_require_ready($db);
 
 try {
+    $lootTableLocksReady = pw_research_loot_table_locks_ready($db);
     $nodes = $db->query(
         'SELECT n.*, category.name AS category_name, category.slug AS category_slug,
-                target.name AS target_mission_name, salvage.name AS salvage_name
+                target.name AS target_mission_name, salvage.name AS salvage_name'
+        . ($lootTableLocksReady ? ', target_loot.name AS target_loot_table_name' : ', "" AS target_loot_table_name') . '
          FROM game_research_nodes n
          LEFT JOIN game_research_categories category ON category.id = n.research_category_id
          LEFT JOIN game_mission_definitions target ON target.id = n.target_mission_definition_id
+         ' . ($lootTableLocksReady ? 'LEFT JOIN game_loot_tables target_loot ON target_loot.id = n.target_loot_table_id' : '') . '
          LEFT JOIN game_loot_definitions salvage ON salvage.id = n.salvage_loot_definition_id
          ORDER BY n.sort_order ASC, n.id ASC'
     )->fetchAll();
@@ -19,8 +22,8 @@ try {
     $byNode = [];
     foreach ($links as $link) $byNode[(int)$link['research_node_id']][] = (int)$link['prerequisite_node_id'];
     foreach ($nodes as &$node) {
-        foreach (['id', 'research_category_id', 'target_mission_definition_id', 'required_reputation_level', 'credit_cost', 'salvage_loot_definition_id', 'salvage_quantity', 'canvas_x', 'canvas_y', 'sort_order'] as $field) {
-            if ($node[$field] !== null) $node[$field] = (int)$node[$field];
+        foreach (['id', 'research_category_id', 'target_mission_definition_id', 'target_loot_table_id', 'required_reputation_level', 'credit_cost', 'salvage_loot_definition_id', 'salvage_quantity', 'canvas_x', 'canvas_y', 'sort_order'] as $field) {
+            if (array_key_exists($field, $node) && $node[$field] !== null) $node[$field] = (int)$node[$field];
         }
         $node['effect_value'] = (float)$node['effect_value'];
         $node['is_enabled'] = (bool)$node['is_enabled'];
@@ -50,7 +53,22 @@ try {
         $mission['requires_research_unlock'] = (bool)$mission['requires_research_unlock'];
     }
     unset($mission);
-    pw_json(['ok' => true, 'nodes' => $nodes, 'categories' => $categories, 'salvage' => $salvage, 'missions' => $missions, 'mission_locks_ready' => $missionLocksReady, 'effect_types' => pw_research_effect_types(), 'board' => ['width' => PW_RESEARCH_BOARD_WIDTH, 'height' => PW_RESEARCH_BOARD_HEIGHT]]);
+    $rareLootTables = [];
+    if ($lootTableLocksReady) {
+        $rareLootTables = $db->query(
+            'SELECT id, name, slug, is_enabled, requires_research_unlock
+             FROM game_loot_tables
+             WHERE is_research_rare = 1
+             ORDER BY name ASC, id ASC'
+        )->fetchAll();
+        foreach ($rareLootTables as &$table) {
+            $table['id'] = (int)$table['id'];
+            $table['is_enabled'] = (bool)$table['is_enabled'];
+            $table['requires_research_unlock'] = (bool)$table['requires_research_unlock'];
+        }
+        unset($table);
+    }
+    pw_json(['ok' => true, 'nodes' => $nodes, 'categories' => $categories, 'salvage' => $salvage, 'missions' => $missions, 'rare_loot_tables' => $rareLootTables, 'mission_locks_ready' => $missionLocksReady, 'loot_table_locks_ready' => $lootTableLocksReady, 'effect_types' => pw_research_effect_types(), 'board' => ['width' => PW_RESEARCH_BOARD_WIDTH, 'height' => PW_RESEARCH_BOARD_HEIGHT]]);
 } catch (Throwable $e) {
     pw_error('Could not load Research Management. Confirm that the research migrations have been run.', 503);
 }

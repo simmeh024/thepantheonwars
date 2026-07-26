@@ -439,6 +439,12 @@
 .missions-section-head h2 { margin: 0; font-size: 1.48rem; }
 .missions-section-head p { max-width: 650px; margin: 7px 0 0; font-size: 0.83rem; }
 .missions-count { color: #8da9c1; font-size: 0.75rem; white-space: nowrap; }
+.mission-crew-capacity { display: grid; min-width: 132px; gap: 7px; padding: 10px 12px; border: 1px solid rgba(90,197,211,0.34); background: linear-gradient(135deg, rgba(17,51,70,0.58), rgba(20,13,43,0.66)); text-align: right; }
+.mission-crew-capacity strong { color: #a7e8ec; font: 600 .88rem/1 'Cinzel', serif; letter-spacing: .06em; }
+.mission-crew-capacity-track { display: grid; grid-template-columns: repeat(8, minmax(4px, 1fr)); gap: 3px; }
+.mission-crew-capacity-track i { display: block; height: 4px; border: 1px solid rgba(107,153,185,0.38); background: rgba(10,19,35,0.7); }
+.mission-crew-capacity-track i.is-filled { border-color: rgba(109,224,229,0.66); background: linear-gradient(90deg, #55d7df, #8b6ed6); box-shadow: 0 0 7px rgba(85,215,223,0.35); }
+.mission-crew-capacity.is-full { border-color: rgba(231,183,114,0.62); }.mission-crew-capacity.is-full strong { color: #f0d591; }.mission-crew-capacity.is-full .mission-crew-capacity-track i.is-filled { border-color: rgba(240,213,145,0.72); background: linear-gradient(90deg, #d7a65d, #edcf86); }
 .missions-active-grid, .missions-definition-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 14px; }
 .mission-active-card, .mission-definition-card { position: relative; overflow: hidden; min-width: 0; padding: 19px; border: 1px solid rgba(88,142,181,0.36); background: linear-gradient(145deg, rgba(20,49,71,0.76), rgba(24,14,49,0.86)); box-shadow: inset 0 1px rgba(136,229,237,0.05); }
 .mission-active-card::before, .mission-definition-card::before { content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%; background: linear-gradient(#6ce5eb, #8d67d3); box-shadow: 0 0 16px rgba(100,225,233,0.5); }
@@ -540,6 +546,11 @@
 .mission-definition-card .btn:disabled { cursor: not-allowed; opacity: 0.42; }
 .mission-definition-card.is-locked .mission-launch-btn:disabled { border-color: rgba(192,153,96,0.4); color: #d4ad71; }
 .missions-crew-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(305px, 1fr)); gap: 14px; }
+.mission-crew-offers { display: grid; gap: 10px; margin: -4px 0 16px; }
+.mission-crew-offer { padding: 13px; border: 1px solid rgba(231,183,114,0.56); background: linear-gradient(135deg, rgba(58,39,35,0.48), rgba(24,14,42,0.76)); box-shadow: inset 0 0 22px rgba(235,209,138,0.05); }
+.mission-crew-offer.is-rare { border-color: rgba(199,154,232,0.66); }.mission-crew-offer.is-epic { border-color: rgba(216,121,235,0.72); }.mission-crew-offer.is-legendary { border-color: rgba(235,209,138,0.78); }
+.mission-crew-offer-head { display: flex; align-items: start; justify-content: space-between; gap: 14px; }.mission-crew-offer-head span { display: grid; gap: 3px; }.mission-crew-offer-head small { color: #e9ca83; font-size: .57rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }.mission-crew-offer-head strong { color: #f4f0fa; font: 600 1rem/1.1 'Cinzel', serif; }.mission-crew-offer-head em { color: #aebfd0; font-size: .64rem; font-style: normal; text-transform: capitalize; }.mission-crew-offer-head > b { flex: 0 0 auto; padding: 5px 7px; border: 1px solid rgba(235,209,138,0.42); color: #f0d591; font-size: .66rem; }
+.mission-crew-offer p { margin: 9px 0 11px; color: #b8c8d4; font-size: .72rem; line-height: 1.45; }.mission-crew-offer-actions { display: flex; flex-wrap: wrap; align-items: end; gap: 7px; }.mission-crew-offer-actions label { display: grid; gap: 4px; color: #9ab2c4; font-size: .57rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }.mission-crew-offer-actions select { min-height: 31px; max-width: 185px; padding: 4px 7px; }.mission-crew-offer-actions .btn, .mission-crew-offer-actions .mission-result-destroy { min-height: 31px; margin: 0; padding: 0 9px; font-size: .57rem; text-decoration: none; }.mission-crew-offer-unavailable { color: #e4a8a1; font-size: .62rem; }.mission-crew-offer-status { display: block; min-height: 1em; margin-top: 8px; color: #8ddde1; font-size: .64rem; }.mission-crew-offer.is-resolved { opacity: .6; pointer-events: none; }
 .missions-crew-controls { display: grid; grid-template-columns: repeat(5, minmax(120px, 1fr)); gap: 10px 12px; align-items: end; margin: -3px 0 16px; padding: 13px; border: 1px solid rgba(80,129,168,0.34); background: rgba(10,20,38,0.48); }
 .missions-crew-control { display: grid; min-width: 0; gap: 5px; }
 .missions-crew-control > span { color: #7898ac; font-size: .58rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }

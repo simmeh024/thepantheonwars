@@ -19,20 +19,27 @@ try {
     }
     $data = pw_admin_research_node_input($db, $input);
     $prerequisites = pw_admin_research_prerequisites($db, $id, $input['prerequisite_ids'] ?? []);
+    $nodeFields = [
+        'name', 'slug', 'description', 'image_url', 'research_category_id', 'effect_type', 'effect_value',
+        'target_mission_definition_id',
+    ];
+    if (pw_research_loot_table_locks_ready($db)) $nodeFields[] = 'target_loot_table_id';
+    array_push($nodeFields, 'required_reputation_level', 'credit_cost', 'salvage_loot_definition_id', 'salvage_quantity', 'canvas_x', 'canvas_y', 'sort_order', 'is_enabled');
+    $nodeValues = array_map(static function ($field) use ($data) { return $data[$field]; }, $nodeFields);
     if ($id === null) {
         $insert = $db->prepare(
-            'INSERT INTO game_research_nodes (name, slug, description, image_url, research_category_id, effect_type, effect_value, target_mission_definition_id, required_reputation_level, credit_cost, salvage_loot_definition_id, salvage_quantity, canvas_x, canvas_y, sort_order, is_enabled)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+            'INSERT INTO game_research_nodes (' . implode(', ', $nodeFields) . ')
+             VALUES (' . implode(', ', array_fill(0, count($nodeFields), '?')) . ')'
         );
-        $insert->execute(array_values($data));
+        $insert->execute($nodeValues);
         $id = (int)$db->lastInsertId();
         $action = 'research_node_created';
         $verb = 'Created';
     } else {
         $update = $db->prepare(
-            'UPDATE game_research_nodes SET name = ?, slug = ?, description = ?, image_url = ?, research_category_id = ?, effect_type = ?, effect_value = ?, target_mission_definition_id = ?, required_reputation_level = ?, credit_cost = ?, salvage_loot_definition_id = ?, salvage_quantity = ?, canvas_x = ?, canvas_y = ?, sort_order = ?, is_enabled = ? WHERE id = ?'
+            'UPDATE game_research_nodes SET ' . implode(' = ?, ', $nodeFields) . ' = ? WHERE id = ?'
         );
-        $update->execute(array_merge(array_values($data), [$id]));
+        $update->execute(array_merge($nodeValues, [$id]));
         $action = 'research_node_updated';
         $verb = 'Updated';
     }
@@ -46,5 +53,5 @@ try {
     pw_json(['ok' => true, 'id' => $id]);
 } catch (Throwable $e) {
     if ($db->inTransaction()) $db->rollBack();
-    pw_error($e instanceof RuntimeException ? $e->getMessage() : 'Could not save this research protocol. Check that the slug and secret mission are unique.', 409);
+    pw_error($e instanceof RuntimeException ? $e->getMessage() : 'Could not save this research protocol. Check that the slug and research target are unique.', 409);
 }

@@ -74,6 +74,7 @@ try {
         $research = pw_research_player_effects($db, $userId);
         $effects['xp_percent'] = round((float)$effects['xp_percent'] + (float)$research['xp_percent'], 2);
         $effects['reputation_percent'] = round((float)$effects['reputation_percent'] + (float)$research['reputation_percent'], 2);
+        $effects['credit_percent'] = round((float)$effects['credit_percent'] + (float)$research['credit_percent'], 2);
         $effects['upgrade_percent'] = round(min(95.0, (float)$effects['upgrade_percent'] + (float)$research['luck_percent']), 2);
     }
 
@@ -96,9 +97,9 @@ try {
         /* Credits are the operation's contract fee, and the one reward no crew
          * stat touches: Cunning already buys extra loot draws, so paying a second
          * bonus off the same roster would compound one advantage twice. Affinity
-         * is the sole exception -- a Vanguard on a recon run negotiates a few
-         * extra credits out of the job, which is a fact about who was sent rather
-         * than about how experienced they are. */
+         * and an activated Credit gain protocol are the intentional exceptions:
+         * the former is who went out, the latter is a command-wide contract
+         * improvement bought from the Research Facility. */
         $creditsAwarded = $creditsReady
             ? (int)round((int)($mission['credit_reward'] ?? 0) * (1 + ($effects['credit_percent'] / 100)))
             : 0;
@@ -164,7 +165,7 @@ try {
      * anywhere rolls the whole claim back. */
     $lootTableAwards = $succeeded
         ? pw_missions_roll_loot_tables($db, $userId, (int)$mission['mission_definition_id'])
-        : ['granted' => [], 'duplicates' => [], 'gear' => []];
+        : ['granted' => [], 'duplicates' => [], 'pending' => [], 'gear' => []];
     if (!empty($lootTableAwards['gear'])) {
         pw_missions_store_loot($db, $userId, $lootTableAwards['gear']);
         $loot = array_merge($loot, $lootTableAwards['gear']);
@@ -227,6 +228,7 @@ try {
         'loot' => $loot,
         'crew_recruited' => $lootTableAwards['granted'],
         'crew_duplicates' => $lootTableAwards['duplicates'],
+        'crew_capacity_offers' => $lootTableAwards['pending'],
     ]);
 } catch (Throwable $e) {
     if ($db->inTransaction()) $db->rollBack();

@@ -16,6 +16,8 @@
   var crewSort = document.getElementById('missions-crew-sort');
   var crewFilterSummary = document.getElementById('missions-crew-filter-summary');
   var crewPagination = document.getElementById('missions-crew-pagination');
+  var crewCapacity = document.getElementById('missions-crew-capacity');
+  var crewOffers = document.getElementById('missions-crew-offers');
   var historyList = document.getElementById('missions-history-list');
   var commandFeedList = document.getElementById('mission-feed-list');
   var launchModal = document.getElementById('mission-launch-modal');
@@ -196,8 +198,39 @@
     document.getElementById('missions-stat-completed').textContent = data.stats.completed_missions;
     document.getElementById('missions-stat-total').textContent = data.stats.total_missions;
     document.getElementById('missions-active-count').textContent = data.stats.active_missions + (data.stats.active_missions === 1 ? ' operation' : ' operations');
-    document.getElementById('missions-crew-count').textContent = data.crew.length + (data.crew.length === 1 ? ' member' : ' members');
+    renderCrewCapacity(data);
     document.getElementById('missions-command-copy').textContent = data.stats.active_missions ? 'Your crews are transmitting from the field. Mission time is verified by command.' : 'No active deployments. Review Neoh operations and assign an available crew.';
+  }
+
+  function crewOfferMarkup(offer) {
+    var available = (state.data && state.data.crew || []).filter(function (member) { return member.status === 'available'; });
+    var replacement = available.length
+      ? '<label><span>Replace</span><select data-crew-offer-replace>' + available.map(function (member) { return '<option value="' + Number(member.id) + '">' + escapeHtml(member.name) + ' · Level ' + Number(member.level) + '</option>'; }).join('') + '</select></label><button type="button" class="btn" data-crew-offer-action="replace" data-crew-offer-id="' + Number(offer.id || offer.offer_id) + '">Replace crew</button>'
+      : '<span class="mission-crew-offer-unavailable">No available crew member can be replaced while the roster is deployed.</span>';
+    return '<article class="mission-crew-offer is-' + escapeHtml(offer.tier || 'common') + '" data-crew-offer="' + Number(offer.id || offer.offer_id) + '"><div class="mission-crew-offer-head"><span><small>Recruit signal held</small><strong>' + escapeHtml(offer.name) + '</strong><em>' + escapeHtml(offer.role) + ' · ' + escapeHtml(offer.tier || 'common') + '</em></span><b>' + Number(offer.roster_count || 0) + ' / ' + Number(offer.capacity || 8) + '</b></div><p>You do not have enough crew member space. Expand your berths in Research Facility, replace an available crew member, or sell this recruit.</p><div class="mission-crew-offer-actions">' + (offer.can_accept ? '<button type="button" class="btn btn-solid" data-crew-offer-action="accept" data-crew-offer-id="' + Number(offer.id || offer.offer_id) + '">Accept recruit</button>' : '<a class="btn btn-solid" href="research.html">Open Research Facility</a>') + replacement + '<button type="button" class="mission-result-destroy" data-crew-offer-action="sell" data-crew-offer-id="' + Number(offer.id || offer.offer_id) + '">Sell · ' + credits(offer.sale_credits) + ' cr</button></div><span class="mission-crew-offer-status" role="status" aria-live="polite"></span></article>';
+  }
+
+  function renderCrewCapacity(data) {
+    if (!crewCapacity) return;
+    var capacity = data.crew_capacity || {};
+    var used = Number(capacity.used);
+    if (!isFinite(used)) used = (data.crew || []).length;
+    var max = Math.max(8, Number(capacity.capacity) || 8);
+    var markerCount = Math.min(16, max);
+    var filled = Math.min(markerCount, Math.round((used / max) * markerCount));
+    document.getElementById('missions-crew-count').textContent = used + ' / ' + max;
+    crewCapacity.classList.toggle('is-full', used >= max);
+    var track = crewCapacity.querySelector('.mission-crew-capacity-track');
+    track.style.gridTemplateColumns = 'repeat(' + markerCount + ', minmax(4px, 1fr))';
+    track.innerHTML = Array.apply(null, Array(markerCount)).map(function (_, index) { return '<i class="' + (index < filled ? 'is-filled' : '') + '"></i>'; }).join('');
+    crewCapacity.setAttribute('aria-label', used + ' of ' + max + ' crew berths occupied');
+  }
+
+  function renderCrewOffers(data) {
+    if (!crewOffers) return;
+    var offers = (data.crew_capacity && data.crew_capacity.offers) || [];
+    crewOffers.innerHTML = offers.map(crewOfferMarkup).join('');
+    crewOffers.hidden = !offers.length;
   }
 
   /* Each active operation gets the same clear rising route toward its endpoint.
@@ -529,9 +562,6 @@
     var pageStart = (state.crewPage - 1) * 4;
     var pageCrew = visibleCrew.slice(pageStart, pageStart + 4);
     var pageEnd = pageStart + pageCrew.length;
-    document.getElementById('missions-crew-count').textContent = visibleCrew.length === data.crew.length
-      ? data.crew.length + (data.crew.length === 1 ? ' member' : ' members')
-      : visibleCrew.length + ' of ' + data.crew.length + ' members';
     if (!visibleCrew.length) {
       crewFilterSummary.textContent = crewFavoriteFilter.value === 'favorites' ? 'No favourite crew members yet.' : 'No crew members match these filters.';
       crewList.innerHTML = '<p class="missions-empty">No crew members match these filters.</p>';
@@ -634,7 +664,7 @@
     state.data = data;
     var server = apiDate(data.server_time);
     state.serverOffset = server && !isNaN(server) ? server.getTime() - Date.now() : 0;
-    applyWatermark(data.watermark); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderInventory(data); renderHistory(data); tickCountdowns();
+    applyWatermark(data.watermark); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCrewOffers(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderInventory(data); renderHistory(data); tickCountdowns();
   }
 
   /* A recovery is useful only when it answers the immediate question: can this
@@ -779,6 +809,10 @@
       extras += '<p class="mission-result-note">' + escapeHtml(duplicateNames) + (result.crew_duplicates.length === 1 ? ' was' : ' were')
         + ' already on your roster, so nothing was added.</p>';
     }
+    if (!failed && result.crew_capacity_offers && result.crew_capacity_offers.length) {
+      extras += '<div class="mission-result-block is-recruit"><h4>Crew berth required</h4>'
+        + result.crew_capacity_offers.map(function (offer) { return crewOfferMarkup(offer); }).join('') + '</div>';
+    }
     var recoveredSalvage = !failed && result.loot ? result.loot.filter(function (item) { return !item.slot; }) : [];
     if (recoveredSalvage.length) {
       extras += '<div class="mission-result-block"><h4>Recovered</h4><ul class="mission-result-loot">'
@@ -836,6 +870,9 @@
     }
     if (result.crew_recruited && result.crew_recruited.length) {
       parts.push('recruited ' + result.crew_recruited.map(function (member) { return member.name; }).join(', '));
+    }
+    if (result.crew_capacity_offers && result.crew_capacity_offers.length) {
+      parts.push(result.crew_capacity_offers.map(function (offer) { return offer.name + ' is awaiting a crew berth'; }).join(', '));
     }
     return parts.join(' · ') + '.';
   }
@@ -986,6 +1023,7 @@
     var researchXp = Number(research.xp_percent) || 0;
     var researchReputation = Number(research.reputation_percent) || 0;
     var researchLuck = Number(research.luck_percent) || 0;
+    var researchCredits = Number(research.credit_percent) || 0;
     var penaltyDuration = (penalty ? Number(rule.penalty.duration_percent) || 0 : 0) + weatherDuration;
     var penaltySuccess = (penalty ? Number(rule.penalty.success_percent) || 0 : 0) + weatherSuccess;
     durationPercent = Math.min(90, durationPercent + affinity.duration_percent + researchSpeed);
@@ -1007,7 +1045,7 @@
       base_duration_seconds: baseSeconds,
       success_percent: Math.max(5, Math.min(100, Math.round(baseSuccess + (totals.strength * 0.5) + affinity.success_percent - penaltySuccess))),
       base_success_percent: baseSuccess,
-      credits: Math.round((Number(mission.credit_reward) || 0) * (1 + (affinity.credit_percent / 100))),
+      credits: Math.round((Number(mission.credit_reward) || 0) * (1 + ((affinity.credit_percent + researchCredits) / 100))),
       base_credits: Number(mission.credit_reward) || 0,
       reputation: Math.round((Number(mission.reputation_reward) || 0) * (1 + ((affinity.reputation_percent + researchReputation) / 100))) + Math.floor(reputationFlat),
       base_reputation: Number(mission.reputation_reward) || 0,
@@ -1207,8 +1245,38 @@
   if (launchRecommend) launchRecommend.addEventListener('click', recommendLaunchCrew);
   document.getElementById('mission-result-close').addEventListener('click', closeResult);
   document.getElementById('mission-result-dismiss').addEventListener('click', closeResult);
+  function resolveCrewOffer(button) {
+    if (!button || button.disabled) return;
+    var offerId = Number(button.getAttribute('data-crew-offer-id'));
+    var action = button.getAttribute('data-crew-offer-action');
+    if (!offerId || !action) return;
+    var card = button.closest('[data-crew-offer]');
+    var status = card && card.querySelector('.mission-crew-offer-status');
+    var payload = { offer_id: offerId, action: action, csrf: window.PW_AUTH && window.PW_AUTH.csrf ? window.PW_AUTH.csrf : '' };
+    if (action === 'replace') {
+      var replacement = card && card.querySelector('[data-crew-offer-replace]');
+      payload.replace_player_crew_id = replacement ? replacement.value : '';
+    }
+    button.disabled = true;
+    if (status) status.textContent = action === 'sell' ? 'Selling recruit…' : 'Updating roster…';
+    post('/api/missions/crew-offer-resolve.php', payload).then(function (result) {
+      if (status) status.textContent = result.message || 'Roster updated.';
+      if (card) card.classList.add('is-resolved');
+      setStatus(result.message || 'Crew roster updated.');
+      return load();
+    }).catch(function (error) {
+      button.disabled = false;
+      if (status) status.textContent = error.message || 'Could not update this recruit.';
+    });
+  }
+  if (crewOffers) crewOffers.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-crew-offer-action]');
+    if (button && crewOffers.contains(button)) resolveCrewOffer(button);
+  });
   resultModal.addEventListener('click', function (event) {
     if (event.target === resultModal) { closeResult(); return; }
+    var offerButton = event.target.closest('[data-crew-offer-action]');
+    if (offerButton && resultModal.contains(offerButton)) { resolveCrewOffer(offerButton); return; }
     var destroy = event.target.closest('[data-gear-destroy]');
     if (!destroy || destroy.disabled) return;
     var itemId = Number(destroy.getAttribute('data-gear-destroy'));

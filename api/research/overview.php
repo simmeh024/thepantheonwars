@@ -15,11 +15,13 @@ try {
     /* A disabled node remains visible only to a player who already owns it.
      * This makes a retired protocol explainable without offering it to a new
      * account or silently removing an earned benefit. */
+    $lootTableLocksReady = pw_research_loot_table_locks_ready($db);
     $nodesStmt = $db->prepare(
         'SELECT n.id, n.name, n.slug, n.description, n.image_url, n.research_category_id,
                 category.name AS category_name, category.slug AS category_slug, category.description AS category_description,
                 n.effect_type, n.effect_value,
                 n.target_mission_definition_id, target.name AS target_mission_name,
+                ' . ($lootTableLocksReady ? 'n.target_loot_table_id, target_loot.name AS target_loot_table_name,' : 'NULL AS target_loot_table_id, "" AS target_loot_table_name,') . '
                 n.required_reputation_level, n.credit_cost, n.salvage_loot_definition_id, n.salvage_quantity,
                 salvage.name AS salvage_name, salvage.tier AS salvage_tier, salvage.icon_url AS salvage_icon_url,
                 n.canvas_x, n.canvas_y, n.sort_order, n.is_enabled,
@@ -29,6 +31,7 @@ try {
          LEFT JOIN game_research_categories category ON category.id = n.research_category_id
          LEFT JOIN game_loot_definitions salvage ON salvage.id = n.salvage_loot_definition_id
          LEFT JOIN game_mission_definitions target ON target.id = n.target_mission_definition_id
+         ' . ($lootTableLocksReady ? 'LEFT JOIN game_loot_tables target_loot ON target_loot.id = n.target_loot_table_id' : '') . '
          WHERE n.is_enabled = 1 OR pr.user_id IS NOT NULL
          ORDER BY n.sort_order ASC, n.id ASC'
     );
@@ -130,6 +133,7 @@ try {
                 'slug' => (string)($node['category_slug'] ?? ''), 'description' => (string)($node['category_description'] ?? ''),
             ],
             'target_mission_name' => (string)($node['target_mission_name'] ?? ''),
+            'target_loot_table_name' => (string)($node['target_loot_table_name'] ?? ''),
             'required_reputation_level' => (int)$node['required_reputation_level'],
             'credit_cost' => (int)$node['credit_cost'],
             'salvage' => $salvageId === null ? null : [

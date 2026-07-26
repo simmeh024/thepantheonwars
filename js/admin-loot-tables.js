@@ -17,6 +17,7 @@
   var currentMission = null;
   var draftEntries = [];
   var draftLinks = [];
+  var researchLocksReady = false;
 
   var tableList = document.getElementById('loot-table-list');
   var missionList = document.getElementById('loot-mission-list');
@@ -161,7 +162,10 @@
         '<span class="loot-admin-cell">' + summary + '</span>' +
         '<span class="loot-admin-cell">' + (entries.length ? chance(best) + '%' : '&mdash;') + '</span>' +
         '<span class="loot-admin-cell">' + (table.mission_count ? table.mission_count + (table.mission_count === 1 ? ' mission' : ' missions') : '<em>Unused</em>') + '</span>' +
-        '<span class="admin-pill ' + (table.is_enabled ? 'is-on' : 'is-off') + '">' + (table.is_enabled ? 'Enabled' : 'Disabled') + '</span>';
+        '<span class="loot-admin-status">' +
+          '<span class="admin-pill ' + (table.is_enabled ? 'is-on' : 'is-off') + '">' + (table.is_enabled ? 'Enabled' : 'Disabled') + '</span>' +
+          (table.is_research_rare ? '<span class="admin-pill ' + (table.requires_research_unlock ? 'is-off' : 'is-on') + '">' + (table.requires_research_unlock ? 'Research locked' : 'Research rare') + '</span>' : '') +
+        '</span>';
       row.addEventListener('click', function () { openTableModal(table); });
       tableList.appendChild(row);
     });
@@ -276,6 +280,7 @@
     document.getElementById('loot-table-slug').value = table ? table.slug : '';
     document.getElementById('loot-table-description').value = table && table.description ? table.description : '';
     document.getElementById('loot-table-enabled').checked = table ? !!table.is_enabled : true;
+    document.getElementById('loot-table-research-rare').checked = table ? !!table.is_research_rare : false;
     draftEntries = (table && table.entries ? table.entries : []).map(function (entry) {
       var type = entry.entry_type === 'gear' ? 'gear' : 'crew';
       return {
@@ -292,6 +297,7 @@
       document.getElementById(id).readOnly = !editable;
     });
     document.getElementById('loot-table-enabled').disabled = !editable;
+    document.getElementById('loot-table-research-rare').disabled = !editable || !researchLocksReady;
     document.getElementById('loot-table-save-btn').disabled = !editable;
     document.getElementById('loot-table-delete-btn').hidden = !table || !editable;
 
@@ -313,6 +319,7 @@
       slug: document.getElementById('loot-table-slug').value.trim(),
       description: document.getElementById('loot-table-description').value.trim(),
       is_enabled: document.getElementById('loot-table-enabled').checked,
+      is_research_rare: document.getElementById('loot-table-research-rare').checked,
       entries: draftEntries
     }).then(function () {
       closeTableModal();
@@ -467,6 +474,7 @@
       crewCatalogue = data.crew || [];
       gearCatalogue = data.gear || [];
       missions = data.missions || [];
+      researchLocksReady = !!data.research_locks_ready;
       renderTables();
       renderMissions();
       refreshCount();

@@ -40,8 +40,10 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
     if (!isset(pw_research_effect_types()[$effectType])) pw_error('Choose a valid research effect.');
 
     $rawValue = $input['effect_value'] ?? 0;
-    if ($effectType === 'secret_mission') {
+    if (in_array($effectType, ['secret_mission', 'rare_loot_table'], true)) {
         $effectValue = 0.0;
+    } elseif ($effectType === 'crew_capacity' && (!is_numeric($rawValue) || (int)$rawValue != (float)$rawValue || (int)$rawValue < 1 || (int)$rawValue > 24)) {
+        pw_error('Crew capacity must add a whole number of slots between 1 and 24.');
     } elseif (!is_numeric($rawValue) || (float)$rawValue <= 0 || (float)$rawValue > 50) {
         pw_error('A percentage research effect must be greater than 0% and no higher than 50%.');
     } else {
@@ -49,7 +51,9 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
     }
 
     $targetMissionId = null;
+    $targetLootTableId = null;
     $targetRaw = trim((string)($input['target_mission_definition_id'] ?? ''));
+    $targetLootRaw = trim((string)($input['target_loot_table_id'] ?? ''));
     if ($effectType === 'secret_mission') {
         if (!pw_mission_research_locks_ready($db)) {
             pw_error('Mission research locks are being prepared. Run sql/migration_mission_research_locks.sql before creating a classified mission unlock.', 503);
@@ -67,8 +71,27 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
          * so a rejected node save never hides a mission by itself. */
         $markResearchLocked = $db->prepare('UPDATE game_mission_definitions SET requires_research_unlock = 1 WHERE id = ?');
         $markResearchLocked->execute([$targetMissionId]);
-    } elseif ($targetRaw !== '') {
+    } elseif ($effectType === 'rare_loot_table') {
+        if (!pw_research_loot_table_locks_ready($db)) {
+            pw_error('Rare loot-table research is being prepared. Run sql/migration_research_rare_loot_tables.sql before creating a rare loot table unlock.', 503);
+        }
+        $targetLootTableId = filter_var($targetLootRaw, FILTER_VALIDATE_INT);
+        if ($targetLootTableId === false || $targetLootTableId < 1) pw_error('Choose the rare loot table this research should reveal.');
+        $target = $db->prepare('SELECT id FROM game_loot_tables WHERE id = ? AND is_research_rare = 1');
+        $target->execute([$targetLootTableId]);
+        if (!$target->fetch()) pw_error('Choose a loot table marked as a rare research table.', 404);
+        /* This mirrors Secret mission access: choosing a target is enough to
+         * seal it. Loot Table Management still exposes the flag for a later
+         * review or deliberate retirement, but a half-configured table cannot
+         * accidentally start dropping before the protocol is saved. */
+        $markResearchLocked = $db->prepare('UPDATE game_loot_tables SET requires_research_unlock = 1 WHERE id = ?');
+        $markResearchLocked->execute([$targetLootTableId]);
+    }
+    if ($effectType !== 'secret_mission' && $targetRaw !== '') {
         pw_error('Only Secret mission access research may target a mission.');
+    }
+    if ($effectType !== 'rare_loot_table' && $targetLootRaw !== '') {
+        pw_error('Only Rare loot table access research may target a loot table.');
     }
 
     $rank = filter_var($input['required_reputation_level'] ?? null, FILTER_VALIDATE_INT);
@@ -101,7 +124,7 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
     if ($imageUrl !== '' && pw_research_image_url($imageUrl) === '') pw_error('Choose a research image from the uploaded image library.');
     return [
         'name' => $name, 'slug' => $slug, 'description' => $description, 'image_url' => pw_research_image_url($imageUrl), 'research_category_id' => $categoryId,
-        'effect_type' => $effectType, 'effect_value' => $effectValue, 'target_mission_definition_id' => $targetMissionId,
+        'effect_type' => $effectType, 'effect_value' => $effectValue, 'target_mission_definition_id' => $targetMissionId, 'target_loot_table_id' => $targetLootTableId,
         'required_reputation_level' => $rank, 'credit_cost' => $creditCost,
         'salvage_loot_definition_id' => $salvageId, 'salvage_quantity' => $salvageQuantity,
         'canvas_x' => $canvasX, 'canvas_y' => $canvasY, 'sort_order' => $sortOrder,

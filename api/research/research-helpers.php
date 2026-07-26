@@ -15,10 +15,13 @@ function pw_research_effect_types(): array {
         'mission_speed' => ['label' => 'Mission speed', 'short' => 'Mission time reduced', 'value_label' => 'Speed boost (%)', 'description' => 'Reduces the duration locked in when a mission launches.'],
         'xp_gain' => ['label' => 'Experience gain', 'short' => 'Mission XP increased', 'value_label' => 'XP boost (%)', 'description' => 'Increases the XP each assigned crew member earns from a successful mission.'],
         'reputation_gain' => ['label' => 'Reputation gain', 'short' => 'Mission reputation increased', 'value_label' => 'Reputation boost (%)', 'description' => 'Increases reputation paid by successful missions.'],
-        'luck' => ['label' => 'Recovery luck', 'short' => 'Loot quality improved', 'value_label' => 'Luck boost (%)', 'description' => 'Raises the chance that a recovered item is promoted one rarity tier.'],
+        'credit_gain' => ['label' => 'Credit gain', 'short' => 'Mission credits increased', 'value_label' => 'Credit boost (%)', 'description' => 'Increases credits paid by successful missions, after the crew assignment bonus.'],
+        'crew_capacity' => ['label' => 'Crew capacity', 'short' => 'Crew berth capacity expanded', 'value_label' => 'Additional crew slots', 'description' => 'Adds permanent room for more crew members to join the expedition.'],
+        'luck' => ['label' => 'Rarity promotion', 'short' => 'Loot rarity improved', 'value_label' => 'Promotion chance (%)', 'description' => 'Raises the chance that a recovered item is promoted one rarity tier.'],
         'market_discount' => ['label' => 'Market discount', 'short' => 'Market prices reduced', 'value_label' => 'Discount (%)', 'description' => 'Reduces the credit price shown for every Market offer.'],
         'market_refresh' => ['label' => 'Market refresh', 'short' => 'Market signal cycles faster', 'value_label' => 'Refresh boost (%)', 'description' => 'Moves this command\'s Market rotation onto a faster signal cadence.'],
         'secret_mission' => ['label' => 'Secret mission access', 'short' => 'Classified operation unlocked', 'value_label' => 'Unused', 'description' => 'Reveals one administrator-selected classified mission.'],
+        'rare_loot_table' => ['label' => 'Rare loot table access', 'short' => 'Rare recovery table unlocked', 'value_label' => 'Unused', 'description' => 'Opens one administrator-selected rare loot table for missions that carry it.'],
     ];
 }
 
@@ -53,11 +56,31 @@ function pw_research_default_effects(): array {
         'mission_speed_percent' => 0.0,
         'xp_percent' => 0.0,
         'reputation_percent' => 0.0,
+        'credit_percent' => 0.0,
+        'crew_capacity' => 0,
         'luck_percent' => 0.0,
         'market_discount_percent' => 0.0,
         'market_refresh_percent' => 0.0,
         'secret_mission_ids' => [],
+        'rare_loot_table_ids' => [],
     ];
+}
+
+/**
+ * Rare-table protocols were added after the first Research Facility release.
+ * Keep this probe independent from the base readiness check so the existing
+ * tree remains usable while a deployment is waiting for its one-off migration.
+ */
+function pw_research_loot_table_locks_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_research_ready($db) || !pw_mission_loot_table_research_locks_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT target_loot_table_id FROM `game_research_nodes` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
 }
 
 /** Active bonuses are account-owned and therefore read only from the server.
@@ -66,8 +89,10 @@ function pw_research_default_effects(): array {
 function pw_research_player_effects(PDO $db, int $userId): array {
     $effects = pw_research_default_effects();
     if (!pw_research_ready($db)) return $effects;
+    $lootTableLocksReady = pw_research_loot_table_locks_ready($db);
     $stmt = $db->prepare(
-        'SELECT n.effect_type, n.effect_value, n.target_mission_definition_id
+        'SELECT n.effect_type, n.effect_value, n.target_mission_definition_id'
+        . ($lootTableLocksReady ? ', n.target_loot_table_id' : ', NULL AS target_loot_table_id') . '
          FROM game_player_research pr
          JOIN game_research_nodes n ON n.id = pr.research_node_id
          WHERE pr.user_id = ?'
@@ -79,22 +104,37 @@ function pw_research_player_effects(PDO $db, int $userId): array {
             case 'mission_speed': $effects['mission_speed_percent'] += $value; break;
             case 'xp_gain': $effects['xp_percent'] += $value; break;
             case 'reputation_gain': $effects['reputation_percent'] += $value; break;
+            case 'credit_gain': $effects['credit_percent'] += $value; break;
+            case 'crew_capacity': $effects['crew_capacity'] += $value; break;
             case 'luck': $effects['luck_percent'] += $value; break;
             case 'market_discount': $effects['market_discount_percent'] += $value; break;
             case 'market_refresh': $effects['market_refresh_percent'] += $value; break;
             case 'secret_mission':
                 if ($row['target_mission_definition_id'] !== null) $effects['secret_mission_ids'][] = (int)$row['target_mission_definition_id'];
                 break;
+            case 'rare_loot_table':
+                if ($row['target_loot_table_id'] !== null) $effects['rare_loot_table_ids'][] = (int)$row['target_loot_table_id'];
+                break;
         }
     }
     $effects['mission_speed_percent'] = round(min(60.0, $effects['mission_speed_percent']), 2);
     $effects['xp_percent'] = round(min(75.0, $effects['xp_percent']), 2);
     $effects['reputation_percent'] = round(min(75.0, $effects['reputation_percent']), 2);
+    $effects['credit_percent'] = round(min(75.0, $effects['credit_percent']), 2);
+    $effects['crew_capacity'] = (int)min(24, floor($effects['crew_capacity']));
     $effects['luck_percent'] = round(min(75.0, $effects['luck_percent']), 2);
     $effects['market_discount_percent'] = round(min(50.0, $effects['market_discount_percent']), 2);
     $effects['market_refresh_percent'] = round(min(50.0, $effects['market_refresh_percent']), 2);
     $effects['secret_mission_ids'] = array_values(array_unique($effects['secret_mission_ids']));
+    $effects['rare_loot_table_ids'] = array_values(array_unique($effects['rare_loot_table_ids']));
     return $effects;
+}
+
+/** The starter berth count is eight. Capacity protocols are flat slots rather
+ * than a percentage because their result must be immediately legible as 8/8,
+ * 12/12, and so on across the command UI. */
+function pw_research_crew_capacity(PDO $db, int $userId): int {
+    return 8 + (int)(pw_research_player_effects($db, $userId)['crew_capacity'] ?? 0);
 }
 
 /** Classified missions are hidden in the mission response and re-checked at

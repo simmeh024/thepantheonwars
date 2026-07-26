@@ -4114,6 +4114,7 @@
 .admin-row.loot-mission-row { display: grid; grid-template-columns: minmax(200px, 1.4fr) minmax(200px, 2fr) 110px; gap: 14px; align-items: center; text-align: left; }
 .loot-admin-cell { min-width: 0; color: var(--text-dim); font-size: .74rem; line-height: 1.4; overflow-wrap: anywhere; }
 .loot-admin-cell em { color: #7e94a6; font-style: normal; }
+.loot-admin-status { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
 .loot-entry-list { display: grid; gap: 7px; margin: 4px 0 12px; }
 /* A portrait column only when there is a portrait, keyed off a class the
  * renderer sets rather than :has() -- the fallback if :has() were unsupported

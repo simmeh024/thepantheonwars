@@ -350,6 +350,7 @@
     document.getElementById('mission-crew-portrait').value = member ? member.portrait_url : '';
     document.getElementById('mission-crew-starting-level').value = member ? member.starting_level : 1;
     document.getElementById('mission-crew-world-affinity').value = member ? member.world_affinity : 'neoh';
+    document.getElementById('mission-crew-tier').value = member ? (member.tier || 'common') : 'common';
     document.getElementById('mission-crew-starter').checked = member ? member.is_starter : true;
     document.getElementById('mission-crew-enabled').checked = member ? member.is_enabled : true;
     updatePortraitPreview();
@@ -378,6 +379,7 @@
       portrait_url: document.getElementById('mission-crew-portrait').value.trim(),
       starting_level: document.getElementById('mission-crew-starting-level').value,
       world_affinity: document.getElementById('mission-crew-world-affinity').value,
+      tier: document.getElementById('mission-crew-tier').value,
       is_starter: document.getElementById('mission-crew-starter').checked,
       is_enabled: document.getElementById('mission-crew-enabled').checked
     };

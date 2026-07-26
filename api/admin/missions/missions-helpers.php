@@ -166,10 +166,12 @@ function pw_admin_mission_crew_input(array $input): array {
     if ($startingLevel === false || $startingLevel < 1 || $startingLevel > 99) pw_error('Starting level must be between 1 and 99.');
     $worldAffinity = trim((string)($input['world_affinity'] ?? 'neoh'));
     if ($worldAffinity !== 'neoh') pw_error('Neoh is the only crew affinity in V0.');
+    $tier = strtolower(trim((string)($input['tier'] ?? 'common')));
+    if (!in_array($tier, ['common', 'uncommon', 'rare', 'epic', 'legendary'], true)) pw_error('Choose a valid crew rarity.');
     return [
         'name' => $name, 'slug' => $slug, 'role' => $role, 'description' => $description,
         'portrait_url' => pw_admin_mission_crew_portrait($input['portrait_url'] ?? ''),
-        'starting_level' => $startingLevel, 'world_affinity' => $worldAffinity,
+        'starting_level' => $startingLevel, 'world_affinity' => $worldAffinity, 'tier' => $tier,
         'is_starter' => !empty($input['is_starter']) ? 1 : 0,
         'is_enabled' => !empty($input['is_enabled']) ? 1 : 0,
     ];

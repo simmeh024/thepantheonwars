@@ -4,12 +4,14 @@
 (function () {
   'use strict';
 
-  var nodes = [], categories = [], salvage = [], missions = [], effectTypes = {}, boardSize = { width: 1560, height: 900 }, missionLocksReady = false;
+  var nodes = [], categories = [], salvage = [], missions = [], rareLootTables = [], effectTypes = {}, boardSize = { width: 1560, height: 900 }, missionLocksReady = false, lootTableLocksReady = false;
   var current = null, categoryCurrent = null, dragging = null, panning = null, linkMode = false, linkSource = null, draftPosition = null, suppressClick = false;
   var canvas = document.getElementById('research-admin-canvas'), viewport = document.getElementById('research-admin-canvas-viewport');
   var count = document.getElementById('research-admin-count'), editorFields = document.getElementById('research-editor-fields');
   var imageUrl = document.getElementById('research-node-image-url'), imagePreview = document.getElementById('research-node-image-preview'), imageFile = document.getElementById('research-node-image-file');
-  var effectType = document.getElementById('research-node-effect-type'), effectValue = document.getElementById('research-node-effect-value'), targetField = document.getElementById('research-node-target-field'), targetMission = document.getElementById('research-node-target-mission');
+  var effectType = document.getElementById('research-node-effect-type'), effectValue = document.getElementById('research-node-effect-value');
+  var targetMissionField = document.getElementById('research-node-target-mission-field'), targetMission = document.getElementById('research-node-target-mission');
+  var targetLootTableField = document.getElementById('research-node-target-loot-table-field'), targetLootTable = document.getElementById('research-node-target-loot-table');
   var prerequisites = document.getElementById('research-node-prerequisites'), salvageSelect = document.getElementById('research-node-salvage'), categorySelect = document.getElementById('research-node-category');
   var categoryList = document.getElementById('research-category-list'), categoryFields = document.getElementById('research-category-fields');
 
@@ -33,7 +35,12 @@
   function setNotice(message) { document.getElementById('research-node-status').textContent = message || ''; }
   function selectedIds(select) { return Array.prototype.slice.call(select.options).filter(function (option) { return option.selected; }).map(function (option) { return Number(option.value); }); }
   function slugify(value) { return String(value || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 120); }
-  function valueText(node) { return node.effect_type === 'secret_mission' ? (node.target_mission_name || 'Classified mission') : '+' + Number(node.effect_value || 0) + '%'; }
+  function valueText(node) {
+    if (node.effect_type === 'secret_mission') return node.target_mission_name || 'Classified mission';
+    if (node.effect_type === 'rare_loot_table') return node.target_loot_table_name || 'Rare loot table';
+    if (node.effect_type === 'crew_capacity') return '+' + Math.floor(Number(node.effect_value || 0)) + ' slots';
+    return '+' + Number(node.effect_value || 0) + '%';
+  }
   function boardWidth() { return Math.max(960, Number(boardSize.width) || 1560); }
   function boardHeight() { return Math.max(600, Number(boardSize.height) || 900); }
   function clampPosition(position) {
@@ -116,7 +123,18 @@
       prerequisites.appendChild(option);
     });
   }
-  function toggleEffectFields() { var secret = effectType.value === 'secret_mission'; targetField.hidden = !secret; document.getElementById('research-node-effect-value-field').hidden = secret; }
+  function toggleEffectFields() {
+    var secret = effectType.value === 'secret_mission';
+    var rareTable = effectType.value === 'rare_loot_table';
+    targetMissionField.hidden = !secret;
+    targetLootTableField.hidden = !rareTable;
+    document.getElementById('research-node-effect-value-field').hidden = secret || rareTable;
+    var effect = effectTypes[effectType.value] || {};
+    var valueLabel = document.querySelector('label[for="research-node-effect-value"]');
+    if (valueLabel) valueLabel.textContent = effect.value_label || 'Effect value (%)';
+    effectValue.min = effectType.value === 'crew_capacity' ? '1' : '0.01';
+    effectValue.step = effectType.value === 'crew_capacity' ? '1' : '0.01';
+  }
   function showEditor(node, placement) {
     current = node || null;
     if (current && current.id) draftPosition = null;
@@ -139,6 +157,11 @@
     });
     targetMission.disabled = !missionLocksReady;
     if (!missionLocksReady) targetMission.options[0].textContent = 'Mission research locks migration required';
+    fillSelect(targetLootTable, rareLootTables, current ? current.target_loot_table_id : null, 'Choose rare loot table', function (item) {
+      return item.name + (item.is_enabled ? '' : ' (disabled)') + (item.requires_research_unlock ? ' · research locked' : ' · locks when saved');
+    });
+    targetLootTable.disabled = !lootTableLocksReady;
+    if (!lootTableLocksReady) targetLootTable.options[0].textContent = 'Rare loot table migration required';
     fillPrerequisites(current ? current.prerequisite_ids : [], current ? current.id : null);
     document.getElementById('research-node-rank').value = current ? current.required_reputation_level : 1;
     document.getElementById('research-node-credit-cost').value = current ? current.credit_cost : 0;
@@ -163,7 +186,7 @@
       name: document.getElementById('research-node-name').value, slug: document.getElementById('research-node-slug').value,
       description: document.getElementById('research-node-description').value, image_url: imageUrl.value,
       research_category_id: categorySelect.value,
-      effect_type: effectType.value, effect_value: effectValue.value, target_mission_definition_id: targetMission.value,
+      effect_type: effectType.value, effect_value: effectValue.value, target_mission_definition_id: targetMission.value, target_loot_table_id: targetLootTable.value,
       prerequisite_ids: selectedIds(prerequisites), required_reputation_level: document.getElementById('research-node-rank').value,
       credit_cost: document.getElementById('research-node-credit-cost').value, salvage_loot_definition_id: salvageSelect.value,
       salvage_quantity: document.getElementById('research-node-salvage-quantity').value, canvas_x: position.x, canvas_y: position.y,
@@ -270,7 +293,7 @@
   }
   function load() {
     return request('/api/admin/research/list.php?refresh=' + Date.now()).then(function (data) {
-      nodes = data.nodes || []; categories = data.categories || []; salvage = data.salvage || []; missions = data.missions || []; missionLocksReady = !!data.mission_locks_ready; effectTypes = data.effect_types || {}; boardSize = data.board || boardSize;
+      nodes = data.nodes || []; categories = data.categories || []; salvage = data.salvage || []; missions = data.missions || []; rareLootTables = data.rare_loot_tables || []; missionLocksReady = !!data.mission_locks_ready; lootTableLocksReady = !!data.loot_table_locks_ready; effectTypes = data.effect_types || {}; boardSize = data.board || boardSize;
       if (categoryCurrent && categoryCurrent.id) categoryCurrent = categoryById(categoryCurrent.id);
       if (!editorFields.hidden) fillSelect(categorySelect, categories, categorySelect.value, 'Uncategorised', function (category) { return category.name; });
       renderCanvas(); renderCategories();

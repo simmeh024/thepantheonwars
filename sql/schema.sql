@@ -1727,12 +1727,14 @@ CREATE TABLE IF NOT EXISTS quiz_activity (
 -- Missions V0: a generic expedition foundation. Crew definitions are shared
 -- templates; game_player_crew is the player-owned progression record. Mission
 -- rewards are snapshotted on the player mission so later admin edits never
--- alter an expedition already in progress. See migration_missions_v0.sql.
+-- alter an expedition already in progress. See migration_missions_v0.sql and
+-- sql/migration_crew_capacity.sql for capacity and held-recruit decisions.
 CREATE TABLE IF NOT EXISTS game_crew_definitions (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   slug VARCHAR(100) NOT NULL,
   description TEXT NULL,
+  tier VARCHAR(20) NOT NULL DEFAULT 'common',
   role VARCHAR(40) NOT NULL,
   portrait_url VARCHAR(255) NOT NULL DEFAULT '',
   starting_level SMALLINT UNSIGNED NOT NULL DEFAULT 1,
@@ -1744,6 +1746,22 @@ CREATE TABLE IF NOT EXISTS game_crew_definitions (
   UNIQUE KEY uq_game_crew_definition_slug (slug),
   KEY idx_game_crew_definition_starter (is_starter, is_enabled),
   KEY idx_game_crew_definition_world (world_affinity, is_enabled)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS game_player_crew_offers (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  crew_definition_id INT UNSIGNED NOT NULL,
+  source_type VARCHAR(32) NOT NULL DEFAULT 'mission',
+  source_id BIGINT UNSIGNED NULL,
+  sale_credits INT UNSIGNED NOT NULL DEFAULT 100,
+  status VARCHAR(20) NOT NULL DEFAULT 'pending',
+  resolved_at DATETIME NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_game_player_crew_offers_pending (user_id, status, created_at),
+  KEY idx_game_player_crew_offers_definition (crew_definition_id),
+  CONSTRAINT fk_game_player_crew_offer_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_game_player_crew_offer_definition FOREIGN KEY (crew_definition_id) REFERENCES game_crew_definitions(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS game_player_crew (
@@ -1850,8 +1868,9 @@ CREATE TABLE IF NOT EXISTS game_player_loot (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- sql/migration_research_system.sql, sql/migration_research_categories.sql,
--- sql/migration_research_final_category.sql, and
--- sql/migration_mission_research_locks.sql.
+-- sql/migration_research_final_category.sql,
+-- sql/migration_mission_research_locks.sql, and
+-- sql/migration_research_rare_loot_tables.sql.
 -- Categories are administrator-authored branches that organise the shared
 -- protocol lattice. A Research node is shared configuration;
 -- game_player_research is the account-owned, permanent unlock record. The
@@ -1880,6 +1899,7 @@ CREATE TABLE IF NOT EXISTS game_research_nodes (
   effect_type VARCHAR(32) NOT NULL,
   effect_value DECIMAL(7,2) NOT NULL DEFAULT 0,
   target_mission_definition_id INT UNSIGNED NULL,
+  target_loot_table_id INT UNSIGNED NULL,
   required_reputation_level SMALLINT UNSIGNED NOT NULL DEFAULT 1,
   credit_cost INT UNSIGNED NOT NULL DEFAULT 0,
   salvage_loot_definition_id INT UNSIGNED NULL,
@@ -1892,6 +1912,7 @@ CREATE TABLE IF NOT EXISTS game_research_nodes (
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_game_research_node_slug (slug),
   UNIQUE KEY uq_game_research_secret_mission (target_mission_definition_id),
+  UNIQUE KEY uq_game_research_rare_loot_table (target_loot_table_id),
   KEY idx_game_research_nodes_enabled (is_enabled, sort_order),
   KEY idx_game_research_nodes_category (research_category_id, sort_order),
   KEY idx_game_research_salvage (salvage_loot_definition_id),
@@ -1954,7 +1975,8 @@ CREATE TABLE IF NOT EXISTS game_player_daily_claims (
 
 -- sql/migration_mission_loot_tables.sql (also adds the loot_tables.view /
 -- loot_tables.edit permissions), expanded by
--- sql/migration_mission_loot_table_gear.sql. A mission -> table link carries
+-- sql/migration_mission_loot_table_gear.sql and
+-- sql/migration_research_rare_loot_tables.sql. A mission -> table link carries
 -- the chance the table is opened at all; character and gear entries each carry
 -- their own independent drop chance.
 CREATE TABLE IF NOT EXISTS game_loot_tables (
@@ -1962,11 +1984,14 @@ CREATE TABLE IF NOT EXISTS game_loot_tables (
   name VARCHAR(150) NOT NULL,
   slug VARCHAR(150) NOT NULL,
   description TEXT NULL,
+  is_research_rare TINYINT(1) NOT NULL DEFAULT 0,
+  requires_research_unlock TINYINT(1) NOT NULL DEFAULT 0,
   is_enabled TINYINT(1) NOT NULL DEFAULT 1,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_game_loot_table_slug (slug),
-  KEY idx_game_loot_table_enabled (is_enabled)
+  KEY idx_game_loot_table_enabled (is_enabled),
+  KEY idx_game_loot_table_research_lock (requires_research_unlock, is_enabled)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS game_loot_table_entries (

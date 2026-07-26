@@ -1184,6 +1184,134 @@ function pw_mission_loot_table_gear_ready(PDO $db): bool {
     }
 }
 
+/** Rare research-table locks are an optional, additive layer on Loot Tables.
+ * The flag is deliberately probed separately so ordinary tables still work
+ * while a site is waiting to run the matching one-off migration. */
+function pw_mission_loot_table_research_locks_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_mission_loot_tables_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT is_research_rare, requires_research_unlock FROM `game_loot_tables` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+/** Crew capacity is opt-in until its migration has run. The probe covers both
+ * the author-facing rarity column and the player-facing holding queue. */
+function pw_mission_crew_capacity_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_missions_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT tier FROM `game_crew_definitions` LIMIT 1');
+        $db->query('SELECT id, status FROM `game_player_crew_offers` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+function pw_missions_crew_sale_value(string $tier): int {
+    return [
+        'common' => 100,
+        'uncommon' => 200,
+        'rare' => 500,
+        'epic' => 800,
+        'legendary' => 1250,
+    ][strtolower($tier)] ?? 100;
+}
+
+function pw_missions_crew_capacity(PDO $db, int $userId): int {
+    if (!pw_mission_crew_capacity_ready($db) || !function_exists('pw_research_crew_capacity')) return 8;
+    return max(8, min(32, pw_research_crew_capacity($db, $userId)));
+}
+
+function pw_missions_active_crew_count(PDO $db, int $userId): int {
+    $count = $db->prepare('SELECT COUNT(*) FROM game_player_crew WHERE user_id = ? AND status <> "retired"');
+    $count->execute([$userId]);
+    return (int)$count->fetchColumn();
+}
+
+/** Player-safe held recruits for the command page. Offer state remains on the
+ * server; this response contains only the three actions the player can take. */
+function pw_missions_pending_crew_offers(PDO $db, int $userId): array {
+    if (!pw_mission_crew_capacity_ready($db)) return [];
+    $stmt = $db->prepare(
+        'SELECT offer.id, offer.crew_definition_id, offer.sale_credits, offer.created_at,
+                crew.name, crew.role, crew.portrait_url, crew.tier
+         FROM game_player_crew_offers offer
+         JOIN game_crew_definitions crew ON crew.id = offer.crew_definition_id
+         WHERE offer.user_id = ? AND offer.status = "pending"
+         ORDER BY offer.created_at ASC, offer.id ASC'
+    );
+    $stmt->execute([$userId]);
+    $count = pw_missions_active_crew_count($db, $userId);
+    $capacity = pw_missions_crew_capacity($db, $userId);
+    return array_map(static function ($offer) use ($count, $capacity) {
+        return [
+            'id' => (int)$offer['id'], 'crew_definition_id' => (int)$offer['crew_definition_id'],
+            'name' => (string)$offer['name'], 'role' => (string)$offer['role'], 'portrait_url' => (string)$offer['portrait_url'],
+            'tier' => (string)$offer['tier'], 'sale_credits' => (int)$offer['sale_credits'], 'created_at' => (string)$offer['created_at'],
+            'roster_count' => $count, 'capacity' => $capacity, 'can_accept' => $count < $capacity,
+        ];
+    }, $stmt->fetchAll());
+}
+
+/**
+ * Receive a crew definition without ever exceeding the command's berth cap.
+ * At capacity the recruit becomes a pending offer rather than being silently
+ * discarded; the player can free a berth, buy research capacity, or sell it.
+ * Callers already run inside a transaction, so the check and queue creation
+ * are atomic with the mission reward or Market purchase that produced it.
+ */
+function pw_missions_receive_crew(PDO $db, int $userId, int $crewDefinitionId, string $sourceType = 'mission', ?int $sourceId = null): array {
+    $capacityReady = pw_mission_crew_capacity_ready($db);
+    $definition = $db->prepare(
+        'SELECT id, name, role, portrait_url, ' . ($capacityReady ? 'tier' : '"common" AS tier') . ', starting_level
+         FROM game_crew_definitions WHERE id = ? AND is_enabled = 1'
+    );
+    $definition->execute([$crewDefinitionId]);
+    $crew = $definition->fetch();
+    if (!$crew) throw new RuntimeException('That crew member is no longer available.');
+    $award = [
+        'id' => (int)$crew['id'], 'name' => (string)$crew['name'], 'role' => (string)$crew['role'],
+        'portrait_url' => (string)$crew['portrait_url'], 'tier' => (string)$crew['tier'],
+        'sale_credits' => pw_missions_crew_sale_value((string)$crew['tier']),
+    ];
+    if (!$capacityReady) {
+        $grant = $db->prepare('INSERT IGNORE INTO game_player_crew (user_id, crew_definition_id, level, xp, status) VALUES (?, ?, ?, 0, "available")');
+        $grant->execute([$userId, $crewDefinitionId, (int)$crew['starting_level']]);
+        return ['state' => $grant->rowCount() === 1 ? 'granted' : 'duplicate', 'crew' => $award];
+    }
+
+    $owned = $db->prepare('SELECT id FROM game_player_crew WHERE user_id = ? AND crew_definition_id = ? AND status <> "retired" FOR UPDATE');
+    $owned->execute([$userId, $crewDefinitionId]);
+    if ($owned->fetch()) return ['state' => 'duplicate', 'crew' => $award];
+
+    $roster = $db->prepare('SELECT id FROM game_player_crew WHERE user_id = ? AND status <> "retired" FOR UPDATE');
+    $roster->execute([$userId]);
+    $rosterCount = count($roster->fetchAll());
+    $capacity = pw_missions_crew_capacity($db, $userId);
+    if ($rosterCount < $capacity) {
+        $grant = $db->prepare('INSERT IGNORE INTO game_player_crew (user_id, crew_definition_id, level, xp, status) VALUES (?, ?, ?, 0, "available")');
+        $grant->execute([$userId, $crewDefinitionId, (int)$crew['starting_level']]);
+        return ['state' => $grant->rowCount() === 1 ? 'granted' : 'duplicate', 'crew' => $award, 'capacity' => $capacity];
+    }
+
+    $pending = $db->prepare('SELECT id FROM game_player_crew_offers WHERE user_id = ? AND crew_definition_id = ? AND status = "pending" FOR UPDATE');
+    $pending->execute([$userId, $crewDefinitionId]);
+    $offerId = $pending->fetchColumn();
+    if ($offerId === false) {
+        $insert = $db->prepare('INSERT INTO game_player_crew_offers (user_id, crew_definition_id, source_type, source_id, sale_credits, status) VALUES (?, ?, ?, ?, ?, "pending")');
+        $insert->execute([$userId, $crewDefinitionId, substr($sourceType, 0, 32), $sourceId, $award['sale_credits']]);
+        $offerId = (int)$db->lastInsertId();
+    }
+    return ['state' => 'pending', 'crew' => array_merge($award, ['offer_id' => (int)$offerId, 'capacity' => $capacity, 'roster_count' => $rosterCount])];
+}
+
 function pw_missions_require_loot_table_gear_ready(PDO $db): void {
     if (!pw_mission_loot_table_gear_ready($db)) {
         pw_error('Gear loot tables are being prepared. Please run the Mission Loot Table Gear migration first.', 503);
@@ -1200,28 +1328,49 @@ function pw_missions_require_loot_table_gear_ready(PDO $db): void {
  * rolls are returned for claim.php to add to game_player_loot in that same
  * transaction.
  *
- * @return array{granted: array, duplicates: array, gear: array}
+ * @return array{granted: array, duplicates: array, pending: array, gear: array}
  */
 function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefinitionId): array {
-    $result = ['granted' => [], 'duplicates' => [], 'gear' => []];
+    $result = ['granted' => [], 'duplicates' => [], 'pending' => [], 'gear' => []];
     if (!pw_mission_loot_tables_ready($db)) return $result;
+
+    /* A locked rare table is absent from the roll unless its exact access
+     * protocol is owned. The check is server-side and happens at claim time,
+     * so changing a response or a mission card in the browser cannot open it. */
+    $researchLocksReady = pw_mission_loot_table_research_locks_ready($db);
+    $unlockedRareTableIds = [];
+    if ($researchLocksReady && function_exists('pw_research_player_effects')) {
+        $unlockedRareTableIds = pw_research_player_effects($db, $userId)['rare_loot_table_ids'] ?? [];
+        $unlockedRareTableIds = array_values(array_unique(array_filter(array_map('intval', $unlockedRareTableIds), static function ($id) { return $id > 0; })));
+    }
+    $researchAccessSql = '';
+    $researchAccessValues = [];
+    if ($researchLocksReady) {
+        $researchAccessSql = ' AND (lt.requires_research_unlock = 0';
+        if ($unlockedRareTableIds) {
+            $researchAccessSql .= ' OR lt.id IN (' . pw_missions_placeholders(count($unlockedRareTableIds)) . ')';
+            $researchAccessValues = $unlockedRareTableIds;
+        }
+        $researchAccessSql .= ')';
+    }
 
     $linkStmt = $db->prepare(
         'SELECT link.loot_table_id, link.chance_percent
          FROM game_mission_loot_tables link
          JOIN game_loot_tables lt ON lt.id = link.loot_table_id
-         WHERE link.mission_definition_id = ? AND lt.is_enabled = 1
+         WHERE link.mission_definition_id = ? AND lt.is_enabled = 1' . $researchAccessSql . '
          ORDER BY link.sort_order ASC, link.id ASC'
     );
-    $linkStmt->execute([$missionDefinitionId]);
+    $linkStmt->execute(array_merge([$missionDefinitionId], $researchAccessValues));
     $links = $linkStmt->fetchAll();
     if (!$links) return $result;
 
     $gearEnabled = pw_mission_loot_table_gear_ready($db);
+    $crewCapacityReady = pw_mission_crew_capacity_ready($db);
     $entryStmt = $gearEnabled
         ? $db->prepare(
             'SELECT entry.entry_type, entry.crew_definition_id, entry.loot_definition_id, entry.chance_percent,
-                    crew.name AS crew_name, crew.role, crew.portrait_url,
+                    crew.name AS crew_name, crew.role, crew.portrait_url, ' . ($crewCapacityReady ? 'crew.tier AS crew_tier,' : '"common" AS crew_tier,') . '
                     gear.name AS gear_name, gear.tier, gear.slot AS gear_slot,
                     gear.bonus_strength AS gear_bonus_strength, gear.bonus_cunning AS gear_bonus_cunning,
                     gear.bonus_science AS gear_bonus_science, gear.bonus_charisma AS gear_bonus_charisma,
@@ -1238,7 +1387,7 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
         )
         : $db->prepare(
             'SELECT entry.entry_type, entry.crew_definition_id, entry.chance_percent,
-                    crew.name AS crew_name, crew.role, crew.portrait_url
+                    crew.name AS crew_name, crew.role, crew.portrait_url, ' . ($crewCapacityReady ? 'crew.tier AS crew_tier' : '"common" AS crew_tier') . '
              FROM game_loot_table_entries entry
              JOIN game_crew_definitions crew ON crew.id = entry.crew_definition_id
              WHERE entry.loot_table_id = ? AND entry.entry_type = "crew" AND crew.is_enabled = 1
@@ -1246,7 +1395,7 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
         );
     // A player's existing roster, read once: the duplicate check runs against
     // every entry of every table and must not become a query per roll.
-    $ownedStmt = $db->prepare('SELECT crew_definition_id FROM game_player_crew WHERE user_id = ?');
+    $ownedStmt = $db->prepare('SELECT crew_definition_id FROM game_player_crew WHERE user_id = ? AND status <> "retired"');
     $ownedStmt->execute([$userId]);
     $owned = [];
     foreach ($ownedStmt->fetchAll() as $row) $owned[(int)$row['crew_definition_id']] = true;
@@ -1281,8 +1430,21 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
                 continue;
             }
             $crewId = (int)$entry['crew_definition_id'];
-            $award = ['id' => $crewId, 'name' => $entry['crew_name'], 'role' => $entry['role'], 'portrait_url' => $entry['portrait_url']];
+            $award = ['id' => $crewId, 'name' => $entry['crew_name'], 'role' => $entry['role'], 'portrait_url' => $entry['portrait_url'], 'tier' => (string)($entry['crew_tier'] ?? 'common')];
             if (isset($owned[$crewId])) { $result['duplicates'][] = $award; continue; }
+            if ($crewCapacityReady) {
+                $received = pw_missions_receive_crew($db, $userId, $crewId, 'mission', $missionDefinitionId);
+                $award = $received['crew'];
+                if ($received['state'] === 'granted') {
+                    $owned[$crewId] = true;
+                    $result['granted'][] = $award;
+                } elseif ($received['state'] === 'pending') {
+                    $result['pending'][] = $award;
+                } else {
+                    $result['duplicates'][] = $award;
+                }
+                continue;
+            }
             $grantStmt->execute([$userId, $crewId]);
             // INSERT IGNORE is the real guard against a concurrent claim
             // granting the same character twice; the in-memory set above only
@@ -1429,6 +1591,19 @@ function pw_missions_daily_state(PDO $db, int $userId): ?array {
 }
 
 function pw_missions_grant_starter_crew(PDO $db, int $userId): void {
+    if (pw_mission_crew_capacity_ready($db)) {
+        $existing = pw_missions_active_crew_count($db, $userId);
+        $capacity = pw_missions_crew_capacity($db, $userId);
+        if ($existing >= $capacity) return;
+        $starters = $db->prepare('SELECT id FROM game_crew_definitions WHERE is_starter = 1 AND is_enabled = 1 ORDER BY id ASC');
+        $starters->execute();
+        foreach ($starters->fetchAll(PDO::FETCH_COLUMN) as $crewDefinitionId) {
+            if ($existing >= $capacity) break;
+            $received = pw_missions_receive_crew($db, $userId, (int)$crewDefinitionId, 'starter');
+            if ($received['state'] === 'granted') $existing++;
+        }
+        return;
+    }
     $stmt = $db->prepare(
         'INSERT IGNORE INTO game_player_crew (user_id, crew_definition_id, level, xp, status)
          SELECT ?, c.id, c.starting_level, 0, "available"

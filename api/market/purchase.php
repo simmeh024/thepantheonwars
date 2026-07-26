@@ -72,19 +72,22 @@ try {
     $debit->execute([$discountedPrice, $userId, $discountedPrice]);
     if ($debit->rowCount() !== 1) throw new RuntimeException('Your credit balance changed. Refresh and try again.');
 
+    $crewReceipt = null;
     if ($offer['offer_type'] === 'gear') {
         $grant = $db->prepare('INSERT INTO game_player_loot (user_id, loot_definition_id, quantity) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE quantity = quantity + 1');
         $grant->execute([$userId, (int)$offer['loot_definition_id']]);
     } else {
-        $grant = $db->prepare('INSERT INTO game_player_crew (user_id, crew_definition_id, level, xp, status) SELECT ?, id, starting_level, 0, "available" FROM game_crew_definitions WHERE id = ?');
-        $grant->execute([$userId, (int)$offer['crew_definition_id']]);
-        if ($grant->rowCount() !== 1) throw new RuntimeException('That character could not be recruited.');
+        $crewReceipt = pw_missions_receive_crew($db, $userId, (int)$offer['crew_definition_id'], 'market', $itemId);
+        if ($crewReceipt['state'] === 'duplicate') throw new RuntimeException('That character is already recorded on your expedition.');
     }
     $purchase = $db->prepare('INSERT INTO game_market_purchases (user_id, rotation_item_id, offer_type, loot_definition_id, crew_definition_id, item_name, credit_price) VALUES (?, ?, ?, ?, ?, ?, ?)');
     $purchase->execute([$userId, $itemId, $offer['offer_type'], $offer['loot_definition_id'], $offer['crew_definition_id'], $name, $discountedPrice]);
     $balance = pw_missions_credit_balance($db, $userId);
     $db->commit();
-    pw_json(['ok' => true, 'message' => $name . ' added to your expedition.', 'credits' => $balance]);
+    $message = $crewReceipt && $crewReceipt['state'] === 'pending'
+        ? $name . ' is held at command because your crew capacity is full. Resolve the recruit from The Missions page.'
+        : $name . ' added to your expedition.';
+    pw_json(['ok' => true, 'message' => $message, 'credits' => $balance, 'crew_capacity_offer' => $crewReceipt && $crewReceipt['state'] === 'pending' ? $crewReceipt['crew'] : null]);
 } catch (Throwable $e) {
     if ($db->inTransaction()) $db->rollBack();
     pw_error($e instanceof RuntimeException ? $e->getMessage() : 'The purchase could not be completed. Please try again.', 409);

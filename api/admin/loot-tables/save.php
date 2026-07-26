@@ -15,6 +15,7 @@ if ($id !== null && ($id === false || $id < 1)) pw_error('Missing loot table.');
 $data = pw_admin_loot_table_input($input);
 $entries = pw_admin_loot_entries_input($input['entries'] ?? []);
 pw_admin_loot_require_sources_exist($db, $entries);
+$researchLocksReady = pw_mission_loot_table_research_locks_ready($db);
 
 try {
     $db->beginTransaction();
@@ -23,16 +24,36 @@ try {
     if ($duplicate->fetch()) { $db->rollBack(); pw_error('A loot table with that slug already exists.', 409); }
 
     if ($id === null) {
-        $stmt = $db->prepare('INSERT INTO game_loot_tables (name, slug, description, is_enabled) VALUES (?, ?, ?, ?)');
-        $stmt->execute([$data['name'], $data['slug'], $data['description'], $data['is_enabled']]);
+        $stmt = $db->prepare(
+            $researchLocksReady
+                ? 'INSERT INTO game_loot_tables (name, slug, description, is_enabled, is_research_rare) VALUES (?, ?, ?, ?, ?)'
+                : 'INSERT INTO game_loot_tables (name, slug, description, is_enabled) VALUES (?, ?, ?, ?)'
+        );
+        $stmt->execute($researchLocksReady
+            ? [$data['name'], $data['slug'], $data['description'], $data['is_enabled'], $data['is_research_rare']]
+            : [$data['name'], $data['slug'], $data['description'], $data['is_enabled']]
+        );
         $id = (int)$db->lastInsertId();
         $action = 'loot_table_created';
     } else {
-        $existing = $db->prepare('SELECT id FROM game_loot_tables WHERE id = ?');
+        $existing = $db->prepare($researchLocksReady
+            ? 'SELECT id, requires_research_unlock FROM game_loot_tables WHERE id = ?'
+            : 'SELECT id FROM game_loot_tables WHERE id = ?');
         $existing->execute([$id]);
-        if (!$existing->fetch()) { $db->rollBack(); pw_error('Loot table not found.', 404); }
-        $stmt = $db->prepare('UPDATE game_loot_tables SET name = ?, slug = ?, description = ?, is_enabled = ? WHERE id = ?');
-        $stmt->execute([$data['name'], $data['slug'], $data['description'], $data['is_enabled'], $id]);
+        $existingRow = $existing->fetch();
+        if (!$existingRow) { $db->rollBack(); pw_error('Loot table not found.', 404); }
+        if ($researchLocksReady && !empty($existingRow['requires_research_unlock']) && !$data['is_research_rare']) {
+            throw new RuntimeException('A research-locked loot table must remain marked as a rare research table. Retire its linked protocol first.');
+        }
+        $stmt = $db->prepare(
+            $researchLocksReady
+                ? 'UPDATE game_loot_tables SET name = ?, slug = ?, description = ?, is_enabled = ?, is_research_rare = ? WHERE id = ?'
+                : 'UPDATE game_loot_tables SET name = ?, slug = ?, description = ?, is_enabled = ? WHERE id = ?'
+        );
+        $stmt->execute($researchLocksReady
+            ? [$data['name'], $data['slug'], $data['description'], $data['is_enabled'], $data['is_research_rare'], $id]
+            : [$data['name'], $data['slug'], $data['description'], $data['is_enabled'], $id]
+        );
         $action = 'loot_table_updated';
     }
 
