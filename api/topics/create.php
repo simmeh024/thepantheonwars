@@ -40,8 +40,8 @@ if ($titleLen > 200) {
 if ($body === '') {
     pw_error('Your message is empty.');
 }
-if ($bodyLen > 3500) {
-    pw_error('That message is too long (3500 characters max).');
+if ($bodyLen > 10000) {
+    pw_error('That message is too long (10000 characters max).');
 }
 
 // Optional poll, only settable at creation time. 2-6 non-empty options;

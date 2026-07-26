@@ -134,7 +134,7 @@
                 </div>
                 <div class="auth-field">
                   <label for="topic-body">Message</label>
-                  <textarea id="topic-body" maxlength="3500" placeholder="What's on your mind, traveler?" required></textarea>
+                  <textarea id="topic-body" maxlength="10000" placeholder="What's on your mind, traveler?" required></textarea>
                 </div>
                 <label class="poll-builder-toggle"><input type="checkbox" id="topic-poll-toggle"> Add a poll</label>
                 <div class="poll-builder" id="topic-poll-builder" hidden>
@@ -713,26 +713,61 @@
     var bar = document.createElement('div');
     bar.className = 'editor-toolbar';
 
+    /* Toolbar clicks must not take focus away from the writer. Apart from
+     * losing the selected text, that native focus jump was scrolling the page
+     * down to the composer on every BBCode action. Retain the viewport and the
+     * textarea's own scroll position while tags are inserted. */
+    function preserveEditorViewport() {
+      var pageLeft = window.pageXOffset || window.scrollX || 0;
+      var pageTop = window.pageYOffset || window.scrollY || 0;
+      var editorLeft = textarea.scrollLeft;
+      var editorTop = textarea.scrollTop;
+      function restore() {
+        textarea.scrollLeft = editorLeft;
+        textarea.scrollTop = editorTop;
+        window.scrollTo(pageLeft, pageTop);
+      }
+      return function () {
+        restore();
+        if (window.requestAnimationFrame) window.requestAnimationFrame(restore);
+      };
+    }
+
+    function focusEditor() {
+      try { textarea.focus({ preventScroll: true }); }
+      catch (e) { textarea.focus(); }
+    }
+
+    function announceEditorChange() {
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
     function wrapSelection(before, after, placeholder) {
       var start = textarea.selectionStart;
       var end = textarea.selectionEnd;
       var val = textarea.value;
       var selected = val.slice(start, end) || placeholder;
+      var restoreViewport = preserveEditorViewport();
       textarea.value = val.slice(0, start) + before + selected + after + val.slice(end);
       var curStart = start + before.length;
       var curEnd = curStart + selected.length;
-      textarea.focus();
+      focusEditor();
       textarea.setSelectionRange(curStart, curEnd);
+      announceEditorChange();
+      restoreViewport();
     }
 
     function insertAtCursor(text) {
       var start = textarea.selectionStart;
       var end = textarea.selectionEnd;
       var val = textarea.value;
+      var restoreViewport = preserveEditorViewport();
       textarea.value = val.slice(0, start) + text + val.slice(end);
       var pos = start + text.length;
-      textarea.focus();
+      focusEditor();
       textarea.setSelectionRange(pos, pos);
+      announceEditorChange();
+      restoreViewport();
     }
 
     function promptUrl(label) {
@@ -752,6 +787,7 @@
       btn.className = 'editor-btn';
       btn.title = title;
       btn.textContent = label;
+      btn.addEventListener('mousedown', function (event) { event.preventDefault(); });
       btn.addEventListener('click', handler);
       bar.appendChild(btn);
       return btn;
@@ -778,10 +814,13 @@
       if (!url) return;
       var tag = selected ? '[url=' + url + ']' + selected + '[/url]' : '[url]' + url + '[/url]';
       var val = textarea.value;
+      var restoreViewport = preserveEditorViewport();
       textarea.value = val.slice(0, start) + tag + val.slice(end);
       var pos = start + tag.length;
-      textarea.focus();
+      focusEditor();
       textarea.setSelectionRange(pos, pos);
+      announceEditorChange();
+      restoreViewport();
     });
 
     makeBtn('Img', 'Insert image (URL only, no upload)', function () {
@@ -2392,7 +2431,7 @@
       editWrap.appendChild(titleInput);
 
       var ta = document.createElement('textarea');
-      ta.maxLength = 3500;
+      ta.maxLength = 10000;
       ta.value = t.body;
       editWrap.appendChild(ta);
       attachEditorToolbar(ta);
