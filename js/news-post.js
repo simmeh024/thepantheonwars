@@ -14,10 +14,9 @@
     });
   }
 
-  // Same tag set as community.html's formatBody(), minus nothing -- a bare
-  // [quote]...[/quote] (no attribution) still renders fine even without a
-  // Quote button here, since news comments have no reply-to-a-specific-
-  // comment relationship to attach a quote target to.
+  // Same tag set as community.html's formatBody(), including cards, lists,
+  // section rules, and controlled text sizes. A bare [quote]...[/quote]
+  // still renders fine even without a Quote button here.
   function formatBody(raw) {
     var s = escapeHtml(raw);
     s = s.replace(/\[quote=([^\]]{1,150})\]([\s\S]*?)\[\/quote\]/gi, function (m, attr, inner) {
@@ -28,6 +27,18 @@
       return '<div class="comment-spoiler"><button type="button" class="comment-spoiler-toggle" data-spoiler-toggle>' +
         '<span class="comment-spoiler-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>' +
         '<span class="comment-spoiler-label-text">Reveal suppressed text</span></button><div class="comment-spoiler-content">' + inner + '</div></div>';
+    });
+    s = s.replace(/\[card\s+title=(?:&quot;|")([^\]]{1,120})(?:&quot;|")\]([\s\S]*?)\[\/card\]/gi, function (m, title, inner) {
+      return '<section class="comment-card"><h4 class="comment-card-title">' + title + '</h4><div class="comment-card-body">' + inner + '</div></section>';
+    });
+    s = s.replace(/\[list\]([\s\S]*?)\[\/list\]/gi, function (m, inner) {
+      var items = inner.split(/\[\*\]/i).slice(1).map(function (item) { return item.trim(); }).filter(Boolean);
+      if (!items.length) return m;
+      return '<ul class="comment-list">' + items.map(function (item) { return '<li>' + item + '</li>'; }).join('') + '</ul>';
+    });
+    s = s.replace(/\[hr\]/gi, '<hr class="comment-rule">');
+    s = s.replace(/\[size=(small|large)\]([\s\S]*?)\[\/size\]/gi, function (m, size, inner) {
+      return '<span class="comment-size comment-size-' + size.toLowerCase() + '">' + inner + '</span>';
     });
     s = s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>');
     s = s.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<em>$1</em>');
@@ -69,26 +80,83 @@
     var bar = document.createElement('div');
     bar.className = 'editor-toolbar';
 
+    function preserveEditorViewport() {
+      var pageLeft = window.pageXOffset || window.scrollX || 0;
+      var pageTop = window.pageYOffset || window.scrollY || 0;
+      var editorLeft = textarea.scrollLeft;
+      var editorTop = textarea.scrollTop;
+      function restore() {
+        textarea.scrollLeft = editorLeft;
+        textarea.scrollTop = editorTop;
+        window.scrollTo(pageLeft, pageTop);
+      }
+      return function () {
+        restore();
+        if (window.requestAnimationFrame) window.requestAnimationFrame(restore);
+      };
+    }
+
+    function focusEditor() {
+      try { textarea.focus({ preventScroll: true }); }
+      catch (e) { textarea.focus(); }
+    }
+
+    function announceEditorChange() {
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
     function wrapSelection(before, after, placeholder) {
       var start = textarea.selectionStart;
       var end = textarea.selectionEnd;
       var val = textarea.value;
       var selected = val.slice(start, end) || placeholder;
+      var restoreViewport = preserveEditorViewport();
       textarea.value = val.slice(0, start) + before + selected + after + val.slice(end);
       var curStart = start + before.length;
       var curEnd = curStart + selected.length;
-      textarea.focus();
+      focusEditor();
       textarea.setSelectionRange(curStart, curEnd);
+      announceEditorChange();
+      restoreViewport();
     }
 
     function insertAtCursor(text) {
       var start = textarea.selectionStart;
       var end = textarea.selectionEnd;
       var val = textarea.value;
+      var restoreViewport = preserveEditorViewport();
       textarea.value = val.slice(0, start) + text + val.slice(end);
       var pos = start + text.length;
-      textarea.focus();
+      focusEditor();
       textarea.setSelectionRange(pos, pos);
+      announceEditorChange();
+      restoreViewport();
+    }
+
+    function insertList() {
+      var start = textarea.selectionStart;
+      var end = textarea.selectionEnd;
+      var val = textarea.value;
+      var selected = val.slice(start, end);
+      var items = selected
+        ? selected.split(/\r?\n/).map(function (item) { return item.trim(); }).filter(Boolean)
+        : ['List item'];
+      var listItems = items.map(function (item) { return '[*]' + item; }).join('\n');
+      var tag = '[list]\n' + listItems + '\n[/list]';
+      var restoreViewport = preserveEditorViewport();
+      textarea.value = val.slice(0, start) + tag + val.slice(end);
+      focusEditor();
+      textarea.setSelectionRange(start + 7, start + 7 + listItems.length);
+      announceEditorChange();
+      restoreViewport();
+    }
+
+    function insertCard() {
+      var title = window.prompt('Card title:', 'Field note');
+      if (!title) return;
+      title = title.replace(/[\]\r\n]/g, ' ').trim().slice(0, 120);
+      if (!title) return;
+      wrapSelection('[card title="' + title + '"]\n', '\n[/card]', 'Card details');
     }
 
     function promptUrl(label) {
@@ -108,6 +176,7 @@
       btn.className = 'editor-btn';
       btn.title = title;
       btn.textContent = label;
+      btn.addEventListener('mousedown', function (event) { event.preventDefault(); });
       btn.addEventListener('click', handler);
       bar.appendChild(btn);
       return btn;
@@ -123,6 +192,11 @@
     makeBtn('I', 'Italic', function () { wrapSelection('[i]', '[/i]', 'italic text'); });
     makeBtn('U', 'Underline', function () { wrapSelection('[u]', '[/u]', 'underlined text'); });
     makeBtn('C', 'Code', function () { wrapSelection('[c]', '[/c]', 'code'); });
+    makeBtn('S', 'Small text', function () { wrapSelection('[size=small]', '[/size]', 'small text'); });
+    makeBtn('L', 'Large text', function () { wrapSelection('[size=large]', '[/size]', 'large text'); });
+    makeBtn('List', 'Bullet list', insertList);
+    makeBtn('Rule', 'Section divider', function () { insertAtCursor('\n[hr]\n'); });
+    makeBtn('Card', 'Titled information card', insertCard);
 
     addDivider();
 
@@ -134,10 +208,13 @@
       if (!url) return;
       var tag = selected ? '[url=' + url + ']' + selected + '[/url]' : '[url]' + url + '[/url]';
       var val = textarea.value;
+      var restoreViewport = preserveEditorViewport();
       textarea.value = val.slice(0, start) + tag + val.slice(end);
       var pos = start + tag.length;
-      textarea.focus();
+      focusEditor();
       textarea.setSelectionRange(pos, pos);
+      announceEditorChange();
+      restoreViewport();
     });
 
     makeBtn('Img', 'Insert image (URL only, no upload)', function () {

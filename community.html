@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=315">
+<link rel="stylesheet" href="css/community-bundle.css?v=316">
 </head>
 <body>
 
@@ -627,8 +627,9 @@
   var lastSearchQuery = '';
 
   // ---------- Lightweight BBCode-style formatting ----------
-  // Users can type [b][/b] [i][/i] [u][/u] [c][/c] [color=#hex][/color]
-  // [url]http://...[/url] [url=http://...]label[/url] [img]http://...[/img].
+  // Users can type [b][/b] [i][/i] [u][/u] [c][/c] [color=#hex][/color],
+  // [size=small|large][/size], [list][*]item[/list], [hr], and
+  // [card title="Heading"]details[/card], alongside links and images.
   // We escape all raw HTML first, then whitelist just these patterns back
   // into real tags -- this is the only user text that is ever set via
   // innerHTML in this file, and only after this escape+whitelist pass.
@@ -673,6 +674,18 @@
       return '<div class="comment-spoiler"><button type="button" class="comment-spoiler-toggle" data-spoiler-toggle>' +
         '<span class="comment-spoiler-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></span>' +
         '<span class="comment-spoiler-label-text">Reveal suppressed text</span></button><div class="comment-spoiler-content">' + inner + '</div></div>';
+    });
+    s = s.replace(/\[card\s+title=(?:&quot;|")([^\]]{1,120})(?:&quot;|")\]([\s\S]*?)\[\/card\]/gi, function (m, title, inner) {
+      return '<section class="comment-card"><h4 class="comment-card-title">' + title + '</h4><div class="comment-card-body">' + inner + '</div></section>';
+    });
+    s = s.replace(/\[list\]([\s\S]*?)\[\/list\]/gi, function (m, inner) {
+      var items = inner.split(/\[\*\]/i).slice(1).map(function (item) { return item.trim(); }).filter(Boolean);
+      if (!items.length) return m;
+      return '<ul class="comment-list">' + items.map(function (item) { return '<li>' + item + '</li>'; }).join('') + '</ul>';
+    });
+    s = s.replace(/\[hr\]/gi, '<hr class="comment-rule">');
+    s = s.replace(/\[size=(small|large)\]([\s\S]*?)\[\/size\]/gi, function (m, size, inner) {
+      return '<span class="comment-size comment-size-' + size.toLowerCase() + '">' + inner + '</span>';
     });
     s = s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>');
     s = s.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<em>$1</em>');
@@ -770,6 +783,32 @@
       restoreViewport();
     }
 
+    function insertList() {
+      var start = textarea.selectionStart;
+      var end = textarea.selectionEnd;
+      var val = textarea.value;
+      var selected = val.slice(start, end);
+      var items = selected
+        ? selected.split(/\r?\n/).map(function (item) { return item.trim(); }).filter(Boolean)
+        : ['List item'];
+      var listItems = items.map(function (item) { return '[*]' + item; }).join('\n');
+      var tag = '[list]\n' + listItems + '\n[/list]';
+      var restoreViewport = preserveEditorViewport();
+      textarea.value = val.slice(0, start) + tag + val.slice(end);
+      focusEditor();
+      textarea.setSelectionRange(start + 7, start + 7 + listItems.length);
+      announceEditorChange();
+      restoreViewport();
+    }
+
+    function insertCard() {
+      var title = window.prompt('Card title:', 'Field note');
+      if (!title) return;
+      title = title.replace(/[\]\r\n]/g, ' ').trim().slice(0, 120);
+      if (!title) return;
+      wrapSelection('[card title="' + title + '"]\n', '\n[/card]', 'Card details');
+    }
+
     function promptUrl(label) {
       var url = window.prompt(label + ' (must start with http:// or https://):', 'https://');
       if (!url) return null;
@@ -803,6 +842,11 @@
     makeBtn('I', 'Italic', function () { wrapSelection('[i]', '[/i]', 'italic text'); });
     makeBtn('U', 'Underline', function () { wrapSelection('[u]', '[/u]', 'underlined text'); });
     makeBtn('C', 'Code', function () { wrapSelection('[c]', '[/c]', 'code'); });
+    makeBtn('S', 'Small text', function () { wrapSelection('[size=small]', '[/size]', 'small text'); });
+    makeBtn('L', 'Large text', function () { wrapSelection('[size=large]', '[/size]', 'large text'); });
+    makeBtn('List', 'Bullet list', insertList);
+    makeBtn('Rule', 'Section divider', function () { insertAtCursor('\n[hr]\n'); });
+    makeBtn('Card', 'Titled information card', insertCard);
 
     addDivider();
 
