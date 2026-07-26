@@ -3,6 +3,16 @@
    page, so these shared dialog and navigation rules belong in this bundle. */
 .auth-nav-item { display: inline-flex; align-items: center; gap: 12px; }
 .auth-nav-item a { font: inherit; }
+/* The static header is shared by every page, while the actual account state
+   arrives asynchronously. Paint this neutral status shell first so a signed-in
+   reader never sees a false Login action before their profile chip renders. */
+#auth-nav-item[aria-busy="true"] { position: relative; min-width: 94px; min-height: 32px; justify-content: center; }
+#auth-nav-item[aria-busy="true"] > .auth-trigger { position: absolute; visibility: hidden; pointer-events: none; }
+#auth-nav-item[aria-busy="true"]::before { content: ''; width: 18px; height: 18px; border: 1px solid rgba(162,121,236,0.45); border-top-color: var(--gold-bright); border-radius: 50%; box-shadow: 0 0 9px rgba(162,121,236,0.2); animation: auth-nav-resolve 0.85s linear infinite; }
+#auth-nav-item[aria-busy="true"]::after { content: ''; width: 42px; height: 5px; margin-left: 8px; border-radius: 999px; background: linear-gradient(90deg, rgba(162,121,236,0.18), rgba(224,178,74,0.54), rgba(162,121,236,0.18)); background-size: 200% 100%; animation: auth-nav-scan 1.15s ease-in-out infinite; }
+@keyframes auth-nav-resolve { to { transform: rotate(360deg); } }
+@keyframes auth-nav-scan { 0%, 100% { background-position: 100% 0; opacity: 0.45; } 50% { background-position: 0 0; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { #auth-nav-item[aria-busy="true"]::before, #auth-nav-item[aria-busy="true"]::after { animation: none; } }
 .auth-username { color: var(--gold); }
 .auth-modal {
   position: fixed; inset: 0; z-index: 600;
@@ -1072,6 +1082,9 @@ button.auth-profile-chip { color: inherit; cursor: pointer; font: inherit; }
   .auth-profile-chip { gap: 0; padding: 0; border: 0; background: none; box-shadow: none; }
   .auth-profile-name, .auth-nav-item .nav-caret { display: none; }
   .auth-profile-chip-avatar { width: 28px; height: 28px; flex-basis: 28px; }
+  #auth-nav-item[aria-busy="true"] { min-width: 28px; min-height: 28px; }
+  #auth-nav-item[aria-busy="true"]::before { width: 22px; height: 22px; }
+  #auth-nav-item[aria-busy="true"]::after { display: none; }
   /* The bell sheds its pill here for the same reason the chip does: at this
      width the two sit directly beside the logo and a bordered control next to
      a bare avatar reads as clutter rather than as a set. The shared pill

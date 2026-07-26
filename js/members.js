@@ -742,6 +742,10 @@ function initMembers() {
       slot.style.removeProperty('--auth-role-color');
       slot.innerHTML = '<a href="#" class="auth-trigger">Login</a>';
     }
+    // Every page starts with a neutral shell rather than a hard-coded Login
+    // link. Reveal the resolved account state only after session-check.php
+    // answers, preventing a signed-in visitor from seeing a misleading flash.
+    slot.removeAttribute('aria-busy');
   }
 
   window.refreshAuthNav = function refreshAuthNav() {
