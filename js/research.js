@@ -3,17 +3,23 @@
 (function () {
   'use strict';
 
-  var state = { data: null, selectedId: null, busyId: null, categoryFilter: '' };
+  var state = { data: null, busyId: null, categoryFilter: '', zoom: 1 };
   var gate = document.getElementById('research-gate');
   var content = document.getElementById('research-content');
   var board = document.getElementById('research-tree-board');
   var treeViewport = document.querySelector('.research-tree-scroll');
-  var detail = document.getElementById('research-detail');
   var status = document.getElementById('research-status');
   var effectsList = document.getElementById('research-effects-list');
   var categoryFilter = document.getElementById('research-category-filter');
   var categoryFilterWrap = document.getElementById('research-category-filter-wrap');
   var treeKey = document.querySelector('.research-tree-key');
+  var treeMap = document.getElementById('research-tree-map');
+  var zoomStage = document.getElementById('research-tree-zoom');
+  var zoomOut = document.getElementById('research-zoom-out');
+  var zoomIn = document.getElementById('research-zoom-in');
+  var zoomLevel = document.getElementById('research-zoom-level');
+  var fullscreenButton = document.getElementById('research-fullscreen');
+  var minZoom = 0.6, maxZoom = 1.6, zoomStep = 0.1;
 
   function esc(value) { var node = document.createElement('div'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
   function number(value) { return Math.max(0, Number(value) || 0).toLocaleString(); }
@@ -25,7 +31,6 @@
     if (!treeKey) return;
     treeKey.innerHTML = '<i class="is-online"></i> Online <i class="is-ready"></i> Ready <i class="is-funds-missing"></i> Funds missing <i class="is-rank-locked"></i> Rank locked';
   }
-  function nodeById(id) { return (state.data && state.data.nodes || []).filter(function (node) { return Number(node.id) === Number(id); })[0] || null; }
   function effectText(node) {
     if (node.effect_type === 'secret_mission') return 'Unlocks ' + (node.target_mission_name || 'classified mission');
     if (node.effect_type === 'rare_loot_table') return 'Unlocks ' + (node.target_loot_table_name || 'rare loot table');
@@ -112,10 +117,40 @@
     effectsList.innerHTML = rows.length ? '<ul>' + rows.map(function (row) { return '<li><b>+' + percent(effects[row[0]]) + '%</b>' + esc(row[1]) + '</li>'; }).join('') + '</ul>' : '<p>Activate your first protocol to establish a permanent expedition advantage.</p>';
   }
 
+  function clampZoom(value) { return Math.max(minZoom, Math.min(maxZoom, Math.round(value * 10) / 10)); }
+  function syncMapScale() {
+    if (!zoomStage || !board) return;
+    var width = parseFloat(board.style.width) || board.offsetWidth || 960;
+    var height = parseFloat(board.style.minHeight) || board.offsetHeight || 600;
+    zoomStage.style.width = Math.ceil(width * state.zoom) + 'px';
+    zoomStage.style.height = Math.ceil(height * state.zoom) + 'px';
+    board.style.transform = 'scale(' + state.zoom + ')';
+    if (zoomLevel) zoomLevel.textContent = Math.round(state.zoom * 100) + '%';
+    if (zoomOut) zoomOut.disabled = state.zoom <= minZoom;
+    if (zoomIn) zoomIn.disabled = state.zoom >= maxZoom;
+  }
+  function setZoom(value) {
+    var nextZoom = clampZoom(value);
+    if (!treeViewport || nextZoom === state.zoom) return;
+    var centreX = (treeViewport.scrollLeft + treeViewport.clientWidth / 2) / state.zoom;
+    var centreY = (treeViewport.scrollTop + treeViewport.clientHeight / 2) / state.zoom;
+    state.zoom = nextZoom;
+    syncMapScale();
+    treeViewport.scrollLeft = Math.max(0, centreX * state.zoom - treeViewport.clientWidth / 2);
+    treeViewport.scrollTop = Math.max(0, centreY * state.zoom - treeViewport.clientHeight / 2);
+  }
+  function isMapFullscreen() { return (document.fullscreenElement || document.webkitFullscreenElement) === treeMap; }
+  function syncFullscreenButton() {
+    if (!fullscreenButton) return;
+    var active = isMapFullscreen();
+    fullscreenButton.textContent = active ? 'Exit full screen' : 'Full screen';
+    fullscreenButton.setAttribute('aria-pressed', active ? 'true' : 'false');
+  }
+
   function renderTree(data) {
     renderTreeKey();
     var nodes = filteredNodes(data);
-    if (!nodes.length) { board.style.width = ''; board.style.minHeight = ''; board.innerHTML = '<p class="research-empty">' + (state.categoryFilter ? 'No protocols have been assigned to this category yet.' : 'Research command has not published any protocols yet.') + '</p>'; return; }
+    if (!nodes.length) { board.style.width = ''; board.style.minHeight = ''; board.innerHTML = '<p class="research-empty">' + (state.categoryFilter ? 'No protocols have been assigned to this category yet.' : 'Research command has not published any protocols yet.') + '</p>'; syncMapScale(); return; }
     var dimensions = data.board || {}, width = Math.max(960, Number(dimensions.width) || 1560), height = Math.max(600, Number(dimensions.height) || 900);
     board.style.width = width + 'px'; board.style.minHeight = height + 'px';
     var byId = {}; nodes.forEach(function (node) { byId[Number(node.id)] = node; });
@@ -128,54 +163,32 @@
       }).join('');
     }).join('');
     var nodeMarkup = nodes.map(function (node) {
-      var stateName = nodeState(node), statusText = nodeStatus(node, stateName), image = safeImage(node.image_url), selected = Number(node.id) === Number(state.selectedId);
+      var stateName = nodeState(node), statusText = nodeStatus(node, stateName), image = safeImage(node.image_url);
       var nodeLabel = (node.category ? node.category.name + ' / ' : '') + node.effect_label;
       var specialEffect = node.effect_type === 'secret_mission' || node.effect_type === 'rare_loot_table';
       var effectValue = specialEffect ? 'CLASSIFIED' : (node.effect_type === 'crew_capacity' ? '+' + Math.floor(Number(node.effect_value) || 0) + ' slots' : '+' + percent(node.effect_value) + '%');
-      return '<article class="research-node is-' + stateName + (selected ? ' is-selected' : '') + '" style="left:' + Number(node.canvas_x) + 'px;top:' + Number(node.canvas_y) + 'px"><button type="button" class="research-node-select" data-research-node="' + Number(node.id) + '" aria-label="' + esc(node.name + ': ' + statusText) + '" aria-pressed="' + (selected ? 'true' : 'false') + '"><span class="research-node-top"><span class="research-node-art">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(nodeLabel) + '</small><strong>' + esc(node.name) + '</strong></span></span><p>' + esc(node.effect_short) + '</p><span class="research-node-foot"><span class="research-node-state is-' + stateName + '">' + esc(statusText) + '</span><b>' + esc(effectValue) + '</b></span></button>' + nodeHoverPanel(node, stateName) + '</article>';
+      return '<article class="research-node is-' + stateName + '" style="left:' + Number(node.canvas_x) + 'px;top:' + Number(node.canvas_y) + 'px"><button type="button" class="research-node-select" aria-label="' + esc(node.name + ': ' + statusText) + '"><span class="research-node-top"><span class="research-node-art">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(nodeLabel) + '</small><strong>' + esc(node.name) + '</strong></span></span><p>' + esc(node.effect_short) + '</p><span class="research-node-foot"><span class="research-node-state is-' + stateName + '">' + esc(statusText) + '</span><b>' + esc(effectValue) + '</b></span></button>' + nodeHoverPanel(node, stateName) + '</article>';
     }).join('');
     board.innerHTML = '<svg class="research-tree-lines" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" aria-hidden="true">' + lines + '</svg>' + nodeMarkup;
-  }
-
-  function costRow(label, value, stateName) { return '<span class="' + (stateName || '') + '"><em>' + esc(label) + '</em><strong>' + esc(value) + '</strong></span>'; }
-  function renderDetail() {
-    var node = nodeById(state.selectedId);
-    if (!node) { detail.innerHTML = '<span class="eyebrow">Protocol dossier</span><h2>Select a research protocol</h2><p>Choose a node in the lattice to review its effect, dependencies and field costs.</p>'; return; }
-    var prerequisites = node.prerequisites || [], missing = node.missing_prerequisites || [];
-    var prerequisiteCopy = prerequisites.length ? prerequisites.map(function (item) { return esc(item.name); }).join(', ') : 'No prerequisite protocols.';
-    var rank = state.data.reputation || {}, rankMet = Number(rank.level_number) >= Number(node.required_reputation_level), creditMet = Number(state.data.credits) >= Number(node.credit_cost);
-    var salvage = node.salvage, salvageMet = !salvage || Number(salvage.held) >= Number(salvage.quantity);
-    var requirements = costRow('Reputation rank', 'Rank ' + node.required_reputation_level, rankMet ? 'is-ready' : 'is-missing')
-      + costRow('Credits', number(node.credit_cost) + ' cr', creditMet ? 'is-ready' : 'is-missing');
-    if (salvage) requirements += costRow(salvage.name, number(salvage.quantity) + ' required · ' + number(salvage.held) + ' held', salvageMet ? 'is-ready' : 'is-missing');
-    var stateCopy = node.is_unlocked ? '<p class="research-detail-state">Protocol active — its field effect is permanently available to this command.</p>'
-      : (!node.is_enabled ? '<p class="research-detail-state is-retired">This protocol has been retired from new research.</p>'
-        : (missing.length ? '<p class="research-detail-state is-locked">Missing prerequisite: ' + missing.map(function (item) { return esc(item.name); }).join(', ') + '.</p>' : '<p class="research-detail-state is-locked">Meet every listed requirement to authorise this protocol.</p>'));
-    var action = node.can_unlock ? '<button type="button" class="btn btn-solid research-unlock-btn" data-research-unlock="' + Number(node.id) + '"' + (state.busyId === Number(node.id) ? ' disabled' : '') + '>' + (state.busyId === Number(node.id) ? 'Authorising…' : 'Unlock protocol') + '</button>' : '';
-    detail.innerHTML = '<div class="research-detail-grid"><div><span class="eyebrow">' + esc((node.category ? node.category.name + ' / ' : '') + node.effect_label) + '</span><h2>' + esc(node.name) + '</h2><p>' + esc(node.description) + '</p><p class="research-detail-effect">' + esc(effectText(node)) + '</p><p class="research-detail-prereqs"><b>Research path:</b> ' + prerequisiteCopy + '</p>' + stateCopy + action + '</div><div class="research-detail-meta">' + requirements + '</div></div>';
+    syncMapScale();
   }
 
   function render(data) {
     state.data = data;
     renderCategoryFilter(data);
-    var nodes = filteredNodes(data);
-    if (!nodes.some(function (node) { return Number(node.id) === Number(state.selectedId); })) {
-      var available = nodes.filter(function (node) { return node.can_unlock; })[0];
-      state.selectedId = available ? available.id : (nodes[0] ? nodes[0].id : null);
-    }
-    renderCommand(data); renderEffects(data.effects || {}); renderTree(data); renderDetail();
+    renderCommand(data); renderEffects(data.effects || {}); renderTree(data);
   }
 
   function load() {
     if (!window.PW_AUTH || !window.PW_AUTH.loggedIn) { gate.hidden = false; content.hidden = true; return Promise.resolve(); }
     gate.hidden = true; content.hidden = false;
-    return fetch('/api/research/overview.php', { credentials: 'same-origin', cache: 'no-store' }).then(function (response) { return response.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'The Research Facility is unavailable.'); render(data); }).catch(function (error) { board.innerHTML = '<p class="research-empty">' + esc(error.message || 'The Research Facility is unavailable.') + '</p>'; detail.innerHTML = '<span class="eyebrow">Protocol dossier</span><h2>Facility unavailable</h2><p>Research command could not establish a secure record.</p>'; setStatus(error.message || 'The Research Facility is unavailable.', true); });
+    return fetch('/api/research/overview.php', { credentials: 'same-origin', cache: 'no-store' }).then(function (response) { return response.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'The Research Facility is unavailable.'); render(data); }).catch(function (error) { board.innerHTML = '<p class="research-empty">' + esc(error.message || 'The Research Facility is unavailable.') + '</p>'; syncMapScale(); setStatus(error.message || 'The Research Facility is unavailable.', true); });
   }
 
   function unlock(nodeId) {
     if (state.busyId || !nodeId) return;
-    state.busyId = Number(nodeId); renderDetail();
-    post('/api/research/unlock.php', { research_node_id: nodeId, csrf: window.PW_AUTH && window.PW_AUTH.csrf ? window.PW_AUTH.csrf : '' }).then(function (result) { setStatus(result.message || 'Research protocol activated.'); return load(); }).catch(function (error) { setStatus(error.message || 'Could not unlock that protocol.', true); }).then(function () { state.busyId = null; renderDetail(); });
+    state.busyId = Number(nodeId); renderTree(state.data);
+    post('/api/research/unlock.php', { research_node_id: nodeId, csrf: window.PW_AUTH && window.PW_AUTH.csrf ? window.PW_AUTH.csrf : '' }).then(function (result) { setStatus(result.message || 'Research protocol activated.'); return load(); }).catch(function (error) { setStatus(error.message || 'Could not unlock that protocol.', true); }).then(function () { state.busyId = null; if (state.data) renderTree(state.data); });
   }
 
   var mousePan = null;
@@ -206,12 +219,17 @@
   board.addEventListener('click', function (event) {
     var unlockButton = event.target.closest('[data-research-unlock]');
     if (unlockButton && board.contains(unlockButton)) { unlock(Number(unlockButton.getAttribute('data-research-unlock'))); return; }
-    var button = event.target.closest('[data-research-node]');
-    if (!button) return;
-    state.selectedId = Number(button.getAttribute('data-research-node')); renderTree(state.data); renderDetail();
   });
-  categoryFilter.addEventListener('change', function () { state.categoryFilter = categoryFilter.value; var nodes = filteredNodes(state.data); state.selectedId = nodes.length ? nodes[0].id : null; renderTree(state.data); renderDetail(); });
-  detail.addEventListener('click', function (event) { var button = event.target.closest('[data-research-unlock]'); if (button) unlock(Number(button.getAttribute('data-research-unlock'))); });
+  categoryFilter.addEventListener('change', function () { state.categoryFilter = categoryFilter.value; renderTree(state.data); });
+  zoomOut.addEventListener('click', function () { setZoom(state.zoom - zoomStep); });
+  zoomIn.addEventListener('click', function () { setZoom(state.zoom + zoomStep); });
+  fullscreenButton.addEventListener('click', function () {
+    if (isMapFullscreen()) { if (document.exitFullscreen) document.exitFullscreen(); else if (document.webkitExitFullscreen) document.webkitExitFullscreen(); return; }
+    if (treeMap && treeMap.requestFullscreen) treeMap.requestFullscreen();
+    else if (treeMap && treeMap.webkitRequestFullscreen) treeMap.webkitRequestFullscreen();
+  });
+  document.addEventListener('fullscreenchange', syncFullscreenButton);
+  document.addEventListener('webkitfullscreenchange', syncFullscreenButton);
   document.addEventListener('pw-auth-ready', load);
   load();
 }());
