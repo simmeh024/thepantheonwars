@@ -9,6 +9,7 @@ $statsReady = pw_mission_stats_ready($db);
 $creditsReady = pw_mission_credits_ready($db);
 $watermarkReady = pw_mission_watermark_ready($db);
 $researchLocksReady = pw_mission_research_locks_ready($db);
+$contractsReady = pw_mission_overlord_contracts_ready($db);
 $rows = $db->query(
     'SELECT mission.id, mission.world_key, mission.name, mission.slug, mission.description, mission.mission_type,
             mission.duration_seconds, mission.min_crew, mission.max_crew, mission.xp_reward, mission.reputation_reward,
@@ -17,10 +18,16 @@ $rows = $db->query(
     . ($creditsReady ? ' mission.credit_reward,' : ' 0 AS credit_reward,')
     . ($watermarkReady ? ' mission.watermark_url, mission.watermark_opacity,' : ' "" AS watermark_url, 10 AS watermark_opacity,')
     . ($statsReady ? ' mission.base_success_percent, mission.loot_rolls,' : ' 100 AS base_success_percent, 0 AS loot_rolls,') .
-    ($researchLocksReady ? ' mission.requires_research_unlock,' : ' 0 AS requires_research_unlock,') .
+    ($researchLocksReady ? ' mission.requires_research_unlock,' : ' 0 AS requires_research_unlock,')
+    . ($contractsReady ? ' mission.overlord_id, overlord.name AS overlord_name,' : ' NULL AS overlord_id, NULL AS overlord_name,') .
            ' prerequisite.name AS unlocks_after_mission_name, mission.created_at, mission.updated_at
      FROM game_mission_definitions mission
-     LEFT JOIN game_mission_definitions prerequisite ON prerequisite.id = mission.unlocks_after_mission_id
+     LEFT JOIN game_mission_definitions prerequisite ON prerequisite.id = mission.unlocks_after_mission_id'
+    /* Joined only once the column exists. The overlords table is always there,
+     * but a join predicate naming a missing column is a hard SQL error rather
+     * than a NULL, which would take the whole mission list down before the
+     * migration has been run. */
+    . ($contractsReady ? ' LEFT JOIN overlords overlord ON overlord.id = mission.overlord_id' : '') . '
      ORDER BY mission.world_key ASC, mission.sort_order ASC, mission.id ASC'
 )->fetchAll();
 $rows = array_map(static function ($row) {
@@ -29,6 +36,13 @@ $rows = array_map(static function ($row) {
     $row['is_enabled'] = (bool)$row['is_enabled'];
     $row['is_campaign_final'] = (bool)$row['is_campaign_final'];
     $row['requires_research_unlock'] = (bool)$row['requires_research_unlock'];
+    $row['overlord_id'] = $row['overlord_id'] !== null ? (int)$row['overlord_id'] : null;
     return $row;
 }, $rows);
-pw_json(['ok' => true, 'missions' => $rows, 'campaign_ready' => $campaignReady]);
+/* The roster powers the editor's Overlord picker. Sent with the list rather
+ * than fetched separately: it is six rows and the editor always needs it. */
+$overlords = $contractsReady
+    ? $db->query('SELECT id, name, epithet FROM overlords ORDER BY sort_order ASC, name ASC')->fetchAll()
+    : [];
+$overlords = array_map(static function ($row) { $row['id'] = (int)$row['id']; return $row; }, $overlords);
+pw_json(['ok' => true, 'missions' => $rows, 'campaign_ready' => $campaignReady, 'contracts_ready' => $contractsReady, 'overlords' => $overlords, 'contract_rank' => PW_MISSION_OVERLORD_CONTRACT_RANK]);

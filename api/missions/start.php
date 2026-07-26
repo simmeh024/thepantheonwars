@@ -27,6 +27,21 @@ try {
         && !pw_research_mission_is_unlocked($db, $userId, (int)$mission['id'])) {
         throw new RuntimeException('This classified mission requires its Research Facility protocol first.');
     }
+    /* An Overlord contract is gated on rank, on the player's own allegiance,
+     * and on being the operation actually issued to them today. All three are
+     * recomputed here rather than trusted: the daily selection is a pure
+     * function of the player, the date and the pool, so the server can name
+     * today's contract itself and refuse every other id. Without this, reading
+     * a contract id out of the network tab on the one day it appeared would let
+     * it be launched on every day after. */
+    $contractBlock = pw_missions_overlord_contract_block(
+        $db,
+        $userId,
+        $mission,
+        (int)(pw_reputation_info((int)($user['reputation'] ?? 0))['level_number'] ?? 0),
+        pw_missions_overlord_affinity($db, $user['overlord_affinity'] ?? null)
+    );
+    if ($contractBlock !== null) throw new RuntimeException($contractBlock);
     if ($mission['unlocks_after_mission_id'] !== null) {
         $requiredCompletions = max(1, (int)$mission['unlocks_after_completion_count']);
         $completedStmt = $db->prepare(

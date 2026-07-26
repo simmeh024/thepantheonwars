@@ -619,6 +619,50 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Daily Overlord contracts.** **Run `sql/migration_overlord_contracts.sql`
+  once.** The quiz has always written `users.overlord_affinity` and no
+  gameplay system has ever read it -- a player declared an allegiance and it
+  changed only how their profile looked. A contract is the reward for it:
+  one administrator-authored operation a day, from the pool belonging to the
+  player's own Overlord, from reputation rank 10
+  (`PW_MISSION_OVERLORD_CONTRACT_RANK`).
+  **A contract is an ordinary `game_mission_definitions` row with an
+  `overlord_id`**, not a parallel system -- crew selection, fatigue, weather,
+  the success roll, loot and the debrief all apply unchanged. A row with an
+  Overlord attached is withdrawn from the ordinary board (filtered in SQL,
+  before campaign tracks are built, so it can never appear as a step in a
+  chain) and only offered as the daily card.
+  **Selection is deterministic per player per UTC day**, seeded
+  `crc32(userId : date : slug)` -- the same technique as the Overlord decree
+  rotation and the weather forecast -- so a refresh cannot reroll it and two
+  commanders serving the same patron do not get the same operation.
+  **`pw_missions_overlord_contract_block()` recomputes today's pick at launch
+  rather than trusting the id.** Without that, a contract id read out of the
+  network tab on the one day it appeared could be launched every day after;
+  asserted across every contract on every day of a month. It also enforces
+  rank, that the contract belongs to the player's own Overlord, and
+  once-per-day (counted by `claimed_at`, so a run launched yesterday and
+  claimed today closes today's).
+  `users.overlord_affinity` stores the Overlord's **name**, not a slug or id
+  -- matched case-insensitively so an editorial capitalisation change in
+  Overlord Control cannot orphan every aligned player.
+  UI: an affinity row on the command card under the reputation bar (linking
+  to the quiz when unset) and a minified contract card in the conditions rail
+  under the Market card, in that Overlord's colour.
+  **Two real defects found in the browser pass.** Every child of
+  `.mission-profile-card` carries an explicit `order` below 1080px, so the new
+  affinity row defaulted to `order: 0` and jumped ahead of the avatar. And
+  accent colours used directly as text fail AA at the dark end -- Malric
+  Thorne's `rgb(204,72,80)` measured 4.38:1 -- so a derived `--overlord-text`
+  lightens text 70% toward white while borders and sigils keep the pure
+  accent; worst reading is now 5.85:1 across all six.
+  **Watch out when measuring `color-mix()` contrast:** the computed value
+  serialises as `color(srgb 0.86 0.49 0.51)` with 0-1 components, not
+  `rgb(0-255)`, and a gradient card reports `backgroundColor: transparent` --
+  a naive sampler reports a 1.0 ratio for everything and looks like a total
+  failure. `missions.css?v=37` / `missions.js?v=37` /
+  `admin-missions.js?v=11`.
+
 - **Missions finish while you are away, and crew now tire.** Two changes,
   one migration (`sql/migration_mission_fatigue.sql`) and one new cron job.
   **Offline completion.** A run reached `completed` only when the player's

@@ -426,6 +426,11 @@
   .mission-profile-head { order: 1; }
   .mission-profile-credits { order: 2; }
   .mission-profile-rep { grid-column: 1 / -1; margin-top: 4px; order: 3; }
+  /* Every child of this card carries an explicit order below 1080px, so a new
+   * one without a rank defaults to 0 and jumps ahead of the avatar -- which is
+   * exactly what the affinity row did before this rule. It follows the
+   * reputation bar, matching the wide layout's DOM order. */
+  .mission-profile-affinity { grid-column: 1 / -1; order: 4; margin-top: 6px; }
   .mission-profile-credits { margin-top: 0; padding-top: 0; border-top: 0; }
 }
 @media (max-width: 560px) {
@@ -907,3 +912,52 @@
   .mission-result-loot.is-gear, .mission-result-crewlist { grid-template-columns: minmax(0, 1fr); }
   .mission-result-gear-actions { flex-direction: row; }
 }
+
+/* ---- Overlord affinity, on the command card ----------------------------
+ * Sits under the reputation bar. Its own row rather than a line inside the
+ * rank block: the rank is what the site awards you and the affinity is what
+ * you chose, and the two answer different questions. */
+/* Accent-derived TEXT is lightened toward white; the pure accent stays on
+ * borders, fills and the sigil, where the 4.5:1 rule does not apply. Measured:
+ * Malric Thorne's rgb(204,72,80) is the darkest Overlord accent and read 4.38:1
+ * as body text against its own tinted card. At 70% toward white every Overlord
+ * clears AA, and the card still reads unmistakably as theirs. */
+.mission-profile-affinity, .mission-contract-card { --overlord-text: color-mix(in srgb, var(--overlord-accent, #c9a227) 70%, #ffffff); }
+.mission-profile-affinity { display: grid; grid-template-columns: 26px minmax(0, 1fr); align-items: center; gap: 9px; margin-top: 12px; padding: 8px 10px; border: 1px solid color-mix(in srgb, var(--overlord-accent, #c9a227) 42%, transparent); background: color-mix(in srgb, var(--overlord-accent, #c9a227) 9%, rgba(6,15,28,0.5)); color: inherit; text-decoration: none; transition: border-color .25s ease, background-color .25s ease; }
+.mission-profile-affinity:hover, .mission-profile-affinity:focus-visible { border-color: color-mix(in srgb, var(--overlord-accent, #c9a227) 78%, transparent); background: color-mix(in srgb, var(--overlord-accent, #c9a227) 16%, rgba(6,15,28,0.5)); }
+.mission-profile-affinity-sigil { display: flex; align-items: center; justify-content: center; width: 26px; height: 26px; color: var(--overlord-accent, #c9a227); }
+.mission-profile-affinity-sigil svg { width: 22px; height: 22px; }
+.mission-profile-affinity-copy { display: grid; gap: 1px; min-width: 0; }
+.mission-profile-affinity-copy small { color: #8ba3b4; font-size: 0.55rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
+.mission-profile-affinity-copy strong { overflow: hidden; color: #eef1f6; font-size: 0.78rem; text-overflow: ellipsis; white-space: nowrap; }
+.mission-profile-affinity-copy em { overflow: hidden; color: var(--overlord-text, #e2c76a); font-size: 0.63rem; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
+/* Unaligned: a prompt rather than a status, so it reads as something to do. */
+.mission-profile-affinity.is-empty { --overlord-accent: #7ee3e8; }
+.mission-profile-affinity.is-empty .mission-profile-affinity-sigil { font: 700 1rem/1 'Cinzel', serif; }
+.mission-profile-affinity.is-empty strong { color: #7ee3e8; font-size: 0.72rem; white-space: normal; }
+
+/* ---- Daily Overlord contract, in the conditions rail -------------------
+ * A minified mission card in its Overlord's own colour, so the patron is
+ * legible before the copy is read. Every colour here derives from the one
+ * --overlord-accent property set by js/missions.js from Overlord Control's
+ * accent_color, with the sigil map and then a neutral gold as fallbacks. */
+.mission-contract-card { position: relative; display: grid; gap: 7px; overflow: hidden; padding: 14px 15px 15px; border: 1px solid color-mix(in srgb, var(--overlord-accent, #c9a227) 50%, transparent); background: linear-gradient(148deg, color-mix(in srgb, var(--overlord-accent, #c9a227) 17%, rgba(10,14,30,0.9)), rgba(9,12,26,0.94)); box-shadow: inset 0 1px color-mix(in srgb, var(--overlord-accent, #c9a227) 16%, transparent), 0 10px 24px rgba(5,3,15,0.16); }
+.mission-contract-card[hidden] { display: none; }
+.mission-contract-card .eyebrow { margin: 0; color: var(--overlord-text, #e2c76a); font-size: 0.57rem; }
+.mission-contract-head { display: flex; align-items: center; gap: 8px; }
+.mission-contract-sigil { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; color: var(--overlord-accent, #c9a227); }
+.mission-contract-sigil svg { width: 21px; height: 21px; }
+.mission-contract-head strong { color: #eef1f6; font: 600 0.82rem/1.2 'Cinzel', serif; }
+.mission-contract-name { color: #eef1f6; font-size: 0.86rem; line-height: 1.25; }
+.mission-contract-meta { color: #a9c2d0; font-size: 0.62rem; letter-spacing: .05em; text-transform: uppercase; }
+.mission-contract-reward { color: var(--overlord-text, #e2c76a); font-size: 0.68rem; font-weight: 600; }
+.mission-contract-copy { margin: 0; color: #a9c2d0; font-size: 0.68rem; line-height: 1.45; }
+.mission-contract-copy.is-done { color: #9edba8; }
+.mission-contract-launch { width: 100%; margin-top: 2px; padding: 8px 10px !important; font-size: 0.66rem !important; }
+.mission-contract-link { color: var(--overlord-text, #e2c76a); font-size: 0.65rem; font-weight: 600; letter-spacing: .05em; text-decoration: none; }
+.mission-contract-link:hover, .mission-contract-link:focus-visible { text-decoration: underline; }
+/* Locked and empty states are quieter than an issued contract: they are an
+ * explanation, not an offer. */
+.mission-contract-card.is-locked, .mission-contract-card.is-empty { border-color: rgba(90,149,185,0.34); background: rgba(6,15,28,0.5); box-shadow: none; }
+.mission-contract-card.is-locked .eyebrow, .mission-contract-card.is-empty .eyebrow { color: #8ba3b4; }
+.mission-contract-card.is-claimed { border-color: rgba(110,207,140,0.42); }

@@ -21,6 +21,7 @@ try {
     $researchReady = pw_research_ready($db);
     $researchLocksReady = pw_mission_research_locks_ready($db);
     $fatigueReady = pw_mission_fatigue_ready($db);
+    $contractsReady = pw_mission_overlord_contracts_ready($db);
     $researchEffects = $researchReady ? pw_research_player_effects($db, $userId) : pw_research_default_effects();
     $researchSecrets = ($researchReady || $researchLocksReady) ? pw_research_secret_missions($db, $userId) : ['locked' => [], 'unlocked' => []];
     $crewStmt = $db->prepare(
@@ -154,7 +155,12 @@ try {
                ' prerequisite.name AS unlocks_after_mission_name
          FROM game_mission_definitions mission
          LEFT JOIN game_mission_definitions prerequisite ON prerequisite.id = mission.unlocks_after_mission_id
-         WHERE mission.world_key = "neoh"
+         WHERE mission.world_key = "neoh"'
+        /* An Overlord contract is withdrawn from the ordinary board: it is only
+         * ever offered as the daily contract, to the players it belongs to.
+         * Filtered here rather than after the campaign tracks are built, so it
+         * can never appear as a step in a chain it was never part of. */
+        . ($contractsReady ? ' AND mission.overlord_id IS NULL' : '') . '
          ORDER BY mission.sort_order ASC, mission.id ASC'
     );
     $missionsStmt->execute();
@@ -348,13 +354,60 @@ try {
      * balance. The avatar is not sent: it is the site-wide
      * /uploads/avatars/<id>.jpg convention the header chip already uses, so
      * there is nothing here for the server to resolve. */
+    $playerReputation = pw_reputation_info((int)($user['reputation'] ?? 0));
+    /* The Overlord the quiz aligned this player with. Resolved once and used
+     * twice: the command card names them, and the contract pool is drawn from
+     * them. Null when the quiz has never been taken. */
+    $playerOverlord = pw_missions_overlord_affinity($db, $user['overlord_affinity'] ?? null);
     $player = [
         'id' => $userId,
         'display_name' => $user['display_name'] ?? $user['username'],
-        'reputation' => pw_reputation_info((int)($user['reputation'] ?? 0)),
+        'reputation' => $playerReputation,
         'credits' => $creditsReady ? pw_missions_credit_balance($db, $userId) : 0,
         'credits_ready' => $creditsReady,
+        'overlord' => $playerOverlord === null ? null : [
+            'slug' => (string)$playerOverlord['slug'],
+            'name' => (string)$playerOverlord['name'],
+            'epithet' => (string)$playerOverlord['epithet'],
+            'accent_color' => (string)$playerOverlord['accent_color'],
+            'accent_glow' => (string)$playerOverlord['accent_glow'],
+        ],
     ];
+
+    /* Today's contract, with the reason there is not one. A locked rank, a
+     * missing quiz result and an Overlord with nothing authored are three
+     * different situations, and the card explains which rather than being
+     * absent for all three. */
+    $overlordContract = pw_missions_daily_overlord_contract(
+        $db,
+        $userId,
+        (int)($playerReputation['level_number'] ?? 0),
+        $playerOverlord
+    );
+    if ($overlordContract['contract']) {
+        $row = $overlordContract['contract'];
+        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order'] as $field) {
+            $row[$field] = (int)($row[$field] ?? 0);
+        }
+        $row['credit_reward'] = (int)($row['credit_reward'] ?? 0);
+        $row['base_success_percent'] = (int)($row['base_success_percent'] ?? 100);
+        $row['loot_rolls'] = (int)($row['loot_rolls'] ?? 0);
+        $row['watermark_url'] = pw_missions_watermark_url($row['watermark_url'] ?? '');
+        $row['watermark_opacity'] = (int)($row['watermark_opacity'] ?? 10);
+        $row['is_enabled'] = true;
+        $row['is_campaign_final'] = false;
+        $row['unlocks_after_mission_id'] = null;
+        $row['fatigue_cost'] = $fatigueReady ? pw_missions_fatigue_cost($row['duration_seconds']) : 0;
+        $row['last_crew_ids'] = $lastCrewByMission[(int)$row['id']] ?? [];
+        $row['is_overlord_contract'] = true;
+        /* The same public field list the ordinary board is trimmed to, so a
+         * contract cannot leak a column the mission cards never expose. */
+        $contractPublic = [];
+        foreach (array_merge($publicFields, ['is_overlord_contract']) as $field) {
+            if (array_key_exists($field, $row)) $contractPublic[$field] = $row[$field];
+        }
+        $overlordContract['contract'] = $contractPublic;
+    }
 
     // Neoh is the only world with operations today; the helper is world-generic.
     $weatherNow = pw_missions_world_weather($db, 'neoh');
@@ -373,6 +426,7 @@ try {
         'weather' => $weatherNow ? array_merge($weatherNow, ['effects' => pw_missions_weather_modifiers($weatherNow)]) : null,
         'server_time' => $serverTime['value'],
         'player' => $player,
+        'overlord_contract' => $overlordContract,
         'watermark' => pw_missions_watermark_settings(),
         // Null until the dailies migration has been run; the card stays hidden.
         'daily' => pw_missions_daily_state($db, $userId),

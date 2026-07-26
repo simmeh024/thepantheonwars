@@ -50,6 +50,20 @@ function pw_admin_mission_definition_input(array $input): array {
     if ($baseSuccess === false || $baseSuccess < 1 || $baseSuccess > 100) pw_error('Base success chance must be between 1% and 100%.');
     $lootRolls = filter_var($input['loot_rolls'] ?? 0, FILTER_VALIDATE_INT);
     if ($lootRolls === false || $lootRolls < 0 || $lootRolls > 10) pw_error('Loot rolls must be between 0 and 10.');
+    /* Attaching an Overlord turns this mission into a daily contract: it is
+     * withdrawn from the ordinary board and only offered to players aligned
+     * with that Overlord. Validated against the roster rather than accepted as
+     * a bare id, so a hand-edited request cannot point a contract at a row that
+     * is not an Overlord. */
+    $overlordRaw = trim((string)($input['overlord_id'] ?? ''));
+    $overlordId = null;
+    if ($overlordRaw !== '') {
+        $overlordId = filter_var($overlordRaw, FILTER_VALIDATE_INT);
+        if ($overlordId === false || $overlordId < 1) pw_error('Choose a valid Overlord for this contract.');
+        $check = pw_db()->prepare('SELECT id FROM overlords WHERE id = ?');
+        $check->execute([$overlordId]);
+        if (!$check->fetch()) pw_error('That Overlord no longer exists.', 404);
+    }
     $unlocksAfterRaw = trim((string)($input['unlocks_after_mission_id'] ?? ''));
     $unlocksAfterMissionId = null;
     if ($unlocksAfterRaw !== '') {
@@ -67,6 +81,7 @@ function pw_admin_mission_definition_input(array $input): array {
         'watermark_url' => $watermarkUrl, 'watermark_opacity' => $watermarkOpacity,
         'is_enabled' => !empty($input['is_enabled']) ? 1 : 0, 'sort_order' => $sortOrder,
         'requires_research_unlock' => !empty($input['requires_research_unlock']) ? 1 : 0,
+        'overlord_id' => $overlordId,
         'unlocks_after_mission_id' => $unlocksAfterMissionId,
         'unlocks_after_completion_count' => $unlocksAfterCompletionCount,
         'is_campaign_final' => !empty($input['is_campaign_final']) ? 1 : 0,

@@ -97,6 +97,173 @@ function pw_mission_campaign_ready(PDO $db): bool {
     }
 }
 
+/* ---------------------------------------------------------------------------
+ * Daily Overlord contracts
+ *
+ * The quiz has always written users.overlord_affinity and nothing in the game
+ * has ever read it -- a player declares an allegiance and it changes only how
+ * their profile looks. A contract is the reward for that allegiance: one
+ * administrator-authored operation a day, drawn from the pool belonging to the
+ * player's own Overlord.
+ *
+ * Selection is deterministic per player per UTC day, seeded the same way the
+ * Overlord decree rotation and the weather forecast are seeded, so refreshing
+ * the page cannot reroll it and two players with the same patron do not
+ * necessarily get the same contract.
+ * ------------------------------------------------------------------------- */
+
+/** Reputation rank at which contracts begin. */
+const PW_MISSION_OVERLORD_CONTRACT_RANK = 10;
+
+function pw_mission_overlord_contracts_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_missions_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT overlord_id FROM `game_mission_definitions` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+/**
+ * The Overlord a player is aligned with, or null.
+ *
+ * users.overlord_affinity stores the Overlord's NAME, not a slug or an id --
+ * that is how api/save-quiz-result.php has always written it, and
+ * api/quiz/quiz-helpers.php resolves it the same way for its rarity figures.
+ * Matched case-insensitively against the roster so an editorial capitalisation
+ * change in Overlord Control cannot silently orphan every aligned player.
+ */
+function pw_missions_overlord_affinity(PDO $db, ?string $affinityName): ?array {
+    $name = trim((string)$affinityName);
+    if ($name === '') return null;
+    try {
+        $stmt = $db->prepare(
+            'SELECT id, slug, name, epithet, accent_color, accent_glow, portrait_image_url
+             FROM overlords WHERE LOWER(name) = LOWER(?) LIMIT 1'
+        );
+        $stmt->execute([$name]);
+        $row = $stmt->fetch();
+        if (!$row) return null;
+        $row['id'] = (int)$row['id'];
+        return $row;
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+/**
+ * Today's contract for one player, and the reason there is not one.
+ *
+ * Always returns a state rather than null, so the card can explain itself:
+ * a locked rank, a missing quiz result and an Overlord with no authored
+ * contracts are three different situations and all three used to look
+ * identical from the browser (an absent card).
+ */
+function pw_missions_daily_overlord_contract(PDO $db, int $userId, int $rank, ?array $overlord): array {
+    $state = [
+        'ready' => pw_mission_overlord_contracts_ready($db),
+        'rank_required' => PW_MISSION_OVERLORD_CONTRACT_RANK,
+        'rank' => $rank,
+        'unlocked' => $rank >= PW_MISSION_OVERLORD_CONTRACT_RANK,
+        'overlord' => null,
+        'contract' => null,
+        'claimed_today' => false,
+        'reason' => '',
+    ];
+    if (!$state['ready']) { $state['reason'] = 'pending_migration'; return $state; }
+    if (!$state['unlocked']) { $state['reason'] = 'rank'; return $state; }
+    if ($overlord === null) { $state['reason'] = 'no_affinity'; return $state; }
+
+    $state['overlord'] = [
+        'id' => (int)$overlord['id'],
+        'slug' => (string)$overlord['slug'],
+        'name' => (string)$overlord['name'],
+        'epithet' => (string)$overlord['epithet'],
+        'accent_color' => (string)$overlord['accent_color'],
+        'accent_glow' => (string)$overlord['accent_glow'],
+    ];
+
+    try {
+        $pool = $db->prepare(
+            'SELECT * FROM game_mission_definitions
+             WHERE overlord_id = ? AND is_enabled = 1
+             ORDER BY sort_order ASC, id ASC'
+        );
+        $pool->execute([(int)$overlord['id']]);
+        $contracts = $pool->fetchAll();
+    } catch (Throwable $e) {
+        $state['reason'] = 'pending_migration';
+        return $state;
+    }
+    if (!$contracts) { $state['reason'] = 'none_authored'; return $state; }
+
+    /* Seeded from the player, the UTC date and the Overlord. Including the
+     * player id means two commanders serving the same patron are not handed the
+     * same operation every day; including the date is what makes it stable
+     * across a refresh and new at midnight UTC. */
+    $today = gmdate('Y-m-d');
+    $seed = crc32($userId . ':' . $today . ':' . (string)$overlord['slug']);
+    $contract = $contracts[$seed % count($contracts)];
+
+    /* Once a day means once a day. A run claimed today closes the contract
+     * until the next UTC date rather than letting it be repeated, which is the
+     * whole difference between a contract and an ordinary mission. Counted by
+     * claimed_at rather than by started_at so a run launched yesterday and
+     * claimed today closes today's, not yesterday's. */
+    try {
+        $claimed = $db->prepare(
+            'SELECT COUNT(*) FROM game_player_missions
+             WHERE user_id = ? AND mission_definition_id = ? AND status = "claimed"
+               AND claimed_at >= ? AND claimed_at < DATE_ADD(?, INTERVAL 1 DAY)'
+        );
+        $claimed->execute([$userId, (int)$contract['id'], $today . ' 00:00:00', $today . ' 00:00:00']);
+        $state['claimed_today'] = (int)$claimed->fetchColumn() > 0;
+    } catch (Throwable $e) {
+        // A failed check must not hand out a second contract for the day.
+        $state['claimed_today'] = true;
+    }
+
+    $state['contract'] = $contract;
+    $state['reason'] = $state['claimed_today'] ? 'claimed_today' : '';
+    return $state;
+}
+
+/**
+ * The gate start.php applies to a contract. Returns an error string, or null
+ * when the launch is allowed.
+ *
+ * Re-derived here rather than trusting anything the browser sends: the daily
+ * selection is a pure function of the player, the date and the pool, so the
+ * server can recompute exactly which contract is today's and refuse any other.
+ * Without this a player could read a contract id out of the network tab on any
+ * day it happened to be offered and launch it every day afterwards.
+ */
+function pw_missions_overlord_contract_block(PDO $db, int $userId, array $mission, int $rank, ?array $overlord): ?string {
+    if (!pw_mission_overlord_contracts_ready($db)) return null;
+    $overlordId = isset($mission['overlord_id']) && $mission['overlord_id'] !== null ? (int)$mission['overlord_id'] : 0;
+    if ($overlordId < 1) return null;
+    if ($rank < PW_MISSION_OVERLORD_CONTRACT_RANK) {
+        return 'Overlord contracts open at reputation rank ' . PW_MISSION_OVERLORD_CONTRACT_RANK . '.';
+    }
+    if ($overlord === null) {
+        return 'Take the Overlord Affinity quiz before accepting a contract.';
+    }
+    if ((int)$overlord['id'] !== $overlordId) {
+        return 'This contract belongs to another Overlord.';
+    }
+    $state = pw_missions_daily_overlord_contract($db, $userId, $rank, $overlord);
+    if ($state['claimed_today']) {
+        return 'You have already run today\'s contract. A new one is issued at 00:00 UTC.';
+    }
+    if (!$state['contract'] || (int)$state['contract']['id'] !== (int)$mission['id']) {
+        return 'That contract is not the one issued to you today.';
+    }
+    return null;
+}
+
 /**
  * Crew fatigue is an additive migration like every other optional mission
  * feature: a missing column is a hard SQL error rather than NULL, so every read

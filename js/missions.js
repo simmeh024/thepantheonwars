@@ -68,6 +68,7 @@
   var inventoryTierFilter = document.getElementById('missions-inventory-tier-filter');
   var inventoryStateFilter = document.getElementById('missions-inventory-state-filter');
   var profileCard = document.getElementById('mission-profile-card');
+  var contractCard = document.getElementById('mission-contract-card');
   var dailyCard = document.getElementById('mission-daily-card');
   var resultModal = document.getElementById('mission-result-modal');
   var resultInner = document.getElementById('mission-result-inner');
@@ -182,6 +183,119 @@
    * /uploads/avatars/<id>.jpg convention the header chip already uses, with the
    * same onerror fallback to an initial -- there is no avatar field on the
    * mission payload because there is nothing for the server to resolve. */
+  /* ----------------------------------------------------------------------
+   * Overlord affinity and the daily contract.
+   *
+   * The quiz has always written users.overlord_affinity and no gameplay system
+   * has ever read it. The command card names the patron; the rail card carries
+   * the one contract they issue today.
+   *
+   * The sigils are hand-duplicated from js/members.js, which is this codebase's
+   * established convention for a small shared map (js/overlord.html carries a
+   * third copy). Any new Overlord has to be added to all of them.
+   * -------------------------------------------------------------------- */
+  var OVERLORD_SIGILS = {
+    'syn-dravus': { name: 'Syn Dravus', color: 'rgb(154, 96, 238)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>' },
+    'malric-thorne': { name: 'Malric Thorne', color: 'rgb(204, 72, 80)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18h16"/><path d="M4 18 3 8l5 4 4-7 4 7 5-4-1 10Z"/></svg>' },
+    'korrus-vale': { name: 'Korrus Vale', color: 'rgb(159, 224, 65)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 20.5 7v10L12 22 3.5 17V7Z"/><circle cx="12" cy="12" r="3"/></svg>' },
+    'lysara-venthe': { name: 'Lysara Venthe', color: 'rgb(68, 150, 237)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 9c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/><path d="M2 15c2-3 4-3 6 0s4 3 6 0 4-3 6 0"/></svg>' },
+    'zura-kaleth': { name: 'Zura Kaleth', color: 'rgb(59, 148, 83)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v8"/><path d="M12 11 6 21"/><path d="M12 11l6 10"/><path d="M12 11 4 15"/><path d="M12 11l8 4"/></svg>' },
+    'maerion-thal': { name: 'Maerion Thal', color: 'rgb(184, 111, 66)', svg: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 16c4-2 6-8 9-11 3 3 5 9 9 11-4 2-7 0-9-3-2 3-5 5-9 3Z"/></svg>' }
+  };
+
+  function overlordSigil(slug) {
+    return OVERLORD_SIGILS[String(slug || '')] || null;
+  }
+
+  /* Overlord Control owns the colour; the sigil map is the fallback for an
+   * Overlord whose accent has never been set, and a neutral gold is the floor
+   * so a card is never rendered against an empty custom property -- setting one
+   * to '' still counts as set and defeats a var() default. */
+  function overlordAccent(overlord) {
+    if (!overlord) return '#c9a227';
+    var accent = String(overlord.accent_color || '').trim();
+    if (accent) return accent;
+    var sigil = overlordSigil(overlord.slug);
+    return sigil ? sigil.color : '#c9a227';
+  }
+
+  function overlordAffinityMarkup(player) {
+    var overlord = player && player.overlord;
+    if (!overlord) {
+      return '<a class="mission-profile-affinity is-empty" href="quiz.html">'
+        + '<span class="mission-profile-affinity-sigil" aria-hidden="true">?</span>'
+        + '<span class="mission-profile-affinity-copy"><small>Overlord affinity</small>'
+        + '<strong>Take the Overlord Affinity quiz</strong></span></a>';
+    }
+    var sigil = overlordSigil(overlord.slug);
+    var accent = overlordAccent(overlord);
+    return '<a class="mission-profile-affinity" href="overlord.html?slug=' + encodeURIComponent(overlord.slug) + '"'
+      + ' style="--overlord-accent:' + escapeHtml(accent) + '">'
+      + '<span class="mission-profile-affinity-sigil" aria-hidden="true">' + (sigil ? sigil.svg : '&#9670;') + '</span>'
+      + '<span class="mission-profile-affinity-copy"><small>Overlord affinity</small>'
+      + '<strong>' + escapeHtml(overlord.name) + '</strong>'
+      + (overlord.epithet ? '<em>' + escapeHtml(overlord.epithet) + '</em>' : '') + '</span></a>';
+  }
+
+  /* The rail card. A minified contract, in its Overlord's colour, or the reason
+   * there is not one -- a locked rank, a missing quiz result and an Overlord
+   * with nothing authored are three different situations and the card says
+   * which rather than simply being absent for all three. */
+  function renderOverlordContract(data) {
+    if (!contractCard) return;
+    var state = data.overlord_contract;
+    if (!state || !state.ready) { contractCard.hidden = true; return; }
+    contractCard.hidden = false;
+
+    var overlord = state.overlord;
+    var accent = overlordAccent(overlord);
+    contractCard.style.setProperty('--overlord-accent', accent);
+    var sigil = overlord ? overlordSigil(overlord.slug) : null;
+    var head = '<span class="eyebrow">Daily Overlord contract</span>'
+      + '<span class="mission-contract-head">'
+      + '<span class="mission-contract-sigil" aria-hidden="true">' + (sigil ? sigil.svg : '&#9670;') + '</span>'
+      + '<strong>' + escapeHtml(overlord ? overlord.name : 'Unaligned') + '</strong></span>';
+
+    if (!state.unlocked) {
+      contractCard.className = 'mission-contract-card is-locked';
+      contractCard.innerHTML = head
+        + '<p class="mission-contract-copy">Contracts are issued from reputation rank '
+        + Number(state.rank_required) + '. You are rank ' + Number(state.rank) + '.</p>'
+        + '<a class="mission-contract-link" href="reputation.html">Your standing <b aria-hidden="true">&rarr;</b></a>';
+      return;
+    }
+    if (state.reason === 'no_affinity') {
+      contractCard.className = 'mission-contract-card is-empty';
+      contractCard.innerHTML = '<span class="eyebrow">Daily Overlord contract</span>'
+        + '<p class="mission-contract-copy">No Overlord has claimed your service yet. Take the affinity quiz to be issued contracts.</p>'
+        + '<a class="mission-contract-link" href="quiz.html">Take the quiz <b aria-hidden="true">&rarr;</b></a>';
+      return;
+    }
+    if (state.reason === 'none_authored' || !state.contract) {
+      contractCard.className = 'mission-contract-card is-empty';
+      contractCard.innerHTML = head
+        + '<p class="mission-contract-copy">' + escapeHtml(overlord ? overlord.name + ' has issued no contracts yet.' : 'No contract today.') + '</p>';
+      return;
+    }
+
+    var contract = state.contract;
+    var claimed = !!state.claimed_today;
+    contractCard.className = 'mission-contract-card' + (claimed ? ' is-claimed' : '');
+    var reward = [];
+    if (Number(contract.xp_reward) > 0) reward.push('+' + Number(contract.xp_reward) + ' XP');
+    if (Number(contract.reputation_reward) > 0) reward.push('+' + Number(contract.reputation_reward) + ' rep');
+    if (Number(contract.credit_reward) > 0) reward.push('+' + credits(contract.credit_reward) + ' cr');
+    contractCard.innerHTML = head
+      + '<strong class="mission-contract-name">' + escapeHtml(contract.name) + '</strong>'
+      + '<span class="mission-contract-meta">' + escapeHtml(String(contract.mission_type).toUpperCase())
+      + ' · ' + escapeHtml(missionDuration(contract.duration_seconds))
+      + ' · ' + Number(contract.min_crew) + (Number(contract.max_crew) !== Number(contract.min_crew) ? '–' + Number(contract.max_crew) : '') + ' crew</span>'
+      + (reward.length ? '<span class="mission-contract-reward">' + escapeHtml(reward.join(' · ')) + '</span>' : '')
+      + (claimed
+        ? '<p class="mission-contract-copy is-done">Completed today. A new contract is issued at 00:00 UTC.</p>'
+        : '<button type="button" class="btn btn-solid mission-contract-launch" data-contract-id="' + Number(contract.id) + '">Accept contract</button>');
+  }
+
   function renderProfile(data) {
     if (!profileCard) return;
     var player = data.player;
@@ -205,6 +319,7 @@
       + '</div>'
       + '<div class="mission-profile-rep"><span class="mission-profile-rep-track"><i style="width:' + progress + '%;background:' + escapeHtml(rankColor) + '"></i></span>'
         + '<small>' + escapeHtml(nextLine) + '</small></div>'
+      + overlordAffinityMarkup(player)
       + (player.credits_ready
         ? '<div class="mission-profile-credits"><span>Total credits</span><strong>' + credits(player.credits) + '</strong></div>'
         : '<div class="mission-profile-credits is-pending"><span>Total credits</span><small>Available once the credits migration has been run.</small></div>');
@@ -739,7 +854,7 @@
     state.data = data;
     var server = apiDate(data.server_time);
     state.serverOffset = server && !isNaN(server) ? server.getTime() - Date.now() : 0;
-    applyWatermark(data.watermark); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCrewOffers(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderInventory(data); renderHistory(data);
+    applyWatermark(data.watermark); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCrewOffers(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderInventory(data); renderHistory(data); renderOverlordContract(data);
     /* The launch modal stays open across a background refresh -- equipping gear
      * from a slot's upgrade warning reloads the whole payload underneath it.
      * Re-resolve the mission against the new data and redraw the picker, or it
@@ -1764,6 +1879,14 @@
 
   function openLaunch(missionId) {
     var mission = (state.data && state.data.missions || []).find(function (item) { return item.id === Number(missionId); });
+    /* A daily contract is deliberately absent from state.data.missions -- it is
+     * withdrawn from the ordinary board server-side -- so it is looked up
+     * separately here rather than being folded into that list, where it would
+     * also have appeared as a card among the regular operations. */
+    if (!mission) {
+      var contract = state.data && state.data.overlord_contract && state.data.overlord_contract.contract;
+      if (contract && Number(contract.id) === Number(missionId)) mission = contract;
+    }
     if (!mission) return;
     state.launchMission = mission; state.launchPenaltyAck = false; launchError.textContent = '';
     // A fresh rack per open. Carrying a selection between operations would put
@@ -1811,6 +1934,13 @@
   }
 
   definitionList.addEventListener('click', function (event) { var button = event.target.closest('.mission-launch-btn'); if (button && !button.disabled) openLaunch(button.getAttribute('data-mission-id')); });
+  /* The contract uses the same launch modal as every other operation: it is an
+   * ordinary mission definition with an Overlord attached, so crew selection,
+   * fatigue and the projection all apply to it unchanged. */
+  if (contractCard) contractCard.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-contract-id]');
+    if (button && !button.disabled) openLaunch(button.getAttribute('data-contract-id'));
+  });
   /* ---- Crew selection input ---------------------------------------------
    * Three routes to the same state, in this order of priority:
    *   click/keyboard  -- the primary one, and the only one that works on touch

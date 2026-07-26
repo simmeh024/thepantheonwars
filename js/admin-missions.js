@@ -2,6 +2,8 @@
   'use strict';
 
   var definitions = [];
+  /* Overlord roster and contract readiness, both supplied by definitions-list. */
+  var overlords = [], contractsReady = false, contractRank = 10;
   var crew = [];
   var gear = [];
   var gearMeta = null;
@@ -111,6 +113,7 @@
       }
       if (mission.is_campaign_final && detail) detail.textContent += ' | Campaign finale';
       if (mission.requires_research_unlock && detail) detail.textContent += ' | Research locked';
+      if (mission.overlord_name && detail) detail.textContent += ' | Contract: ' + mission.overlord_name;
       if (can('missions.edit')) {
         row.addEventListener('click', function () { openDefinition(mission); });
         row.addEventListener('keydown', function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDefinition(mission); } });
@@ -180,7 +183,7 @@
   }
 
   function loadDefinitions() {
-    return request('/api/admin/missions/definitions-list.php').then(function (data) { definitions = data.missions || []; renderDefinitions(); refreshCount(); }).catch(function (error) { blank(definitionList, error.message || 'Could not load mission definitions. Run the Missions V0 migration first.'); });
+    return request('/api/admin/missions/definitions-list.php').then(function (data) { definitions = data.missions || []; overlords = data.overlords || []; contractsReady = !!data.contracts_ready; contractRank = Number(data.contract_rank) || 10; renderDefinitions(); refreshCount(); }).catch(function (error) { blank(definitionList, error.message || 'Could not load mission definitions. Run the Missions V0 migration first.'); });
   }
 
   function loadCrew() {
@@ -267,6 +270,19 @@
     document.getElementById('mission-definition-sort-order').value = mission ? mission.sort_order : 0;
     document.getElementById('mission-definition-enabled').checked = mission ? mission.is_enabled : true;
     document.getElementById('mission-definition-research-locked').checked = mission ? !!mission.requires_research_unlock : false;
+    /* The Overlord picker is only populated once the contracts migration has
+     * been run; the field hides entirely before that rather than offering a
+     * control whose value the save endpoint would drop. */
+    var overlordField = document.getElementById('mission-definition-overlord-field');
+    var overlordSelect = document.getElementById('mission-definition-overlord');
+    if (overlordField) overlordField.hidden = !contractsReady;
+    if (overlordSelect) {
+      overlordSelect.innerHTML = '<option value="">Not a contract — ordinary mission</option>'
+        + overlords.map(function (overlord) {
+          return '<option value="' + Number(overlord.id) + '">' + escapeHtml(overlord.name + (overlord.epithet ? ' · ' + overlord.epithet : '')) + '</option>';
+        }).join('');
+      overlordSelect.value = mission && mission.overlord_id ? String(mission.overlord_id) : '';
+    }
     populateMissionSuccessionOptions(mission);
     document.getElementById('mission-definition-unlock-completions').value = mission && mission.unlocks_after_mission_id ? mission.unlocks_after_completion_count : 0;
     document.getElementById('mission-definition-campaign-final').checked = mission ? !!mission.is_campaign_final : false;
@@ -324,6 +340,7 @@
       sort_order: document.getElementById('mission-definition-sort-order').value,
       is_enabled: document.getElementById('mission-definition-enabled').checked,
       requires_research_unlock: document.getElementById('mission-definition-research-locked').checked,
+      overlord_id: contractsReady ? document.getElementById('mission-definition-overlord').value : '',
       unlocks_after_mission_id: document.getElementById('mission-definition-unlocks-after').value,
       unlocks_after_completion_count: document.getElementById('mission-definition-unlock-completions').value,
       is_campaign_final: document.getElementById('mission-definition-campaign-final').checked,
