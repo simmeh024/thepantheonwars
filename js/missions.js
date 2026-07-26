@@ -2,7 +2,7 @@
   'use strict';
 
   var state = { data: null, serverOffset: 0, launchMission: null, launchProjection: null, launchPenaltyAck: false,
-    loadoutCrewId: null, loadoutSlot: null, loadoutAutoRunning: false, refreshQueued: false, feedSlot: null };
+    loadoutCrewId: null, loadoutSlot: null, loadoutAutoRunning: false, crewPage: 1, refreshQueued: false, feedSlot: null };
   var gate = document.getElementById('missions-gate');
   var content = document.getElementById('missions-content');
   var statusMessage = document.getElementById('missions-status-message');
@@ -11,10 +11,11 @@
   var crewList = document.getElementById('missions-crew-list');
   var crewRoleFilter = document.getElementById('missions-crew-role-filter');
   var crewLevelFilter = document.getElementById('missions-crew-level-filter');
-  var crewWorldFilter = document.getElementById('missions-crew-world-filter');
+  var crewFavoriteFilter = document.getElementById('missions-crew-favorite-filter');
   var crewStatusFilter = document.getElementById('missions-crew-status-filter');
   var crewSort = document.getElementById('missions-crew-sort');
   var crewFilterSummary = document.getElementById('missions-crew-filter-summary');
+  var crewPagination = document.getElementById('missions-crew-pagination');
   var historyList = document.getElementById('missions-history-list');
   var commandFeedList = document.getElementById('mission-feed-list');
   var launchModal = document.getElementById('mission-launch-modal');
@@ -419,21 +420,19 @@
   function updateCrewFilterOptions(crew) {
     var roles = Array.from(new Set(crew.map(function (member) { return member.role; }).filter(Boolean))).sort();
     var levels = Array.from(new Set(crew.map(function (member) { return Number(member.level); }).filter(function (level) { return level > 0; }))).sort(function (a, b) { return a - b; });
-    var worlds = Array.from(new Set(crew.map(function (member) { return member.world_affinity; }).filter(Boolean))).sort();
     populateCrewFilter(crewRoleFilter, roles, 'All roles', function (role) { return role; });
     populateCrewFilter(crewLevelFilter, levels, 'All levels', function (level) { return 'Level ' + level; });
-    populateCrewFilter(crewWorldFilter, worlds, 'All worlds', function (world) { return String(world).charAt(0).toUpperCase() + String(world).slice(1); });
   }
 
   function filteredCrew(crew) {
     var role = crewRoleFilter.value;
     var level = crewLevelFilter.value;
-    var world = crewWorldFilter.value;
+    var favorites = crewFavoriteFilter.value;
     var status = crewStatusFilter.value;
     var visible = crew.filter(function (member) {
       return (role === 'all' || member.role === role)
         && (level === 'all' || Number(member.level) === Number(level))
-        && (world === 'all' || member.world_affinity === world)
+        && (favorites === 'all' || !!member.is_favorite)
         && (status === 'all' || crewAvailability(member) === status);
     });
     var sort = crewSort.value;
@@ -447,6 +446,15 @@
       if (sort === 'status') comparison = statusOrder[crewAvailability(left)] - statusOrder[crewAvailability(right)];
       return comparison || String(left.name).localeCompare(String(right.name));
     });
+  }
+
+  function renderCrewPagination(pageCount) {
+    if (!crewPagination) return;
+    if (pageCount <= 1) { crewPagination.hidden = true; crewPagination.innerHTML = ''; return; }
+    crewPagination.hidden = false;
+    crewPagination.innerHTML = '<button type="button" class="missions-crew-page" data-crew-page="previous"' + (state.crewPage === 1 ? ' disabled' : '') + '>Previous</button>'
+      + '<span class="missions-crew-page-status" aria-live="polite">Page ' + state.crewPage + ' of ' + pageCount + '</span>'
+      + '<button type="button" class="missions-crew-page" data-crew-page="next"' + (state.crewPage === pageCount ? ' disabled' : '') + '>Next</button>';
   }
 
   /* Stat card shown under each portrait. The four stats are allocated
@@ -507,15 +515,34 @@
   }
 
   function renderCrew(data) {
-    if (!data.crew.length) { crewFilterSummary.textContent = ''; crewList.innerHTML = '<p class="missions-empty">Crew records are being prepared.</p>'; return; }
+    if (!data.crew.length) {
+      crewFilterSummary.textContent = '';
+      crewList.innerHTML = '<p class="missions-empty">Crew records are being prepared.</p>';
+      renderCrewPagination(0);
+      return;
+    }
     updateCrewFilterOptions(data.crew);
+    if (crewFavoriteFilter) crewFavoriteFilter.disabled = !data.crew_favorites_ready;
     var visibleCrew = filteredCrew(data.crew);
+    var pageCount = Math.ceil(visibleCrew.length / 4);
+    if (state.crewPage > pageCount) state.crewPage = Math.max(1, pageCount);
+    var pageStart = (state.crewPage - 1) * 4;
+    var pageCrew = visibleCrew.slice(pageStart, pageStart + 4);
+    var pageEnd = pageStart + pageCrew.length;
     document.getElementById('missions-crew-count').textContent = visibleCrew.length === data.crew.length
       ? data.crew.length + (data.crew.length === 1 ? ' member' : ' members')
       : visibleCrew.length + ' of ' + data.crew.length + ' members';
-    crewFilterSummary.textContent = visibleCrew.length === data.crew.length ? 'Showing your full roster.' : 'Showing ' + visibleCrew.length + ' matching crew member' + (visibleCrew.length === 1 ? '.' : 's.');
-    if (!visibleCrew.length) { crewList.innerHTML = '<p class="missions-empty">No crew members match these filters.</p>'; return; }
-    crewList.innerHTML = visibleCrew.map(function (crew) {
+    if (!visibleCrew.length) {
+      crewFilterSummary.textContent = crewFavoriteFilter.value === 'favorites' ? 'No favourite crew members yet.' : 'No crew members match these filters.';
+      crewList.innerHTML = '<p class="missions-empty">No crew members match these filters.</p>';
+      renderCrewPagination(0);
+      return;
+    }
+    crewFilterSummary.textContent = pageCount > 1
+      ? 'Showing ' + (pageStart + 1) + '–' + pageEnd + ' of ' + visibleCrew.length + ' crew members.'
+      : (visibleCrew.length === data.crew.length ? 'Showing your full roster.' : 'Showing ' + visibleCrew.length + ' matching crew member' + (visibleCrew.length === 1 ? '.' : 's.'));
+    renderCrewPagination(pageCount);
+    crewList.innerHTML = pageCrew.map(function (crew) {
       var portrait = safeImage(crew.portrait_url);
       var availability = crewAvailability(crew);
       var deployed = availability === 'deployed';
@@ -540,7 +567,13 @@
       /* Status is a dot on the portrait rather than a labelled block. It keeps
        * an accessible name, so the state is still announced and hoverable. */
       var statusDot = '<span class="crew-status-dot is-' + availability + '" role="img" tabindex="0" title="' + escapeHtml(status) + '" aria-label="Status: ' + escapeHtml(status) + '"></span>';
-      return '<article class="mission-crew-card ' + (deployed ? 'is-deployed' : '') + (availability === 'unavailable' ? ' is-unavailable' : '') + '">'
+      var favorite = !!crew.is_favorite;
+      var favoriteReady = !!data.crew_favorites_ready;
+      var favoriteLabel = favorite ? 'Remove ' + crew.name + ' from favourites' : 'Add ' + crew.name + ' to favourites';
+      var favoriteHint = favoriteReady ? favoriteLabel : 'Crew favourites are being prepared';
+      var favoriteButton = '<button type="button" class="mission-crew-favorite' + (favorite ? ' is-favorite' : '') + '" data-crew-favorite="' + crew.id + '" aria-pressed="' + (favorite ? 'true' : 'false') + '" aria-label="' + escapeHtml(favoriteHint) + '" title="' + escapeHtml(favoriteHint) + '"' + (favoriteReady ? '' : ' disabled') + '><span aria-hidden="true">★</span></button>';
+      return '<article class="mission-crew-card ' + (deployed ? 'is-deployed' : '') + (availability === 'unavailable' ? ' is-unavailable' : '') + (favorite ? ' is-favorite' : '') + '">'
+        + favoriteButton
         + '<div class="mission-crew-visual"><span class="mission-crew-portrait-wrap">' + portraitMarkup + statusDot + '</span>' + crewLoadoutStrip(crew) + '</div>'
         + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3>' + missionCopy + '<p>' + escapeHtml(crew.description) + '</p>'
         + '<div class="crew-progression ' + profile.className + (atMaxLevel ? ' is-max-level' : '') + '"><div class="crew-rank-insignia" aria-label="' + escapeHtml(crew.role) + ' level ' + crew.level + '"><span>' + profile.code + '</span><small>L' + crew.level + '</small></div><div class="crew-progression-copy"><div><span>' + profile.rankLabel + '</span><strong>' + rankValue + '</strong></div><div class="crew-xp-track"><span style="width:' + progress + '%"></span></div></div></div>'
@@ -1246,9 +1279,38 @@
     });
   });
 
-  [crewRoleFilter, crewLevelFilter, crewWorldFilter, crewStatusFilter, crewSort].forEach(function (control) {
-    control.addEventListener('change', function () { if (state.data) renderCrew(state.data); });
+  [crewRoleFilter, crewLevelFilter, crewFavoriteFilter, crewStatusFilter, crewSort].forEach(function (control) {
+    control.addEventListener('change', function () {
+      state.crewPage = 1;
+      if (state.data) renderCrew(state.data);
+    });
   });
+  if (crewPagination) {
+    crewPagination.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-crew-page]');
+      if (!button || button.disabled || !state.data) return;
+      state.crewPage += button.getAttribute('data-crew-page') === 'next' ? 1 : -1;
+      renderCrew(state.data);
+    });
+  }
+  if (crewList) {
+    crewList.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-crew-favorite]');
+      if (!button || button.disabled || !state.data) return;
+      var crewId = Number(button.getAttribute('data-crew-favorite'));
+      var crew = (state.data.crew || []).filter(function (member) { return Number(member.id) === crewId; })[0];
+      if (!crew) return;
+      button.disabled = true;
+      post('/api/missions/crew-favorite.php', { crew_id: crewId, is_favorite: !crew.is_favorite, csrf: window.PW_AUTH.csrf }).then(function (result) {
+        crew.is_favorite = !!result.is_favorite;
+        renderCrew(state.data);
+        setStatus(crew.name + (crew.is_favorite ? ' added to favourites.' : ' removed from favourites.'));
+      }).catch(function (error) {
+        button.disabled = false;
+        setStatus(error.message, true);
+      });
+    });
+  }
   /* ----------------------------------------------------------------------
    * Gear.
    *

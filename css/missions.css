@@ -545,9 +545,19 @@
 .missions-crew-control select { width: 100%; min-width: 0; border: 1px solid rgba(87,153,185,0.42); border-radius: 2px; background: rgba(5,13,27,0.76); color: #d9e5ed; padding: 8px 27px 8px 9px; font: 600 .68rem 'Jost', sans-serif; cursor: pointer; }
 .missions-crew-control select:hover, .missions-crew-control select:focus { border-color: rgba(111,217,226,0.75); outline: none; }
 .missions-crew-filter-summary { grid-column: 1 / -1; margin: 1px 0 0; color: #8ba8ba; font-size: .68rem; }
+.missions-crew-pagination { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 16px; }
+.missions-crew-page { min-width: 78px; padding: 7px 10px; border: 1px solid rgba(105,190,202,.5); background: rgba(8,21,37,.62); color: #cce7ec; font: 700 .6rem 'Jost', sans-serif; letter-spacing: .08em; text-transform: uppercase; cursor: pointer; }
+.missions-crew-page:hover:not(:disabled), .missions-crew-page:focus-visible { border-color: #7ee3e8; background: rgba(26,73,91,.55); outline: none; }
+.missions-crew-page:disabled { cursor: not-allowed; opacity: .42; }
+.missions-crew-page-status { min-width: 80px; color: #8ba8ba; font-size: .64rem; font-weight: 700; letter-spacing: .06em; text-align: center; text-transform: uppercase; }
 .mission-crew-card { position: relative; isolation: isolate; display: grid; grid-template-columns: 107px minmax(0,1fr); gap: 16px; overflow: hidden; padding: 15px; border: 1px solid rgba(80,129,168,0.35); background: linear-gradient(130deg, rgba(16,33,57,0.92), rgba(22,13,45,0.86)); transition: transform .28s ease, border-color .28s ease, box-shadow .28s ease; }
 .mission-crew-card > * { position: relative; z-index: 1; }
 .mission-crew-card::after { content: ''; position: absolute; z-index: 0; inset: -35% -55%; background: linear-gradient(108deg, transparent 44%, rgba(125,230,238,0.04) 47%, rgba(153,236,242,0.2) 50%, rgba(125,230,238,0.04) 53%, transparent 56%); opacity: 0; pointer-events: none; transform: translateX(-42%) skewX(-12deg); }
+.mission-crew-card.is-favorite { border-color: rgba(229,201,120,.54); box-shadow: inset 0 0 24px rgba(229,201,120,.05); }
+.mission-crew-favorite { position: absolute; z-index: 3 !important; top: 10px; right: 10px; display: grid; width: 27px; height: 27px; place-items: center; padding: 0; border: 1px solid rgba(126,178,199,.4); background: rgba(6,16,30,.72); color: #7e98a9; cursor: pointer; font-size: .86rem; line-height: 1; transition: color .18s ease, border-color .18s ease, background .18s ease, transform .18s ease; }
+.mission-crew-favorite:hover:not(:disabled), .mission-crew-favorite:focus-visible { border-color: rgba(235,209,138,.82); background: rgba(73,56,32,.7); color: #f0d891; outline: none; transform: translateY(-1px); }
+.mission-crew-favorite.is-favorite { border-color: rgba(235,209,138,.78); background: rgba(78,61,31,.68); color: #f0d891; text-shadow: 0 0 8px rgba(240,216,145,.54); }
+.mission-crew-favorite:disabled { cursor: not-allowed; opacity: .45; }
 .mission-crew-card.is-deployed { border-color: rgba(110,211,220,0.55); box-shadow: inset 0 0 30px rgba(77,204,216,0.06); }
 .mission-crew-card.is-unavailable { border-color: rgba(118,108,149,0.42); filter: saturate(.7); opacity: .76; }
 .mission-crew-visual { display: grid; align-content: start; width: 107px; }

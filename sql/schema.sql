@@ -1753,10 +1753,12 @@ CREATE TABLE IF NOT EXISTS game_player_crew (
   level SMALLINT UNSIGNED NOT NULL DEFAULT 1,
   xp INT UNSIGNED NOT NULL DEFAULT 0,
   status VARCHAR(32) NOT NULL DEFAULT 'available',
+  is_favorite TINYINT(1) NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_game_player_crew_member (user_id, crew_definition_id),
   KEY idx_game_player_crew_user_status (user_id, status),
+  KEY idx_game_player_crew_favorite (user_id, is_favorite),
   CONSTRAINT fk_game_player_crew_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_game_player_crew_definition FOREIGN KEY (crew_definition_id) REFERENCES game_crew_definitions(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

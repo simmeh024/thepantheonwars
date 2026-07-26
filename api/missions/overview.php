@@ -10,9 +10,11 @@ try {
     pw_missions_grant_starter_crew($db, $userId);
 
     $statsReady = pw_mission_stats_ready($db);
+    $crewFavoritesReady = pw_mission_crew_favorites_ready($db);
     $crewStmt = $db->prepare(
         'SELECT pc.id, pc.level, pc.xp, pc.status, pc.created_at,'
         . ($statsReady ? ' pc.strength, pc.cunning, pc.science, pc.charisma,' : '') . '
+        ' . ($crewFavoritesReady ? ' pc.is_favorite,' : ' 0 AS is_favorite,') . '
                 c.name, c.slug, c.description, c.role, c.portrait_url, c.world_affinity, c.is_enabled AS definition_enabled,
                 active.id AS active_mission_id, active.status AS active_mission_status,
                 active.completes_at AS active_mission_completes_at, active.active_mission_name
@@ -41,9 +43,10 @@ try {
          ORDER BY c.is_starter DESC, c.role ASC, c.name ASC'
     );
     $crewStmt->execute([$userId, $userId]);
-    $crew = array_map(static function ($row) {
+    $crew = array_map(static function ($row) use ($crewFavoritesReady) {
         foreach (['id', 'level', 'xp'] as $field) $row[$field] = (int)$row[$field];
         $row['definition_enabled'] = (bool)$row['definition_enabled'];
+        $row['is_favorite'] = $crewFavoritesReady && !empty($row['is_favorite']);
         $row['active_mission_id'] = $row['active_mission_id'] !== null ? (int)$row['active_mission_id'] : null;
         $row['max_level'] = PW_MISSION_MAX_LEVEL;
         $row['max_stat'] = PW_MISSION_MAX_STAT;
@@ -329,6 +332,7 @@ try {
         'max_gear_stat' => PW_MISSION_MAX_GEAR_STAT,
         'loot' => $loot,
         'stats_ready' => $statsReady,
+        'crew_favorites_ready' => $crewFavoritesReady,
         'missions' => $missions,
         'active_missions' => $active,
         'history' => array_slice($history, 0, 30),

@@ -263,6 +263,19 @@ function pw_mission_stats_ready(PDO $db): bool {
     }
 }
 
+/** Whether the per-player crew favourites migration has been applied. */
+function pw_mission_crew_favorites_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_missions_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT is_favorite FROM `game_player_crew` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
 /* ------------------------------------------------------------------------
  * Mission presentation.
  *
