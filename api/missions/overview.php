@@ -112,6 +112,31 @@ try {
         $claimedCounts[(int)$row['mission_definition_id']] = (int)$row['claimed_count'];
     }
 
+    /* Who ran each operation most recently, so the launch screen can offer to
+     * field the same team again. Read as one grouped query rather than per
+     * mission: the roster reaches 32 with capacity research and the mission
+     * list is unbounded, so a per-mission lookup is the N+1 this codebase
+     * avoids everywhere else.
+     *
+     * The latest run is used whatever its outcome -- a failed attempt is still
+     * the team the player last chose, and offering only successful ones would
+     * quietly refuse to repeat the run they most likely want to retry. */
+    $lastCrewByMission = [];
+    $lastCrewStmt = $db->prepare(
+        'SELECT pm.mission_definition_id, link.player_crew_id
+         FROM game_player_mission_crew link
+         JOIN game_player_missions pm ON pm.id = link.player_mission_id
+         JOIN (
+             SELECT mission_definition_id, MAX(id) AS last_id
+             FROM game_player_missions WHERE user_id = ?
+             GROUP BY mission_definition_id
+         ) latest ON latest.last_id = pm.id'
+    );
+    $lastCrewStmt->execute([$userId]);
+    foreach ($lastCrewStmt->fetchAll() as $row) {
+        $lastCrewByMission[(int)$row['mission_definition_id']][] = (int)$row['player_crew_id'];
+    }
+
     /* The whole world is loaded, including disabled missions, so the campaign
      * chain keeps its real length even while a mid-chain operation is switched
      * off in Mission Control. Card rendering filters to enabled missions below. */
@@ -133,7 +158,7 @@ try {
          ORDER BY mission.sort_order ASC, mission.id ASC'
     );
     $missionsStmt->execute();
-    $worldMissions = array_map(static function ($row) use ($claimedCounts, $fatigueReady) {
+    $worldMissions = array_map(static function ($row) use ($claimedCounts, $fatigueReady, $lastCrewByMission) {
         foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls', 'watermark_opacity'] as $field) $row[$field] = (int)$row[$field];
         // Re-validated on the way out, not only on the way in: this reaches the
         // browser as a CSS url(), so a row edited straight in the database must
@@ -150,6 +175,9 @@ try {
          * Zero until the migration has run, because start.php charges nothing
          * then and a card must not advertise a cost that is not taken. */
         $row['fatigue_cost'] = $fatigueReady ? pw_missions_fatigue_cost($row['duration_seconds']) : 0;
+        // Ids only. The launch screen resolves them against the roster it
+        // already has, and silently skips anyone since retired or deployed.
+        $row['last_crew_ids'] = $lastCrewByMission[(int)$row['id']] ?? [];
         return $row;
     }, $missionsStmt->fetchAll());
 
@@ -169,7 +197,7 @@ try {
      * further operations exist. */
     $publicFields = ['id', 'world_key', 'name', 'slug', 'description', 'mission_type', 'duration_seconds',
         'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'base_success_percent', 'loot_rolls',
-        'watermark_url', 'watermark_opacity', 'fatigue_cost'];
+        'watermark_url', 'watermark_opacity', 'fatigue_cost', 'last_crew_ids'];
     $slots = [];
     foreach (pw_missions_build_campaign_tracks($missionsById) as $chain) {
         $progress = pw_missions_track_progress($chain, $claimedCounts);

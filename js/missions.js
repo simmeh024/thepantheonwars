@@ -6,7 +6,10 @@
     /* When the current payload was received. Fatigue arrives already caught up
      * to that instant, so the page ages it forward from here rather than
      * polling the server for a value it can derive. */
-    loadedAt: 0 };
+    loadedAt: 0,
+    /* The crew selection: one entry per max_crew slot, a crew id or null. The
+     * source of truth for the launch modal -- see the rack section below. */
+    launchSlots: [], dragCrewId: null };
   var gate = document.getElementById('missions-gate');
   var content = document.getElementById('missions-content');
   var statusMessage = document.getElementById('missions-status-message');
@@ -33,6 +36,13 @@
   var launchBrief = document.getElementById('mission-launch-brief');
   var launchSlots = document.getElementById('mission-launch-slots');
   var launchRecommend = document.getElementById('mission-launch-recommend');
+  var launchRack = document.getElementById('mission-launch-rack');
+  var launchRackNote = document.getElementById('mission-launch-rack-note');
+  var launchRepeat = document.getElementById('mission-launch-repeat');
+  var launchTrayCount = document.getElementById('mission-launch-tray-count');
+  var launchFilterRole = document.getElementById('mission-launch-filter-role');
+  var launchFilterOpen = document.getElementById('mission-launch-filter-open');
+  var launchSort = document.getElementById('mission-launch-sort');
   var launchProjection = document.getElementById('mission-launch-projection');
   var weatherCard = document.getElementById('mission-weather-card');
   var loadoutModal = document.getElementById('mission-loadout-modal');
@@ -725,7 +735,19 @@
     state.data = data;
     var server = apiDate(data.server_time);
     state.serverOffset = server && !isNaN(server) ? server.getTime() - Date.now() : 0;
-    applyWatermark(data.watermark); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCrewOffers(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderInventory(data); renderHistory(data); tickCountdowns();
+    applyWatermark(data.watermark); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCrewOffers(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderInventory(data); renderHistory(data);
+    /* The launch modal stays open across a background refresh -- equipping gear
+     * from a slot's upgrade warning reloads the whole payload underneath it.
+     * Re-resolve the mission against the new data and redraw the picker, or it
+     * keeps rendering the gear, stats and fatigue from before the change while
+     * the player is looking straight at it. The rack itself is state, not DOM,
+     * so the selection survives; ensureRack() drops anyone who has become
+     * ineligible in the meantime. */
+    if (state.launchMission) {
+      var freshMission = (data.missions || []).filter(function (item) { return Number(item.id) === Number(state.launchMission.id); })[0];
+      if (freshMission) { state.launchMission = freshMission; renderLaunchCrew(); }
+    }
+    tickCountdowns();
   }
 
   /* A recovery is useful only when it answers the immediate question: can this
@@ -1130,29 +1152,43 @@
   /* One projection row. The base figure is shown alongside the projected one
    * whenever they differ, since "+340 credits" says nothing about whether this
    * crew improved on the contract or cost you part of it. */
-  function projectionRow(label, base, value, formatValue, higherIsBetter) {
+  function projectionRow(label, base, value, formatValue, higherIsBetter, preview) {
     var changed = value !== base;
     var better = higherIsBetter ? value > base : value < base;
     var tone = !changed ? '' : better ? ' is-better' : ' is-worse';
-    return '<div class="mission-projection-cell' + tone + '"><dt>' + escapeHtml(label) + '</dt><dd>'
+    /* When a crew member is being previewed into a slot, the cell shows where
+     * that figure would land instead of the contract baseline -- "what does
+     * adding them do" is the question being asked, and the baseline is already
+     * legible from the committed value beside it. */
+    var previewMarkup = '';
+    if (preview != null && preview !== value) {
+      var previewBetter = higherIsBetter ? preview > value : preview < value;
+      previewMarkup = '<span class="mission-projection-preview ' + (previewBetter ? 'is-better' : 'is-worse') + '">'
+        + '&rarr; ' + escapeHtml(formatValue(preview)) + '</span>';
+    }
+    return '<div class="mission-projection-cell' + tone + (previewMarkup ? ' has-preview' : '') + '"><dt>' + escapeHtml(label) + '</dt><dd>'
       + (changed ? '<s>' + escapeHtml(formatValue(base)) + '</s> ' : '')
-      + '<strong>' + escapeHtml(formatValue(value)) + '</strong></dd></div>';
+      + '<strong>' + escapeHtml(formatValue(value)) + '</strong>' + previewMarkup + '</dd></div>';
   }
 
-  function renderLaunchProjection(projection) {
+  function renderLaunchProjection(projection, preview) {
     var mission = state.launchMission;
     if (!launchProjection || !mission) return;
-    if (!projection.crew.length) {
-      launchProjection.innerHTML = '<p class="mission-projection-empty">Choose a crew to project this operation.</p>';
+    if (!projection.crew.length && !preview) {
+      launchProjection.innerHTML = '<p class="mission-projection-empty">Assign a crew to project this operation.</p>';
       return;
     }
+    /* An empty rack with a hover preview still has figures worth showing: the
+     * preview becomes the whole answer rather than a delta from nothing. */
+    if (!projection.crew.length && preview) projection = preview;
+    var peek = function (field) { return preview ? preview[field] : null; };
     var clock = function (seconds) { return formatDuration(seconds); };
     var pct = function (value) { return value + '%'; };
-    var rows = projectionRow('Time', projection.base_duration_seconds, projection.duration_seconds, clock, false)
-      + projectionRow('Success', projection.base_success_percent, projection.success_percent, pct, true)
-      + projectionRow('XP each', projection.base_xp, projection.xp, function (v) { return '+' + v; }, true)
-      + projectionRow('Reputation', projection.base_reputation, projection.reputation, function (v) { return v ? '+' + v : '—'; }, true)
-      + (projection.base_credits > 0 ? projectionRow('Credits', projection.base_credits, projection.credits, function (v) { return '+' + credits(v); }, true) : '');
+    var rows = projectionRow('Time', projection.base_duration_seconds, projection.duration_seconds, clock, false, peek('duration_seconds'))
+      + projectionRow('Success', projection.base_success_percent, projection.success_percent, pct, true, peek('success_percent'))
+      + projectionRow('XP each', projection.base_xp, projection.xp, function (v) { return '+' + v; }, true, peek('xp'))
+      + projectionRow('Reputation', projection.base_reputation, projection.reputation, function (v) { return v ? '+' + v : '—'; }, true, peek('reputation'))
+      + (projection.base_credits > 0 ? projectionRow('Credits', projection.base_credits, projection.credits, function (v) { return '+' + credits(v); }, true, peek('credits')) : '');
     var note = projection.penalty
       ? 'No ' + (affinityRule(mission.mission_type).preferred ? Object.keys(affinityRule(mission.mission_type).preferred).join(' or ') : 'specialist')
         + ' assigned — this run takes ' + fmt(projection.penalty_duration_percent) + '% longer and is ' + fmt(projection.penalty_success_percent) + '% less likely to succeed.'
@@ -1172,21 +1208,183 @@
       + '<p class="mission-projection-caveat">Projected from the crew you have chosen. Command confirms the final figures on return.</p>';
   }
 
-  /* Sorted so the crew that suit this operation are the ones a player sees
-   * first, then the most experienced, then alphabetically. Unavailable crew
-   * always sink to the bottom: they are shown for context, not for choosing. */
-  function launchCrewOrder(mission) {
-    var crew = (state.data && state.data.crew || []).slice();
+  /* ----------------------------------------------------------------------
+   * Crew selection: a slot rack plus a roster tray.
+   *
+   * The selection lives in state.launchSlots -- a fixed-length array of crew
+   * ids or nulls, one entry per max_crew -- rather than in the checked state of
+   * a list of checkboxes. That inversion is what makes the rest of this work:
+   * the fatigue ticker can redraw the whole modal without losing the choice,
+   * a slot can be previewed before it is committed, and a crew member has a
+   * position rather than only a membership.
+   *
+   * Slots are role-HINTED, never role-typed. Affinity stacks -- each mission
+   * type prefers two of the three roles and every matching crew member adds the
+   * bonus again -- so two Vanguards on a recon is a legitimate choice, and the
+   * penalty fires only when NEITHER preferred role is present. Every empty slot
+   * therefore shows the same whole-mission hint. Labelling slots individually
+   * would teach a one-of-each rule the game does not have.
+   *
+   * Nothing here decides anything: api/missions/start.php re-validates crew
+   * count, ownership, availability and fatigue on its own.
+   * -------------------------------------------------------------------- */
+
+  function rackSize(mission) {
+    return Math.max(1, Number(mission && mission.max_crew) || 1);
+  }
+
+  function memberById(id) {
+    var list = (state.data && state.data.crew) || [];
+    for (var i = 0; i < list.length; i++) if (Number(list[i].id) === Number(id)) return list[i];
+    return null;
+  }
+
+  /* Why a crew member cannot take THIS operation, or null when they can. The
+   * order matters: a withdrawn definition outranks deployment, which outranks
+   * fatigue, because that is the order in which the reason stops being fixable
+   * by waiting. */
+  function launchEligibility(mission, member) {
+    var availability = crewAvailability(member);
+    if (availability === 'deployed') {
+      return { kind: 'deployed', label: escapeHtml(member.active_mission_name || 'On mission')
+        + ' · <span class="mission-countdown" data-completes-at="' + escapeHtml(member.active_mission_completes_at || '') + '">Calculating…</span>' };
+    }
+    if (availability !== 'available') return { kind: 'unavailable', label: 'Unavailable' };
     var cost = Number(mission.fatigue_cost) || 0;
-    /* A crew member too fatigued for this operation sinks with the deployed
-     * ones: they are shown for context, not for choosing. */
-    var eligible = function (member) {
-      return crewAvailability(member) === 'available' && !crewIsResting(member, cost) ? 0 : 1;
-    };
-    return crew.sort(function (a, b) {
-      var aOpen = eligible(a);
-      var bOpen = eligible(b);
+    if (crewIsResting(member, cost)) {
+      var readyAt = Date.now() + fatigueRecoverySeconds(member, cost) * 1000;
+      return { kind: 'resting', label: 'Recovering · <span class="mission-fatigue-countdown" data-ready-at="'
+        + escapeHtml(readyAt) + '">Calculating…</span>' };
+    }
+    return null;
+  }
+
+  /* ---- Equipment advice (idea 7) --------------------------------------
+   * How many of this crew member's slots hold nothing, or hold something a
+   * spare item in the inventory would beat. Reuses the loadout modal's own
+   * bestLoadoutCandidate()/gearPower(), so "better" means exactly what the
+   * Equip best action already means -- there is one definition of better gear
+   * in this file, not two.
+   *
+   * Known imprecision, accepted: spare counts are global, so if one spare item
+   * would improve two different crew members both are flagged. Equipping it on
+   * one recomputes the other on the next load. Over-offering an upgrade is a
+   * far cheaper error here than silently hiding one. */
+  function gearUpgrades(crew) {
+    /* Deployed crew are excluded because openLoadout() refuses them -- their
+     * loadout is frozen in the field. Offering an upgrade whose button does
+     * nothing is worse than not offering it. Resting crew are included: they
+     * are available, so their equipment can still be changed. */
+    if (!gearReady() || !crew || crewAvailability(crew) !== 'available') return { count: 0, empty: 0 };
+    var count = 0, empty = 0;
+    gearSlots().forEach(function (slot) {
+      var current = crew.gear && crew.gear[slot.key] ? crew.gear[slot.key] : null;
+      if (!current) empty++;
+      var best = bestLoadoutCandidate(crew, slot.key);
+      if (best && !best.equipped && gearPower(best.item) > gearPower(current)) count++;
+    });
+    return { count: count, empty: empty };
+  }
+
+  function gearWarningMarkup(crew, compact) {
+    var upgrades = gearUpgrades(crew);
+    if (!upgrades.count) return '';
+    var text = upgrades.count + (upgrades.count === 1 ? ' slot' : ' slots') + ' can be upgraded';
+    var hint = crew.name + ' has better equipment available in your inventory for '
+      + upgrades.count + (upgrades.count === 1 ? ' slot' : ' slots')
+      + (upgrades.empty ? ', including ' + upgrades.empty + ' still empty' : '') + '.';
+    return '<button type="button" class="mission-gear-warning' + (compact ? ' is-compact' : '') + '" data-gear-warning="' + Number(crew.id) + '"'
+      + ' title="' + escapeHtml(hint) + '" aria-label="' + escapeHtml(hint + ' Open loadout.') + '">'
+      + '<span aria-hidden="true">▲</span>' + escapeHtml(compact ? String(upgrades.count) : text) + '</button>';
+  }
+
+  /* ---- Per-slot contribution (idea 10) ---------------------------------
+   * What this one crew member adds, as opposed to what the team totals. Capped
+   * at three lines: the affinity match, their role's per-level rate, and their
+   * strongest stat. The full breakdown is the projection below the rack. */
+  function slotContribution(mission, member) {
+    var lines = [];
+    var match = affinityFor(mission.mission_type, member.role);
+    if (match) lines.push({ tone: 'is-affinity', text: match.label });
+    var role = ROLE_INFO[member.role];
+    var level = Math.max(0, Number(member.level) || 0);
+    if (role && level > 0) lines.push({ tone: '', text: role.effect(level) });
+    var best = null;
+    ['strength', 'cunning', 'science', 'charisma'].forEach(function (key) {
+      var value = Math.max(0, Number(member[key]) || 0);
+      if (value > 0 && (!best || value > best.value)) best = { key: key, value: value };
+    });
+    if (best) lines.push({ tone: '', text: STAT_INFO[best.key].effect(best.value) });
+    return lines.slice(0, 3);
+  }
+
+  /* ---- Rack state ------------------------------------------------------ */
+
+  /* Sizes the rack to the mission and drops anyone who is no longer eligible.
+   * Re-validated on every render rather than only at open: a crew member can be
+   * sent out from another tab, and the fatigue ticker redraws this modal on its
+   * own schedule. */
+  function ensureRack(mission) {
+    var size = rackSize(mission);
+    var slots = state.launchSlots || [];
+    var next = [];
+    for (var i = 0; i < size; i++) {
+      var id = slots[i] != null ? Number(slots[i]) : null;
+      var member = id != null ? memberById(id) : null;
+      next.push(member && !launchEligibility(mission, member) ? Number(member.id) : null);
+    }
+    state.launchSlots = next;
+    return next;
+  }
+
+  function rackIds() {
+    return (state.launchSlots || []).filter(function (id) { return id != null; }).map(Number);
+  }
+
+  function rackIndexOf(crewId) {
+    return (state.launchSlots || []).indexOf(Number(crewId));
+  }
+
+  function firstEmptySlot() {
+    return (state.launchSlots || []).indexOf(null);
+  }
+
+  /* Assigning a crew member who is already racked moves them rather than
+   * duplicating them, and swaps with whoever occupied the target. Dragging one
+   * slot onto another is a reorder, which the rack has to support because slot
+   * order is visible even though the server treats the crew as a set. */
+  function assignToSlot(index, crewId) {
+    var slots = state.launchSlots || [];
+    if (index < 0 || index >= slots.length) return;
+    var from = rackIndexOf(crewId);
+    var displaced = slots[index];
+    slots[index] = Number(crewId);
+    if (from !== -1 && from !== index) slots[from] = displaced != null ? displaced : null;
+  }
+
+  function clearSlot(index) {
+    if (state.launchSlots && index >= 0 && index < state.launchSlots.length) state.launchSlots[index] = null;
+  }
+
+  /* ---- Tray ------------------------------------------------------------ */
+
+  function trayCrew(mission) {
+    var roster = (state.data && state.data.crew || []).slice();
+    var role = launchFilterRole ? launchFilterRole.value : 'all';
+    var openOnly = launchFilterOpen ? launchFilterOpen.checked : false;
+    var sort = launchSort ? launchSort.value : 'suited';
+    var filtered = roster.filter(function (member) {
+      if (role !== 'all' && member.role !== role) return false;
+      if (openOnly && launchEligibility(mission, member)) return false;
+      return true;
+    });
+    return filtered.sort(function (a, b) {
+      var aOpen = launchEligibility(mission, a) ? 1 : 0;
+      var bOpen = launchEligibility(mission, b) ? 1 : 0;
       if (aOpen !== bOpen) return aOpen - bOpen;
+      if (sort === 'level') return Number(b.level) - Number(a.level) || String(a.name).localeCompare(String(b.name));
+      if (sort === 'name') return String(a.name).localeCompare(String(b.name));
+      if (sort === 'fatigue') return crewFatigue(b) - crewFatigue(a) || String(a.name).localeCompare(String(b.name));
       var aMatch = affinityFor(mission.mission_type, a.role) ? 0 : 1;
       var bMatch = affinityFor(mission.mission_type, b.role) ? 0 : 1;
       if (aMatch !== bMatch) return aMatch - bMatch;
@@ -1204,103 +1402,227 @@
     }).join('') + '</span>';
   }
 
-  function launchCrewRow(mission, member) {
-    var availability = crewAvailability(member);
-    var cost = Number(mission.fatigue_cost) || 0;
-    var resting = crewIsResting(member, cost);
-    var open = availability === 'available' && !resting;
-    var match = affinityFor(mission.mission_type, member.role);
+  function crewPortraitMarkup(member) {
     var portrait = safeImage(member.portrait_url);
-    var portraitMarkup = portrait
+    return portrait
       ? '<img src="' + escapeHtml(portrait) + '" alt="">'
       : '<span class="mission-launch-crew-fallback" aria-hidden="true">' + escapeHtml(String(member.name).charAt(0)) + '</span>';
-    /* Deployed crew are listed rather than omitted, with the run that is
-     * holding them and when it returns. Left out entirely, a fully committed
-     * roster looked identical to owning no crew at all. */
-    /* A resting crew member is listed with a live countdown to the moment they
-     * can take this specific operation -- not to a full pool, which would
-     * overstate the wait for a short mission. The target instant is computed
-     * once here and counted down by the shared ticker, the same way a deployed
-     * crew member's return is. */
-    var restingTag = '';
-    if (resting) {
-      var readyAt = Date.now() + fatigueRecoverySeconds(member, cost) * 1000;
-      restingTag = '<span class="mission-launch-crew-tag is-resting" title="'
-        + escapeHtml('This operation costs ' + cost + ' fatigue and ' + member.name + ' has ' + crewFatigue(member) + '.') + '">'
-        + 'Recovering · <span class="mission-fatigue-countdown" data-ready-at="' + escapeHtml(readyAt) + '">Calculating…</span></span>';
-    }
-    var tag = restingTag ? restingTag : !open
-      ? '<span class="mission-launch-crew-tag is-unavailable">' + (availability === 'deployed'
-          ? escapeHtml(member.active_mission_name || 'On mission') + ' · <span class="mission-countdown" data-completes-at="' + escapeHtml(member.active_mission_completes_at || '') + '">Calculating…</span>'
-          : 'Unavailable') + '</span>'
+  }
+
+  function fatiguePill(member) {
+    if (!fatigueReady(member)) return '';
+    var max = Math.max(1, Number(member.fatigue_max) || 100);
+    var value = crewFatigue(member);
+    var percent = Math.max(0, Math.min(100, Math.round(value / max * 100)));
+    return '<span class="mission-launch-crew-fatigue" title="' + escapeHtml(value + ' of ' + max + ' fatigue') + '">'
+      + '<span style="width:' + percent + '%"></span></span>';
+  }
+
+  /* A tray card is a real <button>: assignment has to work on keyboard and on
+   * touch, where there is no drag at all. Dragging is the enhancement layered
+   * over it, never the only route. */
+  function trayCardMarkup(mission, member) {
+    var blocked = launchEligibility(mission, member);
+    var racked = rackIndexOf(member.id) !== -1;
+    var match = affinityFor(mission.mission_type, member.role);
+    var tag = blocked
+      ? '<span class="mission-launch-crew-tag is-' + escapeHtml(blocked.kind === 'resting' ? 'resting' : 'unavailable') + '">' + blocked.label + '</span>'
       : match
         ? '<span class="mission-launch-crew-tag is-affinity" title="' + escapeHtml(member.role + 's are suited to ' + String(mission.mission_type).toLowerCase() + ' work. Every one you assign adds this bonus again.') + '">' + escapeHtml(match.label) + '</span>'
         : '<span class="mission-launch-crew-tag is-neutral" title="' + escapeHtml('No affinity with this operation type. A crew carrying none of its preferred roles takes a time and success penalty.') + '">No affinity</span>';
-    return '<label class="mission-launch-crew-choice' + (open ? '' : ' is-unavailable') + (resting ? ' is-resting' : '') + (match && open ? ' is-affinity' : '') + '">'
-      /* data-locked marks a checkbox that is disabled for a reason of its own,
-       * so the cap logic in updateLaunchState() leaves it alone rather than
-       * re-enabling an unavailable crew member the moment a slot frees up. */
-      + '<input type="checkbox" value="' + member.id + '"' + (open ? '' : ' disabled data-locked') + '>'
-      + '<span class="mission-launch-crew-portrait">' + portraitMarkup + '</span>'
-      + '<span class="mission-launch-crew-copy"><strong>' + escapeHtml(member.name) + '</strong>'
+    return '<div class="mission-launch-tray-card' + (blocked ? ' is-unavailable' : '') + (blocked && blocked.kind === 'resting' ? ' is-resting' : '')
+      + (racked ? ' is-racked' : '') + (match && !blocked ? ' is-affinity' : '') + '"'
+      + (blocked || racked ? '' : ' draggable="true"') + ' data-tray-crew="' + Number(member.id) + '">'
+      + '<button type="button" class="mission-launch-tray-select" data-tray-select="' + Number(member.id) + '"'
+      + (blocked ? ' disabled' : '') + ' aria-label="' + escapeHtml((racked ? 'Assigned. ' : '') + 'Assign ' + member.name + ', ' + member.role + ' level ' + member.level) + '">'
+      + '<span class="mission-launch-crew-portrait">' + crewPortraitMarkup(member) + '</span>'
+      + '<span class="mission-launch-crew-copy"><strong>' + escapeHtml(member.name) + (racked ? '<em>Assigned</em>' : '') + '</strong>'
       + '<small>' + escapeHtml(member.role) + ' · Level ' + member.level + '</small>'
-      + launchStatStrip(member) + tag + '</span></label>';
+      + launchStatStrip(member) + tag + fatiguePill(member) + '</span></button>'
+      + gearWarningMarkup(member, false) + '</div>';
   }
 
-  /* Recalculated after every change to the selection: the slot counter, which
-   * checkboxes may still be ticked, the projection, and the confirm button. */
-  function updateLaunchState() {
+  function renderTray() {
+    var mission = state.launchMission;
+    if (!mission || !launchCrew) return;
+    var roster = trayCrew(mission);
+    var openCount = roster.filter(function (member) { return !launchEligibility(mission, member); }).length;
+    launchCrew.innerHTML = roster.length
+      ? roster.map(function (member) { return trayCardMarkup(mission, member); }).join('')
+      : '<p class="missions-empty">No crew members match these filters.</p>';
+    if (launchTrayCount) {
+      launchTrayCount.textContent = openCount + ' ready' + (roster.length !== openCount ? ' · ' + (roster.length - openCount) + ' unavailable' : '');
+    }
+    if (launchRecommend) launchRecommend.disabled = openCount === 0 || firstEmptySlot() === -1;
+  }
+
+  /* ---- Rack rendering -------------------------------------------------- */
+
+  /* The same hint on every empty slot, for the reason set out at the top of
+   * this section: affinity is a property of the team, not of a position. */
+  function slotHintMarkup(mission) {
+    var rule = affinityRule(mission.mission_type);
+    if (!rule || !rule.preferred) return '<span class="mission-slot-hint">Any crew member</span>';
+    return '<span class="mission-slot-hint">' + Object.keys(rule.preferred).map(function (role) {
+      return '<span class="mission-slot-hint-role">' + escapeHtml(role) + ' <em>' + escapeHtml(rule.preferred[role].label) + '</em></span>';
+    }).join('') + '</span>';
+  }
+
+  function slotMarkup(mission, index) {
+    var id = (state.launchSlots || [])[index];
+    var member = id != null ? memberById(id) : null;
+    var required = index < Number(mission.min_crew);
+    var classes = 'mission-launch-slot' + (member ? ' is-filled' : ' is-empty') + (required ? ' is-required' : ' is-optional');
+    if (!member) {
+      return '<div class="' + classes + '" data-slot-index="' + index + '">'
+        + '<span class="mission-slot-badge">' + (required ? 'Required' : 'Optional') + '</span>'
+        + '<span class="mission-slot-placeholder" aria-hidden="true">+</span>'
+        + slotHintMarkup(mission)
+        + '<span class="mission-slot-drop">Drop or select a crew member</span></div>';
+    }
+    var contribution = slotContribution(mission, member).map(function (line) {
+      return '<span class="mission-slot-line ' + line.tone + '">' + escapeHtml(line.text) + '</span>';
+    }).join('');
+    return '<div class="' + classes + '" data-slot-index="' + index + '" draggable="true" data-slot-crew="' + Number(member.id) + '">'
+      + '<span class="mission-slot-badge">' + (required ? 'Required' : 'Optional') + '</span>'
+      + '<button type="button" class="mission-slot-clear" data-slot-clear="' + index + '" aria-label="' + escapeHtml('Remove ' + member.name + ' from this slot') + '" title="Remove from slot">&times;</button>'
+      + '<span class="mission-slot-portrait">' + crewPortraitMarkup(member) + '</span>'
+      + '<span class="mission-slot-copy"><strong>' + escapeHtml(member.name) + '</strong>'
+      + '<small>' + escapeHtml(member.role) + ' · Level ' + member.level + '</small>'
+      + '<span class="mission-slot-lines">' + contribution + '</span>'
+      + gearWarningMarkup(member, true) + fatiguePill(member) + '</span></div>';
+  }
+
+  function renderRack() {
+    var mission = state.launchMission;
+    if (!mission || !launchRack) return;
+    var slots = ensureRack(mission);
+    var markup = '';
+    for (var i = 0; i < slots.length; i++) markup += slotMarkup(mission, i);
+    launchRack.innerHTML = markup;
+    if (launchRackNote) {
+      var rule = affinityRule(mission.mission_type);
+      var chosen = rackIds();
+      var matched = chosen.filter(function (id) {
+        var member = memberById(id);
+        return member && affinityFor(mission.mission_type, member.role);
+      }).length;
+      launchRackNote.textContent = !rule || !chosen.length ? ''
+        : matched === 0
+          ? 'No ' + Object.keys(rule.preferred).join(' or ') + ' assigned — this team takes the mismatch penalty.'
+          : matched + ' specialist' + (matched === 1 ? '' : 's') + ' assigned. Each one adds its bonus again.';
+      launchRackNote.className = 'mission-launch-rack-note' + (!rule || !chosen.length ? '' : matched === 0 ? ' is-warning' : ' is-good');
+    }
+  }
+
+  /* ---- Projection, with speculative preview (idea 4) ------------------- */
+
+  /* preview is {crewId, slotIndex} for "what would this crew member do here",
+   * or null for the committed selection. Runs the real projectLaunch() over a
+   * hypothetical rack rather than approximating, so the previewed numbers are
+   * the numbers you get. */
+  function projectionFor(mission, preview) {
+    var ids = (state.launchSlots || []).slice();
+    if (preview && preview.crewId != null) {
+      var index = preview.slotIndex;
+      if (index == null || index < 0 || index >= ids.length) {
+        index = ids.indexOf(Number(preview.crewId));
+        if (index === -1) index = ids.indexOf(null);
+      }
+      if (index !== -1) {
+        var from = ids.indexOf(Number(preview.crewId));
+        if (from !== -1 && from !== index) ids[from] = ids[index];
+        ids[index] = Number(preview.crewId);
+      }
+    }
+    var chosen = ids.filter(function (id) { return id != null; }).map(memberById).filter(Boolean);
+    return projectLaunch(mission, chosen);
+  }
+
+  function updateLaunchState(preview) {
     var mission = state.launchMission;
     if (!mission) return;
-    var inputs = Array.prototype.slice.call(launchCrew.querySelectorAll('input[type="checkbox"]'));
-    var chosenIds = inputs.filter(function (input) { return input.checked; }).map(function (input) { return Number(input.value); });
-    var atCap = chosenIds.length >= mission.max_crew;
-    /* Disabled at the cap rather than silently unticking a click and writing an
-     * error, which is what this modal used to do. */
-    inputs.forEach(function (input) {
-      if (input.hasAttribute('data-locked')) return;
-      input.disabled = !input.checked && atCap;
-      input.closest('.mission-launch-crew-choice').classList.toggle('is-capped', !input.checked && atCap);
-    });
+    var chosenCount = rackIds().length;
     if (launchSlots) {
-      launchSlots.textContent = chosenIds.length + ' of ' + mission.max_crew + ' chosen'
-        + (chosenIds.length < mission.min_crew ? ' · ' + mission.min_crew + ' needed' : '');
-      launchSlots.classList.toggle('is-ready', chosenIds.length >= mission.min_crew);
+      launchSlots.textContent = chosenCount + ' of ' + mission.max_crew + ' chosen'
+        + (chosenCount < mission.min_crew ? ' · ' + mission.min_crew + ' needed' : '');
+      launchSlots.classList.toggle('is-ready', chosenCount >= mission.min_crew);
     }
-    var chosen = (state.data && state.data.crew || []).filter(function (member) { return chosenIds.indexOf(Number(member.id)) !== -1; });
-    var projection = projectLaunch(mission, chosen);
-    state.launchProjection = projection;
-    renderLaunchProjection(projection);
+    var committed = projectionFor(mission, null);
+    state.launchProjection = committed;
+    renderLaunchProjection(committed, preview ? projectionFor(mission, preview) : null);
     // Any change to the crew invalidates a mismatch the player already accepted.
-    state.launchPenaltyAck = false;
-    launchConfirm.textContent = 'Launch Mission';
-    launchConfirm.disabled = chosenIds.length < mission.min_crew;
+    if (!preview) {
+      state.launchPenaltyAck = false;
+      launchConfirm.textContent = 'Launch Mission';
+    }
+    launchConfirm.disabled = chosenCount < mission.min_crew;
   }
 
-  /* Fills the slots with the best crew for this operation: affinity first, then
-   * experience -- the same order the list is already sorted in. */
+  /* ---- Fill actions (ideas 8 and 9) ------------------------------------ */
+
+  /* Fills only the empty slots, leaving deliberate choices alone. Overwriting
+   * the whole rack is what this used to do, and it is almost never what is
+   * wanted once one pick has been made by hand. */
   function recommendLaunchCrew() {
     var mission = state.launchMission;
     if (!mission) return;
-    var restCost = Number(mission.fatigue_cost) || 0;
-    var picks = launchCrewOrder(mission)
-      .filter(function (member) { return crewAvailability(member) === 'available' && !crewIsResting(member, restCost); })
-      .slice(0, mission.max_crew)
-      .map(function (member) { return String(member.id); });
-    Array.prototype.forEach.call(launchCrew.querySelectorAll('input[type="checkbox"]'), function (input) {
-      input.disabled = false;
-      input.checked = picks.indexOf(input.value) !== -1;
+    var taken = rackIds();
+    var picks = trayCrew(mission).filter(function (member) {
+      return !launchEligibility(mission, member) && taken.indexOf(Number(member.id)) === -1;
     });
+    /* trayCrew() honours the player's chosen sort. Suitability is what this
+     * action means, so it re-sorts by affinity then experience regardless. */
+    picks.sort(function (a, b) {
+      var aMatch = affinityFor(mission.mission_type, a.role) ? 0 : 1;
+      var bMatch = affinityFor(mission.mission_type, b.role) ? 0 : 1;
+      if (aMatch !== bMatch) return aMatch - bMatch;
+      return Number(b.level) - Number(a.level) || String(a.name).localeCompare(String(b.name));
+    });
+    var slots = state.launchSlots || [];
+    for (var i = 0; i < slots.length && picks.length; i++) {
+      if (slots[i] == null) slots[i] = Number(picks.shift().id);
+    }
     launchError.textContent = '';
-    updateLaunchState();
+    renderLaunchCrew();
+  }
+
+  /* Re-fields the team that last ran this operation, skipping anyone since
+   * retired, deployed or too tired. A partial restore is deliberate: filling
+   * three of four slots is more useful than refusing because one crew member is
+   * out, and the empty slot is visible. */
+  function repeatLastCrew() {
+    var mission = state.launchMission;
+    if (!mission) return;
+    var ids = (mission.last_crew_ids || []).map(Number);
+    var slots = state.launchSlots || [];
+    var placed = 0, skipped = 0;
+    for (var i = 0; i < slots.length; i++) slots[i] = null;
+    ids.forEach(function (id) {
+      var member = memberById(id);
+      if (!member || launchEligibility(mission, member)) { skipped++; return; }
+      var index = firstEmptySlot();
+      if (index === -1) return;
+      slots[index] = Number(member.id);
+      placed++;
+    });
+    launchError.textContent = !placed
+      ? 'None of the crew from the last run of this operation are available.'
+      : skipped
+        ? placed + ' of the last team re-assigned. ' + skipped + ' unavailable.'
+        : '';
+    renderLaunchCrew();
   }
 
   function openLaunch(missionId) {
     var mission = (state.data && state.data.missions || []).find(function (item) { return item.id === Number(missionId); });
     if (!mission) return;
     state.launchMission = mission; state.launchPenaltyAck = false; launchError.textContent = '';
+    // A fresh rack per open. Carrying a selection between operations would put
+    // crew into slots chosen against a different mission's affinity and cost.
+    state.launchSlots = [];
     launchTitle.textContent = mission.name;
-    launchCopy.textContent = 'Choose ' + mission.min_crew + (mission.max_crew !== mission.min_crew ? ' to ' + mission.max_crew : '') + ' available crew member' + (mission.max_crew === 1 ? '' : 's') + '.';
+    launchCopy.textContent = 'Assign ' + mission.min_crew + (mission.max_crew !== mission.min_crew ? ' to ' + mission.max_crew : '') + ' crew member' + (mission.max_crew === 1 ? '' : 's') + ' to the slots below.';
     var rule = affinityRule(mission.mission_type);
     if (launchBrief) {
       launchBrief.innerHTML = rule
@@ -1308,40 +1630,30 @@
           + Object.keys(rule.preferred).map(function (role) {
             return '<span class="mission-launch-brief-role">' + escapeHtml(role) + ' <em>' + escapeHtml(rule.preferred[role].label) + '</em></span>';
           }).join('')
-          + '<span class="mission-launch-brief-penalty">Neither assigned: +' + fmt(rule.penalty.duration_percent) + '% time, −' + fmt(rule.penalty.success_percent) + '% success</span>'
+          + '<span class="mission-launch-brief-penalty">Neither assigned: +' + fmt(rule.penalty.duration_percent) + '% time, \u2212' + fmt(rule.penalty.success_percent) + '% success</span>'
         : '';
       launchBrief.hidden = !rule;
     }
+    if (launchRepeat) {
+      var previous = (mission.last_crew_ids || []).length;
+      launchRepeat.hidden = !previous;
+      launchRepeat.textContent = 'Repeat last crew' + (previous ? ' (' + previous + ')' : '');
+    }
+    if (launchModal) launchModal.classList.toggle('is-single-slot', rackSize(mission) === 1);
     renderLaunchCrew();
     tickCountdowns();
     if (typeof launchModal.showModal === 'function') launchModal.showModal(); else launchModal.setAttribute('open', '');
   }
-  /* Redraws the crew list for the open launch modal. Extracted from openLaunch()
-   * so the fatigue ticker can rebuild it the moment a resting crew member
-   * becomes eligible -- their row's tag, its disabled state and their position
-   * in the ordering all change at once, so re-enabling the checkbox alone would
-   * leave the row still reading "Recovering". Ticked boxes are carried across
-   * the redraw; a crew member who has since become ineligible simply is not
-   * restored. */
+
+  /* One redraw for the whole picker. Named as it was because the fatigue ticker
+   * calls it the moment a resting crew member becomes eligible; unlike the old
+   * checkbox version it no longer has to preserve the selection by hand, since
+   * the selection lives in state.launchSlots rather than in the DOM. */
   function renderLaunchCrew() {
-    var mission = state.launchMission;
-    if (!mission) return;
-    var chosen = Array.prototype.slice.call(launchCrew.querySelectorAll('input[type="checkbox"]'))
-      .filter(function (input) { return input.checked; })
-      .map(function (input) { return input.value; });
-    var roster = launchCrewOrder(mission);
-    var cost = Number(mission.fatigue_cost) || 0;
-    var openCount = roster.filter(function (member) {
-      return crewAvailability(member) === 'available' && !crewIsResting(member, cost);
-    }).length;
-    launchCrew.innerHTML = roster.length
-      ? roster.map(function (member) { return launchCrewRow(mission, member); }).join('')
-      : '<p class="missions-empty">No crew members are available.</p>';
-    Array.prototype.forEach.call(launchCrew.querySelectorAll('input[type="checkbox"]'), function (input) {
-      if (!input.disabled && chosen.indexOf(input.value) !== -1) input.checked = true;
-    });
-    if (launchRecommend) launchRecommend.disabled = openCount === 0;
-    updateLaunchState();
+    if (!state.launchMission) return;
+    renderRack();
+    renderTray();
+    updateLaunchState(null);
   }
 
   function closeLaunch() {
@@ -1351,12 +1663,169 @@
   }
 
   definitionList.addEventListener('click', function (event) { var button = event.target.closest('.mission-launch-btn'); if (button && !button.disabled) openLaunch(button.getAttribute('data-mission-id')); });
-  launchCrew.addEventListener('change', function () {
-    if (!state.launchMission) return;
+  /* ---- Crew selection input ---------------------------------------------
+   * Three routes to the same state, in this order of priority:
+   *   click/keyboard  -- the primary one, and the only one that works on touch
+   *                      and for a keyboard user. Every tray card and every
+   *                      slot control is a real <button>.
+   *   drag and drop   -- an enhancement over the top, never the only route.
+   *   the fill actions above.
+   * ---------------------------------------------------------------------- */
+
+  function assignFromTray(crewId) {
+    var mission = state.launchMission;
+    if (!mission) return;
+    var member = memberById(crewId);
+    if (!member || launchEligibility(mission, member)) return;
+    if (rackIndexOf(crewId) !== -1) { clearSlot(rackIndexOf(crewId)); renderLaunchCrew(); return; }
+    var index = firstEmptySlot();
+    if (index === -1) {
+      /* Full rack. Refusing silently reads as a broken button, so say why --
+       * the alternative, evicting an arbitrary slot, throws away a choice the
+       * player made deliberately. */
+      launchError.textContent = 'Every slot is filled. Remove a crew member first, or drop this one onto a slot to swap.';
+      return;
+    }
     launchError.textContent = '';
-    updateLaunchState();
+    assignToSlot(index, crewId);
+    renderLaunchCrew();
+  }
+
+  launchCrew.addEventListener('click', function (event) {
+    var warning = event.target.closest('[data-gear-warning]');
+    if (warning) { openLoadout(warning.getAttribute('data-gear-warning')); return; }
+    var select = event.target.closest('[data-tray-select]');
+    if (select && !select.disabled) assignFromTray(Number(select.getAttribute('data-tray-select')));
   });
+
+  /* Hovering a tray card previews it into the first empty slot. Pointer events
+   * only: a keyboard user gets the same preview from focus below, and a touch
+   * user gets no hover at all, which is why the committed figures are never
+   * hidden behind it. */
+  launchCrew.addEventListener('pointerover', function (event) {
+    var card = event.target.closest('[data-tray-crew]');
+    if (!card || !state.launchMission) return;
+    var id = Number(card.getAttribute('data-tray-crew'));
+    var member = memberById(id);
+    if (!member || launchEligibility(state.launchMission, member)) return;
+    updateLaunchState({ crewId: id, slotIndex: null });
+  });
+  launchCrew.addEventListener('pointerout', function (event) {
+    if (event.relatedTarget && launchCrew.contains(event.relatedTarget)) return;
+    if (state.launchMission) updateLaunchState(null);
+  });
+  launchCrew.addEventListener('focusin', function (event) {
+    var card = event.target.closest('[data-tray-crew]');
+    if (!card || !state.launchMission) return;
+    var member = memberById(Number(card.getAttribute('data-tray-crew')));
+    if (!member || launchEligibility(state.launchMission, member)) return;
+    updateLaunchState({ crewId: Number(card.getAttribute('data-tray-crew')), slotIndex: null });
+  });
+  launchCrew.addEventListener('focusout', function (event) {
+    if (event.relatedTarget && launchCrew.contains(event.relatedTarget)) return;
+    if (state.launchMission) updateLaunchState(null);
+  });
+
+  if (launchRack) {
+    launchRack.addEventListener('click', function (event) {
+      var warning = event.target.closest('[data-gear-warning]');
+      if (warning) { openLoadout(warning.getAttribute('data-gear-warning')); return; }
+      var clear = event.target.closest('[data-slot-clear]');
+      if (!clear) return;
+      launchError.textContent = '';
+      clearSlot(Number(clear.getAttribute('data-slot-clear')));
+      renderLaunchCrew();
+    });
+  }
+
+  if (launchFilterRole) launchFilterRole.addEventListener('change', renderTray);
+  if (launchSort) launchSort.addEventListener('change', renderTray);
+  if (launchFilterOpen) launchFilterOpen.addEventListener('change', renderTray);
   if (launchRecommend) launchRecommend.addEventListener('click', recommendLaunchCrew);
+  if (launchRepeat) launchRepeat.addEventListener('click', repeatLastCrew);
+
+  /* ---- Drag and drop ----------------------------------------------------
+   * Plain HTML5 drag events. The dragged crew id is held in state as well as in
+   * dataTransfer: Safari does not expose dataTransfer.getData() during
+   * dragover, and the drop target needs to know who is coming to preview them.
+   * -------------------------------------------------------------------- */
+  function dragCrewId(event) {
+    var card = event.target.closest ? event.target.closest('[data-tray-crew], [data-slot-crew]') : null;
+    if (!card) return null;
+    return Number(card.getAttribute('data-tray-crew') || card.getAttribute('data-slot-crew'));
+  }
+
+  function startDrag(event) {
+    var id = dragCrewId(event);
+    var mission = state.launchMission;
+    if (!id || !mission) return;
+    var member = memberById(id);
+    if (!member || launchEligibility(mission, member)) { event.preventDefault(); return; }
+    state.dragCrewId = id;
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      // Required for the drag to start at all in Firefox.
+      try { event.dataTransfer.setData('text/plain', String(id)); } catch (error) { /* older browsers */ }
+    }
+    if (launchModal) launchModal.classList.add('is-dragging');
+  }
+
+  function endDrag() {
+    state.dragCrewId = null;
+    if (launchModal) launchModal.classList.remove('is-dragging');
+    if (launchRack) Array.prototype.forEach.call(launchRack.querySelectorAll('.is-drop-target'), function (slot) {
+      slot.classList.remove('is-drop-target');
+    });
+    if (state.launchMission) updateLaunchState(null);
+  }
+
+  launchCrew.addEventListener('dragstart', startDrag);
+  launchCrew.addEventListener('dragend', endDrag);
+
+  if (launchRack) {
+    launchRack.addEventListener('dragstart', startDrag);
+    launchRack.addEventListener('dragend', endDrag);
+    launchRack.addEventListener('dragover', function (event) {
+      if (!state.dragCrewId) return;
+      var slot = event.target.closest('[data-slot-index]');
+      if (!slot) return;
+      // preventDefault is what marks this a valid drop target.
+      event.preventDefault();
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+      if (!slot.classList.contains('is-drop-target')) {
+        Array.prototype.forEach.call(launchRack.querySelectorAll('.is-drop-target'), function (other) { other.classList.remove('is-drop-target'); });
+        slot.classList.add('is-drop-target');
+        updateLaunchState({ crewId: state.dragCrewId, slotIndex: Number(slot.getAttribute('data-slot-index')) });
+      }
+    });
+    launchRack.addEventListener('drop', function (event) {
+      var slot = event.target.closest('[data-slot-index]');
+      if (!slot || !state.dragCrewId) return;
+      event.preventDefault();
+      var id = state.dragCrewId;
+      state.dragCrewId = null;
+      launchError.textContent = '';
+      assignToSlot(Number(slot.getAttribute('data-slot-index')), id);
+      if (launchModal) launchModal.classList.remove('is-dragging');
+      renderLaunchCrew();
+    });
+  }
+
+  /* Dropping a slotted crew member back onto the tray removes them, which is
+   * the gesture people try before they find the small clear button. */
+  launchCrew.addEventListener('dragover', function (event) {
+    if (state.dragCrewId && rackIndexOf(state.dragCrewId) !== -1) event.preventDefault();
+  });
+  launchCrew.addEventListener('drop', function (event) {
+    if (!state.dragCrewId) return;
+    var index = rackIndexOf(state.dragCrewId);
+    if (index === -1) return;
+    event.preventDefault();
+    state.dragCrewId = null;
+    clearSlot(index);
+    if (launchModal) launchModal.classList.remove('is-dragging');
+    renderLaunchCrew();
+  });
   document.getElementById('mission-result-close').addEventListener('click', closeResult);
   document.getElementById('mission-result-dismiss').addEventListener('click', closeResult);
   function resolveCrewOffer(button) {
@@ -1416,7 +1885,7 @@
   launchModal.addEventListener('click', function (event) { if (event.target === launchModal) closeLaunch(); });
   launchConfirm.addEventListener('click', function () {
     if (!state.launchMission) return;
-    var crewIds = Array.prototype.map.call(launchCrew.querySelectorAll('input:checked'), function (input) { return Number(input.value); });
+    var crewIds = rackIds();
     if (crewIds.length < state.launchMission.min_crew || crewIds.length > state.launchMission.max_crew) { launchError.textContent = 'Choose the required number of crew members before launching.'; return; }
     /* Launching into a mismatch takes a second, deliberate click rather than a
      * window.confirm(): the penalty is already spelled out in the projection

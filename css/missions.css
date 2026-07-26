@@ -637,31 +637,98 @@
 .mission-launch-crew-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 18px 0 9px; }
 .mission-launch-slots { color: #90abba; font-size: 0.63rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .mission-launch-slots.is-ready { color: #9edba8; }
-.mission-launch-recommend { padding: 7px 11px !important; font-size: 0.63rem !important; }
-.mission-launch-crew { display: grid; gap: 8px; margin: 0 0 12px; max-height: min(46vh, 420px); overflow-y: auto; }
-.mission-launch-crew-choice { display: grid; grid-template-columns: auto 42px minmax(0, 1fr); align-items: center; gap: 11px; padding: 10px 13px; border: 1px solid rgba(90,149,185,0.38); background: rgba(6,15,28,0.42); cursor: pointer; }
-.mission-launch-crew-choice:hover { border-color: rgba(115,220,230,0.67); }
-.mission-launch-crew-choice:focus-within { border-color: rgba(126,227,232,0.8); box-shadow: 0 0 0 1px rgba(126,227,232,0.35); }
-.mission-launch-crew-choice input { accent-color: #69dce3; }
-/* Suited to this operation: a left edge and a warmer border, so the rows worth
- * choosing read at a glance without colouring the whole row in. */
-.mission-launch-crew-choice.is-affinity { border-color: rgba(158,219,168,0.5); box-shadow: inset 3px 0 rgba(110,207,140,0.75); }
-/* Dimmed, but nowhere near as far as a plain disabled button. Both of these
- * rows still carry information a player reads while deciding -- which run is
- * holding a crew member and when they return, or the affinity of someone there
- * is no room for -- so the dimming only supports the disabled checkbox and
- * not-allowed cursor rather than doing the work alone. 0.8 is where every
- * label in a dimmed row still measured above 4.5:1 against the modal's own
- * background; at 0.5 the smallest of them fell to 2.7:1. */
-.mission-launch-crew-choice.is-unavailable { cursor: not-allowed; opacity: 0.8; }
-.mission-launch-crew-choice.is-capped { cursor: not-allowed; opacity: 0.8; }
-.mission-launch-crew-choice.is-unavailable:hover, .mission-launch-crew-choice.is-capped:hover { border-color: rgba(90,149,185,0.38); }
+.mission-launch-head-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+.mission-launch-recommend, .mission-launch-repeat { padding: 7px 11px !important; font-size: 0.63rem !important; }
+.mission-launch-repeat[hidden] { display: none; }
+
+/* ---- The slot rack ----------------------------------------------------
+ * One slot per max_crew. Required slots (the first min_crew) carry a solid
+ * border, optional ones a dashed one, so the shape of the operation is legible
+ * before anything is assigned.
+ *
+ * Every empty slot shows the SAME affinity hint, deliberately. Affinity stacks
+ * and each mission type prefers two of the three roles, so two Vanguards on a
+ * recon is a real choice; labelling slots individually would teach a
+ * one-of-each rule the game does not have. See js/missions.js. */
+.mission-launch-rack { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 9px; margin: 0 0 8px; }
+.mission-launch-modal.is-single-slot .mission-launch-rack { grid-template-columns: minmax(0, 1fr); }
+.mission-launch-slot { position: relative; display: grid; gap: 4px; padding: 11px 12px; min-height: 118px; border: 1px solid rgba(90,149,185,0.38); background: rgba(6,15,28,0.42); }
+.mission-launch-slot.is-optional { border-style: dashed; }
+.mission-launch-slot.is-empty { align-content: center; justify-items: center; text-align: center; color: #8ba3b4; }
+.mission-launch-slot.is-filled { grid-template-columns: 44px minmax(0, 1fr); align-items: start; gap: 10px; border-color: rgba(126,227,232,0.5); background: rgba(9,22,40,0.62); cursor: grab; }
+.mission-launch-slot.is-filled:active { cursor: grabbing; }
+.mission-slot-badge { position: absolute; top: -8px; left: 9px; padding: 1px 6px; background: #0b1526; color: #7d9bb0; font-size: 0.53rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.mission-launch-slot.is-required .mission-slot-badge { color: #edc179; }
+.mission-slot-placeholder { color: #4f7189; font-size: 1.5rem; line-height: 1; }
+.mission-slot-hint { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+.mission-slot-hint-role { padding: 1px 6px; border: 1px solid rgba(158,219,168,0.34); color: #9edba8; font-size: 0.59rem; font-weight: 600; }
+.mission-slot-hint-role em { color: #cfe6d5; font-style: normal; }
+.mission-slot-drop { color: #7089a0; font-size: 0.58rem; letter-spacing: .04em; }
+.mission-slot-portrait { display: block; width: 44px; height: 44px; overflow: hidden; border: 1px solid rgba(103,152,190,0.4); }
+.mission-slot-portrait img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.mission-slot-copy { display: grid; gap: 2px; min-width: 0; }
+.mission-slot-copy strong { color: #eef1f6; font-size: 0.8rem; }
+.mission-slot-copy small { color: #90abba; font-size: 0.66rem; }
+/* Per-slot contribution: what this one crew member adds, as against the team
+ * total in the projection below. */
+.mission-slot-lines { display: grid; gap: 1px; margin-top: 3px; }
+.mission-slot-line { color: #a9c2d0; font-size: 0.62rem; }
+.mission-slot-line.is-affinity { color: #9edba8; font-weight: 600; }
+/* 24px, not the 20px this started at: below 24 it is under the minimum target
+ * size, and it is the only way to empty a slot by pointer. Measured in a
+ * harness built from the real markup -- at 20 it also sat close enough to the
+ * compact upgrade chip to be a mis-tap risk on touch. */
+.mission-slot-clear { position: absolute; top: 5px; right: 5px; display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; padding: 0; border: 1px solid rgba(103,152,190,0.34); background: rgba(4,10,20,0.7); color: #a9c2d0; font: 0.85rem/1 'Jost', sans-serif; cursor: pointer; }
+.mission-slot-clear:hover, .mission-slot-clear:focus-visible { border-color: rgba(224,138,114,0.6); color: #e8a894; }
+/* Drop feedback. Only ever a border and a tint -- the rack must not reflow
+ * under a dragged card, or the slot moves out from under the pointer. */
+.mission-launch-modal.is-dragging .mission-launch-slot { border-color: rgba(126,227,232,0.45); }
+.mission-launch-slot.is-drop-target { border-color: rgba(126,227,232,0.95); background: rgba(20,48,72,0.72); box-shadow: inset 0 0 0 1px rgba(126,227,232,0.4); }
+.mission-launch-rack-note { margin: 0 0 12px; font-size: 0.68rem; }
+.mission-launch-rack-note.is-good { color: #9edba8; }
+.mission-launch-rack-note.is-warning { color: #e8a894; }
+.mission-launch-rack-note:empty { display: none; }
+
+/* ---- The roster tray -------------------------------------------------- */
+.mission-launch-tray-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 7px; }
+.mission-launch-tray-label { color: #90abba; font-size: 0.62rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.mission-launch-tray-filters { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mission-launch-tray-filter { display: inline-flex; align-items: center; gap: 5px; color: #7d9bb0; font-size: 0.6rem; letter-spacing: .06em; text-transform: uppercase; }
+.mission-launch-tray-filter select { padding: 4px 6px; border: 1px solid rgba(90,149,185,0.38); background: rgba(6,15,28,0.7); color: #cfe0ea; font-size: 0.66rem; }
+.mission-launch-tray-filter select:hover { border-color: rgba(115,220,230,0.55); }
+.mission-launch-tray-filter select:focus { border-color: rgba(126,227,232,0.8); box-shadow: 0 0 0 1px rgba(126,227,232,0.3); outline: none; }
+.mission-launch-tray-toggle { display: inline-flex; align-items: center; gap: 5px; color: #7d9bb0; font-size: 0.6rem; letter-spacing: .06em; text-transform: uppercase; cursor: pointer; }
+.mission-launch-tray-toggle input { accent-color: #69dce3; }
+.mission-launch-crew { display: grid; gap: 8px; margin: 0 0 12px; max-height: min(38vh, 340px); overflow-y: auto; }
+.mission-launch-tray-card { position: relative; border: 1px solid rgba(90,149,185,0.38); background: rgba(6,15,28,0.42); }
+.mission-launch-tray-card[draggable="true"] { cursor: grab; }
+.mission-launch-tray-card[draggable="true"]:active { cursor: grabbing; }
+.mission-launch-tray-select { display: grid; grid-template-columns: 42px minmax(0, 1fr); align-items: center; gap: 11px; width: 100%; padding: 10px 13px; border: 0; background: none; text-align: left; cursor: pointer; font: inherit; }
+.mission-launch-tray-select:disabled { cursor: not-allowed; }
+.mission-launch-tray-card:hover { border-color: rgba(115,220,230,0.67); }
+.mission-launch-tray-card:focus-within { border-color: rgba(126,227,232,0.8); box-shadow: 0 0 0 1px rgba(126,227,232,0.35); }
+/* Suited to this operation: a left edge and a warmer border, so the cards worth
+ * choosing read at a glance without colouring the whole card in. */
+.mission-launch-tray-card.is-affinity { border-color: rgba(158,219,168,0.5); box-shadow: inset 3px 0 rgba(110,207,140,0.75); }
+/* Already in the rack. Dimmed but still selectable -- selecting again removes
+ * them, which is the fastest way to undo a misplaced pick. */
+.mission-launch-tray-card.is-racked { opacity: 0.62; border-style: dashed; }
+.mission-launch-tray-card.is-racked strong em { margin-left: 6px; color: #7ee3e8; font-size: 0.6rem; font-style: normal; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+/* Dimmed, but nowhere near as far as a plain disabled button. These cards still
+ * carry information a player reads while deciding -- which run is holding a
+ * crew member and when they return, or the affinity of someone who is resting.
+ * 0.8 is where every label in a dimmed card still measured above 4.5:1 against
+ * the modal's own background; at 0.5 the smallest of them fell to 2.7:1. */
+.mission-launch-tray-card.is-unavailable { opacity: 0.8; }
+.mission-launch-tray-card.is-unavailable:hover { border-color: rgba(90,149,185,0.38); }
 .mission-launch-crew-portrait { display: block; width: 42px; height: 42px; overflow: hidden; border: 1px solid rgba(103,152,190,0.4); }
 .mission-launch-crew-portrait img { display: block; width: 100%; height: 100%; object-fit: cover; }
 .mission-launch-crew-fallback { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; background: rgba(11,24,43,0.8); color: #8fb6c6; font: 600 1rem 'Cinzel', serif; }
 .mission-launch-crew-copy { display: grid; gap: 2px; min-width: 0; }
-.mission-launch-crew-choice strong { color: #eef1f6; font-size: 0.84rem; }
-.mission-launch-crew-choice small { color: #90abba; font-size: 0.68rem; }
+.mission-launch-crew-copy strong { color: #eef1f6; font-size: 0.84rem; }
+.mission-launch-crew-copy small { color: #90abba; font-size: 0.68rem; }
+.mission-launch-crew-fatigue { display: block; height: 3px; margin-top: 5px; overflow: hidden; background: rgba(3,6,14,0.8); }
+.mission-launch-crew-fatigue span { display: block; height: 100%; background: linear-gradient(90deg, #6fd8a4, #62d9e1); }
 .mission-launch-crew-stats { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 2px; }
 .mission-launch-stat { display: inline-flex; align-items: baseline; gap: 4px; padding: 1px 5px; border: 1px solid rgba(103,152,190,0.3); color: #c2d5e0; font-size: 0.6rem; font-weight: 600; cursor: help; }
 .mission-launch-stat i { color: #7d9bb0; font-size: 0.53rem; font-style: normal; letter-spacing: .06em; }
@@ -669,17 +736,22 @@
 .mission-launch-stat.is-cunning { border-color: rgba(199,154,232,0.34); }
 .mission-launch-stat.is-science { border-color: rgba(126,227,232,0.34); }
 .mission-launch-stat.is-charisma { border-color: rgba(235,209,138,0.34); }
-.mission-launch-crew-tag { margin-top: 3px; font-size: 0.64rem; font-weight: 600; letter-spacing: .02em; cursor: help; }
+.mission-launch-crew-tag { display: block; margin-top: 3px; font-size: 0.64rem; font-weight: 600; letter-spacing: .02em; cursor: help; }
 .mission-launch-crew-tag.is-affinity { color: #9edba8; }
 .mission-launch-crew-tag.is-neutral { color: #8ba3b4; }
-/* Lighter than the other tags on purpose: this line sits inside a dimmed row,
+/* Lighter than the other tags on purpose: this line sits inside a dimmed card,
  * and the muted tone the rest of them use measured 3.4:1 once that opacity was
  * applied. This one clears 6:1 through the same dimming. */
 .mission-launch-crew-tag.is-unavailable { color: #ccdde8; cursor: default; }
 /* Amber rather than the muted unavailable tone: a resting crew member is a wait
  * the player can plan around, not a crew member they cannot use at all. */
 .mission-launch-crew-tag.is-resting { color: #edc179; }
-.mission-launch-crew-choice.is-resting { opacity: .78; }
+
+/* Equipment advice. Amber, and a real button: it opens that crew member's
+ * loadout, so it is an action rather than a label. */
+.mission-gear-warning { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; padding: 2px 7px; border: 1px solid rgba(237,193,121,0.45); background: rgba(60,44,16,0.35); color: #edc179; font: 600 0.6rem/1.4 'Jost', sans-serif; cursor: pointer; }
+.mission-gear-warning:hover, .mission-gear-warning:focus-visible { border-color: rgba(237,193,121,0.85); background: rgba(80,58,20,0.5); color: #f6d99a; }
+.mission-gear-warning.is-compact { position: absolute; top: 6px; right: 34px; margin: 0; padding: 2px 6px; }
 
 /* Crew fatigue. The pool a crew member spends to launch, shown on the roster
  * card under the XP bar it deliberately mirrors -- same track height, same
