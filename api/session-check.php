@@ -1,9 +1,11 @@
 <?php
 require_once __DIR__ . '/oauth.php';
+require_once __DIR__ . '/market/market-helpers.php';
 
 $user = pw_current_user();
 $roleColor = '#c7ccd6';
 $weatherWorldSlug = null;
+$rankUpEvents = [];
 
 if ($user) {
     // Heartbeat: this endpoint runs on page load and every two minutes in an
@@ -21,6 +23,7 @@ if ($user) {
     if ($dailyReturnAwarded > 0) {
         $user['reputation'] = (int)$user['reputation'] + $dailyReturnAwarded;
     }
+    $rankUpEvents = pw_take_reputation_rank_up_events(pw_db(), (int)$user['id']);
 
     $stmt = pw_db()->prepare('SELECT color FROM roles WHERE slug = ?');
     $stmt->execute([$user['role']]);
@@ -70,6 +73,9 @@ pw_json([
     // '*' means every permission (superuser role, e.g. admin).
     'permissions' => $user ? pw_user_permissions($user) : [],
     'csrf' => pw_csrf_token(),
+    // New level events are claimed once and rendered by members.js on every
+    // player-facing page. An empty list is the normal steady state.
+    'rank_up_events' => $rankUpEvents,
     // Public and safe: just which sign-in providers are currently switched on
     // in Site Settings, so the login modal can hide a disabled provider's
     // button without a separate request.

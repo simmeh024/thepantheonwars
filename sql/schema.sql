@@ -109,6 +109,21 @@ CREATE TABLE IF NOT EXISTS reputation_levels (
   UNIQUE KEY uq_reputation_levels_threshold (threshold)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- One queued celebration for every reputation threshold crossed after the
+-- rank-up experience was introduced. A delivered event is retained as an
+-- audit trail while delivered_at keeps it from appearing again.
+CREATE TABLE IF NOT EXISTS user_reputation_rank_events (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  reputation_level_id INT UNSIGNED NOT NULL,
+  reputation_points INT UNSIGNED NOT NULL,
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  delivered_at DATETIME NULL DEFAULT NULL,
+  KEY idx_user_reputation_rank_events_pending (user_id, delivered_at, id),
+  CONSTRAINT fk_user_reputation_rank_events_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_user_reputation_rank_events_level FOREIGN KEY (reputation_level_id) REFERENCES reputation_levels(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- One row per (user, unlocked resonance icon). See migration_reputation_icons.sql
 -- for the fixed icon-key catalog and the 100% quiz-result unlock trigger.
 CREATE TABLE IF NOT EXISTS user_unlocked_icons (

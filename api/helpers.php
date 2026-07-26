@@ -595,6 +595,126 @@ function pw_reputation_info(int $reputation): array {
 }
 
 /**
+ * Stores a player-facing rank event only when an award crosses one or more
+ * reputation thresholds. Events are deliberately recorded at award time,
+ * rather than inferred from a member's current rank during a later page load:
+ * existing members should not receive a false "rank up" celebration merely
+ * because this feature was deployed after they earned their standing.
+ */
+function pw_record_reputation_rank_up_events(PDO $db, int $userId, int $beforePoints, int $afterPoints): void {
+    if ($userId <= 0 || $afterPoints <= $beforePoints) {
+        return;
+    }
+
+    try {
+        $insert = $db->prepare(
+            'INSERT INTO user_reputation_rank_events (user_id, reputation_level_id, reputation_points)
+             VALUES (?, ?, ?)'
+        );
+        foreach (pw_reputation_levels() as $level) {
+            $threshold = max(0, (int)($level['threshold'] ?? 0));
+            if ($threshold <= $beforePoints || $threshold > $afterPoints) {
+                continue;
+            }
+            $insert->execute([$userId, (int)$level['id'], $afterPoints]);
+        }
+    } catch (Throwable $e) {
+        // The celebration is additive. Awards keep working while the matching
+        // migration is still waiting to be applied.
+    }
+}
+
+/**
+ * Claims pending rank celebrations for one member. The conditional update
+ * means two open tabs cannot both receive the same event. Each payload is
+ * ready for the sitewide client popup and contains only player-safe unlock
+ * metadata.
+ */
+function pw_take_reputation_rank_up_events(PDO $db, int $userId): array {
+    if ($userId <= 0) {
+        return [];
+    }
+
+    try {
+        $pending = $db->prepare(
+            'SELECT e.id, e.reputation_points, l.id AS level_id, l.name AS level_name, l.threshold, l.color
+             FROM user_reputation_rank_events e
+             JOIN reputation_levels l ON l.id = e.reputation_level_id
+             WHERE e.user_id = ? AND e.delivered_at IS NULL
+             ORDER BY e.id ASC
+             LIMIT 8'
+        );
+        $pending->execute([$userId]);
+        $rows = $pending->fetchAll();
+        if (!$rows) {
+            return [];
+        }
+
+        $claim = $db->prepare(
+            'UPDATE user_reputation_rank_events
+             SET delivered_at = UTC_TIMESTAMP()
+             WHERE id = ? AND user_id = ? AND delivered_at IS NULL'
+        );
+        $levels = pw_reputation_levels();
+        $events = [];
+        foreach ($rows as $row) {
+            $claim->execute([(int)$row['id'], $userId]);
+            if ($claim->rowCount() !== 1) {
+                continue;
+            }
+
+            $rankNumber = 0;
+            foreach ($levels as $index => $level) {
+                if ((int)$level['id'] === (int)$row['level_id']) {
+                    $rankNumber = $index + 1;
+                    break;
+                }
+            }
+            if ($rankNumber < 1) {
+                continue;
+            }
+
+            $points = max(0, (int)$row['reputation_points']);
+            $info = pw_reputation_info($points);
+            $color = (string)$row['color'];
+            if (!preg_match('/\A#[a-fA-F0-9]{6}\z/', $color)) {
+                $color = '#a279ec';
+            }
+            $level = [
+                'id' => (int)$row['level_id'],
+                'name' => (string)$row['level_name'],
+                'threshold' => (int)$row['threshold'],
+                'color' => $color,
+            ];
+            $unlocks = pw_reputation_level_unlocks($db, $level, $rankNumber);
+            if (function_exists('pw_market_next_rank_unlocks')) {
+                $unlocks = array_merge($unlocks, pw_market_next_rank_unlocks(
+                    $db,
+                    $rankNumber,
+                    (int)$row['threshold'],
+                    $color
+                ));
+            }
+
+            $events[] = [
+                'title' => (string)$row['level_name'],
+                'rank_number' => $rankNumber,
+                'color' => $color,
+                'total_reputation' => $points,
+                'next_title' => $info['next_level_name'],
+                'next_threshold' => $info['next_level_threshold'],
+                'progress_percent' => (int)$info['progress_percent'],
+                'unlocks' => $unlocks,
+            ];
+        }
+        return $events;
+    } catch (Throwable $e) {
+        // The session endpoint must stay available during a staged rollout.
+        return [];
+    }
+}
+
+/**
  * Returns the live, player-facing unlocks attached to one reputation level.
  * Both the public reputation preview and the admin rank overview use this
  * single catalog so a rank can never promise something different in either
@@ -1396,16 +1516,45 @@ function pw_award_reputation(PDO $db, int $userId, int $basePoints, string $rewa
     }
     $config = pw_reputation_multiplier_config($rewardKey);
     $awarded = $basePoints * (int)$config['multiplier'];
-    $stmt = $db->prepare('UPDATE users SET reputation = reputation + ? WHERE id = ?');
-    $stmt->execute([$awarded, $userId]);
+    $startedTransaction = false;
     try {
-        $ledger = $db->prepare('INSERT INTO reputation_ledger (user_id, actor_user_id, reward_key, label, base_points, multiplier, points, source_type, source_id, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-        $ledger->execute([$userId, $meta['actor_user_id'] ?? null, $rewardKey, substr($label, 0, 140), $basePoints, (int)$config['multiplier'], $awarded, $meta['source_type'] ?? null, $meta['source_id'] ?? null, $meta['note'] ?? null]);
-        pw_evaluate_reputation_achievements($db, $userId);
+        /* Lock the member's balance while calculating crossed thresholds. This
+         * keeps concurrent rewards from missing or duplicating a rank event. */
+        if (!$db->inTransaction()) {
+            $db->beginTransaction();
+            $startedTransaction = true;
+        }
+        $beforeStmt = $db->prepare('SELECT reputation FROM users WHERE id = ? FOR UPDATE');
+        $beforeStmt->execute([$userId]);
+        $beforePoints = $beforeStmt->fetchColumn();
+        if ($beforePoints === false) {
+            if ($startedTransaction) {
+                $db->rollBack();
+            }
+            return 0;
+        }
+        $beforePoints = max(0, (int)$beforePoints);
+        $stmt = $db->prepare('UPDATE users SET reputation = reputation + ? WHERE id = ?');
+        $stmt->execute([$awarded, $userId]);
+        $afterPoints = $beforePoints + $awarded;
+        pw_record_reputation_rank_up_events($db, $userId, $beforePoints, $afterPoints);
+        try {
+            $ledger = $db->prepare('INSERT INTO reputation_ledger (user_id, actor_user_id, reward_key, label, base_points, multiplier, points, source_type, source_id, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+            $ledger->execute([$userId, $meta['actor_user_id'] ?? null, $rewardKey, substr($label, 0, 140), $basePoints, (int)$config['multiplier'], $awarded, $meta['source_type'] ?? null, $meta['source_id'] ?? null, $meta['note'] ?? null]);
+            pw_evaluate_reputation_achievements($db, $userId);
+        } catch (Throwable $e) {
+            // Ledger/achievement tables are optional until the migration is run.
+        }
+        if ($startedTransaction) {
+            $db->commit();
+        }
+        return $awarded;
     } catch (Throwable $e) {
-        // Ledger/achievement tables are optional until the migration is run.
+        if ($startedTransaction && $db->inTransaction()) {
+            $db->rollBack();
+        }
+        throw $e;
     }
-    return $awarded;
 }
 
 function pw_remove_reputation(PDO $db, int $userId, int $points, array $meta = []): void {

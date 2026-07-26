@@ -378,6 +378,144 @@ function initMembers() {
       .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
   }
 
+  /* Rank celebrations are created here instead of in individual page markup,
+     which makes the event available everywhere the shared member chrome runs.
+     The styles travel with the component so member/profile/admin layouts that
+     use different page stylesheets still receive the complete presentation. */
+  function injectRankUpStyles() {
+    if (document.getElementById('pw-rankup-styles')) return;
+    var style = document.createElement('style');
+    style.id = 'pw-rankup-styles';
+    style.textContent =
+      '@keyframes pw-rankup-enter{from{opacity:0;transform:translateY(20px) scale(.975)}to{opacity:1;transform:translateY(0) scale(1)}}' +
+      '@keyframes pw-rankup-orbit{to{transform:rotate(360deg)}}' +
+      '@keyframes pw-rankup-pulse{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--pw-rank-color) 0%,transparent)}50%{box-shadow:0 0 26px 3px var(--pw-rank-color)}}' +
+      '.pw-rankup-modal{position:fixed;z-index:10050;inset:0;font-family:inherit;color:#f4f1ff}' +
+      '.pw-rankup-shade{position:absolute;inset:0;background:rgba(4,5,16,.82);backdrop-filter:blur(8px)}' +
+      '.pw-rankup-panel{--pw-rank-color:#a279ec;position:relative;z-index:1;box-sizing:border-box;width:min(620px,calc(100% - 30px));max-height:calc(100dvh - 30px);overflow:auto;margin:15px auto;padding:31px;border:1px solid color-mix(in srgb,var(--pw-rank-color) 62%,#d8d4ed);background:linear-gradient(145deg,rgba(20,15,45,.985),rgba(10,10,30,.99));box-shadow:0 26px 70px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.08);animation:pw-rankup-enter .34s ease-out}' +
+      '.pw-rankup-panel:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.28;background:linear-gradient(116deg,transparent 0 42%,var(--pw-rank-color) 50%,transparent 58%);transform:translateX(-72%);animation:pw-rankup-sweep 2.8s ease-in-out infinite}' +
+      '@keyframes pw-rankup-sweep{0%,35%{transform:translateX(-72%)}70%,100%{transform:translateX(72%)}}' +
+      '.pw-rankup-close{position:absolute;z-index:2;top:12px;right:14px;width:34px;height:34px;border:1px solid rgba(236,232,255,.2);background:rgba(9,8,27,.68);color:#ded9f2;font:24px/28px Arial,sans-serif;cursor:pointer}' +
+      '.pw-rankup-close:hover,.pw-rankup-close:focus{border-color:var(--pw-rank-color);color:#fff}' +
+      '.pw-rankup-hero{position:relative;display:grid;grid-template-columns:72px 1fr;gap:18px;align-items:center;padding:3px 34px 24px 0;border-bottom:1px solid rgba(213,205,243,.14)}' +
+      '.pw-rankup-sigil{position:relative;display:grid;place-items:center;width:68px;height:68px;border:1px solid var(--pw-rank-color);background:radial-gradient(circle,rgba(255,255,255,.14),transparent 61%);color:var(--pw-rank-color);text-shadow:0 0 15px var(--pw-rank-color);animation:pw-rankup-pulse 2.3s ease-in-out infinite}' +
+      '.pw-rankup-sigil:before{content:"";position:absolute;inset:6px;border:1px solid color-mix(in srgb,var(--pw-rank-color) 56%,transparent);transform:rotate(45deg)}' +
+      '.pw-rankup-sigil span{position:relative;z-index:1;font-family:Georgia,serif;font-size:20px;font-weight:700}' +
+      '.pw-rankup-kicker{margin:0 0 5px;color:#88dfe3;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase}' +
+      '.pw-rankup-hero h2{margin:0;color:#fff;font-family:Georgia,serif;font-size:clamp(25px,5vw,34px);line-height:1.05}' +
+      '.pw-rankup-hero p{margin:7px 0 0;color:#c8c4d8;font-size:14px;line-height:1.45}.pw-rankup-hero strong{color:var(--pw-rank-color)}' +
+      '.pw-rankup-total{display:inline-flex;gap:7px;align-items:baseline;margin-top:6px;color:#9e98b9;font-size:11px;letter-spacing:.08em;text-transform:uppercase}.pw-rankup-total b{color:#f5d77b;font-size:15px;letter-spacing:0}' +
+      '.pw-rankup-progress{margin:22px 0 0;padding:17px;border:1px solid rgba(213,205,243,.16);background:rgba(3,4,17,.33)}' +
+      '.pw-rankup-progress-head{display:flex;gap:14px;justify-content:space-between;align-items:baseline;color:#d8d1eb;font-size:13px}.pw-rankup-progress-head span{color:#8f88a9;font-size:10px;letter-spacing:.1em;text-transform:uppercase}.pw-rankup-progress-head b{color:#f3efff;font-weight:600}' +
+      '.pw-rankup-track{height:7px;margin:12px 0 8px;overflow:hidden;background:#050513;box-shadow:inset 0 0 0 1px rgba(220,215,245,.1)}.pw-rankup-track i{display:block;width:0;height:100%;background:linear-gradient(90deg,var(--pw-rank-color),#f2d477);box-shadow:0 0 16px var(--pw-rank-color);transition:width .8s cubic-bezier(.16,1,.3,1)}' +
+      '.pw-rankup-progress p{margin:0;color:#918aa7;font-size:12px}.pw-rankup-max{margin:22px 0 0;padding:16px;border:1px solid color-mix(in srgb,var(--pw-rank-color) 42%,transparent);color:#e6dff8;font-size:13px;text-align:center}' +
+      '.pw-rankup-unlocks{margin:23px 0 0}.pw-rankup-unlocks h3{margin:0 0 10px;color:#f0d47c;font-family:Georgia,serif;font-size:18px}.pw-rankup-unlocks>p{margin:0 0 13px;color:#9c95b1;font-size:12px}' +
+      '.pw-rankup-unlock-list{display:grid;gap:8px;margin:0;padding:0;list-style:none}.pw-rankup-unlock{position:relative;padding:12px 12px 12px 17px;border:1px solid rgba(213,205,243,.14);background:rgba(2,3,15,.24)}.pw-rankup-unlock:before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:2px;background:var(--pw-unlock-color,#a279ec)}.pw-rankup-unlock small{display:block;margin-bottom:3px;color:#8ddde1;font-size:9px;font-weight:700;letter-spacing:.13em;text-transform:uppercase}.pw-rankup-unlock b{display:block;color:#f1edfc;font-size:14px}.pw-rankup-unlock p{margin:4px 0 0;color:#aaa4bc;font-size:12px;line-height:1.45}' +
+      '.pw-rankup-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px}.pw-rankup-actions a,.pw-rankup-actions button{box-sizing:border-box;min-height:40px;padding:0 15px;border:1px solid rgba(221,214,245,.28);background:transparent;color:#e7e1f7;font:700 11px/38px inherit;letter-spacing:.1em;text-decoration:none;text-transform:uppercase;cursor:pointer}.pw-rankup-actions a:hover,.pw-rankup-actions a:focus{border-color:var(--pw-rank-color);color:#fff}.pw-rankup-actions button{border-color:var(--pw-rank-color);background:var(--pw-rank-color);color:#080715}.pw-rankup-actions button:hover,.pw-rankup-actions button:focus{filter:brightness(1.13)}' +
+      '@media (max-width:520px){.pw-rankup-panel{margin:8px auto;padding:23px 18px}.pw-rankup-hero{grid-template-columns:56px 1fr;gap:13px;padding-right:25px}.pw-rankup-sigil{width:52px;height:52px}.pw-rankup-progress-head{display:block}.pw-rankup-progress-head b{display:block;margin-top:4px}.pw-rankup-actions{justify-content:stretch}.pw-rankup-actions>*{flex:1;text-align:center}}' +
+      '@media (prefers-reduced-motion:reduce){.pw-rankup-panel,.pw-rankup-sigil,.pw-rankup-panel:before{animation:none}.pw-rankup-track i{transition:none}}';
+    document.head.appendChild(style);
+  }
+
+  function safeRankUpColor(value) {
+    return /^#[0-9a-f]{6}$/i.test(String(value || '')) ? String(value) : '#a279ec';
+  }
+
+  function rankUpNumber(value) {
+    var number = Number(value);
+    return isFinite(number) ? Math.max(0, Math.round(number)) : 0;
+  }
+
+  function formatRankUpNumber(value) {
+    return rankUpNumber(value).toLocaleString();
+  }
+
+  function buildRankUpModal() {
+    var existing = document.getElementById('pw-rankup-modal');
+    if (existing) return existing;
+    injectRankUpStyles();
+    var root = document.createElement('div');
+    root.id = 'pw-rankup-modal';
+    root.className = 'pw-rankup-modal';
+    root.hidden = true;
+    root.innerHTML = '<div class="pw-rankup-shade" data-rankup-close="true"></div><section class="pw-rankup-panel" role="dialog" aria-modal="true" aria-labelledby="pw-rankup-title" tabindex="-1"></section>';
+    document.body.appendChild(root);
+    root.addEventListener('click', function (event) {
+      if (event.target.getAttribute('data-rankup-close') === 'true') closeRankUpModal();
+    });
+    return root;
+  }
+
+  var rankUpModal = null;
+  var rankUpQueue = [];
+  var rankUpIsShowing = false;
+
+  function closeRankUpModal() {
+    if (!rankUpModal || rankUpModal.hidden) return;
+    rankUpModal.hidden = true;
+    rankUpIsShowing = false;
+    window.setTimeout(showNextRankUp, 150);
+  }
+
+  function rankUpUnlocksMarkup(unlocks) {
+    if (!Array.isArray(unlocks) || !unlocks.length) {
+      return '<li class="pw-rankup-unlock"><small>Standing update</small><b>New community clearance</b><p>Your new title and rank marker are now active.</p></li>';
+    }
+    return unlocks.slice(0, 10).map(function (unlock) {
+      var accent = safeRankUpColor(unlock && unlock.accent);
+      return '<li class="pw-rankup-unlock" style="--pw-unlock-color:' + accent + '"><small>' + escapeHtml(unlock && unlock.eyebrow ? unlock.eyebrow : 'Rank unlock') + '</small><b>' + escapeHtml(unlock && unlock.title ? unlock.title : 'New clearance') + '</b><p>' + escapeHtml(unlock && unlock.description ? unlock.description : 'Available now.') + '</p></li>';
+    }).join('');
+  }
+
+  function renderRankUpEvent(event) {
+    rankUpModal = rankUpModal || buildRankUpModal();
+    var panel = rankUpModal.querySelector('.pw-rankup-panel');
+    var color = safeRankUpColor(event && event.color);
+    var title = escapeHtml(event && event.title ? event.title : 'New Rank');
+    var rankNumber = Math.max(1, rankUpNumber(event && event.rank_number));
+    var total = rankUpNumber(event && event.total_reputation);
+    var nextTitle = event && event.next_title ? String(event.next_title) : '';
+    var nextThreshold = rankUpNumber(event && event.next_threshold);
+    var progress = Math.max(0, Math.min(100, rankUpNumber(event && event.progress_percent)));
+    var nextMarkup = '';
+    if (nextTitle && nextThreshold > 0) {
+      var remaining = Math.max(0, nextThreshold - total);
+      nextMarkup = '<div class="pw-rankup-progress"><div class="pw-rankup-progress-head"><span>Next unlock</span><b>' + escapeHtml(nextTitle) + ' &middot; ' + formatRankUpNumber(total) + ' / ' + formatRankUpNumber(nextThreshold) + ' REP</b></div><div class="pw-rankup-track"><i style="width:' + progress + '%"></i></div><p>' + (remaining > 0 ? formatRankUpNumber(remaining) + ' reputation to reach ' + escapeHtml(nextTitle) + '.' : 'The next clearance is ready.') + '</p></div>';
+    } else {
+      nextMarkup = '<p class="pw-rankup-max">You have reached the highest reputation rank currently available.</p>';
+    }
+    panel.style.setProperty('--pw-rank-color', color);
+    panel.innerHTML =
+      '<button type="button" class="pw-rankup-close" aria-label="Close rank-up celebration" data-rankup-close="true">&times;</button>' +
+      '<div class="pw-rankup-hero"><div class="pw-rankup-sigil" aria-hidden="true"><span>' + rankNumber + '</span></div><div><p class="pw-rankup-kicker">Reputation rank achieved</p><h2 id="pw-rankup-title">Congratulations</h2><p>You are now a <strong>' + title + '</strong>.</p><p class="pw-rankup-total"><b>' + formatRankUpNumber(total) + '</b> total reputation</p></div></div>' +
+      nextMarkup +
+      '<div class="pw-rankup-unlocks"><h3>What you unlocked</h3><p>Your new clearance is active across the Pantheon.</p><ul class="pw-rankup-unlock-list">' + rankUpUnlocksMarkup(event && event.unlocks) + '</ul></div>' +
+      '<div class="pw-rankup-actions"><a href="/reputation.html">View reputation</a><button type="button" data-rankup-close="true">Continue</button></div>';
+    rankUpModal.hidden = false;
+    rankUpIsShowing = true;
+    window.setTimeout(function () {
+      var close = panel.querySelector('[data-rankup-close]');
+      if (close) close.focus();
+    }, 0);
+  }
+
+  function showNextRankUp() {
+    if (rankUpIsShowing || !rankUpQueue.length) return;
+    renderRankUpEvent(rankUpQueue.shift());
+  }
+
+  function queueRankUpEvents(events) {
+    if (!Array.isArray(events) || !events.length) return;
+    events.forEach(function (event) {
+      if (event && event.title) rankUpQueue.push(event);
+    });
+    showNextRankUp();
+  }
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && rankUpIsShowing) closeRankUpModal();
+  });
+
   function ensureCsrfToken() {
     if (window.PW_AUTH && window.PW_AUTH.csrf) return Promise.resolve();
     // This deliberately does not call refreshAuthNav(). That routine also
@@ -405,6 +543,7 @@ function initMembers() {
       };
       applyOauthButtonVisibility();
       applyMaintenanceMode();
+      queueRankUpEvents(data.rank_up_events);
       // Signals that window.PW_AUTH is populated, for header chrome that loads
       // before the session resolves and needs to reconcile afterwards (the
       // weather widget's stored world). Same CustomEvent approach as
@@ -640,6 +779,7 @@ function initMembers() {
         applyOauthButtonVisibility();
         applyMaintenanceMode();
         renderNav();
+        queueRankUpEvents(data.rank_up_events);
         if (window.PW_AUTH.loggedIn) loadNotifications();
         document.dispatchEvent(new CustomEvent('pw-auth-ready'));
       })

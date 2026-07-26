@@ -1122,6 +1122,7 @@
        * was wiped in the same tick and no mission action has ever actually
        * reported an outcome there. */
       load();
+      if (action === 'claim' && result.reputation_awarded > 0 && typeof window.refreshAuthNav === 'function') window.refreshAuthNav();
       if (action === 'claim') { setStatus(claimSummary(result), result.succeeded === false); showResult(result); }
       else { setStatus('Mission completed. Rewards are ready to claim.'); }
     }).catch(function (error) { setStatus(error.message, true); button.disabled = false; button.classList.remove('is-busy'); });
@@ -1136,6 +1137,7 @@
     button.disabled = true; button.classList.add('is-busy');
     post('/api/missions/daily-claim.php', { csrf: window.PW_AUTH.csrf }).then(function (result) {
       load();
+      if (result.reward_type === 'reputation' && result.reputation_awarded > 0 && typeof window.refreshAuthNav === 'function') window.refreshAuthNav();
       setStatus(result.reward_type === 'reputation'
         ? 'Daily objective complete: +' + result.reputation_awarded + ' reputation.'
         : 'Daily objective complete: +' + credits(result.credits_awarded) + ' credits (total ' + credits(result.credits_total) + ').');
