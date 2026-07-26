@@ -7,6 +7,7 @@
   var gate = document.getElementById('research-gate');
   var content = document.getElementById('research-content');
   var board = document.getElementById('research-tree-board');
+  var treeViewport = document.querySelector('.research-tree-scroll');
   var detail = document.getElementById('research-detail');
   var status = document.getElementById('research-status');
   var effectsList = document.getElementById('research-effects-list');
@@ -101,6 +102,31 @@
     post('/api/research/unlock.php', { research_node_id: nodeId, csrf: window.PW_AUTH && window.PW_AUTH.csrf ? window.PW_AUTH.csrf : '' }).then(function (result) { setStatus(result.message || 'Research protocol activated.'); return load(); }).catch(function (error) { setStatus(error.message || 'Could not unlock that protocol.', true); }).then(function () { state.busyId = null; renderDetail(); });
   }
 
+  var mousePan = null;
+  function startMousePan(event) {
+    if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('[data-research-node]')) return;
+    mousePan = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, scrollLeft: treeViewport.scrollLeft, scrollTop: treeViewport.scrollTop };
+    treeViewport.classList.add('is-panning');
+    try { board.setPointerCapture(event.pointerId); } catch (ignore) {}
+    event.preventDefault();
+  }
+  function moveMousePan(event) {
+    if (!mousePan || mousePan.pointerId !== event.pointerId) return;
+    treeViewport.scrollLeft = mousePan.scrollLeft - (event.clientX - mousePan.clientX);
+    treeViewport.scrollTop = mousePan.scrollTop - (event.clientY - mousePan.clientY);
+    event.preventDefault();
+  }
+  function finishMousePan(event) {
+    if (!mousePan || mousePan.pointerId !== event.pointerId) return;
+    try { if (board.hasPointerCapture && board.hasPointerCapture(event.pointerId)) board.releasePointerCapture(event.pointerId); } catch (ignore) {}
+    treeViewport.classList.remove('is-panning');
+    mousePan = null;
+  }
+
+  board.addEventListener('pointerdown', startMousePan);
+  board.addEventListener('pointermove', moveMousePan);
+  board.addEventListener('pointerup', finishMousePan);
+  board.addEventListener('pointercancel', finishMousePan);
   board.addEventListener('click', function (event) { var button = event.target.closest('[data-research-node]'); if (!button) return; state.selectedId = Number(button.getAttribute('data-research-node')); renderTree(state.data); renderDetail(); });
   detail.addEventListener('click', function (event) { var button = event.target.closest('[data-research-unlock]'); if (button) unlock(Number(button.getAttribute('data-research-unlock'))); });
   document.addEventListener('pw-auth-ready', load);
