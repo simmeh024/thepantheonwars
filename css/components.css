@@ -173,10 +173,10 @@ header.site-header {
 .nav-inner {
   max-width: var(--maxw);
   margin: 0 auto;
-  padding: 16px 28px;
+  padding: 14px clamp(18px, 2.5vw, 28px);
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: clamp(18px, 2vw, 30px);
 }
 /* logo's auto right-margin does the "push everything after it to the right
    edge" job that justify-content: space-between used to, but without also
@@ -238,7 +238,7 @@ header.site-header {
   70%  { box-shadow: 0 0 20px var(--glow), 0 0 10px rgba(236,201,135,0.55); filter: brightness(1.35); }
   100% { box-shadow: 0 0 5px var(--glow), 0 0 0px var(--gold-bright); filter: brightness(0.95); }
 }
-nav.main-nav { display: flex; gap: 30px; align-items: center; }
+nav.main-nav { display: flex; gap: clamp(18px, 2vw, 30px); align-items: center; }
 .nav-item { position: relative; display: flex; align-items: center; }
 .nav-parent {
   font-family: 'Jost', sans-serif;
@@ -751,6 +751,19 @@ button.auth-profile-chip { color: inherit; cursor: pointer; font: inherit; }
 }
 .nav-toggle span { width: 24px; height: 2px; background: var(--text); display: block; }
 
+/* Preserve the complete desktop sequence through common laptop widths. The
+   weather renderer can compact its own dynamic content; these rules keep the
+   stable navigation labels, profile chip, and bell from competing for space. */
+@media (min-width: 1001px) and (max-width: 1200px) {
+  .nav-inner { gap: 18px; padding-inline: 20px; }
+  .logo { font-size: 0.9rem; letter-spacing: 0.12em; }
+  .logo-shard { margin-right: 6px; }
+  nav.main-nav { gap: 16px; }
+  nav.main-nav a, .nav-parent { font-size: 0.7rem; letter-spacing: 0.1em; }
+  .nav-utility { gap: 8px; }
+  .auth-profile-name { max-width: 82px; }
+}
+
 /* Profile chip + notification bell live outside nav.main-nav so they stay
    reachable in the top bar at every width -- on mobile that panel collapses
    behind the hamburger, but these two never do. */
@@ -971,7 +984,11 @@ button.auth-profile-chip { color: inherit; cursor: pointer; font: inherit; }
   .pw-weather-caret { transition: none; }
 }
 
-@media (max-width: 780px) {
+/* The game navigation now has five primary destinations plus the account,
+   notification, and weather controls. Collapse it before those controls can
+   collide at narrow desktop/tablet widths; the control order remains intact
+   inside the disclosure panel. */
+@media (max-width: 1000px) {
   nav.main-nav {
     position: absolute;
     top: 100%; left: 0; right: 0;
