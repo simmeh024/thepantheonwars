@@ -1,8 +1,43 @@
 /* Game Tuning. A read-only balance simulator: controls on the left, the chart
  * and its readouts on the right. Loaded only by the admin console. */
 
-.tuning-layout { display: grid; grid-template-columns: minmax(0, 360px) minmax(0, 1fr); gap: 18px; align-items: start; }
-.tuning-controls, .tuning-output { display: grid; gap: 16px; align-content: start; min-width: 0; }
+/* Three columns on a wide console: the subject and its loadout on the left,
+ * the chart and its readouts in the middle, and the two pickers -- operations
+ * then research -- on the right, which is otherwise dead space.
+ *
+ * Named areas rather than raw column numbers, because the fallback is not a
+ * simple reflow: below the three-column threshold the pickers rejoin the left
+ * column and the chart keeps its full height by spanning both rows, which is
+ * awkward to express by hand and trivial to read as a template.
+ *
+ * The threshold accounts for the console's own furniture: the sidebar is a
+ * fixed 250px and .admin-main adds 44px of padding either side, so a 1440px
+ * window leaves about 1100px of content -- 360 for the controls, 280 for the
+ * pickers at their narrowest, and still 480 for the chart. Below that the plot
+ * would be squeezed under its own minimum, so two columns is the better
+ * answer. */
+.tuning-layout {
+  display: grid;
+  /* The chart column carries a real minimum and the pickers column may shrink
+   * to 280, so when space is tight it is the lists that give way rather than
+   * the plot. Measured: at a 1546px window the chart column was falling to
+   * 456px, which scales the 760-wide viewBox to 0.6 and renders its axis
+   * labels at about seven pixels. The lists lose nothing by being narrower --
+   * they are single-column rows that already ellipsise. */
+  grid-template-columns: minmax(0, 360px) minmax(480px, 1fr) minmax(280px, 340px);
+  grid-template-areas: "controls output aside";
+  gap: 18px; align-items: start;
+}
+.tuning-controls { grid-area: controls; }
+.tuning-output { grid-area: output; }
+.tuning-aside { grid-area: aside; }
+.tuning-controls, .tuning-output, .tuning-aside { display: grid; gap: 16px; align-content: start; min-width: 0; }
+/* .admin-form-card carries a console-wide max-width: 640px, which is right for
+ * a form but wrong for a chart: it was the real reason this page left a band of
+ * empty space on a wide screen -- the column was full width and the card inside
+ * it was not. Released here only, so every other section keeps the 640 measure
+ * its forms are designed around. */
+.tuning-layout .admin-form-card { max-width: none; }
 
 /* ---- Loadout slots ----------------------------------------------------- */
 .tuning-slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 7px; margin-bottom: 14px; }
@@ -65,8 +100,8 @@
 .tuning-chart svg { display: block; width: 100%; height: auto; }
 .tuning-chart .tuning-axis-line { stroke: rgba(122,152,172,0.55); stroke-width: 1; }
 .tuning-chart .tuning-grid { stroke: rgba(122,152,172,0.16); stroke-width: 1; }
-.tuning-chart .tuning-axis { fill: #93aebd; font: 600 11px 'Jost', sans-serif; }
-.tuning-chart .tuning-axis-title { fill: #7d9bb0; font: 700 10px 'Jost', sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.tuning-chart .tuning-axis { fill: #93aebd; font: 600 12px 'Jost', sans-serif; }
+.tuning-chart .tuning-axis-title { fill: #7d9bb0; font: 700 11px 'Jost', sans-serif; letter-spacing: .1em; text-transform: uppercase; }
 .tuning-chart .tuning-line { fill: none; stroke-width: 2.2; stroke-linejoin: round; stroke-linecap: round; }
 .tuning-chart .tuning-dot { stroke: rgba(4,10,20,0.85); stroke-width: 1; }
 .tuning-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
@@ -113,6 +148,19 @@
 .tuning-scenario-delete { width: 30px; border: 1px solid rgba(103,152,190,0.3); background: none; color: #8ba3b4; font: .85rem/1 'Jost', sans-serif; cursor: pointer; }
 .tuning-scenario-delete:hover, .tuning-scenario-delete:focus-visible { border-color: rgba(224,138,114,0.6); color: #e8a894; }
 
+/* Two columns: the pickers fall back under the controls, and the chart column
+ * spans both rows so it keeps the height it had. */
+@media (max-width: 1439px) {
+  .tuning-layout {
+    grid-template-columns: minmax(0, 360px) minmax(0, 1fr);
+    grid-template-areas: "controls output" "aside output";
+  }
+}
+/* One column, inputs before output: choosing a crew member and an operation
+ * comes before reading the result of having chosen them. */
 @media (max-width: 1180px) {
-  .tuning-layout { grid-template-columns: minmax(0, 1fr); }
+  .tuning-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "controls" "aside" "output";
+  }
 }

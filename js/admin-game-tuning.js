@@ -207,7 +207,23 @@
    * ticks come from the real data range rather than a fixed scale, so a metric
    * whose whole span is 70-72% still fills the plot and its shape is visible.
    * -------------------------------------------------------------------- */
-  var CHART = { w: 900, h: 380, left: 62, right: 18, top: 20, bottom: 40 };
+  /* The viewBox is measured from the container at render time rather than
+   * fixed, so one SVG unit is always one CSS pixel and the axis labels are the
+   * size the stylesheet asks for at every column width. A fixed box scaled by
+   * the container instead: at the narrowest column the layout allows, a
+   * 900-wide box rendered its 12px labels at under seven pixels. */
+  var CHART = { w: 760, h: 360, left: 58, right: 16, top: 18, bottom: 38 };
+  function chartBox(host) {
+    var width = host ? Math.round(host.getBoundingClientRect().width) : 0;
+    return {
+      /* Floored only enough to survive a hidden or not-yet-laid-out container,
+       * which measures zero. Set higher (420 was tried) the floor itself
+       * reintroduces the scaling this measurement exists to avoid, on exactly
+       * the narrow screens where the labels can least afford it. */
+      w: Math.max(300, width || CHART.w),
+      h: CHART.h, left: CHART.left, right: CHART.right, top: CHART.top, bottom: CHART.bottom
+    };
+  }
 
   function niceTicks(min, max, count) {
     if (max <= min) { max = min + 1; }
@@ -241,6 +257,7 @@
       el('tuning-legend').innerHTML = '';
       return;
     }
+    var CHART = chartBox(host);
     var metric = state.metric;
     var xKey = result.mode === 'crew_count' ? 'crew_count' : 'level';
     var xs = [], ys = [];
@@ -440,6 +457,13 @@
   }
 
   function wire() {
+    /* The plot is measured, so a resized window needs a redraw. Debounced, and
+     * only while there is something plotted. */
+    var resizeTimer = null;
+    window.addEventListener('resize', function () {
+      window.clearTimeout(resizeTimer);
+      resizeTimer = window.setTimeout(function () { if (state.result) renderChart(); }, 140);
+    });
     el('tuning-crew').addEventListener('change', function () { state.crewId = Number(this.value) || null; renderSlots(); run(); });
     el('tuning-mode').addEventListener('change', function () { state.mode = this.value; syncInputs(); run(); });
     el('tuning-metric').addEventListener('change', function () { state.metric = this.value; renderChart(); renderTable(); });
