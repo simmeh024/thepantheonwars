@@ -1,0 +1,42 @@
+/* The homepage keeps its literary hero copy, but its primary route is now a
+ * compact mission console. Mission data is filled only after a signed-in
+ * player deliberately inspects the Missions control. */
+.hero-command-console {
+  position: relative;
+  max-width: 790px;
+  margin: 32px auto 0;
+  padding: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(108, 206, 215, 0.46);
+  background:
+    linear-gradient(90deg, rgba(94, 220, 226, 0.08), transparent 30%),
+    linear-gradient(145deg, rgba(11, 30, 49, 0.94), rgba(24, 13, 48, 0.95));
+  box-shadow: 0 16px 42px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 0 26px rgba(105, 221, 228, 0.1);
+  text-align: left;
+}
+.hero-command-console::before {
+  position: absolute; inset: 0; content: ''; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(142, 224, 231, 0.035) 0 1px, transparent 1px 4px);
+}
+.hero-command-console > * { position: relative; z-index: 1; }
+.hero-command-console-head { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 0 3px 12px; border-bottom: 1px solid rgba(108, 206, 215, 0.25); }
+.hero-console-kicker { display: block; color: #85dce0; font: 600 0.58rem 'Jost', sans-serif; letter-spacing: 0.18em; text-transform: uppercase; }
+.hero-command-console-head h2 { margin: 3px 0 0; color: var(--text); font-size: 0.98rem; }
+.hero-console-status { display: inline-flex; align-items: center; gap: 7px; color: #9ddce0; font: 600 0.57rem 'Jost', sans-serif; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; }
+.hero-console-status i { width: 7px; height: 7px; border-radius: 50%; background: #59d2be; box-shadow: 0 0 9px #59d2be; animation: hero-console-online 2.3s ease-in-out infinite; }
+@keyframes hero-console-online { 0%, 100% { opacity: 0.48; transform: scale(0.82); } 48% { opacity: 1; transform: scale(1.15); } }
+.hero-console-actions { display: grid; grid-template-columns: minmax(0, 1.65fr) repeat(2, minmax(0, 0.82fr)); gap: 8px; margin-top: 12px; }
+.hero-console-action { display: flex; min-width: 0; min-height: 82px; flex-direction: column; justify-content: center; padding: 12px 14px; border: 1px solid rgba(139, 181, 209, 0.34); background: rgba(5, 17, 34, 0.5); color: #c4d8e3; font: 600 0.65rem 'Jost', sans-serif; letter-spacing: 0.1em; text-align: center; text-transform: uppercase; transition: border-color .2s ease, background-color .2s ease, color .2s ease, box-shadow .2s ease, transform .2s ease; }
+.hero-console-action:hover, .hero-console-action:focus-visible { border-color: #8ce4e7; background: rgba(27, 71, 91, 0.72); color: #efffff; box-shadow: 0 0 20px rgba(105, 221, 228, 0.17); outline: none; transform: translateY(-2px); }
+.hero-console-action--missions { position: relative; align-items: flex-start; border-color: #74dde2; background: linear-gradient(135deg, rgba(26, 110, 139, 0.94), rgba(90, 52, 160, 0.91)); color: #f1feff; box-shadow: 0 0 22px rgba(105, 221, 228, 0.24), inset 0 1px 0 rgba(255,255,255,.16); text-align: left; }
+.hero-console-action--missions::after { position: absolute; top: 9px; right: 10px; width: 7px; height: 7px; border-radius: 50%; background: #e8d27f; box-shadow: 0 0 10px #e8d27f; content: ''; }
+.hero-console-action--missions strong { display: flex; align-items: center; gap: 8px; font: 600 .82rem 'Cinzel', serif; letter-spacing: .06em; }.hero-console-action--missions strong::before { color: #dffcff; content: '◆'; font: .82rem/1 sans-serif; text-shadow: 0 0 10px currentColor; }
+.hero-console-action--missions small { display: block; max-width: 220px; margin-top: 5px; color: rgba(229, 250, 252, 0.77); font: 500 0.61rem 'Jost', sans-serif; letter-spacing: .04em; line-height: 1.35; text-transform: none; }
+.hero-console-action--market, .hero-console-action--research { align-items: center; }
+.hero-mission-preview { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; max-height: 0; margin-top: 0; overflow: hidden; opacity: 0; transform: translateY(-6px); transition: max-height .24s ease, margin-top .24s ease, padding .24s ease, opacity .18s ease, transform .24s ease; }
+.hero-command-console.is-mission-preview-open .hero-mission-preview { max-height: 160px; margin-top: 10px; padding: 11px 12px; border: 1px solid rgba(116, 221, 226, 0.42); background: linear-gradient(100deg, rgba(5, 20, 38, 0.84), rgba(30, 16, 59, 0.74)); opacity: 1; transform: translateY(0); }
+.hero-mission-preview-name { overflow: hidden; color: #e9f4f6; font: 600 0.78rem 'Cinzel', serif; letter-spacing: .02em; text-overflow: ellipsis; white-space: nowrap; }
+.hero-mission-preview-state { color: #e6ca81; font: 600 0.55rem 'Jost', sans-serif; letter-spacing: .12em; text-align: right; text-transform: uppercase; white-space: nowrap; }
+.hero-mission-preview-details { display: flex; grid-column: 1 / -1; gap: 7px; flex-wrap: wrap; }.hero-mission-preview-details span { padding: 4px 7px; border: 1px solid rgba(138, 185, 211, 0.25); color: #a6c7d8; font: 600 0.56rem 'Jost', sans-serif; letter-spacing: .07em; text-transform: uppercase; }
+@media (max-width: 900px) { .hero-command-console { max-width: 670px; }.hero-console-actions { grid-template-columns: minmax(0, 1.45fr) repeat(2, minmax(0, .9fr)); } }
+@media (prefers-reduced-motion: reduce) { .hero-console-status i { animation: none; }.hero-console-action, .hero-mission-preview { transition: none; } }
