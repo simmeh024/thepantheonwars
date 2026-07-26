@@ -142,7 +142,6 @@
 .mission-inventory-requires { margin: 5px 0 0 !important; color: #d5b271 !important; font-size: 0.65rem !important; font-weight: 600; }
 .mission-inventory-state { margin: 6px 0 0 !important; color: #7d94a6 !important; font-size: 0.65rem !important; font-weight: 600; }
 .mission-inventory-state.is-active { color: #79d9df !important; }
-.crew-stat.has-gear .crew-stat-value i { margin-left: 3px; color: #9edba8; font-size: 0.66rem; font-style: normal; font-weight: 700; }
 @media (max-width: 620px) {
   .mission-loadout-command { grid-template-columns: minmax(0, 1fr); }
   .mission-loadout-quick-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }

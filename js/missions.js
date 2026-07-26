@@ -481,11 +481,10 @@
     var cells = ['strength', 'cunning', 'science', 'charisma'].map(function (key) {
       var info = STAT_INFO[key];
       var value = Math.max(0, Number(crew[key]) || 0);
-      /* The server sends the total the crew member actually fights with, gear
-       * included, and gear_bonus carries how much of it is equipment -- so the
-       * cell can name the source of a figure that would otherwise appear from
-       * nowhere. The bar still measures against the levelling ceiling, which a
-       * gear-boosted stat legitimately fills. */
+      /* The server sends the total the crew member actually fights with,
+       * including equipment. The card deliberately prints that one true number
+       * instead of a base value followed by a second add-on that can be read as
+       * a different total. The tooltip still explains any gear contribution. */
       var gearPart = crew.gear_bonus ? Number(crew.gear_bonus[key]) || 0 : 0;
       var pct = Math.min(100, Math.round((value / maxStat) * 100));
       var capped = value >= maxStat;
@@ -494,9 +493,9 @@
        * only ever has two stats above zero. */
       var tip = info.label + ' ' + value + ' / ' + maxStat + (capped ? ' (max)' : '') + ' — ' + info.effect(value) + '. ' + info.copy
         + (gearPart !== 0 ? ' Equipment accounts for ' + (gearPart > 0 ? '+' : '') + gearPart + ' of this.' : '');
-      return '<div class="crew-stat' + (capped ? ' is-max' : '') + (gearPart !== 0 ? ' has-gear' : '') + ' is-' + key + '" tabindex="0" title="' + escapeHtml(tip) + '">'
+      return '<div class="crew-stat' + (capped ? ' is-max' : '') + ' is-' + key + '" tabindex="0" title="' + escapeHtml(tip) + '">'
         + '<span class="crew-stat-key">' + info.short + '</span>'
-        + '<span class="crew-stat-value">' + value + (gearPart !== 0 ? '<i>' + (gearPart > 0 ? '+' : '') + gearPart + '</i>' : '') + '</span>'
+        + '<span class="crew-stat-value">' + value + '</span>'
         + '<span class="crew-stat-bar"><i style="width:' + pct + '%"></i></span></div>';
     }).join('');
 

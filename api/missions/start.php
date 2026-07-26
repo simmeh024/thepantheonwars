@@ -55,6 +55,10 @@ try {
     $crewStmt->execute(array_merge([$userId], $crewIds));
     $selectedCrew = $crewStmt->fetchAll();
     if (count($selectedCrew) !== count($crewIds)) throw new RuntimeException('One selected crew member does not belong to you.');
+    /* Rebuild automatic stats from role and level before equipment is applied.
+     * This makes a levelled recruit with an old zeroed stat cache contribute
+     * their real values to the duration and mission calculations. */
+    $selectedCrew = pw_missions_apply_level_stats($selectedCrew);
     /* Equipment counts towards the duration this launch locks in. Loadouts are
      * frozen while a crew member is deployed, so what is read here is what the
      * claim will read again. */

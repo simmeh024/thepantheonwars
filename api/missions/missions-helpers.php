@@ -413,6 +413,22 @@ function pw_missions_stats_for_level(string $role, int $level): array {
 }
 
 /**
+ * Levels are the authoritative source for automatic crew stats. The database
+ * columns are a cache maintained at level-up so they can support future
+ * per-character modifiers, but a character recruited after the original
+ * backfill could otherwise have a real level and a zeroed cache. Rebuilding
+ * these four values at every mission boundary keeps display and resolution
+ * correct while the next successful claim repairs the stored row too.
+ */
+function pw_missions_apply_level_stats(array $crewRows): array {
+    foreach ($crewRows as $index => $row) {
+        $stats = pw_missions_stats_for_level((string)($row['role'] ?? ''), (int)($row['level'] ?? 0));
+        foreach ($stats as $stat => $value) $crewRows[$index][$stat] = $value;
+    }
+    return $crewRows;
+}
+
+/**
  * Level implied by total XP, at a flat 100 XP per level -- the same threshold
  * the crew card has always displayed. A crew template may start above level 1,
  * and levelling must never demote it, so the definition's starting level acts
@@ -681,8 +697,8 @@ function pw_missions_gear_icon_url($url): string {
  * so every existing consumer -- pw_missions_crew_effects() above, the launch
  * projection, the claim payout -- reads gear without knowing gear exists. The
  * pre-gear values stay available as base_<stat>, and gear_bonus carries the
- * difference, which is what lets a crew card show "4 +2" rather than a total
- * that appears out of nowhere.
+ * difference for tooltips and comparisons while the roster prints one true
+ * total for the stat the crew member will actually use.
  *
  * @param array $crewRows Rows carrying an `id` (player crew id) and the four stats.
  */

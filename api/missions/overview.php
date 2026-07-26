@@ -41,26 +41,21 @@ try {
          ORDER BY c.is_starter DESC, c.role ASC, c.name ASC'
     );
     $crewStmt->execute([$userId, $userId]);
-    $crew = array_map(static function ($row) use ($statsReady) {
+    $crew = array_map(static function ($row) {
         foreach (['id', 'level', 'xp'] as $field) $row[$field] = (int)$row[$field];
         $row['definition_enabled'] = (bool)$row['definition_enabled'];
         $row['active_mission_id'] = $row['active_mission_id'] !== null ? (int)$row['active_mission_id'] : null;
-        /* Before the stats migration runs, stats are derived from role and
-         * level for display only -- the same values the backfill will store --
-         * so the card never renders a row of zeroes against a levelled crew. */
-        $stats = $statsReady
-            ? ['strength' => (int)$row['strength'], 'cunning' => (int)$row['cunning'], 'science' => (int)$row['science'], 'charisma' => (int)$row['charisma']]
-            : pw_missions_stats_for_level((string)$row['role'], $row['level']);
-        foreach ($stats as $key => $value) $row[$key] = $value;
         $row['max_level'] = PW_MISSION_MAX_LEVEL;
         $row['max_stat'] = PW_MISSION_MAX_STAT;
         return $row;
     }, $crewStmt->fetchAll());
 
-    /* Equipment folded in before any effect is computed, so a crew card's own
-     * bonus line already reflects what that crew member is carrying. The
-     * pre-gear values survive as base_<stat> and gear_bonus, which is what lets
-     * the card show "4 +2" instead of a total with no explanation. */
+    /* Rebuild automatic stats from role and level before folding in gear. This
+     * avoids treating the old stored stat cache as authority for a recruited or
+     * previously migrated crew member whose cached values are still zero. */
+    $crew = pw_missions_apply_level_stats($crew);
+    /* Equipment is then folded into the level-derived values before any effect
+     * is computed, so every card and mission projection reads the true total. */
     $crew = pw_missions_apply_gear($db, $userId, $crew);
     foreach ($crew as $index => $row) {
         $crew[$index]['role_effect'] = pw_missions_crew_effects([$row]);

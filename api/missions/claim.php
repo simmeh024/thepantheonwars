@@ -44,6 +44,10 @@ try {
         if ($member['status'] !== 'on_mission') throw new RuntimeException('Crew status no longer matches this mission.');
     }
     $crewIds = array_map(static function ($member) { return (int)$member['id']; }, $crew);
+    /* Automatic stats are rebuilt from level before the frozen loadout is
+     * applied. This keeps resolution in step with the launch calculation even
+     * when an older player-crew row still contains zeroed cached stats. */
+    $crew = pw_missions_apply_level_stats($crew);
     /* The loadout the crew went out with. Equipping is refused on a deployed
      * crew member, so this is necessarily the same equipment start.php read when
      * it fixed the clock -- there is no window in which the two could disagree. */
@@ -114,9 +118,12 @@ try {
         foreach ($crew as $member) {
             $newXp = (int)$member['xp'] + $xpAwarded;
             $newLevel = pw_missions_level_for_xp($newXp, (int)$member['starting_level']);
-            if ($newLevel === (int)$member['level']) continue;
             $stats = pw_missions_stats_for_level((string)$member['role'], $newLevel);
             $levelStmt->execute([$newLevel, $stats['strength'], $stats['cunning'], $stats['science'], $stats['charisma'], (int)$member['id'], $userId]);
+            /* Persist the rebuilt values even when XP did not cross a level
+             * boundary. That heals old recruited rows whose level was valid
+             * but whose stat cache was created at the schema default of zero. */
+            if ($newLevel === (int)$member['level']) continue;
             $levelsGained += $newLevel - (int)$member['level'];
             $levelUps[] = ['id' => (int)$member['id'], 'name' => $member['name'], 'level' => $newLevel];
         }
