@@ -76,6 +76,20 @@ function pw_research_effect_types(): array {
         'market_refresh' => ['label' => 'Market refresh', 'short' => 'Market signal cycles faster', 'value_label' => 'Refresh boost (%)', 'description' => 'Moves this command\'s Market rotation onto a faster signal cadence.'],
         'secret_mission' => ['label' => 'Secret mission access', 'short' => 'Classified operation unlocked', 'value_label' => 'Unused', 'description' => 'Reveals one administrator-selected classified mission.'],
         'rare_loot_table' => ['label' => 'Rare loot table access', 'short' => 'Rare recovery table unlocked', 'value_label' => 'Unused', 'description' => 'Opens one administrator-selected rare loot table for missions that carry it.'],
+
+        /* Salvage Sweep. The first four scale -- author as many nodes as the
+         * tree needs and they add up. The last four are graded: an entry
+         * carrying 'accumulate' => 'max' takes the highest value owned instead
+         * of the sum, which is what a II node means. Emergency Tether II at
+         * 15% replaces Tether I at 10% rather than making 25%. */
+        'sweep_collapse' => ['label' => 'Shoring', 'short' => 'Sweep collapses reduced', 'value_label' => 'Collapses removed (%)', 'max' => 50, 'description' => 'Removes collapses from a Salvage Sweep field. One always remains, however much is stacked -- a field that cannot fall is not a sweep.'],
+        'sweep_scans' => ['label' => 'Scan capacity', 'short' => 'Sweep scans increased', 'value_label' => 'Additional scans', 'flat' => 'scans', 'max' => 10, 'description' => 'Adds scans to every Salvage Sweep, on top of the sector base and the crew member\'s Cunning.'],
+        'sweep_brace' => ['label' => 'Brace tuning', 'short' => 'Sweep brace improved', 'value_label' => 'Brace effectiveness (%)', 'max' => 100, 'description' => 'Raises the chance a crew member braces through the first collapse, as a percentage of the chance their Strength already gives.'],
+        'sweep_survey' => ['label' => 'Survey tuning', 'short' => 'Sweep survey improved', 'value_label' => 'Survey effectiveness (%)', 'max' => 60, 'description' => 'Reduces the Science a crew member needs for each survey ring, so hints come sooner.'],
+        'sweep_tether' => ['label' => 'Emergency tether', 'short' => 'Sweep salvage on collapse', 'value_label' => 'Retain chance (%)', 'max' => 100, 'accumulate' => 'max', 'description' => 'On a collapse, the chance to keep one item already recovered instead of losing everything. Graded: the highest tether owned applies, so a second node replaces the first rather than adding to it.'],
+        'sweep_recognition' => ['label' => 'Cache recognition', 'short' => 'Sweep cells identified', 'value_label' => 'Identified cells (%)', 'max' => 100, 'description' => 'The chance an unopened cell is identified as material, credits, equipment or unknown before it is scanned. Never which item.'],
+        'sweep_momentum' => ['label' => 'Momentum recovery', 'short' => 'Sweep credits compound', 'value_label' => 'Credit yield per reveal (%)', 'max' => 10, 'description' => 'Each safe reveal raises the credits the rest of the sweep pays, stacking until the haul is banked or lost.'],
+        'sweep_stabiliser' => ['label' => 'Field stabiliser', 'short' => 'Sweep opening scan safer', 'value_label' => 'First-scan risk removed (points)', 'flat' => 'points', 'max' => 20, 'accumulate' => 'max', 'description' => 'Takes percentage points off the collapse risk of the first scan only. Graded: the highest stabiliser owned applies.'],
     ];
 }
 
@@ -208,6 +222,14 @@ function pw_research_default_effects(): array {
         'stim_slots' => 0,
         'inventory_capacity' => 0,
         'luck_percent' => 0.0,
+        'sweep_collapse_percent' => 0.0,
+        'sweep_scans' => 0,
+        'sweep_brace_percent' => 0.0,
+        'sweep_survey_percent' => 0.0,
+        'sweep_tether_percent' => 0.0,
+        'sweep_recognition_percent' => 0.0,
+        'sweep_momentum_percent' => 0.0,
+        'sweep_stabiliser_points' => 0.0,
         'market_discount_percent' => 0.0,
         'market_refresh_percent' => 0.0,
         'secret_mission_ids' => [],
@@ -271,6 +293,16 @@ function pw_research_player_effects(PDO $db, int $userId): array {
             case 'stim_slots': $effects['stim_slots'] += $value; break;
             case 'inventory_capacity': $effects['inventory_capacity'] += $value; break;
             case 'luck': $effects['luck_percent'] += $value; break;
+            case 'sweep_collapse': $effects['sweep_collapse_percent'] += $value; break;
+            case 'sweep_scans': $effects['sweep_scans'] += $value; break;
+            case 'sweep_brace': $effects['sweep_brace_percent'] += $value; break;
+            case 'sweep_survey': $effects['sweep_survey_percent'] += $value; break;
+            case 'sweep_recognition': $effects['sweep_recognition_percent'] += $value; break;
+            case 'sweep_momentum': $effects['sweep_momentum_percent'] += $value; break;
+            /* Graded, not stacked: a II node is a better version of the same
+             * device, so owning both gives the better one and not their sum. */
+            case 'sweep_tether': $effects['sweep_tether_percent'] = max($effects['sweep_tether_percent'], $value); break;
+            case 'sweep_stabiliser': $effects['sweep_stabiliser_points'] = max($effects['sweep_stabiliser_points'], $value); break;
             case 'market_discount': $effects['market_discount_percent'] += $value; break;
             case 'market_refresh': $effects['market_refresh_percent'] += $value; break;
             case 'secret_mission':
@@ -291,6 +323,18 @@ function pw_research_player_effects(PDO $db, int $userId): array {
     $effects['stim_slots'] = (int)min(PW_MISSION_STIM_SLOT_RESEARCH_CAP, floor($effects['stim_slots']));
     $effects['inventory_capacity'] = (int)min(PW_MISSION_INVENTORY_RESEARCH_CAP, floor($effects['inventory_capacity']));
     $effects['luck_percent'] = round(min(75.0, $effects['luck_percent']), 2);
+    $effects['sweep_collapse_percent'] = round(min(50.0, $effects['sweep_collapse_percent']), 2);
+    $effects['sweep_scans'] = (int)min(10, floor($effects['sweep_scans']));
+    $effects['sweep_brace_percent'] = round(min(100.0, $effects['sweep_brace_percent']), 2);
+    $effects['sweep_survey_percent'] = round(min(60.0, $effects['sweep_survey_percent']), 2);
+    $effects['sweep_tether_percent'] = round(min(100.0, $effects['sweep_tether_percent']), 2);
+    /* 60, not the authoring ceiling of 100. Recognition identifies only
+     * safe cells, so at very high coverage an unidentified cell would mean
+     * "hazard" and the perk would stop being a hint and start being a
+     * detector, which removes the decision the sweep is built on. */
+    $effects['sweep_recognition_percent'] = round(min(60.0, $effects['sweep_recognition_percent']), 2);
+    $effects['sweep_momentum_percent'] = round(min(10.0, $effects['sweep_momentum_percent']), 2);
+    $effects['sweep_stabiliser_points'] = round(min(20.0, $effects['sweep_stabiliser_points']), 2);
     $effects['market_discount_percent'] = round(min(50.0, $effects['market_discount_percent']), 2);
     $effects['market_refresh_percent'] = round(min(50.0, $effects['market_refresh_percent']), 2);
     $effects['secret_mission_ids'] = array_values(array_unique($effects['secret_mission_ids']));

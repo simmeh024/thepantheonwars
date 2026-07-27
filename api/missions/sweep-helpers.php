@@ -137,20 +137,47 @@ function pw_sweep_normalise_tier(array $tier): array {
  * is how much you know before choosing, the shrug is a second chance, and XP
  * is what the run is worth afterwards.
  */
-function pw_sweep_crew_bonuses(array $crew, array $tier): array {
+function pw_sweep_crew_bonuses(array $crew, array $tier, array $research = []): array {
     $stat = static function ($key) use ($crew) {
         return max(0, min(PW_MISSION_MAX_GEAR_STAT, (int)($crew[$key] ?? 0)));
     };
-    $picks = $tier['base_picks'] + (int)floor($stat('cunning') / PW_SWEEP_CUNNING_PER_PICK);
+    $effect = static function ($key) use ($research) {
+        return max(0.0, (float)($research[$key] ?? 0));
+    };
+    /* Research adds scans on top of the sector base and Cunning, rather than
+     * multiplying them: a flat grant is legible at every sector size, where a
+     * percentage would be worth almost nothing on a small field. */
+    $picks = $tier['base_picks'] + (int)floor($stat('cunning') / PW_SWEEP_CUNNING_PER_PICK)
+        + (int)$effect('sweep_scans');
     $cells = $tier['grid_rows'] * $tier['grid_cols'];
+    /* Survey tuning cuts the Science each ring costs. Floored at a third of the
+     * base so the ceiling of two rings still has to be earned. */
+    $perRing = max(PW_SWEEP_SCIENCE_PER_RING / 3, PW_SWEEP_SCIENCE_PER_RING * (1 - $effect('sweep_survey_percent') / 100));
+    // Brace tuning is a percentage of the chance Strength already bought, so it
+    // is worth nothing to a crew member with none -- it tunes, it does not grant.
+    $shrug = $stat('strength') * PW_SWEEP_STRENGTH_SHRUG_PER_POINT * (1 + $effect('sweep_brace_percent') / 100);
     return [
         // Never more picks than there are cells: a board you cannot fail to
         // clear is not a decision.
         'picks_total' => max(1, min(PW_SWEEP_MAX_PICKS, min($cells - 1, $picks))),
-        'hint_radius' => min(2, (int)floor($stat('science') / PW_SWEEP_SCIENCE_PER_RING)),
-        'shrug_percent' => round(min(PW_SWEEP_SHRUG_CAP, $stat('strength') * PW_SWEEP_STRENGTH_SHRUG_PER_POINT), 2),
+        'hint_radius' => $perRing > 0 ? min(2, (int)floor($stat('science') / $perRing)) : 0,
+        'shrug_percent' => round(min(PW_SWEEP_SHRUG_CAP, $shrug), 2),
         'xp_reward' => (int)round($tier['xp_reward'] * (1 + ($stat('charisma') * PW_SWEEP_CHARISMA_XP_PER_POINT) / 100)),
     ];
+}
+
+/**
+ * The collapses a field actually carries once shoring is applied.
+ *
+ * One always remains. A field that cannot fall has no decision in it, which is
+ * the whole mechanic, so the reduction is capped rather than allowed to reach
+ * zero however many nodes are stacked.
+ */
+function pw_sweep_effective_hazards(array $tier, array $research = []): int {
+    $hazards = max(0, (int)$tier['hazard_count']);
+    if ($hazards <= 1) return $hazards;
+    $removed = (int)floor($hazards * max(0.0, (float)($research['sweep_collapse_percent'] ?? 0)) / 100);
+    return max(1, $hazards - $removed);
 }
 
 /**
@@ -183,6 +210,19 @@ function pw_sweep_hazard_cells(int $seed, int $cells, int $hazards): array {
     $map = [];
     foreach ($picked as $index) $map[(int)$index] = true;
     return $map;
+}
+
+/**
+ * A stable 0-1 roll for one cell and one purpose.
+ *
+ * Salted per purpose so the cache roll and the recognition roll of the same
+ * cell are independent, and derived from the run's seed so both are stable
+ * across requests. That stability is what lets Cache Recognition promise
+ * anything at all: a preview has to still be true when the cell is opened.
+ */
+function pw_sweep_cell_roll(int $seed, int $index, string $salt): float {
+    $hex = substr(hash('sha256', $seed . ':' . $salt . ':' . $index), 0, 12);
+    return hexdec($hex) / 0xFFFFFFFFFFFF;
 }
 
 /** Hazards adjacent to one cell, within the crew's hint radius. */
@@ -222,7 +262,7 @@ function pw_sweep_revealed(array $run): array {
  * pw_missions_loot_entry_statement(), so a table means the same thing here as
  * it does on a mission.
  */
-function pw_sweep_draw_entry(PDO $db, ?int $lootTableId): ?array {
+function pw_sweep_draw_entry(PDO $db, ?int $lootTableId, ?float $roll = null): ?array {
     if ($lootTableId === null || $lootTableId < 1) return null;
     $stmt = pw_missions_loot_entry_statement($db);
     $stmt->execute([$lootTableId]);
@@ -231,9 +271,10 @@ function pw_sweep_draw_entry(PDO $db, ?int $lootTableId): ?array {
     $total = 0.0;
     foreach ($entries as $entry) $total += max(0.0, (float)$entry['chance_percent']);
     if ($total <= 0) return null;
-    /* random_int over a scaled integer range: this is a reward roll, so it uses
-     * the same CSPRNG the rest of the mission engine does rather than rand(). */
-    $roll = random_int(0, (int)round($total * 100)) / 100;
+    /* The caller supplies a stable 0-1 roll so the same cell always draws the
+     * same entry; without one this falls back to the CSPRNG the rest of the
+     * mission engine uses. */
+    $roll = $roll === null ? random_int(0, (int)round($total * 100)) / 100 : $roll * $total;
     $running = 0.0;
     foreach ($entries as $entry) {
         $running += max(0.0, (float)$entry['chance_percent']);
@@ -243,26 +284,56 @@ function pw_sweep_draw_entry(PDO $db, ?int $lootTableId): ?array {
 }
 
 /**
- * What a revealed cell turns out to be.
+ * What a cell turns out to be. The whole board is a function of the seed.
  *
- * Resolved at reveal time rather than baked into the seed: only the hazard
- * layout is deterministic, because that is the part the player is reasoning
- * about. Making the rewards deterministic too would mean a leaked seed gave
- * away the whole board's value, and it would stop the same tier feeling
- * different on a second run.
+ * It was not always: the contents used to be rolled at reveal time, on the
+ * reasoning that a leaked seed should not give away the board's value. Cache
+ * Recognition made that untenable -- a preview of a cell can only be honest if
+ * the cell already has an answer -- and the reasoning was weak anyway, since
+ * the seed never leaves the server and a fresh one is drawn per run.
+ *
+ * A cell is still only resolved when something asks about it, so nothing is
+ * stored that a player has not earned the right to see.
  */
 function pw_sweep_resolve_cell(PDO $db, array $run, int $index): array {
-    $hazards = pw_sweep_hazard_cells((int)$run['grid_seed'], (int)$run['grid_rows'] * (int)$run['grid_cols'], (int)$run['hazard_count']);
+    $seed = (int)$run['grid_seed'];
+    $hazards = pw_sweep_hazard_cells($seed, (int)$run['grid_rows'] * (int)$run['grid_cols'], (int)$run['hazard_count']);
     if (isset($hazards[$index])) return ['type' => 'hazard'];
     /* A third of safe cells hold a cache rather than an item, so a board has
      * some small guaranteed value even when the table rolls nothing. */
-    if (random_int(1, 100) <= 34) {
+    if (pw_sweep_cell_roll($seed, $index, 'kind') <= 0.34) {
         $credits = max(0, (int)$run['cache_credits']);
-        return ['type' => 'cache', 'credits' => $credits > 0 ? random_int((int)ceil($credits * 0.6), $credits) : 0];
+        $spread = pw_sweep_cell_roll($seed, $index, 'cache');
+        return ['type' => 'cache', 'credits' => $credits > 0 ? (int)round($credits * (0.6 + 0.4 * $spread)) : 0];
     }
-    $entry = pw_sweep_draw_entry($db, $run['loot_table_id'] !== null ? (int)$run['loot_table_id'] : null);
+    $entry = pw_sweep_draw_entry($db, $run['loot_table_id'] !== null ? (int)$run['loot_table_id'] : null,
+        pw_sweep_cell_roll($seed, $index, 'entry'));
     if (!$entry) return ['type' => 'empty'];
     return ['type' => 'find', 'entry' => $entry];
+}
+
+/**
+ * What Cache Recognition says about an unopened cell.
+ *
+ * Only safe cells are ever identified -- naming a collapse would replace the
+ * decision the sweep is built on with a map. The four answers are deliberately
+ * coarse: material, credits, equipment, or unknown. A crew find reads as
+ * unknown, so the rarest thing on the board is never announced in advance.
+ *
+ * Returns '' when this cell is not identified, which is most of them.
+ */
+function pw_sweep_cell_preview(PDO $db, array $run, int $index, float $recognitionPercent): string {
+    if ($recognitionPercent <= 0) return '';
+    $seed = (int)$run['grid_seed'];
+    if (pw_sweep_cell_roll($seed, $index, 'recognise') >= $recognitionPercent / 100) return '';
+    $outcome = pw_sweep_resolve_cell($db, $run, $index);
+    if ($outcome['type'] === 'hazard') return '';
+    if ($outcome['type'] === 'cache') return 'credits';
+    if ($outcome['type'] !== 'find') return 'unknown';
+    $entry = $outcome['entry'];
+    if (($entry['entry_type'] ?? 'crew') !== 'gear') return 'unknown';
+    // A slotless item is salvage; anything that can be worn is equipment.
+    return trim((string)($entry['gear_slot'] ?? '')) === '' ? 'material' : 'equipment';
 }
 
 /**
@@ -315,9 +386,26 @@ function pw_sweep_run_payload(PDO $db, array $run): array {
             ? pw_sweep_adjacent_hazards((int)$index, $rows, $cols, $hazards, $radius)
             : null;
     }
+    /* Cache Recognition. Only unopened cells carry a preview -- an opened one
+     * already shows what it held -- and only safe ones are ever identified, so
+     * this can never be read as a collapse detector. */
+    $previews = [];
+    $recognition = (float)($run['recognition_percent'] ?? 0);
+    if ($recognition > 0 && (string)$run['status'] === 'active') {
+        for ($index = 0; $index < $rows * $cols; $index++) {
+            if (isset($cells[$index])) continue;
+            $preview = pw_sweep_cell_preview($db, $run, $index, $recognition);
+            if ($preview !== '') $previews[] = ['index' => $index, 'preview' => $preview];
+        }
+    }
+
     return [
         'id' => (int)$run['id'],
         'rank_number' => (int)$run['rank_number'],
+        'previews' => $previews,
+        'recognition_percent' => $recognition,
+        'momentum_percent' => (float)($run['momentum_percent'] ?? 0),
+        'tether_percent' => (float)($run['tether_percent'] ?? 0),
         'grid_rows' => (int)$run['grid_rows'],
         'grid_cols' => (int)$run['grid_cols'],
         'picks_total' => (int)$run['picks_total'],
@@ -462,4 +550,60 @@ function pw_sweep_recent_trophies(PDO $db, int $userId, int $limit = 5): array {
         ];
     }
     return $trophies;
+}
+
+/**
+ * One item pulled back out of a collapse, if the tether holds.
+ *
+ * Deliberately an item and never credits: credits are the sweep's steady
+ * income and losing them is what a collapse means, while an item is the thing
+ * a player was staying in for. Chosen uniformly from what was actually
+ * recovered, so a long run that found more has more to save.
+ *
+ * Granted immediately, inside the caller's transaction. A lost run is never
+ * banked, so there is nowhere else for it to go.
+ *
+ * @return array|null the rescued item, or null when nothing was saved
+ */
+function pw_sweep_tether_rescue(PDO $db, int $userId, array $run): ?array {
+    if (random_int(1, 10000) > (int)round(min(100.0, (float)$run['tether_percent']) * 100)) return null;
+    $finds = $db->prepare(
+        'SELECT * FROM game_player_sweep_finds
+         WHERE run_id = ? AND (loot_definition_id IS NOT NULL OR crew_definition_id IS NOT NULL)'
+    );
+    $finds->execute([(int)$run['id']]);
+    $rows = $finds->fetchAll();
+    if (!$rows) return null;
+    $row = $rows[random_int(0, count($rows) - 1)];
+
+    if ($row['crew_definition_id'] !== null) {
+        $received = pw_missions_receive_crew($db, $userId, (int)$row['crew_definition_id'], 'sweep_tether', (int)$run['id']);
+        $award = $received['crew'];
+        $award['state'] = $received['state'];
+        $award['kind'] = 'crew';
+        return $award;
+    }
+    $definition = $db->prepare('SELECT * FROM game_loot_definitions WHERE id = ?');
+    $definition->execute([(int)$row['loot_definition_id']]);
+    $item = $definition->fetch();
+    if (!$item) return null;
+    $gear = [[
+        'id' => (int)$item['id'],
+        'name' => (string)$item['name'],
+        'tier' => (string)$item['tier'],
+        'upgraded' => false,
+        'slot' => (string)($item['slot'] ?? ''),
+        'icon_url' => pw_missions_gear_icon_url($item['icon_url'] ?? ''),
+    ]];
+    /* Through the same store path a claim uses, so the quartermaster ceilings
+     * apply -- a rescued item can still be refused for want of room, and the
+     * caller reports that rather than pretending it was kept. */
+    $stored = pw_missions_store_loot($db, $userId, $gear, pw_research_player_effects($db, $userId));
+    return [
+        'kind' => 'gear',
+        'name' => (string)$item['name'],
+        'tier' => strtolower((string)$item['tier']),
+        'icon' => pw_missions_gear_icon_url($item['icon_url'] ?? ''),
+        'state' => empty($stored['skipped']) ? 'granted' : 'no_room',
+    ];
 }

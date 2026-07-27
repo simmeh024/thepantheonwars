@@ -81,6 +81,15 @@ CREATE TABLE IF NOT EXISTS game_player_sweep_finds (
     REFERENCES game_player_sweep_runs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- The research a run was opened under, frozen onto the run. Unlocking a
+-- protocol mid-sweep must not change a field already being walked, and a
+-- banked run keeps an honest record of what it was played with.
+ALTER TABLE game_player_sweep_runs
+  ADD COLUMN IF NOT EXISTS tether_percent DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS recognition_percent DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS momentum_percent DECIMAL(5,2) NOT NULL DEFAULT 0.00,
+  ADD COLUMN IF NOT EXISTS stabiliser_points DECIMAL(5,2) NOT NULL DEFAULT 0.00;
+
 -- A manifest written for a sweep sector should not also be dropping from
 -- missions. This flag takes it out of the mission roll entirely and out of the
 -- mission attach picker, so the forty sweep manifests do not clutter -- or

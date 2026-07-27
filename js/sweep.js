@@ -55,11 +55,23 @@
 
   var CELL_GLYPH = { gear: '◆', crew: '◉', cache: '¤', empty: '·', hazard: '✕', shrug: '✦' };
 
-  function cellMarkup(index, cell, playable) {
+  var PREVIEW_GLYPH = { material: '\u25b3', credits: '\u00a4', equipment: '\u25c6', unknown: '?' };
+  var PREVIEW_WORD = { material: 'Material', credits: 'Credits', equipment: 'Equipment', unknown: 'Unknown' };
+
+  function cellMarkup(index, cell, playable, preview) {
     if (!cell) {
-      return '<button type="button" class="sweep-cell" data-sweep-cell="' + index + '"'
-        + (playable ? '' : ' disabled')
-        + ' aria-label="Scan cell ' + (index + 1) + '"><span aria-hidden="true">?</span></button>';
+      /* An identified cell says what kind of thing is under it and nothing
+         more -- the category, never the item, and never that it is safe by
+         saying so out loud, since only safe cells are ever identified. */
+      var known = preview && PREVIEW_WORD[preview] ? preview : '';
+      var label = known
+        ? 'Scan cell ' + (index + 1) + ', identified as ' + PREVIEW_WORD[known].toLowerCase()
+        : 'Scan cell ' + (index + 1);
+      return '<button type="button" class="sweep-cell' + (known ? ' is-known is-known-' + known : '') + '"'
+        + ' data-sweep-cell="' + index + '"' + (playable ? '' : ' disabled')
+        + (known ? ' title="' + esc(PREVIEW_WORD[known]) + '"' : '')
+        + ' aria-label="' + esc(label) + '">'
+        + '<span aria-hidden="true">' + (known ? PREVIEW_GLYPH[known] : '?') + '</span></button>';
     }
     var label = cell.label || (cell.type === 'hazard' ? 'Collapse' : (cell.type === 'shrug' ? 'Braced through a collapse' : 'Nothing here'));
     /* The thing itself, when it has artwork. A glyph is the fallback for a
@@ -104,14 +116,24 @@
     boardMeta.innerHTML = '<span><small>Scans</small><strong>' + run.picks_left + ' / ' + run.picks_total + '</strong></span>'
       + '<span><small>Credits held</small><strong>' + num(run.credits_found) + '</strong></span>'
       + (run.hint_radius > 0 ? '<span><small>Survey</small><strong>' + run.hint_radius + ' ring' + (run.hint_radius === 1 ? '' : 's') + '</strong></span>' : '')
-      + (run.shrug_percent > 0 ? '<span><small>Brace</small><strong>' + (run.shrug_used ? 'spent' : run.shrug_percent + '%') + '</strong></span>' : '');
+      + (run.shrug_percent > 0 ? '<span><small>Brace</small><strong>' + (run.shrug_used ? 'spent' : run.shrug_percent + '%') + '</strong></span>' : '')
+      /* Momentum is shown as what it is worth right now rather than as its
+         rate: "+18% credits" is the number the next cache will pay, which is
+         what a player is deciding on. */
+      + (run.momentum_percent > 0
+        ? '<span><small>Momentum</small><strong>+' + Math.round(run.picks_used * run.momentum_percent) + '% credits</strong></span>' : '')
+      + (run.tether_percent > 0 ? '<span><small>Tether</small><strong>' + run.tether_percent + '%</strong></span>' : '');
 
     var open = {};
     (run.cells || []).forEach(function (cell) { open[Number(cell.index)] = cell; });
+    /* Cache Recognition marks a few unopened cells with what they hold, never
+       which item and never a collapse. */
+    var preview = {};
+    (run.previews || []).forEach(function (row) { preview[Number(row.index)] = String(row.preview); });
     var playable = run.status === 'active' && run.picks_left > 0 && !state.busy;
     var cells = [];
     for (var index = 0; index < run.grid_rows * run.grid_cols; index++) {
-      cells.push(cellMarkup(index, open[index], playable));
+      cells.push(cellMarkup(index, open[index], playable, preview[index]));
     }
     boardArea.innerHTML = '<div class="sweep-grid" style="--sweep-cols:' + run.grid_cols + '" role="group" aria-label="Salvage field">'
       + cells.join('') + '</div>'
@@ -377,7 +399,13 @@
     request('/api/missions/sweep/pick.php', { cell: cell }).then(function (data) {
       state.data.run = data.run;
       var find = data.find || {};
-      if (data.ended === 'collapse') setStatus('The field gave way. The haul is lost.', true);
+      if (data.ended === 'collapse') {
+        var saved = data.tether;
+        setStatus(saved
+          ? 'The field gave way. The tether held \u2014 ' + (saved.name || 'one item')
+            + (saved.state === 'no_room' ? ' came back, but there was no room for it.' : ' came back with the crew.')
+          : 'The field gave way. The haul is lost.', !saved);
+      }
       else if (data.shrugged) setStatus('A collapse — braced through it. That was the one chance.');
       else if (find.type === 'cache') setStatus('Recovered ' + find.label + '.');
       else if (find.label) setStatus('Recovered ' + find.label + '.');

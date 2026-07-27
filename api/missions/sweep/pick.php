@@ -30,6 +30,19 @@ try {
     if ((int)$run['picks_used'] >= (int)$run['picks_total']) throw new RuntimeException('No scans remain. Bank the haul.');
 
     $outcome = pw_sweep_resolve_cell($db, $run, $cell);
+    /* Field Stabiliser takes percentage points off the FIRST scan only. A cell
+     * that would have collapsed is converted to a safe one with the
+     * probability that turns the board's own opening risk into the reduced
+     * figure exactly -- p = points / risk -- rather than by some looser fudge
+     * that would not match what the perk claims. */
+    $stabiliser = (float)($run['stabiliser_points'] ?? 0);
+    if ($outcome['type'] === 'hazard' && (int)$run['picks_used'] === 0 && $stabiliser > 0) {
+        $risk = $cells > 0 ? ((int)$run['hazard_count'] / $cells) * 100 : 0.0;
+        if ($risk > 0 && random_int(1, 10000) <= (int)round(min(1.0, $stabiliser / $risk) * 10000)) {
+            // Held: the opening scan finds nothing rather than the floor.
+            $outcome = ['type' => 'empty'];
+        }
+    }
     $revealed[$cell] = true;
     $picksUsed = (int)$run['picks_used'] + 1;
     $creditsFound = (int)$run['credits_found'];
@@ -50,11 +63,17 @@ try {
             $ended = 'collapse';
         }
     } elseif ($outcome['type'] === 'cache') {
-        $creditsFound += (int)$outcome['credits'];
-        $find['credits'] = (int)$outcome['credits'];
-        $find['label'] = number_format((int)$outcome['credits']) . ' credits';
+        /* Momentum Recovery compounds on reveals already made, so the first
+         * cache pays face value and each one after is worth more. Counted from
+         * picks already spent rather than from caches found, which is what
+         * makes an empty cell still worth something. */
+        $momentum = 1 + ((int)$run['picks_used'] * (float)($run['momentum_percent'] ?? 0)) / 100;
+        $paid = (int)round((int)$outcome['credits'] * $momentum);
+        $creditsFound += $paid;
+        $find['credits'] = $paid;
+        $find['label'] = number_format($paid) . ' credits';
         $store = $db->prepare('INSERT INTO game_player_sweep_finds (run_id, cell_index, find_type, credits) VALUES (?, ?, "cache", ?)');
-        $store->execute([(int)$run['id'], $cell, (int)$outcome['credits']]);
+        $store->execute([(int)$run['id'], $cell, $paid]);
     } elseif ($outcome['type'] === 'find') {
         $entry = $outcome['entry'];
         $isGear = ($entry['entry_type'] ?? 'crew') === 'gear';
@@ -104,6 +123,16 @@ try {
     ]);
     if ($update->rowCount() !== 1) throw new RuntimeException('That sweep is no longer open.');
 
+    /* Emergency Tether. On a collapse the haul is gone, and this is the one
+     * thing that can come back out with the crew: a single item already
+     * recovered, granted here rather than banked, because there is no banking
+     * a lost run. Credits and XP are still lost -- the tether saves an object,
+     * not the sweep. */
+    $tether = null;
+    if ($ended === 'collapse' && (float)($run['tether_percent'] ?? 0) > 0) {
+        $tether = pw_sweep_tether_rescue($db, $userId, $run);
+    }
+
     if ($status !== 'active') {
         // The crew member comes home either way; only the haul is at stake.
         pw_sweep_release_crew($db, $userId, (int)$run['player_crew_id'], $now);
@@ -118,6 +147,7 @@ try {
         'find' => $find,
         'shrugged' => $shrugged,
         'ended' => $ended,
+        'tether' => $tether,
         'run' => pw_sweep_run_payload($db, $fresh),
     ]);
 } catch (Throwable $e) {

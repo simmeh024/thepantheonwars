@@ -61,8 +61,11 @@ try {
     }
 
     $tier = $activeTier;
-    $fatigueMax = pw_missions_fatigue_max($db, $userId, pw_research_player_effects($db, $userId));
-    $recovery = (float)(pw_research_player_effects($db, $userId)['fatigue_recovery_percent'] ?? 0);
+    /* Read once. It was called twice here, which is two identical queries for
+     * one answer -- and the sweep projections below need it as well. */
+    $research = pw_research_player_effects($db, $userId);
+    $fatigueMax = pw_missions_fatigue_max($db, $userId, $research);
+    $recovery = (float)($research['fatigue_recovery_percent'] ?? 0);
     $now = pw_missions_utc_now($db);
 
     $crewStmt = $db->prepare(
@@ -79,7 +82,7 @@ try {
     $roster = [];
     foreach ($crew as $member) {
         $fatigue = pw_missions_resolve_fatigue($member, $fatigueMax, $now, $recovery);
-        $bonuses = $tier ? pw_sweep_crew_bonuses($member, $tier) : ['picks_total' => 0, 'hint_radius' => 0, 'shrug_percent' => 0, 'xp_reward' => 0];
+        $bonuses = $tier ? pw_sweep_crew_bonuses($member, $tier, $research) : ['picks_total' => 0, 'hint_radius' => 0, 'shrug_percent' => 0, 'xp_reward' => 0];
         $roster[] = [
             'id' => (int)$member['id'],
             'name' => (string)$member['name'],

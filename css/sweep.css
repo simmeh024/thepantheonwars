@@ -43,6 +43,14 @@
 button.sweep-cell:hover:not(:disabled), button.sweep-cell:focus-visible { border-color: rgba(126,227,232,0.75); background: rgba(18,44,68,0.9); color: #cdeff3; outline: none; transform: translateY(-1px); }
 button.sweep-cell:disabled { cursor: default; opacity: 0.75; }
 .sweep-cell.is-open { position: relative; cursor: default; }
+/* An identified cell. Toned by category and glyphed, but still a closed cell
+ * with a question behind it -- recognition narrows the guess, it does not
+ * answer it, and only safe cells are ever marked. */
+.sweep-cell.is-known { border-style: dashed; }
+.sweep-cell.is-known-material { border-color: rgba(158,219,168,0.55); color: #9edba8; }
+.sweep-cell.is-known-credits { border-color: rgba(236,201,135,0.55); color: #ecc987; }
+.sweep-cell.is-known-equipment { border-color: rgba(126,227,232,0.55); color: #8fe6ec; }
+.sweep-cell.is-known-unknown { border-color: rgba(180,168,200,0.5); color: #b6abcd; }
 .sweep-cell-glyph { font-size: 1.05rem; }
 .sweep-cell-hint { position: absolute; right: 3px; bottom: 2px; color: #7f9bad; font: 700 0.5rem/1 'Jost', sans-serif; }
 .sweep-cell-hint.is-warn { color: #e8c98a; }
