@@ -6,6 +6,12 @@
 
   var nodes = [], categories = [], salvage = [], missions = [], rareLootTables = [], effectTypes = {}, boardSize = { width: 2040, height: 1440 }, legendaryBoardSize = { width: 1200, height: 540 }, boardMode = 'standard', missionLocksReady = false, lootTableLocksReady = false, queueTransmissionsReady = false;
   var current = null, categoryCurrent = null, dragging = null, panning = null, linkMode = false, linkSource = null, draftPosition = null, suppressClick = false;
+  var zoom = 1, view = 'canvas', listQuery = '', listSort = 'name';
+  var zoomStage = document.getElementById('research-admin-zoom');
+  var minimap = document.getElementById('research-admin-minimap');
+  var minimapView = document.getElementById('research-admin-minimap-view');
+  var listView = document.getElementById('research-admin-listview');
+  var listHost = document.getElementById('research-admin-list');
   var canvas = document.getElementById('research-admin-canvas'), viewport = document.getElementById('research-admin-canvas-viewport');
   var count = document.getElementById('research-admin-count'), editorFields = document.getElementById('research-editor-fields');
   var imageUrl = document.getElementById('research-node-image-url'), imagePreview = document.getElementById('research-node-image-preview'), imageFile = document.getElementById('research-node-image-file');
@@ -86,12 +92,108 @@
       y: Math.max(0, Math.min(boardHeight() - 126, Math.round(Number(position.y) || 0)))
     };
   }
-  function visibleCanvasPosition() {
-    if (!viewport) return clampPosition({ x: 80 + boardNodes().length * 38, y: 80 + boardNodes().length * 34 });
-    return clampPosition({
-      x: viewport.scrollLeft + (viewport.clientWidth / 2) - 98,
-      y: viewport.scrollTop + (viewport.clientHeight / 2) - 58
+  /* The 240x180 pitch the board's own grid is drawn on. Placing to it is what
+     makes a tidy tree possible without dragging anything. */
+  var CELL_X = 240, CELL_Y = 180;
+  function occupiedCells() {
+    var taken = {};
+    boardNodes().forEach(function (node) {
+      taken[Math.round(Number(node.canvas_x) / CELL_X) + ':' + Math.round(Number(node.canvas_y) / CELL_Y)] = true;
     });
+    return taken;
+  }
+  /* The first free cell at or after the viewport's top-left, scanning in
+     reading order. A new node used to land at the exact centre of the view,
+     which drops it on top of whatever was already there. */
+  function firstFreeCell() {
+    var taken = occupiedCells();
+    var cols = Math.max(1, Math.floor(boardWidth() / CELL_X));
+    var rows = Math.max(1, Math.floor(boardHeight() / CELL_Y));
+    var startCol = viewport ? Math.max(0, Math.floor((viewport.scrollLeft / zoom) / CELL_X)) : 0;
+    var startRow = viewport ? Math.max(0, Math.floor((viewport.scrollTop / zoom) / CELL_Y)) : 0;
+    for (var pass = 0; pass < 2; pass++) {
+      var fromRow = pass === 0 ? startRow : 0;
+      for (var row = fromRow; row < rows; row++) {
+        for (var col = pass === 0 && row === startRow ? startCol : 0; col < cols; col++) {
+          if (!taken[col + ':' + row]) return clampPosition({ x: col * CELL_X, y: row * CELL_Y });
+        }
+      }
+    }
+    // Every cell is taken, so fall back to the view centre rather than refusing.
+    return clampPosition({ x: (viewport ? viewport.scrollLeft / zoom : 0) + 40, y: (viewport ? viewport.scrollTop / zoom : 0) + 40 });
+  }
+  function visibleCanvasPosition() { return firstFreeCell(); }
+
+  /* Snap every node on this board to the pitch, keeping their relative order
+     and never stacking two in one cell. Positions are saved one request each,
+     which is the same call a drag already makes. */
+  function tidyLayout() {
+    if (!can('research.manage')) return;
+    var nodesToPlace = boardNodes().slice().sort(function (left, right) {
+      return (Number(left.canvas_y) - Number(right.canvas_y)) || (Number(left.canvas_x) - Number(right.canvas_x));
+    });
+    var cols = Math.max(1, Math.floor(boardWidth() / CELL_X));
+    nodesToPlace.forEach(function (node, index) {
+      var position = clampPosition({ x: (index % cols) * CELL_X, y: Math.floor(index / cols) * CELL_Y });
+      if (Number(node.canvas_x) === position.x && Number(node.canvas_y) === position.y) return;
+      node.canvas_x = position.x; node.canvas_y = position.y;
+      savePosition(node);
+    });
+    renderCanvas();
+    setNotice('Layout tidied to the grid.');
+  }
+
+  /* The scale lives on a stage wrapper, not the canvas: a transform does not
+     change layout size, so without a wrapper sized to the scaled board the
+     viewport would keep scrolling the full 2040x1440 however far you zoomed
+     out. The player map solves it the same way. */
+  function applyZoom() {
+    if (!zoomStage) return;
+    zoom = Math.max(0.25, Math.min(1.5, zoom));
+    canvas.style.transform = 'scale(' + zoom + ')';
+    canvas.style.transformOrigin = 'top left';
+    zoomStage.style.width = Math.round(boardWidth() * zoom) + 'px';
+    zoomStage.style.height = Math.round(boardHeight() * zoom) + 'px';
+    var level = document.getElementById('research-admin-zoom-level');
+    if (level) level.textContent = Math.round(zoom * 100) + '%';
+    drawMinimap();
+  }
+  function zoomToFit() {
+    if (!viewport) return;
+    // Fit the whole board, never magnify past 1: a 12-node tree blown up to
+    // 150% is harder to place into, not easier.
+    zoom = Math.min(1, Math.min(viewport.clientWidth / boardWidth(), viewport.clientHeight / boardHeight()));
+    applyZoom();
+    viewport.scrollLeft = 0; viewport.scrollTop = 0;
+  }
+  function toggleFullscreen() {
+    var card = canvas.closest('.research-admin-canvas-card');
+    if (!card) return;
+    if (document.fullscreenElement) { document.exitFullscreen(); return; }
+    if (card.requestFullscreen) card.requestFullscreen();
+  }
+  /* A whole-board overview. Nodes are rectangles, so this is one absolutely
+     positioned div apiece -- cheaper than a canvas and it stays crisp. */
+  function drawMinimap() {
+    if (!minimap || !viewport) return;
+    var scale = minimap.clientWidth / boardWidth();
+    minimap.style.height = Math.round(boardHeight() * scale) + 'px';
+    var marks = boardNodes().map(function (node) {
+      return '<i class="research-admin-minimap-node' + (current && Number(current.id) === Number(node.id) ? ' is-current' : '')
+        + (node.is_enabled ? '' : ' is-off') + '" style="left:' + (Number(node.canvas_x) * scale) + 'px;top:' + (Number(node.canvas_y) * scale)
+        + 'px;width:' + Math.max(3, 196 * scale) + 'px;height:' + Math.max(2, 126 * scale) + 'px"></i>';
+    }).join('');
+    minimap.innerHTML = marks + '<i class="research-admin-minimap-view" id="research-admin-minimap-view"></i>';
+    minimapView = document.getElementById('research-admin-minimap-view');
+    syncMinimapView();
+  }
+  function syncMinimapView() {
+    if (!minimapView || !viewport) return;
+    var scale = minimap.clientWidth / boardWidth();
+    minimapView.style.left = (viewport.scrollLeft / zoom) * scale + 'px';
+    minimapView.style.top = (viewport.scrollTop / zoom) * scale + 'px';
+    minimapView.style.width = Math.min(minimap.clientWidth, (viewport.clientWidth / zoom) * scale) + 'px';
+    minimapView.style.height = Math.min(minimap.clientHeight, (viewport.clientHeight / zoom) * scale) + 'px';
   }
 
   function canvasControls() {
@@ -142,17 +244,96 @@
       var image = safeImage(node.image_url), type = effectTypes[node.effect_type] || {};
       var nodeLabel = (node.category_name ? node.category_name + ' / ' : '') + (type.label || node.effect_type);
       var classes = 'research-admin-node' + (selected ? ' is-selected' : '') + (source ? ' is-link-source' : '') + (linkMode && !source ? ' is-link-target' : '') + (!node.is_enabled ? ' is-disabled' : '');
+      /* A hover card with the fields most often changed while laying a tree
+         out. It posts the whole node with those fields overridden, because
+         save.php rebuilds the row from its input -- a partial post would blank
+         everything it did not mention. */
+      var quick = can('research.manage')
+        ? '<span class="research-admin-quick" data-research-quick="' + Number(node.id) + '"'
+          /* Positioned from the node it belongs to. It is a sibling rather
+             than a child because a form inside a button is invalid and its
+             inputs would be unreachable -- but a sibling has no position of
+             its own, so it takes the node's and sits just below the card. */
+          + ' style="left:' + Number(node.canvas_x) + 'px;top:' + (Number(node.canvas_y) + 132) + 'px">'
+          + '<label>Rank<input type="number" min="1" max="99" value="' + Number(node.required_reputation_level) + '" data-quick-field="required_reputation_level"></label>'
+          + '<label>Credits<input type="number" min="0" max="1000000" value="' + Number(node.credit_cost) + '" data-quick-field="credit_cost"></label>'
+          + '<label>Value<input type="number" min="0" step="0.01" value="' + Number(node.effect_value) + '" data-quick-field="effect_value"></label>'
+          + '<label class="research-admin-quick-toggle"><input type="checkbox" data-quick-field="is_enabled"' + (node.is_enabled ? ' checked' : '') + '>Enabled</label>'
+          + '<span class="research-admin-quick-actions">'
+          + '<button type="button" class="btn btn-solid" data-quick-save="' + Number(node.id) + '">Apply</button>'
+          + '<button type="button" class="btn" data-quick-open="' + Number(node.id) + '">Full editor</button>'
+          + '</span></span>'
+        : '';
       return '<button type="button" class="' + classes + '" data-research-admin-node="' + Number(node.id) + '" style="left:' + Number(node.canvas_x) + 'px;top:' + Number(node.canvas_y) + 'px">' +
         '<span class="research-admin-node-head"><span class="research-admin-node-mark">' + (image ? '<img src="' + esc(image) + '" alt="">' : '⌬') + '</span><span><small>' + esc(nodeLabel) + '</small><strong>' + esc(node.name) + '</strong></span></span>' +
         '<p>' + esc(node.description || 'No field briefing yet.') + '</p><span class="research-admin-node-foot"><span>' + ((node.prerequisite_ids || []).length ? (node.prerequisite_ids || []).length + ' prerequisite' + ((node.prerequisite_ids || []).length === 1 ? '' : 's') : 'Root protocol') + '</span><b>' + esc(valueText(node)) + '</b></span>' +
-      '</button>';
+      '</button>' + quick;
     }).join('');
     var empty = visible.length ? '' : '<p class="admin-list-empty">' + (boardMode === 'legendary'
       ? 'No legendary protocols yet. Assign a protocol to a category marked as the final branch and it will appear here.'
       : 'No research protocols yet. Add your first permanent expedition unlock.') + '</p>';
     canvas.innerHTML = canvasControls() + canvasLinkNote() + '<svg class="research-admin-lines" viewBox="0 0 ' + boardWidth() + ' ' + boardHeight() + '" preserveAspectRatio="none" aria-hidden="true">' + lines + '</svg>' + cards + empty;
+    applyZoom();
     count.textContent = visible.length + (visible.length === 1 ? ' research protocol' : ' research protocols')
       + (boardMode === 'legendary' ? ' on the legendary board' : '');
+  }
+
+  /* The list. A canvas is the right tool for arranging and the wrong one for
+     finding, and past a dozen nodes finding is most of the work. Same
+     scan-first row every other module here uses. */
+  function renderList() {
+    if (!listHost) return;
+    var query = listQuery.trim().toLowerCase();
+    var rows = nodes.filter(function (node) {
+      if (!query) return true;
+      return [node.name, node.slug, node.category_name, (effectTypes[node.effect_type] || {}).label]
+        .some(function (value) { return String(value || '').toLowerCase().indexOf(query) !== -1; });
+    });
+    rows.sort(function (left, right) {
+      if (listSort === 'rank') return Number(left.required_reputation_level) - Number(right.required_reputation_level)
+        || String(left.name).localeCompare(String(right.name));
+      if (listSort === 'cost') return Number(right.credit_cost) - Number(left.credit_cost)
+        || String(left.name).localeCompare(String(right.name));
+      if (listSort === 'effect') return String((effectTypes[left.effect_type] || {}).label || left.effect_type)
+        .localeCompare(String((effectTypes[right.effect_type] || {}).label || right.effect_type))
+        || String(left.name).localeCompare(String(right.name));
+      if (listSort === 'category') return String(left.category_name || '~').localeCompare(String(right.category_name || '~'))
+        || String(left.name).localeCompare(String(right.name));
+      return String(left.name).localeCompare(String(right.name));
+    });
+    if (!rows.length) {
+      listHost.innerHTML = '<p class="admin-list-empty">'
+        + (query ? 'No protocol matches that search.' : 'No research protocols yet.') + '</p>';
+      return;
+    }
+    listHost.innerHTML = rows.map(function (node) {
+      return '<button type="button" class="admin-row research-admin-listrow" data-research-admin-node="' + Number(node.id) + '">'
+        + '<span class="research-admin-listname"><strong>' + esc(node.name) + '</strong><small>' + esc(node.slug) + '</small></span>'
+        + '<span class="research-admin-listcell">' + esc(node.category_name || 'Uncategorised') + '</span>'
+        + '<span class="research-admin-listcell">' + esc((effectTypes[node.effect_type] || {}).label || node.effect_type) + '</span>'
+        + '<span class="research-admin-listcell">' + esc(valueText(node)) + '</span>'
+        + '<span class="research-admin-listcell">Rank ' + Number(node.required_reputation_level) + '</span>'
+        + '<span class="research-admin-listcell">' + Number(node.credit_cost).toLocaleString() + ' cr</span>'
+        + '<span class="research-admin-liststate">' + (node.is_enabled ? '' : '<b class="admin-pill">Disabled</b>') + '</span>'
+        + '</button>';
+    }).join('');
+  }
+
+  function setView(next) {
+    view = next === 'list' ? 'list' : 'canvas';
+    var canvasOn = view === 'canvas';
+    if (listView) listView.hidden = canvasOn;
+    if (viewport) viewport.hidden = !canvasOn;
+    if (minimap) minimap.hidden = !canvasOn;
+    var controls = document.querySelector('.research-admin-map-controls');
+    if (controls) controls.hidden = !canvasOn;
+    ['canvas', 'list'].forEach(function (name) {
+      var tab = document.getElementById('research-admin-view-' + name);
+      if (!tab) return;
+      tab.classList.toggle('is-active', name === view);
+      tab.setAttribute('aria-selected', name === view ? 'true' : 'false');
+    });
+    if (canvasOn) { renderCanvas(); applyZoom(); } else renderList();
   }
 
   function previewImage() { var url = safeImage(imageUrl.value); imagePreview.hidden = !url; imagePreview.src = url || ''; }
@@ -271,12 +452,24 @@
       sort_order: document.getElementById('research-node-sort-order').value, is_enabled: document.getElementById('research-node-enabled').checked
     };
   }
-  function save() {
+  function save(andAnother) {
     if (!can('research.manage')) return;
-    var button = document.getElementById('research-node-save-btn'); button.disabled = true; button.classList.add('is-busy'); setError('');
+    var button = document.getElementById(andAnother ? 'research-node-save-add-btn' : 'research-node-save-btn');
+    button.disabled = true; button.classList.add('is-busy'); setError('');
     request('/api/admin/research/save.php', payload()).then(function (result) {
       current = { id: result.id }; draftPosition = null; setNotice('Research protocol saved.');
-      return load().then(function () { current = byId(result.id); showEditor(current); setNotice('Research protocol saved.'); });
+      return load().then(function () {
+        /* Save and add another keeps the editor open on a fresh node in the
+           next free cell, so authoring a run of protocols is a run of form
+           fills rather than a scroll back to the canvas between each. */
+        if (andAnother) {
+          current = null;
+          beginAddProtocol();
+          setNotice('Saved. Next protocol is ready at X ' + draftPosition.x + ' \u00b7 Y ' + draftPosition.y + '.');
+          return;
+        }
+        current = byId(result.id); showEditor(current); setNotice('Research protocol saved.');
+      });
     }).catch(function (error) { setError(error.message); }).then(function () { button.disabled = !can('research.manage'); button.classList.remove('is-busy'); });
   }
   function savePosition(node) {
@@ -374,7 +567,7 @@
       nodes = data.nodes || []; categories = data.categories || []; salvage = data.salvage || []; missions = data.missions || []; rareLootTables = data.rare_loot_tables || []; missionLocksReady = !!data.mission_locks_ready; lootTableLocksReady = !!data.loot_table_locks_ready; queueTransmissionsReady = !!data.queue_transmissions_ready; effectTypes = data.effect_types || {}; boardSize = data.board || boardSize; legendaryBoardSize = data.legendary_board || legendaryBoardSize;
       if (categoryCurrent && categoryCurrent.id) categoryCurrent = categoryById(categoryCurrent.id);
       if (!editorFields.hidden) fillSelect(categorySelect, categories, categorySelect.value, 'Uncategorised', function (category) { return category.name; });
-      renderCanvas(); renderCategories();
+      renderCanvas(); renderCategories(); renderList();
     }).catch(function (error) {
       canvas.innerHTML = '<p class="admin-list-empty">' + esc(error.message || 'Could not load Research Management.') + '</p>'; count.textContent = '';
     });
@@ -421,7 +614,12 @@
       var node = byId(Number(button.getAttribute('data-research-admin-node')));
       if (!node) return;
       var rect = canvas.getBoundingClientRect();
-      dragging = { node: node, button: button, offsetX: event.clientX - rect.left - Number(node.canvas_x), offsetY: event.clientY - rect.top - Number(node.canvas_y), moved: false };
+      /* Board coordinates, not screen ones. getBoundingClientRect reports the
+         scaled box, so every pointer delta is divided by the zoom -- without
+         it a node at 50% moves half as far as the cursor. */
+      dragging = { node: node, button: button,
+        offsetX: (event.clientX - rect.left) / zoom - Number(node.canvas_x),
+        offsetY: (event.clientY - rect.top) / zoom - Number(node.canvas_y), moved: false };
       button.classList.add('is-dragging'); button.setPointerCapture(event.pointerId); return;
     }
     if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('[data-research-canvas-action]') || event.target.closest('[data-research-board]') || !viewport) return;
@@ -438,7 +636,10 @@
     }
     if (!dragging) return;
     var rect = canvas.getBoundingClientRect();
-    var position = clampPosition({ x: event.clientX - rect.left - dragging.offsetX, y: event.clientY - rect.top - dragging.offsetY });
+    var position = clampPosition({
+      x: (event.clientX - rect.left) / zoom - dragging.offsetX,
+      y: (event.clientY - rect.top) / zoom - dragging.offsetY
+    });
     dragging.node.canvas_x = position.x; dragging.node.canvas_y = position.y;
     dragging.button.style.left = position.x + 'px'; dragging.button.style.top = position.y + 'px'; dragging.moved = true;
     document.getElementById('research-node-position').textContent = 'X ' + position.x + ' · Y ' + position.y + ' — release to save placement.';
@@ -459,6 +660,95 @@
     }
     dragging = null;
   }
+  /* Quick edit. It merges over the stored node rather than posting only the
+     changed fields, because save.php rebuilds the row from its input and a
+     partial post would blank everything it did not mention. */
+  canvas.addEventListener('click', function (event) {
+    var open = event.target.closest('[data-quick-open]');
+    if (open) {
+      event.preventDefault(); event.stopPropagation();
+      var node = byId(Number(open.getAttribute('data-quick-open')));
+      if (node) showEditor(node);
+      return;
+    }
+    var apply = event.target.closest('[data-quick-save]');
+    if (!apply) return;
+    event.preventDefault(); event.stopPropagation();
+    var target = byId(Number(apply.getAttribute('data-quick-save')));
+    var host = apply.closest('[data-research-quick]');
+    if (!target || !host || !can('research.manage')) return;
+    var patch = {};
+    Array.prototype.forEach.call(host.querySelectorAll('[data-quick-field]'), function (field) {
+      patch[field.getAttribute('data-quick-field')] = field.type === 'checkbox' ? field.checked : field.value;
+    });
+    apply.disabled = true; apply.classList.add('is-busy');
+    request('/api/admin/research/save.php', {
+      id: target.id, name: target.name, slug: target.slug, description: target.description,
+      activation_transmission: target.activation_transmission || '', image_url: target.image_url || '',
+      research_category_id: target.research_category_id || '', effect_type: target.effect_type,
+      target_mission_definition_id: target.target_mission_definition_id || '',
+      target_loot_table_id: target.target_loot_table_id || '',
+      prerequisite_ids: target.prerequisite_ids || [],
+      salvage_loot_definition_id: target.salvage_loot_definition_id || '',
+      salvage_quantity: target.salvage_quantity || 0, canvas_x: target.canvas_x, canvas_y: target.canvas_y,
+      sort_order: target.sort_order || 0,
+      effect_value: patch.effect_value, required_reputation_level: patch.required_reputation_level,
+      credit_cost: patch.credit_cost, is_enabled: patch.is_enabled
+    }).then(function () {
+      return load().then(function () { setNotice('Updated ' + target.name + '.'); });
+    }).catch(function (error) {
+      setError(error.message);
+    }).then(function () { apply.disabled = false; apply.classList.remove('is-busy'); });
+  }, true);
+
+  ['zoom-out', 'zoom-in', 'zoom-fit', 'fullscreen', 'tidy'].forEach(function (name) {
+    var button = document.getElementById('research-admin-' + name);
+    if (!button) return;
+    button.addEventListener('click', function () {
+      if (name === 'zoom-out') { zoom -= 0.15; applyZoom(); }
+      if (name === 'zoom-in') { zoom += 0.15; applyZoom(); }
+      if (name === 'zoom-fit') zoomToFit();
+      if (name === 'fullscreen') toggleFullscreen();
+      if (name === 'tidy') tidyLayout();
+    });
+  });
+  document.addEventListener('fullscreenchange', function () {
+    var button = document.getElementById('research-admin-fullscreen');
+    if (!button) return;
+    var on = !!document.fullscreenElement;
+    button.textContent = on ? 'Exit full screen' : 'Full screen';
+    button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    // The viewport changed size, so the fitted scale and the minimap frame
+    // are both stale until they are recomputed.
+    if (on) zoomToFit(); else applyZoom();
+  });
+  if (viewport) viewport.addEventListener('scroll', syncMinimapView);
+  if (minimap) minimap.addEventListener('click', function (event) {
+    if (!viewport) return;
+    var rect = minimap.getBoundingClientRect();
+    var scale = minimap.clientWidth / boardWidth();
+    // Centre the view on the point clicked rather than putting it top-left,
+    // which is what a reader means by "take me there".
+    viewport.scrollLeft = ((event.clientX - rect.left) / scale) * zoom - viewport.clientWidth / 2;
+    viewport.scrollTop = ((event.clientY - rect.top) / scale) * zoom - viewport.clientHeight / 2;
+  });
+  ['canvas', 'list'].forEach(function (name) {
+    var tab = document.getElementById('research-admin-view-' + name);
+    if (tab) tab.addEventListener('click', function () { setView(name); });
+  });
+  var search = document.getElementById('research-admin-search');
+  if (search) search.addEventListener('input', function () { listQuery = this.value; renderList(); });
+  var listSortControl = document.getElementById('research-admin-listsort');
+  if (listSortControl) listSortControl.addEventListener('change', function () { listSort = this.value; renderList(); });
+  if (listHost) listHost.addEventListener('click', function (event) {
+    var row = event.target.closest('[data-research-admin-node]');
+    if (!row) return;
+    var node = byId(Number(row.getAttribute('data-research-admin-node')));
+    if (node) showEditor(node);
+  });
+  var saveAdd = document.getElementById('research-node-save-add-btn');
+  if (saveAdd) saveAdd.addEventListener('click', function () { save(true); });
+
   canvas.addEventListener('pointerup', finishPointer);
   canvas.addEventListener('pointercancel', finishPointer);
 

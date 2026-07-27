@@ -18,3 +18,66 @@
 /* The smaller board reads as a different surface, matching the warmer wash the
  * player-facing legendary canvas uses. */
 .research-admin-canvas.is-legendary-board { box-shadow: inset 0 0 0 1px rgba(230, 202, 129, .38), inset 0 0 60px rgba(207, 159, 62, .1); }
+
+/* ===========================================================================
+ * Canvas view controls: zoom, full screen, minimap, list and quick edit.
+ * ========================================================================= */
+
+.research-admin-canvas-card { position: relative; }
+.research-admin-map-controls { position: absolute; z-index: 7; top: 14px; left: 16px; display: inline-flex; align-items: stretch; border: 1px solid rgba(109,206,214,.58); background: rgba(5,16,31,.92); }
+.research-admin-map-controls button, .research-admin-map-controls output { min-width: 30px; min-height: 29px; margin: 0; padding: 0 9px; border: 0; border-right: 1px solid rgba(109,206,214,.36); background: transparent; color: #bdecef; font: 700 .6rem/29px 'Jost', sans-serif; text-align: center; }
+.research-admin-map-controls button { cursor: pointer; letter-spacing: .05em; }
+.research-admin-map-controls button:last-child { border-right: 0; }
+.research-admin-map-controls button:hover, .research-admin-map-controls button:focus-visible { background: rgba(69,152,172,.34); color: #f0fdff; outline: none; }
+.research-admin-map-controls output { min-width: 46px; color: #e4ce8a; }
+/* The scale stage carries the scrollable size; the canvas inside it is what
+ * actually transforms. */
+.research-admin-zoom { position: relative; transform-origin: top left; }
+.research-admin-canvas-card:fullscreen { display: flex; flex-direction: column; box-sizing: border-box; width: 100vw; height: 100vh; padding: 12px; background: #080d1c; }
+.research-admin-canvas-card:fullscreen .research-admin-canvas-viewport { flex: 1 1 auto; min-height: 0; }
+
+.research-admin-viewtabs { position: absolute; z-index: 7; top: 14px; right: 16px; display: inline-flex; }
+.research-admin-viewtab { min-height: 29px; padding: 0 13px; border: 1px solid rgba(109,206,214,.4); border-right-width: 0; background: rgba(5,16,31,.9); color: #9dc3cd; font: 700 .58rem/27px 'Jost', sans-serif; letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+.research-admin-viewtab:last-child { border-right-width: 1px; }
+.research-admin-viewtab.is-active { border-color: #8ce4e7; background: rgba(30,74,92,.9); color: #f0fdff; }
+
+/* The minimap. Nodes are rectangles, so this is one div apiece rather than a
+ * second canvas to keep in step. */
+.research-admin-minimap { position: absolute; z-index: 6; right: 16px; bottom: 16px; width: 168px; border: 1px solid rgba(109,206,214,.45); background: rgba(4,11,22,.9); cursor: pointer; }
+.research-admin-minimap[hidden] { display: none; }
+.research-admin-minimap-node { position: absolute; background: rgba(126,211,222,.6); }
+.research-admin-minimap-node.is-off { background: rgba(126,150,170,.4); }
+.research-admin-minimap-node.is-current { background: #e6ca81; }
+.research-admin-minimap-view { position: absolute; border: 1px solid rgba(236,202,129,.9); background: rgba(236,202,129,.1); pointer-events: none; }
+
+/* The list. Same scan-first row the other modules use. */
+.research-admin-listview[hidden] { display: none; }
+.research-admin-listbar { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 14px; border-bottom: 1px solid rgba(93,170,184,.28); }
+.research-admin-listbar input[type="search"] { flex: 1 1 210px; min-height: 30px; }
+.research-admin-listbar select { min-height: 30px; }
+.research-admin-listrow { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, .9fr) minmax(0, 1fr) auto auto auto auto; align-items: center; gap: 12px; text-align: left; }
+.research-admin-listname strong { display: block; overflow: hidden; color: #eef3f8; font-size: .8rem; text-overflow: ellipsis; white-space: nowrap; }
+.research-admin-listname small { display: block; overflow: hidden; color: #8ba5b8; font-size: .6rem; text-overflow: ellipsis; white-space: nowrap; }
+.research-admin-listcell { overflow: hidden; color: #a9c2d0; font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
+.research-admin-liststate { justify-self: end; }
+
+/* Quick edit, shown on hover or keyboard focus of the node it belongs to. It
+ * is a sibling rather than a child of the node button: a form inside a button
+ * is invalid, and its inputs would be unreachable. */
+.research-admin-quick { position: absolute; z-index: 9; display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 214px; padding: 9px; border: 1px solid rgba(126,227,232,.6); background: rgba(6,16,30,.98); box-shadow: 0 12px 26px rgba(0,0,0,.5); }
+.research-admin-node:hover + .research-admin-quick,
+.research-admin-node:focus-visible + .research-admin-quick,
+.research-admin-quick:hover, .research-admin-quick:focus-within { display: grid; }
+.research-admin-quick label { display: grid; gap: 3px; color: #86a5ba; font: 700 .48rem/1 'Jost', sans-serif; letter-spacing: .07em; text-transform: uppercase; }
+.research-admin-quick input[type="number"] { min-height: 26px; padding: 2px 6px; font-size: .68rem; }
+.research-admin-quick-toggle { grid-column: 1 / -1; display: flex !important; align-items: center; gap: 6px; }
+.research-admin-quick-actions { grid-column: 1 / -1; display: flex; gap: 6px; }
+.research-admin-quick-actions .btn { min-height: 26px; padding: 0 9px; font-size: .56rem; }
+
+@media (max-width: 700px) {
+  .research-admin-map-controls { top: 10px; left: 10px; }
+  .research-admin-viewtabs { top: 10px; right: 10px; }
+  .research-admin-minimap { display: none; }
+  .research-admin-listrow { grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; }
+  .research-admin-listname { grid-column: 1 / -1; }
+}
