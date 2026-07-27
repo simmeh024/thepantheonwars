@@ -193,7 +193,58 @@
       + '<p class="tuning-stat-note is-warn">Neither preferred role assigned: +'
       + Number(affinity.penalty_duration_percent) + '% duration and &minus;'
       + Number(affinity.penalty_success_percent) + '% success. Each matching crew member adds +'
-      + Number(affinity.percent) + '% of that operation type&rsquo;s own bonus.</p></div>';
+      + Number(affinity.percent) + '% of that operation type&rsquo;s own bonus.</p></div>'
+      + rarityGroupMarkup(crew);
+  }
+
+  /* ---- Rarity ------------------------------------------------------------
+   * A crew member's rarity is worth three separate things and none of them
+   * were on this page: it scales every level-derived stat, it raises the
+   * role's own per-level rate, and it prices a duplicate award. A balance tool
+   * that showed only level would be comparing recruits on a third of what
+   * decides them.
+   *
+   * Read from pw_missions_crew_tier_profile() rather than restated here, for
+   * the same reason the stat and role tables above are generated: a page that
+   * explains the rules by repeating them eventually explains a rule the game
+   * no longer follows.
+   * -------------------------------------------------------------------- */
+  function rarityGroupMarkup(crew) {
+    var tiers = catalog && catalog.crew_tiers;
+    if (!tiers) return '';
+    var rates = (catalog && catalog.role_rates) || {};
+    /* The subject's own role, so the role-bonus column is a number the reader
+     * can act on rather than a bare "+0.15 on top of whatever the rate is". */
+    var roleRate = null, roleLabel = '';
+    if (crew && rates[crew.role]) {
+      var key = Object.keys(rates[crew.role])[0];
+      roleRate = Number(rates[crew.role][key]);
+      roleLabel = crew.role;
+    }
+    var rows = Object.keys(tiers).map(function (name) {
+      var tier = tiers[name];
+      var mine = crew && String(crew.tier || 'common').toLowerCase() === name;
+      var add = Number(tier.role_bonus_add) || 0;
+      var bonus = roleRate === null
+        ? (add > 0 ? '+' + add + ' per level' : 'base rate')
+        : num(roleRate + add) + ' per level' + (add > 0 ? ' (+' + add + ')' : '');
+      return '<div class="tuning-stat-row is-rarity is-tier-' + esc(name) + (mine ? ' is-subject' : '') + '">'
+        + '<span class="tuning-stat-key">' + esc(name.charAt(0).toUpperCase() + name.slice(1))
+        + (mine ? '<em>this subject</em>' : '') + '</span>'
+        + '<span class="tuning-stat-rate">&times;' + num(tier.stat_multiplier) + ' <small>stats</small></span>'
+        + '<span class="tuning-stat-affects">' + esc(bonus) + (roleLabel ? ' <small>' + esc(roleLabel) + '</small>' : '') + '</span>'
+        + '<p>Stats scale by &times;' + num(tier.stat_multiplier) + ', rounded up. A duplicate award pays '
+        + Number(tier.duplicate_credits) + ' credits.</p></div>';
+    }).join('');
+    return '<div class="tuning-stat-group"><h3>Rarity</h3>'
+      + '<p class="tuning-stat-note">Rarity multiplies the stats a level grants (rounded up), adds to the role&rsquo;s '
+      + 'per-level rate, and sets what a duplicate crew award pays instead. The curve above already reflects the '
+      + 'selected recruit&rsquo;s own rarity.</p>' + rows + '</div>';
+  }
+
+  function num(value) {
+    var rounded = Math.round(Number(value) * 100) / 100;
+    return String(rounded);
   }
 
   function renderItems() {

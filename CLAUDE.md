@@ -619,6 +619,65 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Crew rarity is worth something, and a promotion says what it bought.**
+  **No migration** -- `game_crew_definitions.tier` already exists, and crew
+  stats are rebuilt from level on every mission boundary, so the new scaling
+  applies on the next claim with no backfill.
+  **One rarity table, three consequences.** `pw_missions_crew_tier_profile()`
+  holds the stat multiplier, the role-bonus addition and the duplicate payout
+  together, because a rarity that paid more as a duplicate than it was worth in
+  the field would be a reason not to recruit it. Stats scale x1 / x1.25 / x1.5 /
+  x2 (rounded up), the role's per-level rate gains +0 / +0.05 / +0.15 / +0.25,
+  and a duplicate pays 100 / 200 / 400 / 1000 credits.
+  **`epic` is a fifth authorable rarity the specification did not cover** --
+  Crew Management offers five options, not four -- so it is interpolated
+  (x1.75, +0.20, 700). Falling through to common would have made an epic
+  recruit quietly the weakest of the four paid tiers.
+  **Rounding is applied to the total, not per level**, so a crew member's stats
+  are a pure function of the level reached rather than of how many claims it
+  took to get there.
+  **Deliberately not merged with `pw_missions_crew_sale_value()`**, which
+  prices a recruit the roster had no berth for. That is a different decision --
+  turning down someone you could have kept -- and it keeps its own numbers.
+  The two lists now differ at rare and legendary.
+  **A duplicate crew award used to be worth nothing at all** -- a roll that
+  landed and paid out silence, since there is never a second copy of a crew
+  member. It converts to credits now. The payout rides on the award itself, so
+  the debrief names which recruit it stood in for; a held-for-a-berth recruit
+  is explicitly *not* paid, since that decision is still open. The credits are
+  added to the balance but kept **out of `credits_awarded`**, which is what the
+  operation itself paid and feeds Game Tuning's reward figures.
+  **The role bonus is now read per crew member, not per role** --
+  `pw_missions_role_rate_for()` -- so two Engineers of different rarity at the
+  same level no longer contribute equally. The browser re-implements the
+  projection, so the rarity table is **shipped** alongside `role_rates` for the
+  same reason those were: a retune applied on one side only means the launch
+  screen promises a reward the claim does not pay.
+  **The debrief now says what a promotion did.** It reported only that one
+  happened. Three additions: the role bonus before and after (`2% faster ->
+  2.25% faster`), a four-cell stat row with the moved cells marked, and a gold
+  edge plus one staggered arrival pass so a promotion reads as an event rather
+  than as one gold word between four identical cards. The stat row is drawn for
+  **everyone**, promoted or not -- a delta with no absolute beside it has
+  nothing to be a delta of, and no crew stat appeared in the debrief at all
+  before this. Both sides come from `claim.php`, which already holds the pre-
+  and post-award figures, so it costs no extra query.
+  **Game Tuning was pricing every recruit as common.** `pw_tuning_build_crew()`
+  did not pass rarity, so the simulator understated every rarer one -- the exact
+  drift that page exists to catch. Rarity now travels with the simulated row,
+  and a Rarity group reads the ladder out of the engine rather than restating
+  it, with the selected recruit's own tier marked.
+  **A contrast trap caught by measuring the compounded case.** A zeroed stat
+  cell dimmed with `opacity: 0.55` sampled at 6.82:1 and was really **2.76:1**,
+  because opacity composites the text and its own background together and a
+  sampler reads the undimmed pair. Replaced with a colour step; worst reading
+  across 54 nodes is now 5.23:1 and nothing on the card dims by opacity.
+  Verified with 45 assertions that **read the rarity table out of the shipped
+  PHP** rather than restating it, plus a browser pass against the real
+  `crewAftermathMarkup()` and its real dependencies extracted from
+  `js/missions.js`. `missions.css?v=46` / `missions.js?v=45` /
+  `admin-game-tuning.css?v=5` / `admin-game-tuning.js?v=4`.
+
 - **Reputation page: a real weekly chart, tier standing, and one arrival pass.**
   No migration, no endpoint change.
   **The sparkline became a chart.** Eight bare heights with no baseline said

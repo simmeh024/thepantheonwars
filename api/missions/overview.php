@@ -474,6 +474,10 @@ try {
          * to be applied twice and the browser silently disagrees with the
          * server until it is. */
         'role_rates' => pw_missions_role_rates(),
+        // Rarity's addition to those rates, shipped for the same reason: the
+        // browser re-implements the projection and must not hold its own copy
+        // of a number a retune would move on the server only.
+        'crew_tier_bonus' => array_map(static function (array $profile) { return $profile['role_bonus_add']; }, pw_missions_crew_tier_profile()),
         'stat_reference' => pw_missions_stat_reference(),
         /* The loadout's slots, in the order it draws them, and the ceiling a
          * stat can reach with equipment on. Sent rather than hardcoded in the

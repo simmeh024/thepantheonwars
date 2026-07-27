@@ -159,9 +159,15 @@ function pw_tuning_build_crew(array $definition, int $level, int $count, array $
     $legal = pw_tuning_legal_loadout($loadout, $role, $level);
     $rows = [];
     $gearByCrew = [];
+    /* Rarity is part of the definition being simulated, so it has to travel
+     * with the row: it scales the stats and raises the role's per-level rate,
+     * and pw_missions_crew_effects() reads it off the member. Without it the
+     * page would price every recruit as common and quietly understate every
+     * rarer one -- the exact class of drift this file exists to catch. */
+    $tier = (string)($definition['tier'] ?? 'common');
     for ($i = 0; $i < $count; $i++) {
-        $stats = pw_missions_stats_for_level($role, $level);
-        $rows[] = array_merge(['id' => $i + 1, 'role' => $role, 'level' => $level], $stats);
+        $stats = pw_missions_stats_for_level($role, $level, $tier);
+        $rows[] = array_merge(['id' => $i + 1, 'role' => $role, 'level' => $level, 'tier' => $tier], $stats);
         $gearByCrew[$i + 1] = $legal;
     }
     return pw_missions_apply_gear_bonuses($rows, $gearByCrew);

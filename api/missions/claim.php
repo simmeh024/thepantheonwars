@@ -43,6 +43,7 @@ try {
     $statsReady = pw_mission_stats_ready($db);
     $crewStmt = $db->prepare(
         'SELECT pc.id, pc.status, pc.level, pc.xp, c.name, c.role, c.starting_level'
+        . (pw_mission_crew_capacity_ready($db) ? ', c.tier' : ', "common" AS tier')
         . ($statsReady ? ', pc.strength, pc.cunning, pc.science, pc.charisma' : '')
         . (pw_mission_fatigue_ready($db) ? ', pc.fatigue' : '') .
         ' FROM game_player_mission_crew link
@@ -158,7 +159,7 @@ try {
              * strip the stats those levels allocated -- on their next claim. */
             $levelFloor = max((int)$member['starting_level'], (int)$member['level']);
             $newLevel = pw_missions_level_for_xp($newXp, $levelFloor);
-            $stats = pw_missions_stats_for_level((string)$member['role'], $newLevel);
+            $stats = pw_missions_stats_for_level((string)$member['role'], $newLevel, $member['tier'] ?? 'common');
             $levelStmt->execute([$newLevel, $stats['strength'], $stats['cunning'], $stats['science'], $stats['charisma'], (int)$member['id'], $userId]);
             /* Persist the rebuilt values even when XP did not cross a level
              * boundary. That heals old recruited rows whose level was valid
@@ -186,6 +187,29 @@ try {
         $levelFloor = max((int)$member['starting_level'], (int)$member['level']);
         $newLevel = $statsReady && $xpAwarded > 0 ? pw_missions_level_for_xp($newXp, $levelFloor) : (int)$member['level'];
         $progress = pw_missions_xp_progress($newXp, $newLevel);
+        /* What the promotion actually bought. Both sides are already in hand --
+         * the old stats were rebuilt from the pre-award level at the top of
+         * this request and the new ones are a pure function of the new level --
+         * so the debrief costs no extra query to say what changed.
+         *
+         * Sent for every crew member, not only the promoted ones: a card that
+         * shows a stat has to show it whether or not it moved that run. */
+        $tier = (string)($member['tier'] ?? 'common');
+        $oldLevel = (int)$member['level'];
+        $statsBefore = pw_missions_stats_for_level((string)$member['role'], $oldLevel, $tier);
+        $statsAfter = pw_missions_stats_for_level((string)$member['role'], $newLevel, $tier);
+        $roleRate = pw_missions_role_rate_for((string)$member['role'], $tier);
+        $roleEffect = null;
+        if ($roleRate) {
+            // One rate per role, so the first key is the whole story.
+            $rateKey = array_key_first($roleRate);
+            $roleEffect = [
+                'key' => $rateKey,
+                'per_level' => (float)$roleRate[$rateKey],
+                'before' => round($oldLevel * (float)$roleRate[$rateKey], 2),
+                'after' => round($newLevel * (float)$roleRate[$rateKey], 2),
+            ];
+        }
         $fatigue = $fatigueReady ? max(0, min($fatigueMax, (int)($member['fatigue'] ?? $fatigueMax))) : 0;
         $crewResults[] = [
             'id' => (int)$member['id'],
@@ -198,6 +222,10 @@ try {
             'xp_into_level' => $progress['xp_into_level'],
             'xp_for_next_level' => $progress['xp_for_next_level'],
             'xp_percent' => $progress['xp_percent'],
+            'tier' => $tier,
+            'stats' => $statsAfter,
+            'stats_before' => $statsBefore,
+            'role_effect' => $roleEffect,
             'fatigue_ready' => $fatigueReady,
             'fatigue' => $fatigue,
             'fatigue_max' => $fatigueMax,
@@ -246,6 +274,23 @@ try {
     if (!empty($lootTableAwards['gear'])) {
         $collectSkipped(pw_missions_store_loot($db, $userId, $lootTableAwards['gear'], $research));
         $loot = array_merge($loot, $lootTableAwards['gear']);
+    }
+
+    /* A crew member the roster already holds cannot be granted twice, and used
+     * to be worth nothing at all -- a roll that landed and paid out silence.
+     * It converts to credits at the rarity's rate instead.
+     *
+     * Deliberately not folded into credits_awarded: that column is what this
+     * mission's own reward paid, and it feeds the reward figures Game Tuning
+     * reads. A duplicate payout is loot, not mission pay, so it is added to the
+     * balance and reported on its own line rather than inflating the record of
+     * what the operation was worth. */
+    $duplicateCredits = 0;
+    foreach ($lootTableAwards['duplicates'] as $duplicate) {
+        $duplicateCredits += (int)($duplicate['duplicate_credits'] ?? 0);
+    }
+    if ($creditsReady && $duplicateCredits > 0) {
+        $creditBalance = pw_missions_add_credits($db, $userId, $duplicateCredits);
     }
 
     $now = pw_missions_utc_now($db);
@@ -308,6 +353,7 @@ try {
         // that the storm cost the odds rather than leaving it unexplained.
         'weather' => $effects['weather'] ?? null,
         'credits_awarded' => $creditsAwarded,
+        'crew_duplicate_credits' => $creditsReady ? $duplicateCredits : 0,
         'credits_total' => $creditBalance,
         'credits_ready' => $creditsReady,
         'level_ups' => $levelUps,

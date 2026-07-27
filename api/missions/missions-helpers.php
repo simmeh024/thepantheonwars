@@ -775,6 +775,63 @@ function pw_missions_fatigue_recovery_seconds(int $current, int $needed, float $
  * the second half of a career trades raw specialism for the role bonus and
  * steadily better loot.
  */
+/**
+ * What a crew member's rarity is worth. One table, read by everything that
+ * cares, because these three consequences must always describe the same
+ * ladder -- a rarity that pays more on a duplicate than it is worth in the
+ * field would be a reason not to recruit it.
+ *
+ *   stat_multiplier   applied to the level-derived stats, rounded up
+ *   role_bonus_add    added to the role's own per-level rate
+ *   duplicate_credits paid when a loot table awards crew already on the roster
+ *
+ * 'epic' is interpolated between rare and legendary. It is a real authorable
+ * rarity in Crew Management (five options, not four) and was not covered by
+ * the specification these numbers came from; falling through to common would
+ * have made an epic recruit quietly the weakest of the four paid tiers.
+ *
+ * Distinct from pw_missions_crew_sale_value(), which prices a recruit the
+ * roster had no berth for. That is a different decision -- turning down
+ * someone you could have kept -- and it keeps its own longer-standing numbers.
+ */
+function pw_missions_crew_tier_profile(): array {
+    return [
+        'common' => ['stat_multiplier' => 1.00, 'role_bonus_add' => 0.00, 'duplicate_credits' => 100],
+        'uncommon' => ['stat_multiplier' => 1.25, 'role_bonus_add' => 0.05, 'duplicate_credits' => 200],
+        'rare' => ['stat_multiplier' => 1.50, 'role_bonus_add' => 0.15, 'duplicate_credits' => 400],
+        'epic' => ['stat_multiplier' => 1.75, 'role_bonus_add' => 0.20, 'duplicate_credits' => 700],
+        'legendary' => ['stat_multiplier' => 2.00, 'role_bonus_add' => 0.25, 'duplicate_credits' => 1000],
+    ];
+}
+
+/** One rarity's profile, falling back to common for an unrecognised value. */
+function pw_missions_crew_tier(?string $tier): array {
+    $profile = pw_missions_crew_tier_profile();
+    return $profile[strtolower(trim((string)$tier))] ?? $profile['common'];
+}
+
+/** Credits paid instead of a crew member the roster already holds. */
+function pw_missions_crew_duplicate_credits(?string $tier): int {
+    return (int)pw_missions_crew_tier($tier)['duplicate_credits'];
+}
+
+/**
+ * A role's per-level rate for one crew member, rarity included.
+ *
+ * Read this rather than pw_missions_role_rates() wherever a specific crew
+ * member is in hand: the base table describes the role, and a rarer recruit of
+ * that role earns more per level. Returns the same shape as one row of the
+ * base table, so every consumer keeps reading one rate per effect.
+ */
+function pw_missions_role_rate_for(string $role, ?string $tier): array {
+    $rates = pw_missions_role_rates()[$role] ?? [];
+    if (!$rates) return [];
+    $add = (float)pw_missions_crew_tier($tier)['role_bonus_add'];
+    if ($add <= 0) return $rates;
+    foreach ($rates as $key => $value) $rates[$key] = $value + $add;
+    return $rates;
+}
+
 function pw_missions_stat_plan(string $role): array {
     $primary = [
         'Vanguard' => 'strength',
@@ -791,13 +848,21 @@ function pw_missions_stat_plan(string $role): array {
     return ['primary' => $primary, 'primary_per_level' => 2, 'cunning_per_level' => 1];
 }
 
-function pw_missions_stats_for_level(string $role, int $level): array {
+function pw_missions_stats_for_level(string $role, int $level, ?string $tier = 'common'): array {
     $level = max(0, min(PW_MISSION_MAX_LEVEL, $level));
     $plan = pw_missions_stat_plan($role);
+    /* Rarity multiplies what a level is worth, rounded up. Applied to the
+     * whole total rather than per level so the result is a pure function of
+     * the level reached -- rounding each level separately would make the same
+     * crew member's stats depend on how many claims it took to get there. */
+    $multiplier = (float)pw_missions_crew_tier($tier)['stat_multiplier'];
+    $scale = static function (int $base) use ($multiplier) {
+        return (int)min(PW_MISSION_MAX_STAT, (int)ceil($base * $multiplier));
+    };
     $stats = ['strength' => 0, 'cunning' => 0, 'science' => 0, 'charisma' => 0];
-    $stats['cunning'] = min(PW_MISSION_MAX_STAT, $level * $plan['cunning_per_level']);
+    $stats['cunning'] = $scale($level * $plan['cunning_per_level']);
     if ($plan['primary'] !== null) {
-        $stats[$plan['primary']] = min(PW_MISSION_MAX_STAT, $level * $plan['primary_per_level']);
+        $stats[$plan['primary']] = $scale($level * $plan['primary_per_level']);
     }
     return $stats;
 }
@@ -812,7 +877,10 @@ function pw_missions_stats_for_level(string $role, int $level): array {
  */
 function pw_missions_apply_level_stats(array $crewRows): array {
     foreach ($crewRows as $index => $row) {
-        $stats = pw_missions_stats_for_level((string)($row['role'] ?? ''), (int)($row['level'] ?? 0));
+        // 'tier' is absent before the crew-capacity migration and on any row
+        // whose query does not select it; pw_missions_crew_tier() reads that
+        // as common, which is the pre-rarity behaviour exactly.
+        $stats = pw_missions_stats_for_level((string)($row['role'] ?? ''), (int)($row['level'] ?? 0), $row['tier'] ?? 'common');
         foreach ($stats as $stat => $value) $crewRows[$index][$stat] = $value;
     }
     return $crewRows;
@@ -1462,7 +1530,6 @@ function pw_missions_stat_rates(): array {
  *        for the same reason as $missionType.
  */
 function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?array $weather = null): array {
-    $rates = pw_missions_role_rates();
     $totals = ['strength' => 0, 'cunning' => 0, 'science' => 0, 'charisma' => 0];
     $durationPercent = 0.0;
     $xpPercent = 0.0;
@@ -1478,10 +1545,13 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?arr
             $totals[$stat] += max(0, min(PW_MISSION_MAX_GEAR_STAT, (int)($member[$stat] ?? 0)));
         }
         $role = (string)($member['role'] ?? '');
-        if (isset($rates[$role]['duration_percent_per_level'])) $durationPercent += $level * $rates[$role]['duration_percent_per_level'];
-        if (isset($rates[$role]['xp_percent_per_level'])) $xpPercent += $level * $rates[$role]['xp_percent_per_level'];
-        if (isset($rates[$role]['reputation_per_level'])) $reputationFlat += $level * $rates[$role]['reputation_per_level'];
-        if (isset($rates[$role]['credit_percent_per_level'])) $creditPercent += $level * $rates[$role]['credit_percent_per_level'];
+        /* Per member, not per role: rarity raises the rate, so two Engineers of
+         * different rarity at the same level do not contribute equally. */
+        $rate = pw_missions_role_rate_for($role, $member['tier'] ?? 'common');
+        if (isset($rate['duration_percent_per_level'])) $durationPercent += $level * $rate['duration_percent_per_level'];
+        if (isset($rate['xp_percent_per_level'])) $xpPercent += $level * $rate['xp_percent_per_level'];
+        if (isset($rate['reputation_per_level'])) $reputationFlat += $level * $rate['reputation_per_level'];
+        if (isset($rate['credit_percent_per_level'])) $creditPercent += $level * $rate['credit_percent_per_level'];
     }
 
     // Charisma adds to the same XP pool the Pathfinder role bonus feeds.
@@ -2338,6 +2408,12 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
             }
             $crewId = (int)$entry['crew_definition_id'];
             $award = ['id' => $crewId, 'name' => $entry['crew_name'], 'role' => $entry['role'], 'portrait_url' => $entry['portrait_url'], 'tier' => (string)($entry['crew_tier'] ?? 'common')];
+            /* There is never a second copy of a crew member, so a duplicate
+             * award used to be worth nothing at all -- a roll that hit and paid
+             * out silence. It converts to credits at the rarity's rate now, and
+             * the payout is attached to the award itself so the debrief can say
+             * which recruit it stood in for rather than showing a bare sum. */
+            $award['duplicate_credits'] = pw_missions_crew_duplicate_credits($award['tier']);
             if (isset($owned[$crewId])) { $result['duplicates'][] = $award; continue; }
             if ($crewCapacityReady) {
                 $received = pw_missions_receive_crew($db, $userId, $crewId, 'mission', $missionDefinitionId);
@@ -2346,8 +2422,12 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
                     $owned[$crewId] = true;
                     $result['granted'][] = $award;
                 } elseif ($received['state'] === 'pending') {
+                    // Held for a berth, not a duplicate: the player still has a
+                    // decision to make and pw_missions_crew_sale_value() prices
+                    // that one. No duplicate payout here.
                     $result['pending'][] = $award;
                 } else {
+                    $award['duplicate_credits'] = pw_missions_crew_duplicate_credits($award['tier']);
                     $result['duplicates'][] = $award;
                 }
                 continue;

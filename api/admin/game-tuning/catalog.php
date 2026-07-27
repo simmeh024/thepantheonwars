@@ -4,7 +4,7 @@
  * roster, the item catalogue, the mission list and the research tree.
  *
  * One request rather than four. Each list is small and bounded (three roles of
- * crew, one world of missions, a research tree sized to a 2040x1080 board), and
+ * crew, one world of missions, a research tree sized to its board), and
  * the page needs all of them before it can render anything at all.
  */
 require_once __DIR__ . '/tuning-helpers.php';
@@ -97,6 +97,12 @@ pw_json([
     'metrics' => pw_tuning_metrics(),
     // Generated from the engine's own constants -- see pw_missions_stat_reference().
     'stat_reference' => pw_missions_stat_reference(),
+    /* The rarity ladder, read from the engine rather than restated: a crew
+     * member's rarity scales its stats, raises its role bonus and prices a
+     * duplicate award, and a balance tool that did not show those three
+     * would be comparing recruits on level alone. */
+    'crew_tiers' => pw_missions_crew_tier_profile(),
+    'role_rates' => pw_missions_role_rates(),
     'gear_slots' => pw_missions_gear_slots(),
     'max_level' => PW_MISSION_MAX_LEVEL,
     'max_points' => PW_TUNING_MAX_POINTS,

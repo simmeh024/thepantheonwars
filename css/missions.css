@@ -1173,3 +1173,52 @@
 @media (prefers-reduced-motion: reduce) {
   .mission-research-card-alert::before { animation: none; opacity: .5; transform: none; }
 }
+
+/* ===========================================================================
+ * Crew debrief: what a promotion bought, and making one look like an event.
+ * ========================================================================= */
+
+/* --- The role bonus, before and after -------------------------------------
+ * The stat delta is abstract; this is the line that says what changes about
+ * the next operation, so it gets the gold and the weight. */
+.mission-result-crew-role { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px; color: #c3b184; font-size: 0.63rem; }
+.mission-result-crew-role b { color: #8d7f5e; font-size: 0.7rem; }
+.mission-result-crew-role strong { color: #ffe6ad; font-weight: 600; }
+
+/* --- The stat row ---------------------------------------------------------
+ * Drawn for every crew member, promoted or not: a delta with no absolute
+ * beside it has nothing to be a delta of, and the debrief showed no crew stat
+ * at all before this. Four fixed cells so the row scans down the list. */
+.mission-result-crew-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 2px 0 0; }
+.mission-result-crew-stats b { display: flex; align-items: baseline; justify-content: center; gap: 4px; padding: 3px 2px; border: 1px solid rgba(90,149,185,0.22); background: rgba(4,10,20,0.5); color: #7f9bad; font: 600 0.53rem/1 'Jost', sans-serif; letter-spacing: 0.07em; }
+.mission-result-crew-stats b i { color: #dce8f2; font-size: 0.68rem; font-style: normal; }
+/* A stat nobody has is dimmed by a measured colour step, never by opacity: opacity
+ * composites the text AND its own background, so a contrast sampler reads the
+ * undimmed pair and reports a pass. This cell measured 6.82:1 that way and 2.76:1
+ * in reality -- the same compounding trap the Neoh weather card hit. */
+.mission-result-crew-stats b.is-zero { color: #6d8698; }
+.mission-result-crew-stats b.is-zero i { color: #8ea6b6; }
+/* A stat that moved is the point of the row, so it is marked by colour and a
+ * printed delta rather than by opacity, which no contrast check can see. */
+.mission-result-crew-stats b.is-up { border-color: rgba(235,209,138,0.55); background: rgba(58,44,16,0.55); color: #d8c58f; }
+.mission-result-crew-stats b.is-up i { color: #ffe6ad; }
+.mission-result-crew-stats b u { color: #9edba8; font-size: 0.55rem; text-decoration: none; }
+
+/* --- A promotion should read as an event ----------------------------------
+ * Four identical cards with one gold word between them did not. The promoted
+ * row gets a gold leading edge, a lift, and one arrival pass -- backwards fill
+ * from a visible base, so a frame that never comes leaves the card correct. */
+.mission-result-crew.is-promoted { position: relative; border-left-width: 3px; box-shadow: 0 0 16px rgba(224,178,74,0.12); }
+.mission-result-crew.is-promoted::before { content: ''; position: absolute; top: -1px; bottom: -1px; left: -3px; width: 3px; background: linear-gradient(180deg, #ffe6ad, #d88758); box-shadow: 0 0 9px rgba(236,201,135,0.6); }
+@keyframes mission-promo-in { from { transform: translateY(6px); box-shadow: 0 0 0 rgba(224,178,74,0); } }
+.mission-result-crew.is-promoted { animation: mission-promo-in 0.45s ease-out backwards; }
+.mission-result-crew.is-promoted:nth-child(2) { animation-delay: 0.07s; }
+.mission-result-crew.is-promoted:nth-child(3) { animation-delay: 0.14s; }
+.mission-result-crew.is-promoted:nth-child(4) { animation-delay: 0.21s; }
+
+@media (max-width: 520px) {
+  .mission-result-crew-stats { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mission-result-crew.is-promoted { animation: none; }
+}

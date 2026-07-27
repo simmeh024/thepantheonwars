@@ -68,6 +68,7 @@ try {
     $fatigueReady = pw_mission_fatigue_ready($db);
     $crewStmt = $db->prepare(
         'SELECT pc.id, pc.status, pc.level, c.role, c.name'
+        . (pw_mission_crew_capacity_ready($db) ? ', c.tier' : ', "common" AS tier')
         . ($statsReady ? ', pc.strength, pc.cunning, pc.science, pc.charisma' : '')
         . ($fatigueReady ? ', pc.fatigue, pc.fatigue_updated_at' : '') .
         ' FROM game_player_crew pc

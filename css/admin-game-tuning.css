@@ -196,3 +196,14 @@
     grid-template-areas: "controls" "aside" "output";
   }
 }
+
+/* Rarity rows. Toned like the item tiers elsewhere in the console so the same
+ * five words read as the same five things across the admin surface. */
+.tuning-stat-row.is-rarity { border-left: 3px solid var(--tuning-tier, rgba(90,149,185,0.5)); }
+.tuning-stat-row.is-tier-common { --tuning-tier: #8ba0b4; }
+.tuning-stat-row.is-tier-uncommon { --tuning-tier: #7fc79a; }
+.tuning-stat-row.is-tier-rare { --tuning-tier: #6fb2e0; }
+.tuning-stat-row.is-tier-epic { --tuning-tier: #b98ce6; }
+.tuning-stat-row.is-tier-legendary { --tuning-tier: #ecc987; }
+.tuning-stat-row.is-rarity .tuning-stat-key { color: var(--tuning-tier); }
+.tuning-stat-row.is-rarity .tuning-stat-affects small { color: #8fa8b8; }

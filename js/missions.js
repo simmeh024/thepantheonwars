@@ -666,27 +666,47 @@
     Vanguard: { reputation_per_level: 0.10 },
     Fixer: { credit_percent_per_level: 0.50 }
   };
+  /* Rarity adds to the role's per-level rate, so a rare Engineer is worth more
+     per level than a common one. Shipped by the server for exactly the reason
+     the rates above are: a retune applied in one place only would leave the
+     launch screen promising a reward the claim does not pay. */
+  var TIER_BONUS_FALLBACK = { common: 0, uncommon: 0.05, rare: 0.15, epic: 0.20, legendary: 0.25 };
+  function tierBonus(tier) {
+    var table = (state.data && state.data.crew_tier_bonus) || TIER_BONUS_FALLBACK;
+    var value = Number(table[String(tier || 'common').toLowerCase()]);
+    return isFinite(value) ? value : 0;
+  }
   function roleRates() {
     return (state.data && state.data.role_rates) || ROLE_RATE_FALLBACK;
   }
-  function roleRate(role, key) {
+  function roleRate(role, key, tier) {
     var rates = roleRates()[role];
-    return rates && isFinite(Number(rates[key])) ? Number(rates[key]) : 0;
+    if (!rates || !isFinite(Number(rates[key]))) return 0;
+    return Number(rates[key]) + tierBonus(tier);
   }
   var ROLE_INFO = {
     Engineer: { stat: 'science', rate: 'duration_percent_per_level',
-      effect: function (l) { return '−' + fmt(l * roleRate('Engineer', 'duration_percent_per_level')) + '% mission time'; },
-      copy: function () { var r = roleRate('Engineer', 'duration_percent_per_level');
+      effect: function (l, t) { return '−' + fmt(l * roleRate('Engineer', 'duration_percent_per_level', t)) + '% mission time'; },
+      copy: function (t) { var r = roleRate('Engineer', 'duration_percent_per_level', t);
         return 'Engineers shorten every operation they join by ' + fmt(r) + '% per level. This stacks across the crew, so three level-2 Engineers cut ' + fmt(r * 6) + '% from the clock.'; } },
     Pathfinder: { stat: 'charisma', rate: 'xp_percent_per_level',
-      effect: function (l) { return '+' + fmt(l * roleRate('Pathfinder', 'xp_percent_per_level')) + '% crew XP'; },
-      copy: function () { return 'Pathfinders raise the experience the whole crew earns by ' + fmt(roleRate('Pathfinder', 'xp_percent_per_level')) + '% per level, on top of their own Charisma.'; } },
+      effect: function (l, t) { return '+' + fmt(l * roleRate('Pathfinder', 'xp_percent_per_level', t)) + '% crew XP'; },
+      copy: function (t) { return 'Pathfinders raise the experience the whole crew earns by ' + fmt(roleRate('Pathfinder', 'xp_percent_per_level', t)) + '% per level, on top of their own Charisma.'; } },
     Vanguard: { stat: 'strength', rate: 'reputation_per_level',
-      effect: function (l) { return '+' + fmt(l * roleRate('Vanguard', 'reputation_per_level')) + ' reputation'; },
-      copy: function () { return 'Vanguards add ' + fmt(roleRate('Vanguard', 'reputation_per_level')) + ' flat reputation per level to a successful mission, on top of the operation\u2019s own reward.'; } },
+      effect: function (l, t) { return '+' + fmt(l * roleRate('Vanguard', 'reputation_per_level', t)) + ' reputation'; },
+      copy: function (t) { return 'Vanguards add ' + fmt(roleRate('Vanguard', 'reputation_per_level', t)) + ' flat reputation per level to a successful mission, on top of the operation\u2019s own reward.'; } },
     Fixer: { stat: 'cunning', rate: 'credit_percent_per_level',
-      effect: function (l) { return '+' + fmt(l * roleRate('Fixer', 'credit_percent_per_level')) + '% credits'; },
-      copy: function () { return 'Fixers raise the credits a successful operation pays by ' + fmt(roleRate('Fixer', 'credit_percent_per_level')) + '% per level. The only role with no operation-type affinity, so a Fixer earns the same on every kind of work.'; } }
+      effect: function (l, t) { return '+' + fmt(l * roleRate('Fixer', 'credit_percent_per_level', t)) + '% credits'; },
+      copy: function (t) { return 'Fixers raise the credits a successful operation pays by ' + fmt(roleRate('Fixer', 'credit_percent_per_level', t)) + '% per level. The only role with no operation-type affinity, so a Fixer earns the same on every kind of work.'; } }
+  };
+  /* One phrasing per role effect, keyed by the rate the server names in
+     role_effect. Separate from ROLE_INFO because that one multiplies a level by
+     a rate; this one is handed the resolved total and only has to word it. */
+  var ROLE_EFFECT_SHAPE = {
+    duration_percent_per_level: function (v) { return fmt(v) + '% faster'; },
+    xp_percent_per_level: function (v) { return '+' + fmt(v) + '% crew XP'; },
+    reputation_per_level: function (v) { return '+' + fmt(v) + ' reputation'; },
+    credit_percent_per_level: function (v) { return '+' + fmt(v) + '% credits'; }
   };
   function fmt(value) {
     var rounded = Math.round(value * 100) / 100;
@@ -718,7 +738,7 @@
 
     var role = ROLE_INFO[crew.role];
     var roleLine = role
-      ? '<p class="crew-stat-role" tabindex="0" title="' + escapeHtml(role.copy()) + '"><span>' + escapeHtml(crew.role) + ' bonus</span><strong>' + escapeHtml(role.effect(Number(crew.level) || 0)) + '</strong></p>'
+      ? '<p class="crew-stat-role" tabindex="0" title="' + escapeHtml(role.copy(crew.tier)) + '"><span>' + escapeHtml(crew.role) + ' bonus</span><strong>' + escapeHtml(role.effect(Number(crew.level) || 0, crew.tier)) + '</strong></p>'
       : '';
     return '<div class="crew-stat-card"><div class="crew-stat-grid">' + cells + '</div>' + roleLine + '</div>';
   }
@@ -1085,6 +1105,43 @@
     if (!crew.length) return '';
     var rows = crew.map(function (member) {
       var atCeiling = !Number(member.xp_for_next_level);
+      /* A promotion used to report only that it happened. These two lines say
+         what it did: which stats moved, and where the role bonus now stands.
+         Both sides come from the server, which already holds the pre-award and
+         post-award figures -- the browser never re-derives a stat. */
+      var before = member.stats_before || {};
+      var after = member.stats || {};
+      var moved = ['strength', 'cunning', 'science', 'charisma'].map(function (key) {
+        var delta = (Number(after[key]) || 0) - (Number(before[key]) || 0);
+        return delta > 0 ? '+' + delta + ' ' + STAT_INFO[key].short : '';
+      }).filter(Boolean);
+      /* The stat row is drawn for everyone, not only the promoted: a delta with
+         no absolute beside it has nothing to be a delta of, and the debrief
+         never showed a crew stat at all before this. */
+      var statRow = '';
+      if (Object.keys(after).length) {
+        statRow = '<span class="mission-result-crew-stats">' + ['strength', 'cunning', 'science', 'charisma'].map(function (key) {
+          var value = Number(after[key]) || 0;
+          var delta = value - (Number(before[key]) || 0);
+          var info = STAT_INFO[key];
+          var tip = info.label + ' ' + value + (delta > 0 ? ', up ' + delta + ' this promotion' : '') + ' — ' + info.effect(value) + '.';
+          return '<b class="is-' + key + (delta > 0 ? ' is-up' : '') + (value ? '' : ' is-zero') + '" title="' + escapeHtml(tip) + '">'
+            + info.short + ' <i>' + value + '</i>'
+            + (delta > 0 ? '<u>+' + delta + '</u>' : '') + '</b>';
+        }).join('') + '</span>';
+      }
+      /* Idea 2: the line a player actually feels. The stat delta is abstract --
+         "mission time 18.0% -> 18.5% faster" is the thing that changes about
+         the next operation. Rendered only when it moved. */
+      var roleLine = '';
+      var effect = member.role_effect;
+      if (effect && member.levelled_up && Number(effect.after) !== Number(effect.before)) {
+        var shape = ROLE_EFFECT_SHAPE[effect.key];
+        if (shape) {
+          roleLine = '<span class="mission-result-crew-role">' + escapeHtml(member.role) + ' bonus · '
+            + escapeHtml(shape(effect.before)) + ' <b aria-hidden="true">\u2192</b> <strong>' + escapeHtml(shape(effect.after)) + '</strong></span>';
+        }
+      }
       var xpLine = atCeiling
         ? 'Level ' + member.level + ' — fully trained'
         : member.xp_into_level + ' / ' + member.xp_for_next_level + ' XP to level ' + (Number(member.level) + 1);
@@ -1101,7 +1158,8 @@
           ? '<em class="mission-result-crew-promo">' + escapeHtml(member.levels_gained > 1 ? '+' + member.levels_gained + ' levels · now ' + member.level : 'Promoted to level ' + member.level) + '</em>'
           : '<em>' + escapeHtml(member.role + ' · Level ' + member.level) + '</em>') + '</span>'
         + '<span class="mission-result-crew-xp"><i style="width:' + Math.max(0, Math.min(100, Number(member.xp_percent) || 0)) + '%"></i></span>'
-        + '<span class="mission-result-crew-meta">' + escapeHtml(xpLine) + rest + '</span></li>';
+        + '<span class="mission-result-crew-meta">' + escapeHtml(xpLine) + rest + '</span>'
+        + roleLine + statRow + '</li>';
     }).join('');
     return '<div class="mission-result-block is-crew"><h4>Crew</h4><ul class="mission-result-crewlist">' + rows + '</ul></div>';
   }
@@ -1188,9 +1246,20 @@
         }).join('') + '</ul></div>';
     }
     if (!failed && result.crew_duplicates && result.crew_duplicates.length) {
-      var duplicateNames = result.crew_duplicates.map(function (member) { return member.name; }).join(', ');
-      extras += '<p class="mission-result-note">' + escapeHtml(duplicateNames) + (result.crew_duplicates.length === 1 ? ' was' : ' were')
-        + ' already on your roster, so nothing was added.</p>';
+      /* A duplicate used to be reported as "nothing was added", which was
+         true and worth nothing. It pays credits at the recruit's own rarity
+         now, so the note names the rate rather than a bare sum -- otherwise a
+         player cannot tell a legendary stand-in from a common one. */
+      var duplicateNames = result.crew_duplicates.map(function (member) {
+        var paid = Number(member.duplicate_credits) || 0;
+        return escapeHtml(member.name) + (paid > 0 ? ' <b>+' + credits(paid) + ' cr</b>' : '');
+      }).join(', ');
+      var duplicateTotal = Number(result.crew_duplicate_credits) || 0;
+      extras += '<p class="mission-result-note">' + duplicateNames + (result.crew_duplicates.length === 1 ? ' was' : ' were')
+        + ' already on your roster'
+        + (duplicateTotal > 0
+          ? ', so the contract paid out instead — ' + escapeHtml(credits(duplicateTotal)) + ' credits.'
+          : ', so nothing was added.') + '</p>';
     }
     if (!failed && result.crew_capacity_offers && result.crew_capacity_offers.length) {
       extras += '<div class="mission-result-block is-recruit"><h4>Crew berth required</h4>'
@@ -1415,10 +1484,10 @@
     crew.forEach(function (member) {
       var level = Math.max(0, Math.min(Number(member.max_level) || 50, Number(member.level) || 0));
       Object.keys(totals).forEach(function (stat) { totals[stat] += Math.max(0, Number(member[stat]) || 0); });
-      durationPercent += level * roleRate(member.role, 'duration_percent_per_level');
-      xpPercent += level * roleRate(member.role, 'xp_percent_per_level');
-      reputationFlat += level * roleRate(member.role, 'reputation_per_level');
-      roleCreditPercent += level * roleRate(member.role, 'credit_percent_per_level');
+      durationPercent += level * roleRate(member.role, 'duration_percent_per_level', member.tier);
+      xpPercent += level * roleRate(member.role, 'xp_percent_per_level', member.tier);
+      reputationFlat += level * roleRate(member.role, 'reputation_per_level', member.tier);
+      roleCreditPercent += level * roleRate(member.role, 'credit_percent_per_level', member.tier);
       var match = rule && rule.preferred ? rule.preferred[member.role] : null;
       if (match) { affinity[match.effect] += Number(match.percent) || 0; matched++; }
     });
@@ -1628,7 +1697,7 @@
     if (match) lines.push({ tone: 'is-affinity', text: match.label });
     var role = ROLE_INFO[member.role];
     var level = Math.max(0, Number(member.level) || 0);
-    if (role && level > 0) lines.push({ tone: '', text: role.effect(level) });
+    if (role && level > 0) lines.push({ tone: '', text: role.effect(level, member.tier) });
     var best = null;
     ['strength', 'cunning', 'science', 'charisma'].forEach(function (key) {
       var value = Math.max(0, Number(member[key]) || 0);
