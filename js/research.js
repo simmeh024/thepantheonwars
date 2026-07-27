@@ -3,7 +3,7 @@
 (function () {
   'use strict';
 
-  var state = { data: null, busyId: null, queueBusyId: null, justActivatedId: null, categoryFilter: '', zoom: 1 };
+  var state = { data: null, busyId: null, queueBusyId: null, justActivatedId: null, categoryFilter: '', zoom: 1, board: 'standard' };
   var gate = document.getElementById('research-gate');
   var content = document.getElementById('research-content');
   var board = document.getElementById('research-tree-board');
@@ -18,6 +18,11 @@
   var zoomOut = document.getElementById('research-zoom-out');
   var zoomIn = document.getElementById('research-zoom-in');
   var zoomLevel = document.getElementById('research-zoom-level');
+  var boardTabs = document.getElementById('research-board-tabs');
+  var legendaryTab = document.getElementById('research-board-tab-legendary');
+  var legendaryTabWrap = document.getElementById('research-board-tab-legendary-wrap');
+  var legendaryTabNote = document.getElementById('research-board-tab-note');
+  var standardTab = document.getElementById('research-board-tab-standard');
   var fullscreenButton = document.getElementById('research-fullscreen');
   var queueCard = document.getElementById('research-queue-card');
   var queueContent = document.getElementById('research-queue-content');
@@ -96,8 +101,75 @@
     var queueAction = queueAvailable ? '<button type="button" class="research-node-queue" data-research-queue="' + Number(node.id) + '"' + (queueBusy || node.is_queued ? ' disabled' : '') + '>' + esc(queueLabel) + '</button>' : '';
     return '<div class="research-node-hover"><span class="research-node-hover-effect">' + esc(effectText(node)) + '</span><p>' + esc(node.description) + '</p><span class="research-node-costs">' + nodeCosts(node) + '</span><button type="button" class="research-node-unlock" data-research-unlock="' + Number(node.id) + '"' + (canUnlock ? '' : ' disabled') + '>' + esc(actionLabel) + '</button>' + queueAction + '<span class="research-node-hover-reason' + (canUnlock ? ' is-ready' : '') + '">' + esc(reason) + '</span></div>';
   }
+  /* The two boards are separated by the server, which also decides whether the
+     legendary set is sent at all. This only reads that answer -- it never
+     re-derives which nodes are legendary, so the browser cannot show a board
+     the response did not authorise. */
+  function legendary(data) { return (data && data.legendary) || null; }
+  function legendaryOpen(data) {
+    var block = legendary(data);
+    return !!(block && !block.locked);
+  }
+  function activeBoard(data) {
+    var block = legendary(data);
+    if (state.board === 'legendary' && legendaryOpen(data)) {
+      return { nodes: block.nodes || [], size: block.board || {}, legendary: true };
+    }
+    return { nodes: (data && data.nodes) || [], size: (data && data.board) || {}, legendary: false };
+  }
+
+  /* What the sealed tab says when hovered or focused. Deliberately a count and
+     a rank rather than a list: naming the protocols behind the gate would hand
+     the endgame to a player who has not reached it, which is the same reason
+     the server withholds them in the first place. */
+  function legendaryRequirement(block) {
+    var parts = [];
+    var remaining = Math.max(0, Number(block.protocols_remaining) || 0);
+    if (remaining > 0) parts.push('bring ' + remaining + ' more protocol' + (remaining === 1 ? '' : 's') + ' online');
+    if (!block.rank_met && Number(block.required_rank) > 0) parts.push('reach rank ' + Number(block.required_rank));
+    if (!parts.length) return 'Legendary Research is sealed until command clears the final requirements.';
+    var count = Math.max(0, Number(block.node_count) || 0);
+    var prize = count > 0 ? count + ' legendary protocol' + (count === 1 ? ' waits' : 's wait') + ' behind it. ' : '';
+    return prize + 'To open it, ' + parts.join(' and ') + '.';
+  }
+
+  function renderBoardTabs(data) {
+    if (!boardTabs || !legendaryTab || !legendaryTabWrap) return;
+    var block = legendary(data);
+    /* No second tab at all when no legendary branch has been authored -- an
+       empty tab reads as unfinished rather than as something to work toward. */
+    legendaryTabWrap.hidden = !block;
+    if (!block) {
+      state.board = 'standard';
+    } else {
+      var open = legendaryOpen(data);
+      /* aria-disabled rather than disabled: the whole point of the greyed tab
+         is that it explains itself, and a disabled button is neither focusable
+         nor reliably hoverable, so its own explanation would be unreachable. */
+      legendaryTab.setAttribute('aria-disabled', open ? 'false' : 'true');
+      legendaryTab.classList.toggle('is-sealed', !open);
+      legendaryTabNote.textContent = open ? '' : legendaryRequirement(block);
+      legendaryTabNote.hidden = open;
+      if (open) legendaryTab.removeAttribute('aria-describedby');
+      else legendaryTab.setAttribute('aria-describedby', 'research-board-tab-note');
+      if (!open && state.board === 'legendary') state.board = 'standard';
+    }
+    var onLegendary = state.board === 'legendary';
+    legendaryTab.classList.toggle('is-active', onLegendary);
+    legendaryTab.setAttribute('aria-selected', onLegendary ? 'true' : 'false');
+    if (standardTab) {
+      standardTab.classList.toggle('is-active', !onLegendary);
+      standardTab.setAttribute('aria-selected', onLegendary ? 'false' : 'true');
+    }
+    // The category filter describes the ordinary lattice; the legendary board
+    // is one branch, so filtering it by category would only ever hide it.
+    if (categoryFilterWrap && onLegendary) categoryFilterWrap.hidden = true;
+  }
+
   function filteredNodes(data) {
-    var nodes = Array.isArray(data && data.nodes) ? data.nodes : [];
+    var current = activeBoard(data);
+    var nodes = current.nodes;
+    if (current.legendary) return nodes;
     if (!state.categoryFilter) return nodes;
     if (state.categoryFilter === 'uncategorized') return nodes.filter(function (node) { return !node.category; });
     var categoryId = Number(state.categoryFilter.replace('category-', ''));
@@ -232,8 +304,17 @@
   function renderTree(data) {
     renderTreeKey();
     var nodes = filteredNodes(data);
-    if (!nodes.length) { board.style.width = ''; board.style.minHeight = ''; board.innerHTML = '<p class="research-empty">' + (state.categoryFilter ? 'No protocols have been assigned to this category yet.' : 'Research command has not published any protocols yet.') + '</p>'; syncMapScale(); return; }
-    var dimensions = data.board || {}, width = Math.max(960, Number(dimensions.width) || 2040), height = Math.max(600, Number(dimensions.height) || 1080);
+    if (!nodes.length) {
+      board.style.width = ''; board.style.minHeight = '';
+      board.classList.toggle('is-legendary', state.board === 'legendary');
+      var emptyCopy = state.board === 'legendary' ? 'No legendary protocols have been published yet.'
+        : (state.categoryFilter ? 'No protocols have been assigned to this category yet.' : 'Research command has not published any protocols yet.');
+      board.innerHTML = '<p class="research-empty">' + emptyCopy + '</p>'; syncMapScale(); return;
+    }
+    var current = activeBoard(data), dimensions = current.size || {};
+    var width = Math.max(current.legendary ? 480 : 960, Number(dimensions.width) || (current.legendary ? 1200 : 2040));
+    var height = Math.max(current.legendary ? 300 : 600, Number(dimensions.height) || (current.legendary ? 540 : 1440));
+    board.classList.toggle('is-legendary', current.legendary);
     board.style.width = width + 'px'; board.style.minHeight = height + 'px';
     var byId = {}; nodes.forEach(function (node) { byId[Number(node.id)] = node; });
     var lines = nodes.map(function (node) {
@@ -260,6 +341,7 @@
   function render(data) {
     state.data = data;
     renderCategoryFilter(data);
+    renderBoardTabs(data);
     renderCommand(data); renderEffects(data.effects || {}); renderQueue(data); renderTransmissions(data); renderTree(data);
   }
 
@@ -328,6 +410,21 @@
     if (queueButton && board.contains(queueButton)) { queue(Number(queueButton.getAttribute('data-research-queue'))); }
   });
   categoryFilter.addEventListener('change', function () { state.categoryFilter = categoryFilter.value; renderTree(state.data); });
+  if (boardTabs) {
+    boardTabs.addEventListener('click', function (event) {
+      var tab = event.target.closest('[data-research-board]');
+      if (!tab || !boardTabs.contains(tab)) return;
+      var target = tab.getAttribute('data-research-board');
+      // The sealed tab stays clickable so it can be reached and explained, so
+      // the refusal has to live here rather than in the disabled attribute.
+      if (target === 'legendary' && !legendaryOpen(state.data)) return;
+      if (target === state.board) return;
+      state.board = target;
+      state.zoom = 1;
+      renderCategoryFilter(state.data); renderBoardTabs(state.data); renderTree(state.data);
+      if (treeViewport) { treeViewport.scrollLeft = 0; treeViewport.scrollTop = 0; }
+    });
+  }
   if (queueContent) queueContent.addEventListener('click', function (event) { if (event.target.closest('[data-research-queue-clear]')) queue(null); });
   zoomOut.addEventListener('click', function () { setZoom(state.zoom - zoomStep); });
   zoomIn.addEventListener('click', function () { setZoom(state.zoom + zoomStep); });

@@ -62,7 +62,28 @@ try {
     $allOtherProtocolsUnlocked = !empty($normalEnabledNodes) && !array_filter($normalEnabledNodes, static function ($node) use ($unlocked) {
         return !isset($unlocked[(int)$node['id']]);
     });
-    if ($finalCategoryIds && !$allOtherProtocolsUnlocked) {
+    /* The legendary branch used to vanish from the response entirely until its
+     * gate opened, which is safe but tells the player nothing -- there was no
+     * sign the branch existed at all. It is now announced but still sealed: the
+     * tab is shipped with a requirement, and the nodes themselves are withheld
+     * exactly as before. What is sent is a count and a rank, never a list, for
+     * the same reason a locked timeline event ships only its position: naming
+     * the protocols would hand the endgame to anyone who had not reached it. */
+    $legendaryLocked = $finalCategoryIds && !$allOtherProtocolsUnlocked;
+    $legendaryNodeCount = 0;
+    $legendaryMinRank = 0;
+    foreach ($nodes as $node) {
+        $categoryId = $node['research_category_id'] !== null ? (int)$node['research_category_id'] : 0;
+        if (!isset($finalCategoryIds[$categoryId]) || empty($node['is_enabled'])) continue;
+        $legendaryNodeCount++;
+        $nodeRank = (int)$node['required_reputation_level'];
+        if ($legendaryMinRank === 0 || $nodeRank < $legendaryMinRank) $legendaryMinRank = $nodeRank;
+    }
+    $protocolsRemaining = 0;
+    foreach ($normalEnabledNodes as $node) {
+        if (!isset($unlocked[(int)$node['id']])) $protocolsRemaining++;
+    }
+    if ($legendaryLocked) {
         $nodes = array_values(array_filter($nodes, static function ($node) use ($finalCategoryIds, $unlocked) {
             $categoryId = $node['research_category_id'] !== null ? (int)$node['research_category_id'] : 0;
             return !isset($finalCategoryIds[$categoryId]) || isset($unlocked[(int)$node['id']]);
@@ -148,6 +169,11 @@ try {
         $effect = pw_research_effect_types()[(string)$node['effect_type']] ?? null;
         if ($effect === null) continue;
         $categoryId = $node['research_category_id'] !== null ? (int)$node['research_category_id'] : null;
+        // Each board clamps against its own size. Using the main board's bounds
+        // for a legendary node would let it place outside the smaller canvas,
+        // which clips its overflow and would simply lose the card.
+        $isLegendary = $categoryId !== null && isset($finalCategoryIds[$categoryId]);
+        $bounds = pw_research_board_size($isLegendary);
         $publicNodes[] = [
             'id' => $id,
             'name' => (string)$node['name'],
@@ -175,8 +201,9 @@ try {
             ],
             'prerequisites' => $required,
             'missing_prerequisites' => $missing,
-            'canvas_x' => max(0, min(PW_RESEARCH_BOARD_WIDTH - 196, (int)$node['canvas_x'])),
-            'canvas_y' => max(0, min(PW_RESEARCH_BOARD_HEIGHT - 126, (int)$node['canvas_y'])),
+            'is_legendary' => $isLegendary,
+            'canvas_x' => max(0, min($bounds['width'] - 196, (int)$node['canvas_x'])),
+            'canvas_y' => max(0, min($bounds['height'] - 126, (int)$node['canvas_y'])),
             'is_enabled' => (bool)$node['is_enabled'],
             'is_unlocked' => $isUnlocked,
             'rank_met' => $rankMet,
@@ -202,6 +229,13 @@ try {
     }
 
     $effects = pw_research_player_effects($db, $userId);
+    /* The two boards are separated here rather than in the browser so the
+     * legendary set is one thing on both sides of the request: the same flag
+     * decides which board a node is clamped to, which board it is sent on, and
+     * whether the tab is sealed. */
+    $legendaryNodes = array_values(array_filter($publicNodes, static function ($node) { return $node['is_legendary']; }));
+    $standardNodes = array_values(array_filter($publicNodes, static function ($node) { return !$node['is_legendary']; }));
+    $rankMetForLegendary = $legendaryMinRank === 0 || $rank >= $legendaryMinRank;
     pw_json([
         'ok' => true,
         'credits' => $credits,
@@ -211,8 +245,27 @@ try {
         'queue' => $queueNode,
         'transmissions' => $transmissions,
         'categories' => $categories,
-        'nodes' => $publicNodes,
-        'board' => ['width' => PW_RESEARCH_BOARD_WIDTH, 'height' => PW_RESEARCH_BOARD_HEIGHT],
+        'nodes' => $standardNodes,
+        'board' => pw_research_board_size(false),
+        // Present only once a legendary category actually exists, so a command
+        // with no endgame branch authored yet shows no second tab at all rather
+        // than an empty one.
+        'legendary' => !$finalCategoryIds ? null : [
+            /* Sealed unless the gate is open -- or unless the player already
+             * owns something on this board. A protocol can only have been
+             * bought while the gate was open, and an administrator adding one
+             * more ordinary node afterwards closes it again; without this, that
+             * edit would hide an already-earned benefit behind a tab the player
+             * can no longer open. When locked, the filter above has already
+             * reduced this list to exactly those owned protocols. */
+            'locked' => $legendaryLocked && !$legendaryNodes,
+            'nodes' => $legendaryNodes,
+            'board' => pw_research_board_size(true),
+            'node_count' => $legendaryNodeCount,
+            'protocols_remaining' => $protocolsRemaining,
+            'required_rank' => $legendaryMinRank,
+            'rank_met' => $rankMetForLegendary,
+        ],
         'summary' => ['unlocked_count' => count($unlocked), 'available_count' => count(array_filter($publicNodes, static function ($node) { return $node['can_unlock']; }))],
     ]);
 } catch (Throwable $e) {

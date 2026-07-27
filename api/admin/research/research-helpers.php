@@ -30,13 +30,16 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
     $transmission = trim((string)($input['activation_transmission'] ?? ''));
     if (mb_strlen($transmission) > 2000) pw_error('Activation transmission may not exceed 2,000 characters.');
     $categoryId = null;
+    $isLegendary = false;
     $categoryRaw = trim((string)($input['research_category_id'] ?? ''));
     if ($categoryRaw !== '') {
         $categoryId = filter_var($categoryRaw, FILTER_VALIDATE_INT);
         if ($categoryId === false || $categoryId < 1) pw_error('Choose a valid research category.');
-        $category = $db->prepare('SELECT id FROM game_research_categories WHERE id = ?');
+        $category = $db->prepare('SELECT id, requires_all_other_unlocked FROM game_research_categories WHERE id = ?');
         $category->execute([$categoryId]);
-        if (!$category->fetch()) pw_error('The selected research category no longer exists.', 404);
+        $categoryRow = $category->fetch();
+        if (!$categoryRow) pw_error('The selected research category no longer exists.', 404);
+        $isLegendary = !empty($categoryRow['requires_all_other_unlocked']);
     }
     $effectType = trim((string)($input['effect_type'] ?? ''));
     if (!isset(pw_research_effect_types()[$effectType])) pw_error('Choose a valid research effect.');
@@ -143,8 +146,13 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
     $canvasX = filter_var($input['canvas_x'] ?? 80, FILTER_VALIDATE_INT);
     $canvasY = filter_var($input['canvas_y'] ?? 80, FILTER_VALIDATE_INT);
     $sortOrder = filter_var($input['sort_order'] ?? 0, FILTER_VALIDATE_INT);
-    if ($canvasX === false || $canvasX < 0 || $canvasX > PW_RESEARCH_BOARD_WIDTH - 196) pw_error('Canvas X must stay inside the research board.');
-    if ($canvasY === false || $canvasY < 0 || $canvasY > PW_RESEARCH_BOARD_HEIGHT - 126) pw_error('Canvas Y must stay inside the research board.');
+    /* A legendary protocol is authored on the smaller board, so it is bounded
+     * by that one. Validating everything against the main board would accept a
+     * position the legendary canvas clips, losing the card with no error. */
+    $bounds = pw_research_board_size($isLegendary);
+    $boardName = $isLegendary ? 'legendary research board' : 'research board';
+    if ($canvasX === false || $canvasX < 0 || $canvasX > $bounds['width'] - 196) pw_error('Canvas X must stay inside the ' . $boardName . '.');
+    if ($canvasY === false || $canvasY < 0 || $canvasY > $bounds['height'] - 126) pw_error('Canvas Y must stay inside the ' . $boardName . '.');
     if ($sortOrder === false || $sortOrder < 0 || $sortOrder > 100000) pw_error('Sort order must be between 0 and 100000.');
 
     $imageUrl = trim((string)($input['image_url'] ?? ''));

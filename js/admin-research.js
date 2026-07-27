@@ -4,7 +4,7 @@
 (function () {
   'use strict';
 
-  var nodes = [], categories = [], salvage = [], missions = [], rareLootTables = [], effectTypes = {}, boardSize = { width: 2040, height: 1080 }, missionLocksReady = false, lootTableLocksReady = false, queueTransmissionsReady = false;
+  var nodes = [], categories = [], salvage = [], missions = [], rareLootTables = [], effectTypes = {}, boardSize = { width: 2040, height: 1440 }, legendaryBoardSize = { width: 1200, height: 540 }, boardMode = 'standard', missionLocksReady = false, lootTableLocksReady = false, queueTransmissionsReady = false;
   var current = null, categoryCurrent = null, dragging = null, panning = null, linkMode = false, linkSource = null, draftPosition = null, suppressClick = false;
   var canvas = document.getElementById('research-admin-canvas'), viewport = document.getElementById('research-admin-canvas-viewport');
   var count = document.getElementById('research-admin-count'), editorFields = document.getElementById('research-editor-fields');
@@ -46,8 +46,37 @@
     if (flat) return '+' + Math.floor(Number(node.effect_value || 0)) + ' ' + flat;
     return '+' + Number(node.effect_value || 0) + '%';
   }
-  function boardWidth() { return Math.max(960, Number(boardSize.width) || 2040); }
-  function boardHeight() { return Math.max(600, Number(boardSize.height) || 1080); }
+  /* Two canvases, separated by the one flag that already decided the endgame
+     branch: a category carrying requires_all_other_unlocked is authored on the
+     smaller legendary board. Deriving it here rather than storing a second flag
+     is what keeps this surface and api/research/overview.php from ever
+     disagreeing about which board a protocol lives on. */
+  function categoryIsLegendary(id) {
+    var category = categoryById(id);
+    return !!(category && category.requires_all_other_unlocked);
+  }
+  function nodeIsLegendary(node) { return categoryIsLegendary(node && node.research_category_id); }
+  function boardNodes() {
+    return nodes.filter(function (node) { return nodeIsLegendary(node) === (boardMode === 'legendary'); });
+  }
+  function boardWidth() {
+    if (boardMode === 'legendary') return Math.max(480, Number(legendaryBoardSize.width) || 1200);
+    return Math.max(960, Number(boardSize.width) || 2040);
+  }
+  function boardHeight() {
+    if (boardMode === 'legendary') return Math.max(300, Number(legendaryBoardSize.height) || 540);
+    return Math.max(600, Number(boardSize.height) || 1440);
+  }
+  /* A node's own board, not the one being viewed -- used when saving, because
+     moving a protocol into or out of a legendary category changes which bounds
+     its stored position has to satisfy. */
+  function boundsFor(legendaryCategory) {
+    var size = legendaryCategory ? legendaryBoardSize : boardSize;
+    return {
+      width: Math.max(legendaryCategory ? 480 : 960, Number(size.width) || (legendaryCategory ? 1200 : 2040)),
+      height: Math.max(legendaryCategory ? 300 : 600, Number(size.height) || (legendaryCategory ? 540 : 1440))
+    };
+  }
   function clampPosition(position) {
     return {
       x: Math.max(0, Math.min(boardWidth() - 196, Math.round(Number(position.x) || 0))),
@@ -58,7 +87,7 @@
     };
   }
   function visibleCanvasPosition() {
-    if (!viewport) return clampPosition({ x: 80 + nodes.length * 38, y: 80 + nodes.length * 34 });
+    if (!viewport) return clampPosition({ x: 80 + boardNodes().length * 38, y: 80 + boardNodes().length * 34 });
     return clampPosition({
       x: viewport.scrollLeft + (viewport.clientWidth / 2) - 98,
       y: viewport.scrollTop + (viewport.clientHeight / 2) - 58
@@ -67,10 +96,13 @@
 
   function canvasControls() {
     var editable = can('research.manage');
-    var hasLinks = nodes.length > 1;
+    var hasLinks = boardNodes().length > 1;
     var linkLabel = linkMode ? 'Cancel link' : 'Connect';
+    var onLegendary = boardMode === 'legendary';
     return '<div class="research-admin-canvas-controls" role="toolbar" aria-label="Research canvas controls">' +
       '<span class="research-admin-canvas-controls-title">Canvas</span>' +
+      '<button type="button" class="research-admin-canvas-control' + (onLegendary ? '' : ' is-active') + '" data-research-board="standard" aria-pressed="' + (onLegendary ? 'false' : 'true') + '">Research tree</button>' +
+      '<button type="button" class="research-admin-canvas-control is-legendary' + (onLegendary ? ' is-active' : '') + '" data-research-board="legendary" aria-pressed="' + (onLegendary ? 'true' : 'false') + '">Legendary</button>' +
       '<button type="button" class="research-admin-canvas-control" data-research-canvas-action="add"' + (editable ? '' : ' disabled') + '>+ Add</button>' +
       '<button type="button" class="research-admin-canvas-control' + (linkMode ? ' is-active' : '') + '" data-research-canvas-action="link" aria-pressed="' + (linkMode ? 'true' : 'false') + '"' + (editable && hasLinks ? '' : ' disabled') + '>' + linkLabel + '</button>' +
     '</div>';
@@ -85,13 +117,16 @@
   function renderCanvas() {
     if (!canvas) return;
     if (linkSource && !byId(linkSource.id)) linkSource = null;
+    if (linkSource && nodeIsLegendary(linkSource) !== (boardMode === 'legendary')) linkSource = null;
     canvas.style.width = boardWidth() + 'px';
     canvas.style.minHeight = boardHeight() + 'px';
     canvas.classList.toggle('is-linking', linkMode);
 
+    var visible = boardNodes();
+    canvas.classList.toggle('is-legendary-board', boardMode === 'legendary');
     var lookup = {};
-    nodes.forEach(function (node) { lookup[Number(node.id)] = node; });
-    var lines = nodes.map(function (node) {
+    visible.forEach(function (node) { lookup[Number(node.id)] = node; });
+    var lines = visible.map(function (node) {
       return (node.prerequisite_ids || []).map(function (id) {
         var from = lookup[Number(id)];
         if (!from) return '';
@@ -101,7 +136,7 @@
         return '<path d="M ' + startX + ' ' + startY + ' C ' + (startX + curve) + ' ' + startY + ', ' + (endX - curve) + ' ' + endY + ', ' + endX + ' ' + endY + '"></path>';
       }).join('');
     }).join('');
-    var cards = nodes.map(function (node) {
+    var cards = visible.map(function (node) {
       var selected = current && Number(current.id) === Number(node.id);
       var source = linkSource && Number(linkSource.id) === Number(node.id);
       var image = safeImage(node.image_url), type = effectTypes[node.effect_type] || {};
@@ -112,9 +147,12 @@
         '<p>' + esc(node.description || 'No field briefing yet.') + '</p><span class="research-admin-node-foot"><span>' + ((node.prerequisite_ids || []).length ? (node.prerequisite_ids || []).length + ' prerequisite' + ((node.prerequisite_ids || []).length === 1 ? '' : 's') : 'Root protocol') + '</span><b>' + esc(valueText(node)) + '</b></span>' +
       '</button>';
     }).join('');
-    var empty = nodes.length ? '' : '<p class="admin-list-empty">No research protocols yet. Add your first permanent expedition unlock.</p>';
+    var empty = visible.length ? '' : '<p class="admin-list-empty">' + (boardMode === 'legendary'
+      ? 'No legendary protocols yet. Assign a protocol to a category marked as the final branch and it will appear here.'
+      : 'No research protocols yet. Add your first permanent expedition unlock.') + '</p>';
     canvas.innerHTML = canvasControls() + canvasLinkNote() + '<svg class="research-admin-lines" viewBox="0 0 ' + boardWidth() + ' ' + boardHeight() + '" preserveAspectRatio="none" aria-hidden="true">' + lines + '</svg>' + cards + empty;
-    count.textContent = nodes.length + (nodes.length === 1 ? ' research protocol' : ' research protocols');
+    count.textContent = visible.length + (visible.length === 1 ? ' research protocol' : ' research protocols')
+      + (boardMode === 'legendary' ? ' on the legendary board' : '');
   }
 
   function previewImage() { var url = safeImage(imageUrl.value); imagePreview.hidden = !url; imagePreview.src = url || ''; }
@@ -168,7 +206,16 @@
       ? 'Optional. This is saved to the player command log when the protocol is activated.'
       : 'Run sql/migration_research_queue_transmissions.sql before authoring activation transmissions.';
     imageUrl.value = current ? current.image_url || '' : ''; previewImage();
-    fillSelect(categorySelect, categories, current ? current.research_category_id : null, 'Uncategorised', function (category) { return category.name; });
+    /* A protocol added while the legendary board is open defaults to the first
+       final-gate category rather than to Uncategorised. Without this a new
+       legendary node saves onto the ordinary board and disappears from the
+       canvas it was drawn on, which reads as the save having failed. */
+    var defaultCategory = current ? current.research_category_id : null;
+    if (!current && boardMode === 'legendary') {
+      var finalCategory = categories.filter(function (category) { return category.requires_all_other_unlocked; })[0];
+      if (finalCategory) defaultCategory = finalCategory.id;
+    }
+    fillSelect(categorySelect, categories, defaultCategory, 'Uncategorised', function (category) { return category.name; });
     effectType.innerHTML = Object.keys(effectTypes).map(function (key) { return '<option value="' + esc(key) + '">' + esc(effectTypes[key].label) + '</option>'; }).join('');
     effectType.value = current ? current.effect_type : 'mission_speed'; effectValue.value = current ? current.effect_value : 5;
     fillSelect(targetMission, missions, current ? current.target_mission_definition_id : null, 'Choose mission', function (item) { return item.name + ' · ' + item.mission_type + (item.is_enabled ? '' : ' (disabled)'); });
@@ -202,6 +249,16 @@
   }
   function payload() {
     var position = current && current.id ? { x: current.canvas_x, y: current.canvas_y } : (draftPosition || visibleCanvasPosition());
+    /* Moving a protocol into a legendary category shrinks the board under it,
+       so a position that was valid a moment ago can now be outside it. Clamped
+       here rather than rejected: the administrator changed the category, not
+       the coordinates, and a save that fails on a number they did not touch is
+       not a useful error. */
+    var saveBounds = boundsFor(categoryIsLegendary(categorySelect.value));
+    position = {
+      x: Math.max(0, Math.min(saveBounds.width - 196, Math.round(Number(position.x) || 0))),
+      y: Math.max(0, Math.min(saveBounds.height - 126, Math.round(Number(position.y) || 0)))
+    };
     return {
       id: current && current.id ? current.id : undefined,
       name: document.getElementById('research-node-name').value, slug: document.getElementById('research-node-slug').value,
@@ -309,12 +366,12 @@
     }).catch(function (error) { setCategoryError(error.message); }).then(function () { button.disabled = !can('research.manage'); });
   }
   function toggleLinkMode() {
-    if (!can('research.manage') || nodes.length < 2) return;
+    if (!can('research.manage') || boardNodes().length < 2) return;
     linkMode = !linkMode; linkSource = null; setError(''); setNotice(''); renderCanvas();
   }
   function load() {
     return request('/api/admin/research/list.php?refresh=' + Date.now()).then(function (data) {
-      nodes = data.nodes || []; categories = data.categories || []; salvage = data.salvage || []; missions = data.missions || []; rareLootTables = data.rare_loot_tables || []; missionLocksReady = !!data.mission_locks_ready; lootTableLocksReady = !!data.loot_table_locks_ready; queueTransmissionsReady = !!data.queue_transmissions_ready; effectTypes = data.effect_types || {}; boardSize = data.board || boardSize;
+      nodes = data.nodes || []; categories = data.categories || []; salvage = data.salvage || []; missions = data.missions || []; rareLootTables = data.rare_loot_tables || []; missionLocksReady = !!data.mission_locks_ready; lootTableLocksReady = !!data.loot_table_locks_ready; queueTransmissionsReady = !!data.queue_transmissions_ready; effectTypes = data.effect_types || {}; boardSize = data.board || boardSize; legendaryBoardSize = data.legendary_board || legendaryBoardSize;
       if (categoryCurrent && categoryCurrent.id) categoryCurrent = categoryById(categoryCurrent.id);
       if (!editorFields.hidden) fillSelect(categorySelect, categories, categorySelect.value, 'Uncategorised', function (category) { return category.name; });
       renderCanvas(); renderCategories();
@@ -329,6 +386,20 @@
       if (control.disabled) return;
       if (control.getAttribute('data-research-canvas-action') === 'add') beginAddProtocol();
       if (control.getAttribute('data-research-canvas-action') === 'link') toggleLinkMode();
+      return;
+    }
+    var boardTab = event.target.closest('[data-research-board]');
+    if (boardTab && canvas.contains(boardTab)) {
+      event.preventDefault();
+      var target = boardTab.getAttribute('data-research-board');
+      if (target !== boardMode) {
+        boardMode = target; linkMode = false; linkSource = null;
+        // The editor may be showing a protocol from the board just left, which
+        // would leave a selected card nobody can see.
+        if (current && current.id && nodeIsLegendary(current) !== (boardMode === 'legendary')) hideEditor();
+        else renderCanvas();
+        if (viewport) { viewport.scrollLeft = 0; viewport.scrollTop = 0; }
+      }
       return;
     }
     var button = event.target.closest('[data-research-admin-node]');
@@ -353,7 +424,7 @@
       dragging = { node: node, button: button, offsetX: event.clientX - rect.left - Number(node.canvas_x), offsetY: event.clientY - rect.top - Number(node.canvas_y), moved: false };
       button.classList.add('is-dragging'); button.setPointerCapture(event.pointerId); return;
     }
-    if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('[data-research-canvas-action]') || !viewport) return;
+    if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('[data-research-canvas-action]') || event.target.closest('[data-research-board]') || !viewport) return;
     panning = { pointerId: event.pointerId, clientX: event.clientX, clientY: event.clientY, scrollLeft: viewport.scrollLeft, scrollTop: viewport.scrollTop };
     viewport.classList.add('is-panning');
     try { canvas.setPointerCapture(event.pointerId); } catch (ignore) {}

@@ -7,13 +7,45 @@ require_once __DIR__ . '/../missions/missions-helpers.php';
  * are grid-aligned: 240 across (196 + 44) and 180 down (126 + 54).
  *
  * Widened from 1560 by two column pitches, which is room for two more steps on
- * the longest chain, and deepened from 900 by one row pitch for another row of
- * cards beneath the existing tree. Four places hold these numbers -- these
- * constants, the CSS fallback on .research-tree-board, and the fallback
- * defaults in js/research.js and js/admin-research.js -- and all four must
- * agree or nodes place outside a board that clips them. */
+ * the longest chain, and deepened from 900 to 1080 and now to 1440 -- two more
+ * row pitches of cards beneath the existing tree. Four places hold these
+ * numbers -- these constants, the CSS fallback on .research-tree-board, and the
+ * fallback defaults in js/research.js and js/admin-research.js -- and all four
+ * must agree or nodes place outside a board that clips them. */
 const PW_RESEARCH_BOARD_WIDTH = 2040;
-const PW_RESEARCH_BOARD_HEIGHT = 1080;
+const PW_RESEARCH_BOARD_HEIGHT = 1440;
+
+/* The legendary board is deliberately much smaller than the ordinary one. It
+ * holds the endgame branch only -- a handful of protocols reached after every
+ * other one is online -- so a board sized like the main lattice would be mostly
+ * empty grid, and an empty board reads as unfinished rather than as rare. Both
+ * dimensions stay on the same 240/180 pitch: 5 columns by 3 rows. */
+const PW_RESEARCH_LEGENDARY_BOARD_WIDTH = 1200;
+const PW_RESEARCH_LEGENDARY_BOARD_HEIGHT = 540;
+
+/**
+ * Which board a node belongs on. There is one flag behind this and it already
+ * existed: a category carrying requires_all_other_unlocked is the endgame
+ * branch, so it is also what separates the two canvases. Deriving the board
+ * from that flag rather than storing a second one means a category cannot be
+ * final on one surface and ordinary on the other.
+ *
+ * @return array{width:int,height:int}
+ */
+function pw_research_board_size(bool $legendary): array {
+    return $legendary
+        ? ['width' => PW_RESEARCH_LEGENDARY_BOARD_WIDTH, 'height' => PW_RESEARCH_LEGENDARY_BOARD_HEIGHT]
+        : ['width' => PW_RESEARCH_BOARD_WIDTH, 'height' => PW_RESEARCH_BOARD_HEIGHT];
+}
+
+/** Category ids whose nodes live on the legendary board. */
+function pw_research_legendary_category_ids(PDO $db): array {
+    $ids = [];
+    foreach ($db->query('SELECT id FROM game_research_categories WHERE requires_all_other_unlocked = 1')->fetchAll() as $row) {
+        $ids[(int)$row['id']] = true;
+    }
+    return $ids;
+}
 
 /**
  * Research is deliberately a small closed vocabulary. The player never sends a

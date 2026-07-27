@@ -8,11 +8,27 @@ pw_require_csrf($input);
 $id = filter_var($input['id'] ?? null, FILTER_VALIDATE_INT);
 $x = filter_var($input['canvas_x'] ?? null, FILTER_VALIDATE_INT);
 $y = filter_var($input['canvas_y'] ?? null, FILTER_VALIDATE_INT);
-if ($id === false || $id < 1 || $x === false || $x < 0 || $x > PW_RESEARCH_BOARD_WIDTH - 196 || $y === false || $y < 0 || $y > PW_RESEARCH_BOARD_HEIGHT - 126) {
+if ($id === false || $id < 1 || $x === false || $x < 0 || $y === false || $y < 0) {
     pw_error('Choose a valid research node position.');
 }
 $db = pw_db();
 pw_admin_research_require_ready($db);
+/* Which board bounds apply is a property of the node being dragged, so the
+ * node has to be read before the position can be judged -- a legendary
+ * protocol lives on the smaller canvas and the main board's bounds would
+ * accept a position that canvas clips. */
+$boardLookup = $db->prepare(
+    'SELECT COALESCE(category.requires_all_other_unlocked, 0) AS is_legendary
+     FROM game_research_nodes n
+     LEFT JOIN game_research_categories category ON category.id = n.research_category_id
+     WHERE n.id = ?'
+);
+$boardLookup->execute([$id]);
+$isLegendary = (bool)$boardLookup->fetchColumn();
+$bounds = pw_research_board_size($isLegendary);
+if ($x > $bounds['width'] - 196 || $y > $bounds['height'] - 126) {
+    pw_error('Choose a valid research node position.');
+}
 $save = $db->prepare('UPDATE game_research_nodes SET canvas_x = ?, canvas_y = ? WHERE id = ?');
 $save->execute([$x, $y, $id]);
 if ($save->rowCount() !== 1) {

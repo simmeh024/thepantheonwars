@@ -7,3 +7,14 @@
 @media (max-width: 850px) { .research-category-admin-layout { grid-template-columns: 1fr; }.research-category-admin-head { align-items: start; flex-direction: column; }.research-category-admin-head .btn { width: 100%; } }
 .research-category-row span:last-child small { color: #e4ca83; font-size: .51rem; letter-spacing: .1em; }
 @media (max-width: 620px) { .research-admin-toolbar { align-items: start; }.research-admin-toolbar .btn { width: 100%; }.research-admin-canvas-head { align-items: start; flex-direction: column; }.research-admin-canvas-controls { top: 10px; right: 10px; }.research-admin-canvas-controls-title { display: none; }.research-admin-canvas-link-note { top: 56px; right: 10px; }.research-image-field { grid-template-columns: 46px minmax(0, 1fr); }.research-image-field .btn { grid-column: span 1; }.research-cost-row { grid-template-columns: 1fr; } }
+
+/* Board tabs in the canvas toolbar. Their own selected treatment rather than
+ * the shared .is-active gold, which already means "link mode is on" here --
+ * two different states sharing one colour in the same toolbar is unreadable. */
+.research-admin-canvas-control[data-research-board] { border-color: rgba(111, 183, 194, .34); background: rgba(12, 26, 44, .7); color: #9dc3cd; }
+.research-admin-canvas-control[data-research-board].is-active { border-color: #8ce4e7; background: rgba(30, 74, 92, .9); color: #f0fdff; box-shadow: inset 0 -2px #8ce4e7; }
+.research-admin-canvas-control[data-research-board="legendary"] { color: #d6bd85; }
+.research-admin-canvas-control[data-research-board="legendary"].is-active { border-color: #e6ca81; background: rgba(92, 68, 24, .86); color: #ffeec2; box-shadow: inset 0 -2px #e6ca81; }
+/* The smaller board reads as a different surface, matching the warmer wash the
+ * player-facing legendary canvas uses. */
+.research-admin-canvas.is-legendary-board { box-shadow: inset 0 0 0 1px rgba(230, 202, 129, .38), inset 0 0 60px rgba(207, 159, 62, .1); }
