@@ -81,24 +81,60 @@ button.sweep-cell:disabled { cursor: default; opacity: 0.75; }
 .sweep-rung.is-sealed .sweep-rung-copy strong { color: #92a1b2; }
 .sweep-rung.is-sealed .sweep-rung-copy small { color: #7f8d9d; }
 
-/* --- Crew ---------------------------------------------------------------- */
-.sweep-crew-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 10px; }
-.sweep-crew { --rarity: 226,232,240; padding: 11px; border: 1px solid rgba(var(--rarity), 0.45); background: rgba(7,17,31,0.6); }
+/* --- Crew ----------------------------------------------------------------
+ * Four figures, each traceable to the stat that produced it. The stat is
+ * printed under the figure rather than left to a tooltip alone: a roster
+ * showing Survey 0 on every card reads as broken until you can see that
+ * nobody has the Science for it yet.
+ * ------------------------------------------------------------------------ */
+.sweep-crew-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(248px, 1fr)); gap: 10px; }
+.sweep-crew { --rarity: 226,232,240; display: grid; gap: 10px; padding: 12px; border: 1px solid rgba(var(--rarity), 0.45); background: linear-gradient(150deg, rgba(9,20,38,0.72), rgba(14,9,28,0.72)); }
 .sweep-crew.is-tier-uncommon { --rarity: 158,219,168; }
 .sweep-crew.is-tier-rare { --rarity: 112,204,223; }
 .sweep-crew.is-tier-epic { --rarity: 205,124,236; }
 .sweep-crew.is-tier-legendary { --rarity: 233,211,153; }
-.sweep-crew.is-blocked { border-color: rgba(103,152,190,0.22); }
-.sweep-crew-head strong { display: block; color: #f0f5fa; font: 600 0.85rem/1.2 'Cinzel', serif; }
-.sweep-crew-head em { display: block; margin-top: 2px; color: rgb(var(--rarity)); font-size: 0.6rem; font-style: normal; letter-spacing: 0.07em; text-transform: uppercase; }
-.sweep-crew-projection { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 9px 0; }
-.sweep-crew-projection span { display: grid; gap: 2px; padding: 4px 2px; border: 1px solid rgba(103,152,190,0.2); background: rgba(4,10,20,0.5); text-align: center; }
-.sweep-crew-projection small { color: #86a5ba; font: 700 0.47rem/1 'Jost', sans-serif; letter-spacing: 0.06em; text-transform: uppercase; }
-.sweep-crew-projection b { color: #dceaf3; font-size: 0.72rem; }
-.sweep-crew-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
-.sweep-crew-fatigue { color: #9db4c6; font-size: 0.62rem; }
-.sweep-crew-blocked { color: #c6a58f; font-size: 0.62rem; }
-.sweep-crew-foot .btn { min-height: 28px; padding: 0 12px; font-size: 0.6rem; }
+/* Unavailable dims by a measured colour step, never opacity -- opacity
+ * composites text and background together and hides a contrast failure from
+ * any sampler, which this codebase has been caught by twice. */
+.sweep-crew.is-blocked { border-color: rgba(103,152,190,0.22); background: rgba(6,13,24,0.6); }
+.sweep-crew.is-blocked .sweep-crew-name strong { color: #a9bccb; }
+.sweep-crew.is-blocked .sweep-figure b { color: #9db2c2; }
+
+.sweep-crew-head { display: grid; grid-template-columns: 42px minmax(0, 1fr); gap: 10px; align-items: center; }
+.sweep-crew-face { display: grid; width: 42px; height: 42px; overflow: hidden; place-items: center; border: 1px solid rgba(var(--rarity), 0.65); background: rgba(5,12,24,0.85); box-shadow: 0 0 10px rgba(var(--rarity), 0.18); }
+.sweep-crew-face img { width: 100%; height: 100%; object-fit: cover; }
+.sweep-crew-face span { color: rgb(var(--rarity)); font: 600 1.05rem/1 'Cinzel', serif; }
+.sweep-crew-name { min-width: 0; }
+.sweep-crew-name strong { display: block; overflow: hidden; color: #f0f5fa; font: 600 0.86rem/1.2 'Cinzel', serif; text-overflow: ellipsis; white-space: nowrap; }
+.sweep-crew-name em { display: block; margin-top: 1px; color: #9db4c6; font-size: 0.6rem; font-style: normal; letter-spacing: 0.07em; text-transform: uppercase; }
+.sweep-crew-tier { display: inline-block; margin-top: 4px; padding: 1px 6px; border: 1px solid rgba(var(--rarity), 0.5); color: rgb(var(--rarity)); font: 700 0.47rem/1.6 'Jost', sans-serif; letter-spacing: 0.14em; text-transform: uppercase; }
+
+.sweep-crew-projection { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+/* cursor: help and a tab stop, because the tooltip is the explanation and a
+ * pointer-only affordance would put it out of reach of a keyboard. */
+.sweep-figure { display: grid; gap: 2px; padding: 5px 3px; border: 1px solid rgba(103,152,190,0.22); background: rgba(4,10,20,0.55); text-align: center; cursor: help; }
+.sweep-figure:hover, .sweep-figure:focus-visible { border-color: rgba(126,227,232,0.6); background: rgba(14,34,54,0.8); outline: none; }
+.sweep-figure small { color: #86a5ba; font: 700 0.47rem/1 'Jost', sans-serif; letter-spacing: 0.07em; text-transform: uppercase; }
+.sweep-figure b { color: #eaf3f8; font: 600 0.8rem/1 'Cinzel', serif; }
+/* The source stat, in that stat's own colour -- the same four tones the
+ * mission roster's stat card uses, so STR means the same thing on both. */
+.sweep-figure i { font: 600 0.5rem/1 'Jost', sans-serif; font-style: normal; letter-spacing: 0.06em; }
+.sweep-figure.is-strength i { color: #e08a72; }
+.sweep-figure.is-cunning i { color: #c79ae8; }
+.sweep-figure.is-science i { color: #6fd7b0; }
+.sweep-figure.is-charisma i { color: #e8c66f; }
+
+.sweep-crew-foot { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px; }
+.sweep-crew-fatigue { display: grid; flex: 1 1 130px; gap: 4px; min-width: 0; }
+.sweep-crew-fatigue small { color: #9db4c6; font-size: 0.6rem; }
+/* The bar marks what this sector costs, so whether a crew member can go is a
+ * glance rather than two numbers subtracted in the reader's head. */
+.sweep-crew-bar { position: relative; display: block; height: 5px; overflow: hidden; background: rgba(4,10,20,0.8); border: 1px solid rgba(103,152,190,0.24); }
+.sweep-crew-bar i { display: block; height: 100%; background: linear-gradient(90deg, #4fc6d6, #7ee3e8); }
+.sweep-crew-bar u { position: absolute; top: -1px; bottom: -1px; width: 2px; background: #ecc987; text-decoration: none; }
+.sweep-crew.is-blocked .sweep-crew-bar i { background: linear-gradient(90deg, #4a6478, #6f8ea2); }
+.sweep-crew-blocked { color: #d8a98f; font-size: 0.62rem; }
+.sweep-crew-foot .btn { min-height: 30px; padding: 0 14px; font-size: 0.6rem; }
 
 @media (max-width: 900px) {
   .sweep-layout { grid-template-columns: minmax(0, 1fr); }
@@ -108,6 +144,7 @@ button.sweep-cell:disabled { cursor: default; opacity: 0.75; }
   .sweep-facts { grid-template-columns: 1fr; }
   .sweep-board-meta span { text-align: left; }
   .sweep-crew-projection { grid-template-columns: repeat(2, 1fr); }
+  .sweep-crew-list { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
   .sweep-cell { transition: none; }

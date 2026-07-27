@@ -66,7 +66,7 @@ try {
     $now = pw_missions_utc_now($db);
 
     $crewStmt = $db->prepare(
-        'SELECT pc.id, pc.level, pc.status, pc.fatigue, pc.fatigue_updated_at, c.name, c.role,
+        'SELECT pc.id, pc.level, pc.status, pc.fatigue, pc.fatigue_updated_at, c.name, c.role, c.portrait_url,
                 ' . (pw_mission_crew_capacity_ready($db) ? 'c.tier' : '"common" AS tier') . '
          FROM game_player_crew pc
          JOIN game_crew_definitions c ON c.id = pc.crew_definition_id AND c.is_enabled = 1
@@ -85,6 +85,7 @@ try {
             'name' => (string)$member['name'],
             'role' => (string)$member['role'],
             'tier' => (string)($member['tier'] ?? 'common'),
+            'portrait_url' => (string)($member['portrait_url'] ?? ''),
             'level' => (int)$member['level'],
             'status' => (string)$member['status'],
             'fatigue' => $fatigue,
@@ -107,6 +108,18 @@ try {
         'crew' => $roster,
         'run' => pw_sweep_public_run($db, $userId),
         'sweeps_at_rank' => $completed[$activeRank] ?? 0,
+        /* The rates behind every figure on a crew card, shipped rather than
+         * restated in the browser. A tooltip that explains "one scan per 12
+         * Cunning" has to read the same 12 the engine used, or it becomes a
+         * confident lie the first time the number is retuned. */
+        'tuning' => [
+            'cunning_per_pick' => PW_SWEEP_CUNNING_PER_PICK,
+            'science_per_ring' => PW_SWEEP_SCIENCE_PER_RING,
+            'strength_shrug_per_point' => PW_SWEEP_STRENGTH_SHRUG_PER_POINT,
+            'shrug_cap' => PW_SWEEP_SHRUG_CAP,
+            'charisma_xp_per_point' => PW_SWEEP_CHARISMA_XP_PER_POINT,
+            'max_hint_radius' => 2,
+        ],
     ]);
 } catch (Throwable $e) {
     /* The message is passed through rather than swallowed. A blanket "please
