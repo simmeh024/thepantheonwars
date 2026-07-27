@@ -95,8 +95,45 @@
     return entry && entry.entry_type === 'gear' ? 'gear' : 'crew';
   }
 
-  function sourceCatalogue(type) {
-    return type === 'gear' ? gearCatalogue : crewCatalogue;
+/* The picker offers four categories; the database stores two entry types.
+ *
+ * entry_type separates an item award from a character award, and every item --
+ * equipment, stim or salvage -- is granted by the identical path, so a third
+ * stored type would be a second name for the same behaviour. The extra
+ * categories exist only to narrow a catalogue that is otherwise one long
+ * undifferentiated list, which is what made salvage hard to find the moment it
+ * became selectable at all.
+ */
+  var ITEM_PICKERS = {
+    equipment: { category: 'gear', label: 'equipment', plural: 'equipment items' },
+    stim: { category: 'stim', label: 'stim', plural: 'stims' },
+    salvage: { category: 'salvage', label: 'salvage', plural: 'salvage items' }
+  };
+
+  /* Which of the four the selector is showing. Anything unrecognised falls back
+   * to characters, matching how the stored entry_type already resolves. */
+  function pickerValue() {
+    var value = document.getElementById('loot-entry-type').value;
+    return ITEM_PICKERS[value] ? value : 'crew';
+  }
+
+  function pickerEntryType(picker) {
+    return picker === 'crew' ? 'crew' : 'gear';
+  }
+
+  /* The item's own kind, from the category the API resolves. The slot fallback
+   * keeps a response from before the inventory migration classified correctly. */
+  function itemCategory(source) {
+    if (!source) return 'salvage';
+    return source.category || (source.slot ? 'gear' : 'salvage');
+  }
+
+  function sourceCatalogue(picker) {
+    if (picker === 'crew') return crewCatalogue;
+    var wanted = ITEM_PICKERS[picker] ? ITEM_PICKERS[picker].category : null;
+    return wanted === null ? gearCatalogue : gearCatalogue.filter(function (source) {
+      return itemCategory(source) === wanted;
+    });
   }
 
   function entrySource(entry) {
@@ -110,10 +147,12 @@
    * slot keeps a pre-migration response labelled correctly. */
   function itemKindLabel(source) {
     if (!source) return 'Item';
-    var category = source.category || (source.slot ? 'gear' : 'salvage');
+    var category = itemCategory(source);
     if (category === 'stim') return 'Stim';
     if (category === 'salvage') return 'Salvage';
-    return source.slot || 'Equipment';
+    // slot_label is the reader-facing name ("Main hand"); slot is the raw key
+    // ("main_hand"), which only shows through on a pre-migration response.
+    return source.slot_label || source.slot || 'Equipment';
   }
 
   function sourceDescription(type, source) {
@@ -124,6 +163,16 @@
 
   function sourceNoun(type) {
     return type === 'gear' ? 'item' : 'character';
+  }
+
+  /* Copy for the picker's own empty states, which should name the category the
+   * selector is on rather than the entry type behind it -- "no stims exist yet"
+   * is actionable, "no items exist yet" is not when three are listed above. */
+  function pickerNoun(picker, plural) {
+    if (picker === 'crew') return plural ? 'characters' : 'character';
+    var meta = ITEM_PICKERS[picker];
+    if (!meta) return plural ? 'items' : 'item';
+    return plural ? meta.plural : meta.label;
   }
 
   function refreshCount() {
@@ -216,13 +265,17 @@
   function populateEntryPicker() {
     var typeSelect = document.getElementById('loot-entry-type');
     var select = document.getElementById('loot-entry-source');
-    var type = typeSelect.value === 'gear' ? 'gear' : 'crew';
+    var picker = pickerValue();
+    var type = pickerEntryType(picker);
+    /* Every item already in the table, whichever category the selector is on:
+     * they share one id space, so a stim added under Stim must not reappear
+     * under an unfiltered list. */
     var chosen = draftEntries.filter(function (entry) {
       return entryType(entry) === type;
     }).map(function (entry) {
       return Number(entry.definition_id);
     });
-    var catalogue = sourceCatalogue(type);
+    var catalogue = sourceCatalogue(picker);
     var available = catalogue.filter(function (source) { return chosen.indexOf(source.id) === -1; });
     select.replaceChildren();
     available.forEach(function (source) {
@@ -238,8 +291,8 @@
     if (!available.length) {
       var empty = document.createElement('option');
       empty.textContent = catalogue.length
-        ? 'Every ' + sourceNoun(type) + ' is already in this table'
-        : 'No ' + (type === 'gear' ? 'items' : 'characters') + ' exist yet';
+        ? 'Every ' + pickerNoun(picker, false) + ' is already in this table'
+        : 'No ' + pickerNoun(picker, true) + ' exist yet';
       select.appendChild(empty);
     }
   }
@@ -451,7 +504,7 @@
   document.getElementById('loot-entry-type').addEventListener('change', populateEntryPicker);
   document.getElementById('loot-entry-add-btn').addEventListener('click', function () {
     if (!can('loot_tables.edit')) return;
-    var type = document.getElementById('loot-entry-type').value === 'gear' ? 'gear' : 'crew';
+    var type = pickerEntryType(pickerValue());
     var value = document.getElementById('loot-entry-source').value;
     if (!value) return;
     draftEntries.push({ entry_type: type, definition_id: Number(value), chance_percent: 5 });

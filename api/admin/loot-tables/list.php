@@ -79,9 +79,14 @@ $crew = array_map(static function ($row) {
  * through pw_missions_store_loot(). A third entry type would be a second name
  * for the same behaviour. */
 $stimsReady = pw_mission_stims_ready($db);
-$gear = array_map(static function ($row) use ($stimsReady) {
+/* The reader-facing slot name, resolved here rather than mapped again in the
+ * browser -- api/admin/missions/gear-list.php already sends the same field from
+ * the same helper, and a second copy of the seven names would drift. */
+$gearSlots = pw_missions_gear_slots();
+$gear = array_map(static function ($row) use ($stimsReady, $gearSlots) {
     $row['id'] = (int)$row['id'];
     $row['is_enabled'] = (bool)$row['is_enabled'];
+    $row['slot_label'] = $row['slot'] !== '' && isset($gearSlots[$row['slot']]) ? $gearSlots[$row['slot']] : '';
     $row['stim_effect'] = $stimsReady ? (string)$row['stim_effect'] : '';
     // The same classifier the player's inventory reads, so the picker can group
     // by kind without deciding for itself what an item is.

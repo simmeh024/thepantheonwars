@@ -664,13 +664,21 @@ at that time.
   same problem. **`entry_type` stays `gear` for all three**: it separates an
   item award from a character award, and every item already follows the
   identical grant path through `pw_missions_store_loot()` -- a third entry type
-  would be a second name for the same behaviour. Only the labels changed, from
-  the category the API resolves rather than from the slot.
+  would be a second name for the same behaviour. **The picker offers four
+  categories over those two stored types** (Character / Equipment / Stim /
+  Salvage): the categories exist only to narrow a catalogue that is otherwise
+  one long undifferentiated list, which is what made salvage hard to find the
+  moment it became selectable. Asserted that every item lands in exactly one of
+  the three item categories, so none is unreachable, and that a row with no
+  `category` (a response from before the inventory migration) still classifies
+  from its slot. Labels come from the resolved category, and the slot name from
+  a new `slot_label` on the endpoint rather than a second copy of the seven slot
+  names in the browser.
   Verified with 39 assertions read against the real source files -- that the
   shipped rates match, that the browser fallback matches them, that no inline
   rate survives in the projection, and that the Fixer is wired from stat plan to
   role badge. `missions.css?v=40` / `missions.js?v=39` /
-  `admin-loot-tables.js?v=4`.
+  `admin-loot-tables.js?v=5`.
 
 - **Inventory limits, a destroy path for everything, and stims.** **Run
   `sql/migration_mission_inventory.sql` once.** Three changes on one screen.
