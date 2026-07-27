@@ -642,6 +642,16 @@ at that time.
   rather than the scroll height, so on a ladder long enough to scroll it stopped
   partway and left the later ranks unconnected. Caught by rendering an 18-rank
   ladder; segments built from the content cannot desync from it.
+  **The ladder lives in its own left sidebar**, not in the insights row: it
+  describes the entire standing rather than one aspect of it, and at three
+  panels across it was the narrowest column on the page while carrying the most
+  rows. `.reputation-body` is a 236px sidebar plus the rest; the sidebar is
+  sticky under the fixed header so the rail stays beside whatever the reader has
+  scrolled to. Below 980px it becomes a band above the content and the rail
+  turns on its side, because a vertical ladder in a full-width strip is a very
+  tall column of very short rows. **The page widened 1000px -> 1180px** at the
+  same time -- taking a 236px column out of the old width cost the signals and
+  achievements a quarter of theirs; 1180 is the site's own `--maxw`.
   **Tier plaques.** `--achievement-tone` existed and only tinted a 1px border
   and an icon. Bronze/silver/gold now differ in material, locked reads as a
   dashed silhouette rather than a dimmer copy, and **prismatic finally animates**
@@ -665,7 +675,7 @@ at that time.
   buttons, the "Last 8 weeks" header and the next-rank placeholder, plus the
   0.45 opacity on a locked achievement. Those are a site-wide token decision and
   an intentional locked state, the same call already recorded for `--text-dim`
-  in the admin console. `reputation.css?v=8`.
+  in the admin console. `reputation.css?v=9`.
 
 - **Database load review: five fixes.** **Run
   `sql/migration_db_optimizations.sql` once.** Measured per endpoint by walking
