@@ -619,12 +619,30 @@
     var sort = crewSort.value;
     if (sort === 'default') return visible;
     var statusOrder = { available: 0, deployed: 1, unavailable: 2 };
+    /* A stat sort reads the same total the card prints, which already includes
+       equipment -- sorting by the level-derived value would rank a crew member
+       above one the roster visibly shows as stronger. Missing or pre-migration
+       values read as 0 rather than NaN, which would make the comparator
+       incoherent and the order arbitrary. */
+    var statSort = /^(strength|cunning|science|charisma)-desc$/.exec(sort);
     return visible.slice().sort(function (left, right) {
       var comparison = 0;
       if (sort === 'name-asc') comparison = String(left.name).localeCompare(String(right.name));
       if (sort === 'level-desc') comparison = Number(right.level) - Number(left.level);
       if (sort === 'level-asc') comparison = Number(left.level) - Number(right.level);
       if (sort === 'status') comparison = statusOrder[crewAvailability(left)] - statusOrder[crewAvailability(right)];
+      /* Rarest first, ordered by CREW_TIERS rather than alphabetically: the
+         names sort epic before rare before uncommon, which is neither the
+         ladder nor its reverse. */
+      if (sort === 'rarity-desc') comparison = CREW_TIERS.indexOf(crewTier(right.tier)) - CREW_TIERS.indexOf(crewTier(left.tier));
+      if (statSort) comparison = (Number(right[statSort[1]]) || 0) - (Number(left[statSort[1]]) || 0);
+      /* Level breaks a tie before the name does, but only for the rarity and
+         stat sorts: four crew on 0 Science sorted by name alone put the most
+         developed of them last as often as first. The older sorts keep their
+         own name tie-break rather than quietly changing order. */
+      if (!comparison && (statSort || sort === 'rarity-desc')) {
+        comparison = (Number(right.level) || 0) - (Number(left.level) || 0);
+      }
       return comparison || String(left.name).localeCompare(String(right.name));
     });
   }
