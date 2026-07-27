@@ -81,7 +81,10 @@ CREATE TABLE IF NOT EXISTS game_player_sweep_finds (
     REFERENCES game_player_sweep_runs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-INSERT IGNORE INTO permissions (permission_key, label, description, category)
-VALUES ('sweep_tiers.view', 'View Sweep Tiers', 'Read the Salvage Sweep tier ladder.', 'Game Control');
-INSERT IGNORE INTO permissions (permission_key, label, description, category)
-VALUES ('sweep_tiers.manage', 'Manage Sweep Tiers', 'Create and edit Salvage Sweep tiers and their loot tables.', 'Game Control');
+-- The column is `key`, and there is no description column. Upserting on the
+-- key rather than INSERT IGNORE so a re-run refreshes a changed label, which
+-- is what every other permission migration in this repo does.
+INSERT INTO permissions (`key`, label, category) VALUES
+  ('sweep_tiers.view', 'View Sweep Tiers', 'Game'),
+  ('sweep_tiers.manage', 'Manage Sweep Tiers', 'Game')
+ON DUPLICATE KEY UPDATE label = VALUES(label), category = VALUES(category);
