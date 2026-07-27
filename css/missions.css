@@ -22,6 +22,7 @@
 .is-common { --gear-tier: 150,168,186; }
 .is-uncommon { --gear-tier: 158,219,168; }
 .is-rare { --gear-tier: 112,204,223; }
+.is-epic { --gear-tier: 205,124,236; }
 .is-legendary { --gear-tier: 233,211,153; }
 
 /* The read-only loadout sits under a crew portrait as a compact equipment
@@ -1230,4 +1231,147 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .mission-result-crew.is-promoted { animation: none; }
+}
+
+/* ===========================================================================
+ * Crew rarity on the roster card, and the recruit reveal.
+ *
+ * One tone per rarity, reusing the --gear-tier triple the item surfaces
+ * already use so the same five words are the same five colours everywhere.
+ * Common is deliberately plain white: it is the absence of rarity, and giving
+ * it a hue of its own would make four tiers look like five.
+ * ========================================================================= */
+
+.mission-crew-card { --rarity: var(--gear-tier, 150,168,186); }
+.mission-crew-card.is-tier-common { --gear-tier: 226,232,240; }
+.mission-crew-card.is-tier-uncommon { --gear-tier: 158,219,168; }
+.mission-crew-card.is-tier-rare { --gear-tier: 112,204,223; }
+.mission-crew-card.is-tier-epic { --gear-tier: 205,124,236; }
+.mission-crew-card.is-tier-legendary { --gear-tier: 233,211,153; }
+
+.mission-crew-card { border-color: rgba(var(--rarity), 0.42); }
+.mission-crew-card:hover { border-color: rgba(var(--rarity), 0.7); }
+/* The tone reaches the inside of the card too, or a rarity is a border and
+ * nothing else -- the rank plate and the role chip are the two elements every
+ * card has, so they carry it. */
+.mission-crew-card .crew-role { color: rgb(var(--rarity)); }
+.mission-crew-card .crew-rank-insignia { border-color: rgba(var(--rarity), 0.45); }
+
+/* --- The tier tag ---------------------------------------------------------
+ * Colour alone says nothing to a colour-blind reader, and is ambiguous to
+ * everyone else -- purple could be epic, or Cunning, or a selected state. The
+ * word is the signal; the colour only makes it quicker. */
+.mission-crew-tier { position: absolute; z-index: 2; top: 0; left: 0; padding: 3px 9px 3px 8px; border-right: 1px solid rgba(var(--rarity), 0.5); border-bottom: 1px solid rgba(var(--rarity), 0.5); background: rgba(6,12,24,0.92); color: rgb(var(--rarity)); font: 700 0.5rem/1 'Jost', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+.mission-crew-card.is-tier-legendary .mission-crew-tier { color: #ffe6ad; }
+
+/* --- The portrait ring ----------------------------------------------------
+ * Where rarity reads loudest. A 1px card border does not carry down a grid of
+ * eight; a ring around the face does, because that is where the eye lands. */
+.mission-crew-card .mission-crew-portrait-wrap { position: relative; box-shadow: 0 0 0 2px rgba(var(--rarity), 0.55), 0 0 14px rgba(var(--rarity), 0.18); }
+.mission-crew-card.is-tier-common .mission-crew-portrait-wrap { box-shadow: 0 0 0 2px rgba(var(--rarity), 0.4); }
+
+/* --- Epic: the sweep the card already had, always on -----------------------
+ * .mission-crew-card::after is a diagonal sheen that has always existed at
+ * opacity 0 and only appeared on hover. Epic runs it slowly by itself instead
+ * of adding a second effect that does the same thing. */
+@keyframes crew-rarity-sweep { 0% { opacity: 0; transform: translateX(-42%) skewX(-12deg); } 12% { opacity: 1; } 60% { opacity: 0; transform: translateX(42%) skewX(-12deg); } 100% { opacity: 0; transform: translateX(42%) skewX(-12deg); } }
+.mission-crew-card.is-tier-epic::after { background: linear-gradient(108deg, transparent 44%, rgba(205,124,236,0.05) 47%, rgba(224,160,255,0.26) 50%, rgba(205,124,236,0.05) 53%, transparent 56%); }
+.mission-crew-card.is-tier-epic.is-animated::after { animation: crew-rarity-sweep 7s ease-in-out infinite; }
+.mission-crew-card.is-tier-epic .mission-crew-portrait-wrap { box-shadow: 0 0 0 2px rgba(var(--rarity), 0.7), 0 0 20px rgba(var(--rarity), 0.34); }
+
+/* --- Legendary: three layers, because "more wow" is more kinds of thing ----
+ * A brighter sweep would only read as a brighter epic. A drifting gradient
+ * edge, a rotating glow behind the face, and motes are three different
+ * behaviours, which is what makes it read as a different class of object. */
+.mission-crew-card.is-tier-legendary { border-color: transparent; background-image: linear-gradient(130deg, rgba(16,33,57,0.92), rgba(22,13,45,0.86)), linear-gradient(115deg, #ecc987, #fff2cf, #d88758, #ecc987); background-origin: border-box; background-clip: padding-box, border-box; background-size: auto, 300% 100%; }
+@keyframes crew-legendary-edge { to { background-position: 0 0, 300% center; } }
+.mission-crew-card.is-tier-legendary { background-position: 0 0, 0% center; }
+.mission-crew-card.is-tier-legendary.is-animated { animation: crew-legendary-edge 9s linear infinite; }
+.mission-crew-card.is-tier-legendary::after { background: linear-gradient(108deg, transparent 42%, rgba(236,201,135,0.07) 46%, rgba(255,238,194,0.34) 50%, rgba(236,201,135,0.07) 54%, transparent 58%); }
+.mission-crew-card.is-tier-legendary.is-animated::after { animation: crew-rarity-sweep 6s ease-in-out infinite; }
+.mission-crew-card.is-tier-legendary .mission-crew-portrait-wrap { box-shadow: 0 0 0 2px rgba(255,230,173,0.8), 0 0 24px rgba(236,201,135,0.4); }
+.mission-crew-card.is-tier-legendary .mission-crew-portrait-wrap::before { content: ''; position: absolute; z-index: -1; inset: -8px; background: conic-gradient(from 0deg, transparent, rgba(255,230,173,0.5), transparent 42%, rgba(216,135,88,0.45), transparent 82%); filter: blur(5px); opacity: 0.75; }
+.mission-crew-card.is-tier-legendary.is-animated .mission-crew-portrait-wrap::before { animation: crew-legendary-halo 11s linear infinite; }
+@keyframes crew-legendary-halo { to { transform: rotate(360deg); } }
+/* The motes are one repeating-gradient layer drifting, not particles: a canvas
+ * per card on a roster of eight would be eight tickers for decoration. */
+.mission-crew-card.is-tier-legendary .mission-crew-visual::after { content: ''; position: absolute; inset: -20% -10%; background-image: radial-gradient(circle, rgba(255,238,194,0.55) 0 1px, transparent 1.6px), radial-gradient(circle, rgba(236,201,135,0.4) 0 1px, transparent 1.6px); background-size: 46px 58px, 71px 83px; background-position: 0 0, 22px 31px; opacity: 0.5; pointer-events: none; }
+.mission-crew-card.is-tier-legendary.is-animated .mission-crew-visual::after { animation: crew-legendary-motes 17s linear infinite; }
+@keyframes crew-legendary-motes { to { background-position: 0 -58px, 22px -52px; } }
+.mission-crew-card .mission-crew-visual { position: relative; }
+
+/* --- The favourite star, moved off the border ------------------------------
+ * .is-favorite used to tint the card border gold, which is now what legendary
+ * means -- a favourited common and a legendary would have read the same. The
+ * state moves onto the star itself, which is the control it belongs to. */
+.mission-crew-card.is-favorite { border-color: rgba(var(--rarity), 0.55); box-shadow: none; }
+
+@media (hover: hover) {
+  .mission-crew-card.is-tier-epic:not(.is-unavailable):hover::after,
+  .mission-crew-card.is-tier-legendary:not(.is-unavailable):hover::after { animation: mission-crew-holo-sweep 1.35s ease-out both; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mission-crew-card.is-animated,
+  .mission-crew-card.is-animated::after,
+  .mission-crew-card.is-animated .mission-crew-portrait-wrap::before,
+  .mission-crew-card.is-animated .mission-crew-visual::after { animation: none; }
+}
+
+/* ===========================================================================
+ * The recruit reveal: arriving crew, as an event.
+ * ========================================================================= */
+
+.mission-result-recruits { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.mission-result-recruit { --rarity: 226,232,240; position: relative; display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 11px; overflow: hidden; padding: 11px; border: 1px solid rgba(var(--rarity), 0.5); background: linear-gradient(135deg, rgba(14,28,49,0.9), rgba(20,12,40,0.9)); }
+.mission-result-recruit.is-tier-uncommon { --rarity: 158,219,168; }
+.mission-result-recruit.is-tier-rare { --rarity: 112,204,223; }
+.mission-result-recruit.is-tier-epic { --rarity: 205,124,236; }
+.mission-result-recruit.is-tier-legendary { --rarity: 233,211,153; }
+.mission-result-recruit-face { position: relative; display: grid; width: 52px; height: 52px; overflow: hidden; place-items: center; border: 1px solid rgba(var(--rarity), 0.6); background: rgba(6,14,26,0.85); box-shadow: 0 0 12px rgba(var(--rarity), 0.22); }
+.mission-result-recruit-face img { width: 100%; height: 100%; object-fit: cover; }
+.mission-result-recruit-face span { color: rgb(var(--rarity)); font: 600 1.1rem/1 'Cinzel', serif; }
+.mission-result-recruit-copy { display: grid; align-content: center; gap: 2px; min-width: 0; }
+.mission-result-recruit-copy small { color: rgb(var(--rarity)); font: 700 0.5rem/1 'Jost', sans-serif; letter-spacing: 0.16em; text-transform: uppercase; }
+.mission-result-recruit-copy strong { overflow: hidden; color: #f2f6fb; font: 600 0.86rem/1.2 'Cinzel', serif; text-overflow: ellipsis; white-space: nowrap; }
+.mission-result-recruit-copy em { color: #9db4c6; font-size: 0.63rem; font-style: normal; letter-spacing: 0.06em; text-transform: uppercase; }
+
+/* Every rarity gets an arrival, because a new crew member is an event at any
+ * rarity. They differ in how much arrives: a common card settles, an epic one
+ * is swept, a legendary one is struck. `backwards` fill from a visible base
+ * throughout, so a frame that never comes leaves a correct card. */
+@keyframes recruit-in { from { opacity: 0; transform: translateY(10px) scale(0.96); } }
+.mission-result-recruit { animation: recruit-in 0.5s cubic-bezier(.2,.8,.3,1) backwards; }
+.mission-result-recruit:nth-child(2) { animation-delay: 0.1s; }
+.mission-result-recruit:nth-child(3) { animation-delay: 0.2s; }
+.mission-result-recruit:nth-child(4) { animation-delay: 0.3s; }
+
+/* A flash across the frame, timed to land as the card settles. */
+.mission-result-recruit::before { content: ''; position: absolute; z-index: 1; inset: 0; background: linear-gradient(108deg, transparent 40%, rgba(var(--rarity), 0.3) 50%, transparent 60%); opacity: 0; pointer-events: none; }
+@keyframes recruit-flash { 0% { opacity: 0; transform: translateX(-60%); } 35% { opacity: 1; } 100% { opacity: 0; transform: translateX(60%); } }
+.mission-result-recruit::before { animation: recruit-flash 0.9s ease-out 0.15s 1 backwards; }
+
+/* Epic: the flash again, slower and twice, plus a bloom that opens behind the
+ * portrait -- two more beats than a common arrival, not a louder one. */
+@keyframes recruit-bloom { 0% { opacity: 0; transform: scale(0.4); } 45% { opacity: 1; } 100% { opacity: 0; transform: scale(1.9); } }
+.mission-result-recruit.is-tier-epic::before { animation: recruit-flash 1.1s ease-out 0.15s 2 backwards; }
+.mission-result-recruit.is-tier-epic .mission-result-recruit-face::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle, rgba(224,160,255,0.85), transparent 68%); opacity: 0; pointer-events: none; animation: recruit-bloom 1.3s ease-out 0.2s 1 backwards; }
+
+/* Legendary: the bloom, a struck ring that expands past the frame, and a
+ * lingering halo the other tiers never get -- three behaviours, so it reads as
+ * a different kind of arrival rather than a brighter one. */
+.mission-result-recruit.is-tier-legendary { border-width: 2px; }
+.mission-result-recruit.is-tier-legendary::before { animation: recruit-flash 1.2s ease-out 0.15s 3 backwards; }
+.mission-result-recruit.is-tier-legendary .mission-result-recruit-face::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle, rgba(255,244,214,0.95), transparent 66%); opacity: 0; pointer-events: none; animation: recruit-bloom 1.5s ease-out 0.15s 1 backwards; }
+@keyframes recruit-strike { 0% { opacity: 0.9; transform: scale(0.25); } 100% { opacity: 0; transform: scale(2.6); } }
+.mission-result-recruit.is-tier-legendary .mission-result-recruit-face::before { content: ''; position: absolute; z-index: 2; inset: 0; border: 2px solid rgba(255,238,194,0.9); border-radius: 50%; opacity: 0; pointer-events: none; animation: recruit-strike 1.1s ease-out 0.25s 2 backwards; }
+@keyframes recruit-halo { from { opacity: 0; } }
+.mission-result-recruit.is-tier-legendary { box-shadow: 0 0 22px rgba(236,201,135,0.28), inset 0 0 26px rgba(236,201,135,0.08); animation: recruit-in 0.6s cubic-bezier(.2,.8,.3,1) backwards, recruit-halo 1.6s ease-out backwards; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mission-result-recruit,
+  .mission-result-recruit::before,
+  .mission-result-recruit .mission-result-recruit-face::before,
+  .mission-result-recruit .mission-result-recruit-face::after { animation: none; }
+  .mission-result-recruit::before { opacity: 0; }
 }

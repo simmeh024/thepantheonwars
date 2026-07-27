@@ -619,6 +619,62 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Crew rarity on the card, and arriving crew as an event.** No migration.
+  **One tone per rarity**, reusing the `--gear-tier` triple the item surfaces
+  already use, so the same five words are the same five colours everywhere.
+  **That table was missing `epic` entirely**, so epic gear had been rendering
+  at the default grey; fixed here rather than left, since the crew card reads
+  the same variable and would have inherited the hole.
+  **Common is plain white on purpose** -- it is the absence of rarity, and
+  giving it a hue of its own would make four tiers look like five.
+  **The loudest signal is the portrait ring, not the card border.** A 1px edge
+  does not carry down a grid of eight; a ring around the face does, because
+  that is where the eye lands. The tone also reaches the role chip and the rank
+  plate, or a rarity is a border and nothing else.
+  **The tier is named, not only coloured** -- a tag in the card's top padding
+  band. Colour alone says nothing to a colour-blind reader and is ambiguous to
+  everyone else: purple could be epic, or Cunning, or a selected state.
+  **Epic reuses the sweep the card already had.** `.mission-crew-card::after`
+  has always existed at opacity 0 and only appeared on hover; epic runs it
+  slowly by itself rather than adding a second effect that does the same thing.
+  **Legendary is three behaviours, not a brighter epic** -- a drifting gradient
+  edge, a rotating halo behind the portrait, and drifting motes. "More wow"
+  reads as more *kinds* of thing happening. The motes are one repeating-gradient
+  layer, not particles: a canvas per card would be eight tickers for decoration.
+  **The gold collision, resolved.** `.is-favorite` tinted the card border gold,
+  which is now what legendary means -- a favourited common and a legendary would
+  have read identically. The border follows rarity now and the favourite state
+  lives on its star, which already had its own gold treatment a few rules above.
+  **Motion is gated three ways**: epic and legendary only, `IntersectionObserver`
+  so an off-screen card animates nothing, and off entirely under
+  `prefers-reduced-motion`. No observer available falls back to *showing* the
+  effect -- the gating is an efficiency, not part of what the rarity means.
+  **Arriving crew was a line of text in a list.** It is the only reward that is
+  a character rather than a number, so it is a card with a face now, and every
+  rarity gets an arrival -- a common recruit joining is still someone joining.
+  What scales is how much arrives: common settles and flashes once, epic is
+  swept twice and blooms, legendary is struck twice with a lingering halo.
+  **Three corrections found by reading the existing rules before writing:**
+  `prismatic-shift` animates a single `background-position` and the legendary
+  card has *two* background layers, so reusing it would have dragged the card's
+  own gradient across with the border -- it has its own keyframe naming both.
+  The ambient sweep and the hover sweep hit the same pseudo-element at the same
+  specificity, and the new block is later in the file, so hovering an epic card
+  would have lost the fast sweep every other card gets; re-asserted. And the
+  favourite star's gold state already existed, so restating it would have been
+  a second, slightly different definition of the same thing.
+  Verified against a harness built by extracting the real card renderer, the
+  real observer and the real recruit template out of `js/missions.js`. All five
+  tiers carry the right tone, tag and ring; epic gets the sweep alone while
+  legendary gets edge, sweep, halo and motes; the recruit escalation is
+  1 / 1 / 1 / 2+bloom / 3+bloom+strike+halo. Measured with animations
+  force-disabled too, which is what proves nothing depends on a frame to be
+  right. Worst contrast 7.16:1 across tags, role chips and recruit labels, and
+  nothing dims by opacity. **A wrong test worth remembering:** the first
+  overlap check used a non-strict comparison, so the tier tag sitting exactly
+  flush against the portrait read as covering it -- the layout was correct and
+  the test was not. `missions.css?v=48` / `missions.js?v=47`.
+
 - **Crew rarity is worth something, and a promotion says what it bought.**
   **No migration** -- `game_crew_definitions.tier` already exists, and crew
   stats are rebuilt from level on every mission boundary, so the new scaling

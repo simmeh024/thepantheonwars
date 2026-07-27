@@ -713,6 +713,18 @@
     return String(rounded % 1 === 0 ? rounded : rounded.toFixed(2).replace(/0$/, ''));
   }
 
+  /* The five rarities, resolved once. An unrecognised value reads as common,
+     which is what the server does with it too. */
+  var CREW_TIERS = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+  function crewTier(value) {
+    var tier = String(value || '').toLowerCase();
+    return CREW_TIERS.indexOf(tier) === -1 ? 'common' : tier;
+  }
+  function crewTierLabel(value) {
+    var tier = crewTier(value);
+    return tier.charAt(0).toUpperCase() + tier.slice(1);
+  }
+
   function crewStatCard(crew) {
     var maxStat = Number(crew.max_stat) || 50;
     var cells = ['strength', 'cunning', 'science', 'charisma'].map(function (key) {
@@ -804,7 +816,14 @@
       var favoriteLabel = favorite ? 'Remove ' + crew.name + ' from favourites' : 'Add ' + crew.name + ' to favourites';
       var favoriteHint = favoriteReady ? favoriteLabel : 'Crew favourites are being prepared';
       var favoriteButton = '<button type="button" class="mission-crew-favorite' + (favorite ? ' is-favorite' : '') + '" data-crew-favorite="' + crew.id + '" aria-pressed="' + (favorite ? 'true' : 'false') + '" aria-label="' + escapeHtml(favoriteHint) + '" title="' + escapeHtml(favoriteHint) + '"' + (favoriteReady ? '' : ' disabled') + '><span aria-hidden="true">★</span></button>';
-      return '<article class="mission-crew-card ' + (deployed ? 'is-deployed' : '') + (availability === 'unavailable' ? ' is-unavailable' : '') + (favorite ? ' is-favorite' : '') + '">'
+      /* Continuous motion is for epic and legendary only. Eight shimmering
+         cards is noise, and a common recruit shimmering would say the rarity
+         means something it does not. The class is added by the observer below
+         rather than here, so a card that is off-screen animates nothing. */
+      var tier = crewTier(crew.tier);
+      return '<article class="mission-crew-card is-tier-' + tier + ' ' + (deployed ? 'is-deployed' : '') + (availability === 'unavailable' ? ' is-unavailable' : '') + (favorite ? ' is-favorite' : '') + '"'
+        + (tier === 'epic' || tier === 'legendary' ? ' data-crew-shine="1"' : '') + '>'
+        + '<span class="mission-crew-tier">' + escapeHtml(crewTierLabel(tier)) + '</span>'
         + favoriteButton
         + '<div class="mission-crew-visual"><span class="mission-crew-portrait-wrap">' + portraitMarkup + statusDot + '</span>' + crewLoadoutStrip(crew) + '</div>'
         + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3>' + missionCopy + '<p>' + escapeHtml(crew.description) + '</p>'
@@ -812,6 +831,42 @@
         + fatigueMarkup(crew)
         + crewStatCard(crew) + '</div></article>';
     }).join('');
+    watchShine();
+  }
+
+  /* Continuous rarity motion runs only while the card is on screen. A roster
+     paginates to several cards and a player can leave the page open, so an
+     always-running gradient and halo per card is a cost paid for something
+     nobody is looking at -- the same discipline the atlas and Known Figures
+     already apply to their own loops.
+
+     The observer is built once and re-pointed at each render; disconnecting
+     and rebuilding one per render would leak an observer per page turn. */
+  var shineObserver = null;
+  function watchShine() {
+    if (prefersReducedMotion()) return;
+    if (!('IntersectionObserver' in window)) {
+      // No observer: show the effect rather than withhold it. The gating is an
+      // efficiency, not part of what the rarity means.
+      Array.prototype.forEach.call(document.querySelectorAll('[data-crew-shine]'), function (card) {
+        card.classList.add('is-animated');
+      });
+      return;
+    }
+    if (!shineObserver) {
+      shineObserver = new IntersectionObserver(function (entries) {
+        entries.forEach(function (entry) {
+          entry.target.classList.toggle('is-animated', entry.isIntersecting);
+        });
+      }, { rootMargin: '120px' });
+    }
+    shineObserver.disconnect();
+    Array.prototype.forEach.call(document.querySelectorAll('[data-crew-shine]'), function (card) {
+      shineObserver.observe(card);
+    });
+  }
+  function prefersReducedMotion() {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   }
 
   /* ----------------------------------------------------------------------
@@ -1245,9 +1300,24 @@
      * character the player already has is reported too -- saying nothing would
      * read as the table having failed. */
     if (!failed && result.crew_recruited && result.crew_recruited.length) {
+      /* A new crew member was a line of text in a list. It is the rarest thing
+         a mission produces and the only reward that is a character rather than
+         a number, so it arrives as a card with a face -- at every rarity,
+         because a common recruit joining is still someone joining. What scales
+         with rarity is how much arrives, which is CSS: a common card settles, an
+         epic one is swept and blooms, a legendary one is struck. */
       extras += '<div class="mission-result-block is-recruit"><h4>' + (result.crew_recruited.length === 1 ? 'New crew member' : 'New crew members') + '</h4><ul class="mission-result-recruits">'
         + result.crew_recruited.map(function (member) {
-          return '<li><span>' + escapeHtml(member.name) + '</span><em>' + escapeHtml(member.role) + '</em></li>';
+          var tier = crewTier(member.tier);
+          var portrait = safeImage(member.portrait_url);
+          var face = portrait
+            ? '<img src="' + escapeHtml(portrait) + '" alt="">'
+            : '<span aria-hidden="true">' + escapeHtml(String(member.name || '?').charAt(0)) + '</span>';
+          return '<li class="mission-result-recruit is-tier-' + tier + '">'
+            + '<span class="mission-result-recruit-face">' + face + '</span>'
+            + '<span class="mission-result-recruit-copy"><small>' + escapeHtml(crewTierLabel(tier)) + '</small>'
+            + '<strong>' + escapeHtml(member.name) + '</strong>'
+            + '<em>' + escapeHtml(member.role) + '</em></span></li>';
         }).join('') + '</ul></div>';
     }
     if (!failed && result.crew_duplicates && result.crew_duplicates.length) {
