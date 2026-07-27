@@ -730,9 +730,14 @@
        * only ever has two stats above zero. */
       var tip = info.label + ' ' + value + ' / ' + maxStat + (capped ? ' (max)' : '') + ' — ' + info.effect(value) + '. ' + info.copy
         + (gearPart !== 0 ? ' Equipment accounts for ' + (gearPart > 0 ? '+' : '') + gearPart + ' of this.' : '');
+      /* The label and the number share a row that wraps when the cell is too
+         narrow for both. They are wrapped in their own element so the bar can
+         stay on the cell's last row: without it a cell whose pair wrapped put
+         its bar 7px lower than its neighbour's and the row went ragged. */
       return '<div class="crew-stat' + (capped ? ' is-max' : '') + ' is-' + key + '" tabindex="0" title="' + escapeHtml(tip) + '">'
+        + '<span class="crew-stat-head">'
         + '<span class="crew-stat-key">' + info.short + '</span>'
-        + '<span class="crew-stat-value">' + value + '</span>'
+        + '<span class="crew-stat-value">' + value + '</span></span>'
         + '<span class="crew-stat-bar"><i style="width:' + pct + '%"></i></span></div>';
     }).join('');
 
