@@ -403,7 +403,7 @@
              than a child because a form inside a button is invalid and its
              inputs would be unreachable -- but a sibling has no position of
              its own, so it takes the node's and sits just below the card. */
-          + ' style="left:' + Number(node.canvas_x) + 'px;top:' + (Number(node.canvas_y) + 132) + 'px">'
+          + ' style="left:' + Number(node.canvas_x) + 'px;top:' + (Number(node.canvas_y) + 122) + 'px">'
           + '<label>Rank<input type="number" min="1" max="99" value="' + Number(node.required_reputation_level) + '" data-quick-field="required_reputation_level"></label>'
           + '<label>Credits<input type="number" min="0" max="1000000" value="' + Number(node.credit_cost) + '" data-quick-field="credit_cost"></label>'
           + '<label>Value<input type="number" min="0" step="0.01" value="' + Number(node.effect_value) + '" data-quick-field="effect_value"></label>'

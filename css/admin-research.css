@@ -64,15 +64,37 @@
 /* Quick edit, shown on hover or keyboard focus of the node it belongs to. It
  * is a sibling rather than a child of the node button: a form inside a button
  * is invalid, and its inputs would be unreachable. */
-.research-admin-quick { position: absolute; z-index: 9; display: none; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 214px; padding: 9px; border: 1px solid rgba(126,227,232,.6); background: rgba(6,16,30,.98); box-shadow: 0 12px 26px rgba(0,0,0,.5); }
+/* Always laid out, hidden by visibility rather than display.
+ *
+ * It used to be display:none/grid, which cannot be delayed -- the instant the
+ * pointer left the node the card was gone, and since the node card is only
+ * min-height 116px while the card sat at +132 there was a dead gap between
+ * them that the pointer had to cross to reach it. Both halves of that are
+ * fixed here: the hide is delayed so a diagonal path survives, and ::before
+ * bridges whatever gap the node's real height leaves. */
+.research-admin-quick { position: absolute; z-index: 9; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; width: 214px; padding: 9px; border: 1px solid rgba(126,227,232,.6); background: rgba(6,16,30,.98); box-shadow: 0 12px 26px rgba(0,0,0,.5); visibility: hidden; opacity: 0; transition: opacity .14s ease .3s, visibility 0s linear .44s; }
+/* The bridge. Invisible, part of the card's hover area, and tall enough to
+ * cover the gap a taller-than-minimum node card leaves. It is only active once
+ * the card is visible, because a visibility:hidden element takes no pointer
+ * events -- so it can never steal a hover from the node behind it. */
+.research-admin-quick::before { content: ''; position: absolute; right: 0; bottom: 100%; left: 0; height: 30px; }
 .research-admin-node:hover + .research-admin-quick,
 .research-admin-node:focus-visible + .research-admin-quick,
-.research-admin-quick:hover, .research-admin-quick:focus-within { display: grid; }
+.research-admin-quick:hover, .research-admin-quick:focus-within { visibility: visible; opacity: 1; transition: opacity .12s ease 0s, visibility 0s linear 0s; }
 .research-admin-quick label { display: grid; gap: 3px; color: #86a5ba; font: 700 .48rem/1 'Jost', sans-serif; letter-spacing: .07em; text-transform: uppercase; }
 .research-admin-quick input[type="number"] { min-height: 26px; padding: 2px 6px; font-size: .68rem; }
 .research-admin-quick-toggle { grid-column: 1 / -1; display: flex !important; align-items: center; gap: 6px; }
 .research-admin-quick-actions { grid-column: 1 / -1; display: flex; gap: 6px; }
 .research-admin-quick-actions .btn { min-height: 26px; padding: 0 9px; font-size: .56rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  /* The delay is what makes the card reachable, so it stays; only the fade
+   * goes. */
+  .research-admin-quick { transition: opacity 0s linear .3s, visibility 0s linear .3s; }
+  .research-admin-node:hover + .research-admin-quick,
+  .research-admin-node:focus-visible + .research-admin-quick,
+  .research-admin-quick:hover, .research-admin-quick:focus-within { transition: none; }
+}
 
 @media (max-width: 700px) {
   .research-admin-map-controls { top: 10px; left: 10px; }
