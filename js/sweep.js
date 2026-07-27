@@ -28,6 +28,7 @@
   var loginButton = document.getElementById('sweep-login');
   var profileCard = document.getElementById('sweep-profile-card');
   var trophyList = document.getElementById('sweep-trophy-list');
+  var crewSort = document.getElementById('sweep-crew-sort');
 
   function esc(value) { var node = document.createElement('div'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
   function num(value) { return Number(value || 0).toLocaleString(); }
@@ -172,8 +173,13 @@
       var cls = row.is_current ? 'is-current' : (row.unlocked ? 'is-earned' : 'is-sealed');
       /* A sealed rung shows its rank and its board shape but never its
          manifest name: what a field holds is the reward for reaching it. */
+      /* The manifest is not named. What a sector pays is the thing worth
+         finding out by sweeping it, and printing the loot table's name turned
+         the ladder into a contents list. The board shape is the useful part
+         and gives nothing away. */
       var detail = row.unlocked
-        ? (row.loot_table_name ? esc(row.loot_table_name) : 'No manifest filed')
+        ? row.grid_rows + '\u00d7' + row.grid_cols + ' \u00b7 ' + row.hazard_count + ' collapse'
+          + (Number(row.hazard_count) === 1 ? '' : 's')
         : 'Rank ' + row.rank_number + ' required';
       return '<li class="sweep-rung ' + cls + '">'
         + '<span class="sweep-rung-mark">' + row.rank_number + '</span>'
@@ -242,11 +248,27 @@
     var crew = (state.data && state.data.crew) || [];
     if (!crew.length) { crewList.innerHTML = '<p class="sweep-muted">No crew are available.</p>'; return; }
     var tier = state.data.tier;
-    /* Deployable crew first. Four of six being unusable is normal once a few
-       are out, and burying the two that can go under them is the difference
-       between a roster and a list. Order is stable within each group. */
+    var favoritesReady = !!state.data.crew_favorites_ready;
+    /* Deployable crew first under every sort. Four of six being unusable is
+       normal once a few are out, and burying the two that can go under them is
+       the difference between a roster and a list -- so readiness is the outer
+       key and the chosen sort orders within it. "Ready first" is that rule with
+       nothing on top, which is why it is the default. */
+    var mode = (crewSort && crewSort.value) || 'ready';
+    var stat = { 'scans-desc': 'picks_total', 'brace-desc': 'shrug_percent', 'survey-desc': 'hint_radius' }[mode];
     var ordered = crew.slice().sort(function (left, right) {
-      return (right.can_deploy ? 1 : 0) - (left.can_deploy ? 1 : 0);
+      var byReady = (right.can_deploy ? 1 : 0) - (left.can_deploy ? 1 : 0);
+      if (byReady) return byReady;
+      var by = 0;
+      if (mode === 'favorites') by = (right.is_favorite ? 1 : 0) - (left.is_favorite ? 1 : 0);
+      if (stat) by = (Number((right.projection || {})[stat]) || 0) - (Number((left.projection || {})[stat]) || 0);
+      if (mode === 'fatigue-desc') by = (Number(right.fatigue) || 0) - (Number(left.fatigue) || 0);
+      if (mode === 'level-desc') by = (Number(right.level) || 0) - (Number(left.level) || 0);
+      if (mode === 'name-asc') by = String(left.name).localeCompare(String(right.name));
+      // Level breaks a tie before the name, so the most developed of several
+      // crew sharing a figure is not placed by alphabet.
+      return by || (Number(right.level) || 0) - (Number(left.level) || 0)
+        || String(left.name).localeCompare(String(right.name));
     });
     crewList.innerHTML = ordered.map(function (member) {
       var why = !tier ? 'No sector open'
@@ -272,7 +294,19 @@
         + esc(have + ' of ' + max + ' fatigue' + (cost ? '; this sector costs ' + cost : '')) + '">'
         + '<i style="width:' + Math.round((have / max) * 100) + '%"></i>'
         + (cost ? '<u style="left:' + Math.round((cost / max) * 100) + '%"></u>' : '') + '</span>';
-      return '<div class="sweep-crew is-tier-' + esc(member.tier) + (member.can_deploy ? '' : ' is-blocked') + '">'
+      /* The same favourites the missions roster keeps, so a star set there is
+         set here. The control is hidden rather than shown-and-refused when the
+         column has not been migrated, per the standing permission-aware rule. */
+      var favorite = !!member.is_favorite;
+      var star = favoritesReady
+        ? '<button type="button" class="sweep-crew-star' + (favorite ? ' is-on' : '') + '" data-sweep-favorite="' + member.id + '"'
+          + ' aria-pressed="' + (favorite ? 'true' : 'false') + '"'
+          + ' title="' + esc((favorite ? 'Remove ' : 'Add ') + member.name + (favorite ? ' from' : ' to') + ' favourites') + '"'
+          + ' aria-label="' + esc((favorite ? 'Remove ' : 'Add ') + member.name + (favorite ? ' from' : ' to') + ' favourites') + '">'
+          + '<span aria-hidden="true">\u2605</span></button>'
+        : '';
+      return '<div class="sweep-crew is-tier-' + esc(member.tier) + (member.can_deploy ? '' : ' is-blocked')
+        + (favorite ? ' is-favorite' : '') + '">' + star
         + '<div class="sweep-crew-head">'
         + '<span class="sweep-crew-face">' + face + '</span>'
         + '<span class="sweep-crew-name"><strong>' + esc(member.name) + '</strong>'
@@ -448,6 +482,26 @@
       var button = event.target.closest('[data-sweep-send]');
       if (!button) return;
       send(Number(button.getAttribute('data-sweep-send')));
+    });
+  }
+  if (crewSort) crewSort.addEventListener('change', function () { renderCrew(); });
+  if (crewList) {
+    crewList.addEventListener('click', function (event) {
+      var star = event.target.closest('[data-sweep-favorite]');
+      if (!star) return;
+      var id = Number(star.getAttribute('data-sweep-favorite'));
+      star.disabled = true;
+      /* The missions page owns this endpoint; the sweep just calls it, so one
+         star means one thing on both screens. It takes the state to set rather
+         than a toggle, which is what makes a double click idempotent instead
+         of flipping twice. */
+      var next = star.getAttribute('aria-pressed') !== 'true';
+      request('/api/missions/crew-favorite.php', { crew_id: id, is_favorite: next }).then(function () {
+        return load();
+      }).catch(function (error) {
+        setStatus(error.message, true);
+        star.disabled = false;
+      });
     });
   }
   if (bankButton) bankButton.addEventListener('click', function () { finish(false); });

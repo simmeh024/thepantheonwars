@@ -8,7 +8,7 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
-<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/public.css?v=315"><link rel="stylesheet" href="css/sweep.css?v=6">
+<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/public.css?v=315"><link rel="stylesheet" href="css/sweep.css?v=7">
 </head>
 <body class="market-body">
 <header class="site-header"><div class="nav-inner"><button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button><a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a>    <nav class="main-nav">
@@ -68,7 +68,7 @@
             <div id="sweep-board-area"><p class="sweep-muted">Choose a crew member below to open a field.</p></div>
             <div class="sweep-board-actions" id="sweep-board-actions" hidden><button type="button" class="btn btn-solid" id="sweep-bank">Withdraw with the haul</button><button type="button" class="btn" id="sweep-abandon">Abandon</button></div>
           </section>
-          <section class="sweep-card" id="sweep-crew-card" aria-labelledby="sweep-crew-title"><div class="sweep-board-head"><div><span class="eyebrow">Send who</span><h2 id="sweep-crew-title">Available crew</h2></div></div><div class="sweep-crew-list" id="sweep-crew-list"><p class="sweep-muted">Reading the roster…</p></div></section>
+          <section class="sweep-card" id="sweep-crew-card" aria-labelledby="sweep-crew-title"><div class="sweep-board-head"><div><span class="eyebrow">Send who</span><h2 id="sweep-crew-title">Available crew</h2></div><label class="sweep-crew-sort"><span>Sort by</span><select id="sweep-crew-sort"><option value="ready">Ready first</option><option value="favorites">Favourites first</option><option value="scans-desc">Most scans</option><option value="brace-desc">Best brace</option><option value="survey-desc">Best survey</option><option value="fatigue-desc">Most fatigue</option><option value="level-desc">Highest level</option><option value="name-asc">Name A&ndash;Z</option></select></label></div><div class="sweep-crew-list" id="sweep-crew-list"><p class="sweep-muted">Reading the roster…</p></div></section>
         </div>
         <aside class="sweep-rail" aria-label="Commander profile">
           <div class="sweep-profile-card" id="sweep-profile-card"><p class="sweep-muted">Loading commander record&hellip;</p></div>
@@ -79,6 +79,6 @@
   </div></section>
 </main>
 
-<script src="js/main.js?v=20"></script><script src="js/members.js?v=43"></script><script src="js/sweep.js?v=7"></script>
+<script src="js/main.js?v=20"></script><script src="js/members.js?v=43"></script><script src="js/sweep.js?v=8"></script>
 </body>
 </html>
