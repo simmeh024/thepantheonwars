@@ -199,6 +199,35 @@
     refreshCount();
   }
 
+  /* Copy the open table, then open the copy. The point is to keep going --
+     rename, adjust, save -- so landing back on the list would just mean
+     finding it again. Unsaved edits to the original are deliberately not
+     carried across: the server copies what is stored, and pretending
+     otherwise would silently produce a table that matches neither. */
+  function duplicateTable() {
+    if (!currentTable || !currentTable.id || !can('loot_tables.edit')) return;
+    var button = document.getElementById('loot-table-copy-btn');
+    button.disabled = true; button.classList.add('is-busy');
+    showModalError('loot-table-modal-error', '');
+    showModalError('loot-table-modal-status', '');
+    request('/api/admin/loot-tables/duplicate.php', { id: currentTable.id }).then(function (data) {
+      return load().then(function () {
+        var copy = tables.filter(function (item) { return Number(item.id) === Number(data.id); })[0];
+        if (copy) openTableModal(copy);
+        /* Into the status line, not the error line: this is a confirmation,
+           and it carries two things the author has to be told -- the copy is
+           switched off, and it inherited no mission attachments. */
+        showModalError('loot-table-modal-status', 'Copied as “' + data.name + '” with ' + data.entries
+          + (data.entries === 1 ? ' entry' : ' entries')
+          + '. It is disabled and attached to no mission — rename it, then enable it.');
+      });
+    }).catch(function (error) {
+      showModalError('loot-table-modal-error', error.message);
+    }).then(function () {
+      button.disabled = false; button.classList.remove('is-busy');
+    });
+  }
+
   function renderTables() {
     if (!tableList) return;
     if (!tables.length) {
@@ -358,6 +387,7 @@
       };
     });
     showModalError('loot-table-modal-error', '');
+    showModalError('loot-table-modal-status', '');
     document.getElementById('loot-table-modal-status').textContent = '';
 
     var editable = can('loot_tables.edit');
@@ -368,6 +398,9 @@
     document.getElementById('loot-table-research-rare').disabled = !editable || !researchLocksReady;
     document.getElementById('loot-table-save-btn').disabled = !editable;
     document.getElementById('loot-table-delete-btn').hidden = !table || !editable;
+    // A copy is a create, so it needs the same permission a save does, and
+    // there is nothing to copy until the table exists.
+    document.getElementById('loot-table-copy-btn').hidden = !table || !can('loot_tables.edit');
 
     renderDraftEntries();
     tableModal.hidden = false;
@@ -379,6 +412,7 @@
     if (!can('loot_tables.edit')) return;
     var button = document.getElementById('loot-table-save-btn');
     showModalError('loot-table-modal-error', '');
+    showModalError('loot-table-modal-status', '');
     button.disabled = true;
     button.classList.add('is-busy');
     request('/api/admin/loot-tables/save.php', {
@@ -504,6 +538,7 @@
   document.getElementById('loot-table-cancel-btn').addEventListener('click', closeTableModal);
   tableModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeTableModal);
   document.getElementById('loot-table-save-btn').addEventListener('click', saveTable);
+  document.getElementById('loot-table-copy-btn').addEventListener('click', duplicateTable);
   document.getElementById('loot-entry-type').addEventListener('change', populateEntryPicker);
   document.getElementById('loot-entry-add-btn').addEventListener('click', function () {
     if (!can('loot_tables.edit')) return;
