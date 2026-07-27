@@ -34,10 +34,17 @@ try {
         $ranks[] = ['number' => $index + 1, 'name' => (string)$level['name'], 'threshold' => (int)$level['threshold']];
     }
 
-    $lootTables = $db->query('SELECT id, name, is_enabled FROM game_loot_tables ORDER BY name ASC')->fetchAll();
+    /* Sweep manifests first, then everything else: the picker still offers
+     * every table, because marking one is a convenience rather than a
+     * requirement, but the ones written for a sector sort to the top. */
+    $sweepFlag = pw_mission_loot_table_sweep_flag_ready($db);
+    $lootTables = $db->query('SELECT id, name, is_enabled, '
+        . ($sweepFlag ? 'is_sweep_only' : '0 AS is_sweep_only')
+        . ' FROM game_loot_tables ORDER BY ' . ($sweepFlag ? 'is_sweep_only DESC, ' : '') . 'name ASC')->fetchAll();
     foreach ($lootTables as &$table) {
         $table['id'] = (int)$table['id'];
         $table['is_enabled'] = (bool)$table['is_enabled'];
+        $table['is_sweep_only'] = (bool)$table['is_sweep_only'];
     }
     unset($table);
 

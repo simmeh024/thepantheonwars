@@ -81,6 +81,13 @@ CREATE TABLE IF NOT EXISTS game_player_sweep_finds (
     REFERENCES game_player_sweep_runs(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- A manifest written for a sweep sector should not also be dropping from
+-- missions. This flag takes it out of the mission roll entirely and out of the
+-- mission attach picker, so the forty sweep manifests do not clutter -- or
+-- leak into -- ordinary operations.
+ALTER TABLE game_loot_tables
+  ADD COLUMN IF NOT EXISTS is_sweep_only TINYINT(1) NOT NULL DEFAULT 0;
+
 -- The column is `key`, and there is no description column. Upserting on the
 -- key rather than INSERT IGNORE so a re-run refreshes a changed label, which
 -- is what every other permission migration in this repo does.

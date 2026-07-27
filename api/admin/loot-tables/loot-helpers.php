@@ -34,6 +34,7 @@ function pw_admin_loot_table_input(array $input): array {
         'description' => $description,
         'is_enabled' => !empty($input['is_enabled']) ? 1 : 0,
         'is_research_rare' => !empty($input['is_research_rare']) ? 1 : 0,
+        'is_sweep_only' => !empty($input['is_sweep_only']) ? 1 : 0,
     ];
 }
 
@@ -171,6 +172,15 @@ function pw_admin_loot_sync_mission_links(PDO $db, int $missionId, array $links)
         $stmt = $db->prepare('SELECT COUNT(*) FROM game_loot_tables WHERE id IN (' . pw_missions_placeholders(count($tableIds)) . ')');
         $stmt->execute($tableIds);
         if ((int)$stmt->fetchColumn() !== count($tableIds)) pw_error('One selected loot table no longer exists.', 404);
+        /* A sweep manifest belongs to a sector, not an operation. The mission
+         * roll already refuses to read one, so this only turns a link that
+         * would silently do nothing into an error the author can see. */
+        if (pw_mission_loot_table_sweep_flag_ready($db)) {
+            $sweepOnly = $db->prepare('SELECT name FROM game_loot_tables WHERE is_sweep_only = 1 AND id IN (' . pw_missions_placeholders(count($tableIds)) . ')');
+            $sweepOnly->execute($tableIds);
+            $blocked = $sweepOnly->fetchAll(PDO::FETCH_COLUMN);
+            if ($blocked) pw_error('"' . $blocked[0] . '" is a Salvage Sweep manifest and cannot be attached to a mission.', 409);
+        }
     }
 
     $existingStmt = $db->prepare('SELECT id, loot_table_id FROM game_mission_loot_tables WHERE mission_definition_id = ?');

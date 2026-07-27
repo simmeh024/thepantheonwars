@@ -14,6 +14,9 @@
 /* A sector with no usable manifest cannot open a board, so it is flagged on
  * the row rather than discovered when a player is refused at the field. */
 .admin-pill.is-warn { border-color: rgba(231,168,114,0.55); color: #e8bd8a; }
+/* A sweep manifest, marked in the Loot Table list -- which will soon be mostly
+ * sweep manifests, so the ones that still feed missions need to stand out. */
+.admin-pill.is-sweep { border-color: rgba(158,219,168,0.55); color: #9edba8; }
 
 @media (max-width: 900px) {
   .sweep-tier-row { grid-template-columns: minmax(0, 1fr) auto; gap: 5px 12px; }

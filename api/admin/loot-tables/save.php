@@ -23,16 +23,20 @@ try {
     $duplicate->execute($id !== null ? [$data['slug'], $id] : [$data['slug']]);
     if ($duplicate->fetch()) { $db->rollBack(); pw_error('A loot table with that slug already exists.', 409); }
 
+    /* Two optional migrations now decide which columns exist here, so the
+     * column list is built from one array rather than as a branch per flag --
+     * that is exactly how a placeholder/value count silently desyncs, and PDO
+     * only reports it at execute() against the live database. */
+    $sweepFlagReady = pw_mission_loot_table_sweep_flag_ready($db);
+    $columns = ['name', 'slug', 'description', 'is_enabled'];
+    $values = [$data['name'], $data['slug'], $data['description'], $data['is_enabled']];
+    if ($researchLocksReady) { $columns[] = 'is_research_rare'; $values[] = $data['is_research_rare']; }
+    if ($sweepFlagReady) { $columns[] = 'is_sweep_only'; $values[] = $data['is_sweep_only']; }
+
     if ($id === null) {
-        $stmt = $db->prepare(
-            $researchLocksReady
-                ? 'INSERT INTO game_loot_tables (name, slug, description, is_enabled, is_research_rare) VALUES (?, ?, ?, ?, ?)'
-                : 'INSERT INTO game_loot_tables (name, slug, description, is_enabled) VALUES (?, ?, ?, ?)'
-        );
-        $stmt->execute($researchLocksReady
-            ? [$data['name'], $data['slug'], $data['description'], $data['is_enabled'], $data['is_research_rare']]
-            : [$data['name'], $data['slug'], $data['description'], $data['is_enabled']]
-        );
+        $stmt = $db->prepare('INSERT INTO game_loot_tables (' . implode(', ', $columns) . ') VALUES ('
+            . implode(', ', array_fill(0, count($columns), '?')) . ')');
+        $stmt->execute($values);
         $id = (int)$db->lastInsertId();
         $action = 'loot_table_created';
     } else {
@@ -45,15 +49,9 @@ try {
         if ($researchLocksReady && !empty($existingRow['requires_research_unlock']) && !$data['is_research_rare']) {
             throw new RuntimeException('A research-locked loot table must remain marked as a rare research table. Retire its linked protocol first.');
         }
-        $stmt = $db->prepare(
-            $researchLocksReady
-                ? 'UPDATE game_loot_tables SET name = ?, slug = ?, description = ?, is_enabled = ?, is_research_rare = ? WHERE id = ?'
-                : 'UPDATE game_loot_tables SET name = ?, slug = ?, description = ?, is_enabled = ? WHERE id = ?'
-        );
-        $stmt->execute($researchLocksReady
-            ? [$data['name'], $data['slug'], $data['description'], $data['is_enabled'], $data['is_research_rare'], $id]
-            : [$data['name'], $data['slug'], $data['description'], $data['is_enabled'], $id]
-        );
+        $sets = array_map(static function ($column) { return $column . ' = ?'; }, $columns);
+        $stmt = $db->prepare('UPDATE game_loot_tables SET ' . implode(', ', $sets) . ' WHERE id = ?');
+        $stmt->execute(array_merge($values, [$id]));
         $action = 'loot_table_updated';
     }
 

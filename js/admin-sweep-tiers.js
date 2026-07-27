@@ -86,10 +86,19 @@
   }
 
   function fillLootTables(selected) {
-    lootSelect.innerHTML = '<option value="">No manifest</option>' + lootTables.map(function (table) {
+    /* Grouped, not filtered: a table that has not been marked as a sweep
+       manifest is still a legal choice, so hiding it would be wrong -- but with
+       forty sectors to author, the ones written for this purpose need to be the
+       ones at the top. */
+    function option(table) {
       return '<option value="' + table.id + '"' + (Number(selected) === table.id ? ' selected' : '') + '>'
         + esc(table.name) + (table.is_enabled ? '' : ' (disabled)') + '</option>';
-    }).join('');
+    }
+    var sweep = lootTables.filter(function (table) { return table.is_sweep_only; });
+    var rest = lootTables.filter(function (table) { return !table.is_sweep_only; });
+    lootSelect.innerHTML = '<option value="">No manifest</option>'
+      + (sweep.length ? '<optgroup label="Sweep manifests">' + sweep.map(option).join('') + '</optgroup>' : '')
+      + (rest.length ? '<optgroup label="Other loot tables">' + rest.map(option).join('') + '</optgroup>' : '');
   }
 
   function syncHazardHint() {

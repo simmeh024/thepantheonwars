@@ -226,6 +226,7 @@
         '<span class="loot-admin-cell">' + (table.mission_count ? table.mission_count + (table.mission_count === 1 ? ' mission' : ' missions') : '<em>Unused</em>') + '</span>' +
         '<span class="loot-admin-status">' +
           '<span class="admin-pill ' + (table.is_enabled ? 'is-on' : 'is-off') + '">' + (table.is_enabled ? 'Enabled' : 'Disabled') + '</span>' +
+          (table.is_sweep_only ? '<span class="admin-pill is-sweep">Sweep manifest</span>' : '') +
           (table.is_research_rare ? '<span class="admin-pill ' + (table.requires_research_unlock ? 'is-off' : 'is-on') + '">' + (table.requires_research_unlock ? 'Research locked' : 'Research rare') + '</span>' : '') +
         '</span>';
       row.addEventListener('click', function () { openTableModal(table); });
@@ -347,6 +348,7 @@
     document.getElementById('loot-table-description').value = table && table.description ? table.description : '';
     document.getElementById('loot-table-enabled').checked = table ? !!table.is_enabled : true;
     document.getElementById('loot-table-research-rare').checked = table ? !!table.is_research_rare : false;
+    document.getElementById('loot-table-sweep-only').checked = table ? !!table.is_sweep_only : false;
     draftEntries = (table && table.entries ? table.entries : []).map(function (entry) {
       var type = entry.entry_type === 'gear' ? 'gear' : 'crew';
       return {
@@ -386,6 +388,7 @@
       description: document.getElementById('loot-table-description').value.trim(),
       is_enabled: document.getElementById('loot-table-enabled').checked,
       is_research_rare: document.getElementById('loot-table-research-rare').checked,
+      is_sweep_only: document.getElementById('loot-table-sweep-only').checked,
       entries: draftEntries
     }).then(function () {
       closeTableModal();

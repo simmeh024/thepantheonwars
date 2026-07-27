@@ -2281,6 +2281,13 @@ function pw_missions_receive_crew(PDO $db, int $userId, int $crewDefinitionId, s
     return ['state' => 'pending', 'crew' => array_merge($award, ['offer_id' => (int)$offerId, 'capacity' => $capacity, 'roster_count' => $rosterCount])];
 }
 
+/** Whether the sweep-only flag exists yet on loot tables. */
+function pw_mission_loot_table_sweep_flag_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    return $ready = pw_schema_has($db, 'game_loot_tables', ['is_sweep_only']);
+}
+
 function pw_missions_require_loot_table_gear_ready(PDO $db): void {
     if (!pw_mission_loot_table_gear_ready($db)) {
         pw_error('Gear loot tables are being prepared. Please run the Mission Loot Table Gear migration first.', 503);
@@ -2375,7 +2382,9 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
         'SELECT link.loot_table_id, link.chance_percent
          FROM game_mission_loot_tables link
          JOIN game_loot_tables lt ON lt.id = link.loot_table_id
-         WHERE link.mission_definition_id = ? AND lt.is_enabled = 1' . $researchAccessSql . '
+         WHERE link.mission_definition_id = ? AND lt.is_enabled = 1'
+         . (pw_mission_loot_table_sweep_flag_ready($db) ? ' AND lt.is_sweep_only = 0' : '')
+         . $researchAccessSql . '
          ORDER BY link.sort_order ASC, link.id ASC'
     );
     $linkStmt->execute(array_merge([$missionDefinitionId], $researchAccessValues));

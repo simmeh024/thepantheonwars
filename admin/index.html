@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=319"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=5"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=1"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=5">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=319"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=5"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=2"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=5">
 </head>
 <body>
 
@@ -4396,6 +4396,7 @@
     </div>
     <div class="admin-field"><label for="loot-table-description">Description</label><textarea id="loot-table-description" maxlength="2000" placeholder="Internal note describing what this table is for."></textarea></div>
     <label class="admin-setting-toggle"><span><strong>Rare research table</strong><small>Allows this table to be chosen by a Rare loot table access protocol. Such a protocol seals the table until players unlock it.</small></span><input type="checkbox" id="loot-table-research-rare"></label>
+    <label class="admin-setting-toggle"><span><strong>Salvage Sweep manifest</strong><small>Reserves this table for a sweep sector. It stops dropping from missions and cannot be attached to one, which is what keeps forty sector manifests out of the mission picker.</small></span><input type="checkbox" id="loot-table-sweep-only"></label>
     <div class="admin-subsection-head"><h2>Rewards in this table</h2><p>Drop chance is per successful mission, once this table has been opened. Between 0.01% and 100%.</p></div>
     <div class="loot-entry-list" id="loot-entry-list"></div>
     <div class="loot-entry-add">
@@ -4597,7 +4598,7 @@
 </div>
 
 <script src="../js/members.js?v=43"></script>
-<script src="../js/admin-missions.js?v=12"></script><script src="../js/admin-loot-tables.js?v=5"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-sweep-tiers.js?v=1"></script><script src="../js/admin-research.js?v=11"></script><script src="../js/admin-game-tuning.js?v=4"></script>
+<script src="../js/admin-missions.js?v=12"></script><script src="../js/admin-loot-tables.js?v=6"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-sweep-tiers.js?v=2"></script><script src="../js/admin-research.js?v=11"></script><script src="../js/admin-game-tuning.js?v=4"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
