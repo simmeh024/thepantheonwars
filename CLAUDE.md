@@ -619,6 +619,48 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Reputation page: a real weekly chart, tier standing, and one arrival pass.**
+  No migration, no endpoint change.
+  **The sparkline became a chart.** Eight bare heights with no baseline said
+  nothing about what a normal week looks like. A dashed mean line now runs
+  across the plot, bars are toned by whether they beat it, and the best week is
+  **named** rather than left to be found by comparing eight heights, which is
+  the reading an eye is worst at. Still hand-built divs -- there is no chart
+  library in this codebase.
+  **That fixed a latent overflow.** The week labels used to sit *inside* each
+  column, whose height is the whole strip, so a bar at 100% and its own label
+  could not both fit -- the peak week was the one that overflowed. Labels moved
+  to their own axis row, so every bar gets the full plot height honestly. The
+  mean line is drawn only when some week scored; a mean through eight empty
+  weeks is a line at zero.
+  **Tier standing, not tier grouping.** The plan was to group the achievements
+  grid by tier -- **not possible**: a card is a *track*, and a track spans
+  bronze through prismatic, so there is no single tier to file it under. The
+  phases inside those tracks can still be counted, which is the part that says
+  how far up the material a member has got, so a four-cell tier row sits beside
+  the existing per-category row. Always four in fixed order: an absent tier
+  reads as one still to reach, where omitting it would hide that it exists.
+  **One arrival pass.** The bar grows, the total counts up, and the ladder rungs
+  stagger in from the earned end -- once, on load, skipped under
+  `prefers-reduced-motion` (a count-up has no reduced version that is still a
+  count-up, so it is skipped rather than shortened).
+  **The bar animation was rebuilt after the first version failed a real check.**
+  It first animated `width` from 0, set by script two frames later -- and in a
+  tab that is not compositing those frames never arrive, so the DOM width stayed
+  `0%`. The width is now always the real one and the growth is a `scaleX`
+  keyframe on top of it, so a frame that never comes leaves the bar at its
+  correct length. Same rule as the rungs: **never depend on an animation running
+  for an element to be right.**
+  Verified against a harness that is the **whole real page** with only the two
+  external scripts dropped and `fetch` stubbed, so all four inline scripts run
+  as shipped. Measured with animations force-disabled as well as running, which
+  is what proves the resting state: bar 239px against an expected 240, all seven
+  rungs at opacity 1, no residual transform. Bands classify correctly across
+  above/below/empty/peak, no column escapes the plot, no axis label clips, and
+  at 375px the tier row wraps to 2x2 with no page overflow. Worst contrast
+  5.56:1. **Not screenshotted** -- the Browser pane is still not compositing.
+  `reputation.css?v=11`.
+
 - **Two more rows on the research canvas, and a legendary board behind a sealed
   tab.** No migration. The main canvas grew 1080 -> 1440 (two more 180px row
   pitches); all four places holding that number were updated together -- the PHP

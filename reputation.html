@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'"><noscript><link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet"></noscript>
-<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/community-bundle.css?v=316"><link rel="stylesheet" href="css/reputation.css?v=10"><link rel="stylesheet" href="css/reputation-unlocks.css?v=3">
+<link rel="icon" href="favicon.ico"><link rel="stylesheet" href="css/community-bundle.css?v=316"><link rel="stylesheet" href="css/reputation.css?v=11"><link rel="stylesheet" href="css/reputation-unlocks.css?v=3">
 </head>
 <body>
 <header class="site-header"><div class="nav-inner"><button class="nav-toggle" aria-label="Menu"><span></span><span></span><span></span></button><a href="index.html" class="logo"><span class="logo-shard"></span>The <span class="logo-name">Pantheon Wars</span></a>    <nav class="main-nav">
@@ -56,7 +56,7 @@
     <div class="reputation-main">
     <div class="reputation-insights"><div class="reputation-insight-stack"><section class="reputation-rank-preview"><span class="reputation-insight-kicker">Next rank preview</span><strong id="reputation-next-rank">Resolving rank…</strong><p id="reputation-next-perk">Loading your next profile and forum distinction.</p></section><section class="reputation-next-unlocks" id="reputation-next-unlocks" hidden><div class="reputation-next-unlocks-head"><span class="reputation-insight-kicker">What unlocks next</span><span id="reputation-next-unlocks-count"></span></div><div class="reputation-next-unlocks-grid" id="reputation-next-unlocks-grid"></div><button type="button" class="btn reputation-next-unlocks-more" id="reputation-next-unlocks-more" hidden>View more</button></section></div><section class="reputation-timeline-card"><div class="reputation-timeline-head"><span class="reputation-insight-kicker">Signal history</span><span>Last 8 weeks</span></div><div class="reputation-timeline-bars" id="reputation-timeline-bars" aria-label="Reputation earned over the last eight weeks"></div><div class="reputation-timeline-highlights" id="reputation-timeline-highlights"></div></section></div>
     <div class="reputation-columns"><section class="reputation-card"><div class="reputation-card-head"><h2>Recent signals</h2><span id="reputation-total" class="reputation-total"></span></div><div id="reputation-log" class="reputation-log"><p class="lore-status">Loading your history…</p></div><div class="reputation-log-actions"><button id="reputation-more" type="button" class="btn" hidden>View more</button></div></section>
-    <section class="reputation-card"><div class="reputation-card-head"><h2>Achievements</h2><span id="reputation-achievement-count" class="reputation-total"></span></div><div class="achievement-category-summary" id="achievement-category-summary"></div><div class="achievement-filter" id="achievement-filter"><button type="button" class="is-active" data-achievement-filter="all">All</button><button type="button" data-achievement-filter="unlocked">Unlocked</button><button type="button" data-achievement-filter="locked">Locked</button></div><div id="reputation-achievements" class="reputation-achievements"></div><div class="achievement-pages" id="achievement-pages"></div></section></div>
+    <section class="reputation-card"><div class="reputation-card-head"><h2>Achievements</h2><span id="reputation-achievement-count" class="reputation-total"></span></div><div class="achievement-category-summary" id="achievement-category-summary"></div><div class="achievement-tier-summary" id="achievement-tier-summary" hidden></div><div class="achievement-filter" id="achievement-filter"><button type="button" class="is-active" data-achievement-filter="all">All</button><button type="button" data-achievement-filter="unlocked">Unlocked</button><button type="button" data-achievement-filter="locked">Locked</button></div><div id="reputation-achievements" class="reputation-achievements"></div><div class="achievement-pages" id="achievement-pages"></div></section></div>
     </div></div>
   </div>
 </div></section></main>
@@ -104,10 +104,10 @@
     if (!rail || !wrap) return;
     if (!ladder || ladder.length < 2) { wrap.hidden = true; return; }
     wrap.hidden = false;
-    rail.innerHTML = ladder.map(function (rung) {
+    rail.innerHTML = ladder.map(function (rung, index) {
       var accent = /^#[a-f0-9]{6}$/i.test(String(rung.color || '')) ? rung.color : '#a279ec';
       var reached = rung.state === 'earned' || rung.state === 'current';
-      return '<li class="reputation-rung is-' + esc(rung.state) + '" style="--rung-accent:' + esc(accent) + '"'
+      return '<li class="reputation-rung is-' + esc(rung.state) + '" style="--rung-accent:' + esc(accent) + ';--rung-index:' + index + '"'
         + (rung.state === 'current' ? ' aria-current="step"' : '') + '>'
         + '<span class="reputation-rung-mark">' + rung.number + '</span>'
         + '<span class="reputation-rung-copy"><strong>' + esc(rung.name) + '</strong>'
@@ -117,7 +117,42 @@
     }).join('');
   }
 
-  function load(){if(!window.PW_AUTH.loggedIn){gate.hidden=false;content.hidden=true;return;}gate.hidden=true;content.hidden=false;fetch('/api/reputation/summary.php',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){if(!data.ok)throw new Error();var rep=data.reputation||{}, color=rep.level_color||'#a279ec';document.getElementById('reputation-level-copy').textContent=(rep.level_name||'Unranked')+' · '+rep.points+' reputation'+(rep.next_level_name?' · '+Math.max(0,rep.next_level_threshold-rep.points)+' to '+rep.next_level_name:'');document.getElementById('reputation-total').textContent=rep.points+' rep';var square=document.getElementById('reputation-level-square'),fill=document.getElementById('reputation-level-fill');square.style.background=color;square.textContent=rep.level_number||'';fill.style.width=(rep.progress_percent||0)+'%';fill.style.background=color;
+  /* Motion is skipped rather than shortened when the visitor asks for less:
+     a count-up is the animation, so there is no reduced version of it that is
+     still a count-up. Both helpers set the final value immediately instead. */
+  function wantsMotion() {
+    return !(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+  function animateBar(fill, percent) {
+    /* The width is always the real one. The growth is a scaleX keyframe on top
+       of it, so a frame that never arrives leaves the bar at its correct
+       length rather than empty -- which is exactly what an earlier version
+       that animated the width itself did, in a tab that was not compositing.
+       Same reasoning as the ladder rungs: never depend on an animation running
+       for an element to be right. */
+    fill.style.width = Math.max(0, Math.min(100, percent)) + '%';
+    if (wantsMotion()) fill.classList.add('is-filling');
+  }
+  function animateCount(element, target, suffix) {
+    if (!element) return;
+    if (!wantsMotion() || target <= 0) { element.textContent = target + suffix; return; }
+    var started = null, duration = 700;
+    function step(now) {
+      if (started === null) started = now;
+      var progress = Math.min(1, (now - started) / duration);
+      // Eased so the number settles rather than stopping dead on its target.
+      var eased = 1 - Math.pow(1 - progress, 3);
+      element.textContent = Math.round(target * eased) + suffix;
+      if (progress < 1) window.requestAnimationFrame(step);
+    }
+    window.requestAnimationFrame(step);
+  }
+
+  function load(){if(!window.PW_AUTH.loggedIn){gate.hidden=false;content.hidden=true;return;}gate.hidden=true;content.hidden=false;fetch('/api/reputation/summary.php',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(data){if(!data.ok)throw new Error();var rep=data.reputation||{}, color=rep.level_color||'#a279ec';document.getElementById('reputation-level-copy').textContent=(rep.level_name||'Unranked')+' · '+rep.points+' reputation'+(rep.next_level_name?' · '+Math.max(0,rep.next_level_threshold-rep.points)+' to '+rep.next_level_name:'');document.getElementById('reputation-total').textContent=rep.points+' rep';var square=document.getElementById('reputation-level-square'),fill=document.getElementById('reputation-level-fill');square.style.background=color;square.textContent=rep.level_number||'';fill.style.background=color;
+      /* The bar grows to its real position instead of appearing at it, and the
+         total counts up to meet it. Both run once, on load. */
+      animateBar(fill, Number(rep.progress_percent) || 0);
+      animateCount(document.getElementById('reputation-total'), Number(rep.points) || 0, ' rep');
       /* The rank's own colour, published once as a custom property instead of
          being applied element by element. reputation_levels.color has been
          administrator-authored since the ladder shipped and this page spent it
@@ -169,7 +204,7 @@
 <script>
 (function () {
   'use strict';
-  var filter = 'all', currentPage = 1, perPage = 4, filterEl = document.getElementById('achievement-filter'), listEl = document.getElementById('reputation-achievements'), pagesEl = document.getElementById('achievement-pages'), categoryEl = document.getElementById('achievement-category-summary'), allAchievements = [];
+  var filter = 'all', currentPage = 1, perPage = 4, filterEl = document.getElementById('achievement-filter'), listEl = document.getElementById('reputation-achievements'), pagesEl = document.getElementById('achievement-pages'), categoryEl = document.getElementById('achievement-category-summary'), tierEl = document.getElementById('achievement-tier-summary'), allAchievements = [];
   function esc(value) { var element = document.createElement('div'); element.textContent = value || ''; return element.innerHTML; }
   function tierLabel(tier) { return String(tier || '').charAt(0).toUpperCase() + String(tier || '').slice(1); }
   function buildTracks(achievements) {
@@ -197,6 +232,33 @@
     categoryEl.innerHTML = Object.keys(groups).map(function (key) {
       var group = groups[key], percent = Math.round((group.unlocked / Math.max(1, group.total)) * 100);
       return '<div class="achievement-category"><span>' + esc(key) + '</span><strong>' + group.unlocked + '/' + group.total + '</strong><i><b style="width:' + percent + '%"></b></i></div>';
+    }).join('');
+    renderTiers();
+  }
+  /* Where the collection stands per tier. The cards below are tracks, and a
+     track spans bronze through prismatic, so the grid cannot be grouped by
+     tier -- but the phases inside those tracks can still be counted, which is
+     what says how far up the material a member has actually got. Deliberately
+     a fixed four in fixed order: an absent tier reads as one still to reach,
+     where omitting it would hide that it exists. */
+  function renderTiers() {
+    if (!tierEl) return;
+    var order = ['bronze', 'silver', 'gold', 'prismatic'], counts = {};
+    order.forEach(function (tier) { counts[tier] = { total: 0, unlocked: 0 }; });
+    allAchievements.forEach(function (achievement) {
+      var tier = String(achievement.tier || '').toLowerCase();
+      if (!counts[tier]) return;
+      counts[tier].total++;
+      if (achievement.unlocked) counts[tier].unlocked++;
+    });
+    var any = order.some(function (tier) { return counts[tier].total > 0; });
+    tierEl.hidden = !any;
+    if (!any) return;
+    tierEl.innerHTML = order.map(function (tier) {
+      var count = counts[tier], percent = Math.round((count.unlocked / Math.max(1, count.total)) * 100);
+      return '<div class="achievement-tier tier-' + tier + (count.unlocked && count.unlocked === count.total ? ' is-complete' : '') + '">'
+        + '<span>' + tierLabel(tier) + '</span><strong>' + count.unlocked + '/' + count.total + '</strong>'
+        + '<i><b style="width:' + percent + '%"></b></i></div>';
     }).join('');
   }
   function render() {
@@ -256,7 +318,32 @@
       if (dayOffset % 7 === 6 || dayOffset === 0) weeks[weekIndex].label = day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
     var peak = Math.max.apply(null, weeks.map(function (week) { return Math.max(0, week.points); }).concat([1]));
-    bars.innerHTML = weeks.map(function (week) { var height = week.points > 0 ? Math.max(10, Math.round((week.points / peak) * 100)) : 4; return '<span title="Week ending ' + esc(week.label) + ': +' + week.points + ' reputation"><i style="height:' + height + '%"></i><b>' + esc(week.label) + '</b></span>'; }).join('');
+    /* Eight bare heights say nothing without something to read them against.
+       The mean is the cheapest baseline that turns the strip into a chart: a
+       bar is now above or below a typical week rather than just tall or short.
+       Drawn only when at least one week scored -- a mean line through an empty
+       eight weeks is a line at zero, which is noise. */
+    var scored = weeks.filter(function (week) { return week.points > 0; });
+    var mean = scored.length ? weeks.reduce(function (sum, week) { return sum + Math.max(0, week.points); }, 0) / weeks.length : 0;
+    var meanPercent = Math.max(0, Math.min(100, Math.round((mean / peak) * 100)));
+    var peakIndex = -1;
+    weeks.forEach(function (week, index) { if (week.points > 0 && week.points === peak) peakIndex = peakIndex === -1 ? index : peakIndex; });
+    /* Labels moved out of the plot. They used to sit inside each column, whose
+       height is the whole strip, so a bar at 100% and its own label could not
+       both fit -- the peak week was the one that overflowed. A separate axis
+       row gives every bar the full plot height honestly. */
+    var columns = weeks.map(function (week, index) {
+      var height = week.points > 0 ? Math.max(10, Math.round((week.points / peak) * 100)) : 4;
+      var band = week.points <= 0 ? ' is-empty' : (mean > 0 && week.points < mean ? ' is-below' : ' is-above');
+      var isPeak = index === peakIndex;
+      var marker = isPeak ? '<em>Best</em>' : '';
+      return '<span class="' + ('reputation-timeline-col' + band + (isPeak ? ' is-peak' : '')).trim() + '" title="Week ending ' + esc(week.label) + ': +' + week.points + ' reputation">' + marker + '<i style="height:' + height + '%"></i></span>';
+    }).join('');
+    var meanLine = mean > 0
+      ? '<div class="reputation-timeline-mean" style="bottom:' + meanPercent + '%"><b>avg ' + Math.round(mean) + '</b></div>'
+      : '';
+    bars.innerHTML = '<div class="reputation-timeline-plot">' + meanLine + columns + '</div>'
+      + '<div class="reputation-timeline-axis">' + weeks.map(function (week) { return '<b>' + esc(week.label) + '</b>'; }).join('') + '</div>';
     highlights.innerHTML = (data.highlights || []).length ? data.highlights.map(function (highlight) { return '<span title="' + esc(formatDate(highlight.created_at)) + '">' + esc(highlight.label) + ' <b>+' + Number(highlight.points || 0) + '</b></span>'; }).join('') : '<span class="reputation-timeline-empty">Your major reputation moments will appear here.</span>';
   }
   function load() {

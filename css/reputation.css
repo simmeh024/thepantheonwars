@@ -111,7 +111,6 @@
  * 74px of bar with 0.52rem labels is under the size at which a chart says
  * anything, and the feed had no way to tell a mission from a forum reply
  * without reading the label. */
-.reputation-timeline-bars { height: 108px; }
 /* Pre-existing: these were --text-faint at 4.2:1 before this pass touched the
  * chart. Raised while the chart was being resized rather than left behind. */
 .reputation-timeline-bars b { color: var(--text-dim); font-size: .55rem; }
@@ -157,4 +156,71 @@
 @media (prefers-reduced-motion: reduce) {
   .reputation-achievement.tier-prismatic.is-unlocked > span { animation: none; }
   .reputation-achievement > span { transition: none; }
+}
+
+
+/* ===========================================================================
+ * A real chart, tier standing, and one arrival pass.
+ * ========================================================================= */
+
+/* --- The weekly chart -----------------------------------------------------
+ * The strip was eight bars with no baseline: tall and short, with nothing to
+ * say what a normal week looks like. It keeps the hand-built div-bar technique
+ * this codebase uses everywhere -- there is still no chart library here. */
+.reputation-timeline-bars { display: block; height: auto; margin: 11px 0 0; }
+.reputation-timeline-plot { position: relative; display: flex; align-items: flex-end; gap: 5px; height: 108px; padding: 12px 0 0; }
+.reputation-timeline-col { display: flex; align-items: flex-end; flex: 1; min-width: 0; height: 100%; }
+.reputation-timeline-col i { display: block; width: 100%; min-height: 3px; }
+/* Above the mean keeps the gold the page spends on achievement, below it drops
+ * to the rank colour alone -- a difference in hue and weight, not opacity, so
+ * a quiet week is still legible rather than faded. */
+.reputation-timeline-col.is-above i { background: linear-gradient(180deg, var(--gold-bright), var(--rank-accent)); box-shadow: 0 0 8px color-mix(in srgb, var(--rank-accent) 34%, transparent); }
+.reputation-timeline-col.is-below i { background: linear-gradient(180deg, color-mix(in srgb, var(--rank-accent) 74%, #5b4c7d), rgba(74, 58, 110, .85)); box-shadow: none; }
+.reputation-timeline-col.is-empty i { background: rgba(120, 104, 160, .34); box-shadow: none; }
+.reputation-timeline-col.is-peak { position: relative; }
+.reputation-timeline-col.is-peak i { background: linear-gradient(180deg, #ffe6ad, var(--gold-bright)); box-shadow: 0 0 12px rgba(236, 201, 135, .45); }
+/* The best week is named rather than left to be worked out by comparing eight
+ * heights, which is the one reading the eye is worst at. */
+.reputation-timeline-col.is-peak em { position: absolute; bottom: 100%; left: 50%; margin-bottom: 3px; color: #f3dfae; font: 600 .5rem/1 'Jost', sans-serif; font-style: normal; letter-spacing: .1em; text-transform: uppercase; white-space: nowrap; transform: translateX(-50%); }
+.reputation-timeline-mean { position: absolute; z-index: 1; right: 0; left: 0; height: 0; border-top: 1px dashed rgba(226, 214, 246, .5); pointer-events: none; }
+.reputation-timeline-mean b { position: absolute; right: 0; bottom: 2px; color: #cfc3ea; font: 600 .5rem/1 'Jost', sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.reputation-timeline-axis { display: flex; gap: 5px; margin: 5px 0 0; }
+.reputation-timeline-axis b { overflow: hidden; flex: 1; min-width: 0; color: var(--text-dim); font: 500 .55rem/1 'Jost', sans-serif; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- Tier standing --------------------------------------------------------
+ * The per-category bars said which subjects a member collects. This says how
+ * far up the material they have got, which is the other half and the half the
+ * tier plaques were already implying. */
+.achievement-tier-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; padding: 8px 0 3px; }
+.achievement-tier-summary[hidden] { display: none; }
+.achievement-tier { padding: 8px; border: 1px solid color-mix(in srgb, var(--tier-tone) 34%, transparent); background: color-mix(in srgb, var(--tier-tone) 7%, transparent); --tier-tone: #b87945; }
+.achievement-tier.tier-silver { --tier-tone: #b9c3cf; }
+.achievement-tier.tier-gold { --tier-tone: #ecc987; }
+.achievement-tier.tier-prismatic { --tier-tone: #e9a6ff; }
+.achievement-tier span { display: block; color: var(--tier-tone); font: 600 .58rem/1 'Jost', sans-serif; letter-spacing: .08em; text-transform: uppercase; }
+.achievement-tier strong { display: block; margin: 4px 0; color: var(--text); font: .76rem/1 'Cinzel', serif; }
+.achievement-tier i { display: block; overflow: hidden; height: 3px; background: var(--border-soft); }
+.achievement-tier i b { display: block; height: 100%; background: var(--tier-tone); }
+/* A finished tier is the one state worth calling out, since the counter alone
+ * reads the same at 11/12 as at 12/12 from across the card. */
+.achievement-tier.is-complete { border-color: var(--tier-tone); box-shadow: inset 0 0 12px color-mix(in srgb, var(--tier-tone) 14%, transparent); }
+.achievement-tier.is-complete strong { color: var(--tier-tone); }
+
+/* --- One arrival pass -----------------------------------------------------
+ * Progress is this page's subject and it used to arrive already finished.
+ * Every rule here is additive: the class is added by script after the real
+ * value is in place, and the rungs animate from a keyframe with `backwards`
+ * fill, so nothing depends on an animation running to become visible. */
+@keyframes reputation-bar-in { from { transform: scaleX(0); } }
+.reputation-page .reputation-bar-fill.is-filling { transform-origin: left center; animation: reputation-bar-in .8s cubic-bezier(.22, .8, .3, 1); }
+@keyframes reputation-rung-in { from { opacity: 0; transform: translateX(-8px); } }
+.reputation-rung { animation: reputation-rung-in .42s ease-out backwards; animation-delay: calc(var(--rung-index, 0) * 45ms); }
+
+@media (max-width: 700px) {
+  .reputation-timeline-col.is-peak em { font-size: .46rem; }
+  .achievement-tier-summary { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reputation-page .reputation-bar-fill.is-filling { animation: none; }
+  .reputation-rung { animation: none; }
 }
