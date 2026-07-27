@@ -2288,6 +2288,54 @@ function pw_missions_require_loot_table_gear_ready(PDO $db): void {
 }
 
 /**
+ * The one query that reads a loot table's entries, with every optional column
+ * the migrations may or may not have added.
+ *
+ * Extracted so the Salvage Sweep draws from the same rows in the same shape a
+ * mission does. A second copy of this SELECT is how a table entry ends up
+ * meaning one thing on one surface and something else on another -- a stim, for
+ * instance, is an ordinary gear entry that only its own columns distinguish.
+ *
+ * Takes one parameter when executed: the loot table id.
+ */
+function pw_missions_loot_entry_statement(PDO $db): PDOStatement {
+    $gearEnabled = pw_mission_loot_table_gear_ready($db);
+    $crewCapacityReady = pw_mission_crew_capacity_ready($db);
+    /* A stim entry is an ordinary "gear" table entry that happens to be
+     * consumable, so it needs no new entry_type -- only its own columns, so the
+     * award is classified into the right inventory ceiling. */
+    $stimsReady = pw_mission_stims_ready($db);
+    $statement = $gearEnabled
+        ? $db->prepare(
+            'SELECT entry.entry_type, entry.crew_definition_id, entry.loot_definition_id, entry.chance_percent,
+                    crew.name AS crew_name, crew.role, crew.portrait_url, ' . ($crewCapacityReady ? 'crew.tier AS crew_tier,' : '"common" AS crew_tier,') . '
+                    gear.name AS gear_name, gear.tier, gear.slot AS gear_slot,
+                    gear.bonus_strength AS gear_bonus_strength, gear.bonus_cunning AS gear_bonus_cunning,
+                    gear.bonus_science AS gear_bonus_science, gear.bonus_charisma AS gear_bonus_charisma,
+                    gear.required_level AS gear_required_level, gear.required_role AS gear_required_role,
+                    gear.icon_url AS gear_icon_url'
+            . ($stimsReady ? ', gear.stim_effect AS gear_stim_effect, gear.stim_value AS gear_stim_value, gear.stim_duration_seconds AS gear_stim_duration' : '') . '
+             FROM game_loot_table_entries entry
+             LEFT JOIN game_crew_definitions crew ON crew.id = entry.crew_definition_id
+             LEFT JOIN game_loot_definitions gear ON gear.id = entry.loot_definition_id
+             WHERE entry.loot_table_id = ? AND (
+                (entry.entry_type = "crew" AND crew.is_enabled = 1)
+                OR (entry.entry_type = "gear" AND gear.is_enabled = 1)
+             )
+             ORDER BY entry.sort_order ASC, entry.id ASC'
+        )
+        : $db->prepare(
+            'SELECT entry.entry_type, entry.crew_definition_id, entry.chance_percent,
+                    crew.name AS crew_name, crew.role, crew.portrait_url, ' . ($crewCapacityReady ? 'crew.tier AS crew_tier' : '"common" AS crew_tier') . '
+             FROM game_loot_table_entries entry
+             JOIN game_crew_definitions crew ON crew.id = entry.crew_definition_id
+             WHERE entry.loot_table_id = ? AND entry.entry_type = "crew" AND crew.is_enabled = 1
+             ORDER BY entry.sort_order ASC, entry.id ASC'
+        );
+    return $statement;
+}
+
+/**
  * Roll every loot table attached to one mission and grant what drops.
  *
  * Called only on a successful claim, inside the claim transaction. A character
@@ -2334,39 +2382,9 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
     $links = $linkStmt->fetchAll();
     if (!$links) return $result;
 
-    $gearEnabled = pw_mission_loot_table_gear_ready($db);
-    $crewCapacityReady = pw_mission_crew_capacity_ready($db);
-    /* A stim entry is an ordinary "gear" table entry that happens to be
-     * consumable, so it needs no new entry_type -- only its own columns, so the
-     * award is classified into the right inventory ceiling. */
     $stimsReady = pw_mission_stims_ready($db);
-    $entryStmt = $gearEnabled
-        ? $db->prepare(
-            'SELECT entry.entry_type, entry.crew_definition_id, entry.loot_definition_id, entry.chance_percent,
-                    crew.name AS crew_name, crew.role, crew.portrait_url, ' . ($crewCapacityReady ? 'crew.tier AS crew_tier,' : '"common" AS crew_tier,') . '
-                    gear.name AS gear_name, gear.tier, gear.slot AS gear_slot,
-                    gear.bonus_strength AS gear_bonus_strength, gear.bonus_cunning AS gear_bonus_cunning,
-                    gear.bonus_science AS gear_bonus_science, gear.bonus_charisma AS gear_bonus_charisma,
-                    gear.required_level AS gear_required_level, gear.required_role AS gear_required_role,
-                    gear.icon_url AS gear_icon_url'
-            . ($stimsReady ? ', gear.stim_effect AS gear_stim_effect, gear.stim_value AS gear_stim_value, gear.stim_duration_seconds AS gear_stim_duration' : '') . '
-             FROM game_loot_table_entries entry
-             LEFT JOIN game_crew_definitions crew ON crew.id = entry.crew_definition_id
-             LEFT JOIN game_loot_definitions gear ON gear.id = entry.loot_definition_id
-             WHERE entry.loot_table_id = ? AND (
-                (entry.entry_type = "crew" AND crew.is_enabled = 1)
-                OR (entry.entry_type = "gear" AND gear.is_enabled = 1)
-             )
-             ORDER BY entry.sort_order ASC, entry.id ASC'
-        )
-        : $db->prepare(
-            'SELECT entry.entry_type, entry.crew_definition_id, entry.chance_percent,
-                    crew.name AS crew_name, crew.role, crew.portrait_url, ' . ($crewCapacityReady ? 'crew.tier AS crew_tier' : '"common" AS crew_tier') . '
-             FROM game_loot_table_entries entry
-             JOIN game_crew_definitions crew ON crew.id = entry.crew_definition_id
-             WHERE entry.loot_table_id = ? AND entry.entry_type = "crew" AND crew.is_enabled = 1
-             ORDER BY entry.sort_order ASC, entry.id ASC'
-        );
+    $crewCapacityReady = pw_mission_crew_capacity_ready($db);
+    $entryStmt = pw_missions_loot_entry_statement($db);
     // A player's existing roster, read once: the duplicate check runs against
     // every entry of every table and must not become a query per roll.
     $ownedStmt = $db->prepare('SELECT crew_definition_id FROM game_player_crew WHERE user_id = ? AND status <> "retired"');

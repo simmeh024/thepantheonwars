@@ -1,0 +1,23 @@
+/* Sweep Tiers list. A scan-first grid, matching the Book/World/Quiz rows:
+ * rank, name, manifest, board shape, state -- so forty rungs can be read down
+ * a column rather than opened one at a time. */
+.sweep-tier-row { display: grid; grid-template-columns: 92px minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.2fr) auto; align-items: center; gap: 14px; text-align: left; }
+.sweep-tier-rank { display: flex; align-items: baseline; gap: 7px; }
+.sweep-tier-rank b { color: #8ddde1; font: 600 0.95rem/1 'Cinzel', serif; }
+.sweep-tier-rank small { overflow: hidden; color: #8ba5b8; font-size: 0.6rem; text-overflow: ellipsis; white-space: nowrap; }
+.sweep-tier-name { overflow: hidden; color: #eef3f8; font-size: 0.82rem; text-overflow: ellipsis; white-space: nowrap; }
+.sweep-tier-manifest { overflow: hidden; color: #b6cbd8; font-size: 0.72rem; text-overflow: ellipsis; white-space: nowrap; }
+.sweep-tier-shape { color: #93aec1; font-size: 0.67rem; }
+.sweep-tier-state { justify-self: end; }
+.admin-pill { display: inline-block; padding: 2px 7px; border: 1px solid rgba(103,152,190,0.35); color: #9db4c6; font: 600 0.56rem/1.5 'Jost', sans-serif; letter-spacing: 0.07em; text-transform: uppercase; }
+.admin-pill.is-on { border-color: rgba(126,227,232,0.5); color: #8ddde1; }
+/* A sector with no usable manifest cannot open a board, so it is flagged on
+ * the row rather than discovered when a player is refused at the field. */
+.admin-pill.is-warn { border-color: rgba(231,168,114,0.55); color: #e8bd8a; }
+
+@media (max-width: 900px) {
+  .sweep-tier-row { grid-template-columns: minmax(0, 1fr) auto; gap: 5px 12px; }
+  .sweep-tier-rank { grid-column: 1; }
+  .sweep-tier-state { grid-row: 1; grid-column: 2; }
+  .sweep-tier-name, .sweep-tier-manifest, .sweep-tier-shape { grid-column: 1 / -1; }
+}

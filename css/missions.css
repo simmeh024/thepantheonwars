@@ -1375,3 +1375,9 @@
   .mission-result-recruit .mission-result-recruit-face::after { animation: none; }
   .mission-result-recruit::before { opacity: 0; }
 }
+
+/* The Salvage Sweep rail card. Same object as the Market card -- the accent is
+ * the only difference, so the two read as siblings rather than as two designs. */
+.mission-sweep-card { border-color: rgba(158,219,168,0.42); }
+.mission-sweep-card .mission-market-card-icon { color: #9edba8; }
+.mission-sweep-card:hover, .mission-sweep-card:focus-visible { border-color: rgba(158,219,168,0.75); }

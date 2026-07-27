@@ -1,0 +1,108 @@
+/* Salvage Sweep. Reads as the same command surface as Missions and Research --
+ * teal signal on deep blue -- with the field itself as the one warm object. */
+
+.sweep-hero { position: relative; overflow: hidden; padding: 56px 0 30px; background: linear-gradient(150deg, rgba(9,20,38,0.96), rgba(19,11,38,0.92)); border-bottom: 1px solid rgba(83,149,183,0.32); }
+.sweep-hero-grid { position: absolute; inset: 0; background-image: linear-gradient(rgba(116,214,221,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(116,214,221,0.06) 1px, transparent 1px); background-size: 34px 34px; pointer-events: none; }
+.sweep-hero-content { position: relative; }
+.sweep-hero h1 { margin: 6px 0 10px; }
+.sweep-hero p { max-width: 62ch; color: #b6cbd8; font-size: 0.86rem; line-height: 1.6; }
+.sweep-main { padding: 26px 0 60px; }
+
+.sweep-layout { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 18px; align-items: start; }
+.sweep-sidebar, .sweep-board-column { display: grid; gap: 14px; min-width: 0; }
+.sweep-card { padding: 16px; border: 1px solid rgba(83,149,183,0.34); background: linear-gradient(150deg, rgba(11,24,43,0.9), rgba(17,11,34,0.9)); }
+.sweep-card h2 { margin: 4px 0 10px; font-size: 1.02rem; }
+.sweep-muted { color: #9db4c6; font-size: 0.74rem; line-height: 1.5; }
+.sweep-back { display: block; padding: 11px 13px; border: 1px solid rgba(83,149,183,0.3); background: rgba(9,20,38,0.6); color: #cfe4ef; text-decoration: none; }
+.sweep-back strong { display: block; margin-top: 3px; font: 600 0.8rem/1.2 'Cinzel', serif; }
+.sweep-back:hover, .sweep-back:focus-visible { border-color: rgba(126,227,232,0.6); color: #f0fdff; }
+
+.sweep-gate { padding: 34px; border: 1px solid rgba(83,149,183,0.34); background: rgba(11,24,43,0.8); text-align: center; }
+.sweep-status { min-height: 1.4em; color: #8ddde1; font-size: 0.76rem; }
+.sweep-status.is-error { color: #f0a8a0; }
+
+.sweep-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin: 0 0 10px; }
+.sweep-facts div { padding: 7px 8px; border: 1px solid rgba(103,152,190,0.24); background: rgba(6,15,28,0.5); }
+.sweep-facts dt { color: #86a5ba; font: 700 0.52rem/1 'Jost', sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
+.sweep-facts dd { margin: 4px 0 0; color: #eaf3f8; font: 600 0.82rem/1 'Cinzel', serif; }
+
+/* --- The field ------------------------------------------------------------
+ * A cell is a button until it is turned over and a plain element afterwards:
+ * an opened cell is a readout, not a control, and leaving it focusable as a
+ * button would put a dozen dead tab stops between the player and Withdraw. */
+.sweep-board-head { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 12px; border-bottom: 1px solid rgba(83,149,183,0.24); padding-bottom: 11px; margin-bottom: 13px; }
+.sweep-board-head h2 { margin: 4px 0 0; }
+.sweep-board-meta { display: flex; flex-wrap: wrap; gap: 14px; }
+.sweep-board-meta span { display: grid; gap: 2px; text-align: right; }
+.sweep-board-meta small { color: #86a5ba; font: 700 0.5rem/1 'Jost', sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
+.sweep-board-meta strong { color: #eaf3f8; font: 600 0.85rem/1 'Cinzel', serif; }
+
+.sweep-grid { display: grid; grid-template-columns: repeat(var(--sweep-cols, 5), minmax(0, 1fr)); gap: 6px; max-width: 520px; }
+.sweep-cell { display: grid; aspect-ratio: 1; place-items: center; padding: 0; border: 1px solid rgba(103,152,190,0.3); background: rgba(7,17,31,0.75); color: #6f8ea2; font: 600 1rem/1 'Cinzel', serif; cursor: pointer; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
+button.sweep-cell:hover:not(:disabled), button.sweep-cell:focus-visible { border-color: rgba(126,227,232,0.75); background: rgba(18,44,68,0.9); color: #cdeff3; outline: none; transform: translateY(-1px); }
+button.sweep-cell:disabled { cursor: default; opacity: 0.75; }
+.sweep-cell.is-open { position: relative; cursor: default; }
+.sweep-cell-glyph { font-size: 1.05rem; }
+.sweep-cell-hint { position: absolute; right: 3px; bottom: 2px; color: #7f9bad; font: 700 0.5rem/1 'Jost', sans-serif; }
+.sweep-cell-hint.is-warn { color: #e8c98a; }
+/* One tone per outcome, so a swept field can be read at a glance afterwards. */
+.sweep-cell.is-gear { border-color: rgba(126,227,232,0.55); background: rgba(14,44,60,0.85); color: #8fe6ec; }
+.sweep-cell.is-crew { border-color: rgba(205,124,236,0.55); background: rgba(38,20,56,0.85); color: #d8a2f0; }
+.sweep-cell.is-cache { border-color: rgba(236,201,135,0.55); background: rgba(46,36,14,0.85); color: #ecc987; }
+.sweep-cell.is-empty { border-color: rgba(103,152,190,0.2); background: rgba(6,13,24,0.7); color: #7f9bad; }
+.sweep-cell.is-hazard { border-color: rgba(224,120,110,0.7); background: rgba(58,16,16,0.85); color: #f0a8a0; }
+.sweep-cell.is-shrug { border-color: rgba(158,219,168,0.65); background: rgba(16,44,28,0.85); color: #9edba8; }
+.sweep-spent { margin: 12px 0 0; }
+.sweep-board-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+
+/* --- The ladder -----------------------------------------------------------
+ * Same three states as the reputation rail: earned, current, sealed. Sealed
+ * dims by a measured colour step rather than by opacity, which a contrast
+ * check cannot see. */
+.sweep-ladder-note { margin: 0 0 9px; }
+.sweep-ladder { display: grid; gap: 3px; margin: 0; padding: 0; max-height: 340px; overflow-y: auto; list-style: none; }
+.sweep-rung { display: grid; grid-template-columns: 24px minmax(0, 1fr) auto; align-items: center; gap: 9px; padding: 5px 4px; }
+.sweep-rung-mark { display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid rgba(103,152,190,0.35); background: #0c1526; color: #8fb0c4; font: 600 0.6rem/1 'Cinzel', serif; }
+.sweep-rung-copy { min-width: 0; }
+.sweep-rung-copy strong { display: block; overflow: hidden; color: #cfe0ea; font: 600 0.74rem/1.25 'Cinzel', serif; text-overflow: ellipsis; white-space: nowrap; }
+.sweep-rung-copy small { display: block; overflow: hidden; color: #8ba5b8; font-size: 0.58rem; letter-spacing: 0.05em; text-overflow: ellipsis; white-space: nowrap; }
+.sweep-rung > b { color: #8ddde1; font: 600 0.68rem/1 'Cinzel', serif; }
+.sweep-rung.is-earned .sweep-rung-mark { border-color: rgba(126,227,232,0.5); background: rgba(16,44,60,0.8); color: #9fe8ec; }
+.sweep-rung.is-current .sweep-rung-mark { border-width: 2px; border-color: #7ee3e8; background: #7ee3e8; color: #06121e; box-shadow: 0 0 12px rgba(126,227,232,0.55); }
+.sweep-rung.is-current .sweep-rung-copy strong { color: #fff; }
+.sweep-rung.is-sealed .sweep-rung-mark { border-style: dashed; border-color: rgba(120,132,150,0.4); color: #7f8b9c; }
+.sweep-rung.is-sealed .sweep-rung-copy strong { color: #92a1b2; }
+.sweep-rung.is-sealed .sweep-rung-copy small { color: #7f8d9d; }
+
+/* --- Crew ---------------------------------------------------------------- */
+.sweep-crew-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(232px, 1fr)); gap: 10px; }
+.sweep-crew { --rarity: 226,232,240; padding: 11px; border: 1px solid rgba(var(--rarity), 0.45); background: rgba(7,17,31,0.6); }
+.sweep-crew.is-tier-uncommon { --rarity: 158,219,168; }
+.sweep-crew.is-tier-rare { --rarity: 112,204,223; }
+.sweep-crew.is-tier-epic { --rarity: 205,124,236; }
+.sweep-crew.is-tier-legendary { --rarity: 233,211,153; }
+.sweep-crew.is-blocked { border-color: rgba(103,152,190,0.22); }
+.sweep-crew-head strong { display: block; color: #f0f5fa; font: 600 0.85rem/1.2 'Cinzel', serif; }
+.sweep-crew-head em { display: block; margin-top: 2px; color: rgb(var(--rarity)); font-size: 0.6rem; font-style: normal; letter-spacing: 0.07em; text-transform: uppercase; }
+.sweep-crew-projection { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 9px 0; }
+.sweep-crew-projection span { display: grid; gap: 2px; padding: 4px 2px; border: 1px solid rgba(103,152,190,0.2); background: rgba(4,10,20,0.5); text-align: center; }
+.sweep-crew-projection small { color: #86a5ba; font: 700 0.47rem/1 'Jost', sans-serif; letter-spacing: 0.06em; text-transform: uppercase; }
+.sweep-crew-projection b { color: #dceaf3; font-size: 0.72rem; }
+.sweep-crew-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.sweep-crew-fatigue { color: #9db4c6; font-size: 0.62rem; }
+.sweep-crew-blocked { color: #c6a58f; font-size: 0.62rem; }
+.sweep-crew-foot .btn { min-height: 28px; padding: 0 12px; font-size: 0.6rem; }
+
+@media (max-width: 900px) {
+  .sweep-layout { grid-template-columns: minmax(0, 1fr); }
+  .sweep-ladder { max-height: 250px; }
+}
+@media (max-width: 560px) {
+  .sweep-facts { grid-template-columns: 1fr; }
+  .sweep-board-meta span { text-align: left; }
+  .sweep-crew-projection { grid-template-columns: repeat(2, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sweep-cell { transition: none; }
+  button.sweep-cell:hover:not(:disabled) { transform: none; }
+}
