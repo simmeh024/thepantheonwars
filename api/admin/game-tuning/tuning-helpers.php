@@ -66,6 +66,8 @@ function pw_tuning_research_effects(PDO $db, array $nodeIds): array {
             case 'crew_capacity': $effects['crew_capacity'] += $value; break;
             case 'crew_fatigue': $effects['crew_fatigue'] += $value; break;
             case 'fatigue_recovery': $effects['fatigue_recovery_percent'] += $value; break;
+            case 'stim_slots': $effects['stim_slots'] += $value; break;
+            case 'inventory_capacity': $effects['inventory_capacity'] += $value; break;
             case 'luck': $effects['luck_percent'] += $value; break;
             case 'market_discount': $effects['market_discount_percent'] += $value; break;
             case 'market_refresh': $effects['market_refresh_percent'] += $value; break;
@@ -83,6 +85,8 @@ function pw_tuning_research_effects(PDO $db, array $nodeIds): array {
     $effects['crew_fatigue'] = (int)min(PW_MISSION_FATIGUE_RESEARCH_CAP, floor($effects['crew_fatigue']));
     $effects['luck_percent'] = round(min(75.0, $effects['luck_percent']), 2);
     $effects['fatigue_recovery_percent'] = round(min(200.0, $effects['fatigue_recovery_percent']), 2);
+    $effects['stim_slots'] = (int)min(PW_MISSION_STIM_SLOT_RESEARCH_CAP, floor($effects['stim_slots']));
+    $effects['inventory_capacity'] = (int)min(PW_MISSION_INVENTORY_RESEARCH_CAP, floor($effects['inventory_capacity']));
     return $effects;
 }
 

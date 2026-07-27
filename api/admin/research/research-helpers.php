@@ -49,10 +49,20 @@ function pw_admin_research_node_input(PDO $db, array $input): array {
      * fatigue, so the same structure would have rejected every valid value
      * above 50 with a message about percentages. */
     $rawValue = $input['effect_value'] ?? 0;
-    $wholeNumberEffects = [
-        'crew_capacity' => ['max' => 24, 'error' => 'Crew capacity must add a whole number of slots between 1 and 24.'],
-        'crew_fatigue' => ['max' => PW_MISSION_FATIGUE_RESEARCH_CAP, 'error' => 'Crew endurance must add a whole number of fatigue between 1 and ' . PW_MISSION_FATIGUE_RESEARCH_CAP . '.'],
-    ];
+    /* Derived from the effect vocabulary itself: an entry carrying 'flat' is a
+     * count, and 'max' is its ceiling. A hand-written list here is the copy
+     * that gets forgotten when an effect is added, and the failure is silent --
+     * a new count effect would be validated as a percentage and every value
+     * above 50 rejected with a message about percentages. */
+    $wholeNumberEffects = [];
+    foreach (pw_research_effect_types() as $key => $meta) {
+        if (!isset($meta['flat'])) continue;
+        $max = (int)($meta['max'] ?? 50);
+        $wholeNumberEffects[$key] = [
+            'max' => $max,
+            'error' => $meta['label'] . ' must add a whole number of ' . $meta['flat'] . ' between 1 and ' . $max . '.',
+        ];
+    }
     if (in_array($effectType, ['secret_mission', 'rare_loot_table'], true)) {
         $effectValue = 0.0;
     } elseif (isset($wholeNumberEffects[$effectType])) {

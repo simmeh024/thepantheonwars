@@ -233,7 +233,7 @@ try {
     };
     if ($succeeded && $statsReady) {
         $loot = pw_missions_roll_loot($db, (string)$mission['world_key'], (int)($mission['loot_rolls'] ?? 0), $effects);
-        $collectSkipped(pw_missions_store_loot($db, $userId, $loot));
+        $collectSkipped(pw_missions_store_loot($db, $userId, $loot, $research));
     }
 
     /* Loot tables are independent of the item pool above: they are attached per
@@ -244,7 +244,7 @@ try {
         ? pw_missions_roll_loot_tables($db, $userId, (int)$mission['mission_definition_id'])
         : ['granted' => [], 'duplicates' => [], 'pending' => [], 'gear' => []];
     if (!empty($lootTableAwards['gear'])) {
-        $collectSkipped(pw_missions_store_loot($db, $userId, $lootTableAwards['gear']));
+        $collectSkipped(pw_missions_store_loot($db, $userId, $lootTableAwards['gear'], $research));
         $loot = array_merge($loot, $lootTableAwards['gear']);
     }
 

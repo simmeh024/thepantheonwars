@@ -490,11 +490,14 @@ try {
         /* Two independent ceilings and how full each is, plus the running
          * boosts. Sent even when nothing is held so the quartermaster card can
          * always state the limits it is about to enforce. */
-        'inventory' => array_merge(pw_missions_inventory_usage($db, $userId), [
+        'inventory' => array_merge(pw_missions_inventory_usage($db, $userId, $researchEffects), [
             'stims_ready' => $stimsReady,
             'stim_effect_types' => pw_missions_stim_effect_types(),
             'active_stims' => pw_missions_active_stims($db, $userId),
         ]),
+        // The quick-slot belt in the right rail, always the full grid so the
+        // player can see what a Quick slots protocol bought them.
+        'stim_slots' => pw_missions_stim_slots($db, $userId, $researchEffects),
         'stats_ready' => $statsReady,
         'crew_favorites_ready' => $crewFavoritesReady,
         'research' => [

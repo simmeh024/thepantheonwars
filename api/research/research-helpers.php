@@ -19,6 +19,14 @@ const PW_RESEARCH_BOARD_HEIGHT = 1080;
  * Research is deliberately a small closed vocabulary. The player never sends a
  * bonus name or amount that the server has not authored, which keeps the tree
  * expressive without allowing a crafted request to invent a new reward type.
+ *
+ * An entry carrying 'flat' is a count, not a percentage: that key is the unit
+ * it is counted in, and its presence is what every other consumer branches on.
+ * It exists because "is this effect a percentage" was previously answered by
+ * five separate hardcoded lists -- the admin validator, the reader-facing
+ * sentence, and three places in js/research.js -- and adding an effect meant
+ * remembering all five. 'max' is the authoring ceiling for one node; the
+ * account-wide ceiling is applied separately in pw_research_player_effects().
  */
 function pw_research_effect_types(): array {
     return [
@@ -26,9 +34,11 @@ function pw_research_effect_types(): array {
         'xp_gain' => ['label' => 'Experience gain', 'short' => 'Mission XP increased', 'value_label' => 'XP boost (%)', 'description' => 'Increases the XP each assigned crew member earns from a successful mission.'],
         'reputation_gain' => ['label' => 'Reputation gain', 'short' => 'Mission reputation increased', 'value_label' => 'Reputation boost (%)', 'description' => 'Increases reputation paid by successful missions.'],
         'credit_gain' => ['label' => 'Credit gain', 'short' => 'Mission credits increased', 'value_label' => 'Credit boost (%)', 'description' => 'Increases credits paid by successful missions, after the crew assignment bonus.'],
-        'crew_capacity' => ['label' => 'Crew capacity', 'short' => 'Crew berth capacity expanded', 'value_label' => 'Additional crew slots', 'description' => 'Adds permanent room for more crew members to join the expedition.'],
-        'crew_fatigue' => ['label' => 'Crew endurance', 'short' => 'Crew fatigue capacity raised', 'value_label' => 'Additional fatigue', 'description' => 'Raises the fatigue ceiling of every crew member, so they can run more operations back to back before resting.'],
+        'crew_capacity' => ['label' => 'Crew capacity', 'short' => 'Crew berth capacity expanded', 'value_label' => 'Additional crew slots', 'flat' => 'slots', 'max' => 24, 'description' => 'Adds permanent room for more crew members to join the expedition.'],
+        'crew_fatigue' => ['label' => 'Crew endurance', 'short' => 'Crew fatigue capacity raised', 'value_label' => 'Additional fatigue', 'flat' => 'fatigue', 'max' => PW_MISSION_FATIGUE_RESEARCH_CAP, 'description' => 'Raises the fatigue ceiling of every crew member, so they can run more operations back to back before resting.'],
         'fatigue_recovery' => ['label' => 'Crew recovery', 'short' => 'Crew rest faster', 'value_label' => 'Recovery boost (%)', 'description' => 'Speeds up the rate at which resting crew regain fatigue, shortening the wait between operations.'],
+        'stim_slots' => ['label' => 'Quick slots', 'short' => 'Stim belt widened', 'value_label' => 'Additional quick slots', 'flat' => 'quick slots', 'max' => PW_MISSION_STIM_SLOT_RESEARCH_CAP, 'description' => 'Adds slots to the stim belt on the command view, so more stims are one click away.'],
+        'inventory_capacity' => ['label' => 'Storage capacity', 'short' => 'Quartermaster storage expanded', 'value_label' => 'Additional storage', 'flat' => 'storage', 'max' => PW_MISSION_INVENTORY_RESEARCH_CAP, 'description' => 'Raises both quartermaster ceilings by the same amount, so equipment and salvage each hold more.'],
         'luck' => ['label' => 'Rarity promotion', 'short' => 'Loot rarity improved', 'value_label' => 'Promotion chance (%)', 'description' => 'Raises the chance that a recovered item is promoted one rarity tier.'],
         'market_discount' => ['label' => 'Market discount', 'short' => 'Market prices reduced', 'value_label' => 'Discount (%)', 'description' => 'Reduces the credit price shown for every Market offer.'],
         'market_refresh' => ['label' => 'Market refresh', 'short' => 'Market signal cycles faster', 'value_label' => 'Refresh boost (%)', 'description' => 'Moves this command\'s Market rotation onto a faster signal cadence.'],
@@ -70,6 +80,12 @@ function pw_research_effect_sentence(array $node): string {
     $value = (float)$node['effect_value'];
     if ($effect === 'crew_capacity') {
         return 'Adds ' . max(1, (int)$value) . ' permanent crew ' . ((int)$value === 1 ? 'berth' : 'berths') . ' to your expedition.';
+    }
+    /* Every other count reads from its own declared unit. Without this a flat
+     * effect falls through to the percentage wording below and a node adding
+     * eight quick slots reads as adding eight percent of one. */
+    if ($meta !== null && isset($meta['flat'])) {
+        return 'Adds ' . max(1, (int)$value) . ' ' . $meta['flat'] . '. ' . $meta['description'];
     }
     if ($effect === 'rare_loot_table') {
         return 'Opens a rare recovery table for the missions that carry it.';
@@ -162,6 +178,8 @@ function pw_research_default_effects(): array {
         'crew_capacity' => 0,
         'crew_fatigue' => 0,
         'fatigue_recovery_percent' => 0.0,
+        'stim_slots' => 0,
+        'inventory_capacity' => 0,
         'luck_percent' => 0.0,
         'market_discount_percent' => 0.0,
         'market_refresh_percent' => 0.0,
@@ -234,6 +252,8 @@ function pw_research_player_effects(PDO $db, int $userId): array {
             case 'crew_capacity': $effects['crew_capacity'] += $value; break;
             case 'crew_fatigue': $effects['crew_fatigue'] += $value; break;
             case 'fatigue_recovery': $effects['fatigue_recovery_percent'] += $value; break;
+            case 'stim_slots': $effects['stim_slots'] += $value; break;
+            case 'inventory_capacity': $effects['inventory_capacity'] += $value; break;
             case 'luck': $effects['luck_percent'] += $value; break;
             case 'market_discount': $effects['market_discount_percent'] += $value; break;
             case 'market_refresh': $effects['market_refresh_percent'] += $value; break;
@@ -252,6 +272,8 @@ function pw_research_player_effects(PDO $db, int $userId): array {
     $effects['crew_capacity'] = (int)min(24, floor($effects['crew_capacity']));
     $effects['crew_fatigue'] = (int)min(PW_MISSION_FATIGUE_RESEARCH_CAP, floor($effects['crew_fatigue']));
     $effects['fatigue_recovery_percent'] = round(min(200.0, $effects['fatigue_recovery_percent']), 2);
+    $effects['stim_slots'] = (int)min(PW_MISSION_STIM_SLOT_RESEARCH_CAP, floor($effects['stim_slots']));
+    $effects['inventory_capacity'] = (int)min(PW_MISSION_INVENTORY_RESEARCH_CAP, floor($effects['inventory_capacity']));
     $effects['luck_percent'] = round(min(75.0, $effects['luck_percent']), 2);
     $effects['market_discount_percent'] = round(min(50.0, $effects['market_discount_percent']), 2);
     $effects['market_refresh_percent'] = round(min(50.0, $effects['market_refresh_percent']), 2);

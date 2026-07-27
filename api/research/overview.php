@@ -151,6 +151,9 @@ try {
             'effect_type' => (string)$node['effect_type'],
             'effect_label' => $effect['label'],
             'effect_short' => $effect['short'],
+            // Present only on a count effect, and then it is the unit. The
+            // browser branches on its presence rather than on a list of names.
+            'effect_flat_unit' => $effect['flat'] ?? null,
             'effect_value' => (float)$node['effect_value'],
             'category' => $categoryId === null ? null : [
                 'id' => $categoryId, 'name' => (string)($node['category_name'] ?? 'Uncategorised'),

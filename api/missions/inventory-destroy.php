@@ -11,6 +11,7 @@
  * otherwise means a hundred round trips.
  */
 require_once __DIR__ . '/missions-helpers.php';
+require_once __DIR__ . '/../research/research-helpers.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') pw_error('Method not allowed.', 405);
 $user = pw_require_login();
@@ -28,6 +29,9 @@ if (!$destroyAll && ($quantity === false || $quantity < 1 || $quantity > 999)) p
 $db = pw_db();
 pw_missions_require_ready($db);
 $userId = (int)$user['id'];
+/* Only so the receipt reports the ceilings the player is actually under -- a
+ * destroy never checks them. */
+$researchEffects = pw_research_player_effects($db, $userId);
 $gearReady = pw_mission_gear_ready($db);
 $stimsReady = pw_mission_stims_ready($db);
 
@@ -81,7 +85,7 @@ try {
         if ($delete->rowCount() !== 1) throw new RuntimeException('That item could not be destroyed.');
     }
 
-    $usage = pw_missions_inventory_usage($db, $userId);
+    $usage = pw_missions_inventory_usage($db, $userId, $researchEffects);
     $db->commit();
     pw_json([
         'ok' => true,

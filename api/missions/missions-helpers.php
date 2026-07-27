@@ -1730,7 +1730,7 @@ function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array 
  *
  * @return array{stored: array<int,int>, skipped: array<int,int>} Quantities by definition id.
  */
-function pw_missions_store_loot(PDO $db, int $userId, array $awarded): array {
+function pw_missions_store_loot(PDO $db, int $userId, array $awarded, array $researchEffects = []): array {
     $result = ['stored' => [], 'skipped' => []];
     if (!$awarded) return $result;
     $counts = [];
@@ -1741,7 +1741,7 @@ function pw_missions_store_loot(PDO $db, int $userId, array $awarded): array {
         $categories[$id] = pw_missions_inventory_category($item);
     }
 
-    $usage = pw_missions_inventory_usage($db, $userId);
+    $usage = pw_missions_inventory_usage($db, $userId, $researchEffects);
     $room = [
         'salvage' => max(0, $usage['salvage_cap'] - $usage['salvage']),
         'inventory' => max(0, $usage['inventory_cap'] - $usage['inventory']),
@@ -1783,6 +1783,30 @@ function pw_missions_store_loot(PDO $db, int $userId, array $awarded): array {
  * ------------------------------------------------------------------------- */
 const PW_MISSION_INVENTORY_CAP = 100;
 const PW_MISSION_SALVAGE_CAP = 100;
+/* What research may add to each of the two ceilings. Applied to both, by the
+ * same amount, from one effect: which of the two a given node raises is not a
+ * distinction the player can act on, and leaving the salvage ceiling
+ * un-raisable would mean the tree could eventually be blocked by the storage
+ * limit on the currency that buys it. */
+const PW_MISSION_INVENTORY_RESEARCH_CAP = 200;
+
+/* ---------------------------------------------------------------------------
+ * The stim belt
+ *
+ * A fixed grid of quick slots on the command view, four across. Two rows to
+ * begin with; research adds slots a row at a time.
+ *
+ * Slots are assigned rather than auto-filled. Auto-filling from whatever the
+ * player happens to hold would need no table and could not desync -- but then
+ * the count would only ever bind on someone carrying more distinct stims than
+ * slots, which is nobody early on, and a limit that never binds is not a limit.
+ * Assignment makes the belt a decision from the first stim onwards.
+ * ------------------------------------------------------------------------- */
+const PW_MISSION_STIM_SLOT_COLUMNS = 4;
+const PW_MISSION_STIM_SLOT_BASE = 8;
+/* Two more rows. Sixteen keeps the grid a readable 4x4 at its widest; beyond
+ * that the belt stops being a belt and becomes a second inventory panel. */
+const PW_MISSION_STIM_SLOT_RESEARCH_CAP = 8;
 
 /**
  * What an item is, from the columns alone: 'gear', 'stim' or 'salvage'.
@@ -1809,12 +1833,18 @@ function pw_missions_inventory_bucket(string $category): string {
  * on every page load and a player at the cap holds 200 units across an
  * unbounded number of rows.
  */
-function pw_missions_inventory_usage(PDO $db, int $userId): array {
+function pw_missions_inventory_usage(PDO $db, int $userId, array $researchEffects = []): array {
+    /* Research raises both ceilings by the same amount. Effects are passed in
+     * rather than looked up, for the same reason pw_missions_fatigue_max() takes
+     * them: research-helpers.php requires this file, so calling back into it
+     * here would be circular, and every caller already has the array. */
+    $bonus = (int)min(PW_MISSION_INVENTORY_RESEARCH_CAP, max(0, (int)($researchEffects['inventory_capacity'] ?? 0)));
     $usage = [
         'inventory' => 0,
         'salvage' => 0,
-        'inventory_cap' => PW_MISSION_INVENTORY_CAP,
-        'salvage_cap' => PW_MISSION_SALVAGE_CAP,
+        'inventory_cap' => PW_MISSION_INVENTORY_CAP + $bonus,
+        'salvage_cap' => PW_MISSION_SALVAGE_CAP + $bonus,
+        'capacity_bonus' => $bonus,
     ];
     $stimsReady = pw_mission_stims_ready($db);
     try {
@@ -1871,6 +1901,91 @@ const PW_MISSION_STIM_RECOVERY_COMBINED_CAP = 300.0;
 function pw_missions_carryable_item_sql(PDO $db, string $alias = 'l'): string {
     $slot = $alias . '.slot <> ""';
     return pw_mission_stims_ready($db) ? '(' . $slot . ' OR ' . $alias . '.stim_effect <> "")' : $slot;
+}
+
+/**
+ * Whether sql/migration_mission_stim_belt.sql has been run. Independent of the
+ * stim probe: stims themselves work without a belt, so a deployment waiting on
+ * this one-off migration keeps everything else.
+ */
+function pw_mission_stim_slots_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_mission_stims_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT user_id, slot_index, loot_definition_id FROM `game_player_stim_slots` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+/** How many quick slots this player has, base plus research. */
+function pw_missions_stim_slot_capacity(array $researchEffects = []): int {
+    $bonus = (int)min(PW_MISSION_STIM_SLOT_RESEARCH_CAP, max(0, (int)($researchEffects['stim_slots'] ?? 0)));
+    return PW_MISSION_STIM_SLOT_BASE + $bonus;
+}
+
+/**
+ * The belt, as one entry per slot from 0 to capacity - 1.
+ *
+ * Always the full grid, empty slots included, because the grid is the point --
+ * a belt that only rendered its filled slots would not show the player what
+ * research bought them. Rows beyond the current capacity are left in place
+ * rather than deleted: capacity only ever grows in normal play, and silently
+ * discarding an assignment because a probe briefly read a smaller number would
+ * be worse than an unreachable row that reappears when it should.
+ */
+function pw_missions_stim_slots(PDO $db, int $userId, array $researchEffects = []): array {
+    $capacity = pw_missions_stim_slot_capacity($researchEffects);
+    $slots = [];
+    for ($i = 0; $i < $capacity; $i++) $slots[$i] = ['slot_index' => $i, 'item' => null];
+    if (!pw_mission_stim_slots_ready($db)) {
+        return ['ready' => false, 'capacity' => $capacity, 'columns' => PW_MISSION_STIM_SLOT_COLUMNS, 'slots' => array_values($slots)];
+    }
+    try {
+        /* Joined to the holdings rather than read alone: a slot whose stim has
+         * been used up or destroyed shows as empty rather than as an item the
+         * player no longer has. The row is left alone -- reacquiring the same
+         * stim should put it back where it was. */
+        $stmt = $db->prepare(
+            'SELECT sl.slot_index, l.id, l.name, l.tier, l.icon_url, l.description,
+                    l.stim_effect, l.stim_value, l.stim_duration_seconds, l.is_enabled,
+                    COALESCE(pl.quantity, 0) AS quantity
+             FROM game_player_stim_slots sl
+             JOIN game_loot_definitions l ON l.id = sl.loot_definition_id
+             LEFT JOIN game_player_loot pl ON pl.user_id = sl.user_id AND pl.loot_definition_id = sl.loot_definition_id
+             WHERE sl.user_id = ?
+             ORDER BY sl.slot_index ASC'
+        );
+        $stmt->execute([$userId]);
+    } catch (Throwable $e) {
+        return ['ready' => false, 'capacity' => $capacity, 'columns' => PW_MISSION_STIM_SLOT_COLUMNS, 'slots' => array_values($slots)];
+    }
+    foreach ($stmt->fetchAll() as $row) {
+        $index = (int)$row['slot_index'];
+        if (!isset($slots[$index])) continue;
+        $slots[$index]['item'] = [
+            'id' => (int)$row['id'],
+            'name' => (string)$row['name'],
+            'tier' => (string)$row['tier'],
+            'icon_url' => pw_missions_gear_icon_url($row['icon_url']),
+            'description' => (string)($row['description'] ?? ''),
+            'stim_effect' => (string)$row['stim_effect'],
+            'stim_value' => (float)$row['stim_value'],
+            'stim_duration_seconds' => (int)$row['stim_duration_seconds'],
+            'quantity' => (int)$row['quantity'],
+            // A stim an administrator has withdrawn keeps its slot but cannot be
+            // used, exactly as an exhausted one cannot.
+            'is_enabled' => (bool)$row['is_enabled'],
+        ];
+    }
+    return [
+        'ready' => true,
+        'capacity' => $capacity,
+        'columns' => PW_MISSION_STIM_SLOT_COLUMNS,
+        'slots' => array_values($slots),
+    ];
 }
 
 function pw_missions_stim_effect_types(): array {

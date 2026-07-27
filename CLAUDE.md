@@ -619,6 +619,54 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **The stim belt, two capacity protocols, and one flat-effect list instead of
+  five.** **Run `sql/migration_mission_stim_belt.sql` once.**
+  **A 4x2 grid of quick slots** under the commander card in the right rail.
+  Slots are **assigned, not auto-filled**: auto-filling from whatever the player
+  holds would need no table and could never desync, but the count would then
+  only bind on someone already carrying more distinct stims than slots, which is
+  nobody early on -- and a limit that never binds is not a limit.
+  The grid is **always drawn in full, empty slots included**, because the grid is
+  what shows the player what a Quick slots protocol bought them. A slot whose
+  stim has run out or been withdrawn renders as empty but keeps its assignment,
+  so reacquiring that stim puts it straight back; the two cases say which
+  applies, since "none left" on a stim the player still holds four of would read
+  as the belt having miscounted.
+  **Two new research effects.** `stim_slots` adds quick slots (cap +8, so the
+  grid tops out at a readable 4x4). `inventory_capacity` raises **both**
+  quartermaster ceilings by the same amount (cap +200) -- one dial rather than
+  two, because which of the two a given node raises is not a distinction the
+  player can act on, and leaving the salvage ceiling un-raisable would mean the
+  tree could eventually be blocked by the storage limit on the currency that
+  buys it. Neither is seeded, for the same reason `fatigue_recovery` was not.
+  **The refactor that made adding them safe:** "is this effect a count or a
+  percentage" was answered by **five separate hardcoded lists** -- the admin
+  validator, `pw_research_effect_sentence()`, and three places in
+  `js/research.js` -- so an effect added without touching all five renders as a
+  percentage somewhere. An entry in `pw_research_effect_types()` now carries
+  `flat` (the unit it is counted in) and `max`, every consumer branches on that,
+  and the node payload ships `effect_flat_unit`. **This was already broken, not
+  just fragile:** `js/admin-research.js`'s list column knew only about crew
+  capacity, so crew endurance had been rendering as a percentage there since it
+  shipped.
+  **A real sizing bug, caught by measuring rather than by eye.** The first tile
+  carried the effect label under the icon. It looked right in a full-width
+  harness -- but the rail is a fixed 224/262px column, so a slot is **43px**, and
+  the label was clipped at 36px. Rebuilt as icon plus a corner count, with the
+  name in the `title` and the `aria-label`, and the icon tinted per effect so the
+  three kinds stay distinguishable on the fallback glyph. **Build the fixture at
+  the real column width**; a stretched one hides exactly this.
+  **Harness lesson worth repeating:** the belt's click handler calls `useStim()`,
+  which lives *after* `renderInventory()` in the file, so an extraction that
+  stopped at `renderInventory` produced a Use button that silently did nothing --
+  indistinguishable from a product bug until `typeof useStim` was checked.
+  Verified in a browser at both rail widths: 8 slots render 4x2 and 16 render
+  4x4, tiles stay square, the count and clear controls never overlap, nothing
+  escapes the card, the card hides entirely before the migration and still shows
+  when empty, and assign/clear/use each post the right payload. Worst contrast
+  5.26:1. `missions.css?v=41` / `missions.js?v=40` / `research.js?v=10` /
+  `admin-research.js?v=10`.
+
 - **A fourth crew role, retuned rates, and any item in a loot table.** **No
   migration** -- `game_crew_definitions.role` is already `VARCHAR(40)`.
   **The Fixer** pays 0.5% more credits per level, joining the same

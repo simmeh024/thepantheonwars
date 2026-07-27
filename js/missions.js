@@ -70,6 +70,7 @@
   var inventoryMeters = document.getElementById('missions-inventory-meters');
   var inventoryBoosts = document.getElementById('missions-inventory-boosts');
   var inventoryRailCard = document.getElementById('mission-quartermaster-card');
+  var stimBeltCard = document.getElementById('mission-stim-belt-card');
   var profileCard = document.getElementById('mission-profile-card');
   var contractCard = document.getElementById('mission-contract-card');
   var dailyCard = document.getElementById('mission-daily-card');
@@ -2912,7 +2913,120 @@
     });
   }
 
+  /* The quick-slot belt in the right rail, under the commander card.
+   *
+   * Always the full grid, empty slots included: the grid is what shows the
+   * player what a Quick slots protocol bought them, and a belt that drew only
+   * its filled slots would make the research invisible.
+   *
+   * A slot whose stim has run out or been withdrawn renders as empty rather
+   * than as an item that cannot be used -- the server leaves the assignment in
+   * place, so reacquiring that stim puts it straight back. */
+  function renderStimBelt(data) {
+    if (!stimBeltCard) return;
+    var belt = data.stim_slots;
+    if (!belt || !belt.ready || !belt.capacity) { stimBeltCard.hidden = true; return; }
+    stimBeltCard.hidden = false;
+    var columns = Math.max(1, Number(belt.columns) || 4);
+    var filled = (belt.slots || []).filter(function (slot) {
+      return slot.item && slot.item.is_enabled && Number(slot.item.quantity) > 0;
+    }).length;
+    var cells = (belt.slots || []).map(function (slot) {
+      var item = slot.item;
+      var usable = item && item.is_enabled && Number(item.quantity) > 0;
+      if (!usable) {
+        /* An assigned-but-unusable slot still reads as empty, and its label says
+         * which of the two reasons applies -- "none left" on a stim the player
+         * still holds four of would read as the belt having miscounted. */
+        var reason = !item ? 'Empty quick slot'
+          : !item.is_enabled ? item.name + ' — withdrawn from service'
+          : item.name + ' — none left';
+        var note = escapeHtml(reason);
+        return '<button type="button" class="mission-stim-slot is-empty" data-stim-slot="' + Number(slot.slot_index) + '"'
+          + ' title="' + note + '" aria-label="' + note + '. Choose a stim.">'
+          + '<span class="mission-stim-slot-plus" aria-hidden="true">+</span></button>';
+      }
+      var label = item.name + ' — ' + stimSummary(item) + ' ' + item.quantity + ' held.';
+      /* Icon and count only. A slot is 43px wide in the real rail, which fits
+       * neither a stim's name nor its effect label -- measured, after the first
+       * attempt shipped a clipped one. The full name and effect live in the
+       * title and the aria-label, and the icon is tinted by effect so the three
+       * kinds stay distinguishable even on the fallback glyph. */
+      return '<span class="mission-stim-slot is-filled is-' + escapeHtml(item.tier)
+        + ' is-effect-' + escapeHtml(item.stim_effect) + '">'
+        + '<button type="button" class="mission-stim-slot-use" data-stim-use="' + Number(item.id) + '"'
+        + ' title="' + escapeHtml(label) + '" aria-label="' + escapeHtml('Use ' + label) + '">'
+        + '<span class="mission-stim-slot-icon">' + gearIconHtml('', item.icon_url) + '</span>'
+        + '<span class="mission-stim-slot-count">' + Number(item.quantity) + '</span>'
+        + '</button>'
+        + '<button type="button" class="mission-stim-slot-clear" data-stim-slot-clear="' + Number(slot.slot_index) + '"'
+        + ' title="Clear this quick slot" aria-label="' + escapeHtml('Clear ' + item.name + ' from quick slot ' + (Number(slot.slot_index) + 1)) + '">&times;</button>'
+        + '</span>';
+    }).join('');
+    stimBeltCard.innerHTML = '<span class="eyebrow">Field kit</span>'
+      + '<span class="mission-stim-belt-head"><strong>Stim belt</strong>'
+      + '<span class="mission-stim-belt-count">' + filled + ' / ' + Number(belt.capacity) + '</span></span>'
+      + '<div class="mission-stim-belt-grid" style="grid-template-columns:repeat(' + columns + ',minmax(0,1fr))">' + cells + '</div>'
+      + '<p class="mission-stim-belt-note">' + (filled
+        ? 'Click a stim to use it. Research widens the belt.'
+        : 'Assign the stims you want one click away.') + '</p>';
+  }
+
+  /* Choosing what goes in an empty slot. The stims already on the belt are
+   * excluded, since assigning one would move it rather than add it -- offering
+   * that as a choice here would read as a way to hold two. */
+  function assignStimSlot(button) {
+    var slotIndex = Number(button.getAttribute('data-stim-slot'));
+    var belt = (state.data && state.data.stim_slots) || { slots: [] };
+    var slotted = {};
+    (belt.slots || []).forEach(function (slot) { if (slot.item) slotted[Number(slot.item.id)] = true; });
+    var candidates = ((state.data && state.data.loot) || []).filter(function (item) {
+      /* is_enabled is not on the inventory payload, so a withdrawn stim is
+       * filtered out by the server instead -- but an exhausted one is
+       * excluded here rather than offered and refused a round trip later. */
+      return item.category === 'stim' && Number(item.quantity) > 0 && !slotted[Number(item.id)];
+    });
+    if (!candidates.length) {
+      setStatus(Object.keys(slotted).length
+        ? 'Every stim you hold is already on the belt.'
+        : 'You are not carrying any stims yet.', true);
+      return;
+    }
+    var lines = candidates.map(function (item, index) {
+      return (index + 1) + '. ' + item.name + ' (x' + item.quantity + ') — ' + stimSummary(item);
+    });
+    var choice = window.prompt('Which stim should go in quick slot ' + (slotIndex + 1) + '?'
+      + NEWLINE + NEWLINE + lines.join(NEWLINE), '1');
+    if (choice === null) return;
+    var picked = candidates[Math.round(Number(choice) || 0) - 1];
+    if (!picked) { setStatus('That is not one of the listed stims.', true); return; }
+    button.disabled = true;
+    post('/api/missions/stim-slot.php', { slot_index: slotIndex, loot_definition_id: picked.id, csrf: window.PW_AUTH.csrf })
+      .then(function (result) { setStatus(result.message); return load(); })
+      .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
+  }
+
+  function clearStimSlot(button) {
+    var slotIndex = Number(button.getAttribute('data-stim-slot-clear'));
+    button.disabled = true;
+    post('/api/missions/stim-slot.php', { slot_index: slotIndex, loot_definition_id: null, csrf: window.PW_AUTH.csrf })
+      .then(function (result) { setStatus(result.message); return load(); })
+      .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
+  }
+
+  if (stimBeltCard) {
+    stimBeltCard.addEventListener('click', function (event) {
+      var clear = event.target.closest('[data-stim-slot-clear]');
+      if (clear && !clear.disabled) { clearStimSlot(clear); return; }
+      var use = event.target.closest('[data-stim-use]');
+      if (use && !use.disabled) { useStim(use); return; }
+      var empty = event.target.closest('[data-stim-slot]');
+      if (empty && !empty.disabled) assignStimSlot(empty);
+    });
+  }
+
   function renderInventory(data) {
+    renderStimBelt(data);
     renderInventoryRail(data);
     if (!inventorySection || !inventoryList) return;
     var loot = data.loot || [];

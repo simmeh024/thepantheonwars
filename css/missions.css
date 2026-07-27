@@ -1039,3 +1039,49 @@
 @media (prefers-reduced-motion: reduce) {
   .mission-inventory-meter-track i, .mission-quartermaster-card-link b { transition: none; }
 }
+
+/* ---------------------------------------------------------------------------
+ * The stim belt: a grid of quick slots in the right rail, under the commander
+ * card. Four across by default; research adds rows, so the column count is set
+ * inline from the server's own figure rather than fixed here.
+ * ------------------------------------------------------------------------ */
+.mission-stim-belt-card { display: grid; gap: 10px; padding: 15px 16px 16px; border: 1px solid rgba(126,203,158,0.4); background: linear-gradient(148deg, rgba(18,44,34,0.78), rgba(13,25,48,0.9)); box-shadow: inset 0 1px rgba(196,244,212,0.07), 0 10px 24px rgba(5,3,15,0.16); }
+.mission-stim-belt-card .eyebrow { margin: 0; color: #9edba8; font-size: .57rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-stim-belt-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.mission-stim-belt-head strong { color: #eaf6ee; font: 600 .98rem/1 'Cinzel', serif; }
+.mission-stim-belt-count { color: #9fb4c2; font-size: .68rem; font-weight: 600; }
+.mission-stim-belt-grid { display: grid; gap: 6px; }
+.mission-stim-belt-note { margin: 0 !important; color: #9fb4c2 !important; font-size: .64rem !important; line-height: 1.45 !important; }
+
+/* A slot is square, so the grid reads as a grid at any column count. */
+.mission-stim-slot { position: relative; display: block; aspect-ratio: 1; width: 100%; padding: 0; border: 1px solid rgba(122,160,186,0.3); background: rgba(8,18,32,0.55); }
+.mission-stim-slot.is-empty { display: grid; place-items: center; color: #6f8697; cursor: pointer; transition: border-color .2s ease, color .2s ease; }
+.mission-stim-slot.is-empty:hover, .mission-stim-slot.is-empty:focus-visible { border-color: rgba(158,219,168,0.6); color: #9edba8; }
+.mission-stim-slot-plus { font-size: 1rem; line-height: 1; }
+.mission-stim-slot.is-filled { border-color: rgba(126,203,158,0.5); background: rgba(20,46,36,0.6); }
+.mission-stim-slot.is-rare { border-color: rgba(112,204,223,0.55); }
+.mission-stim-slot.is-legendary { border-color: rgba(226,178,92,0.6); }
+/* The whole tile is the use target, so the click area matches what it looks
+ * like. The clear affordance sits above it as a separate button. */
+.mission-stim-slot-use { position: relative; display: grid; width: 100%; height: 100%; padding: 0; place-items: center; border: 0; background: none; color: inherit; cursor: pointer; }
+/* No text label on the tile: a slot is 43px wide in the real 224px rail, which
+ * fits neither the stim's name nor its effect label. The name lives in the
+ * title and the aria-label; the icon's tint carries the effect. */
+.mission-stim-slot-icon { display: block; width: 24px; height: 24px; color: var(--stim-accent, #9edba8); }
+.mission-stim-slot-icon svg, .mission-stim-slot-icon img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.mission-stim-slot.is-effect-fatigue { --stim-accent: #9edba8; }
+.mission-stim-slot.is-effect-mission_speed { --stim-accent: #70ccdf; }
+.mission-stim-slot.is-effect-luck { --stim-accent: #e3bc71; }
+/* Bottom-left, opposite the clear button, so the two corner controls never sit
+ * over each other however narrow the rail gets. */
+.mission-stim-slot-count { position: absolute; bottom: 1px; left: 3px; color: #eaf6ee; font-size: .6rem; font-weight: 700; line-height: 1; text-shadow: 0 0 3px rgba(6,14,26,0.9); }
+/* 18px rather than the 24px minimum used for standalone controls: this is a
+ * secondary affordance layered on a 24px-plus tile whose own action is the
+ * primary one, and a full-size button would cover the icon it sits over. It
+ * stays keyboard-reachable, which is the part that matters. */
+.mission-stim-slot-clear { position: absolute; top: -1px; right: -1px; display: grid; width: 18px; height: 18px; place-items: center; border: 0; background: rgba(8,18,32,0.85); color: #8ba3b4; font-size: .72rem; line-height: 1; cursor: pointer; }
+.mission-stim-slot-clear:hover, .mission-stim-slot-clear:focus-visible { color: #e59a9a; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mission-stim-slot.is-empty { transition: none; }
+}

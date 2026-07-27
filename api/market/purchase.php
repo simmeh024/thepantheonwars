@@ -53,7 +53,7 @@ try {
          * so a full inventory costs the player nothing. The claim path takes
          * the opposite approach and drops the overflow instead -- there the
          * operation has already been run and its other rewards are owed. */
-        $usage = pw_missions_inventory_usage($db, $userId);
+        $usage = pw_missions_inventory_usage($db, $userId, $researchEffects);
         $bucket = pw_missions_inventory_bucket(pw_missions_inventory_category($source));
         if ($usage[$bucket] >= $usage[$bucket . '_cap']) {
             throw new RuntimeException($bucket === 'salvage'

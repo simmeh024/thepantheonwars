@@ -38,7 +38,12 @@
   function valueText(node) {
     if (node.effect_type === 'secret_mission') return node.target_mission_name || 'Classified mission';
     if (node.effect_type === 'rare_loot_table') return node.target_loot_table_name || 'Rare loot table';
-    if (node.effect_type === 'crew_capacity') return '+' + Math.floor(Number(node.effect_value || 0)) + ' slots';
+    /* An effect carrying a 'flat' unit is a count, not a percentage. Read from
+     * the vocabulary the API ships rather than matched against a list of names
+     * here -- that list only knew about crew capacity, so crew endurance had
+     * already been rendering as a percentage in this column. */
+    var flat = (effectTypes[node.effect_type] || {}).flat;
+    if (flat) return '+' + Math.floor(Number(node.effect_value || 0)) + ' ' + flat;
     return '+' + Number(node.effect_value || 0) + '%';
   }
   function boardWidth() { return Math.max(960, Number(boardSize.width) || 2040); }
@@ -135,10 +140,12 @@
     var effect = effectTypes[effectType.value] || {};
     var valueLabel = document.querySelector('label[for="research-node-effect-value"]');
     if (valueLabel) valueLabel.textContent = effect.value_label || 'Effect value (%)';
-    /* Crew capacity and crew endurance are whole-number effects, not
-     * percentages, and each has its own ceiling -- the same three shapes
-     * api/admin/research/research-helpers.php validates. */
-    var wholeNumberMax = { crew_capacity: '24', crew_fatigue: '200' }[effectType.value];
+    /* A count effect is validated as a whole number against its own ceiling,
+     * and a percentage against 50 -- the same three shapes
+     * api/admin/research/research-helpers.php branches on, read from the same
+     * vocabulary rather than restated as a map that has to be extended
+     * alongside it. */
+    var wholeNumberMax = effect.flat ? String(effect.max || 50) : null;
     effectValue.min = wholeNumberMax ? '1' : '0.01';
     effectValue.step = wholeNumberMax ? '1' : '0.01';
     effectValue.max = wholeNumberMax || '50';

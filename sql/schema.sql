@@ -1863,6 +1863,21 @@ CREATE TABLE IF NOT EXISTS game_loot_definitions (
 -- live on game_loot_definitions and are added by
 -- sql/migration_mission_inventory.sql, in the same way the gear columns above
 -- are added by sql/migration_mission_gear.sql rather than declared here.
+-- The stim belt: which stim sits in which quick slot on the command view.
+-- Capacity is base plus the stim_slots research effect, resolved in PHP by
+-- pw_missions_stim_slot_capacity() -- it is not a column, so a rank or a
+-- protocol change never needs a write here.
+CREATE TABLE IF NOT EXISTS game_player_stim_slots (
+  user_id INT UNSIGNED NOT NULL,
+  slot_index TINYINT UNSIGNED NOT NULL,
+  loot_definition_id INT UNSIGNED NOT NULL,
+  assigned_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, slot_index),
+  UNIQUE KEY uq_game_player_stim_slot_item (user_id, loot_definition_id),
+  CONSTRAINT fk_game_player_stim_slot_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_game_player_stim_slot_item FOREIGN KEY (loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS game_player_stim_effects (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,
