@@ -773,6 +773,44 @@ function pw_reputation_info(int $reputation): array {
 }
 
 /**
+ * The whole rank ladder with this member's position marked.
+ *
+ * pw_reputation_info() answers "where am I and what is next", which is all the
+ * page needed while it only drew a bar. Showing the ladder itself needs every
+ * rung, and the state of each one relative to the viewer.
+ *
+ * Built from the same pw_reputation_levels() cache pw_reputation_info() reads,
+ * so the two can never disagree about the order or the thresholds -- and the
+ * numbering here is the same 1-based ladder position that function reports.
+ *
+ * @return array<int, array{number:int,name:string,threshold:int,color:string,state:string}>
+ */
+function pw_reputation_ladder(int $reputation): array {
+    $levels = pw_reputation_levels();
+    if (!$levels) return [];
+    $info = pw_reputation_info($reputation);
+    $currentNumber = (int)($info['level_number'] ?? 0);
+    $ladder = [];
+    foreach ($levels as $index => $level) {
+        $number = $index + 1;
+        /* Three states, not two: "earned" and "current" look different because
+         * one is history and the other is where you stand, and collapsing them
+         * would leave the ladder with no marker for the reader's own position. */
+        $state = 'sealed';
+        if ($currentNumber > 0 && $number < $currentNumber) $state = 'earned';
+        if ($number === $currentNumber) $state = 'current';
+        $ladder[] = [
+            'number' => $number,
+            'name' => (string)$level['name'],
+            'threshold' => (int)$level['threshold'],
+            'color' => (string)($level['color'] ?? '#a279ec'),
+            'state' => $state,
+        ];
+    }
+    return $ladder;
+}
+
+/**
  * Stores a player-facing rank event only when an award crosses one or more
  * reputation thresholds. Events are deliberately recorded at award time,
  * rather than inferred from a member's current rank during a later page load:

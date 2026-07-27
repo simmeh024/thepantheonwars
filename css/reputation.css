@@ -3,3 +3,140 @@
 .achievement-filter{display:flex;gap:7px;padding:14px 0 4px}.achievement-filter button,.achievement-pages button{border:1px solid var(--border);background:transparent;color:var(--text-faint);padding:6px 9px;font:600 .67rem/1 Jost,sans-serif;letter-spacing:.08em;text-transform:uppercase;cursor:pointer}.achievement-filter button.is-active,.achievement-pages button.is-active{border-color:var(--gold-dim);color:var(--gold-bright);background:rgba(209,169,85,.1)}.reputation-achievement{position:relative;transition:opacity .2s ease,border-color .2s ease,background .2s ease}.reputation-achievement:not(.is-unlocked){background:rgba(0,0,0,.16);filter:saturate(.55)}.reputation-achievement:hover{opacity:1;border-color:var(--achievement-tone,var(--gold-dim));background:rgba(124,79,214,.1)}.reputation-achievement.tier-bronze{--achievement-tone:#b87945}.reputation-achievement.tier-silver{--achievement-tone:#b9c3cf}.reputation-achievement.tier-gold{--achievement-tone:#ecc987}.reputation-achievement.tier-prismatic{--achievement-tone:#e9a6ff}.reputation-achievement.tier-prismatic.is-unlocked{box-shadow:inset 0 0 20px rgba(174,117,255,.14),0 0 12px rgba(224,178,74,.12)}.reputation-achievement>span{color:var(--achievement-tone,var(--gold-bright))}.achievement-copy{flex:1;min-width:0}.achievement-progress{height:4px;margin-top:9px;border:1px solid rgba(255,255,255,.13);background:rgba(4,2,10,.55);overflow:hidden}.achievement-progress i{display:block;height:100%;background:var(--achievement-tone,var(--gold-bright));box-shadow:0 0 7px var(--achievement-tone,var(--gold-bright))}.reputation-achievement:not(.is-unlocked) .achievement-progress i{opacity:.55}.achievement-progress-label{font-size:.64rem!important;letter-spacing:.06em;text-transform:uppercase}.achievement-pages{display:flex;gap:6px;padding-top:14px;justify-content:flex-end}
 .achievement-phase-track{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;margin-top:11px}.achievement-phase-track span{position:relative;overflow:hidden;padding:5px 3px;border-bottom:3px solid var(--border-soft);color:var(--text-faint);font:600 .56rem/1 Jost,sans-serif;letter-spacing:.04em;text-align:center;text-transform:uppercase;cursor:help}.achievement-phase-track .tier-bronze{--phase-tone:#b87945;--phase-fill:rgba(184,121,69,.18)}.achievement-phase-track .tier-silver{--phase-tone:#b9c3cf;--phase-fill:rgba(185,195,207,.18)}.achievement-phase-track .tier-gold{--phase-tone:#ecc987;--phase-fill:rgba(236,201,135,.18)}.achievement-phase-track .tier-prismatic{--phase-tone:#e9a6ff;--phase-fill:rgba(233,166,255,.18)}.achievement-phase-track .is-unlocked{border-color:var(--phase-tone);background:var(--phase-fill);color:var(--phase-tone)}.achievement-phase-track .is-next{border-color:var(--border-soft);color:var(--phase-tone);text-shadow:0 0 8px var(--phase-tone);background-image:linear-gradient(90deg,var(--phase-fill),var(--phase-fill));background-repeat:no-repeat;background-size:var(--phase-progress,0%) 100%}.achievement-phase-track .is-next::after{content:'';position:absolute;bottom:-3px;left:0;width:var(--phase-progress,0%);height:3px;background:var(--phase-tone);box-shadow:0 0 7px var(--phase-tone);animation:achievement-next-pulse 1.6s ease-in-out infinite}@keyframes achievement-next-pulse{50%{opacity:.58}}
 .reputation-insights{display:grid;grid-template-columns:.75fr 1.25fr;gap:14px;margin:-8px 0 20px}.reputation-rank-preview,.reputation-timeline-card{border:1px solid var(--border-soft);background:linear-gradient(145deg,rgba(124,79,214,.1),rgba(7,4,17,.25));padding:14px}.reputation-insight-kicker{display:block;color:var(--gold-bright);font:600 .62rem/1 Jost,sans-serif;letter-spacing:.13em;text-transform:uppercase}.reputation-rank-preview strong{display:block;margin:6px 0;color:var(--text);font:600 .92rem/1.35 Cinzel,serif}.reputation-rank-preview p{margin:0;color:var(--text-faint);font-size:.76rem;line-height:1.45}.reputation-timeline-head{display:flex;justify-content:space-between;gap:10px;color:var(--text-faint);font-size:.65rem;text-transform:uppercase;letter-spacing:.08em}.reputation-timeline-bars{height:74px;display:flex;align-items:flex-end;gap:5px;margin:9px 0}.reputation-timeline-bars>span{display:flex;align-items:center;justify-content:flex-end;flex:1;height:100%;min-width:0;flex-direction:column;gap:4px}.reputation-timeline-bars i{display:block;width:100%;min-height:3px;background:linear-gradient(180deg,var(--gold-bright),var(--purple-bright));box-shadow:0 0 8px rgba(162,121,236,.28)}.reputation-timeline-bars b{overflow:hidden;max-width:100%;color:var(--text-faint);font:500 .52rem/1 Jost,sans-serif;white-space:nowrap}.reputation-timeline-highlights{display:flex;gap:6px;flex-wrap:wrap}.reputation-timeline-highlights span{max-width:100%;overflow:hidden;padding:3px 6px;border:1px solid rgba(224,178,74,.23);color:var(--text-dim);font-size:.65rem;line-height:1.25;text-overflow:ellipsis;white-space:nowrap}.reputation-timeline-highlights b{color:var(--gold-bright)}.reputation-timeline-empty{color:var(--text-faint)!important;border-style:dashed!important}.achievement-category-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;padding:13px 0 3px}.achievement-category{padding:8px;border:1px solid rgba(162,121,236,.18);background:rgba(124,79,214,.05)}.achievement-category span{display:block;color:var(--text-faint);font:600 .58rem/1 Jost,sans-serif;letter-spacing:.08em;text-transform:uppercase}.achievement-category strong{display:block;margin:4px 0;color:var(--gold-bright);font:.76rem/1 Cinzel,serif}.achievement-category i{display:block;height:3px;background:var(--border-soft);overflow:hidden}.achievement-category i b{display:block;height:100%;background:var(--purple-bright)}.achievement-category-label{margin:0 0 4px!important;color:var(--gold-dim)!important;font:600 .57rem/1 Jost,sans-serif!important;letter-spacing:.1em;text-transform:uppercase}.reputation-log-source{color:var(--text);text-decoration:none}.reputation-log-source:hover{color:var(--gold-bright);text-decoration:underline;text-underline-offset:3px}@media(max-width:700px){.reputation-insights{grid-template-columns:1fr}.achievement-category-summary{grid-template-columns:repeat(3,1fr)}}
+
+
+/* ===========================================================================
+ * Rank accent, the ladder rail, tier plaques and the signal feed.
+ * ========================================================================= */
+
+/* --- 1. The rank's own colour, spent across the page ----------------------
+ * reputation_levels.color has been administrator-authored since the ladder
+ * shipped, and this page used it on exactly two elements. It is published as
+ * --rank-accent by the page script; everything below reads from it, with the
+ * site purple as the value before the summary lands. */
+.reputation-page { --rank-accent: #a279ec; --rank-next-accent: #a279ec; }
+.reputation-page-bar > span:first-child { box-shadow: 0 0 14px color-mix(in srgb, var(--rank-accent) 45%, transparent); }
+.reputation-page .reputation-bar-track { border: 1px solid color-mix(in srgb, var(--rank-accent) 30%, transparent); }
+.reputation-page .reputation-bar-fill { box-shadow: 0 0 10px color-mix(in srgb, var(--rank-accent) 55%, transparent); }
+/* The card edge picks up the rank, but only on the leading edge -- tinting the
+ * whole border would fight the tier tones inside the achievements card. */
+.reputation-page .reputation-card { border-left-color: color-mix(in srgb, var(--rank-accent) 55%, var(--border)); }
+.reputation-page .reputation-card-head { border-bottom-color: color-mix(in srgb, var(--rank-accent) 28%, var(--border-soft)); }
+.reputation-page .reputation-total { color: color-mix(in srgb, var(--rank-accent) 62%, var(--gold-bright)); }
+/* The next rank is a different colour from the current one, so the "what comes
+ * next" panels read as belonging to where you are going rather than where you
+ * are. */
+.reputation-page .reputation-rank-preview { border-left: 2px solid color-mix(in srgb, var(--rank-next-accent) 60%, transparent); }
+.reputation-page .reputation-rank-preview .reputation-insight-kicker { color: var(--rank-next-accent); }
+
+/* --- 2. The ladder rail ---------------------------------------------------
+ * The page could always say what rank you hold and what comes next, but never
+ * showed the ladder -- so there was no sense of distance travelled, which is
+ * most of what a standing is. An ordered list because that is what it is; the
+ * spine is drawn on the list rather than per item, so it cannot break between
+ * rungs of different heights. */
+.reputation-ladder { align-self: start; padding: 14px; border: 1px solid var(--border-soft); background: linear-gradient(160deg, rgba(124,79,214,.1), rgba(7,4,17,.25)); }
+.reputation-ladder[hidden] { display: none; }
+.reputation-ladder-rail { position: relative; display: grid; gap: 2px; margin: 10px 0 0; padding: 0 0 0 4px; max-height: 268px; overflow-y: auto; list-style: none; }
+/* The spine is drawn per rung rather than once on the rail. An absolutely
+ * positioned line inside a scrolling container is sized to the padding box,
+ * not the scroll height -- so on a ladder long enough to scroll it would stop
+ * partway down and leave the later ranks unconnected. Segments cannot desync
+ * from the content because they are made of it. */
+.reputation-rung::before { content: ''; position: absolute; top: 0; bottom: 0; left: 14px; width: 1px; background: color-mix(in srgb, var(--rung-accent, var(--rank-accent)) 45%, transparent); }
+.reputation-rung:first-child::before { top: 50%; }
+.reputation-rung:last-child::before { bottom: 50%; }
+.reputation-rung { position: relative; display: grid; grid-template-columns: 21px minmax(0, 1fr); align-items: center; gap: 10px; padding: 5px 4px; }
+.reputation-rung-mark { position: relative; z-index: 1; display: grid; width: 21px; height: 21px; place-items: center; border: 1px solid var(--rung-accent, var(--border)); background: #0c0819; color: var(--rung-accent, var(--text-faint)); font: 600 .6rem/1 'Cinzel', serif; }
+.reputation-rung-copy { min-width: 0; }
+.reputation-rung-copy strong { display: block; overflow: hidden; color: var(--text-dim); font: 600 .74rem/1.25 'Cinzel', serif; text-overflow: ellipsis; white-space: nowrap; }
+/* --text-faint measures 4.2:1 on this panel, under AA, and the sealed state
+ * below used to compound that with opacity -- the same trap the Neoh weather
+ * card hit. The dim token clears it, and the sealed state now dims by a
+ * measurable colour step rather than by an opacity a contrast check cannot
+ * see. */
+.reputation-rung-copy small { display: block; color: var(--text-dim); font-size: .58rem; letter-spacing: .06em; text-transform: uppercase; }
+/* Three states, three weights: history is dim but legible, the current rung is
+ * the loudest thing in the rail, and what is ahead is present but unearned. */
+.reputation-rung.is-earned .reputation-rung-mark { background: color-mix(in srgb, var(--rung-accent) 22%, #0c0819); color: #f2ecff; }
+.reputation-rung.is-earned .reputation-rung-copy strong { color: var(--text); }
+.reputation-rung.is-current .reputation-rung-mark { border-width: 2px; background: var(--rung-accent); color: #0b0716; box-shadow: 0 0 14px color-mix(in srgb, var(--rung-accent) 60%, transparent); }
+.reputation-rung.is-current .reputation-rung-copy strong { color: #fff; }
+.reputation-rung.is-current .reputation-rung-copy small { color: var(--rung-accent); }
+.reputation-rung.is-sealed .reputation-rung-copy strong { color: var(--text-dim); }
+.reputation-rung.is-sealed .reputation-rung-copy small { color: #9083b3; }
+.reputation-rung.is-sealed .reputation-rung-mark { border-style: dashed; }
+.reputation-insights { grid-template-columns: .58fr .75fr 1.15fr; }
+
+/* --- 3. Achievement tier plaques ------------------------------------------
+ * --achievement-tone already existed and only ever tinted a 1px border and the
+ * icon. The tiers now differ in material as well as hue, so the grid can be
+ * scanned for what was earned rather than read. */
+.reputation-achievement { border-left-width: 3px; }
+.reputation-achievement > span { position: relative; transition: box-shadow .2s ease; }
+.reputation-achievement.tier-bronze.is-unlocked > span { background: linear-gradient(145deg, rgba(184,121,69,.22), rgba(184,121,69,.04)); }
+.reputation-achievement.tier-silver.is-unlocked > span { background: linear-gradient(145deg, rgba(185,195,207,.22), rgba(185,195,207,.04)); box-shadow: inset 0 1px rgba(255,255,255,.35); }
+.reputation-achievement.tier-gold.is-unlocked > span { background: linear-gradient(145deg, rgba(236,201,135,.24), rgba(236,201,135,.04)); box-shadow: inset 0 1px rgba(255,240,205,.45), 0 0 10px rgba(236,201,135,.3); }
+/* The rarest tier on the site was a static inset shadow. prismatic-shift is the
+ * keyframe the Saga Complete badge and the Nexus Veil card already use -- a
+ * fourth deliberate use of one effect, not a fourth effect. */
+.reputation-achievement.tier-prismatic.is-unlocked > span {
+  background: linear-gradient(110deg, rgba(233,166,255,.3), rgba(120,216,238,.24), rgba(236,201,135,.3), rgba(233,166,255,.3));
+  background-size: 300% 100%;
+  animation: prismatic-shift 7s ease-in-out infinite;
+  box-shadow: inset 0 1px rgba(255,255,255,.4), 0 0 14px rgba(233,166,255,.35);
+}
+.reputation-achievement.tier-prismatic.is-unlocked strong { color: #f6e6ff; }
+/* A locked achievement reads as a silhouette rather than a dimmer copy of the
+ * earned one, so the two states differ in shape and not only in opacity. */
+.reputation-achievement:not(.is-unlocked) > span { border-style: dashed; color: var(--text-faint); }
+
+/* --- 5. Signal feed and sparkline -----------------------------------------
+ * 74px of bar with 0.52rem labels is under the size at which a chart says
+ * anything, and the feed had no way to tell a mission from a forum reply
+ * without reading the label. */
+.reputation-timeline-bars { height: 108px; }
+/* Pre-existing: these were --text-faint at 4.2:1 before this pass touched the
+ * chart. Raised while the chart was being resized rather than left behind. */
+.reputation-timeline-bars b { color: var(--text-dim); font-size: .55rem; }
+
+/* Pre-existing, fixed while rebuilding this feed: the timestamp line was
+ * --text-faint at 4.2:1, under AA. Scoped to this row rather than changing the
+ * token, which is shared site-wide and is a separate decision. */
+.reputation-log-row small { color: var(--text-dim) !important; }
+.reputation-log-row { align-items: center; }
+.reputation-log-row > div { flex: 1; min-width: 0; }
+.reputation-log-icon { display: grid; flex: 0 0 28px; width: 28px; height: 28px; place-items: center; border: 1px solid color-mix(in srgb, var(--signal-tone, var(--rank-accent)) 40%, transparent); background: color-mix(in srgb, var(--signal-tone, var(--rank-accent)) 9%, transparent); color: var(--signal-tone, var(--rank-accent)); }
+.reputation-log-icon svg { display: block; width: 15px; height: 15px; }
+/* One tone per source family. Missions borrow the teal the command view uses
+ * for its own surfaces, so a reputation signal and the page that produced it
+ * are recognisably the same thing. */
+.reputation-log-icon.is-mission, .reputation-log-icon.is-mission_daily { --signal-tone: #79d9df; }
+.reputation-log-icon.is-topic, .reputation-log-icon.is-comment { --signal-tone: #a279ec; }
+.reputation-log-icon.is-news_comment { --signal-tone: #8fb4df; }
+.reputation-log-icon.is-book { --signal-tone: #ecc987; }
+.reputation-log-icon.is-quiz_result { --signal-tone: #d3a8f1; }
+.reputation-log-icon.is-achievement { --signal-tone: #e9a6ff; }
+.reputation-log-icon.is-daily_return { --signal-tone: #9edba8; }
+.reputation-log-icon.is-severe_weather { --signal-tone: #70ccdf; }
+.reputation-log-icon.is-overlord_dialogue, .reputation-log-icon.is-syn_dialogue { --signal-tone: #e08a8a; }
+
+/* Below 980px the rail turns on its side rather than shrinking: a vertical
+ * ladder next to two other panels leaves none of the three enough width. */
+@media (max-width: 980px) {
+  .reputation-insights { grid-template-columns: 1fr 1fr; }
+  .reputation-ladder { grid-column: 1 / -1; }
+  .reputation-ladder-rail { grid-auto-flow: column; grid-auto-columns: minmax(132px, 1fr); max-height: none; overflow-x: auto; overflow-y: visible; }
+  .reputation-rung { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 6px; text-align: center; }
+  .reputation-rung-copy strong, .reputation-rung-copy small { text-align: center; }
+    .reputation-rung::before { top: 14px; right: 0; bottom: auto; left: 0; width: auto; height: 1px; }
+  .reputation-rung:first-child::before { left: 50%; top: 14px; }
+  .reputation-rung:last-child::before { right: 50%; bottom: auto; }
+}
+@media (max-width: 700px) {
+  .reputation-insights { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .reputation-achievement.tier-prismatic.is-unlocked > span { animation: none; }
+  .reputation-achievement > span { transition: none; }
+}

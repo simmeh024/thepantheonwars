@@ -619,6 +619,54 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Reputation page: rank colour, a ladder, tier plaques and a readable signal
+  feed.** No migration.
+  **The page already had a rank colour and spent it on two elements.**
+  `reputation_levels.color` is administrator-authored per rank and only ever
+  reached the 29px square and the bar fill. It is published once as
+  `--rank-accent` (plus `--rank-next-accent` for the next rung) and every accent
+  reads from it, so **a member's standing visibly changes colour as they climb**
+  -- verified by re-rendering with a different rank colour and confirming every
+  measured reading moved.
+  **The ladder.** The page could say what rank you hold and what comes next but
+  never showed the ladder itself, so there was no sense of distance travelled --
+  most of what a standing is. New `pw_reputation_ladder()` builds it from the
+  same `pw_reputation_levels()` cache `pw_reputation_info()` reads, so the two
+  can never disagree about order or thresholds. **Three states, not two**:
+  earned, current and sealed, because history and where-you-stand are different
+  things and collapsing them leaves the rail with no marker for the reader.
+  Sealed rungs show their cost; earned ones say Earned; the current one says
+  "You are here".
+  **The spine is drawn per rung, not once on the rail.** An absolutely
+  positioned line inside a scrolling container is sized to the padding box
+  rather than the scroll height, so on a ladder long enough to scroll it stopped
+  partway and left the later ranks unconnected. Caught by rendering an 18-rank
+  ladder; segments built from the content cannot desync from it.
+  **Tier plaques.** `--achievement-tone` existed and only tinted a 1px border
+  and an icon. Bronze/silver/gold now differ in material, locked reads as a
+  dashed silhouette rather than a dimmer copy, and **prismatic finally animates**
+  -- a fourth deliberate use of the existing `prismatic-shift` keyframe rather
+  than a fourth effect.
+  **The signal feed, now including missions.** One glyph per
+  `reputation_ledger.source_type` in its own tone, so the feed reads by shape
+  before it reads by text; missions borrow the command view's teal. **Missions
+  were the busiest source a player has and had no route back** -- `history.php`
+  built `source_url` for topics, comments, books and quizzes but not for
+  `mission` or `mission_daily`, so an operation was the one signal that was not
+  clickable. Severe weather and news comments were missing too. The sparkline
+  went 74px -> 108px; below that it was not communicating anything.
+  **Contrast.** Everything introduced here clears AA. Two things were fixed on
+  the way: the rung sublabel would have shipped at 4.2:1, and the sealed state
+  originally dimmed with `opacity`, **which a contrast check cannot see** -- the
+  same compounding trap the Neoh weather card hit -- so it dims by a measurable
+  colour step instead. The feed's timestamp line and the chart's week labels
+  were already under AA before this pass and were raised while in the file.
+  **Still under AA and deliberately left**: `--text-faint` on the filter
+  buttons, the "Last 8 weeks" header and the next-rank placeholder, plus the
+  0.45 opacity on a locked achievement. Those are a site-wide token decision and
+  an intentional locked state, the same call already recorded for `--text-dim`
+  in the admin console. `reputation.css?v=8`.
+
 - **Database load review: five fixes.** **Run
   `sql/migration_db_optimizations.sql` once.** Measured per endpoint by walking
   the call graph at both revisions, so the figures below are a comparison rather

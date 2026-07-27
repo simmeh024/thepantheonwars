@@ -24,6 +24,14 @@ try {
         if ($row['source_type'] === 'comment' && $row['comment_topic_id']) $sourceUrl = 'community.html?topic=' . (int)$row['comment_topic_id'];
         if ($row['source_type'] === 'book' && $row['source_id']) $sourceUrl = 'books.html#book-' . (int)$row['source_id'];
         if ($row['source_type'] === 'quiz_result') $sourceUrl = 'quiz.html';
+        /* Missions award reputation through pw_award_reputation() like anything
+         * else, but had no route back to where they happened -- so an operation
+         * was the one signal in the feed the reader could not click. Both kinds
+         * land on the same command view: source_id is a mission definition, and
+         * the page has no deep link for one. */
+        if ($row['source_type'] === 'mission' || $row['source_type'] === 'mission_daily') $sourceUrl = 'missions.html';
+        if ($row['source_type'] === 'severe_weather') $sourceUrl = 'worlds.html';
+        if ($row['source_type'] === 'news_comment' && $row['source_id']) $sourceUrl = 'news.html';
         $row['source_url'] = $sourceUrl;
         unset($row['comment_topic_id']);
         return $row;

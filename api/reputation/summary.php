@@ -51,7 +51,16 @@ try {
          * pw_reputation_level_unlocks() so this page and the admin rank preview
          * always describe the same rank identically. */
     }
-    pw_json(['ok' => true, 'reputation' => $reputation, 'next_rank_unlocks' => $nextRankUnlocks, 'achievements' => $achievements, 'showcase_keys' => $showcaseKeys]);
+    pw_json([
+        'ok' => true,
+        'reputation' => $reputation,
+        // The whole ladder, so the page can show how far a member has come as
+        // well as how far is left -- the bar alone only ever showed the latter.
+        'ladder' => pw_reputation_ladder($points),
+        'next_rank_unlocks' => $nextRankUnlocks,
+        'achievements' => $achievements,
+        'showcase_keys' => $showcaseKeys,
+    ]);
 } catch (Throwable $e) {
     pw_json(['ok' => false, 'error' => 'Reputation history becomes available after the reputation expansion migration.', 'migration_required' => true], 503);
 }
