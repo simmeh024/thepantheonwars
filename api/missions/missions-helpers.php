@@ -135,6 +135,7 @@ function pw_missions_daily_overlord_contract(PDO $db, int $userId, int $rank, ?a
         'overlord' => null,
         'contract' => null,
         'claimed_today' => false,
+        'in_flight' => false,
         'reason' => '',
     ];
     if (!$state['ready']) { $state['reason'] = 'pending_migration'; return $state; }
@@ -190,8 +191,38 @@ function pw_missions_daily_overlord_contract(PDO $db, int $userId, int $rank, ?a
         $state['claimed_today'] = true;
     }
 
+    /* One at a time. The claimed count above closes the contract for the day
+     * only once a run has been *claimed* -- so a run that is still active, or
+     * finished but not yet collected, left the contract open and a player could
+     * have several of the same operation running at once. That is not a daily
+     * contract, it is an ordinary mission with a limit on collections.
+     *
+     * Deliberately any contract rather than only today's: a run launched
+     * yesterday and never claimed is still a contract in progress, and issuing
+     * a second one on top of it would be the same double-run through a slower
+     * route. Ordinary missions are untouched -- they may still be stacked.
+     *
+     * 'completed' counts as in flight because it is an unclaimed run: the
+     * rewards are still owed and claim.php will settle it. */
+    try {
+        $running = $db->prepare(
+            'SELECT run.mission_definition_id
+             FROM game_player_missions run
+             JOIN game_mission_definitions definition ON definition.id = run.mission_definition_id
+             WHERE run.user_id = ? AND run.status IN ("active", "completed")
+               AND definition.overlord_id IS NOT NULL
+             LIMIT 1'
+        );
+        $running->execute([$userId]);
+        $state['in_flight'] = $running->fetch() !== false;
+    } catch (Throwable $e) {
+        // Same choice as the claimed check above: a failed lookup must not be
+        // the thing that hands out a second concurrent contract.
+        $state['in_flight'] = true;
+    }
+
     $state['contract'] = $contract;
-    $state['reason'] = $state['claimed_today'] ? 'claimed_today' : '';
+    $state['reason'] = $state['claimed_today'] ? 'claimed_today' : ($state['in_flight'] ? 'in_flight' : '');
     return $state;
 }
 
@@ -221,6 +252,13 @@ function pw_missions_overlord_contract_block(PDO $db, int $userId, array $missio
     $state = pw_missions_daily_overlord_contract($db, $userId, $rank, $overlord);
     if ($state['claimed_today']) {
         return 'You have already run today\'s contract. A new one is issued at 00:00 UTC.';
+    }
+    /* The launch-time half of the one-at-a-time rule. start.php is a separate
+     * entry point from the card, so this is re-checked here rather than trusted
+     * to a hidden button -- the same reason the daily selection is recomputed
+     * above instead of taking the id the browser sent. */
+    if ($state['in_flight']) {
+        return 'A contract is already under way. Collect it before accepting another.';
     }
     if (!$state['contract'] || (int)$state['contract']['id'] !== (int)$mission['id']) {
         return 'That contract is not the one issued to you today.';

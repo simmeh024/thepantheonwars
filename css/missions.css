@@ -977,6 +977,10 @@
 .mission-contract-card.is-locked, .mission-contract-card.is-empty { border-color: rgba(90,149,185,0.34); background: rgba(6,15,28,0.5); box-shadow: none; }
 .mission-contract-card.is-locked .eyebrow, .mission-contract-card.is-empty .eyebrow { color: #8ba3b4; }
 .mission-contract-card.is-claimed { border-color: rgba(110,207,140,0.42); }
+/* Under way, not finished: amber rather than the completed green, so the two
+ * states are not read as the same thing at a glance. */
+.mission-contract-copy.is-running { color: #e8c98a; }
+.mission-contract-card.is-running { border-color: rgba(224,190,120,0.42); }
 
 /* ---------------------------------------------------------------------------
  * Inventory limits, stims and the quartermaster rail card.

@@ -285,7 +285,11 @@
 
     var contract = state.contract;
     var claimed = !!state.claimed_today;
-    contractCard.className = 'mission-contract-card' + (claimed ? ' is-claimed' : '');
+    /* A contract already under way. The launch is refused server-side either
+       way, so the card's job is to say so rather than to offer a button that
+       cannot work -- the same standing rule as every other control here. */
+    var inFlight = !claimed && !!state.in_flight;
+    contractCard.className = 'mission-contract-card' + (claimed ? ' is-claimed' : (inFlight ? ' is-running' : ''));
     var reward = [];
     if (Number(contract.xp_reward) > 0) reward.push('+' + Number(contract.xp_reward) + ' XP');
     if (Number(contract.reputation_reward) > 0) reward.push('+' + Number(contract.reputation_reward) + ' rep');
@@ -298,7 +302,9 @@
       + (reward.length ? '<span class="mission-contract-reward">' + escapeHtml(reward.join(' · ')) + '</span>' : '')
       + (claimed
         ? '<p class="mission-contract-copy is-done">Completed today. A new contract is issued at 00:00 UTC.</p>'
-        : '<button type="button" class="btn btn-solid mission-contract-launch" data-contract-id="' + Number(contract.id) + '">Accept contract</button>');
+        : (inFlight
+          ? '<p class="mission-contract-copy is-running">A contract is already under way. Collect it before accepting another.</p>'
+          : '<button type="button" class="btn btn-solid mission-contract-launch" data-contract-id="' + Number(contract.id) + '">Accept contract</button>'));
   }
 
   function renderProfile(data) {
