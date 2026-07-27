@@ -619,6 +619,59 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **A fourth crew role, retuned rates, and any item in a loot table.** **No
+  migration** -- `game_crew_definitions.role` is already `VARCHAR(40)`.
+  **The Fixer** pays 0.5% more credits per level, joining the same
+  `credit_percent` pool recon affinity feeds, so `claim.php`, the launch
+  projection and Game Tuning all read one credit figure whatever produced it.
+  Its primary stat is **Cunning** -- the stat every other role also gains, at
+  half the rate -- so the Fixer is the specialist in the one thing everyone else
+  dabbles in, which is the right shape for a role paid in money. Note the
+  primary allocation *overwrites* the shared Cunning line rather than adding to
+  it, so a Fixer gains 2 per level like any other primary, not 3.
+  **It is deliberately absent from the affinity matrix.** Every other role earns
+  a bonus on exactly two of the three operation types; the Fixer earns the same
+  on all three instead, and a team of nothing but Fixers takes the mismatch
+  penalty everywhere -- the same rule a team of nothing but Vanguards already
+  meets on a survey run. Adding it to the matrix would have put three preferred
+  roles on every type, which is most of the way to no affinity system at all.
+  Its credit pool is **uncapped**, matching the XP and reputation pools rather
+  than the duration one: credits buy from a stocked, rank-gated Market, so a
+  large payout cannot break anything the way a near-zero mission clock would.
+  **Rates retuned:** Engineer 0.05 -> 0.25% faster, Pathfinder 0.10 -> 0.25% XP,
+  Vanguard 0.05 -> 0.10 reputation, all per level. Six maxed Engineers now cut
+  75% off the clock, still under the 90% ceiling -- checked, because past that
+  the cap and not the rate would be doing the tuning.
+  **The rates are now shipped to the browser** (`role_rates` on
+  `api/missions/overview.php`). `js/missions.js` deliberately re-implements the
+  projection maths so the launch screen responds without a round trip, and that
+  copy is documented and intentional -- but it also held its own copy of the
+  *rates*, which is a different thing: a retune has to be applied twice, and
+  until it is, the browser promises one reward and the server pays another. It
+  reads `data.role_rates` now, with the shipped values as a pre-first-response
+  fallback only. Verified by feeding the harness deliberately different rates
+  (1.5 everywhere) and confirming every label moved -- a reader still holding
+  its own copy would have been caught by that.
+  For the same reason the admin crew-role validator derives its list from
+  `array_keys(pw_missions_role_rates())` instead of restating three names. A
+  crew member saved with a role the engine does not know would silently
+  contribute no bonus at all.
+  **Loot tables accept any item now**, not only equipment. The picker was
+  filtered to slotted items on the reasoning that salvage belongs in the
+  weighted world pool -- but that pool is per world and untargetable, so there
+  was no way to author a specific component as the reward for a specific
+  operation, which is exactly what a loot table is for. Stims arrived with the
+  same problem. **`entry_type` stays `gear` for all three**: it separates an
+  item award from a character award, and every item already follows the
+  identical grant path through `pw_missions_store_loot()` -- a third entry type
+  would be a second name for the same behaviour. Only the labels changed, from
+  the category the API resolves rather than from the slot.
+  Verified with 39 assertions read against the real source files -- that the
+  shipped rates match, that the browser fallback matches them, that no inline
+  rate survives in the projection, and that the Fixer is wired from stat plan to
+  role badge. `missions.css?v=40` / `missions.js?v=39` /
+  `admin-loot-tables.js?v=4`.
+
 - **Inventory limits, a destroy path for everything, and stims.** **Run
   `sql/migration_mission_inventory.sql` once.** Three changes on one screen.
   **Two ceilings, 100 apiece.** `game_player_loot` was unbounded, so a long

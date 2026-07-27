@@ -644,13 +644,41 @@
     charisma: { label: 'Charisma', short: 'CHA', effect: function (v) { return '+' + fmt(v * 0.5) + '% XP'; },
       copy: 'Adds to the experience the whole crew earns from a mission. 0.5% per point, stacking with the Pathfinder role bonus.' }
   };
+  /* Per-level role bonuses. The rates themselves come from the server
+   * (pw_missions_role_rates(), shipped as data.role_rates) rather than being
+   * written here: this file deliberately re-implements the projection maths so
+   * the launch screen can respond without a round trip, but duplicating the
+   * numbers it multiplies by means a retune has to be applied twice, and until
+   * it is, the browser quietly disagrees with the server about the reward it
+   * just promised. The literals below are only the pre-first-response
+   * fallbacks. */
+  var ROLE_RATE_FALLBACK = {
+    Engineer: { duration_percent_per_level: 0.25 },
+    Pathfinder: { xp_percent_per_level: 0.25 },
+    Vanguard: { reputation_per_level: 0.10 },
+    Fixer: { credit_percent_per_level: 0.50 }
+  };
+  function roleRates() {
+    return (state.data && state.data.role_rates) || ROLE_RATE_FALLBACK;
+  }
+  function roleRate(role, key) {
+    var rates = roleRates()[role];
+    return rates && isFinite(Number(rates[key])) ? Number(rates[key]) : 0;
+  }
   var ROLE_INFO = {
-    Engineer: { stat: 'science', effect: function (l) { return '−' + fmt(l * 0.05) + '% mission time'; },
-      copy: 'Engineers shorten every operation they join by 0.05% per level. This stacks across the crew, so three level-2 Engineers cut 0.30% from the clock.' },
-    Pathfinder: { stat: 'charisma', effect: function (l) { return '+' + fmt(l * 0.10) + '% crew XP'; },
-      copy: 'Pathfinders raise the experience the whole crew earns by 0.10% per level, on top of their own Charisma.' },
-    Vanguard: { stat: 'strength', effect: function (l) { return '+' + fmt(l * 0.05) + ' reputation'; },
-      copy: 'Vanguards add 0.05 flat reputation per level to a successful mission, on top of the operation’s own reward.' }
+    Engineer: { stat: 'science', rate: 'duration_percent_per_level',
+      effect: function (l) { return '−' + fmt(l * roleRate('Engineer', 'duration_percent_per_level')) + '% mission time'; },
+      copy: function () { var r = roleRate('Engineer', 'duration_percent_per_level');
+        return 'Engineers shorten every operation they join by ' + fmt(r) + '% per level. This stacks across the crew, so three level-2 Engineers cut ' + fmt(r * 6) + '% from the clock.'; } },
+    Pathfinder: { stat: 'charisma', rate: 'xp_percent_per_level',
+      effect: function (l) { return '+' + fmt(l * roleRate('Pathfinder', 'xp_percent_per_level')) + '% crew XP'; },
+      copy: function () { return 'Pathfinders raise the experience the whole crew earns by ' + fmt(roleRate('Pathfinder', 'xp_percent_per_level')) + '% per level, on top of their own Charisma.'; } },
+    Vanguard: { stat: 'strength', rate: 'reputation_per_level',
+      effect: function (l) { return '+' + fmt(l * roleRate('Vanguard', 'reputation_per_level')) + ' reputation'; },
+      copy: function () { return 'Vanguards add ' + fmt(roleRate('Vanguard', 'reputation_per_level')) + ' flat reputation per level to a successful mission, on top of the operation\u2019s own reward.'; } },
+    Fixer: { stat: 'cunning', rate: 'credit_percent_per_level',
+      effect: function (l) { return '+' + fmt(l * roleRate('Fixer', 'credit_percent_per_level')) + '% credits'; },
+      copy: function () { return 'Fixers raise the credits a successful operation pays by ' + fmt(roleRate('Fixer', 'credit_percent_per_level')) + '% per level. The only role with no operation-type affinity, so a Fixer earns the same on every kind of work.'; } }
   };
   function fmt(value) {
     var rounded = Math.round(value * 100) / 100;
@@ -682,7 +710,7 @@
 
     var role = ROLE_INFO[crew.role];
     var roleLine = role
-      ? '<p class="crew-stat-role" tabindex="0" title="' + escapeHtml(role.copy) + '"><span>' + escapeHtml(crew.role) + ' bonus</span><strong>' + escapeHtml(role.effect(Number(crew.level) || 0)) + '</strong></p>'
+      ? '<p class="crew-stat-role" tabindex="0" title="' + escapeHtml(role.copy()) + '"><span>' + escapeHtml(crew.role) + ' bonus</span><strong>' + escapeHtml(role.effect(Number(crew.level) || 0)) + '</strong></p>'
       : '';
     return '<div class="crew-stat-card"><div class="crew-stat-grid">' + cells + '</div>' + roleLine + '</div>';
   }
@@ -808,7 +836,8 @@
     var profiles = {
       Vanguard: { className: 'is-vanguard', code: 'VG', rankLabel: 'Frontline rank' },
       Pathfinder: { className: 'is-pathfinder', code: 'PF', rankLabel: 'Signal rank' },
-      Engineer: { className: 'is-engineer', code: 'EN', rankLabel: 'Relay rank' }
+      Engineer: { className: 'is-engineer', code: 'EN', rankLabel: 'Relay rank' },
+      Fixer: { className: 'is-fixer', code: 'FX', rankLabel: 'Exchange rank' }
     };
     return profiles[role] || { className: 'is-crew', code: 'CR', rankLabel: 'Crew rank' };
   }
@@ -1369,14 +1398,15 @@
     var affinity = { credit_percent: 0, xp_percent: 0, reputation_percent: 0, duration_percent: 0, upgrade_percent: 0, success_percent: 0 };
     var matched = 0;
     var totals = { strength: 0, cunning: 0, science: 0, charisma: 0 };
-    var durationPercent = 0, xpPercent = 0, reputationFlat = 0;
+    var durationPercent = 0, xpPercent = 0, reputationFlat = 0, roleCreditPercent = 0;
 
     crew.forEach(function (member) {
       var level = Math.max(0, Math.min(Number(member.max_level) || 50, Number(member.level) || 0));
       Object.keys(totals).forEach(function (stat) { totals[stat] += Math.max(0, Number(member[stat]) || 0); });
-      if (member.role === 'Engineer') durationPercent += level * 0.05;
-      if (member.role === 'Pathfinder') xpPercent += level * 0.10;
-      if (member.role === 'Vanguard') reputationFlat += level * 0.05;
+      durationPercent += level * roleRate(member.role, 'duration_percent_per_level');
+      xpPercent += level * roleRate(member.role, 'xp_percent_per_level');
+      reputationFlat += level * roleRate(member.role, 'reputation_per_level');
+      roleCreditPercent += level * roleRate(member.role, 'credit_percent_per_level');
       var match = rule && rule.preferred ? rule.preferred[member.role] : null;
       if (match) { affinity[match.effect] += Number(match.percent) || 0; matched++; }
     });
@@ -1416,7 +1446,7 @@
       base_duration_seconds: baseSeconds,
       success_percent: Math.max(5, Math.min(100, Math.round(baseSuccess + (totals.strength * 0.5) + affinity.success_percent - penaltySuccess))),
       base_success_percent: baseSuccess,
-      credits: Math.round((Number(mission.credit_reward) || 0) * (1 + ((affinity.credit_percent + researchCredits) / 100))),
+      credits: Math.round((Number(mission.credit_reward) || 0) * (1 + ((affinity.credit_percent + roleCreditPercent + researchCredits) / 100))),
       base_credits: Number(mission.credit_reward) || 0,
       reputation: Math.round((Number(mission.reputation_reward) || 0) * (1 + ((affinity.reputation_percent + researchReputation) / 100))) + Math.floor(reputationFlat),
       base_reputation: Number(mission.reputation_reward) || 0,

@@ -803,6 +803,13 @@ function pw_missions_stat_plan(string $role): array {
         'Vanguard' => 'strength',
         'Pathfinder' => 'charisma',
         'Engineer' => 'science',
+        /* Cunning is also the stat every other role gains at half rate, so the
+         * Fixer is the specialist in the one thing everyone else dabbles in --
+         * the right shape for a role whose bonus is paid in credits. Note the
+         * primary allocation overwrites the shared Cunning line rather than
+         * adding to it, so a Fixer gains 2 per level like any other primary,
+         * not 3. */
+        'Fixer' => 'cunning',
     ][$role] ?? null;
     return ['primary' => $primary, 'primary_per_level' => 2, 'cunning_per_level' => 1];
 }
@@ -899,17 +906,30 @@ function pw_missions_xp_progress(int $xp, int $level): array {
 
 /**
  * Per-level role bonus one crew member contributes to a mission.
- * Engineer  0.05% shorter mission per level
- * Pathfinder 0.10% more XP for the whole crew per level
- * Vanguard  0.05 flat reputation per level
+ * Engineer   0.25% shorter mission per level
+ * Pathfinder 0.25% more XP for the whole crew per level
+ * Vanguard   0.10 flat reputation per level
+ * Fixer      0.50% more credits per level
  * These stack across every crew member assigned, so three level-2 Engineers
- * contribute 3 x (2 x 0.05%) = 0.30%.
+ * contribute 3 x (2 x 0.25%) = 1.50%.
+ *
+ * This array is the only place these figures are written. The reader-facing
+ * descriptions on the crew card, the launch projection and Game Tuning's stat
+ * reference are all generated from it -- api/missions/overview.php ships it to
+ * the browser for exactly that reason, because a second copy in JavaScript is
+ * what drifts the moment a rate is retuned.
+ *
+ * Adding a role here is most of what adding a role takes: the effect
+ * accumulator in pw_missions_crew_effects() reads the key, the admin crew
+ * editor validates against array_keys() of this, and the stat plan above
+ * decides which stat the role invests in.
  */
 function pw_missions_role_rates(): array {
     return [
-        'Engineer' => ['duration_percent_per_level' => 0.05],
-        'Pathfinder' => ['xp_percent_per_level' => 0.10],
-        'Vanguard' => ['reputation_per_level' => 0.05],
+        'Engineer' => ['duration_percent_per_level' => 0.25],
+        'Pathfinder' => ['xp_percent_per_level' => 0.25],
+        'Vanguard' => ['reputation_per_level' => 0.10],
+        'Fixer' => ['credit_percent_per_level' => 0.50],
     ];
 }
 
@@ -926,6 +946,11 @@ function pw_missions_role_rates(): array {
  *   recon    Vanguard  +5% credits      Pathfinder +5% XP
  *   survey   Engineer  -5% duration     Pathfinder +5% reputation
  *   salvage  Engineer  +5% loot upgrade Vanguard   +5% success
+ *
+ * The Fixer is deliberately absent from every row. Its bonus is credits on any
+ * operation, which is the trade: no type rewards fielding one in particular,
+ * and a team of nothing but Fixers takes the mismatch penalty on all three --
+ * the same rule a team of nothing but Vanguards already meets on a survey run.
  *
  * A matching member's bonus stacks, so two Vanguards on a recon run earn 10%
  * more credits.
@@ -1010,6 +1035,12 @@ function pw_missions_stat_reference(): array {
                 'per_level' => $roleRates['Engineer']['duration_percent_per_level'] ?? 0,
                 'unit' => '% faster', 'affects' => 'Duration',
                 'detail' => 'Shortens every operation they join, per level. Locked in at launch, so a crew member who levels mid-mission does not shorten a run already under way.',
+            ],
+            [
+                'role' => 'Fixer', 'stat' => 'cunning',
+                'per_level' => $roleRates['Fixer']['credit_percent_per_level'] ?? 0,
+                'unit' => '% credits', 'affects' => 'Credits',
+                'detail' => 'Raises the credits a successful operation pays, per level. The only role with no operation-type affinity, so a Fixer earns the same on every kind of work rather than more on two kinds and nothing on the third.',
             ],
         ],
         'caps' => [
@@ -1469,6 +1500,7 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?arr
     $durationPercent = 0.0;
     $xpPercent = 0.0;
     $reputationFlat = 0.0;
+    $creditPercent = 0.0;
 
     foreach ($crew as $member) {
         $level = max(0, min(PW_MISSION_MAX_LEVEL, (int)($member['level'] ?? 0)));
@@ -1482,6 +1514,7 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?arr
         if (isset($rates[$role]['duration_percent_per_level'])) $durationPercent += $level * $rates[$role]['duration_percent_per_level'];
         if (isset($rates[$role]['xp_percent_per_level'])) $xpPercent += $level * $rates[$role]['xp_percent_per_level'];
         if (isset($rates[$role]['reputation_per_level'])) $reputationFlat += $level * $rates[$role]['reputation_per_level'];
+        if (isset($rates[$role]['credit_percent_per_level'])) $creditPercent += $level * $rates[$role]['credit_percent_per_level'];
     }
 
     // Charisma adds to the same XP pool the Pathfinder role bonus feeds.
@@ -1513,7 +1546,13 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?arr
         'xp_percent' => round($xpPercent, 2),
         'reputation_flat' => (int)floor($reputationFlat),
         'reputation_percent' => round($affinity['reputation_percent'], 2),
-        'credit_percent' => round($affinity['credit_percent'], 2),
+        /* The Fixer's per-level bonus joins the same pool recon affinity feeds,
+         * so claim.php and the launch projection keep reading one credit figure
+         * whatever produced it. Deliberately uncapped, matching the XP and
+         * reputation pools rather than the duration one -- credits buy from a
+         * stocked, rank-gated Market, so a large payout cannot break anything
+         * the way a near-zero mission clock would. */
+        'credit_percent' => round($affinity['credit_percent'] + $creditPercent, 2),
         'success_percent' => round(($totals['strength'] * PW_MISSION_STRENGTH_SUCCESS_PER_POINT) + $affinity['success_percent']
             - $affinity['penalty_success_percent'] - $conditions['success_percent'], 2),
         'loot_percent' => round($totals['cunning'] * PW_MISSION_CUNNING_LOOT_PER_POINT, 2),

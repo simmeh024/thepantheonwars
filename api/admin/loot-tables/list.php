@@ -68,16 +68,29 @@ $crew = array_map(static function ($row) {
      FROM game_crew_definitions ORDER BY name ASC, id ASC'
 )->fetchAll());
 
-// Gear follows the same picker rule. Only equipment definitions belong here;
-// generic mission resources remain in their normal weighted world loot pools.
-$gear = array_map(static function ($row) {
+/* Every loot definition, whatever kind. This used to be equipment only, on the
+ * reasoning that salvage belongs in the weighted world pool -- but that pool is
+ * per world and untargetable, so there was no way to author a specific
+ * component as the reward for a specific operation, which is exactly what a
+ * loot table is for. Stims arrived with the same problem.
+ *
+ * The entry_type stays "gear" for all three: it distinguishes an item award
+ * from a character award, and every item follows the identical grant path
+ * through pw_missions_store_loot(). A third entry type would be a second name
+ * for the same behaviour. */
+$stimsReady = pw_mission_stims_ready($db);
+$gear = array_map(static function ($row) use ($stimsReady) {
     $row['id'] = (int)$row['id'];
     $row['is_enabled'] = (bool)$row['is_enabled'];
+    $row['stim_effect'] = $stimsReady ? (string)$row['stim_effect'] : '';
+    // The same classifier the player's inventory reads, so the picker can group
+    // by kind without deciding for itself what an item is.
+    $row['category'] = pw_missions_inventory_category($row);
     return $row;
 }, $db->query(
-    'SELECT id, name, slug, tier, slot, icon_url, is_enabled
+    'SELECT id, name, slug, tier, slot, icon_url, is_enabled,'
+    . ($stimsReady ? ' stim_effect' : ' "" AS stim_effect') . '
      FROM game_loot_definitions
-     WHERE ' . pw_missions_carryable_item_sql($db, 'game_loot_definitions') . '
      ORDER BY tier ASC, name ASC, id ASC'
 )->fetchAll());
 

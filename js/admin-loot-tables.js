@@ -103,14 +103,27 @@
     return entryType(entry) === 'gear' ? gearById(entry.definition_id) : crewById(entry.definition_id);
   }
 
+  /* An item entry can now be equipment, a stim or plain salvage. entry_type
+   * stays "gear" for all three -- it separates an item award from a character
+   * award, and every item is granted by the same path -- so the reader-facing
+   * label comes from the category the API resolves instead. Falling back to the
+   * slot keeps a pre-migration response labelled correctly. */
+  function itemKindLabel(source) {
+    if (!source) return 'Item';
+    var category = source.category || (source.slot ? 'gear' : 'salvage');
+    if (category === 'stim') return 'Stim';
+    if (category === 'salvage') return 'Salvage';
+    return source.slot || 'Equipment';
+  }
+
   function sourceDescription(type, source) {
-    if (!source) return 'This ' + (type === 'gear' ? 'gear item' : 'character') + ' no longer exists';
-    if (type === 'gear') return (source.tier || 'Unknown tier') + ' · ' + (source.slot || 'Gear');
+    if (!source) return 'This ' + (type === 'gear' ? 'item' : 'character') + ' no longer exists';
+    if (type === 'gear') return (source.tier || 'Unknown tier') + ' · ' + itemKindLabel(source);
     return source.role || 'Character';
   }
 
   function sourceNoun(type) {
-    return type === 'gear' ? 'gear item' : 'character';
+    return type === 'gear' ? 'item' : 'character';
   }
 
   function refreshCount() {
@@ -226,7 +239,7 @@
       var empty = document.createElement('option');
       empty.textContent = catalogue.length
         ? 'Every ' + sourceNoun(type) + ' is already in this table'
-        : 'No ' + (type === 'gear' ? 'gear items' : 'characters') + ' exist yet';
+        : 'No ' + (type === 'gear' ? 'items' : 'characters') + ' exist yet';
       select.appendChild(empty);
     }
   }
@@ -235,7 +248,7 @@
     var list = document.getElementById('loot-entry-list');
     var editable = can('loot_tables.edit');
     if (!draftEntries.length) {
-      blank(list, 'No rewards yet. Choose a character or gear item below to add it to this table.');
+      blank(list, 'No rewards yet. Choose a character or an item below to add it to this table.');
       populateEntryPicker();
       return;
     }
@@ -247,7 +260,7 @@
       var image = imageUrl
         ? '<img class="mission-admin-portrait" src="' + escapeHtml(assetUrl(imageUrl)) + '" alt="">'
         : '';
-      var typeLabel = type === 'gear' ? 'Gear' : 'Character';
+      var typeLabel = type === 'gear' ? itemKindLabel(source) : 'Character';
       var enabled = source && source.is_enabled;
       var row = document.createElement('div');
       row.className = 'loot-entry-row' + (image ? ' has-portrait' : '') + (source && !enabled ? ' is-disabled-crew' : '');

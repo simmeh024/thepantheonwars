@@ -95,11 +95,12 @@ function pw_admin_loot_require_sources_exist(PDO $db, array $entries): void {
         if ((int)$stmt->fetchColumn() !== count($crewIds)) pw_error('One selected character no longer exists.', 404);
     }
     if ($gearIds) {
-        $stmt = $db->prepare('SELECT COUNT(*) FROM game_loot_definitions WHERE '
-            . pw_missions_carryable_item_sql($db, 'game_loot_definitions')
-            . ' AND id IN (' . pw_missions_placeholders(count($gearIds)) . ')');
+        /* Existence only. Any loot definition may be a table entry now --
+         * equipment, a stim or plain salvage -- so the only thing left to
+         * check is that the id is real. */
+        $stmt = $db->prepare('SELECT COUNT(*) FROM game_loot_definitions WHERE id IN (' . pw_missions_placeholders(count($gearIds)) . ')');
         $stmt->execute($gearIds);
-        if ((int)$stmt->fetchColumn() !== count($gearIds)) pw_error('One selected gear item no longer exists.', 404);
+        if ((int)$stmt->fetchColumn() !== count($gearIds)) pw_error('One selected item no longer exists.', 404);
     }
 }
 

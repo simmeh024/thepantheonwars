@@ -466,6 +466,15 @@ try {
          * live on the server; the browser only ever displays them, and every
          * figure it shows is recomputed here at launch and again at claim. */
         'affinity_rules' => pw_missions_affinity_rules(),
+        /* The per-level role bonuses, so the crew card and the launch
+         * projection read the server's own figures instead of a second copy of
+         * them. js/missions.js deliberately re-implements the projection maths
+         * -- that copy is documented and intentional -- but the rates it
+         * multiplies by must not also be duplicated, because a retune then has
+         * to be applied twice and the browser silently disagrees with the
+         * server until it is. */
+        'role_rates' => pw_missions_role_rates(),
+        'stat_reference' => pw_missions_stat_reference(),
         /* The loadout's slots, in the order it draws them, and the ceiling a
          * stat can reach with equipment on. Sent rather than hardcoded in the
          * browser so the seven slots have one definition, on the server that

@@ -174,7 +174,14 @@ function pw_admin_mission_crew_input(array $input): array {
     $slug = trim((string)($input['slug'] ?? ''));
     if (!preg_match('/\A[a-z0-9][a-z0-9-]{0,99}\z/', $slug)) pw_error('Crew slug may use lowercase letters, numbers, and hyphens only.');
     $role = trim((string)($input['role'] ?? ''));
-    if (!in_array($role, ['Vanguard', 'Pathfinder', 'Engineer'], true)) pw_error('Choose Vanguard, Pathfinder, or Engineer as the crew role.');
+    /* Derived from pw_missions_role_rates() rather than restated: that array is
+     * where a role is added, and a hand-written list here is the copy that gets
+     * forgotten -- a crew member saved with a role the engine does not know
+     * would silently contribute no role bonus at all. */
+    $roles = array_keys(pw_missions_role_rates());
+    if (!in_array($role, $roles, true)) {
+        pw_error('Choose ' . implode(', ', array_slice($roles, 0, -1)) . ' or ' . end($roles) . ' as the crew role.');
+    }
     $description = trim((string)($input['description'] ?? ''));
     if ($description === '' || mb_strlen($description) > 2000) pw_error('Crew description must be between 1 and 2,000 characters.');
     $startingLevel = filter_var($input['starting_level'] ?? 1, FILTER_VALIDATE_INT);
