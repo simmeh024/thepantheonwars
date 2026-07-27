@@ -652,10 +652,19 @@ at that time.
   **A real sizing bug, caught by measuring rather than by eye.** The first tile
   carried the effect label under the icon. It looked right in a full-width
   harness -- but the rail is a fixed 224/262px column, so a slot is **43px**, and
-  the label was clipped at 36px. Rebuilt as icon plus a corner count, with the
-  name in the `title` and the `aria-label`, and the icon tinted per effect so the
-  three kinds stay distinguishable on the fallback glyph. **Build the fixture at
-  the real column width**; a stretched one hides exactly this.
+  the label was clipped at 36px. Rebuilt as artwork plus a corner count, with the
+  name in the `title` and the `aria-label`. **Build the fixture at the real
+  column width**; a stretched one hides exactly this.
+  **An uploaded stim image fills the whole tile** (`object-fit: cover`), since
+  with no room for a label the artwork is the tile's identity; the built-in
+  fallback glyph deliberately stays 24px and centred, because a line icon scaled
+  to 43px reads as a blown-up sketch. Its tint carries the effect so the three
+  kinds are still distinguishable when no image is authored.
+  **The count badge is an opaque pill, not a gradient scrim.** A scrim was tried
+  first and fails exactly where it matters: at the top of the digit the gradient
+  is only ~40% opaque, which over a white image composites to 2.2:1. A flat fill
+  reads the same whatever is behind it -- measured at 15.1:1 over pure white art
+  and 18.0:1 over black. The clear control's worst case is 4.68:1.
   **Harness lesson worth repeating:** the belt's click handler calls `useStim()`,
   which lives *after* `renderInventory()` in the file, so an extraction that
   stopped at `renderInventory` produced a Use button that silently did nothing --
@@ -664,7 +673,7 @@ at that time.
   4x4, tiles stay square, the count and clear controls never overlap, nothing
   escapes the card, the card hides entirely before the migration and still shows
   when empty, and assign/clear/use each post the right payload. Worst contrast
-  5.26:1. `missions.css?v=41` / `missions.js?v=40` / `research.js?v=10` /
+  5.26:1. `missions.css?v=42` / `missions.js?v=40` / `research.js?v=10` /
   `admin-research.js?v=10`.
 
 - **A fourth crew role, retuned rates, and any item in a loot table.** **No
