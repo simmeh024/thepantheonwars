@@ -15,6 +15,13 @@
  * ladder safe to fill in over time.
  */
 require_once __DIR__ . '/missions-helpers.php';
+/* Research effects raise the fatigue ceiling and its recovery rate, and this
+ * file calls pw_research_player_effects() directly rather than behind a
+ * function_exists() guard the way missions-helpers.php does -- so it has to
+ * require the file that defines it. api/missions/overview.php requires both for
+ * the same reason; missions-helpers.php does not, which is why merely being
+ * loaded by a missions page was never enough. */
+require_once __DIR__ . '/../research/research-helpers.php';
 
 /** Hard ceilings, so an authoring mistake cannot produce an unplayable board. */
 const PW_SWEEP_MAX_ROWS = 8;
