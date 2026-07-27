@@ -36,7 +36,7 @@ try {
     $shrugUsed = (bool)$run['shrug_used'];
     $ended = '';
     $shrugged = false;
-    $find = ['index' => $cell, 'type' => $outcome['type'], 'credits' => 0, 'label' => '', 'hint' => null];
+    $find = ['index' => $cell, 'type' => $outcome['type'], 'credits' => 0, 'label' => '', 'icon' => '', 'tier' => '', 'hint' => null];
 
     if ($outcome['type'] === 'hazard') {
         /* Strength buys exactly one escape, and only one: a second roll on the
@@ -71,6 +71,11 @@ try {
             $isGear ? null : (int)$entry['crew_definition_id'],
         ]);
         $find['label'] = (string)($isGear ? ($entry['gear_name'] ?? 'Recovered item') : ($entry['crew_name'] ?? 'Recovered contact'));
+        /* The entry row already carries the artwork and the rarity, so the
+         * reveal can show the real object immediately rather than a glyph that
+         * is replaced on the next load. */
+        $find['icon'] = pw_missions_gear_icon_url(($isGear ? $entry['gear_icon_url'] : $entry['portrait_url']) ?? '');
+        $find['tier'] = strtolower((string)($isGear ? ($entry['tier'] ?? 'common') : ($entry['crew_tier'] ?? 'common')));
         $find['type'] = $isGear ? 'gear' : 'crew';
     }
 

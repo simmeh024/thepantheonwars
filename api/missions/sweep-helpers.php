@@ -307,7 +307,10 @@ function pw_sweep_run_payload(PDO $db, array $run): array {
     $radius = (int)$run['hint_radius'];
     $hazards = pw_sweep_hazard_cells((int)$run['grid_seed'], $rows * $cols, (int)$run['hazard_count']);
     foreach ($cells as $index => $cell) {
-        $cells[$index]['label'] = $names[$index] ?? '';
+        $detail = $names[$index] ?? ['label' => '', 'icon' => '', 'tier' => ''];
+        $cells[$index]['label'] = $detail['label'];
+        $cells[$index]['icon'] = $detail['icon'];
+        $cells[$index]['tier'] = $detail['tier'];
         $cells[$index]['hint'] = $radius > 0 && $cell['type'] !== 'hazard'
             ? pw_sweep_adjacent_hazards((int)$index, $rows, $cols, $hazards, $radius)
             : null;
@@ -332,7 +335,16 @@ function pw_sweep_run_payload(PDO $db, array $run): array {
     ];
 }
 
-/** Reader-facing names for what each revealed cell held, plus stored hints. */
+/**
+ * What each revealed cell held: its name, its artwork and its rarity.
+ *
+ * The find rows keep only the definition id, so the picture and the tier are
+ * looked up here rather than copied into the run at pick time -- an item
+ * re-arted or re-tiered later then shows correctly on a board already played,
+ * and nothing is stored twice.
+ *
+ * @return array<int, array{label:string,icon:string,tier:string}>
+ */
 function pw_sweep_find_labels(PDO $db, array $run): array {
     $stmt = $db->prepare('SELECT cell_index, find_type, loot_definition_id, crew_definition_id, credits FROM game_player_sweep_finds WHERE run_id = ?');
     $stmt->execute([(int)$run['id']]);
@@ -343,29 +355,53 @@ function pw_sweep_find_labels(PDO $db, array $run): array {
         if ($row['loot_definition_id'] !== null) $lootIds[(int)$row['loot_definition_id']] = true;
         if ($row['crew_definition_id'] !== null) $crewIds[(int)$row['crew_definition_id']] = true;
     }
-    $lootNames = [];
+    $loot = [];
     if ($lootIds) {
         $ids = array_keys($lootIds);
-        $q = $db->prepare('SELECT id, name FROM game_loot_definitions WHERE id IN (' . pw_missions_placeholders(count($ids)) . ')');
+        $q = $db->prepare('SELECT id, name, tier, icon_url FROM game_loot_definitions WHERE id IN (' . pw_missions_placeholders(count($ids)) . ')');
         $q->execute($ids);
-        foreach ($q->fetchAll() as $row) $lootNames[(int)$row['id']] = (string)$row['name'];
+        foreach ($q->fetchAll() as $row) {
+            $loot[(int)$row['id']] = [
+                'label' => (string)$row['name'],
+                'icon' => pw_missions_gear_icon_url($row['icon_url'] ?? ''),
+                'tier' => strtolower((string)($row['tier'] ?? 'common')),
+            ];
+        }
     }
-    $crewNames = [];
+    $crew = [];
     if ($crewIds) {
         $ids = array_keys($crewIds);
-        $q = $db->prepare('SELECT id, name FROM game_crew_definitions WHERE id IN (' . pw_missions_placeholders(count($ids)) . ')');
+        $capacityReady = pw_mission_crew_capacity_ready($db);
+        $q = $db->prepare('SELECT id, name, portrait_url, ' . ($capacityReady ? 'tier' : '"common" AS tier')
+            . ' FROM game_crew_definitions WHERE id IN (' . pw_missions_placeholders(count($ids)) . ')');
         $q->execute($ids);
-        foreach ($q->fetchAll() as $row) $crewNames[(int)$row['id']] = (string)$row['name'];
+        foreach ($q->fetchAll() as $row) {
+            $crew[(int)$row['id']] = [
+                'label' => (string)$row['name'],
+                // Same validator the gear icons use: only a path the upload
+                // endpoint could have produced is echoed back.
+                'icon' => pw_missions_gear_icon_url($row['portrait_url'] ?? ''),
+                'tier' => strtolower((string)($row['tier'] ?? 'common')),
+            ];
+        }
     }
-    $labels = [];
+    $blank = ['label' => '', 'icon' => '', 'tier' => ''];
+    $details = [];
     foreach ($rows as $row) {
         $index = (int)$row['cell_index'];
-        if ($row['find_type'] === 'cache') $labels[$index] = number_format((int)$row['credits']) . ' credits';
-        elseif ($row['loot_definition_id'] !== null) $labels[$index] = $lootNames[(int)$row['loot_definition_id']] ?? 'Recovered item';
-        elseif ($row['crew_definition_id'] !== null) $labels[$index] = $crewNames[(int)$row['crew_definition_id']] ?? 'Recovered contact';
-        else $labels[$index] = '';
+        if ($row['find_type'] === 'cache') {
+            // A cache is credits, not an object, so it has art of its own and
+            // no rarity to be shiny about.
+            $details[$index] = ['label' => number_format((int)$row['credits']) . ' credits', 'icon' => '', 'tier' => ''];
+        } elseif ($row['loot_definition_id'] !== null) {
+            $details[$index] = $loot[(int)$row['loot_definition_id']] ?? array_merge($blank, ['label' => 'Recovered item']);
+        } elseif ($row['crew_definition_id'] !== null) {
+            $details[$index] = $crew[(int)$row['crew_definition_id']] ?? array_merge($blank, ['label' => 'Recovered contact']);
+        } else {
+            $details[$index] = $blank;
+        }
     }
-    return $labels;
+    return $details;
 }
 
 /**

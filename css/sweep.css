@@ -52,6 +52,44 @@ button.sweep-cell:disabled { cursor: default; opacity: 0.75; }
 .sweep-cell.is-empty { border-color: rgba(103,152,190,0.2); background: rgba(6,13,24,0.7); color: #7f9bad; }
 .sweep-cell.is-hazard { border-color: rgba(224,120,110,0.7); background: rgba(58,16,16,0.85); color: #f0a8a0; }
 .sweep-cell.is-shrug { border-color: rgba(158,219,168,0.65); background: rgba(16,44,28,0.85); color: #9edba8; }
+/* The recovered object itself fills the cell: with no room for a label the
+ * artwork is the cell's identity, and the name lives in the title and the
+ * accessible label. The built-in glyph stays small and centred, because a line
+ * icon scaled to fill reads as a blown-up sketch -- the same conclusion the
+ * stim belt reached at the same size. */
+.sweep-cell-art { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+/* --- Shine ----------------------------------------------------------------
+ * Rarity above common is worth noticing on a board where most cells are not.
+ * It escalates the way the crew cards do: uncommon and rare get an edge and a
+ * glow, epic adds a sweep across the art, legendary adds a second, slower one
+ * out of phase so it reads as a different kind of object rather than a
+ * brighter one. */
+.sweep-cell.is-shiny { position: relative; overflow: hidden; }
+.sweep-cell.is-shiny.is-tier-uncommon { border-color: rgba(158,219,168,0.7); box-shadow: inset 0 0 12px rgba(158,219,168,0.28); }
+.sweep-cell.is-shiny.is-tier-rare { border-color: rgba(112,204,223,0.8); box-shadow: inset 0 0 14px rgba(112,204,223,0.34), 0 0 10px rgba(112,204,223,0.22); }
+.sweep-cell.is-shiny.is-tier-epic { border-color: rgba(205,124,236,0.85); box-shadow: inset 0 0 16px rgba(205,124,236,0.38), 0 0 14px rgba(205,124,236,0.3); }
+.sweep-cell.is-shiny.is-tier-legendary { border-color: rgba(255,230,173,0.9); box-shadow: inset 0 0 18px rgba(236,201,135,0.42), 0 0 18px rgba(236,201,135,0.38); }
+
+@keyframes sweep-shine { 0% { transform: translateX(-140%) skewX(-18deg); } 55%, 100% { transform: translateX(140%) skewX(-18deg); } }
+.sweep-cell.is-shiny.is-tier-epic::after,
+.sweep-cell.is-shiny.is-tier-legendary::after {
+  content: ''; position: absolute; inset: -30% -60%; pointer-events: none;
+  background: linear-gradient(105deg, transparent 42%, rgba(255,255,255,0.42) 50%, transparent 58%);
+  animation: sweep-shine 3.6s ease-in-out infinite;
+}
+/* The second pass, slower and out of phase, is what makes legendary read as
+ * more than a brighter epic. */
+.sweep-cell.is-shiny.is-tier-legendary::before {
+  content: ''; position: absolute; inset: -30% -60%; pointer-events: none;
+  background: linear-gradient(105deg, transparent 44%, rgba(255,238,194,0.5) 50%, transparent 56%);
+  animation: sweep-shine 5.9s ease-in-out infinite 1.2s;
+}
+/* The hint has to stay legible over artwork, so it sits on its own opaque
+ * pill rather than a scrim -- a gradient over a pale image composites to
+ * nothing, which is the trap the stim belt count already hit. */
+.sweep-cell.is-open .sweep-cell-hint { z-index: 2; padding: 1px 3px; background: rgba(4,10,20,0.92); }
+
 .sweep-spent { margin: 12px 0 0; }
 .sweep-board-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
 /* An author rule setting display ties with the browser's own
@@ -148,5 +186,6 @@ button.sweep-cell:disabled { cursor: default; opacity: 0.75; }
 }
 @media (prefers-reduced-motion: reduce) {
   .sweep-cell { transition: none; }
+  .sweep-cell.is-shiny::before, .sweep-cell.is-shiny::after { animation: none; opacity: 0; }
   button.sweep-cell:hover:not(:disabled) { transform: none; }
 }

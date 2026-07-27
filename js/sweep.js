@@ -59,17 +59,29 @@
         + (playable ? '' : ' disabled')
         + ' aria-label="Scan cell ' + (index + 1) + '"><span aria-hidden="true">?</span></button>';
     }
-    var glyph = CELL_GLYPH[cell.type] || CELL_GLYPH.empty;
     var label = cell.label || (cell.type === 'hazard' ? 'Collapse' : (cell.type === 'shrug' ? 'Braced through a collapse' : 'Nothing here'));
+    /* The thing itself, when it has artwork. A glyph is the fallback for a
+       definition with no image and for the outcomes that are not objects at
+       all -- a collapse, an empty pocket, a braced escape. */
+    var icon = safeImage(cell.icon);
+    var art = icon
+      ? '<img class="sweep-cell-art" src="' + esc(icon) + '" alt="">'
+      : '<span class="sweep-cell-glyph" aria-hidden="true">' + (CELL_GLYPH[cell.type] || CELL_GLYPH.empty) + '</span>';
     /* The hint is only ever attached to a cell already turned over, and it is
        the count of hazards around it -- the reward for having spent a scan
        there, not a free look at the board. */
     var hint = cell.hint === null || cell.hint === undefined || cell.type === 'hazard'
       ? ''
       : '<b class="sweep-cell-hint' + (Number(cell.hint) > 0 ? ' is-warn' : '') + '">' + Number(cell.hint) + '</b>';
-    return '<div class="sweep-cell is-open is-' + esc(cell.type) + '" role="img" tabindex="0"'
-      + ' aria-label="' + esc('Cell ' + (index + 1) + ': ' + label) + '" title="' + esc(label) + '">'
-      + '<span class="sweep-cell-glyph" aria-hidden="true">' + glyph + '</span>' + hint + '</div>';
+    /* Rarity above common gets a shine, and the tier word goes in the label:
+       a visual effect alone says "special" without saying how special, and
+       says nothing at all to a screen reader. */
+    var tier = String(cell.tier || '').toLowerCase();
+    var shiny = tier && tier !== 'common' ? ' is-shiny is-tier-' + esc(tier) : '';
+    var spoken = label + (tier && tier !== 'common' ? ' (' + tier + ')' : '');
+    return '<div class="sweep-cell is-open is-' + esc(cell.type) + shiny + '" role="img" tabindex="0"'
+      + ' aria-label="' + esc('Cell ' + (index + 1) + ': ' + spoken) + '" title="' + esc(spoken) + '">'
+      + art + hint + '</div>';
   }
 
   function renderBoard() {
