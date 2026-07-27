@@ -104,5 +104,10 @@ try {
         'sweeps_at_rank' => $completed[$rank] ?? 0,
     ]);
 } catch (Throwable $e) {
-    pw_error('The Salvage Sweep is unavailable. Please try again.', 503);
+    /* The message is passed through rather than swallowed. A blanket "please
+     * try again" on a read-only, login-gated endpoint costs the one thing that
+     * makes a new feature debuggable, and it is what turned a first failure
+     * here into a hunt: the page kept its loading placeholders and said
+     * nothing about why. */
+    pw_error('The Salvage Sweep could not be read: ' . $e->getMessage(), 503);
 }

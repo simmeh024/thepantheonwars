@@ -191,7 +191,17 @@
       state.data = data;
       render();
     }).catch(function (error) {
+      /* A failed load used to leave every panel on its "Reading your
+         standing..." placeholder, which reads as still working. Each one says
+         what actually happened instead, and the thin status line is not the
+         only place the error appears. */
       setStatus(error.message, true);
+      sectorTitle.textContent = 'Sector unavailable';
+      sectorBody.innerHTML = '<p class="sweep-muted">' + esc(error.message) + '</p>';
+      ladder.innerHTML = '<li class="sweep-muted">The sector ladder could not be read.</li>';
+      crewList.innerHTML = '<p class="sweep-muted">The roster could not be read.</p>';
+      boardArea.innerHTML = '<p class="sweep-muted">' + esc(error.message) + '</p>';
+      boardActions.hidden = true;
     });
   }
 

@@ -54,6 +54,13 @@ button.sweep-cell:disabled { cursor: default; opacity: 0.75; }
 .sweep-cell.is-shrug { border-color: rgba(158,219,168,0.65); background: rgba(16,44,28,0.85); color: #9edba8; }
 .sweep-spent { margin: 12px 0 0; }
 .sweep-board-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+/* An author rule setting display ties with the browser's own
+ * [hidden] { display: none } and wins by being declared later, so Withdraw and
+ * Abandon were on screen from first paint with no sweep to withdraw from. The
+ * same defect this codebase already hit on the OAuth buttons; every element
+ * here that carries a display rule AND is toggled by the hidden attribute
+ * needs the override. */
+.sweep-board-actions[hidden] { display: none; }
 
 /* --- The ladder -----------------------------------------------------------
  * Same three states as the reputation rail: earned, current, sealed. Sealed

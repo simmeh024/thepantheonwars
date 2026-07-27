@@ -41,9 +41,29 @@ function pw_sweep_ready(PDO $db): bool {
         && pw_schema_has($db, 'game_player_sweep_finds', ['run_id', 'cell_index']);
 }
 
+/**
+ * Which prerequisite is missing, or '' when the sweep is ready.
+ *
+ * Named rather than reported as one blanket "being prepared": the sweep sits
+ * on top of four earlier migrations, and being told which one is absent is the
+ * difference between a two-minute fix and a hunt.
+ */
+function pw_sweep_missing_requirement(PDO $db): string {
+    if (!pw_missions_ready($db)) return 'the base Missions migration';
+    if (!pw_mission_fatigue_ready($db)) return 'sql/migration_mission_fatigue.sql';
+    if (!pw_mission_loot_tables_ready($db)) return 'the mission loot-table migration';
+    if (!pw_schema_has($db, 'game_sweep_tiers', ['rank_number', 'loot_table_id'])
+        || !pw_schema_has($db, 'game_player_sweep_runs', ['grid_seed', 'revealed_cells'])
+        || !pw_schema_has($db, 'game_player_sweep_finds', ['run_id', 'cell_index'])) {
+        return 'sql/migration_salvage_sweep.sql';
+    }
+    return '';
+}
+
 function pw_sweep_require_ready(PDO $db): void {
-    if (!pw_sweep_ready($db)) {
-        pw_error('The Salvage Sweep is being prepared. Run sql/migration_salvage_sweep.sql first.', 503);
+    $missing = pw_sweep_missing_requirement($db);
+    if ($missing !== '') {
+        pw_error('The Salvage Sweep needs ' . $missing . ' to be run first.', 503);
     }
 }
 
