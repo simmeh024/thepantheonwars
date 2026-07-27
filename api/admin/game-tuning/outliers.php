@@ -20,15 +20,6 @@ if (!pw_tuning_ready($db)) {
     pw_error('Game Tuning needs the Missions and crew-stats migrations before it can scan anything.', 503);
 }
 
-/** Median rather than mean: one deliberate outlier must not move the baseline. */
-function pw_tuning_median(array $values): float {
-    $values = array_values(array_filter($values, static function ($v) { return $v > 0; }));
-    if (!$values) return 0.0;
-    sort($values);
-    $mid = (int)floor(count($values) / 2);
-    return count($values) % 2 ? (float)$values[$mid] : (float)(($values[$mid - 1] + $values[$mid]) / 2);
-}
-
 $findings = [];
 $creditsReady = pw_mission_credits_ready($db);
 $affinity = pw_missions_affinity_matrix();

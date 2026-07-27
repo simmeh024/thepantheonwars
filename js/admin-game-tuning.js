@@ -247,6 +247,52 @@
     return String(rounded);
   }
 
+  /* ---- Salvage Sweep ----------------------------------------------------
+   * One row per sector. Survival is the column that matters: a sector nobody
+   * loses and a sector nobody banks are both broken, in opposite directions,
+   * and neither is visible from the authored numbers alone.
+   * -------------------------------------------------------------------- */
+  function renderSweep(data) {
+    var host = el('tuning-sweep-body');
+    if (!host) return;
+    var sectors = (data && data.sectors) || [];
+    if (!sectors.length) {
+      host.innerHTML = '<p class="admin-list-empty">No sweep sectors are enabled yet.</p>';
+      return;
+    }
+    var who = data.crew
+      ? esc(data.crew.name) + ' at level ' + Number(data.level)
+      : 'no crew member selected, so these are the sector\u2019s own numbers';
+    var rows = sectors.map(function (sector) {
+      /* Survival is toned rather than only printed: a ladder is read down this
+         column, and 8% against 97% has to separate without being read. */
+      var band = sector.survive_percent >= 97 ? ' is-safe'
+        : (sector.survive_percent <= 15 ? ' is-risky' : '');
+      return '<div class="tuning-sweep-row' + band + (sector.has_manifest ? '' : ' is-broken') + '">'
+        + '<span class="tuning-sweep-rank"><b>' + Number(sector.rank_number) + '</b><small>' + esc(sector.name) + '</small></span>'
+        + '<span class="tuning-sweep-board">' + esc(sector.grid) + ' &middot; ' + Number(sector.hazards) + ' collapse'
+        + (Number(sector.hazards) === 1 ? '' : 's') + ' &middot; ' + Number(sector.picks) + ' scans</span>'
+        + '<span class="tuning-sweep-figure"><small>Survives</small><b>' + sector.survive_percent + '%</b></span>'
+        + '<span class="tuning-sweep-figure"><small>Reveals</small><b>' + sector.expected_reveals + '</b></span>'
+        + '<span class="tuning-sweep-figure"><small>Credits</small><b>' + Number(sector.expected_credits).toLocaleString() + '</b></span>'
+        + '<span class="tuning-sweep-figure"><small>Cr / fatigue</small><b>' + sector.credits_per_fatigue + '</b></span>'
+        + '<span class="tuning-sweep-figure"><small>Items</small><b>' + sector.expected_finds + '</b></span>'
+        + '<span class="tuning-sweep-figure"><small>1st scan risk</small><b>' + sector.first_scan_risk_percent + '%</b></span>'
+        + (sector.has_manifest ? '' : '<span class="admin-pill is-warn">No manifest</span>')
+        + '</div>';
+    }).join('');
+    var findings = (data.findings || []).map(function (finding) {
+      return '<li class="tuning-sweep-finding is-' + esc(finding.severity) + '">'
+        + '<strong>' + esc(finding.label) + '</strong><span>' + esc(finding.detail) + '</span></li>';
+    }).join('');
+    host.innerHTML = '<p class="tuning-stat-note">Played to the last scan by ' + who
+      + '. That is the most a player can risk, not what they must do &mdash; the first-scan risk is what they actually decide on each time.</p>'
+      + '<div class="tuning-sweep-table">' + rows + '</div>'
+      + (findings
+        ? '<ul class="tuning-sweep-findings">' + findings + '</ul>'
+        : '<p class="tuning-stat-note">Nothing on the ladder looks out of step.</p>');
+  }
+
   function renderItems() {
     var host = el('tuning-item-list');
     if (!host) return;
@@ -675,6 +721,19 @@
       }
       setError('');
       keepFocus(el('tuning-mission-list'), renderMissions); run();
+    });
+
+    var sweepScan = el('tuning-sweep-scan');
+    if (sweepScan) sweepScan.addEventListener('click', function () {
+      var button = this;
+      button.disabled = true; button.classList.add('is-busy');
+      /* The crew member and level already chosen on this page drive it: a
+         sector's numbers mean nothing without saying who is walking into it,
+         and asking twice for the same choice is how two answers appear. */
+      request('/api/admin/game-tuning/sweep.php', { crew_definition_id: state.crewId, level: state.level })
+        .then(renderSweep)
+        .catch(function (error) { setError(error.message); })
+        .finally(function () { button.disabled = false; button.classList.remove('is-busy'); });
     });
 
     el('tuning-scan').addEventListener('click', function () {

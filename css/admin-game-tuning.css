@@ -207,3 +207,35 @@
 .tuning-stat-row.is-tier-legendary { --tuning-tier: #ecc987; }
 .tuning-stat-row.is-rarity .tuning-stat-key { color: var(--tuning-tier); }
 .tuning-stat-row.is-rarity .tuning-stat-affects small { color: #8fa8b8; }
+
+/* --- Salvage Sweep ladder -------------------------------------------------
+ * One row per sector, read down the survival column. */
+.tuning-sweep-table { display: grid; gap: 5px; margin: 12px 0 0; }
+.tuning-sweep-row { display: grid; grid-template-columns: 132px minmax(0, 1fr) repeat(6, auto) auto; align-items: center; gap: 12px; padding: 9px 11px; border: 1px solid rgba(90,149,185,0.26); border-left: 3px solid rgba(90,149,185,0.45); background: rgba(6,15,28,0.4); }
+/* Both extremes are broken, in opposite directions, so both are toned -- and
+ * both carry a printed figure, since colour alone states neither which way. */
+.tuning-sweep-row.is-safe { border-left-color: #9edba8; }
+.tuning-sweep-row.is-risky { border-left-color: #e08a72; }
+.tuning-sweep-row.is-broken { border-left-color: #e8bd8a; background: rgba(28,20,8,0.42); }
+.tuning-sweep-rank { display: flex; align-items: baseline; gap: 7px; min-width: 0; }
+.tuning-sweep-rank b { color: #8ddde1; font: 600 0.9rem/1 Cinzel, serif; }
+.tuning-sweep-rank small { overflow: hidden; color: #cfe0ea; font-size: 0.68rem; text-overflow: ellipsis; white-space: nowrap; }
+.tuning-sweep-board { overflow: hidden; color: #93aec1; font-size: 0.65rem; text-overflow: ellipsis; white-space: nowrap; }
+.tuning-sweep-figure { display: grid; gap: 2px; text-align: right; }
+.tuning-sweep-figure small { color: #86a5ba; font: 700 0.47rem/1 Jost, sans-serif; letter-spacing: 0.07em; text-transform: uppercase; }
+.tuning-sweep-figure b { color: #eaf3f8; font: 600 0.76rem/1 Cinzel, serif; }
+.tuning-sweep-row.is-safe .tuning-sweep-figure:nth-of-type(1) b { color: #9edba8; }
+.tuning-sweep-row.is-risky .tuning-sweep-figure:nth-of-type(1) b { color: #f0a8a0; }
+
+.tuning-sweep-findings { display: grid; gap: 6px; margin: 13px 0 0; padding: 0; list-style: none; }
+.tuning-sweep-finding { display: grid; gap: 3px; padding: 9px 11px; border: 1px solid rgba(90,149,185,0.26); border-left: 3px solid #93aec1; background: rgba(6,15,28,0.4); }
+.tuning-sweep-finding.is-high { border-left-color: #e08a72; }
+.tuning-sweep-finding.is-low { border-left-color: #e8c98a; }
+.tuning-sweep-finding strong { color: #f0f5fa; font-size: 0.76rem; }
+.tuning-sweep-finding span { color: #a9c2d0; font-size: 0.67rem; line-height: 1.5; }
+
+@media (max-width: 1080px) {
+  .tuning-sweep-row { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .tuning-sweep-rank, .tuning-sweep-board { grid-column: 1 / -1; }
+  .tuning-sweep-figure { text-align: left; }
+}

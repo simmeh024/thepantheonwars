@@ -275,3 +275,145 @@ function pw_tuning_metrics(): array {
         'level_progress_percent' => ['label' => 'Progress toward next level', 'unit' => '%', 'higher_is_better' => true],
     ];
 }
+
+/** Median rather than mean: one deliberate outlier must not move the baseline. */
+function pw_tuning_median(array $values): float {
+    $values = array_values(array_filter($values, static function ($v) { return $v > 0; }));
+    if (!$values) return 0.0;
+    sort($values);
+    $mid = (int)floor(count($values) / 2);
+    return count($values) % 2 ? (float)$values[$mid] : (float)(($values[$mid - 1] + $values[$mid]) / 2);
+}
+
+/**
+ * One sweep played to the last scan, in closed form.
+ *
+ * The hazards are placed uniformly across the board, so the cells a player
+ * turns over are a uniform sample WITHOUT replacement. The chance that the
+ * first k scans are all safe is a product of falling ratios:
+ *
+ *   P(k safe) = prod over i of (C - H - i) / (C - i)
+ *
+ * Treating each scan as an independent coin at H/C would understate the risk
+ * of a long board, which is the easy mistake here and the reason this is
+ * written out rather than approximated.
+ *
+ * Strength buys exactly one escape, so surviving k scans means meeting no
+ * hazard, or meeting exactly one and bracing through it.
+ *
+ * @return array the survival odds, the expected haul, and the marginal risk
+ */
+function pw_tuning_sweep_outcome(array $tier, array $bonuses): array {
+    $cells = max(1, (int)$tier['grid_rows'] * (int)$tier['grid_cols']);
+    $hazards = max(0, min($cells, (int)$tier['hazard_count']));
+    $picks = max(0, min($cells, (int)$bonuses['picks_total']));
+    $brace = max(0.0, min(1.0, (float)$bonuses['shrug_percent'] / 100));
+    $safe = $cells - $hazards;
+
+    /* none[k] is P(the first k scans were all safe); one[k] is P(exactly one of
+     * them was a hazard). Both are built forward so each step costs one
+     * multiplication rather than a factorial. */
+    $none = [1.0];
+    $one = [0.0];
+    $expectedSafe = 0.0;
+    for ($k = 1; $k <= $picks; $k++) {
+        $left = $cells - ($k - 1);
+        if ($left <= 0) { $none[$k] = 0.0; $one[$k] = 0.0; continue; }
+        $safeGivenNone = max(0, $safe - ($k - 1)) / $left;
+        $safeGivenOne = max(0, $safe - ($k - 2)) / $left;
+        // Reaching scan k with none met: k-1 safe cells are already gone.
+        $none[$k] = $none[$k - 1] * $safeGivenNone;
+        // Having met one already and survived this scan too.
+        $oneSafe = $one[$k - 1] * $safeGivenOne;
+        // Exactly one met: either it happened now, or earlier and this is safe.
+        $one[$k] = $none[$k - 1] * ($hazards / $left) + $oneSafe;
+        /* A safe cell opened on this scan: the run arrived alive and did not
+         * hit. The braced branch contributes only its SAFE continuation --
+         * one[k] as a whole also contains the scan on which the hazard was
+         * met, and that scan reveals nothing. Counting it inflated reveals,
+         * and with them credits and items, on every crew member with any
+         * Strength at all. */
+        $expectedSafe += $none[$k] + $brace * $oneSafe;
+    }
+
+    $survive = $none[$picks] + $one[$picks] * $brace;
+
+    /* A third of safe cells hold a cache, matching pw_sweep_resolve_cell(), and
+     * the payout is uniform over 60-100% of the ceiling, so its mean is 80%.
+     * Both numbers live there; a change to either makes this figure wrong,
+     * which is a reason to share them if a third caller ever appears. */
+    $cacheShare = 0.34;
+    $cacheMean = (int)$tier['cache_credits'] * 0.8;
+    $expectedCredits = $expectedSafe * $cacheShare * $cacheMean;
+    $expectedFinds = $expectedSafe * (1 - $cacheShare);
+
+    $fatigue = max(1, (int)$tier['fatigue_cost']);
+    // What a player is actually deciding on: one more scan from a clean board.
+    $marginal = $cells > 0 ? $hazards / $cells : 0.0;
+
+    return [
+        'survive_percent' => round($survive * 100, 1),
+        'expected_reveals' => round($expectedSafe, 2),
+        'expected_credits' => (int)round($expectedCredits * $survive),
+        'expected_finds' => round($expectedFinds * $survive, 2),
+        'credits_per_fatigue' => round(($expectedCredits * $survive) / $fatigue, 1),
+        'finds_per_fatigue' => round(($expectedFinds * $survive) / $fatigue, 3),
+        'xp_per_fatigue' => round(((int)$bonuses['xp_reward'] * $survive) / $fatigue, 2),
+        'first_scan_risk_percent' => round($marginal * 100, 1),
+    ];
+}
+
+/**
+ * Sectors that look out of step. Advisory only, like every other finding on
+ * this page -- a deliberate outlier is still an outlier.
+ */
+function pw_tuning_sweep_findings(array $sectors): array {
+    $findings = [];
+    foreach ($sectors as $sector) {
+        if (!$sector['has_manifest']) {
+            $findings[] = ['sector' => $sector['rank_number'], 'severity' => 'high',
+                'label' => $sector['name'] . ' has no usable manifest',
+                'detail' => 'No board can be opened here at all. A player at this rank is told the sector exists and then refused.'];
+        }
+        if ($sector['hazards'] === 0) {
+            $findings[] = ['sector' => $sector['rank_number'], 'severity' => 'high',
+                'label' => $sector['name'] . ' cannot be failed',
+                'detail' => 'With no collapses there is no decision to make: every scan is free and banking is automatic.'];
+        } elseif ($sector['survive_percent'] >= 97) {
+            $findings[] = ['sector' => $sector['rank_number'], 'severity' => 'low',
+                'label' => $sector['name'] . ' is almost never lost',
+                'detail' => 'Survives ' . $sector['survive_percent'] . '% of the time with this crew member, so the push-your-luck decision rarely bites.'];
+        } elseif ($sector['survive_percent'] <= 15) {
+            $findings[] = ['sector' => $sector['rank_number'], 'severity' => 'high',
+                'label' => $sector['name'] . ' is rarely banked',
+                'detail' => 'Survives only ' . $sector['survive_percent'] . '% of the time, so the fatigue is usually spent for nothing.'];
+        }
+        if ($sector['hazards'] > 0 && $sector['picks'] >= $sector['cells'] - $sector['hazards']) {
+            $findings[] = ['sector' => $sector['rank_number'], 'severity' => 'low',
+                'label' => $sector['name'] . ' can be cleared out',
+                'detail' => 'There are enough scans to open every safe cell, so nothing is left behind and the board has no end-game choice.'];
+        }
+    }
+    /* Value per fatigue, compared across sectors rather than against an
+     * absolute: what matters is whether one rung pays far better than the
+     * ladder around it, not what the number is. */
+    $rates = [];
+    foreach ($sectors as $sector) {
+        if ($sector['has_manifest']) $rates[] = (float)$sector['credits_per_fatigue'];
+    }
+    if (count($rates) >= 3) {
+        $median = pw_tuning_median($rates);
+        if ($median > 0) {
+            foreach ($sectors as $sector) {
+                if (!$sector['has_manifest']) continue;
+                if ((float)$sector['credits_per_fatigue'] > $median * 2) {
+                    $findings[] = ['sector' => $sector['rank_number'], 'severity' => 'high',
+                        'label' => $sector['name'] . ' pays more than twice the median',
+                        'detail' => $sector['credits_per_fatigue'] . ' credits per fatigue against a ladder median of '
+                            . round($median, 1) . '. Every other sector becomes the wrong choice.'];
+                }
+            }
+        }
+    }
+    return $findings;
+}
