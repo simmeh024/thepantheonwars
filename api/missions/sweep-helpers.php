@@ -75,10 +75,18 @@ function pw_sweep_require_ready(PDO $db): void {
 }
 
 /**
- * The tier for one rank, clamped to something playable.
+ * The sector a given rank opens: the highest authored tier at or below it.
  *
- * Returns null when the rank has no enabled tier -- an unfilled rung of the
- * ladder, which is a normal state rather than an error.
+ * A ladder, not a lookup table. Matching the rank exactly meant a rank-12
+ * commander had no sweep at all until rank 12 itself was authored, even with
+ * eleven sectors filled in below -- and it contradicted what the tier editor
+ * has always told the author, that a sector "opens for anyone holding rank N
+ * or above, until a higher sector does".
+ *
+ * The practical consequence is that the ladder can be filled in sparsely: one
+ * sector at rank 1 covers everybody until a second is written.
+ *
+ * Returns null only when no enabled tier sits at or below the rank.
  */
 function pw_sweep_tier(PDO $db, int $rank): ?array {
     if ($rank < 1) return null;
@@ -86,7 +94,9 @@ function pw_sweep_tier(PDO $db, int $rank): ?array {
         'SELECT tier.*, lt.name AS loot_table_name, lt.is_enabled AS loot_table_enabled
          FROM game_sweep_tiers tier
          LEFT JOIN game_loot_tables lt ON lt.id = tier.loot_table_id
-         WHERE tier.rank_number = ? AND tier.is_enabled = 1'
+         WHERE tier.rank_number <= ? AND tier.is_enabled = 1
+         ORDER BY tier.rank_number DESC
+         LIMIT 1'
     );
     $stmt->execute([$rank]);
     $tier = $stmt->fetch();

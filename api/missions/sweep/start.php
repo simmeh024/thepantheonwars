@@ -72,8 +72,11 @@ try {
              picks_total, hint_radius, shrug_percent, grid_seed, cache_credits, xp_reward, status)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "active")'
     );
+    /* The sector's own rank, not the player's. With a sparse ladder those
+     * differ, and counting a run against the rank the player happened to hold
+     * would scatter one sector's history across every rank above it. */
     $insert->execute([
-        $userId, $crewId, $rank, $tier['loot_table_id'], $tier['grid_rows'], $tier['grid_cols'],
+        $userId, $crewId, $tier['rank_number'], $tier['loot_table_id'], $tier['grid_rows'], $tier['grid_cols'],
         $tier['hazard_count'], $bonuses['picks_total'], $bonuses['hint_radius'], $bonuses['shrug_percent'],
         $seed, $tier['cache_credits'], $bonuses['xp_reward'],
     ]);

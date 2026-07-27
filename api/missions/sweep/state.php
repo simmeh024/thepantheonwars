@@ -33,6 +33,11 @@ try {
     $countStmt->execute([$userId]);
     foreach ($countStmt->fetchAll() as $row) $completed[(int)$row['rank_number']] = (int)$row['runs'];
 
+    /* Which rung is actually in play, so the ladder can mark it. With a sparse
+     * ladder that is rarely the rung matching the rank -- a rank-12 commander
+     * on a ladder whose highest sector is rank 1 is playing rank 1's. */
+    $activeTier = pw_sweep_tier($db, $rank);
+    $activeRank = $activeTier !== null ? $activeTier['rank_number'] : 0;
     foreach ($rows as $row) {
         $tier = pw_sweep_normalise_tier($row);
         $unlocked = $rank >= $tier['rank_number'];
@@ -47,7 +52,7 @@ try {
             'cache_credits' => $tier['cache_credits'],
             'xp_reward' => $tier['xp_reward'],
             'unlocked' => $unlocked,
-            'is_current' => $tier['rank_number'] === $rank,
+            'is_current' => $tier['rank_number'] === $activeRank,
             'sweeps_completed' => $completed[$tier['rank_number']] ?? 0,
             // Named only once reachable; before that it is the thing you climb for.
             'loot_table_name' => $unlocked ? $tier['loot_table_name'] : '',
@@ -55,7 +60,7 @@ try {
         ];
     }
 
-    $tier = pw_sweep_tier($db, $rank);
+    $tier = $activeTier;
     $fatigueMax = pw_missions_fatigue_max($db, $userId, pw_research_player_effects($db, $userId));
     $recovery = (float)(pw_research_player_effects($db, $userId)['fatigue_recovery_percent'] ?? 0);
     $now = pw_missions_utc_now($db);
@@ -101,7 +106,7 @@ try {
         'ladder' => $ladder,
         'crew' => $roster,
         'run' => pw_sweep_public_run($db, $userId),
-        'sweeps_at_rank' => $completed[$rank] ?? 0,
+        'sweeps_at_rank' => $completed[$activeRank] ?? 0,
     ]);
 } catch (Throwable $e) {
     /* The message is passed through rather than swallowed. A blanket "please

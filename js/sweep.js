@@ -81,7 +81,7 @@
       var tier = state.data && state.data.tier;
       boardArea.innerHTML = '<p class="sweep-muted">' + (tier
         ? 'Choose a crew member below to open a field.'
-        : 'No sector is open at your current standing. Raise your reputation to reach one.') + '</p>';
+        : 'No sector has been surveyed at or below your standing yet.') + '</p>';
       if (crewCard) crewCard.hidden = false;
       return;
     }
@@ -115,7 +115,8 @@
     var rank = Number((state.data.reputation || {}).level_number) || 0;
     if (!tier) {
       sectorTitle.textContent = 'No sector open';
-      sectorBody.innerHTML = '<p class="sweep-muted">Rank ' + rank + ' has no recovery field yet. The ladder below shows what opens next.</p>';
+      sectorBody.innerHTML = '<p class="sweep-muted">No sector has been surveyed at or below rank ' + rank
+        + ' yet. A sector opens for every rank from its own upward, until a higher one takes over.</p>';
       return;
     }
     sectorTitle.textContent = tier.name || ('Sector ' + tier.rank_number);
