@@ -124,46 +124,42 @@
   }
   function visibleCanvasPosition() { return firstFreeCell(); }
 
-  /* Snap each node to its NEAREST grid cell, in place.
+  /* Lay the tree out along its own prerequisite lines.
 
-     The first version of this reflowed the whole board -- it sorted every node
-     and re-laid them left to right in rows, which threw away the author's tree
-     entirely. It ran with no confirmation and saved as it went, so a single
-     click destroyed a layout that could not be recovered: layout-save.php
-     records that a node moved but not where from, and the table keeps no
-     position history.
+     Tidy was twice wrong before this. The first version reflowed every node
+     into reading order, which threw the tree away entirely and could not be
+     undone. The second snapped each node to its nearest cell, which preserved
+     a hand-drawn layout but did nothing for one that was never drawn.
 
-     Tidy now means what it says. A node moves at most half a cell, so a tree
-     stays the shape it was drawn in; the only thing that changes is that
-     everything lines up. Two nodes rounding onto the same cell is resolved by
-     nudging the later one to the nearest free cell, searching outward, rather
-     than by starting the whole board again. */
+     What it does now is what the lines already say. A node sits one column to
+     the right of the last of its prerequisites, so every link points forward
+     and none doubles back. Nodes that share a prerequisite are given adjacent
+     rows, so a branch splits into a neat pair rather than two nodes at
+     opposite ends of the board. A parent is then centred on the children it
+     unlocks, which is what makes a fork read as a fork.
+
+     This is a layered layout of a directed acyclic graph -- the same shape as
+     Sugiyama, without the crossing-minimisation pass, which is not worth the
+     code for boards of this size. save.php already refuses a prerequisite
+     cycle, so depth cannot recurse forever; the iteration cap below is belt
+     and braces rather than the real guard. */
   function tidyLayout() {
     if (!can('research.manage')) return;
     var subjects = boardNodes();
     if (!subjects.length) return;
-    if (!window.confirm('Snap ' + subjects.length + ' protocol' + (subjects.length === 1 ? '' : 's')
-      + ' to the grid? Each moves at most half a cell, and Undo tidy puts them all back.')) return;
+    if (!window.confirm('Lay out ' + subjects.length + ' protocol' + (subjects.length === 1 ? '' : 's')
+      + ' along their prerequisite lines? Undo tidy puts them all back.')) return;
 
-    // Captured before anything moves, so Undo has somewhere to put them back to.
     tidyUndo = subjects.map(function (node) {
       return { id: node.id, canvas_x: Number(node.canvas_x), canvas_y: Number(node.canvas_y) };
     });
 
-    var cols = Math.max(1, Math.floor(boardWidth() / CELL_X));
-    var rows = Math.max(1, Math.floor(boardHeight() / CELL_Y));
-    var taken = {};
+    var placed = tidyPositions(subjects);
     var moved = 0;
-    /* Nearest-first, so a node already on the grid claims its own cell before
-       a neighbour can be nudged into it. */
-    subjects.slice().sort(function (left, right) {
-      return offGridDistance(left) - offGridDistance(right);
-    }).forEach(function (node) {
-      var col = Math.round(Number(node.canvas_x) / CELL_X);
-      var row = Math.round(Number(node.canvas_y) / CELL_Y);
-      var cell = nearestFreeCell(col, row, cols, rows, taken);
-      taken[cell.col + ':' + cell.row] = true;
-      var position = clampPosition({ x: cell.col * CELL_X, y: cell.row * CELL_Y });
+    subjects.forEach(function (node) {
+      var target = placed[node.id];
+      if (!target) return;
+      var position = clampPosition({ x: target.col * CELL_X, y: target.row * CELL_Y });
       if (Number(node.canvas_x) === position.x && Number(node.canvas_y) === position.y) return;
       node.canvas_x = position.x; node.canvas_y = position.y;
       savePosition(node);
@@ -171,42 +167,111 @@
     });
     renderCanvas();
     setUndoVisible(true);
-    setNotice(moved ? moved + ' protocol' + (moved === 1 ? '' : 's') + ' snapped to the grid. Undo tidy is available.'
-      : 'Every protocol was already on the grid.');
+    setNotice(moved
+      ? moved + ' protocol' + (moved === 1 ? '' : 's') + ' laid out along the lines. Undo tidy is available.'
+      : 'The layout already follows the lines.');
   }
-  function offGridDistance(node) {
-    var dx = Number(node.canvas_x) - Math.round(Number(node.canvas_x) / CELL_X) * CELL_X;
-    var dy = Number(node.canvas_y) - Math.round(Number(node.canvas_y) / CELL_Y) * CELL_Y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-  /* Rings outward from the wanted cell, so a displaced node lands beside where
-     it was rather than at the end of a queue. */
-  function nearestFreeCell(col, row, cols, rows, taken) {
-    col = Math.max(0, Math.min(cols - 1, col));
-    row = Math.max(0, Math.min(rows - 1, row));
-    if (!taken[col + ':' + row]) return { col: col, row: row };
-    for (var ring = 1; ring < Math.max(cols, rows); ring++) {
-      var candidates = [];
-      for (var dy = -ring; dy <= ring; dy++) {
-        for (var dx = -ring; dx <= ring; dx++) {
-          if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
-          var c = col + dx, r = row + dy;
-          if (c < 0 || r < 0 || c >= cols || r >= rows) continue;
-          if (taken[c + ':' + r]) continue;
-          candidates.push({ col: c, row: r, away: Math.sqrt(dx * dx * CELL_X * CELL_X + dy * dy * CELL_Y * CELL_Y) });
-        }
-      }
-      /* Sorted by real distance, not by scan order. A ring visited corner-first
-         hands out the diagonal cell -- 300px away on this pitch -- when an
-         orthogonal neighbour 180px away was free, which is a visibly worse
-         place to put a displaced node. */
-      if (candidates.length) {
-        candidates.sort(function (left, right) { return left.away - right.away; });
-        return { col: candidates[0].col, row: candidates[0].row };
-      }
+
+  /**
+   * Where every node on this board belongs, as {id: {col, row}}.
+   *
+   * Split out from the action so the arrangement can be reasoned about, and
+   * tested, without touching the database.
+   */
+  function tidyPositions(subjects) {
+    var cols = Math.max(1, Math.floor(boardWidth() / CELL_X));
+    var rows = Math.max(1, Math.floor(boardHeight() / CELL_Y));
+    var onBoard = {};
+    subjects.forEach(function (node) { onBoard[Number(node.id)] = node; });
+    /* Only prerequisites that are on this board count. A legendary node may
+       require an ordinary one, and that link is not drawn here, so letting it
+       set the column would push the whole endgame branch off the right. */
+    var parentsOf = function (node) {
+      return (node.prerequisite_ids || []).map(Number).filter(function (id) { return onBoard[id]; });
+    };
+
+    // Column: one past the deepest prerequisite. Longest path, not shortest,
+    // so a node never sits level with something it depends on.
+    var depth = {};
+    var settled = 0;
+    for (var pass = 0; pass < subjects.length + 1 && settled < subjects.length; pass++) {
+      settled = 0;
+      subjects.forEach(function (node) {
+        var parents = parentsOf(node);
+        var best = 0;
+        var ready = true;
+        parents.forEach(function (id) {
+          if (depth[id] === undefined) { ready = false; return; }
+          best = Math.max(best, depth[id] + 1);
+        });
+        if (!ready) return;
+        depth[Number(node.id)] = Math.min(cols - 1, best);
+        settled++;
+      });
     }
-    return { col: col, row: row };
+    // Anything still unsettled sits in a cycle the save endpoint should have
+    // refused. Put it in the first column rather than dropping it.
+    subjects.forEach(function (node) { if (depth[Number(node.id)] === undefined) depth[Number(node.id)] = 0; });
+
+    var columns = [];
+    subjects.forEach(function (node) {
+      var col = depth[Number(node.id)];
+      (columns[col] = columns[col] || []).push(node);
+    });
+
+    /* Row, left to right. A node follows its first prerequisite's row, so
+       children of one parent land together; ties keep the author's existing
+       vertical order so a deliberate arrangement is not shuffled for nothing. */
+    var row = {};
+    columns.forEach(function (column) {
+      if (!column) return;
+      column.sort(function (left, right) {
+        var byParent = tidyAnchor(left, parentsOf, row) - tidyAnchor(right, parentsOf, row);
+        return byParent || (Number(left.canvas_y) - Number(right.canvas_y))
+          || String(left.name).localeCompare(String(right.name));
+      });
+      column.forEach(function (node, index) { row[Number(node.id)] = Math.min(rows - 1, index); });
+    });
+
+    /* Centre each parent on the children it unlocks, right to left, so a fork
+       has its stem level with the middle of its branches. Collisions are
+       resolved by pushing down the column, never by reordering it. */
+    for (var col = columns.length - 1; col >= 0; col--) {
+      var column = columns[col];
+      if (!column) continue;
+      column.forEach(function (node) {
+        var children = subjects.filter(function (other) {
+          return parentsOf(other).indexOf(Number(node.id)) !== -1;
+        });
+        if (children.length < 2) return;
+        var mid = children.reduce(function (sum, child) { return sum + row[Number(child.id)]; }, 0) / children.length;
+        row[Number(node.id)] = Math.max(0, Math.min(rows - 1, Math.round(mid)));
+      });
+      // Re-spread anything that now shares a row with a neighbour.
+      var used = {};
+      column.slice().sort(function (left, right) { return row[Number(left.id)] - row[Number(right.id)]; })
+        .forEach(function (node) {
+          var want = row[Number(node.id)];
+          while (used[want] && want < rows - 1) want++;
+          while (used[want] && want > 0) want--;
+          used[want] = true;
+          row[Number(node.id)] = want;
+        });
+    }
+
+    var out = {};
+    subjects.forEach(function (node) {
+      out[node.id] = { col: depth[Number(node.id)], row: row[Number(node.id)] || 0 };
+    });
+    return out;
   }
+  /** A node's preferred row: the average row of its prerequisites, or its own. */
+  function tidyAnchor(node, parentsOf, row) {
+    var parents = parentsOf(node).filter(function (id) { return row[id] !== undefined; });
+    if (!parents.length) return Number(node.canvas_y) / CELL_Y;
+    return parents.reduce(function (sum, id) { return sum + row[id]; }, 0) / parents.length;
+  }
+
   function setUndoVisible(on) {
     var button = document.getElementById('research-admin-untidy');
     if (button) button.hidden = !on;
