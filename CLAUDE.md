@@ -619,6 +619,39 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **"Protocols ready" mark on the Research Facility card.** No migration. A
+  gold `!` in the card's corner on the missions page whenever the player could
+  activate a research protocol right now, with the count in its tooltip.
+  **The eligibility rule was extracted, not copied.** Deciding what is ready
+  needs rank, credits, salvage, prerequisites, the already-owned set and the
+  final-branch gate -- roughly ninety lines living inside
+  `api/research/overview.php`. A second implementation for a badge is the
+  drift this file keeps recording, so the rule moved to
+  `pw_research_unlockable_node_ids()` and **the Research Facility now takes its
+  own `can_unlock` from it**. That page still computes the four conditions
+  individually, because a card has to say *which* one is unmet; only the verdict
+  is shared, which is the part the badge has to agree with.
+  **A count, never a list.** Sending which nodes are ready would announce the
+  contents of the sealed final branch to a player who has not opened it -- the
+  same reason a locked timeline event ships only its position.
+  The helper returns empty on any failure including a missing migration: a badge
+  that cannot be computed must be absent, never wrong.
+  The mark is inside the card's `<a>`, so the whole card stays one link and the
+  tooltip needs no separate tab stop; the `!` is `aria-hidden` with the real
+  sentence in an `.sr-only` span, because a bare exclamation read aloud is not a
+  message. `.sr-only` is defined in `css/missions.css` under the same name
+  `community.css` already uses -- `public.css` does not import that file (see
+  `css/SOURCES.md`), and a second name for the same utility would be worse than
+  a second definition.
+  Verified in a browser against the real card markup: all five states correct
+  (three ready, one ready, none, research not migrated, no research block at
+  all), the 6px corner overhang causes no horizontal overflow at 375px, nothing
+  focusable inside the badge, the reduced-motion rule reaches the pulse, and the
+  glyph reads at 5.72:1. **Not screenshotted** -- the Browser pane stopped
+  compositing partway through, so this rests on measured geometry rather than a
+  picture, which is the stronger check anyway.
+  `missions.css?v=44` / `missions.js?v=42`.
+
 - **An in-site dialog replaces `window.prompt()` and `window.confirm()`.** No
   migration. The mission page had four browser dialogs left -- pick a crew
   member for a fatigue stim, pick a stim for a quick slot, choose a destroy

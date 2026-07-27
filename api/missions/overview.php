@@ -503,6 +503,12 @@ try {
         'research' => [
             'ready' => $researchReady,
             'effects' => $researchEffects,
+            /* How many protocols the player could activate right now, for the
+             * alert on the Research Facility card. Only a count -- which nodes
+             * they are is the Research Facility's own business, and sending the
+             * list here would leak the final branch's contents to a player who
+             * has not opened it. */
+            'unlockable_count' => $researchReady ? count(pw_research_unlockable_node_ids($db, $userId)) : 0,
             'unlocked_secret_mission_count' => count($researchSecrets['unlocked']),
         ],
         'missions' => $missions,

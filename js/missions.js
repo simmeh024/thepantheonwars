@@ -71,6 +71,7 @@
   var inventoryBoosts = document.getElementById('missions-inventory-boosts');
   var inventoryRailCard = document.getElementById('mission-quartermaster-card');
   var stimBeltCard = document.getElementById('mission-stim-belt-card');
+  var researchAlert = document.getElementById('mission-research-alert');
   var profileCard = document.getElementById('mission-profile-card');
   var contractCard = document.getElementById('mission-contract-card');
   var dailyCard = document.getElementById('mission-daily-card');
@@ -3160,8 +3161,28 @@
     });
   }
 
+  /* The mark in the corner of the Research Facility card when protocols are
+   * ready to activate. A count, not a list: which nodes they are is the
+   * Research Facility's own business, and naming them here would announce the
+   * final branch to a player who has not opened it.
+   *
+   * The glyph is aria-hidden and the meaning lives in the visible tooltip and
+   * an off-screen line, because a bare "!" read aloud is not a message. */
+  function renderResearchAlert(data) {
+    if (!researchAlert) return;
+    var count = Number(data.research && data.research.unlockable_count) || 0;
+    if (!data.research || !data.research.ready || count < 1) { researchAlert.hidden = true; return; }
+    var text = count === 1
+      ? 'One research protocol is ready to activate.'
+      : count + ' research protocols are ready to activate.';
+    researchAlert.hidden = false;
+    researchAlert.title = text;
+    researchAlert.innerHTML = '<span aria-hidden="true">!</span><span class="sr-only">' + escapeHtml(text) + '</span>';
+  }
+
   function renderInventory(data) {
     renderStimBelt(data);
+    renderResearchAlert(data);
     renderInventoryRail(data);
     if (!inventorySection || !inventoryList) return;
     var loot = data.loot || [];

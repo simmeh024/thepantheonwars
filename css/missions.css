@@ -1142,3 +1142,30 @@
 @media (prefers-reduced-motion: reduce) {
   .mission-choice-option { transition: none; }
 }
+
+/* ---------------------------------------------------------------------------
+ * "Protocols ready" mark on the Research Facility card.
+ * ------------------------------------------------------------------------ */
+/* community.css defines the same utility, but public.css does not import it and
+ * this page is served by public.css -- see css/SOURCES.md. Same name rather
+ * than a second one, so the two bundles stay consistent. */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+
+/* Sits on the card's own corner rather than inside its padding, so it reads as
+ * a status pinned to the card instead of a character in the copy. The card is
+ * an <a>; the mark is a span inside it, so the whole card stays one link and
+ * the tooltip needs no separate focus stop. */
+.mission-research-card { position: relative; }
+.mission-research-card-alert { position: absolute; top: -7px; right: -7px; z-index: 1; display: grid; width: 22px; height: 22px; place-items: center; border: 1px solid rgba(255,214,138,0.85); border-radius: 50%; background: #b8862c; color: #1a1206; font: 700 .82rem/1 'Jost', sans-serif; box-shadow: 0 0 14px rgba(226,178,92,0.45); }
+.mission-research-card-alert[hidden] { display: none; }
+/* A slow pulse: enough to catch the eye on a page the player is scanning, not
+ * enough to compete with the live command feed beside it. */
+.mission-research-card-alert::before { content: ''; position: absolute; inset: -4px; border: 1px solid rgba(226,178,92,0.6); border-radius: 50%; animation: mission-research-alert-pulse 2.6s ease-out infinite; }
+@keyframes mission-research-alert-pulse {
+  0% { opacity: .75; transform: scale(.82); }
+  70% { opacity: 0; transform: scale(1.25); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mission-research-card-alert::before { animation: none; opacity: .5; transform: none; }
+}

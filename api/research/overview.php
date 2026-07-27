@@ -125,6 +125,11 @@ try {
             ];
         }
     }
+    /* The verdict comes from the shared helper so the alert badge on the
+     * missions page cannot disagree with this page about what is ready. The
+     * four conditions below are still computed individually, because a card has
+     * to say which one is unmet -- only the conclusion is shared. */
+    $unlockableIds = array_flip(pw_research_unlockable_node_ids($db, $userId));
     $publicNodes = [];
     foreach ($nodes as $node) {
         $id = (int)$node['id'];
@@ -139,7 +144,7 @@ try {
         $rankMet = $rank >= (int)$node['required_reputation_level'];
         $creditsMet = $credits >= (int)$node['credit_cost'];
         $salvageMet = $salvageId === null || $held >= $salvageQuantity;
-        $canUnlock = !$isUnlocked && (bool)$node['is_enabled'] && !$missing && $rankMet && $creditsMet && $salvageMet;
+        $canUnlock = isset($unlockableIds[$id]);
         $effect = pw_research_effect_types()[(string)$node['effect_type']] ?? null;
         if ($effect === null) continue;
         $categoryId = $node['research_category_id'] !== null ? (int)$node['research_category_id'] : null;
