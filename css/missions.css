@@ -1094,3 +1094,51 @@
 @media (prefers-reduced-motion: reduce) {
   .mission-stim-slot.is-empty { transition: none; }
 }
+
+/* ---------------------------------------------------------------------------
+ * The choice dialog: the in-site replacement for window.prompt() and
+ * window.confirm(). Built on the same shell as the launch and result modals so
+ * the three read as one surface.
+ * ------------------------------------------------------------------------ */
+.mission-choice-modal { width: min(420px, calc(100vw - 28px)); padding: 0; border: 1px solid rgba(105,213,222,0.5); color: var(--text); background: #100d22; box-shadow: 0 24px 90px rgba(0,0,0,0.7), 0 0 45px rgba(71,207,218,0.13); }
+.mission-choice-modal::backdrop { background: rgba(3,4,12,0.8); backdrop-filter: blur(4px); }
+.mission-choice-inner { position: relative; display: grid; gap: 12px; padding: 22px 22px 20px; }
+.mission-choice-inner .eyebrow { margin: 0; color: #8fdee4; font-size: .57rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-choice-inner .eyebrow:empty { display: none; }
+.mission-choice-inner h2 { margin: 0; color: #f0edf8; font: 600 1.15rem/1.25 'Cinzel', serif; }
+#mission-choice-copy { margin: 0; color: #a9bdcb; font-size: .78rem; line-height: 1.5; }
+
+.mission-choice-options { display: grid; gap: 6px; max-height: 44vh; overflow-y: auto; }
+.mission-choice-options[hidden] { display: none; }
+/* A row, not a card: the label and its figure sit on one line so a list of
+ * eight crew stays scannable without scrolling. */
+.mission-choice-option { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; width: 100%; padding: 10px 12px; border: 1px solid rgba(122,160,186,0.32); background: rgba(10,20,38,0.5); color: #dfe9f1; font: inherit; text-align: left; cursor: pointer; transition: border-color .18s ease, background-color .18s ease; }
+.mission-choice-option:hover { border-color: rgba(143,222,228,0.6); background: rgba(16,34,56,0.6); }
+.mission-choice-option.is-active { border-color: rgba(143,222,228,0.85); background: rgba(20,52,66,0.62); box-shadow: inset 2px 0 rgba(143,222,228,0.9); }
+.mission-choice-option-main { font-size: .84rem; font-weight: 600; }
+.mission-choice-option-meta { flex: none; color: #90abba; font-size: .68rem; }
+.mission-choice-option.is-active .mission-choice-option-meta { color: #b6d3de; }
+
+.mission-choice-quantity { display: grid; gap: 6px; }
+.mission-choice-quantity[hidden] { display: none; }
+.mission-choice-quantity span { color: #90abba; font-size: .64rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.mission-choice-quantity input { width: 100%; padding: 9px 11px; border: 1px solid rgba(122,160,186,0.4); background: rgba(8,18,32,0.7); color: #eaf2f6; font: inherit; }
+.mission-choice-quantity input:focus { border-color: rgba(143,222,228,0.85); outline: none; box-shadow: 0 0 0 3px rgba(79,185,201,0.18); }
+
+/* The shared error line reserves 20px so a validation message cannot shift the
+ * buttons under a cursor already moving towards them. Its own bottom margin is
+ * dropped here because this dialog is a grid with its own gap, and the two
+ * together left a visible hole above the actions on every ordinary open. */
+.mission-choice-inner .mission-launch-error { margin: 0; }
+/* Same reason: the shared action bar carries its own top margin for the two
+ * long modals, and this grid already spaces its rows. */
+.mission-choice-inner .mission-launch-actions { margin-top: 0; }
+
+/* Destroying is irreversible, so its confirm reads as the destructive action it
+ * is rather than as the same teal Save button every other modal ends with. */
+#mission-choice-confirm.is-danger { border-color: rgba(224,138,138,0.7); background: rgba(120,38,38,0.55); color: #f6d8d8; }
+#mission-choice-confirm.is-danger:hover, #mission-choice-confirm.is-danger:focus-visible { border-color: rgba(240,170,170,0.9); background: rgba(150,48,48,0.65); color: #ffecec; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mission-choice-option { transition: none; }
+}

@@ -2811,10 +2811,142 @@
     inventoryTierFilter.value = tiers.indexOf(currentTier) !== -1 ? currentTier : 'all';
   }
 
-  // window.prompt() is the only multi-line surface here, and it takes a plain
-  // string. Built from a char code so the line break survives every tool that
-  // has ever rewritten this file.
-  var NEWLINE = String.fromCharCode(10);
+  /* ----------------------------------------------------------------------
+   * The choice dialog.
+   *
+   * Replaces window.prompt() and window.confirm(), which put a browser chrome
+   * box over the page -- unstyled, unlocalised, and in the prompt's case asking
+   * the player to type the number next to the option they wanted.
+   *
+   * One component rather than three, because the four callers differ only in
+   * what they list: crew for a fatigue stim, stims for a quick slot, a quantity
+   * for a bulk destroy, and nothing at all for a single confirm. It returns a
+   * promise resolving to { value, quantity } or null on cancel, so each caller
+   * reads the same as the prompt() it replaced.
+   * -------------------------------------------------------------------- */
+  var choiceModal = document.getElementById('mission-choice-modal');
+  var choiceOptions = document.getElementById('mission-choice-options');
+  var choiceQuantity = document.getElementById('mission-choice-quantity');
+  var choiceQuantityInput = document.getElementById('mission-choice-quantity-input');
+  var choiceError = document.getElementById('mission-choice-error');
+  var choiceConfirm = document.getElementById('mission-choice-confirm');
+  var choiceState = { resolve: null, options: [], selected: null, lastFocus: null };
+
+  function closeChoice(result) {
+    var resolve = choiceState.resolve;
+    choiceState.resolve = null;
+    if (choiceModal.open && typeof choiceModal.close === 'function') choiceModal.close();
+    else choiceModal.removeAttribute('open');
+    /* Focus goes back to whatever opened the dialog. Without this a keyboard
+     * user is returned to the top of the document after every confirm, which is
+     * the same defect the crew list re-render once had. */
+    if (choiceState.lastFocus && document.contains(choiceState.lastFocus)) {
+      try { choiceState.lastFocus.focus(); } catch (error) { /* removed mid-flight */ }
+    }
+    choiceState.lastFocus = null;
+    if (resolve) resolve(result || null);
+  }
+
+  function renderChoiceOptions() {
+    choiceOptions.hidden = !choiceState.options.length;
+    choiceOptions.innerHTML = choiceState.options.map(function (option, index) {
+      var active = String(option.value) === String(choiceState.selected);
+      return '<button type="button" class="mission-choice-option' + (active ? ' is-active' : '') + '"'
+        + ' role="radio" aria-checked="' + (active ? 'true' : 'false') + '"'
+        + ' tabindex="' + (active || (choiceState.selected === null && index === 0) ? '0' : '-1') + '"'
+        + ' data-choice-value="' + escapeHtml(String(option.value)) + '">'
+        + '<span class="mission-choice-option-main">' + escapeHtml(option.label) + '</span>'
+        + (option.meta ? '<span class="mission-choice-option-meta">' + escapeHtml(option.meta) + '</span>' : '')
+        + '</button>';
+    }).join('');
+  }
+
+  /* @param config {eyebrow, title, copy, options, confirmLabel, danger,
+   *                quantity: {label, min, max, value}} */
+  function openChoice(config) {
+    if (!choiceModal) return Promise.resolve(null);
+    if (choiceState.resolve) closeChoice(null);
+    choiceState.options = config.options || [];
+    choiceState.selected = choiceState.options.length ? String(choiceState.options[0].value) : null;
+    choiceState.lastFocus = document.activeElement;
+    document.getElementById('mission-choice-eyebrow').textContent = config.eyebrow || '';
+    document.getElementById('mission-choice-title').textContent = config.title || '';
+    var copy = document.getElementById('mission-choice-copy');
+    copy.textContent = config.copy || '';
+    copy.hidden = !config.copy;
+    choiceError.textContent = '';
+    choiceConfirm.textContent = config.confirmLabel || 'Confirm';
+    choiceConfirm.classList.toggle('is-danger', !!config.danger);
+    var quantity = config.quantity || null;
+    choiceQuantity.hidden = !quantity;
+    if (quantity) {
+      document.getElementById('mission-choice-quantity-label').textContent = quantity.label || 'How many?';
+      choiceQuantityInput.min = String(quantity.min || 1);
+      choiceQuantityInput.max = String(quantity.max || 1);
+      choiceQuantityInput.value = String(quantity.value || quantity.max || 1);
+    }
+    renderChoiceOptions();
+    if (typeof choiceModal.showModal === 'function') choiceModal.showModal();
+    else choiceModal.setAttribute('open', '');
+    window.setTimeout(function () {
+      var first = quantity ? choiceQuantityInput : choiceOptions.querySelector('[tabindex="0"]');
+      (first || choiceConfirm).focus();
+    }, 25);
+    return new Promise(function (resolve) { choiceState.resolve = resolve; });
+  }
+
+  function submitChoice() {
+    if (choiceState.options.length && choiceState.selected === null) {
+      choiceError.textContent = 'Choose one of the options first.';
+      return;
+    }
+    var quantity = null;
+    if (!choiceQuantity.hidden) {
+      /* Clamped rather than rejected: the field is bounded by min/max already,
+       * and a typed 999 means "all of them" far more often than it means a
+       * mistake worth an error message for. */
+      var min = Number(choiceQuantityInput.min) || 1;
+      var max = Number(choiceQuantityInput.max) || min;
+      quantity = Math.max(min, Math.min(max, Math.round(Number(choiceQuantityInput.value) || 0)));
+    }
+    closeChoice({ value: choiceState.selected, quantity: quantity });
+  }
+
+  if (choiceModal) {
+    choiceOptions.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-choice-value]');
+      if (!button) return;
+      choiceState.selected = button.getAttribute('data-choice-value');
+      renderChoiceOptions();
+      var active = choiceOptions.querySelector('.is-active');
+      if (active) active.focus();
+    });
+    /* Arrow-key roving focus across the options, matching the quiz's own answer
+     * list -- a radiogroup that only responds to Tab is not one. */
+    choiceOptions.addEventListener('keydown', function (event) {
+      var keys = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
+      var step = keys[event.key];
+      if (!step) return;
+      event.preventDefault();
+      var buttons = Array.prototype.slice.call(choiceOptions.querySelectorAll('[data-choice-value]'));
+      if (!buttons.length) return;
+      var current = buttons.indexOf(document.activeElement);
+      var next = buttons[(current + step + buttons.length) % buttons.length];
+      choiceState.selected = next.getAttribute('data-choice-value');
+      renderChoiceOptions();
+      var active = choiceOptions.querySelector('.is-active');
+      if (active) active.focus();
+    });
+    choiceQuantityInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') { event.preventDefault(); submitChoice(); }
+    });
+    choiceConfirm.addEventListener('click', submitChoice);
+    document.getElementById('mission-choice-cancel').addEventListener('click', function () { closeChoice(null); });
+    document.getElementById('mission-choice-close').addEventListener('click', function () { closeChoice(null); });
+    // Escape fires the dialog's own cancel event; the promise has to settle.
+    choiceModal.addEventListener('cancel', function (event) { event.preventDefault(); closeChoice(null); });
+    choiceModal.addEventListener('click', function (event) { if (event.target === choiceModal) closeChoice(null); });
+  }
 
   /* One bar per ceiling. Both are always drawn, even at zero, because the panel
    * has to state the limit it is about to enforce -- a player who only finds
@@ -2992,18 +3124,21 @@
         : 'You are not carrying any stims yet.', true);
       return;
     }
-    var lines = candidates.map(function (item, index) {
-      return (index + 1) + '. ' + item.name + ' (x' + item.quantity + ') — ' + stimSummary(item);
+    openChoice({
+      eyebrow: 'Field kit',
+      title: 'Quick slot ' + (slotIndex + 1),
+      copy: 'Pick the stim to keep one click away in this slot.',
+      confirmLabel: 'Assign',
+      options: candidates.map(function (item) {
+        return { value: item.id, label: item.name + ' \u00d7' + item.quantity, meta: stimSummary(item) };
+      })
+    }).then(function (choice) {
+      if (!choice) return null;
+      button.disabled = true;
+      return post('/api/missions/stim-slot.php', { slot_index: slotIndex, loot_definition_id: Number(choice.value), csrf: window.PW_AUTH.csrf })
+        .then(function (result) { setStatus(result.message); return load(); })
+        .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
     });
-    var choice = window.prompt('Which stim should go in quick slot ' + (slotIndex + 1) + '?'
-      + NEWLINE + NEWLINE + lines.join(NEWLINE), '1');
-    if (choice === null) return;
-    var picked = candidates[Math.round(Number(choice) || 0) - 1];
-    if (!picked) { setStatus('That is not one of the listed stims.', true); return; }
-    button.disabled = true;
-    post('/api/missions/stim-slot.php', { slot_index: slotIndex, loot_definition_id: picked.id, csrf: window.PW_AUTH.csrf })
-      .then(function (result) { setStatus(result.message); return load(); })
-      .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
   }
 
   function clearStimSlot(button) {
@@ -3106,18 +3241,24 @@
     var itemId = Number(button.getAttribute('data-destroy-item'));
     var name = button.getAttribute('data-item-name') || 'this item';
     var spare = Number(button.getAttribute('data-spare')) || 1;
-    var quantity = 1;
-    if (spare > 1) {
-      var answer = window.prompt('How many copies of ' + name + ' should be destroyed? You have ' + spare + ' spare.', String(spare));
-      if (answer === null) return;
-      quantity = Math.max(1, Math.min(spare, Math.round(Number(answer) || 0)));
-    } else if (!window.confirm('Destroy ' + name + '? This cannot be undone.')) {
-      return;
-    }
-    button.disabled = true;
-    post('/api/missions/inventory-destroy.php', { loot_definition_id: itemId, quantity: quantity, csrf: window.PW_AUTH.csrf })
-      .then(function (result) { setStatus(result.message); return load(); })
-      .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
+    openChoice({
+      eyebrow: 'Quartermaster',
+      title: 'Destroy ' + name + '?',
+      copy: spare > 1
+        ? 'You have ' + spare + ' spare. This cannot be undone.'
+        : 'This cannot be undone.',
+      confirmLabel: 'Destroy',
+      danger: true,
+      // Only asked when there is a choice to make; a single spare copy is a
+      // plain confirmation rather than a form with one possible answer.
+      quantity: spare > 1 ? { label: 'How many to destroy', min: 1, max: spare, value: spare } : null
+    }).then(function (choice) {
+      if (!choice) return null;
+      button.disabled = true;
+      return post('/api/missions/inventory-destroy.php', { loot_definition_id: itemId, quantity: choice.quantity || 1, csrf: window.PW_AUTH.csrf })
+        .then(function (result) { setStatus(result.message); return load(); })
+        .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
+    });
   }
 
   /* A fatigue stim needs a target, so the player picks one rather than the page
@@ -3133,17 +3274,27 @@
         return member.status === 'available' && Number(member.fatigue) < Number(member.fatigue_max);
       });
       if (!candidates.length) { setStatus('Every crew member standing by is already fully rested.', true); return; }
-      var lines = candidates.map(function (member, index) {
-        return (index + 1) + '. ' + member.name + ' (' + member.fatigue + '/' + member.fatigue_max + ' fatigue)';
+      openChoice({
+        eyebrow: 'Field kit',
+        title: 'Give ' + item.name,
+        copy: 'Only crew standing by are listed — rest does not accrue in the field.',
+        confirmLabel: 'Give stim',
+        options: candidates.map(function (member) {
+          return { value: member.id, label: member.name, meta: member.fatigue + ' / ' + member.fatigue_max + ' fatigue' };
+        })
+      }).then(function (choice) {
+        if (!choice) return null;
+        payload.crew_id = Number(choice.value);
+        return sendStim(button, payload);
       });
-      var choice = window.prompt('Give ' + item.name + ' to which crew member?' + NEWLINE + NEWLINE + lines.join(NEWLINE), '1');
-      if (choice === null) return;
-      var picked = candidates[Math.round(Number(choice) || 0) - 1];
-      if (!picked) { setStatus('That is not one of the listed crew members.', true); return; }
-      payload.crew_id = picked.id;
+      return;
     }
+    sendStim(button, payload);
+  }
+
+  function sendStim(button, payload) {
     button.disabled = true;
-    post('/api/missions/stim-use.php', payload)
+    return post('/api/missions/stim-use.php', payload)
       .then(function (result) { setStatus(result.message); return load(); })
       .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
   }

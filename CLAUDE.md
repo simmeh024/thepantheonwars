@@ -619,6 +619,45 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **An in-site dialog replaces `window.prompt()` and `window.confirm()`.** No
+  migration. The mission page had four browser dialogs left -- pick a crew
+  member for a fatigue stim, pick a stim for a quick slot, choose a destroy
+  quantity, and confirm a single destroy. A `prompt()` is unstyled, shows the
+  page's own hostname above it, is localised by the browser rather than the
+  site, and in the picking cases asked the player to **type the number next to
+  the option they wanted** instead of clicking it.
+  **One component, not three.** `openChoice(config)` returns a promise resolving
+  to `{ value, quantity }` or null, so each caller reads the same as the
+  `prompt()` it replaced. The four differ only in what they list: crew, stims, a
+  bounded number, or nothing at all. Built on the same `<dialog>` shell as the
+  launch and result modals so the three read as one surface.
+  This is not a new convention -- two comments in `js/missions.js` already
+  explain why other flows avoid `window.confirm()`; these four were simply never
+  converted.
+  **The options are a real radiogroup**, with arrow-key roving focus that wraps,
+  matching the quiz's own answer list. A radiogroup that only responds to Tab is
+  not one.
+  **Three failure modes handled deliberately:** Escape settles the promise
+  instead of leaving it dangling (the dialog's `cancel` event is preventDefaulted
+  and routed through the same close path); opening a second dialog while one is
+  open resolves the first as null rather than stranding it; and focus returns to
+  whatever opened the dialog, so a keyboard user is not dropped at the top of the
+  document after every confirm.
+  A destroy quantity is **clamped, not rejected** -- the field is already bounded,
+  and a typed 999 means "all of them" far more often than it means a mistake
+  worth an error for. Asserted: 999 against 6 spare posts 6.
+  The destroy confirm is red rather than the teal every other modal ends with,
+  since it is irreversible.
+  **Two spacing bugs found by measuring:** the shared `.mission-launch-error`
+  reserves 20px so a validation message cannot shift the buttons under a moving
+  cursor, and the shared action bar carries its own 16px top margin -- both
+  correct in the two long modals, but stacked with this dialog's own grid gap
+  they left a 76px hole above the buttons on every ordinary open. Scoped to 44px.
+  Verified in a browser against the real `<dialog>` markup and the real callers:
+  all four variants render the right title, copy, options and confirm label; each
+  posts the right payload; cancel and Escape post nothing; and it fits 375px with
+  no overflow. Worst contrast 7.91:1. `missions.css?v=43` / `missions.js?v=41`.
+
 - **The stim belt, two capacity protocols, and one flat-effect list instead of
   five.** **Run `sql/migration_mission_stim_belt.sql` once.**
   **A 4x2 grid of quick slots** under the commander card in the right rail.
