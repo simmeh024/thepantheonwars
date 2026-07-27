@@ -51,15 +51,10 @@ function pw_research_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_mission_credits_ready($db) || !pw_mission_gear_ready($db)) return $ready = false;
-    try {
-        foreach (['game_research_categories', 'game_research_nodes', 'game_research_prerequisites', 'game_player_research'] as $table) {
-            $db->query('SELECT 1 FROM `' . $table . '` LIMIT 1');
-        }
-        $db->query('SELECT requires_all_other_unlocked FROM `game_research_categories` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_research_categories', ['requires_all_other_unlocked'])
+        && pw_schema_has($db, 'game_research_nodes')
+        && pw_schema_has($db, 'game_research_prerequisites')
+        && pw_schema_has($db, 'game_player_research');
 }
 
 function pw_research_require_ready(PDO $db): void {
@@ -197,12 +192,7 @@ function pw_research_loot_table_locks_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_research_ready($db) || !pw_mission_loot_table_research_locks_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT target_loot_table_id FROM `game_research_nodes` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_research_nodes', ['target_loot_table_id']);
 }
 
 /** Queue selections and authored activation transmissions were added after the
@@ -212,15 +202,9 @@ function pw_research_queue_transmissions_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_research_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT activation_transmission FROM `game_research_nodes` LIMIT 1');
-        foreach (['game_player_research_queue', 'game_player_research_transmissions'] as $table) {
-            $db->query('SELECT 1 FROM `' . $table . '` LIMIT 1');
-        }
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_research_nodes', ['activation_transmission'])
+        && pw_schema_has($db, 'game_player_research_queue')
+        && pw_schema_has($db, 'game_player_research_transmissions');
 }
 
 /** Active bonuses are account-owned and therefore read only from the server.
@@ -364,74 +348,73 @@ function pw_research_mission_is_unlocked(PDO $db, int $userId, int $missionId): 
  */
 function pw_research_unlockable_node_ids(PDO $db, int $userId): array {
     if (!pw_research_ready($db)) return [];
+    /* Memoised for the request: api/research/overview.php asks once, but the
+     * missions page asks again for its badge on a request that already does
+     * plenty of work. */
+    static $cache = [];
+    if (isset($cache[$userId])) return $cache[$userId];
     try {
-        $standing = $db->prepare('SELECT reputation FROM users WHERE id = ?');
-        $standing->execute([$userId]);
-        $rank = max(0, (int)(pw_reputation_info((int)$standing->fetchColumn())['level_number'] ?? 0));
-
-        $nodes = $db->query(
-            'SELECT id, research_category_id, is_enabled, required_reputation_level,
-                    credit_cost, salvage_loot_definition_id, salvage_quantity
-             FROM game_research_nodes'
-        )->fetchAll();
-        if (!$nodes) return [];
-
-        $unlocked = array_flip(pw_research_player_unlocked_ids($db, $userId));
-
-        /* The final branch stays sealed until every other enabled protocol is
-         * owned -- the same gate api/research/overview.php applies before it
-         * builds its cards, so a node inside it must not be counted as ready
-         * while it is still hidden from the tree. */
-        $finalCategoryIds = [];
-        foreach ($db->query('SELECT id, requires_all_other_unlocked FROM game_research_categories')->fetchAll() as $category) {
-            if (!empty($category['requires_all_other_unlocked'])) $finalCategoryIds[(int)$category['id']] = true;
-        }
-        $finalOpen = true;
-        if ($finalCategoryIds) {
-            $normal = array_filter($nodes, static function ($node) use ($finalCategoryIds) {
-                $categoryId = $node['research_category_id'] !== null ? (int)$node['research_category_id'] : 0;
-                return !empty($node['is_enabled']) && !isset($finalCategoryIds[$categoryId]);
-            });
-            $finalOpen = !empty($normal) && !array_filter($normal, static function ($node) use ($unlocked) {
-                return !isset($unlocked[(int)$node['id']]);
-            });
-        }
-
-        $prerequisites = [];
-        foreach ($db->query('SELECT research_node_id, prerequisite_node_id FROM game_research_prerequisites')->fetchAll() as $link) {
-            $prerequisites[(int)$link['research_node_id']][] = (int)$link['prerequisite_node_id'];
-        }
-
-        // Read once for the whole tree rather than per node: this runs on every
-        // missions page load, and the tree is unbounded.
-        $held = [];
-        $heldStmt = $db->prepare('SELECT loot_definition_id, quantity FROM game_player_loot WHERE user_id = ?');
-        $heldStmt->execute([$userId]);
-        foreach ($heldStmt->fetchAll() as $row) {
-            $held[(int)$row['loot_definition_id']] = (int)$row['quantity'];
-        }
+        /* Three queries, down from seven.
+         *
+         * The first shape of this pulled whole tables into PHP -- every node,
+         * every category, every prerequisite and the player's entire loot --
+         * and filtered them in a loop. That is a lot of rows to move on every
+         * Missions page load to answer "is anything ready", so the conditions
+         * moved into SQL where the indexes already are.
+         *
+         * Rank and credits stay in PHP. Rank is a ladder position
+         * pw_reputation_info() derives from a point total rather than a column,
+         * and the credit balance has its own helper that other paths share --
+         * re-deriving either inside this query would be a second definition of
+         * something that already has one.
+         */
+        $rankStmt = $db->prepare('SELECT reputation FROM users WHERE id = ?');
+        $rankStmt->execute([$userId]);
+        $rank = max(0, (int)(pw_reputation_info((int)$rankStmt->fetchColumn())['level_number'] ?? 0));
         $credits = pw_missions_credit_balance($db, $userId);
 
-        $ready = [];
-        foreach ($nodes as $node) {
-            $id = (int)$node['id'];
-            if (isset($unlocked[$id]) || empty($node['is_enabled'])) continue;
-            $categoryId = $node['research_category_id'] !== null ? (int)$node['research_category_id'] : 0;
-            if (isset($finalCategoryIds[$categoryId]) && !$finalOpen) continue;
-            if ($rank < (int)$node['required_reputation_level']) continue;
-            if ($credits < (int)$node['credit_cost']) continue;
-            $salvageId = $node['salvage_loot_definition_id'] !== null ? (int)$node['salvage_loot_definition_id'] : null;
-            if ($salvageId !== null && ($held[$salvageId] ?? 0) < (int)$node['salvage_quantity']) continue;
-            $blocked = false;
-            foreach ($prerequisites[$id] ?? [] as $prerequisiteId) {
-                if (!isset($unlocked[$prerequisiteId])) { $blocked = true; break; }
-            }
-            if ($blocked) continue;
-            $ready[] = $id;
-        }
-        return $ready;
+        /* The final branch needs its own question answered first, because
+         * "every other enabled protocol is owned" is a property of the whole
+         * tree rather than of any one node. One COUNT rather than a second pass
+         * over the nodes. */
+        $gate = $db->prepare(
+            'SELECT COUNT(*) AS total,
+                    SUM(CASE WHEN pr.user_id IS NULL THEN 1 ELSE 0 END) AS outstanding
+             FROM game_research_nodes n
+             LEFT JOIN game_research_categories c ON c.id = n.research_category_id
+             LEFT JOIN game_player_research pr ON pr.research_node_id = n.id AND pr.user_id = ?
+             WHERE n.is_enabled = 1 AND COALESCE(c.requires_all_other_unlocked, 0) = 0'
+        );
+        $gate->execute([$userId]);
+        $counts = $gate->fetch() ?: ['total' => 0, 'outstanding' => 0];
+        // The original rule exactly: the branch opens only when there is at
+        // least one ordinary protocol and none of them is outstanding.
+        $finalOpen = (int)$counts['total'] > 0 && (int)$counts['outstanding'] === 0;
+
+        $stmt = $db->prepare(
+            'SELECT n.id
+             FROM game_research_nodes n
+             LEFT JOIN game_research_categories c ON c.id = n.research_category_id
+             LEFT JOIN game_player_research pr ON pr.research_node_id = n.id AND pr.user_id = ?
+             LEFT JOIN game_player_loot pl ON pl.user_id = ? AND pl.loot_definition_id = n.salvage_loot_definition_id
+             WHERE n.is_enabled = 1
+               AND pr.user_id IS NULL
+               AND (COALESCE(c.requires_all_other_unlocked, 0) = 0 OR ? = 1)
+               AND n.required_reputation_level <= ?
+               AND n.credit_cost <= ?
+               AND (n.salvage_loot_definition_id IS NULL OR COALESCE(pl.quantity, 0) >= n.salvage_quantity)
+               AND NOT EXISTS (
+                   SELECT 1 FROM game_research_prerequisites p
+                   LEFT JOIN game_player_research owned
+                          ON owned.research_node_id = p.prerequisite_node_id AND owned.user_id = ?
+                   WHERE p.research_node_id = n.id AND owned.user_id IS NULL
+               )'
+        );
+        $stmt->execute([$userId, $userId, $finalOpen ? 1 : 0, $rank, $credits, $userId]);
+        return $cache[$userId] = array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN));
     } catch (Throwable $e) {
-        return [];
+        // A badge that cannot be computed must be absent, never wrong.
+        return $cache[$userId] = [];
     }
 }
 

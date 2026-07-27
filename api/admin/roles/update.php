@@ -48,6 +48,9 @@ if (!$role['is_superuser'] && isset($input['permissions']) && is_array($input['p
     $validPerms = array_column($db->query('SELECT `key` FROM permissions')->fetchAll(), 'key');
     $permissions = array_values(array_intersect($input['permissions'], $validPerms));
 
+    // Same reason as api/admin/members/update.php: the permission set this
+    // request already resolved no longer describes the database.
+    pw_invalidate_permission_cache();
     $db->prepare('DELETE FROM role_permissions WHERE role_slug = ?')->execute([$slug]);
     if ($permissions) {
         $insert = $db->prepare('INSERT INTO role_permissions (role_slug, permission_key) VALUES (?, ?)');

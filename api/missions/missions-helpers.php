@@ -9,27 +9,11 @@ require_once __DIR__ . '/../helpers.php';
 function pw_missions_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
-    try {
-        foreach ([
-            'game_crew_definitions',
-            'game_player_crew',
-            'game_mission_definitions',
-            'game_player_missions',
-            'game_player_mission_crew',
-        ] as $table) {
-            /* MariaDB/PDO does not consistently support the previous
-             * parameterized table-listing probe as a native prepared
-             * statement. It can throw even when the table exists, and the
-             * catch below then incorrectly reports that Missions V0 has not
-             * been migrated. Table names here are an internal fixed allow-list,
-             * so a direct, quoted probe is safe. */
-            $db->query('SELECT 1 FROM `' . $table . '` LIMIT 1');
-        }
-        $ready = true;
-    } catch (Throwable $e) {
-        $ready = false;
-    }
-    return $ready;
+    return $ready = pw_schema_has($db, 'game_crew_definitions')
+        && pw_schema_has($db, 'game_player_crew')
+        && pw_schema_has($db, 'game_mission_definitions')
+        && pw_schema_has($db, 'game_player_missions')
+        && pw_schema_has($db, 'game_player_mission_crew');
 }
 
 function pw_missions_require_ready(PDO $db): void {
@@ -48,12 +32,7 @@ function pw_mission_successions_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT unlocks_after_mission_id, unlocks_after_completion_count FROM `game_mission_definitions` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_mission_definitions', ['unlocks_after_mission_id', 'unlocks_after_completion_count']);
 }
 
 function pw_missions_require_successions_ready(PDO $db): void {
@@ -71,12 +50,7 @@ function pw_mission_research_locks_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT requires_research_unlock FROM `game_mission_definitions` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_mission_definitions', ['requires_research_unlock']);
 }
 
 /**
@@ -89,12 +63,7 @@ function pw_mission_campaign_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_mission_successions_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT is_campaign_final FROM `game_mission_definitions` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_mission_definitions', ['is_campaign_final']);
 }
 
 /* ---------------------------------------------------------------------------
@@ -119,12 +88,7 @@ function pw_mission_overlord_contracts_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT overlord_id FROM `game_mission_definitions` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_mission_definitions', ['overlord_id']);
 }
 
 /**
@@ -274,12 +238,7 @@ function pw_mission_fatigue_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT fatigue, fatigue_updated_at FROM `game_player_crew` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_player_crew', ['fatigue', 'fatigue_updated_at']);
 }
 
 /**
@@ -455,14 +414,9 @@ function pw_mission_stats_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT strength, cunning, science, charisma FROM `game_player_crew` LIMIT 1');
-        $db->query('SELECT base_success_percent, loot_rolls FROM `game_mission_definitions` LIMIT 1');
-        $db->query('SELECT id FROM `game_loot_definitions` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_player_crew', ['strength', 'cunning', 'science', 'charisma'])
+        && pw_schema_has($db, 'game_mission_definitions', ['base_success_percent', 'loot_rolls'])
+        && pw_schema_has($db, 'game_loot_definitions', ['id']);
 }
 
 /** Whether the per-player crew favourites migration has been applied. */
@@ -470,12 +424,7 @@ function pw_mission_crew_favorites_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT is_favorite FROM `game_player_crew` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_player_crew', ['is_favorite']);
 }
 
 /* ------------------------------------------------------------------------
@@ -528,12 +477,7 @@ function pw_mission_watermark_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT watermark_url, watermark_opacity FROM `game_mission_definitions` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_mission_definitions', ['watermark_url', 'watermark_opacity']);
 }
 
 /**
@@ -546,13 +490,8 @@ function pw_mission_credits_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT credit_reward FROM `game_mission_definitions` LIMIT 1');
-        $db->query('SELECT user_id, credits FROM `game_player_wallet` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_mission_definitions', ['credit_reward'])
+        && pw_schema_has($db, 'game_player_wallet', ['user_id', 'credits']);
 }
 
 /** Current balance. A player with no wallet row simply holds nothing. */
@@ -1198,13 +1137,8 @@ function pw_mission_gear_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_mission_stats_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT slot, bonus_strength, bonus_cunning, bonus_science, bonus_charisma, required_level, required_role, icon_url FROM `game_loot_definitions` LIMIT 1');
-        $db->query('SELECT player_crew_id, slot, loot_definition_id FROM `game_player_crew_gear` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_loot_definitions', ['slot', 'bonus_strength', 'bonus_cunning', 'bonus_science', 'bonus_charisma', 'required_level', 'required_role', 'icon_url'])
+        && pw_schema_has($db, 'game_player_crew_gear', ['player_crew_id', 'slot', 'loot_definition_id']);
 }
 
 /**
@@ -1347,12 +1281,7 @@ function pw_mission_weather_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT weather_condition, weather_icon, weather_severe FROM `game_player_missions` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_player_missions', ['weather_condition', 'weather_icon', 'weather_severe']);
 }
 
 /* ------------------------------------------------------------------------
@@ -1912,12 +1841,7 @@ function pw_mission_stim_slots_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_mission_stims_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT user_id, slot_index, loot_definition_id FROM `game_player_stim_slots` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_player_stim_slots', ['user_id', 'slot_index', 'loot_definition_id']);
 }
 
 /** How many quick slots this player has, base plus research. */
@@ -2023,13 +1947,8 @@ function pw_mission_stims_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_mission_gear_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT stim_effect, stim_value, stim_duration_seconds FROM `game_loot_definitions` LIMIT 1');
-        $db->query('SELECT user_id, effect_type, effect_value, expires_at FROM `game_player_stim_effects` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_loot_definitions', ['stim_effect', 'stim_value', 'stim_duration_seconds'])
+        && pw_schema_has($db, 'game_player_stim_effects', ['user_id', 'effect_type', 'effect_value', 'expires_at']);
 }
 
 /**
@@ -2100,14 +2019,9 @@ function pw_mission_loot_tables_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT id FROM `game_loot_tables` LIMIT 1');
-        $db->query('SELECT id FROM `game_loot_table_entries` LIMIT 1');
-        $db->query('SELECT id FROM `game_mission_loot_tables` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_loot_tables', ['id'])
+        && pw_schema_has($db, 'game_loot_table_entries', ['id'])
+        && pw_schema_has($db, 'game_mission_loot_tables', ['id']);
 }
 
 function pw_missions_require_loot_tables_ready(PDO $db): void {
@@ -2126,12 +2040,7 @@ function pw_mission_loot_table_gear_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_mission_loot_tables_ready($db) || !pw_mission_gear_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT loot_definition_id FROM `game_loot_table_entries` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_loot_table_entries', ['loot_definition_id']);
 }
 
 /** Rare research-table locks are an optional, additive layer on Loot Tables.
@@ -2141,12 +2050,7 @@ function pw_mission_loot_table_research_locks_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_mission_loot_tables_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT is_research_rare, requires_research_unlock FROM `game_loot_tables` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_loot_tables', ['is_research_rare', 'requires_research_unlock']);
 }
 
 /** Crew capacity is opt-in until its migration has run. The probe covers both
@@ -2155,13 +2059,8 @@ function pw_mission_crew_capacity_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT tier FROM `game_crew_definitions` LIMIT 1');
-        $db->query('SELECT id, status FROM `game_player_crew_offers` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_crew_definitions', ['tier'])
+        && pw_schema_has($db, 'game_player_crew_offers', ['id', 'status']);
 }
 
 function pw_missions_crew_sale_value(string $tier): int {
@@ -2440,13 +2339,8 @@ function pw_mission_dailies_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db)) return $ready = false;
-    try {
-        $db->query('SELECT user_id FROM `game_player_daily_progress` LIMIT 1');
-        $db->query('SELECT user_id FROM `game_player_daily_claims` LIMIT 1');
-        return $ready = true;
-    } catch (Throwable $e) {
-        return $ready = false;
-    }
+    return $ready = pw_schema_has($db, 'game_player_daily_progress', ['user_id'])
+        && pw_schema_has($db, 'game_player_daily_claims', ['user_id']);
 }
 
 /** Any duration at or above this counts as a long operation. */

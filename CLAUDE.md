@@ -619,6 +619,64 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Database load review: five fixes.** **Run
+  `sql/migration_db_optimizations.sql` once.** Measured per endpoint by walking
+  the call graph at both revisions, so the figures below are a comparison rather
+  than an estimate: **Missions -36%, Research -40%, Market -37%, Claim -27%**
+  reachable statements, plus two savings a statement count cannot see (below).
+  1. **Permission checks are memoised per request.** `pw_user_role_slugs()`,
+     `pw_user_permissions()` and `pw_can_see_board()` all hit the database on
+     every call and nothing cached them, so one `pw_has_permission()` cost 3
+     queries and a second cost 3 more. `api/admin/members/update.php` makes
+     seven checks: **21 queries -> 3**. The worst case was the **public forum
+     index**, which calls `pw_can_see_board()` inside a loop over the boards --
+     twelve boards with five hidden went **15 queries -> 4**, because the role
+     set and the visible-board set are each now read once and every board after
+     that is an array lookup. `pw_can_see_board()` also stopped running its own
+     superuser query and derives it from the cached permission set, so the two
+     can no longer disagree. Two endpoints mutate roles mid-request and call
+     `pw_invalidate_permission_cache()`.
+  2. **One schema read instead of thirty-three probes.** Every optional feature
+     gates on a `pw_*_ready()` probe that ran its own
+     `SELECT <cols> FROM <table> LIMIT 1`; there were **33** of them and most
+     fire on a single Missions load. They now answer from one
+     `information_schema` read per request. **`DATABASE()`, not a literal schema
+     name** -- that is the exact thing a past session got wrong (see the note at
+     the top of this file). Deliberately **not** cached across requests: saving
+     one more query would cost an administrator minutes of a freshly-run
+     migration appearing not to have worked. An unreadable snapshot falls back
+     to the original per-probe query, so a database that will not answer
+     `information_schema` behaves exactly as before rather than reporting every
+     feature as un-migrated.
+  3. **The five-minute cron was full-scanning a growing table.**
+     `pw_missions_settle_due_runs()` with no user filters on
+     `status = 'active' AND completes_at <= UTC_TIMESTAMP()`, and the only index
+     was `(user_id, status, completes_at)` -- **leftmost column `user_id`, which
+     that query never mentions, so it could not be used at all**. The per-player
+     call from the page *does* name `user_id` and was always fine, which is why
+     it went unnoticed. New `(status, completes_at)`.
+  4. **The research badge: 7 queries down to 3.** The helper added a day earlier
+     read whole tables into PHP -- every node, category and prerequisite plus the
+     player's entire loot -- and filtered in a loop, on every Missions load.
+     Conditions moved into SQL. Rank and credits stay in PHP deliberately: rank
+     is a ladder position derived from a point total rather than a column, and
+     the credit balance has a helper other paths share.
+  5. **A `NOT IN (SELECT ...)` removed from 13 visitor-stats queries.**
+     `pw_admin_view_filter_sql()` embedded a three-JOIN subquery over
+     users/user_roles/roles into every statement that filtered `page_views` --
+     the largest table on the site -- and the Visitor Statistics page fires most
+     of those cards at once. The ids resolve once per request now and are
+     inlined as integers. An empty list emits `1 = 1` rather than `NOT IN ()`,
+     which is a syntax error; and it **fails open** rather than closed, because
+     a filter that silently included administrator traffic would be a wrong
+     number rather than a missing one.
+  **The verification caught a real regression**: converting `pw_research_ready`
+  mechanically dropped its `pw_mission_credits_ready`/`pw_mission_gear_ready`
+  dependency, which would have reported the Research Facility as available on a
+  database without credits or gear. 106 assertions now compare every rewritten
+  probe against the shipped original from git -- same tables, same columns, same
+  dependency chain -- rather than against what the rewrite was supposed to do.
+
 - **Fixed: a flash of the Log In panel on every page load.** No migration.
   Reported as "whenever I refresh a page I see a flash of log in", on a signed-in
   session.

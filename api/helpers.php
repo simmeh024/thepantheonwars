@@ -384,10 +384,129 @@ function pw_require_mod_or_admin() {
 // additional roles held via user_roles. Shared by pw_user_permissions()
 // below and pw_can_see_board() (forum board visibility) so both read from
 // one source of truth instead of each keeping their own copy.
+/* ---------------------------------------------------------------------------
+ * Per-request permission cache.
+ *
+ * Resolving a user's roles and permissions costs three or four queries, and
+ * nothing memoised it -- so every pw_has_permission() call paid the full price
+ * again. The worst case was api/boards-summary.php, which calls
+ * pw_can_see_board() once per board inside a loop: on the public forum index
+ * that recomputed the same role set for every hidden board on the page.
+ *
+ * Scoped to one request, keyed by user id, because that is the only window in
+ * which the answer is guaranteed stable -- an administrator editing roles does
+ * so in a different request, and pw_invalidate_permission_cache() covers the
+ * one endpoint that changes them mid-request.
+ *
+ * A guest (no id) is keyed as 0 rather than skipped, so the empty answer is
+ * cached too.
+ * ------------------------------------------------------------------------- */
+/* ---------------------------------------------------------------------------
+ * Schema snapshot.
+ *
+ * Every optional feature in this codebase gates on a pw_*_ready() probe that
+ * asked the database whether a migration had run -- and each did it with its
+ * own `SELECT <columns> FROM <table> LIMIT 1` inside a try/catch. There are
+ * thirty-three such probes across the mission and research helpers, and most
+ * of them fire on a single Missions page load: thirty-three round trips whose
+ * only purpose is to discover the shape of a schema that changes when somebody
+ * hand-runs a migration, which is to say almost never.
+ *
+ * They are answered from one information_schema read per request instead.
+ *
+ * DATABASE() rather than a literal name, deliberately: this connection has
+ * already selected the right schema, and the name is the exact thing a past
+ * session got wrong (see the note at the top of CLAUDE.md about
+ * `rdy3i6my40b0_pantheonwars` silently matching zero rows).
+ *
+ * Deliberately NOT cached across requests. A five-minute cache would save one
+ * query and cost an administrator five minutes of a freshly-run migration
+ * appearing not to have worked, which is a far worse trade than it looks.
+ * ------------------------------------------------------------------------- */
+function pw_schema_snapshot(PDO $db): ?array {
+    static $snapshot = false;
+    if ($snapshot !== false) return $snapshot;
+    try {
+        $stmt = $db->query(
+            'SELECT TABLE_NAME, COLUMN_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()'
+        );
+        $map = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_NUM) as $row) {
+            $map[(string)$row[0]][(string)$row[1]] = true;
+        }
+        // An empty result means the read did not fail but told us nothing --
+        // treat it as unavailable rather than as "no tables exist", which would
+        // switch every optional feature off at once.
+        return $snapshot = $map ? $map : null;
+    } catch (Throwable $e) {
+        return $snapshot = null;
+    }
+}
+
+/**
+ * Whether a table exists and carries every named column.
+ *
+ * Falls back to the original one-off probe when the snapshot is unavailable, so
+ * a database that will not answer information_schema behaves exactly as it did
+ * before this existed rather than reporting every feature as un-migrated.
+ */
+function pw_schema_has(PDO $db, string $table, array $columns = []): bool {
+    $snapshot = pw_schema_snapshot($db);
+    if ($snapshot === null) return pw_schema_probe($db, $table, $columns);
+    if (!isset($snapshot[$table])) return false;
+    foreach ($columns as $column) {
+        if (!isset($snapshot[$table][$column])) return false;
+    }
+    return true;
+}
+
+/** Every table exists, with the named columns applied to all of them. */
+function pw_schema_has_all(PDO $db, array $tables, array $columns = []): bool {
+    foreach ($tables as $table) {
+        if (!pw_schema_has($db, $table, $columns)) return false;
+    }
+    return true;
+}
+
+/** The original probe, kept as the fallback path only. */
+function pw_schema_probe(PDO $db, string $table, array $columns = []): bool {
+    try {
+        $select = $columns ? '`' . implode('`, `', $columns) . '`' : '1';
+        $db->query('SELECT ' . $select . ' FROM `' . $table . '` LIMIT 1');
+        return true;
+    } catch (Throwable $e) {
+        return false;
+    }
+}
+
+function &pw_permission_cache(): array {
+    static $cache = ['slugs' => [], 'permissions' => [], 'board_roles' => []];
+    return $cache;
+}
+
+/**
+ * Clear the cache after a write that changes who can do what.
+ *
+ * Called by the two endpoints that mutate roles within a request that then goes
+ * on to read permissions again. Cheaper and far less error-prone than trying to
+ * work out which single key became stale.
+ */
+function pw_invalidate_permission_cache(): void {
+    $cache = &pw_permission_cache();
+    $cache = ['slugs' => [], 'permissions' => [], 'board_roles' => []];
+}
+
+function pw_user_cache_key($user) {
+    return (int)($user['id'] ?? 0) . ':' . (string)($user['role'] ?? '');
+}
+
 function pw_user_role_slugs($user) {
     if (empty($user) || empty($user['role'])) {
         return [];
     }
+    $cache = &pw_permission_cache();
+    $key = pw_user_cache_key($user);
+    if (isset($cache['slugs'][$key])) return $cache['slugs'][$key];
     $slugs = [$user['role']];
     if (!empty($user['id'])) {
         $stmt = pw_db()->prepare('SELECT role_slug FROM user_roles WHERE user_id = ?');
@@ -396,7 +515,7 @@ function pw_user_role_slugs($user) {
             $slugs[] = $r['role_slug'];
         }
     }
-    return array_values(array_unique($slugs));
+    return $cache['slugs'][$key] = array_values(array_unique($slugs));
 }
 
 function pw_user_permissions($user) {
@@ -404,17 +523,32 @@ function pw_user_permissions($user) {
     if (empty($slugs)) {
         return [];
     }
+    $cache = &pw_permission_cache();
+    $key = pw_user_cache_key($user);
+    if (isset($cache['permissions'][$key])) return $cache['permissions'][$key];
     $db = pw_db();
     $placeholders = implode(',', array_fill(0, count($slugs), '?'));
 
     $stmt = $db->prepare("SELECT 1 FROM roles WHERE slug IN ($placeholders) AND is_superuser = 1 LIMIT 1");
     $stmt->execute($slugs);
     if ($stmt->fetch()) {
-        return ['*'];
+        return $cache['permissions'][$key] = ['*'];
     }
     $stmt = $db->prepare("SELECT DISTINCT permission_key FROM role_permissions WHERE role_slug IN ($placeholders)");
     $stmt->execute($slugs);
-    return array_column($stmt->fetchAll(), 'permission_key');
+    return $cache['permissions'][$key] = array_column($stmt->fetchAll(), 'permission_key');
+}
+
+/**
+ * Whether this user holds any superuser role.
+ *
+ * Derived from the cached permission set rather than re-queried: '*' is exactly
+ * what pw_user_permissions() returns for a superuser, so the two can never
+ * disagree, and pw_can_see_board() no longer runs its own copy of that query
+ * once per board.
+ */
+function pw_user_is_superuser($user): bool {
+    return in_array('*', pw_user_permissions($user), true);
 }
 
 // Forum board visibility: a board is visible if it's public, the visitor
@@ -430,17 +564,23 @@ function pw_can_see_board($user, $board) {
     if (empty($slugs)) {
         return false;
     }
-    $db = pw_db();
-    $placeholders = implode(',', array_fill(0, count($slugs), '?'));
-
-    $stmt = $db->prepare("SELECT 1 FROM roles WHERE slug IN ($placeholders) AND is_superuser = 1 LIMIT 1");
-    $stmt->execute($slugs);
-    if ($stmt->fetch()) {
+    if (pw_user_is_superuser($user)) {
         return true;
     }
-    $stmt = $db->prepare("SELECT 1 FROM forum_board_roles WHERE board_id = ? AND role_slug IN ($placeholders) LIMIT 1");
-    $stmt->execute(array_merge([$board['id']], $slugs));
-    return (bool)$stmt->fetch();
+    /* Every hidden board this user may see, read once for the whole request.
+     * This is called in a loop over the board list, and the previous shape ran
+     * two queries per board -- so the public forum index paid for the same role
+     * lookup as many times as it had hidden boards. */
+    $cache = &pw_permission_cache();
+    $key = pw_user_cache_key($user);
+    if (!isset($cache['board_roles'][$key])) {
+        $db = pw_db();
+        $placeholders = implode(',', array_fill(0, count($slugs), '?'));
+        $stmt = $db->prepare("SELECT DISTINCT board_id FROM forum_board_roles WHERE role_slug IN ($placeholders)");
+        $stmt->execute($slugs);
+        $cache['board_roles'][$key] = array_flip(array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN)));
+    }
+    return isset($cache['board_roles'][$key][(int)$board['id']]);
 }
 
 // Visitor Statistics admin page: excludes page views attributed to a
@@ -451,13 +591,51 @@ function pw_can_see_board($user, $board) {
 // query (defaults to no alias for queries that don't need one).
 function pw_admin_view_filter_sql($alias = '') {
     $col = $alias === '' ? 'user_id' : "$alias.user_id";
-    return "($col IS NULL OR $col NOT IN ("
-        . "SELECT u.id FROM users u "
-        . "LEFT JOIN user_roles ur ON ur.user_id = u.id "
-        . "LEFT JOIN roles r1 ON r1.slug = u.role "
-        . "LEFT JOIN roles r2 ON r2.slug = ur.role_slug "
-        . "WHERE r1.is_superuser = 1 OR r2.is_superuser = 1"
-        . "))";
+    $ids = pw_superuser_user_ids();
+    /* Nobody holds a superuser role, so there is nothing to exclude. Returning
+     * a constant rather than an empty NOT IN () -- which is a syntax error --
+     * also lets the optimiser drop the term entirely. */
+    if (!$ids) return '1 = 1';
+    return "($col IS NULL OR $col NOT IN (" . implode(',', $ids) . "))";
+}
+
+/**
+ * Every user id holding a superuser role, resolved once per request.
+ *
+ * This used to be an inline `NOT IN (SELECT ... FROM users LEFT JOIN user_roles
+ * LEFT JOIN roles ...)` embedded in thirteen Visitor Statistics queries, each
+ * running against page_views -- the largest table on the site. A dependent
+ * subquery there is the classic MariaDB planner trap, and the page fires most
+ * of those cards at once, so the same three-table join was re-planned and
+ * re-run a dozen times to produce a list that is a handful of integers.
+ *
+ * Resolved to literal integers rather than bound parameters because the result
+ * is spliced into SQL that callers go on to compose; every value is cast, and
+ * they come from the database rather than from a request.
+ *
+ * @return int[]
+ */
+function pw_superuser_user_ids(): array {
+    static $ids = null;
+    if ($ids !== null) return $ids;
+    try {
+        $rows = pw_db()->query(
+            'SELECT DISTINCT u.id
+             FROM users u
+             LEFT JOIN user_roles ur ON ur.user_id = u.id
+             LEFT JOIN roles r1 ON r1.slug = u.role
+             LEFT JOIN roles r2 ON r2.slug = ur.role_slug
+             WHERE r1.is_superuser = 1 OR r2.is_superuser = 1'
+        )->fetchAll(PDO::FETCH_COLUMN);
+    } catch (Throwable $e) {
+        /* Failing closed here would silently include administrator traffic in
+         * every visitor statistic, which is a wrong number rather than a
+         * missing one -- so an empty list is returned and the caller's filter
+         * becomes a no-op, matching what the subquery did when it matched
+         * nothing. */
+        return $ids = [];
+    }
+    return $ids = array_map('intval', $rows);
 }
 
 // Shared lookup for the topics endpoints (create/list/get/move) that all

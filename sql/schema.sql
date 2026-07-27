@@ -1821,6 +1821,10 @@ CREATE TABLE IF NOT EXISTS game_player_missions (
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   KEY idx_game_player_missions_user_status (user_id, status, completes_at),
+  -- Serves the cron sweep, which filters on status and completes_at with no
+  -- user: the index above cannot help it, because user_id is its leftmost
+  -- column. See sql/migration_db_optimizations.sql.
+  KEY idx_game_player_missions_due (status, completes_at),
   KEY idx_game_player_missions_definition (mission_definition_id),
   CONSTRAINT fk_game_player_missions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_game_player_missions_definition FOREIGN KEY (mission_definition_id) REFERENCES game_mission_definitions(id) ON DELETE RESTRICT
@@ -1899,7 +1903,10 @@ CREATE TABLE IF NOT EXISTS game_player_loot (
   first_acquired_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY uq_game_player_loot_item (user_id, loot_definition_id),
-  KEY idx_game_player_loot_user (user_id),
+  -- Quantity is in the key so pw_missions_inventory_usage()'s "> 0" filter is
+  -- satisfied from the index. A bare (user_id) index used to sit here too and
+  -- was dropped as a strict prefix of the unique key above.
+  KEY idx_game_player_loot_held (user_id, quantity),
   CONSTRAINT fk_game_player_loot_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   CONSTRAINT fk_game_player_loot_definition FOREIGN KEY (loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

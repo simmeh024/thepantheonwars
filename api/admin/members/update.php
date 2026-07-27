@@ -174,6 +174,9 @@ if ($otherRolesChanged) {
         $delStmt->execute(array_merge([$id], $removedOtherRoles));
     }
     if ($addedOtherRoles) {
+        // Role changes land mid-request, so anything read from the cache
+        // before this point is now stale.
+        pw_invalidate_permission_cache();
         $insStmt = $db->prepare('INSERT IGNORE INTO user_roles (user_id, role_slug) VALUES (?, ?)');
         foreach ($addedOtherRoles as $slug) {
             $insStmt->execute([$id, $slug]);
