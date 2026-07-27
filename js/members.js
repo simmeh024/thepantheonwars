@@ -2,7 +2,12 @@
 // Injects the auth modal, keeps nav in sync with session state, and exposes
 // window.PW_AUTH for other scripts (quiz.html, community.html) to read.
 
-window.PW_AUTH = { loggedIn: false, user: null, csrf: null, permissions: [], oauth: { google: true, apple: false }, maintenance: { enabled: false, message: '' } };
+/* `resolved` distinguishes "signed out" from "not asked yet". Without it every
+ * gated page treats the pre-flight default as a real signed-out session and
+ * paints its Log In panel before session-check.php has answered, which a signed
+ * -in visitor sees as a flash on every single page load. It is set once the
+ * check settles, whether it succeeded or failed. */
+window.PW_AUTH = { resolved: false, loggedIn: false, user: null, csrf: null, permissions: [], oauth: { google: true, apple: false }, maintenance: { enabled: false, message: '' } };
 
 // '*' means every permission (the logged-in user's role is a superuser, e.g.
 // admin) -- see api/helpers.php's pw_has_permission() for the server-side
@@ -361,7 +366,7 @@ function initMembers() {
     if (logoutBtn) {
       e.preventDefault();
       postJson('/api/logout.php', { csrf: window.PW_AUTH.csrf }).then(function () {
-        window.PW_AUTH = { loggedIn: false, user: null, csrf: null, permissions: [], oauth: { google: true, apple: false }, maintenance: { enabled: false, message: '' } };
+        window.PW_AUTH = { resolved: true, loggedIn: false, user: null, csrf: null, permissions: [], oauth: { google: true, apple: false }, maintenance: { enabled: false, message: '' } };
         // An explicit Log Out must not be immediately undone by a lingering
         // Google session on the very next page load.
         localStorage.removeItem(GOOGLE_LINKED_KEY);
@@ -534,6 +539,7 @@ function initMembers() {
         throw new Error('Could not establish a secure session. Please try again.');
       }
       window.PW_AUTH = {
+        resolved: true,
         loggedIn: !!data.loggedIn,
         user: data.user || null,
         csrf: data.csrf,
@@ -761,6 +767,7 @@ function initMembers() {
       .then(function (data) {
         if (!data || !data.ok || !data.csrf) throw new Error('Invalid session response.');
         window.PW_AUTH = {
+          resolved: true,
           loggedIn: !!data.loggedIn,
           user: data.user || null,
           csrf: data.csrf || null,
@@ -787,7 +794,14 @@ function initMembers() {
         if (window.PW_AUTH.loggedIn) loadNotifications();
         document.dispatchEvent(new CustomEvent('pw-auth-ready'));
       })
-      .catch(function () { renderNav(); });
+      .catch(function () {
+        /* A failed check is still an answer: the page must fall back to the
+         * signed-out view rather than waiting forever on a request that is not
+         * coming back. */
+        window.PW_AUTH.resolved = true;
+        renderNav();
+        document.dispatchEvent(new CustomEvent('pw-auth-ready'));
+      });
   };
 
   var initialAuthRefreshStarted = false;

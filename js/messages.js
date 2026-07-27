@@ -483,7 +483,11 @@
   document.addEventListener('visibilitychange', function () { if (document.hidden) stopPolling(); else { loadConversations(); if (activeConversation) selectConversation(activeConversation.id); startPolling(); } });
 
   function boot() {
-    if (!window.PW_AUTH || !window.PW_AUTH.loggedIn) { gate.hidden = false; app.hidden = true; return; }
+    /* Nothing is painted until the session is actually known. loggedIn alone
+     * cannot tell "signed out" from "not asked yet", so gating on it here is
+     * what made a signed-in visitor see the Log In panel on every load. */
+    if (!window.PW_AUTH || !window.PW_AUTH.resolved) return;
+    if (!window.PW_AUTH.loggedIn) { gate.hidden = false; app.hidden = true; return; }
     gate.hidden = true; app.hidden = false;
     loadConversations().then(function () {
       var conversationId = Number(currentParam('conversation') || 0);
@@ -495,5 +499,9 @@
   }
 
   document.addEventListener('pw-auth-ready', boot);
+  /* Also called directly, for the case where the session resolved before this
+   * script ran and the event has already been and gone -- boot() is inert until
+   * PW_AUTH.resolved, so the duplicate call costs nothing. */
+  boot();
   if (window.PW_AUTH) boot();
 })();

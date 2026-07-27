@@ -264,7 +264,11 @@
   }
 
   function load() {
-    if (!window.PW_AUTH || !window.PW_AUTH.loggedIn) { gate.hidden = false; content.hidden = true; return Promise.resolve(); }
+    /* Nothing is painted until the session is actually known. loggedIn alone
+     * cannot tell "signed out" from "not asked yet", so gating on it here is
+     * what made a signed-in visitor see the Log In panel on every load. */
+    if (!window.PW_AUTH || !window.PW_AUTH.resolved) return Promise.resolve();
+    if (!window.PW_AUTH.loggedIn) { gate.hidden = false; content.hidden = true; return Promise.resolve(); }
     gate.hidden = true; content.hidden = false;
     return fetch('/api/research/overview.php', { credentials: 'same-origin', cache: 'no-store' }).then(function (response) { return response.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'The Research Facility is unavailable.'); render(data); }).catch(function (error) { board.innerHTML = '<p class="research-empty">' + esc(error.message || 'The Research Facility is unavailable.') + '</p>'; syncMapScale(); setStatus(error.message || 'The Research Facility is unavailable.', true); });
   }

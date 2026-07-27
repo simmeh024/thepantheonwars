@@ -619,6 +619,40 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Fixed: a flash of the Log In panel on every page load.** No migration.
+  Reported as "whenever I refresh a page I see a flash of log in", on a signed-in
+  session.
+  **The header was not the cause** and was already correct -- its Login link
+  ships with `hidden` and the slot carries `aria-busy` until
+  `session-check.php` answers, which was verified by measuring the pre-JS
+  computed style (`display: none`). The flash came from the **gated pages**:
+  Missions, Market, Research and Messages each own a full-width "Log in to..."
+  panel with a Log In button.
+  **Root cause: `window.PW_AUTH.loggedIn` starts `false`, so "signed out" and
+  "not asked yet" were the same value.** Each page calls its `load()` once
+  directly on startup -- deliberately, to cover the race where `pw-auth-ready`
+  fires before the page script attaches its listener -- and that call read the
+  pre-flight default as a real signed-out session, painted the gate, and undid
+  it a moment later when the real answer arrived.
+  Fixed by adding **`window.PW_AUTH.resolved`**, set once the session check
+  settles either way, with every gate now waiting on it. The direct `load()`
+  call stays and is simply inert until the answer exists, so the race it guards
+  against is still covered.
+  **Two further defects fixed by the same mechanism.** `refreshAuthNav()`'s
+  failure path re-rendered the nav but never dispatched `pw-auth-ready`, so a
+  session check that failed left every gated page waiting forever on an event
+  that was not coming; it now marks the session resolved and fires the event, and
+  the page falls back to the signed-out view. And `js/messages.js` only ever
+  *listened* for `pw-auth-ready` with no direct call, so if the session resolved
+  before that script ran the page never rendered at all -- now safe to call
+  directly, since `boot()` is inert until resolved.
+  Reproduced before fixing, by replaying the real load sequence against the real
+  guard: signed-in went `GATE SHOWN -> gate hidden -> content shown` before the
+  change and `gate hidden -> gate hidden -> content shown` after, with the
+  signed-out path unchanged in its final state.
+  `members.js?v=43` (all 31 pages) / `missions.js?v=43` / `market.js?v=5` /
+  `research.js?v=11` / `messages.js?v=7`.
+
 - **"Protocols ready" mark on the Research Facility card.** No migration. A
   gold `!` in the card's corner on the missions page whenever the player could
   activate a research protocol right now, with the count in its tooltip.

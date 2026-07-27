@@ -141,7 +141,11 @@
 
   function setStatus(message, error) { status.textContent = message || ''; status.classList.toggle('is-error', !!error); }
   function load() {
-    if (!window.PW_AUTH || !window.PW_AUTH.loggedIn) { gate.hidden = false; content.hidden = true; return Promise.resolve(); }
+    /* Nothing is painted until the session is actually known. loggedIn alone
+     * cannot tell "signed out" from "not asked yet", so gating on it here is
+     * what made a signed-in visitor see the Log In panel on every load. */
+    if (!window.PW_AUTH || !window.PW_AUTH.resolved) return Promise.resolve();
+    if (!window.PW_AUTH.loggedIn) { gate.hidden = false; content.hidden = true; return Promise.resolve(); }
     gate.hidden = true; content.hidden = false;
     return fetch('/api/market/overview.php', { credentials: 'same-origin', cache: 'no-store' }).then(function (response) { return response.json(); }).then(function (data) { if (!data.ok) throw new Error(data.error || 'The Market is unavailable.'); render(data); }).catch(function (error) { gearList.innerHTML = '<p class="market-empty">' + esc(error.message || 'The Market is unavailable.') + '</p>'; characterList.innerHTML = ''; if (featured) featured.hidden = true; if (activeMissions) activeMissions.innerHTML = ''; if (globalActivity) globalActivity.innerHTML = ''; setStatus('', true); });
   }
