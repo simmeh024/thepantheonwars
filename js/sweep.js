@@ -26,6 +26,8 @@
   var bankButton = document.getElementById('sweep-bank');
   var abandonButton = document.getElementById('sweep-abandon');
   var loginButton = document.getElementById('sweep-login');
+  var profileCard = document.getElementById('sweep-profile-card');
+  var trophyList = document.getElementById('sweep-trophy-list');
 
   function esc(value) { var node = document.createElement('div'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
   function num(value) { return Number(value || 0).toLocaleString(); }
@@ -266,7 +268,63 @@
     }).join('');
   }
 
+  /* The commander card the missions page shows, rendered from the same block
+     the state endpoint now sends. Hand-duplicated rather than shared, which is
+     this codebase's standing convention for markup across pages. */
+  function renderProfile() {
+    if (!profileCard) return;
+    var player = state.data && state.data.player;
+    if (!player) { profileCard.innerHTML = ''; return; }
+    var reputation = player.reputation || {};
+    var name = String(player.display_name || 'Commander');
+    var rankColor = reputation.level_color || '#c7ccd6';
+    var progress = Math.max(0, Math.min(100, Number(reputation.progress_percent) || 0));
+    var nextLine = reputation.next_level_name
+      ? num(reputation.points) + ' / ' + num(reputation.next_level_threshold) + ' to ' + reputation.next_level_name
+      : num(reputation.points) + ' reputation \u00b7 highest standing reached';
+    profileCard.innerHTML = '<span class="eyebrow">Commander</span>'
+      + '<div class="sweep-profile-head">'
+      + '<span class="sweep-profile-avatar" style="--rank-color:' + esc(rankColor) + '">'
+      + '<img src="/uploads/avatars/' + encodeURIComponent(player.id) + '.jpg" alt="" onerror="this.hidden=true">'
+      + '<span class="sweep-profile-fallback">' + esc(name.charAt(0).toUpperCase()) + '</span></span>'
+      + '<span class="sweep-profile-identity"><strong>' + esc(name) + '</strong>'
+      + '<span class="sweep-profile-rank" style="color:' + esc(rankColor) + '">'
+      + (reputation.level_number ? '<i>' + Number(reputation.level_number) + '</i>' : '')
+      + esc(reputation.level_name || 'Unranked') + '</span></span></div>'
+      + '<div class="sweep-profile-rep"><span class="sweep-profile-track"><i style="width:' + progress + '%;background:' + esc(rankColor) + '"></i></span>'
+      + '<small>' + esc(nextLine) + '</small></div>'
+      + '<div class="sweep-profile-credits"><span>Total credits</span><strong>' + num(player.credits) + '</strong></div>';
+  }
+
+  /* Banked epic and legendary finds only. A run that collapsed with a
+     legendary on the board never won it, and this is the one panel whose whole
+     job is to record what was kept. */
+  function renderTrophies() {
+    if (!trophyList) return;
+    var rows = (state.data && state.data.trophies) || [];
+    if (!rows.length) {
+      trophyList.innerHTML = '<p class="sweep-muted">No epic or legendary recovery yet. They are logged here once a sweep carrying one is banked.</p>';
+      return;
+    }
+    trophyList.innerHTML = '<ul class="sweep-trophies">' + rows.map(function (row) {
+      var tier = String(row.tier || '').toLowerCase();
+      var icon = safeImage(row.icon);
+      var art = icon
+        ? '<img src="' + esc(icon) + '" alt="">'
+        : '<span aria-hidden="true">' + (row.kind === 'crew' ? '\u25c9' : '\u25c6') + '</span>';
+      /* The name ellipses in a 268px rail, so the full one has to be reachable
+         somewhere -- the title is the whole label, not just the name. */
+      return '<li class="sweep-trophy is-tier-' + esc(tier) + '" title="'
+        + esc(row.name + ' — ' + tier + ', recovered in sector ' + Number(row.rank_number)) + '">'
+        + '<span class="sweep-trophy-art">' + art + '</span>'
+        + '<span class="sweep-trophy-copy"><strong>' + esc(row.name) + '</strong>'
+        + '<small>' + esc(tier) + ' \u00b7 sector ' + Number(row.rank_number) + '</small></span></li>';
+    }).join('') + '</ul>';
+  }
+
   function render() {
+    renderProfile();
+    renderTrophies();
     renderSector();
     renderLadder();
     renderBoard();
@@ -293,6 +351,8 @@
       sectorBody.innerHTML = '<p class="sweep-muted">' + esc(error.message) + '</p>';
       ladder.innerHTML = '<li class="sweep-muted">The sector ladder could not be read.</li>';
       crewList.innerHTML = '<p class="sweep-muted">The roster could not be read.</p>';
+      if (profileCard) profileCard.innerHTML = '<p class="sweep-muted">The commander record could not be read.</p>';
+      if (trophyList) trophyList.innerHTML = '<p class="sweep-muted">The vault could not be read.</p>';
       boardArea.innerHTML = '<p class="sweep-muted">' + esc(error.message) + '</p>';
       boardActions.hidden = true;
     });

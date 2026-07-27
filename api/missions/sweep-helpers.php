@@ -418,3 +418,48 @@ function pw_sweep_release_crew(PDO $db, int $userId, int $crewId, DateTimeImmuta
     );
     $stmt->execute([pw_missions_datetime($now), $crewId, $userId]);
 }
+
+/**
+ * The last few epic or legendary finds this command actually kept.
+ *
+ * Banked runs only. A legendary that was on the board when it collapsed was
+ * never won, and listing it as a trophy would be a lie told by the one panel
+ * whose whole job is to record what was won.
+ *
+ * Ordered by the run, not the find: the finds of a single sweep all belong to
+ * the same moment, and their cell order is where they sat on the board rather
+ * than when they were turned over.
+ */
+function pw_sweep_recent_trophies(PDO $db, int $userId, int $limit = 5): array {
+    $capacityReady = pw_mission_crew_capacity_ready($db);
+    $stmt = $db->prepare(
+        'SELECT find.find_type, find.loot_definition_id, find.crew_definition_id,
+                run.rank_number, run.ended_at,
+                gear.name AS gear_name, gear.tier AS gear_tier, gear.icon_url AS gear_icon,
+                crew.name AS crew_name, crew.portrait_url AS crew_icon, '
+        . ($capacityReady ? 'crew.tier AS crew_tier' : '"common" AS crew_tier') . '
+         FROM game_player_sweep_finds find
+         JOIN game_player_sweep_runs run ON run.id = find.run_id
+         LEFT JOIN game_loot_definitions gear ON gear.id = find.loot_definition_id
+         LEFT JOIN game_crew_definitions crew ON crew.id = find.crew_definition_id
+         WHERE run.user_id = ? AND run.status = "banked"
+           AND (LOWER(gear.tier) IN ("epic", "legendary")'
+        . ($capacityReady ? ' OR LOWER(crew.tier) IN ("epic", "legendary")' : '') . ')
+         ORDER BY run.ended_at DESC, run.id DESC, find.cell_index ASC
+         LIMIT ' . max(1, min(20, $limit))
+    );
+    $stmt->execute([$userId]);
+    $trophies = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $isGear = $row['loot_definition_id'] !== null;
+        $trophies[] = [
+            'name' => (string)($isGear ? $row['gear_name'] : $row['crew_name']),
+            'tier' => strtolower((string)($isGear ? $row['gear_tier'] : $row['crew_tier'])),
+            'kind' => $isGear ? 'gear' : 'crew',
+            'icon' => pw_missions_gear_icon_url(($isGear ? $row['gear_icon'] : $row['crew_icon']) ?? ''),
+            'rank_number' => (int)$row['rank_number'],
+            'found_at' => (string)($row['ended_at'] ?? ''),
+        ];
+    }
+    return $trophies;
+}

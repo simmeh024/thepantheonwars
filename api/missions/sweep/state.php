@@ -99,8 +99,22 @@ try {
         ];
     }
 
+    /* The same commander block the missions page renders, in the same shape,
+     * so one card definition serves both. Deliberately not a shared function:
+     * these are two endpoints assembling from the same helpers, which is how
+     * every other pair of pages here works. */
+    $player = [
+        'id' => $userId,
+        'display_name' => $user['display_name'] ?? $user['username'],
+        'reputation' => array_merge($reputation, ['level_number' => $rank]),
+        'credits' => pw_missions_credit_balance($db, $userId),
+        'credits_ready' => true,
+    ];
+
     pw_json([
         'ok' => true,
+        'player' => $player,
+        'trophies' => pw_sweep_recent_trophies($db, $userId),
         'reputation' => array_merge($reputation, ['level_number' => $rank]),
         'credits' => pw_missions_credit_balance($db, $userId),
         'tier' => $tier,
