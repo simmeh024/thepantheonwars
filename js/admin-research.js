@@ -6,7 +6,7 @@
 
   var nodes = [], categories = [], salvage = [], missions = [], rareLootTables = [], effectTypes = {}, boardSize = { width: 2040, height: 1440 }, legendaryBoardSize = { width: 1200, height: 540 }, boardMode = 'standard', missionLocksReady = false, lootTableLocksReady = false, queueTransmissionsReady = false;
   var current = null, categoryCurrent = null, dragging = null, panning = null, linkMode = false, linkSource = null, draftPosition = null, suppressClick = false;
-  var zoom = 1, view = 'canvas', listQuery = '', listSort = 'name';
+  var zoom = 1, view = 'canvas', listQuery = '', listSort = 'name', tidyUndo = null;
   var zoomStage = document.getElementById('research-admin-zoom');
   var minimap = document.getElementById('research-admin-minimap');
   var minimapView = document.getElementById('research-admin-minimap-view');
@@ -124,23 +124,107 @@
   }
   function visibleCanvasPosition() { return firstFreeCell(); }
 
-  /* Snap every node on this board to the pitch, keeping their relative order
-     and never stacking two in one cell. Positions are saved one request each,
-     which is the same call a drag already makes. */
+  /* Snap each node to its NEAREST grid cell, in place.
+
+     The first version of this reflowed the whole board -- it sorted every node
+     and re-laid them left to right in rows, which threw away the author's tree
+     entirely. It ran with no confirmation and saved as it went, so a single
+     click destroyed a layout that could not be recovered: layout-save.php
+     records that a node moved but not where from, and the table keeps no
+     position history.
+
+     Tidy now means what it says. A node moves at most half a cell, so a tree
+     stays the shape it was drawn in; the only thing that changes is that
+     everything lines up. Two nodes rounding onto the same cell is resolved by
+     nudging the later one to the nearest free cell, searching outward, rather
+     than by starting the whole board again. */
   function tidyLayout() {
     if (!can('research.manage')) return;
-    var nodesToPlace = boardNodes().slice().sort(function (left, right) {
-      return (Number(left.canvas_y) - Number(right.canvas_y)) || (Number(left.canvas_x) - Number(right.canvas_x));
+    var subjects = boardNodes();
+    if (!subjects.length) return;
+    if (!window.confirm('Snap ' + subjects.length + ' protocol' + (subjects.length === 1 ? '' : 's')
+      + ' to the grid? Each moves at most half a cell, and Undo tidy puts them all back.')) return;
+
+    // Captured before anything moves, so Undo has somewhere to put them back to.
+    tidyUndo = subjects.map(function (node) {
+      return { id: node.id, canvas_x: Number(node.canvas_x), canvas_y: Number(node.canvas_y) };
     });
+
     var cols = Math.max(1, Math.floor(boardWidth() / CELL_X));
-    nodesToPlace.forEach(function (node, index) {
-      var position = clampPosition({ x: (index % cols) * CELL_X, y: Math.floor(index / cols) * CELL_Y });
+    var rows = Math.max(1, Math.floor(boardHeight() / CELL_Y));
+    var taken = {};
+    var moved = 0;
+    /* Nearest-first, so a node already on the grid claims its own cell before
+       a neighbour can be nudged into it. */
+    subjects.slice().sort(function (left, right) {
+      return offGridDistance(left) - offGridDistance(right);
+    }).forEach(function (node) {
+      var col = Math.round(Number(node.canvas_x) / CELL_X);
+      var row = Math.round(Number(node.canvas_y) / CELL_Y);
+      var cell = nearestFreeCell(col, row, cols, rows, taken);
+      taken[cell.col + ':' + cell.row] = true;
+      var position = clampPosition({ x: cell.col * CELL_X, y: cell.row * CELL_Y });
       if (Number(node.canvas_x) === position.x && Number(node.canvas_y) === position.y) return;
       node.canvas_x = position.x; node.canvas_y = position.y;
       savePosition(node);
+      moved++;
     });
     renderCanvas();
-    setNotice('Layout tidied to the grid.');
+    setUndoVisible(true);
+    setNotice(moved ? moved + ' protocol' + (moved === 1 ? '' : 's') + ' snapped to the grid. Undo tidy is available.'
+      : 'Every protocol was already on the grid.');
+  }
+  function offGridDistance(node) {
+    var dx = Number(node.canvas_x) - Math.round(Number(node.canvas_x) / CELL_X) * CELL_X;
+    var dy = Number(node.canvas_y) - Math.round(Number(node.canvas_y) / CELL_Y) * CELL_Y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+  /* Rings outward from the wanted cell, so a displaced node lands beside where
+     it was rather than at the end of a queue. */
+  function nearestFreeCell(col, row, cols, rows, taken) {
+    col = Math.max(0, Math.min(cols - 1, col));
+    row = Math.max(0, Math.min(rows - 1, row));
+    if (!taken[col + ':' + row]) return { col: col, row: row };
+    for (var ring = 1; ring < Math.max(cols, rows); ring++) {
+      var candidates = [];
+      for (var dy = -ring; dy <= ring; dy++) {
+        for (var dx = -ring; dx <= ring; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== ring) continue;
+          var c = col + dx, r = row + dy;
+          if (c < 0 || r < 0 || c >= cols || r >= rows) continue;
+          if (taken[c + ':' + r]) continue;
+          candidates.push({ col: c, row: r, away: Math.sqrt(dx * dx * CELL_X * CELL_X + dy * dy * CELL_Y * CELL_Y) });
+        }
+      }
+      /* Sorted by real distance, not by scan order. A ring visited corner-first
+         hands out the diagonal cell -- 300px away on this pitch -- when an
+         orthogonal neighbour 180px away was free, which is a visibly worse
+         place to put a displaced node. */
+      if (candidates.length) {
+        candidates.sort(function (left, right) { return left.away - right.away; });
+        return { col: candidates[0].col, row: candidates[0].row };
+      }
+    }
+    return { col: col, row: row };
+  }
+  function setUndoVisible(on) {
+    var button = document.getElementById('research-admin-untidy');
+    if (button) button.hidden = !on;
+  }
+  /* Undo is only ever the last tidy, and only for this page load. That is the
+     honest limit: nothing is stored server-side, so a reload loses it. */
+  function undoTidy() {
+    if (!can('research.manage') || !tidyUndo || !tidyUndo.length) return;
+    tidyUndo.forEach(function (saved) {
+      var node = byId(saved.id);
+      if (!node) return;
+      node.canvas_x = saved.canvas_x; node.canvas_y = saved.canvas_y;
+      savePosition(node);
+    });
+    tidyUndo = null;
+    setUndoVisible(false);
+    renderCanvas();
+    setNotice('Layout restored to where it was before the tidy.');
   }
 
   /* The scale lives on a stage wrapper, not the canvas: a transform does not
@@ -701,7 +785,7 @@
     }).then(function () { apply.disabled = false; apply.classList.remove('is-busy'); });
   }, true);
 
-  ['zoom-out', 'zoom-in', 'zoom-fit', 'fullscreen', 'tidy'].forEach(function (name) {
+  ['zoom-out', 'zoom-in', 'zoom-fit', 'fullscreen', 'tidy', 'untidy'].forEach(function (name) {
     var button = document.getElementById('research-admin-' + name);
     if (!button) return;
     button.addEventListener('click', function () {
@@ -710,6 +794,7 @@
       if (name === 'zoom-fit') zoomToFit();
       if (name === 'fullscreen') toggleFullscreen();
       if (name === 'tidy') tidyLayout();
+      if (name === 'untidy') undoTidy();
     });
   });
   document.addEventListener('fullscreenchange', function () {
