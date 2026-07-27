@@ -619,6 +619,45 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Two more rows on the research canvas, and a legendary board behind a sealed
+  tab.** No migration. The main canvas grew 1080 -> 1440 (two more 180px row
+  pitches); all four places holding that number were updated together -- the PHP
+  constant, the CSS fallback on `.research-tree-board`, and the fallback
+  defaults in `js/research.js` and `js/admin-research.js`.
+  **The legendary board is 1200x540**, five columns by three rows on the same
+  pitch. Sized like the main lattice it would be mostly empty grid, and empty
+  grid reads as unfinished rather than as rare.
+  **No new column.** Which board a protocol lives on is derived from
+  `game_research_categories.requires_all_other_unlocked` -- the flag that already
+  decided the endgame branch -- so the player page, the admin canvas and both
+  position validators cannot disagree about where a node belongs.
+  **The tab is the point.** The branch used to vanish from the response entirely
+  until its gate opened: safe, but there was no sign it existed. It is now
+  announced and still sealed -- greyed with a padlock, and hover/focus says how
+  many legendary protocols wait and what is left to do. **A count and a rank,
+  never a list**, the same rule a locked timeline event follows.
+  **`aria-disabled`, not `disabled`**: a disabled button is neither focusable nor
+  reliably hoverable, so its own explanation would be unreachable. The refusal
+  lives in the click handler instead.
+  **One state that had no answer before:** a protocol can only be bought while
+  the gate is open, and an administrator adding one more ordinary node closes it
+  again. The tab stays open when the player already owns something on that
+  board, so that edit cannot hide an earned benefit.
+  **Bounds are per board.** Validating a legendary node against the main board
+  would accept a position the smaller canvas clips, losing the card with no
+  error, so `save`/`layout-save.php` both pick bounds from the node's own
+  category. Moving a protocol into a legendary category clamps rather than
+  rejects: the administrator changed the category, not the coordinates.
+  Verified in a browser against a harness built from the real markup and the
+  real render functions with only the fetch replaced -- five states, the sealed
+  tab refusing its own click, cards inside the smaller board, a card at y=1260
+  proving the new rows, no overflow at 375px, worst contrast 8.24:1. Two defects
+  found by measuring: "2 protocols waits", and a 25px tab at the narrow
+  breakpoint, one pixel over the minimum target size. **Not screenshotted** --
+  the Browser pane stopped compositing again.
+  `research.css?v=9` / `research.js?v=12` / `admin-research.css?v=5` /
+  `admin-research.js?v=11`.
+
 - **Reputation page: rank colour, a ladder, tier plaques and a readable signal
   feed.** No migration.
   **The page already had a rank colour and spent it on two elements.**
