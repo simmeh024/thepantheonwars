@@ -974,3 +974,65 @@
 .mission-contract-card.is-locked, .mission-contract-card.is-empty { border-color: rgba(90,149,185,0.34); background: rgba(6,15,28,0.5); box-shadow: none; }
 .mission-contract-card.is-locked .eyebrow, .mission-contract-card.is-empty .eyebrow { color: #8ba3b4; }
 .mission-contract-card.is-claimed { border-color: rgba(110,207,140,0.42); }
+
+/* ---------------------------------------------------------------------------
+ * Inventory limits, stims and the quartermaster rail card.
+ * ------------------------------------------------------------------------ */
+
+/* Two ceilings, drawn wherever the inventory is summarised. The tone steps at
+ * 85% rather than only at full, so the warning arrives while the player still
+ * has room to act on it -- once a reward has been dropped it is too late. */
+.missions-inventory-meters { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px 14px; margin: -3px 0 14px; }
+.mission-inventory-meter { display: grid; gap: 5px; padding: 9px 11px; border: 1px solid rgba(80,129,168,0.32); background: rgba(10,20,38,0.46); }
+.mission-inventory-meter.is-compact { padding: 7px 0 0; border: 0; background: none; }
+.mission-inventory-meter-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; color: #90abba; font-size: 0.64rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.mission-inventory-meter-head strong { color: #d8e6ef; font-size: 0.72rem; letter-spacing: 0; }
+.mission-inventory-meter-track { display: block; height: 4px; background: rgba(122,160,186,0.2); }
+.mission-inventory-meter-track i { display: block; height: 100%; background: linear-gradient(90deg, #4fb9c9, #79d9df); transition: width .3s ease; }
+.mission-inventory-meter.is-tight .mission-inventory-meter-track i { background: linear-gradient(90deg, #c99a4f, #e8c47a); }
+.mission-inventory-meter.is-tight .mission-inventory-meter-head strong { color: #e8c47a; }
+.mission-inventory-meter.is-full .mission-inventory-meter-track i { background: linear-gradient(90deg, #c05a5a, #e08a8a); }
+.mission-inventory-meter.is-full .mission-inventory-meter-head strong { color: #e59a9a; }
+
+/* Boosts currently running, above the item grid. */
+.missions-inventory-boosts:not(:empty) { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
+.mission-inventory-boosts-label { margin: 0 4px 0 0 !important; color: #90abba !important; font-size: 0.62rem !important; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.mission-inventory-boost { display: inline-flex; align-items: baseline; gap: 6px; padding: 5px 10px; border: 1px solid rgba(126,203,158,0.42); background: rgba(20,46,36,0.5); color: #cfe4d6; font-size: 0.68rem; }
+.mission-inventory-boost strong { color: #9edba8; font-size: 0.74rem; }
+.mission-inventory-boost-left { color: #8ba3b4; font-size: 0.62rem; font-style: normal; }
+
+/* A stim reads as its own kind of thing rather than as odd salvage. */
+.mission-inventory-card.is-stim { border-color: rgba(126,203,158,0.42); }
+.mission-inventory-card.is-stim .mission-inventory-icon { border-color: rgba(126,203,158,0.5); background: rgba(126,203,158,0.1); color: #9edba8; }
+.mission-inventory-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+/* 7px rather than the 5px this started at: at 5px the button measured 23.6px
+ * tall, just under the 24px minimum target size. Set as padding rather than a
+ * min-height so the two buttons stay the same height as each other whatever
+ * their label wraps to. */
+.mission-inventory-actions .btn { padding: 7px 12px; font-size: 0.64rem; }
+.mission-inventory-destroy { border-color: rgba(192,90,90,0.46); color: #e59a9a; }
+.mission-inventory-destroy:hover, .mission-inventory-destroy:focus-visible { border-color: rgba(224,138,138,0.8); color: #f2bcbc; }
+
+/* Rewards an operation earned but could not be stored. Deliberately warm rather
+ * than alarming: nothing failed, the payout was simply short. */
+.mission-result-block.is-warning { border-color: rgba(201,154,79,0.46); }
+.mission-result-block.is-warning h4 { color: #e8c47a; }
+
+/* The rail card under the Market. Same construction as .mission-market-card
+ * next to it -- one rail, one card language -- in the teal the quartermaster
+ * surfaces already use rather than the Market's purple. */
+.mission-quartermaster-card { position: relative; display: grid; gap: 9px; padding: 15px 16px 16px; border: 1px solid rgba(94,176,196,0.44); background: linear-gradient(148deg, rgba(14,44,58,0.84), rgba(13,25,48,0.9)); box-shadow: inset 0 1px rgba(184,236,251,0.07), 0 10px 24px rgba(5,3,15,0.16); }
+.mission-quartermaster-card .eyebrow { margin: 0; color: #8fdee4; font-size: .57rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-quartermaster-card-head { display: flex; align-items: center; gap: 9px; }
+.mission-quartermaster-card-head strong { color: #eaf2f6; font: 600 .98rem/1 'Cinzel', serif; }
+.mission-quartermaster-card-icon { display: grid; width: 26px; height: 26px; place-items: center; border: 1px solid rgba(143,222,228,0.54); color: #8fdee4; font-size: .8rem; box-shadow: 0 0 14px rgba(79,185,201,0.16); }
+.mission-quartermaster-card-counts { color: #9fb4c2; font-size: .7rem; line-height: 1.45; }
+.mission-quartermaster-card-boost { color: #9edba8; font-size: .66rem; font-weight: 600; }
+.mission-quartermaster-card-link { color: #8fdee4; font-size: .6rem; font-weight: 700; letter-spacing: .1em; text-decoration: none; text-transform: uppercase; }
+.mission-quartermaster-card-link b { margin-left: 3px; font-size: .82rem; transition: transform .2s ease; }
+.mission-quartermaster-card-link:hover b { display: inline-block; transform: translateX(3px); }
+.mission-quartermaster-card-link:focus-visible { outline: 2px solid rgba(152,229,235,0.75); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .mission-inventory-meter-track i, .mission-quartermaster-card-link b { transition: none; }
+}

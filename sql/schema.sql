@@ -1854,6 +1854,28 @@ CREATE TABLE IF NOT EXISTS game_loot_definitions (
   KEY idx_game_loot_definition_pool (world_key, tier, is_enabled)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Timed stim boosts currently running for a player. A fatigue stim is applied
+-- straight to a crew member and leaves no row here; only the two account-wide
+-- boosts (mission speed, loot luck) open a window, and reads filter on
+-- expires_at so an unpruned row is already inert.
+--
+-- The stim_effect/stim_value/stim_duration_seconds columns this joins against
+-- live on game_loot_definitions and are added by
+-- sql/migration_mission_inventory.sql, in the same way the gear columns above
+-- are added by sql/migration_mission_gear.sql rather than declared here.
+CREATE TABLE IF NOT EXISTS game_player_stim_effects (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  loot_definition_id INT UNSIGNED NOT NULL,
+  effect_type VARCHAR(24) NOT NULL,
+  effect_value DECIMAL(6,2) NOT NULL DEFAULT 0,
+  started_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at DATETIME NOT NULL,
+  KEY idx_game_player_stim_active (user_id, expires_at),
+  CONSTRAINT fk_game_player_stim_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_game_player_stim_item FOREIGN KEY (loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS game_player_loot (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,

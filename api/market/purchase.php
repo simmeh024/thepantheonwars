@@ -41,11 +41,25 @@ try {
 
     $name = '';
     if ($offer['offer_type'] === 'gear') {
-        $sourceStmt = $db->prepare('SELECT id, name FROM game_loot_definitions WHERE id = ? AND is_enabled = 1 AND slot <> "" FOR UPDATE');
+        $stimsReady = pw_mission_stims_ready($db);
+        $sourceStmt = $db->prepare('SELECT id, name, slot' . ($stimsReady ? ', stim_effect' : ', "" AS stim_effect')
+            . ' FROM game_loot_definitions WHERE id = ? AND is_enabled = 1 AND '
+            . pw_missions_carryable_item_sql($db, 'game_loot_definitions') . ' FOR UPDATE');
         $sourceStmt->execute([(int)$offer['loot_definition_id']]);
         $source = $sourceStmt->fetch();
         if (!$source) throw new RuntimeException('That equipment is no longer available.');
         $name = (string)$source['name'];
+        /* Refused before any credit is spent, and before the stock decrement,
+         * so a full inventory costs the player nothing. The claim path takes
+         * the opposite approach and drops the overflow instead -- there the
+         * operation has already been run and its other rewards are owed. */
+        $usage = pw_missions_inventory_usage($db, $userId);
+        $bucket = pw_missions_inventory_bucket(pw_missions_inventory_category($source));
+        if ($usage[$bucket] >= $usage[$bucket . '_cap']) {
+            throw new RuntimeException($bucket === 'salvage'
+                ? 'Your salvage store is full. Destroy something from your inventory first.'
+                : 'Your inventory is full. Destroy something from your inventory first.');
+        }
     } elseif ($offer['offer_type'] === 'character') {
         $sourceStmt = $db->prepare('SELECT id, name FROM game_crew_definitions WHERE id = ? AND is_enabled = 1 AND is_starter = 0 FOR UPDATE');
         $sourceStmt->execute([(int)$offer['crew_definition_id']]);

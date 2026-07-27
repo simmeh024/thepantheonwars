@@ -22,7 +22,10 @@ try {
     $researchLocksReady = pw_mission_research_locks_ready($db);
     $fatigueReady = pw_mission_fatigue_ready($db);
     $contractsReady = pw_mission_overlord_contracts_ready($db);
-    $researchEffects = $researchReady ? pw_research_player_effects($db, $userId) : pw_research_default_effects();
+    /* Always called: the helper returns defaults when the Research Facility has
+     * not been migrated, and it is also where running stims are folded in, so
+     * branching here would ignore a boost the player had already spent. */
+    $researchEffects = pw_research_player_effects($db, $userId);
     $researchSecrets = ($researchReady || $researchLocksReady) ? pw_research_secret_missions($db, $userId) : ['locked' => [], 'unlocked' => []];
     $crewStmt = $db->prepare(
         'SELECT pc.id, pc.level, pc.xp, pc.status, pc.created_at,'
@@ -63,7 +66,11 @@ try {
      * clock is read once so every card on one response agrees. */
     $fatigueNow = pw_missions_utc_now($db);
     $fatigueMax = $fatigueReady ? pw_missions_fatigue_max($db, $userId, $researchEffects) : 0;
-    $crew = array_map(static function ($row) use ($crewFavoritesReady, $fatigueReady, $fatigueMax, $fatigueNow) {
+    /* Research protocols and any running stim both shorten the wait; the rate
+     * is resolved once for the whole roster because it is a property of the
+     * player, exactly like the ceiling above. */
+    $fatigueRecovery = (float)($researchEffects['fatigue_recovery_percent'] ?? 0);
+    $crew = array_map(static function ($row) use ($crewFavoritesReady, $fatigueReady, $fatigueMax, $fatigueNow, $fatigueRecovery) {
         foreach (['id', 'level', 'xp'] as $field) $row[$field] = (int)$row[$field];
         $row['definition_enabled'] = (bool)$row['definition_enabled'];
         $row['is_favorite'] = $crewFavoritesReady && !empty($row['is_favorite']);
@@ -80,9 +87,9 @@ try {
          * beside it so the page can run its own countdown between loads rather
          * than polling for a number it can derive. */
         $row['fatigue_ready'] = $fatigueReady;
-        $row['fatigue'] = $fatigueReady ? pw_missions_resolve_fatigue($row, $fatigueMax, $fatigueNow) : 0;
+        $row['fatigue'] = $fatigueReady ? pw_missions_resolve_fatigue($row, $fatigueMax, $fatigueNow, $fatigueRecovery) : 0;
         $row['fatigue_max'] = $fatigueMax;
-        $row['fatigue_regen_per_minute'] = pw_missions_fatigue_regen_per_minute();
+        $row['fatigue_regen_per_minute'] = pw_missions_fatigue_regen_per_minute($fatigueRecovery);
         unset($row['fatigue_updated_at']);
         return $row;
     }, $crewStmt->fetchAll());
@@ -297,6 +304,7 @@ try {
      * odds are never readable from the browser. */
     $loot = [];
     $gearReady = pw_mission_gear_ready($db);
+    $stimsReady = pw_mission_stims_ready($db);
     if ($statsReady) {
         /* The gear columns and the equipped count arrive with the gear migration;
          * selected in a separate branch because a missing column is a hard SQL
@@ -308,7 +316,8 @@ try {
         $lootStmt = $db->prepare($gearReady
             ? 'SELECT l.id, l.name, l.slug, l.description, l.tier, pl.quantity, pl.first_acquired_at,
                       l.slot, l.bonus_strength, l.bonus_cunning, l.bonus_science, l.bonus_charisma,
-                      l.required_level, l.required_role, l.icon_url,
+                      l.required_level, l.required_role, l.icon_url,'
+               . ($stimsReady ? ' l.stim_effect, l.stim_value, l.stim_duration_seconds,' : ' "" AS stim_effect, 0 AS stim_value, 0 AS stim_duration_seconds,') . '
                       (SELECT COUNT(*) FROM game_player_crew_gear g
                         WHERE g.user_id = pl.user_id AND g.loot_definition_id = l.id) AS equipped_count
                FROM game_player_loot pl
@@ -321,7 +330,7 @@ try {
                WHERE pl.user_id = ? AND pl.quantity > 0
                ORDER BY FIELD(l.tier, "legendary", "rare", "uncommon", "common"), l.name ASC');
         $lootStmt->execute([$userId]);
-        $loot = array_map(static function ($row) use ($gearReady) {
+        $loot = array_map(static function ($row) use ($gearReady, $stimsReady) {
             $row['id'] = (int)$row['id'];
             $row['quantity'] = (int)$row['quantity'];
             /* One shape either way, so the browser never has to know which
@@ -332,6 +341,14 @@ try {
             $row['required_level'] = $gearReady ? (int)$row['required_level'] : 1;
             $row['required_role'] = $gearReady ? (string)$row['required_role'] : '';
             $row['equipped_count'] = $gearReady ? (int)$row['equipped_count'] : 0;
+            /* One shape whichever migrations have run, so the panel never has
+             * to branch: before the inventory migration nothing is a stim. */
+            $row['stim_effect'] = $stimsReady ? (string)$row['stim_effect'] : '';
+            $row['stim_value'] = $stimsReady ? (float)$row['stim_value'] : 0.0;
+            $row['stim_duration_seconds'] = $stimsReady ? (int)$row['stim_duration_seconds'] : 0;
+            // Resolved on the server so the panel, the caps and the destroy and
+            // use endpoints all agree on what each item is.
+            $row['category'] = pw_missions_inventory_category($row);
             $row['bonus'] = [
                 'strength' => $gearReady ? (int)$row['bonus_strength'] : 0,
                 'cunning' => $gearReady ? (int)$row['bonus_cunning'] : 0,
@@ -461,6 +478,14 @@ try {
         'gear_ready' => pw_mission_gear_ready($db),
         'max_gear_stat' => PW_MISSION_MAX_GEAR_STAT,
         'loot' => $loot,
+        /* Two independent ceilings and how full each is, plus the running
+         * boosts. Sent even when nothing is held so the quartermaster card can
+         * always state the limits it is about to enforce. */
+        'inventory' => array_merge(pw_missions_inventory_usage($db, $userId), [
+            'stims_ready' => $stimsReady,
+            'stim_effect_types' => pw_missions_stim_effect_types(),
+            'active_stims' => pw_missions_active_stims($db, $userId),
+        ]),
         'stats_ready' => $statsReady,
         'crew_favorites_ready' => $crewFavoritesReady,
         'research' => [

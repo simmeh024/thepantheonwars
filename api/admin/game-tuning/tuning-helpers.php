@@ -65,6 +65,7 @@ function pw_tuning_research_effects(PDO $db, array $nodeIds): array {
             case 'credit_gain': $effects['credit_percent'] += $value; break;
             case 'crew_capacity': $effects['crew_capacity'] += $value; break;
             case 'crew_fatigue': $effects['crew_fatigue'] += $value; break;
+            case 'fatigue_recovery': $effects['fatigue_recovery_percent'] += $value; break;
             case 'luck': $effects['luck_percent'] += $value; break;
             case 'market_discount': $effects['market_discount_percent'] += $value; break;
             case 'market_refresh': $effects['market_refresh_percent'] += $value; break;
@@ -81,6 +82,7 @@ function pw_tuning_research_effects(PDO $db, array $nodeIds): array {
     $effects['crew_capacity'] = (int)min(24, floor($effects['crew_capacity']));
     $effects['crew_fatigue'] = (int)min(PW_MISSION_FATIGUE_RESEARCH_CAP, floor($effects['crew_fatigue']));
     $effects['luck_percent'] = round(min(75.0, $effects['luck_percent']), 2);
+    $effects['fatigue_recovery_percent'] = round(min(200.0, $effects['fatigue_recovery_percent']), 2);
     return $effects;
 }
 

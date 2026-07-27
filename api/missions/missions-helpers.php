@@ -714,9 +714,18 @@ function pw_missions_notify_run_ready(int $userId, string $missionName): void {
     }
 }
 
-/** Fatigue restored per minute of rest. Derived, never declared -- see above. */
-function pw_missions_fatigue_regen_per_minute(): float {
-    return PW_MISSION_FATIGUE_PER_BLOCK / (PW_MISSION_FATIGUE_BLOCK_SECONDS / 60);
+/**
+ * Fatigue restored per minute of rest. The base rate is derived, never declared
+ * -- see above -- so a crew member rests for exactly as long as the mission they
+ * just ran.
+ *
+ * A recovery bonus, from research or from a stim, shortens that wait. It is
+ * expressed as a percentage of the base rate rather than as flat points so it
+ * stays meaningful whichever way the two constants above are ever retuned.
+ */
+function pw_missions_fatigue_regen_per_minute(float $recoveryPercent = 0.0): float {
+    $base = PW_MISSION_FATIGUE_PER_BLOCK / (PW_MISSION_FATIGUE_BLOCK_SECONDS / 60);
+    return $base * (1 + max(0.0, $recoveryPercent) / 100);
 }
 
 /** Fatigue an operation of this authored length costs each crew member. */
@@ -757,7 +766,7 @@ function pw_missions_fatigue_max(PDO $db, int $userId, array $researchEffects = 
  * charges 60 and would hand back 60 while the crew were still out on it, making
  * every long operation free and the whole mechanic decorative.
  */
-function pw_missions_resolve_fatigue(array $crew, int $max, DateTimeImmutable $now): int {
+function pw_missions_resolve_fatigue(array $crew, int $max, DateTimeImmutable $now, float $recoveryPercent = 0.0): int {
     $current = max(0, min($max, (int)($crew['fatigue'] ?? $max)));
     if ((string)($crew['status'] ?? '') !== 'available') return $current;
     $since = $crew['fatigue_updated_at'] ?? null;
@@ -769,13 +778,13 @@ function pw_missions_resolve_fatigue(array $crew, int $max, DateTimeImmutable $n
     }
     $minutes = (int)floor(max(0, $now->getTimestamp() - $from->getTimestamp()) / 60);
     if ($minutes < 1) return $current;
-    return (int)min($max, $current + (int)floor($minutes * pw_missions_fatigue_regen_per_minute()));
+    return (int)min($max, $current + (int)floor($minutes * pw_missions_fatigue_regen_per_minute($recoveryPercent)));
 }
 
 /** Seconds of rest before this crew member can afford a cost, 0 if they can. */
-function pw_missions_fatigue_recovery_seconds(int $current, int $needed): int {
+function pw_missions_fatigue_recovery_seconds(int $current, int $needed, float $recoveryPercent = 0.0): int {
     if ($current >= $needed) return 0;
-    $rate = pw_missions_fatigue_regen_per_minute();
+    $rate = pw_missions_fatigue_regen_per_minute($recoveryPercent);
     if ($rate <= 0) return 0;
     return (int)ceil(($needed - $current) / $rate * 60);
 }
@@ -1600,6 +1609,11 @@ function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array 
     $gearColumns = $gearReady
         ? ', slot, bonus_strength, bonus_cunning, bonus_science, bonus_charisma, required_level, required_role, icon_url'
         : '';
+    /* Without this an awarded stim reaches pw_missions_store_loot() with no
+     * stim_effect and is counted against the salvage ceiling instead of its
+     * own. */
+    $stimsReady = pw_mission_stims_ready($db);
+    if ($stimsReady) $gearColumns .= ', stim_effect, stim_value, stim_duration_seconds';
     $stmt = $db->prepare('SELECT id, name, slug, tier, drop_weight' . $gearColumns . ' FROM game_loot_definitions WHERE world_key = ? AND is_enabled = 1');
     $stmt->execute([$worldKey]);
     $pool = $stmt->fetchAll();
@@ -1648,6 +1662,9 @@ function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array 
             'icon_url' => $gearReady ? pw_missions_gear_icon_url($item['icon_url'] ?? '') : '',
             'required_level' => $gearReady ? (int)($item['required_level'] ?? 1) : 1,
             'required_role' => $gearReady ? (string)($item['required_role'] ?? '') : '',
+            'stim_effect' => $stimsReady ? (string)($item['stim_effect'] ?? '') : '',
+            'stim_value' => $stimsReady ? (float)($item['stim_value'] ?? 0) : 0.0,
+            'stim_duration_seconds' => $stimsReady ? (int)($item['stim_duration_seconds'] ?? 0) : 0,
             'bonus' => [
                 'strength' => $gearReady ? (int)($item['bonus_strength'] ?? 0) : 0,
                 'cunning' => $gearReady ? (int)($item['bonus_cunning'] ?? 0) : 0,
@@ -1659,19 +1676,259 @@ function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array 
     return $awarded;
 }
 
-function pw_missions_store_loot(PDO $db, int $userId, array $awarded): void {
-    if (!$awarded) return;
+/**
+ * Adds awarded items to the player's inventory, dropping anything that will not
+ * fit and reporting it.
+ *
+ * The caps are enforced here rather than by a database constraint because they
+ * are totals across rows, which no column constraint can express, and because
+ * a full inventory must not fail a mission claim -- the operation succeeded and
+ * the rest of its payout is owed. Overflow is returned so the debrief can say
+ * plainly that a reward was left behind.
+ *
+ * Counted once up front and then tracked locally: awarded items arrive in one
+ * batch and each insert would otherwise need its own re-count.
+ *
+ * @return array{stored: array<int,int>, skipped: array<int,int>} Quantities by definition id.
+ */
+function pw_missions_store_loot(PDO $db, int $userId, array $awarded): array {
+    $result = ['stored' => [], 'skipped' => []];
+    if (!$awarded) return $result;
     $counts = [];
+    $categories = [];
     foreach ($awarded as $item) {
-        $counts[$item['id']] = ($counts[$item['id']] ?? 0) + 1;
+        $id = (int)$item['id'];
+        $counts[$id] = ($counts[$id] ?? 0) + 1;
+        $categories[$id] = pw_missions_inventory_category($item);
     }
+
+    $usage = pw_missions_inventory_usage($db, $userId);
+    $room = [
+        'salvage' => max(0, $usage['salvage_cap'] - $usage['salvage']),
+        'inventory' => max(0, $usage['inventory_cap'] - $usage['inventory']),
+    ];
+
     $stmt = $db->prepare(
         'INSERT INTO game_player_loot (user_id, loot_definition_id, quantity) VALUES (?, ?, ?)
          ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)'
     );
     foreach ($counts as $definitionId => $quantity) {
-        $stmt->execute([$userId, $definitionId, $quantity]);
+        $bucket = pw_missions_inventory_bucket($categories[$definitionId]);
+        $fits = min($quantity, $room[$bucket]);
+        if ($fits > 0) {
+            $stmt->execute([$userId, $definitionId, $fits]);
+            $room[$bucket] -= $fits;
+            $result['stored'][$definitionId] = $fits;
+        }
+        if ($fits < $quantity) $result['skipped'][$definitionId] = $quantity - $fits;
     }
+    return $result;
+}
+
+/* ---------------------------------------------------------------------------
+ * Inventory limits
+ *
+ * Two ceilings, counted independently. Salvage is separate from everything else
+ * because api/research/unlock.php spends it -- if a hoard of equipment could
+ * crowd salvage out, a full inventory would quietly block the research tree,
+ * which is a failure the player has no way to diagnose.
+ *
+ * Stims are counted with equipment rather than with salvage: they are acquired
+ * and disposed of through the same actions, and a stockpile of boosts competing
+ * for space with the gear they support is the trade-off that makes them a
+ * decision rather than a free bonus.
+ *
+ * Both figures are sums of game_player_loot.quantity, so a stack of ten counts
+ * as ten. Counting distinct rows instead would let one item type absorb an
+ * unbounded hoard, which is the exact thing the cap exists to prevent.
+ * ------------------------------------------------------------------------- */
+const PW_MISSION_INVENTORY_CAP = 100;
+const PW_MISSION_SALVAGE_CAP = 100;
+
+/**
+ * What an item is, from the columns alone: 'gear', 'stim' or 'salvage'.
+ *
+ * One classifier, used by the caps, the inventory panel, the destroy endpoint
+ * and the stim endpoint, so those five places can never disagree about which
+ * bucket an item belongs to. A stim never has a slot -- see the migration.
+ */
+function pw_missions_inventory_category(array $item): string {
+    if (trim((string)($item['slot'] ?? '')) !== '') return 'gear';
+    if (trim((string)($item['stim_effect'] ?? '')) !== '') return 'stim';
+    return 'salvage';
+}
+
+/** Which of the two ceilings a category is counted against. */
+function pw_missions_inventory_bucket(string $category): string {
+    return $category === 'salvage' ? 'salvage' : 'inventory';
+}
+
+/**
+ * How full each of the two ceilings is right now.
+ *
+ * Grouped in SQL rather than by reading every row: the panel needs the totals
+ * on every page load and a player at the cap holds 200 units across an
+ * unbounded number of rows.
+ */
+function pw_missions_inventory_usage(PDO $db, int $userId): array {
+    $usage = [
+        'inventory' => 0,
+        'salvage' => 0,
+        'inventory_cap' => PW_MISSION_INVENTORY_CAP,
+        'salvage_cap' => PW_MISSION_SALVAGE_CAP,
+    ];
+    $stimsReady = pw_mission_stims_ready($db);
+    try {
+        $stmt = $db->prepare(
+            'SELECT l.slot, ' . ($stimsReady ? 'l.stim_effect' : '"" AS stim_effect') . ', SUM(pl.quantity) AS held
+             FROM game_player_loot pl
+             JOIN game_loot_definitions l ON l.id = pl.loot_definition_id
+             WHERE pl.user_id = ? AND pl.quantity > 0
+             GROUP BY l.slot, ' . ($stimsReady ? 'l.stim_effect' : 'l.slot')
+        );
+        $stmt->execute([$userId]);
+        foreach ($stmt->fetchAll() as $row) {
+            $bucket = pw_missions_inventory_bucket(pw_missions_inventory_category($row));
+            $usage[$bucket] += (int)$row['held'];
+        }
+    } catch (Throwable $e) {
+        // Pre-gear databases have no slot column. Nothing is capped until the
+        // columns the classifier reads actually exist.
+    }
+    return $usage;
+}
+
+/* ---------------------------------------------------------------------------
+ * Stims
+ *
+ * A consumable. Everything else a player acquires is permanent, which makes
+ * every acquisition strictly additive -- a stim is the first item whose value
+ * is decided by when it is spent.
+ *
+ * Three effects, deliberately mapped onto figures the engine already resolves
+ * rather than onto new plumbing: fatigue is restored directly to one crew
+ * member, while mission speed and loot luck are folded into the same account
+ * effect totals research already contributes to, so a boost composes with the
+ * tree instead of running beside it.
+ *
+ * The two timed effects have a combined ceiling above the research-only cap.
+ * Sharing the research ceiling would mean a fully-researched player's stim did
+ * nothing at all, which is worse than a smaller benefit; the headroom is what
+ * makes a boost worth carrying at every point of the game.
+ * ------------------------------------------------------------------------- */
+const PW_MISSION_STIM_SPEED_COMBINED_CAP = 75.0;
+const PW_MISSION_STIM_LUCK_COMBINED_CAP = 90.0;
+const PW_MISSION_STIM_RECOVERY_COMBINED_CAP = 300.0;
+
+/**
+ * SQL predicate for "an item the Market and loot tables may carry".
+ *
+ * Equipment has always qualified by having a slot. A stim has no slot -- it is
+ * consumed, never worn -- so every one of those filters would exclude it, and
+ * the user-facing consequence would be a stim that can drop from the world pool
+ * but can never be authored into an offer or a table. One fragment rather than
+ * six edited predicates, so a future item kind is added in one place.
+ */
+function pw_missions_carryable_item_sql(PDO $db, string $alias = 'l'): string {
+    $slot = $alias . '.slot <> ""';
+    return pw_mission_stims_ready($db) ? '(' . $slot . ' OR ' . $alias . '.stim_effect <> "")' : $slot;
+}
+
+function pw_missions_stim_effect_types(): array {
+    return [
+        'fatigue' => [
+            'label' => 'Fatigue recovery',
+            'value_label' => 'Fatigue restored',
+            'unit' => 'points',
+            'timed' => false,
+            'description' => 'Restores fatigue to one resting crew member immediately.',
+        ],
+        'mission_speed' => [
+            'label' => 'Speed boost',
+            'value_label' => 'Speed boost (%)',
+            'unit' => '%',
+            'timed' => true,
+            'description' => 'Shortens every operation launched while it is running.',
+        ],
+        'luck' => [
+            'label' => 'Luck boost',
+            'value_label' => 'Rarity promotion (%)',
+            'unit' => '%',
+            'timed' => true,
+            'description' => 'Raises the chance a recovered item is promoted one rarity tier.',
+        ],
+    ];
+}
+
+/**
+ * Whether sql/migration_mission_inventory.sql has been run. Until it has, no
+ * item can be a stim, the inventory caps count equipment and salvage exactly as
+ * before, and every stim endpoint refuses politely.
+ */
+function pw_mission_stims_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_mission_gear_ready($db)) return $ready = false;
+    try {
+        $db->query('SELECT stim_effect, stim_value, stim_duration_seconds FROM `game_loot_definitions` LIMIT 1');
+        $db->query('SELECT user_id, effect_type, effect_value, expires_at FROM `game_player_stim_effects` LIMIT 1');
+        return $ready = true;
+    } catch (Throwable $e) {
+        return $ready = false;
+    }
+}
+
+/**
+ * Boosts currently running for this player, newest first.
+ *
+ * Filtered on expires_at rather than relying on a prune, so a row nobody has
+ * cleaned up yet is already inert and a missed prune can never grant a benefit
+ * past its own expiry.
+ */
+function pw_missions_active_stims(PDO $db, int $userId): array {
+    if (!pw_mission_stims_ready($db)) return [];
+    try {
+        $stmt = $db->prepare(
+            'SELECT s.id, s.effect_type, s.effect_value, s.started_at, s.expires_at, l.name, l.tier
+             FROM game_player_stim_effects s
+             JOIN game_loot_definitions l ON l.id = s.loot_definition_id
+             WHERE s.user_id = ? AND s.expires_at > UTC_TIMESTAMP()
+             ORDER BY s.expires_at ASC'
+        );
+        $stmt->execute([$userId]);
+    } catch (Throwable $e) {
+        return [];
+    }
+    return array_map(static function ($row) {
+        $row['id'] = (int)$row['id'];
+        $row['effect_value'] = (float)$row['effect_value'];
+        return $row;
+    }, $stmt->fetchAll());
+}
+
+/**
+ * Folds running boosts into an effects array, re-applying a combined ceiling.
+ *
+ * Called by pw_research_player_effects() so every existing consumer -- the
+ * launch projection, the claim payout, the mission card -- picks a stim up with
+ * no change of its own. The alternative, a second effects array threaded
+ * through those paths, is how one of them ends up quietly ignoring boosts.
+ */
+function pw_missions_apply_stim_effects(PDO $db, int $userId, array $effects): array {
+    $active = pw_missions_active_stims($db, $userId);
+    if (!$active) return $effects;
+    $totals = ['mission_speed' => 0.0, 'luck' => 0.0, 'fatigue_recovery' => 0.0];
+    foreach ($active as $stim) {
+        $type = (string)$stim['effect_type'];
+        if (isset($totals[$type])) $totals[$type] += max(0.0, (float)$stim['effect_value']);
+    }
+    $effects['mission_speed_percent'] = round(min(PW_MISSION_STIM_SPEED_COMBINED_CAP,
+        (float)($effects['mission_speed_percent'] ?? 0) + $totals['mission_speed']), 2);
+    $effects['luck_percent'] = round(min(PW_MISSION_STIM_LUCK_COMBINED_CAP,
+        (float)($effects['luck_percent'] ?? 0) + $totals['luck']), 2);
+    $effects['fatigue_recovery_percent'] = round(min(PW_MISSION_STIM_RECOVERY_COMBINED_CAP,
+        (float)($effects['fatigue_recovery_percent'] ?? 0) + $totals['fatigue_recovery']), 2);
+    return $effects;
 }
 
 /* ------------------------------------------------------------------------
@@ -1918,6 +2175,10 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
 
     $gearEnabled = pw_mission_loot_table_gear_ready($db);
     $crewCapacityReady = pw_mission_crew_capacity_ready($db);
+    /* A stim entry is an ordinary "gear" table entry that happens to be
+     * consumable, so it needs no new entry_type -- only its own columns, so the
+     * award is classified into the right inventory ceiling. */
+    $stimsReady = pw_mission_stims_ready($db);
     $entryStmt = $gearEnabled
         ? $db->prepare(
             'SELECT entry.entry_type, entry.crew_definition_id, entry.loot_definition_id, entry.chance_percent,
@@ -1926,7 +2187,8 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
                     gear.bonus_strength AS gear_bonus_strength, gear.bonus_cunning AS gear_bonus_cunning,
                     gear.bonus_science AS gear_bonus_science, gear.bonus_charisma AS gear_bonus_charisma,
                     gear.required_level AS gear_required_level, gear.required_role AS gear_required_role,
-                    gear.icon_url AS gear_icon_url
+                    gear.icon_url AS gear_icon_url'
+            . ($stimsReady ? ', gear.stim_effect AS gear_stim_effect, gear.stim_value AS gear_stim_value, gear.stim_duration_seconds AS gear_stim_duration' : '') . '
              FROM game_loot_table_entries entry
              LEFT JOIN game_crew_definitions crew ON crew.id = entry.crew_definition_id
              LEFT JOIN game_loot_definitions gear ON gear.id = entry.loot_definition_id
@@ -1971,6 +2233,9 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
                     'icon_url' => pw_missions_gear_icon_url($entry['gear_icon_url'] ?? ''),
                     'required_level' => (int)($entry['gear_required_level'] ?? 1),
                     'required_role' => (string)($entry['gear_required_role'] ?? ''),
+                    'stim_effect' => $stimsReady ? (string)($entry['gear_stim_effect'] ?? '') : '',
+                    'stim_value' => $stimsReady ? (float)($entry['gear_stim_value'] ?? 0) : 0.0,
+                    'stim_duration_seconds' => $stimsReady ? (int)($entry['gear_stim_duration'] ?? 0) : 0,
                     'bonus' => [
                         'strength' => (int)($entry['gear_bonus_strength'] ?? 0),
                         'cunning' => (int)($entry['gear_bonus_cunning'] ?? 0),

@@ -82,13 +82,15 @@ try {
         'reputation_flat' => 0, 'reputation_percent' => 0.0, 'credit_percent' => 0.0,
         'success_percent' => 0.0, 'loot_percent' => 0.0, 'upgrade_percent' => 0.0,
     ];
-    if (pw_research_ready($db)) {
-        $research = pw_research_player_effects($db, $userId);
-        $effects['xp_percent'] = round((float)$effects['xp_percent'] + (float)$research['xp_percent'], 2);
-        $effects['reputation_percent'] = round((float)$effects['reputation_percent'] + (float)$research['reputation_percent'], 2);
-        $effects['credit_percent'] = round((float)$effects['credit_percent'] + (float)$research['credit_percent'], 2);
-        $effects['upgrade_percent'] = round(min(95.0, (float)$effects['upgrade_percent'] + (float)$research['luck_percent']), 2);
-    }
+    /* Called unconditionally: the helper returns zeroed defaults when the
+     * Research Facility has not been migrated, and it is also where a running
+     * stim is folded in -- guarding on the tree would ignore a boost the player
+     * had already spent. Read once and reused by the aftermath below. */
+    $research = pw_research_player_effects($db, $userId);
+    $effects['xp_percent'] = round((float)$effects['xp_percent'] + (float)$research['xp_percent'], 2);
+    $effects['reputation_percent'] = round((float)$effects['reputation_percent'] + (float)$research['reputation_percent'], 2);
+    $effects['credit_percent'] = round((float)$effects['credit_percent'] + (float)$research['credit_percent'], 2);
+    $effects['upgrade_percent'] = round(min(95.0, (float)$effects['upgrade_percent'] + (float)$research['luck_percent']), 2);
 
     /* The outcome is rolled here, on the server, from the mission's own base
      * chance plus the crew's Strength -- never from anything the client sends.
@@ -176,9 +178,8 @@ try {
      * Recomputed from the post-award figures rather than the row read at the
      * top, so it reflects the state the player will find on the crew page. */
     $fatigueReady = pw_mission_fatigue_ready($db);
-    $fatigueMax = $fatigueReady
-        ? pw_missions_fatigue_max($db, $userId, pw_research_ready($db) ? pw_research_player_effects($db, $userId) : [])
-        : 0;
+    $fatigueMax = $fatigueReady ? pw_missions_fatigue_max($db, $userId, $research) : 0;
+    $fatigueRecovery = (float)($research['fatigue_recovery_percent'] ?? 0);
     $crewResults = [];
     foreach ($crew as $member) {
         $newXp = (int)$member['xp'] + $xpAwarded;
@@ -200,7 +201,7 @@ try {
             'fatigue_ready' => $fatigueReady,
             'fatigue' => $fatigue,
             'fatigue_max' => $fatigueMax,
-            'fatigue_recovery_seconds' => $fatigueReady ? pw_missions_fatigue_recovery_seconds($fatigue, $fatigueMax) : 0,
+            'fatigue_recovery_seconds' => $fatigueReady ? pw_missions_fatigue_recovery_seconds($fatigue, $fatigueMax, $fatigueRecovery) : 0,
         ];
     }
 
@@ -221,9 +222,18 @@ try {
 
     $creditBalance = $creditsReady ? pw_missions_add_credits($db, $userId, $creditsAwarded) : 0;
 
+    /* Anything the two loot paths below could not fit, so the debrief can say a
+     * reward was left behind rather than silently paying less than it showed.
+     * Keyed by definition id and summed across both paths. */
+    $lootSkipped = [];
+    $collectSkipped = static function (array $outcome) use (&$lootSkipped) {
+        foreach ($outcome['skipped'] ?? [] as $definitionId => $quantity) {
+            $lootSkipped[$definitionId] = ($lootSkipped[$definitionId] ?? 0) + $quantity;
+        }
+    };
     if ($succeeded && $statsReady) {
         $loot = pw_missions_roll_loot($db, (string)$mission['world_key'], (int)($mission['loot_rolls'] ?? 0), $effects);
-        pw_missions_store_loot($db, $userId, $loot);
+        $collectSkipped(pw_missions_store_loot($db, $userId, $loot));
     }
 
     /* Loot tables are independent of the item pool above: they are attached per
@@ -234,7 +244,7 @@ try {
         ? pw_missions_roll_loot_tables($db, $userId, (int)$mission['mission_definition_id'])
         : ['granted' => [], 'duplicates' => [], 'pending' => [], 'gear' => []];
     if (!empty($lootTableAwards['gear'])) {
-        pw_missions_store_loot($db, $userId, $lootTableAwards['gear']);
+        $collectSkipped(pw_missions_store_loot($db, $userId, $lootTableAwards['gear']));
         $loot = array_merge($loot, $lootTableAwards['gear']);
     }
 
@@ -303,6 +313,25 @@ try {
         'level_ups' => $levelUps,
         'crew_results' => $crewResults,
         'loot' => $loot,
+        /* Rewards the operation earned but the quartermaster had no room for.
+         * Reported by name and count rather than silently dropped: the player
+         * saw the roll happen, and an unexplained shortfall reads as the game
+         * having miscounted. Resolved from $loot, which still holds every
+         * rolled item whether or not it was stored. */
+        'loot_skipped' => (static function () use ($lootSkipped, $loot) {
+            if (!$lootSkipped) return [];
+            $names = [];
+            foreach ($loot as $item) $names[(int)$item['id']] = (string)$item['name'];
+            $skipped = [];
+            foreach ($lootSkipped as $definitionId => $quantity) {
+                $skipped[] = [
+                    'id' => (int)$definitionId,
+                    'name' => $names[(int)$definitionId] ?? 'Recovered item',
+                    'quantity' => (int)$quantity,
+                ];
+            }
+            return $skipped;
+        })(),
         'crew_recruited' => $lootTableAwards['granted'],
         'crew_duplicates' => $lootTableAwards['duplicates'],
         'crew_capacity_offers' => $lootTableAwards['pending'],

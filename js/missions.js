@@ -67,6 +67,9 @@
   var inventorySlotFilter = document.getElementById('missions-inventory-slot-filter');
   var inventoryTierFilter = document.getElementById('missions-inventory-tier-filter');
   var inventoryStateFilter = document.getElementById('missions-inventory-state-filter');
+  var inventoryMeters = document.getElementById('missions-inventory-meters');
+  var inventoryBoosts = document.getElementById('missions-inventory-boosts');
+  var inventoryRailCard = document.getElementById('mission-quartermaster-card');
   var profileCard = document.getElementById('mission-profile-card');
   var contractCard = document.getElementById('mission-contract-card');
   var dailyCard = document.getElementById('mission-daily-card');
@@ -1172,6 +1175,18 @@
           + '<h4>Equipment recovered</h4><ul class="mission-result-loot is-gear">'
           + recoveredGear.map(resultLootRow).join('') + '</ul></div>';
       }
+    }
+    /* Rewards the operation earned but the quartermaster had no room for. Said
+     * plainly rather than dropped in silence: the player watched the roll land,
+     * and an unexplained shortfall reads as the game having miscounted. */
+    if (result.loot_skipped && result.loot_skipped.length) {
+      extras += '<div class="mission-result-block is-warning"><h4>Left behind &mdash; storage full</h4><ul class="mission-result-loot">'
+        + result.loot_skipped.map(function (entry) {
+          return '<li><span>' + escapeHtml(entry.name)
+            + (entry.quantity > 1 ? ' <b class="mission-result-gear-count">&times;' + entry.quantity + '</b>' : '')
+            + '</span><em>no room</em></li>';
+        }).join('')
+        + '</ul><p class="mission-result-note">Destroy something in your inventory to make room before the next operation.</p></div>';
     }
     extras += crewAftermathMarkup(result);
     if (failed) extras += failureFactorsMarkup(result);
@@ -2765,7 +2780,110 @@
     inventoryTierFilter.value = tiers.indexOf(currentTier) !== -1 ? currentTier : 'all';
   }
 
+  // window.prompt() is the only multi-line surface here, and it takes a plain
+  // string. Built from a char code so the line break survives every tool that
+  // has ever rewritten this file.
+  var NEWLINE = String.fromCharCode(10);
+
+  /* One bar per ceiling. Both are always drawn, even at zero, because the panel
+   * has to state the limit it is about to enforce -- a player who only finds
+   * out about the cap when a reward is dropped has been told too late. */
+  function inventoryMeterMarkup(usage, compact) {
+    return [
+      { label: 'Equipment & stims', used: Number(usage.inventory) || 0, cap: Number(usage.inventory_cap) || 0 },
+      { label: 'Salvage', used: Number(usage.salvage) || 0, cap: Number(usage.salvage_cap) || 0 }
+    ].map(function (meter) {
+      var percent = meter.cap > 0 ? Math.min(100, Math.round((meter.used / meter.cap) * 100)) : 0;
+      var tone = percent >= 100 ? ' is-full' : percent >= 85 ? ' is-tight' : '';
+      return '<div class="mission-inventory-meter' + tone + (compact ? ' is-compact' : '') + '">'
+        + '<span class="mission-inventory-meter-head"><span>' + escapeHtml(meter.label) + '</span>'
+        + '<strong>' + meter.used + ' / ' + meter.cap + '</strong></span>'
+        + '<span class="mission-inventory-meter-track"><i style="width:' + percent + '%"></i></span>'
+        + '</div>';
+    }).join('');
+  }
+
+  /* Time left on a running boost, in whichever unit reads clearly at that
+   * distance. Recomputed from the expiry rather than counted down from a stored
+   * number, so a backgrounded tab catches up rather than drifting. */
+  function stimTimeLeft(value) {
+    var ends = apiDate(value);
+    var seconds = ends ? Math.max(0, Math.round((ends.getTime() - Date.now()) / 1000)) : 0;
+    if (seconds < 1) return 'ending';
+    if (seconds < 60) return seconds + 's left';
+    var minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return minutes + 'm left';
+    return Math.floor(minutes / 60) + 'h ' + (minutes % 60) + 'm left';
+  }
+
+  /* The rail card, directly under the Market. A summary and a way in -- the
+   * full panel lives further down the command view, and this is what makes it
+   * findable without scrolling the whole page looking for it. */
+  function renderInventoryRail(data) {
+    if (!inventoryRailCard) return;
+    var loot = data.loot || [];
+    if (!loot.length) { inventoryRailCard.hidden = true; return; }
+    var usage = data.inventory || {};
+    var stims = (data.inventory && data.inventory.active_stims) || [];
+    var counts = { gear: 0, stim: 0, salvage: 0 };
+    loot.forEach(function (item) {
+      var category = item.category || (item.slot ? 'gear' : 'salvage');
+      counts[category] = (counts[category] || 0) + (Number(item.quantity) || 0);
+    });
+    inventoryRailCard.hidden = false;
+    inventoryRailCard.innerHTML = '<span class="eyebrow">Quartermaster</span>'
+      + '<span class="mission-quartermaster-card-head"><span class="mission-quartermaster-card-icon" aria-hidden="true">&#9636;</span><strong>Inventory</strong></span>'
+      + '<span class="mission-quartermaster-card-counts">' + counts.gear + ' equipment &middot; ' + counts.stim + ' stims &middot; ' + counts.salvage + ' salvage</span>'
+      + inventoryMeterMarkup(usage, true)
+      + (stims.length
+        ? '<span class="mission-quartermaster-card-boost">' + escapeHtml(stims.length + ' boost' + (stims.length === 1 ? '' : 's') + ' running') + '</span>'
+        : '')
+      + '<a class="mission-quartermaster-card-link" href="#missions-inventory-section">Open inventory <b aria-hidden="true">&rarr;</b></a>';
+  }
+
+  function stimTypeMeta(key) {
+    var types = (state.data && state.data.inventory && state.data.inventory.stim_effect_types) || {};
+    return types[key] || null;
+  }
+
+  /* A stim's own line, in the unit it is actually measured in: fatigue points
+   * for the instant one, a percentage and a run time for the two boosts. */
+  function stimSummary(item) {
+    var meta = stimTypeMeta(item.stim_effect);
+    if (!meta) return '';
+    var value = Number(item.stim_value) || 0;
+    if (!meta.timed) return 'Restores ' + fmt(value) + ' fatigue to one resting crew member.';
+    var minutes = Math.max(1, Math.round((Number(item.stim_duration_seconds) || 0) / 60));
+    return '+' + fmt(value) + '% ' + meta.label.toLowerCase() + ' for ' + minutes + ' minute' + (minutes === 1 ? '' : 's') + '.';
+  }
+
+  function renderInventoryBoosts(data) {
+    if (!inventoryBoosts) return;
+    var stims = (data.inventory && data.inventory.active_stims) || [];
+    if (!stims.length) { inventoryBoosts.innerHTML = ''; return; }
+    inventoryBoosts.innerHTML = '<p class="mission-inventory-boosts-label">Running now</p>'
+      + stims.map(function (stim) {
+        var meta = stimTypeMeta(stim.effect_type);
+        return '<span class="mission-inventory-boost" data-boost-expires="' + escapeHtml(String(stim.expires_at)) + '">'
+          + '<strong>+' + fmt(Number(stim.effect_value) || 0) + '%</strong> '
+          + escapeHtml(meta ? meta.label : stim.effect_type)
+          + ' <em class="mission-inventory-boost-left">' + escapeHtml(stimTimeLeft(stim.expires_at)) + '</em></span>';
+      }).join('');
+  }
+
+  /* Boosts expire on a clock the page already runs. Only the one text node is
+   * rewritten, rather than re-rendering the panel every second -- that would
+   * discard a focused control the same way the crew list once did. */
+  function tickInventoryBoosts() {
+    if (!inventoryBoosts) return;
+    inventoryBoosts.querySelectorAll('[data-boost-expires]').forEach(function (node) {
+      var left = node.querySelector('.mission-inventory-boost-left');
+      if (left) left.textContent = stimTimeLeft(node.getAttribute('data-boost-expires'));
+    });
+  }
+
   function renderInventory(data) {
+    renderInventoryRail(data);
     if (!inventorySection || !inventoryList) return;
     var loot = data.loot || [];
     /* Hidden entirely while the player owns nothing: an empty quartermaster
@@ -2773,12 +2891,13 @@
      * successful operation. */
     if (!loot.length) { inventorySection.hidden = true; return; }
     inventorySection.hidden = false;
+    if (inventoryMeters) inventoryMeters.innerHTML = inventoryMeterMarkup(data.inventory || {}, false);
+    renderInventoryBoosts(data);
     populateInventoryFilters(loot);
     var filters = inventoryFilters();
     var visible = loot.filter(function (item) {
-      var isGear = item.slot !== '';
-      if (filters.type === 'gear' && !isGear) return false;
-      if (filters.type === 'salvage' && isGear) return false;
+      var category = item.category || (item.slot ? 'gear' : 'salvage');
+      if (filters.type !== 'all' && filters.type !== category) return false;
       if (filters.slot !== 'all' && item.slot !== filters.slot) return false;
       if (filters.tier !== 'all' && item.tier !== filters.tier) return false;
       var spare = Number(item.quantity) - Number(item.equipped_count);
@@ -2793,19 +2912,34 @@
       : 'Showing ' + visible.length + ' of ' + loot.length + ' entries.';
     if (!visible.length) { inventoryList.innerHTML = '<p class="missions-empty">Nothing matches these filters.</p>'; return; }
     inventoryList.innerHTML = visible.map(function (item) {
-      var isGear = item.slot !== '';
+      var category = item.category || (item.slot ? 'gear' : 'salvage');
+      var isGear = category === 'gear';
+      var isStim = category === 'stim';
       var bonus = gearBonusText(item.bonus);
       var spare = Number(item.quantity) - Number(item.equipped_count);
       var requires = [];
       if (Number(item.required_level) > 1) requires.push('Level ' + item.required_level);
       if (item.required_role) requires.push(item.required_role + ' only');
-      return '<article class="mission-inventory-card is-' + escapeHtml(item.tier) + (isGear ? ' is-gear' : ' is-salvage') + '">'
+      var typeLabel = isGear ? slotLabel(item.slot) : isStim ? 'Stim' : 'Salvage';
+      /* Only spare copies get a Destroy button. An equipped copy is not
+       * deducted from the quantity ledger, so destroying one would leave a crew
+       * member wearing something nobody owns -- the server refuses it too. */
+      var actions = [];
+      if (isStim) {
+        actions.push('<button type="button" class="btn btn-solid mission-inventory-use" data-stim-use="' + Number(item.id) + '">Use</button>');
+      }
+      if (spare > 0) {
+        actions.push('<button type="button" class="btn mission-inventory-destroy" data-destroy-item="' + Number(item.id) + '"'
+          + ' data-item-name="' + escapeHtml(item.name) + '" data-spare="' + spare + '">Destroy</button>');
+      }
+      return '<article class="mission-inventory-card is-' + escapeHtml(item.tier) + ' is-' + escapeHtml(category) + '">'
         + '<span class="mission-inventory-icon">' + gearIconHtml(item.slot, item.icon_url) + '</span>'
         + '<div class="mission-inventory-copy"><h3>' + escapeHtml(item.name) + '</h3>'
         + '<p class="mission-inventory-meta"><span class="mission-inventory-tier">' + escapeHtml(item.tier) + '</span>'
-        + (isGear ? ' · ' + escapeHtml(slotLabel(item.slot)) : ' · Salvage')
-        + ' · x' + item.quantity + '</p>'
+        + ' &middot; ' + escapeHtml(typeLabel)
+        + ' &middot; x' + item.quantity + '</p>'
         + (bonus ? '<p class="mission-inventory-bonus">' + escapeHtml(bonus) + '</p>' : '')
+        + (isStim ? '<p class="mission-inventory-bonus">' + escapeHtml(stimSummary(item)) + '</p>' : '')
         + (item.description ? '<p class="mission-inventory-desc">' + escapeHtml(item.description) + '</p>' : '')
         + (requires.length ? '<p class="mission-inventory-requires">' + escapeHtml(requires.join(' · ')) + '</p>' : '')
         + (isGear
@@ -2814,14 +2948,74 @@
               ? item.equipped_count + ' in use' + (spare > 0 ? ', ' + spare + ' spare' : '')
               : 'Not assigned to anyone')
             + '</p>'
-          : '<p class="mission-inventory-state">Kept in storage</p>')
+          : '<p class="mission-inventory-state">' + escapeHtml(isStim ? 'Ready to use' : 'Kept for research') + '</p>')
+        + (actions.length ? '<div class="mission-inventory-actions">' + actions.join('') + '</div>' : '')
         + '</div></article>';
     }).join('');
+  }
+
+  /* Destroying is permanent and there is no sell path, so it asks first. The
+   * quantity prompt exists because the reason a player is here at all is that
+   * they are at a ceiling -- clearing space one confirm at a time would be
+   * a hundred dialogs. */
+  function destroyInventoryItem(button) {
+    var itemId = Number(button.getAttribute('data-destroy-item'));
+    var name = button.getAttribute('data-item-name') || 'this item';
+    var spare = Number(button.getAttribute('data-spare')) || 1;
+    var quantity = 1;
+    if (spare > 1) {
+      var answer = window.prompt('How many copies of ' + name + ' should be destroyed? You have ' + spare + ' spare.', String(spare));
+      if (answer === null) return;
+      quantity = Math.max(1, Math.min(spare, Math.round(Number(answer) || 0)));
+    } else if (!window.confirm('Destroy ' + name + '? This cannot be undone.')) {
+      return;
+    }
+    button.disabled = true;
+    post('/api/missions/inventory-destroy.php', { loot_definition_id: itemId, quantity: quantity, csrf: window.PW_AUTH.csrf })
+      .then(function (result) { setStatus(result.message); return load(); })
+      .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
+  }
+
+  /* A fatigue stim needs a target, so the player picks one rather than the page
+   * guessing. Deployed crew are left off the list because rest does not accrue
+   * in the field -- the server refuses them for the same reason. */
+  function useStim(button) {
+    var itemId = Number(button.getAttribute('data-stim-use'));
+    var item = ((state.data && state.data.loot) || []).filter(function (entry) { return Number(entry.id) === itemId; })[0];
+    if (!item) return;
+    var payload = { loot_definition_id: itemId, csrf: window.PW_AUTH.csrf };
+    if (item.stim_effect === 'fatigue') {
+      var candidates = ((state.data && state.data.crew) || []).filter(function (member) {
+        return member.status === 'available' && Number(member.fatigue) < Number(member.fatigue_max);
+      });
+      if (!candidates.length) { setStatus('Every crew member standing by is already fully rested.', true); return; }
+      var lines = candidates.map(function (member, index) {
+        return (index + 1) + '. ' + member.name + ' (' + member.fatigue + '/' + member.fatigue_max + ' fatigue)';
+      });
+      var choice = window.prompt('Give ' + item.name + ' to which crew member?' + NEWLINE + NEWLINE + lines.join(NEWLINE), '1');
+      if (choice === null) return;
+      var picked = candidates[Math.round(Number(choice) || 0) - 1];
+      if (!picked) { setStatus('That is not one of the listed crew members.', true); return; }
+      payload.crew_id = picked.id;
+    }
+    button.disabled = true;
+    post('/api/missions/stim-use.php', payload)
+      .then(function (result) { setStatus(result.message); return load(); })
+      .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
+  }
+
+  if (inventoryList) {
+    inventoryList.addEventListener('click', function (event) {
+      var destroy = event.target.closest('[data-destroy-item]');
+      if (destroy && !destroy.disabled) { destroyInventoryItem(destroy); return; }
+      var use = event.target.closest('[data-stim-use]');
+      if (use && !use.disabled) useStim(use);
+    });
   }
 
   [inventoryTypeFilter, inventorySlotFilter, inventoryTierFilter, inventoryStateFilter].forEach(function (control) {
     if (control) control.addEventListener('change', function () { if (state.data) renderInventory(state.data); });
   });
 
-  document.addEventListener('pw-auth-ready', load); window.setInterval(tickCountdowns, 1000); window.setInterval(tickCommandFeed, 1000); load();
+  document.addEventListener('pw-auth-ready', load); window.setInterval(tickCountdowns, 1000); window.setInterval(tickCommandFeed, 1000); window.setInterval(tickInventoryBoosts, 1000); load();
 }());

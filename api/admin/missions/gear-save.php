@@ -19,6 +19,12 @@ if ($duplicate->fetch()) pw_error('An item with that slug already exists.', 409)
 $columns = ['name', 'slug', 'description', 'tier', 'slot', 'world_key', 'drop_weight',
     'bonus_strength', 'bonus_cunning', 'bonus_science', 'bonus_charisma',
     'required_level', 'required_role', 'icon_url', 'is_enabled'];
+/* Only written once the inventory migration has been run. Naming a missing
+ * column is a hard SQL error, not a silent NULL, so a deploy that lands ahead
+ * of its migration must not include them. */
+if (pw_mission_stims_ready($db)) {
+    array_splice($columns, -1, 0, ['stim_effect', 'stim_value', 'stim_duration_seconds']);
+}
 $values = array_map(static function ($column) use ($data) { return $data[$column]; }, $columns);
 
 if ($id) {

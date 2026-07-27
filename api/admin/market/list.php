@@ -31,7 +31,8 @@ try {
         $entry['source_enabled'] = (bool)$entry['source_enabled'];
     }
     unset($entry);
-    $gear = $db->query('SELECT id, name, tier, slot, is_enabled FROM game_loot_definitions WHERE slot <> "" ORDER BY is_enabled DESC, name ASC')->fetchAll();
+    $gear = $db->query('SELECT id, name, tier, slot, is_enabled FROM game_loot_definitions WHERE '
+        . pw_missions_carryable_item_sql($db, 'game_loot_definitions') . ' ORDER BY is_enabled DESC, name ASC')->fetchAll();
     $characters = $db->query('SELECT id, name, role, is_enabled FROM game_crew_definitions WHERE is_starter = 0 ORDER BY is_enabled DESC, name ASC')->fetchAll();
     foreach ($gear as &$row) { $row['id'] = (int)$row['id']; $row['is_enabled'] = (bool)$row['is_enabled']; }
     unset($row);

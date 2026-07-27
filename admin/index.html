@@ -4333,6 +4333,13 @@
       <div class="admin-field"><label for="mission-gear-bonus-charisma">Charisma</label><input type="number" id="mission-gear-bonus-charisma" min="-10" max="15" step="1" value="0"></div>
     </div>
     <p class="admin-field-hint" id="mission-gear-bonus-summary"></p>
+    <div class="admin-subsection-head" id="mission-gear-stim-head"><h2>Stim</h2><p>A stim is consumed rather than worn, so it cannot also occupy a slot. Fatigue is restored to one resting crew member the moment it is used; the two boosts open an account-wide window that every operation launched inside it reads.</p></div>
+    <div class="admin-field-row" id="mission-gear-stim-row">
+      <div class="admin-field"><label for="mission-gear-stim-effect">Stim effect</label><select id="mission-gear-stim-effect"><option value="">Not a stim</option></select></div>
+      <div class="admin-field"><label for="mission-gear-stim-value">Strength</label><input type="number" id="mission-gear-stim-value" min="0" max="1000" step="0.01" value="0"></div>
+      <div class="admin-field"><label for="mission-gear-stim-duration">Duration (minutes)</label><input type="number" id="mission-gear-stim-duration" min="0" max="1440" step="1" value="0"></div>
+    </div>
+    <p class="admin-field-hint" id="mission-gear-stim-summary"></p>
     <div class="admin-field-row"><div class="admin-field"><label for="mission-gear-required-level">Required level</label><input type="number" id="mission-gear-required-level" min="1" max="50" step="1" value="1"></div><div class="admin-field"><label for="mission-gear-required-role">Required role</label><select id="mission-gear-required-role"><option value="">Any role</option></select></div><div class="admin-field"><label for="mission-gear-world">World</label><select id="mission-gear-world"><option value="neoh">Neoh</option></select></div></div>
     <div class="admin-field"><label for="mission-gear-icon">Icon URL</label><div class="mission-portrait-field"><img id="mission-gear-icon-preview" alt="" hidden><input type="text" id="mission-gear-icon" maxlength="255" placeholder="images/gear-visor.jpg"><input type="file" id="mission-gear-icon-file" accept="image/jpeg,image/png,image/webp" hidden><button type="button" class="btn" id="mission-gear-icon-upload">Upload image</button><button type="button" class="btn" id="mission-gear-icon-browse">Choose image</button><button type="button" class="btn" id="mission-gear-icon-clear">Clear</button></div><p class="admin-field-hint">Optional. Left empty, the player's loadout draws the built-in line glyph for this slot, so an item never looks unfinished.</p></div>
     <div class="admin-field-row"><label class="admin-setting-toggle"><span><strong>Enabled</strong><small>Disabled items stop dropping but stay in the inventories of players who already hold them.</small></span><input type="checkbox" id="mission-gear-enabled" checked></label></div>
@@ -4556,7 +4563,7 @@
 </div>
 
 <script src="../js/members.js?v=42"></script>
-<script src="../js/admin-missions.js?v=11"></script><script src="../js/admin-loot-tables.js?v=3"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=9"></script><script src="../js/admin-game-tuning.js?v=3"></script>
+<script src="../js/admin-missions.js?v=12"></script><script src="../js/admin-loot-tables.js?v=3"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=9"></script><script src="../js/admin-game-tuning.js?v=3"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };

@@ -31,7 +31,8 @@ function pw_admin_market_input(array $input): array {
 
 function pw_admin_market_source(PDO $db, string $type, int $definitionId): array {
     if ($type === 'gear') {
-        $stmt = $db->prepare('SELECT id, name FROM game_loot_definitions WHERE id = ? AND slot <> ""');
+        $stmt = $db->prepare('SELECT id, name FROM game_loot_definitions WHERE id = ? AND '
+            . pw_missions_carryable_item_sql($db, 'game_loot_definitions'));
     } else {
         $stmt = $db->prepare('SELECT id, name FROM game_crew_definitions WHERE id = ? AND is_starter = 0');
     }

@@ -99,7 +99,9 @@ function pw_market_rotation(PDO $db, string $offerType, DateTimeImmutable $now, 
     /* Starter crew are granted automatically when a player first enters
      * Missions, so presenting one as a paid recruitment lead would create a
      * misleading offer for every established player. */
-    $sourceWhere = $offerType === 'gear' ? "d.is_enabled = 1 AND d.slot <> ''" : 'd.is_enabled = 1 AND d.is_starter = 0';
+    $sourceWhere = $offerType === 'gear'
+        ? 'd.is_enabled = 1 AND ' . pw_missions_carryable_item_sql($db, 'd')
+        : 'd.is_enabled = 1 AND d.is_starter = 0';
     $candidates = $db->prepare(
         'SELECT e.id, e.credit_price, e.required_reputation_level, e.rotation_weight, e.stock_per_rotation
          FROM game_market_entries e
@@ -251,7 +253,7 @@ function pw_market_next_rank_categories(PDO $db, int $nextRank): array {
                     MAX(CASE l.tier WHEN "legendary" THEN 4 WHEN "rare" THEN 3 WHEN "uncommon" THEN 2 WHEN "common" THEN 1 ELSE 0 END) AS tier_value
              FROM game_market_entries e
              JOIN game_loot_definitions l ON l.id = e.loot_definition_id
-             WHERE e.offer_type = "gear" AND e.is_enabled = 1 AND l.is_enabled = 1 AND l.slot <> "" AND e.required_reputation_level = ?
+             WHERE e.offer_type = "gear" AND e.is_enabled = 1 AND l.is_enabled = 1 AND ' . pw_missions_carryable_item_sql($db, 'l') . ' AND e.required_reputation_level = ?
              UNION ALL
              SELECT "character" AS offer_type, COUNT(*) AS entry_count, 0 AS tier_value
              FROM game_market_entries e

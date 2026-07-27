@@ -240,6 +240,30 @@ function pw_admin_mission_gear_input(array $input): array {
     $requiredRole = trim((string)($input['required_role'] ?? ''));
     if ($requiredRole !== '' && !isset(pw_missions_role_rates()[$requiredRole])) pw_error('Choose a valid required role, or leave it open to any role.');
 
+    /* Stim fields. An item is a stim when it carries an effect, and a stim can
+     * never also be equipment: the loadout reads by slot, so an item that was
+     * both would be worn and consumed at once. The two are therefore mutually
+     * exclusive rather than merely discouraged. */
+    $stimEffect = strtolower(trim((string)($input['stim_effect'] ?? '')));
+    if ($stimEffect !== '' && !isset(pw_missions_stim_effect_types()[$stimEffect])) pw_error('Choose a valid stim effect.');
+    if ($stimEffect !== '' && $slot !== '') pw_error('A stim cannot also occupy an equipment slot. Clear the slot, or clear the stim effect.');
+    $stimValue = filter_var($input['stim_value'] ?? 0, FILTER_VALIDATE_FLOAT);
+    if ($stimValue === false || $stimValue < 0 || $stimValue > 1000) pw_error('Stim strength must be between 0 and 1,000.');
+    /* Capped at a day. A boost measured in days would outlive the session it
+     * was drunk in, which is not what a stim is for, and an unbounded value
+     * would let one item disable the whole timed-boost mechanic. */
+    $stimDuration = filter_var($input['stim_duration_seconds'] ?? 0, FILTER_VALIDATE_INT);
+    if ($stimDuration === false || $stimDuration < 0 || $stimDuration > 86400) pw_error('Stim duration must be between 0 and 86,400 seconds.');
+    if ($stimEffect !== '') {
+        if ($stimValue <= 0) pw_error('A stim needs a strength above zero, or it does nothing when used.');
+        $timed = !empty(pw_missions_stim_effect_types()[$stimEffect]['timed']);
+        if ($timed && $stimDuration < 1) pw_error('A timed stim needs a duration, or its boost would expire the instant it started.');
+        if (!$timed) $stimDuration = 0;
+    } else {
+        $stimValue = 0;
+        $stimDuration = 0;
+    }
+
     // Same closed allow-list and the same image library as the crew portraits.
     $iconUrl = trim((string)($input['icon_url'] ?? ''));
     if ($iconUrl !== '' && pw_missions_gear_icon_url($iconUrl) === '') pw_error('That icon is not a recognised uploaded image.');
@@ -259,6 +283,9 @@ function pw_admin_mission_gear_input(array $input): array {
         'required_level' => $requiredLevel,
         'required_role' => $requiredRole,
         'icon_url' => $iconUrl,
+        'stim_effect' => $stimEffect,
+        'stim_value' => round((float)$stimValue, 2),
+        'stim_duration_seconds' => (int)$stimDuration,
         'is_enabled' => !empty($input['is_enabled']) ? 1 : 0,
     ];
 }

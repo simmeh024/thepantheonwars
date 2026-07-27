@@ -619,6 +619,82 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Inventory limits, a destroy path for everything, and stims.** **Run
+  `sql/migration_mission_inventory.sql` once.** Three changes on one screen.
+  **Two ceilings, 100 apiece.** `game_player_loot` was unbounded, so a long
+  campaign turned the quartermaster panel into infinite scroll and the
+  keep-or-destroy decision the gear system was built around never arrived.
+  **Salvage is counted separately from equipment deliberately** --
+  `api/research/unlock.php` spends salvage, so letting a hoard of gear crowd it
+  out would quietly block the research tree, which is a failure the player has
+  no way to diagnose. Stims count with equipment: a stockpile of boosts
+  competing for space with the gear they support is the trade-off that makes
+  them a decision rather than a free bonus.
+  **The two write paths refuse in opposite directions, on purpose.** A Market
+  purchase is blocked before any credit is spent, so a full inventory costs
+  nothing. A mission claim instead stores what fits and *reports* the rest in
+  the debrief -- the operation already ran and its other rewards are owed, so
+  failing the claim would be worse than a short payout. Silently dropping it
+  would be worse still: the player watched the roll land, and an unexplained
+  shortfall reads as the game having miscounted.
+  Caps are enforced in PHP rather than by a constraint because they are totals
+  across rows, which no column constraint can express.
+  **`api/missions/inventory-destroy.php` generalises `gear-destroy.php`**, which
+  could only ever remove a slotted item -- so salvage and stims were permanently
+  stuck once the ceiling was reached. The old route now delegates to it rather
+  than keeping a second copy of the ownership rules; it is **not deleted**,
+  because a cached page still posts there and a cPanel deploy never removes a
+  file anyway. Quantity is explicit, since clearing space one confirm at a time
+  would be a hundred dialogs. Only *spare* copies may be destroyed: an equipped
+  copy is not deducted from the quantity ledger, so destroying one would leave a
+  crew member wearing something nobody owns.
+  **A stim is an ordinary `game_loot_definitions` row with a `stim_effect` and
+  no slot**, not a parallel system -- it drops from the world pool, drops from a
+  loot table and sells in the Market through the pipelines that already exist.
+  It is the first item whose value depends on *when* it is spent; everything
+  else a player acquires is permanent. Three effects, each mapped onto a figure
+  the engine already resolves: fatigue straight to one resting crew member,
+  mission speed and loot luck folded into the same account effect totals
+  research contributes to.
+  **That fold happens inside `pw_research_player_effects()`**, so the launch
+  projection, the claim payout and the mission card all pick a boost up
+  unchanged. Threading a second effects array through those paths is how one of
+  them ends up silently ignoring boosts -- which is exactly what the four
+  `if (pw_research_ready($db))` guards around that call would have done, so they
+  were removed: the helper already returns zeroed defaults when the tree is
+  absent, and a stim does not depend on the Research Facility having been
+  migrated.
+  **The two timed boosts have a combined ceiling above the research-only cap**
+  (speed 75 vs 60, luck 90 vs 75). Sharing the research ceiling would mean a
+  fully-researched player's stim did nothing at all, which is worse than a
+  smaller benefit.
+  New research effect `fatigue_recovery` speeds up the rate resting crew regain
+  fatigue -- the counterpart to `crew_fatigue`, which raises the ceiling.
+  `pw_missions_fatigue_regen_per_minute()` now takes a percentage; at zero it is
+  byte-identical to before (asserted). **No node is seeded**: category, canvas
+  position, cost and rank are content decisions, and a seeded node would land on
+  an arbitrary square of someone else's lattice. The effect type simply appears
+  in Research Control's dropdown.
+  **One shared SQL fragment, `pw_missions_carryable_item_sql()`**, replaced six
+  hand-written `slot <> ""` predicates across the Market and loot-table pickers.
+  A stim has no slot, so every one of them would have excluded it -- an item
+  that could drop from the world pool but could never be authored into an offer
+  or a table.
+  **Two bugs found in the browser pass.** The requirements line rendered a
+  literal `&middot;` because the separator went *through* `escapeHtml()` with
+  the values -- an entity inside an escaped string is shown as source text, and
+  the identical separator two lines above was fine only because it sits outside
+  the call. And the action buttons measured 23.6px tall, just under the 24px
+  minimum target size, fixed with padding rather than a `min-height` so the two
+  buttons stay equal whatever their label wraps to.
+  Verified by porting the caps, the fatigue rate and the stim ceilings to Python
+  (49 assertions, including that the two ceilings are independent, that a batch
+  shares one pool of room, that deployed crew still never rest, and that a
+  fully-researched player's stim is still worth carrying) and by measuring the
+  panel in a browser against a harness built by extracting the real render
+  functions out of `js/missions.js` rather than retyping them.
+  `missions.css?v=39` / `missions.js?v=38` / `admin-missions.js?v=12`.
+
 - **Game Tuning (Game Control -> Game Tuning).** **Run
   `sql/migration_game_tuning.sql` once.** A read-only balance simulator:
   pick a crew member, drag a loadout, toggle research protocols, and sweep

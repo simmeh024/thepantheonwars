@@ -77,7 +77,7 @@ $gear = array_map(static function ($row) {
 }, $db->query(
     'SELECT id, name, slug, tier, slot, icon_url, is_enabled
      FROM game_loot_definitions
-     WHERE slot IS NOT NULL AND slot != ""
+     WHERE ' . pw_missions_carryable_item_sql($db, 'game_loot_definitions') . '
      ORDER BY tier ASC, name ASC, id ASC'
 )->fetchAll());
 

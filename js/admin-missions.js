@@ -687,6 +687,24 @@
     });
     roleSelect.value = currentRole;
 
+    var stimSelect = document.getElementById('mission-gear-stim-effect');
+    var currentStim = stimSelect.value;
+    stimSelect.innerHTML = '<option value="">Not a stim</option>';
+    var stimTypes = gearMeta.stim_effect_types || {};
+    Object.keys(stimTypes).forEach(function (key) {
+      var option = document.createElement('option');
+      option.value = key; option.textContent = stimTypes[key].label;
+      stimSelect.appendChild(option);
+    });
+    stimSelect.value = currentStim;
+    /* The whole block stands down until the inventory migration has been run:
+     * gear-save.php will not write these columns before then, so offering the
+     * fields would silently discard whatever was typed into them. */
+    var stimsReady = gearMeta.stims_ready !== false;
+    document.getElementById('mission-gear-stim-head').hidden = !stimsReady;
+    document.getElementById('mission-gear-stim-row').hidden = !stimsReady;
+    document.getElementById('mission-gear-stim-summary').hidden = !stimsReady;
+
     document.getElementById('mission-gear-cap-natural').textContent = String(gearMeta.max_stat || 50);
     document.getElementById('mission-gear-cap-total').textContent = String(gearMeta.max_gear_stat || 80);
   }
@@ -751,6 +769,39 @@
       : slot === '' ? 'Salvage only — no slot, no bonuses.' : 'No bonuses yet, so this item is cosmetic in its slot.';
   }
 
+  /* Live feedback on the stim fields, and on the two combinations the server
+   * rejects: a stim that also occupies a slot, and a timed boost with no
+   * duration to run for. */
+  function updateGearStimSummary() {
+    var summary = document.getElementById('mission-gear-stim-summary');
+    var effect = document.getElementById('mission-gear-stim-effect').value;
+    var value = Number(document.getElementById('mission-gear-stim-value').value) || 0;
+    var minutes = Number(document.getElementById('mission-gear-stim-duration').value) || 0;
+    var slot = document.getElementById('mission-gear-slot').value;
+    var meta = (gearMeta && gearMeta.stim_effect_types || {})[effect];
+    summary.classList.remove('is-warning');
+    if (!effect) { summary.textContent = 'Not a stim. This item is ordinary equipment or salvage.'; return; }
+    if (slot !== '') {
+      summary.textContent = 'A stim is consumed, so it cannot also occupy a slot. Clear the slot, or clear the stim effect.';
+      summary.classList.add('is-warning');
+      return;
+    }
+    if (value <= 0) {
+      summary.textContent = 'A stim needs a strength above zero, or it does nothing when used.';
+      summary.classList.add('is-warning');
+      return;
+    }
+    if (meta && meta.timed && minutes < 1) {
+      summary.textContent = 'A timed boost needs a duration, or it would expire the instant it started.';
+      summary.classList.add('is-warning');
+      return;
+    }
+    var unit = meta && meta.unit === '%' ? '%' : ' fatigue';
+    summary.textContent = meta && meta.timed
+      ? 'On use: +' + value + unit + ' for ' + minutes + ' minute' + (minutes === 1 ? '' : 's') + ', across the whole expedition.'
+      : 'On use: restores ' + value + unit + ' to one resting crew member.';
+  }
+
   function gearValues(item) {
     document.getElementById('mission-gear-name').value = item ? item.name : '';
     document.getElementById('mission-gear-slug').value = item ? item.slug : '';
@@ -765,6 +816,11 @@
     document.getElementById('mission-gear-required-role').value = item ? (item.required_role || '') : '';
     document.getElementById('mission-gear-world').value = item ? item.world_key : 'neoh';
     document.getElementById('mission-gear-icon').value = item ? (item.icon_url || '') : '';
+    document.getElementById('mission-gear-stim-effect').value = item ? (item.stim_effect || '') : '';
+    document.getElementById('mission-gear-stim-value').value = item ? (Number(item.stim_value) || 0) : 0;
+    // Stored in seconds, authored in minutes: a boost is a session-length thing
+    // and a seconds field invites a three-second stim by typo.
+    document.getElementById('mission-gear-stim-duration').value = item ? Math.round((Number(item.stim_duration_seconds) || 0) / 60) : 0;
     document.getElementById('mission-gear-enabled').checked = item ? item.is_enabled : true;
     var usage = document.getElementById('mission-gear-usage');
     usage.textContent = item
@@ -775,6 +831,7 @@
       : '';
     updateGearIconPreview();
     updateGearBonusSummary();
+    updateGearStimSummary();
   }
 
   function openGear(item) {
@@ -807,6 +864,9 @@
       required_role: document.getElementById('mission-gear-required-role').value,
       world_key: document.getElementById('mission-gear-world').value,
       icon_url: document.getElementById('mission-gear-icon').value.trim(),
+      stim_effect: document.getElementById('mission-gear-stim-effect').value,
+      stim_value: document.getElementById('mission-gear-stim-value').value,
+      stim_duration_seconds: Math.round((Number(document.getElementById('mission-gear-stim-duration').value) || 0) * 60),
       is_enabled: document.getElementById('mission-gear-enabled').checked
     };
     GEAR_STATS.forEach(function (stat) {
@@ -824,7 +884,13 @@
     if (!currentGear && !slug.dataset.touched) slug.value = slugify(this.value);
   });
   document.getElementById('mission-gear-slug').addEventListener('input', function () { this.dataset.touched = 'true'; });
-  document.getElementById('mission-gear-slot').addEventListener('change', updateGearBonusSummary);
+  document.getElementById('mission-gear-slot').addEventListener('change', function () {
+    updateGearBonusSummary();
+    updateGearStimSummary();
+  });
+  ['mission-gear-stim-effect', 'mission-gear-stim-value', 'mission-gear-stim-duration'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', updateGearStimSummary);
+  });
   GEAR_STATS.forEach(function (stat) {
     document.getElementById('mission-gear-bonus-' + stat.key).addEventListener('input', updateGearBonusSummary);
   });

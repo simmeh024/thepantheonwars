@@ -104,10 +104,12 @@ try {
     $effects = $statsReady
         ? pw_missions_crew_effects($selectedCrew, (string)$mission['mission_type'], $weather)
         : ['duration_percent' => 0.0, 'duration_penalty_percent' => 0.0, 'success_percent' => 0.0];
-    if (pw_research_ready($db)) {
-        $research = pw_research_player_effects($db, $userId);
-        $effects['duration_percent'] = min(90.0, (float)$effects['duration_percent'] + (float)$research['mission_speed_percent']);
-    }
+    /* Called unconditionally: the helper returns zeroed defaults when the
+     * Research Facility has not been migrated, and it is also where a running
+     * stim is folded in -- guarding on the tree would ignore a boost the player
+     * had already spent. Read once and reused by the fatigue check below. */
+    $research = pw_research_player_effects($db, $userId);
+    $effects['duration_percent'] = min(90.0, (float)$effects['duration_percent'] + (float)$research['mission_speed_percent']);
     $duration = pw_missions_effective_duration((int)$mission['duration_seconds'], $effects);
 
     $now = pw_missions_utc_now($db);
@@ -125,12 +127,13 @@ try {
     if ($fatigueReady) {
         $fatigueCost = pw_missions_fatigue_cost((int)$mission['duration_seconds']);
         if ($fatigueCost > 0) {
-            $fatigueMax = pw_missions_fatigue_max($db, $userId, pw_research_ready($db) ? pw_research_player_effects($db, $userId) : []);
+            $fatigueMax = pw_missions_fatigue_max($db, $userId, $research);
+            $fatigueRecovery = (float)($research['fatigue_recovery_percent'] ?? 0);
             $spend = $db->prepare('UPDATE game_player_crew SET fatigue = ?, fatigue_updated_at = ? WHERE id = ? AND user_id = ?');
             foreach ($selectedCrew as $member) {
-                $current = pw_missions_resolve_fatigue($member, $fatigueMax, $now);
+                $current = pw_missions_resolve_fatigue($member, $fatigueMax, $now, $fatigueRecovery);
                 if ($current < $fatigueCost) {
-                    $wait = pw_missions_fatigue_recovery_seconds($current, $fatigueCost);
+                    $wait = pw_missions_fatigue_recovery_seconds($current, $fatigueCost, $fatigueRecovery);
                     $minutes = max(1, (int)ceil($wait / 60));
                     throw new RuntimeException(
                         $member['name'] . ' is too fatigued for this operation. '

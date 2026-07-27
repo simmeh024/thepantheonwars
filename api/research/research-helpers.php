@@ -28,6 +28,7 @@ function pw_research_effect_types(): array {
         'credit_gain' => ['label' => 'Credit gain', 'short' => 'Mission credits increased', 'value_label' => 'Credit boost (%)', 'description' => 'Increases credits paid by successful missions, after the crew assignment bonus.'],
         'crew_capacity' => ['label' => 'Crew capacity', 'short' => 'Crew berth capacity expanded', 'value_label' => 'Additional crew slots', 'description' => 'Adds permanent room for more crew members to join the expedition.'],
         'crew_fatigue' => ['label' => 'Crew endurance', 'short' => 'Crew fatigue capacity raised', 'value_label' => 'Additional fatigue', 'description' => 'Raises the fatigue ceiling of every crew member, so they can run more operations back to back before resting.'],
+        'fatigue_recovery' => ['label' => 'Crew recovery', 'short' => 'Crew rest faster', 'value_label' => 'Recovery boost (%)', 'description' => 'Speeds up the rate at which resting crew regain fatigue, shortening the wait between operations.'],
         'luck' => ['label' => 'Rarity promotion', 'short' => 'Loot rarity improved', 'value_label' => 'Promotion chance (%)', 'description' => 'Raises the chance that a recovered item is promoted one rarity tier.'],
         'market_discount' => ['label' => 'Market discount', 'short' => 'Market prices reduced', 'value_label' => 'Discount (%)', 'description' => 'Reduces the credit price shown for every Market offer.'],
         'market_refresh' => ['label' => 'Market refresh', 'short' => 'Market signal cycles faster', 'value_label' => 'Refresh boost (%)', 'description' => 'Moves this command\'s Market rotation onto a faster signal cadence.'],
@@ -160,6 +161,7 @@ function pw_research_default_effects(): array {
         'credit_percent' => 0.0,
         'crew_capacity' => 0,
         'crew_fatigue' => 0,
+        'fatigue_recovery_percent' => 0.0,
         'luck_percent' => 0.0,
         'market_discount_percent' => 0.0,
         'market_refresh_percent' => 0.0,
@@ -208,7 +210,11 @@ function pw_research_queue_transmissions_ready(PDO $db): bool {
  * a build without turning a mission instant or a market offer free. */
 function pw_research_player_effects(PDO $db, int $userId): array {
     $effects = pw_research_default_effects();
-    if (!pw_research_ready($db)) return $effects;
+    /* Stims still apply with no research tree at all: they arrive from the loot
+     * pool and the Market, neither of which depends on the Research Facility
+     * having been migrated. Returning bare defaults here would silently ignore
+     * a boost the player had already spent. */
+    if (!pw_research_ready($db)) return pw_missions_apply_stim_effects($db, $userId, $effects);
     $lootTableLocksReady = pw_research_loot_table_locks_ready($db);
     $stmt = $db->prepare(
         'SELECT n.effect_type, n.effect_value, n.target_mission_definition_id'
@@ -227,6 +233,7 @@ function pw_research_player_effects(PDO $db, int $userId): array {
             case 'credit_gain': $effects['credit_percent'] += $value; break;
             case 'crew_capacity': $effects['crew_capacity'] += $value; break;
             case 'crew_fatigue': $effects['crew_fatigue'] += $value; break;
+            case 'fatigue_recovery': $effects['fatigue_recovery_percent'] += $value; break;
             case 'luck': $effects['luck_percent'] += $value; break;
             case 'market_discount': $effects['market_discount_percent'] += $value; break;
             case 'market_refresh': $effects['market_refresh_percent'] += $value; break;
@@ -244,12 +251,19 @@ function pw_research_player_effects(PDO $db, int $userId): array {
     $effects['credit_percent'] = round(min(75.0, $effects['credit_percent']), 2);
     $effects['crew_capacity'] = (int)min(24, floor($effects['crew_capacity']));
     $effects['crew_fatigue'] = (int)min(PW_MISSION_FATIGUE_RESEARCH_CAP, floor($effects['crew_fatigue']));
+    $effects['fatigue_recovery_percent'] = round(min(200.0, $effects['fatigue_recovery_percent']), 2);
     $effects['luck_percent'] = round(min(75.0, $effects['luck_percent']), 2);
     $effects['market_discount_percent'] = round(min(50.0, $effects['market_discount_percent']), 2);
     $effects['market_refresh_percent'] = round(min(50.0, $effects['market_refresh_percent']), 2);
     $effects['secret_mission_ids'] = array_values(array_unique($effects['secret_mission_ids']));
     $effects['rare_loot_table_ids'] = array_values(array_unique($effects['rare_loot_table_ids']));
-    return $effects;
+    /* Stims are folded in here rather than beside this call so every existing
+     * consumer picks a running boost up unchanged -- the launch projection, the
+     * claim payout and the mission card all read this one array. Threading a
+     * second array through those paths is how one of them ends up silently
+     * ignoring boosts. The combined ceilings sit above the research-only caps
+     * applied just above; see pw_missions_apply_stim_effects(). */
+    return pw_missions_apply_stim_effects($db, $userId, $effects);
 }
 
 /** The starter berth count is eight. Capacity protocols are flat slots rather
