@@ -76,11 +76,13 @@
  * most rows. */
 .reputation-body { display: grid; grid-template-columns: 236px minmax(0, 1fr); gap: 20px; align-items: start; }
 .reputation-main { display: grid; gap: 20px; min-width: 0; }
-/* Sticky, offset past the fixed header, so the rail stays beside whatever the
- * reader has scrolled to -- the ladder is the reference the rest of the page is
- * read against. */
-.reputation-sidebar { position: sticky; top: 84px; }
-.reputation-ladder-rail { max-height: min(58vh, 520px); }
+/* The sidebar scrolls with the page. It was sticky so the rail stayed beside
+ * whatever the reader had scrolled to, and the 58vh cap on the rail existed
+ * only to serve that -- a sticky column taller than the viewport cannot stick
+ * usefully. Both are gone together: with the column scrolling normally the
+ * ladder can be its full height and needs no inner scrollbar, so every rung is
+ * reachable by the page scroll the reader is already using. */
+.reputation-ladder-rail { max-height: none; overflow-y: visible; }
 
 /* --- 3. Achievement tier plaques ------------------------------------------
  * --achievement-tone already existed and only ever tinted a 1px border and the
@@ -142,8 +144,7 @@
    * turns on its side -- a vertical ladder in a full-width strip would be a
    * very tall column of very short rows. */
   .reputation-body { grid-template-columns: minmax(0, 1fr); }
-  .reputation-sidebar { position: static; top: auto; }
-  .reputation-ladder-rail { max-height: none; grid-auto-flow: column; grid-auto-columns: minmax(132px, 1fr); max-height: none; overflow-x: auto; overflow-y: visible; }
+  .reputation-ladder-rail { grid-auto-flow: column; grid-auto-columns: minmax(132px, 1fr); max-height: none; overflow-x: auto; overflow-y: visible; }
   .reputation-rung { grid-template-columns: minmax(0, 1fr); justify-items: center; gap: 6px; text-align: center; }
   .reputation-rung-copy strong, .reputation-rung-copy small { text-align: center; }
     .reputation-rung::before { top: 14px; right: 0; bottom: auto; left: 0; width: auto; height: 1px; }
