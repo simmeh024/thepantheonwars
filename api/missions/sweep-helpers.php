@@ -759,6 +759,101 @@ function pw_sweep_recent_trophies(PDO $db, int $userId, int $limit = 5): array {
     return $trophies;
 }
 
+/** A small public payload for a badge that unlocked in the just-finished run. */
+function pw_sweep_achievement_notices(array $keys): array {
+    $catalog = [];
+    foreach (pw_reputation_achievement_catalog() as $achievement) {
+        $catalog[$achievement['key']] = $achievement;
+    }
+    $notices = [];
+    foreach ($keys as $key) {
+        $achievement = $catalog[$key] ?? null;
+        if (!$achievement) continue;
+        $notices[] = [
+            'key' => (string)$achievement['key'],
+            'name' => (string)$achievement['name'],
+            'description' => (string)$achievement['description'],
+            'tier' => (string)$achievement['tier'],
+            'icon' => (string)$achievement['icon'],
+        ];
+    }
+    return $notices;
+}
+
+/**
+ * A legendary only counts as lost when it was actually recovered during the
+ * run and was not pulled clear by a successful emergency tether.
+ */
+function pw_sweep_has_lost_legendary_item(PDO $db, array $run, ?array $tether): bool {
+    $stmt = $db->prepare(
+        'SELECT find.cell_index
+         FROM game_player_sweep_finds find
+         JOIN game_loot_definitions gear ON gear.id = find.loot_definition_id
+         WHERE find.run_id = ? AND LOWER(gear.tier) = "legendary"'
+    );
+    $stmt->execute([(int)$run['id']]);
+    foreach ($stmt->fetchAll() as $row) {
+        $savedByTether = $tether
+            && ($tether['kind'] ?? '') === 'gear'
+            && strtolower((string)($tether['tier'] ?? '')) === 'legendary'
+            && ($tether['state'] ?? '') !== 'no_room'
+            && (int)($tether['cell_index'] ?? -1) === (int)$row['cell_index'];
+        if (!$savedByTether) return true;
+    }
+    return false;
+}
+
+/**
+ * Personal records for one sector. Haul value is deliberately an index rather
+ * than currency: it combines credits with the tier of the recoveries, so a
+ * rare discovery can matter beside a large credit cache without inventing a
+ * second wallet or changing the payout rules.
+ */
+function pw_sweep_sector_records(PDO $db, int $userId, int $rankNumber): array {
+    $records = [
+        'runs_banked' => 0,
+        'fastest_seconds' => null,
+        'longest_safe_scans' => 0,
+        'best_haul_value' => 0,
+        'rarest_tier' => '',
+    ];
+    if ($userId <= 0 || $rankNumber <= 0) return $records;
+
+    $capacityReady = pw_mission_crew_capacity_ready($db);
+    $crewTier = $capacityReady ? 'crew.tier' : '"common"';
+    $tierName = 'LOWER(COALESCE(gear.tier, ' . $crewTier . ', "common"))';
+    $tierRank = 'CASE ' . $tierName
+        . ' WHEN "legendary" THEN 4 WHEN "epic" THEN 3 WHEN "rare" THEN 2 WHEN "uncommon" THEN 1 ELSE 0 END';
+    $tierValue = 'CASE ' . $tierName
+        . ' WHEN "legendary" THEN 10000 WHEN "epic" THEN 2500 WHEN "rare" THEN 500 WHEN "uncommon" THEN 100 ELSE 0 END';
+    $stmt = $db->prepare(
+        'SELECT run.id, run.picks_used,
+                GREATEST(1, TIMESTAMPDIFF(SECOND, run.created_at, run.ended_at)) AS duration_seconds,
+                run.credits_found + COALESCE(SUM(' . $tierValue . '), 0) AS haul_value,
+                COALESCE(MAX(' . $tierRank . '), 0) AS rarest_rank
+         FROM game_player_sweep_runs run
+         LEFT JOIN game_player_sweep_finds find ON find.run_id = run.id
+         LEFT JOIN game_loot_definitions gear ON gear.id = find.loot_definition_id
+         LEFT JOIN game_crew_definitions crew ON crew.id = find.crew_definition_id
+         WHERE run.user_id = ? AND run.rank_number = ? AND run.status = "banked"
+         GROUP BY run.id, run.picks_used, run.credits_found, run.created_at, run.ended_at'
+    );
+    $stmt->execute([$userId, $rankNumber]);
+    $tierByRank = [1 => 'uncommon', 2 => 'rare', 3 => 'epic', 4 => 'legendary'];
+    $highestRank = 0;
+    foreach ($stmt->fetchAll() as $row) {
+        $records['runs_banked']++;
+        $duration = max(1, (int)$row['duration_seconds']);
+        $records['fastest_seconds'] = $records['fastest_seconds'] === null
+            ? $duration : min((int)$records['fastest_seconds'], $duration);
+        $records['longest_safe_scans'] = max((int)$records['longest_safe_scans'], (int)$row['picks_used']);
+        $records['best_haul_value'] = max((int)$records['best_haul_value'], (int)$row['haul_value']);
+        $highestRank = max($highestRank, (int)$row['rarest_rank']);
+    }
+    $records['rarest_tier'] = $tierByRank[$highestRank] ?? '';
+    return $records;
+}
+
 /**
  * One item pulled back out of a collapse, if the tether holds.
  *

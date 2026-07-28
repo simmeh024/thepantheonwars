@@ -89,7 +89,8 @@ try {
     }
 
     $research = pw_research_player_effects($db, $userId);
-    $skipped = $gear ? (pw_missions_store_loot($db, $userId, $gear, $research)['skipped'] ?? []) : [];
+    $storage = $gear ? pw_missions_store_loot($db, $userId, $gear, $research) : ['stored' => [], 'skipped' => []];
+    $skipped = $storage['skipped'] ?? [];
 
     $credits = (int)$run['credits_found'];
     foreach ($duplicates as $duplicate) $credits += (int)($duplicate['duplicate_credits'] ?? 0);
@@ -109,6 +110,23 @@ try {
     if ($update->rowCount() !== 1) throw new RuntimeException('That sweep was already closed.');
     pw_sweep_release_crew($db, $userId, (int)$run['player_crew_id'], $now);
 
+    $achievementKeys = [];
+    if ((int)$run['picks_used'] >= (int)$run['picks_total']
+        && pw_unlock_reputation_achievement($db, $userId, 'sweep_full_scan')) {
+        $achievementKeys[] = 'sweep_full_scan';
+    }
+    $storedLegendary = false;
+    foreach ($gear as $item) {
+        if (strtolower((string)($item['tier'] ?? '')) === 'legendary'
+            && !empty($storage['stored'][(int)$item['id']])) {
+            $storedLegendary = true;
+            break;
+        }
+    }
+    if ($storedLegendary && pw_unlock_reputation_achievement($db, $userId, 'sweep_legendary_recovered')) {
+        $achievementKeys[] = 'sweep_legendary_recovered';
+    }
+
     $runStmt = $db->prepare('SELECT * FROM game_player_sweep_runs WHERE id = ?');
     $runStmt->execute([(int)$run['id']]);
     $finished = $runStmt->fetch();
@@ -126,6 +144,7 @@ try {
         'credits' => $credits,
         'credit_balance' => $balance,
         'xp' => $xp,
+        'achievements' => pw_sweep_achievement_notices($achievementKeys),
         'result' => $result,
     ]);
 } catch (Throwable $e) {

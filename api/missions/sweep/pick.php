@@ -133,6 +133,17 @@ try {
         $tether = pw_sweep_tether_rescue($db, $userId, $run);
     }
 
+    $achievementKeys = [];
+    if ($ended === 'collapse') {
+        if (pw_unlock_reputation_achievement($db, $userId, 'sweep_collapse')) {
+            $achievementKeys[] = 'sweep_collapse';
+        }
+        if (pw_sweep_has_lost_legendary_item($db, $run, $tether)
+            && pw_unlock_reputation_achievement($db, $userId, 'sweep_legendary_lost')) {
+            $achievementKeys[] = 'sweep_legendary_lost';
+        }
+    }
+
     if ($status !== 'active') {
         // The crew member comes home either way; only the haul is at stake.
         pw_sweep_release_crew($db, $userId, (int)$run['player_crew_id'], $now);
@@ -152,6 +163,7 @@ try {
         'shrugged' => $shrugged,
         'ended' => $ended,
         'tether' => $tether,
+        'achievements' => pw_sweep_achievement_notices($achievementKeys),
         'run' => pw_sweep_run_payload($db, $fresh),
         'result' => $result,
     ]);

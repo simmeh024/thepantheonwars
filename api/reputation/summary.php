@@ -20,7 +20,20 @@ try {
     $quizStmt = $db->prepare('SELECT COUNT(*) FROM quiz_results WHERE user_id = ?'); $quizStmt->execute([$user['id']]);
     $bookStmt = $db->prepare('SELECT COUNT(*) FROM user_book_progress WHERE user_id = ? AND started_at IS NOT NULL'); $bookStmt->execute([$user['id']]);
     $finishStmt = $db->prepare('SELECT COUNT(*) FROM user_book_progress WHERE user_id = ? AND finished_at IS NOT NULL'); $finishStmt->execute([$user['id']]);
-    $progress = ['topics' => (int)$topicStmt->fetchColumn(), 'posts' => (int)$postStmt->fetchColumn(), 'quiz' => (int)$quizStmt->fetchColumn(), 'books_started' => (int)$bookStmt->fetchColumn(), 'books_finished' => (int)$finishStmt->fetchColumn()];
+    $progress = [
+        'topics' => (int)$topicStmt->fetchColumn(),
+        'posts' => (int)$postStmt->fetchColumn(),
+        'quiz' => (int)$quizStmt->fetchColumn(),
+        'books_started' => (int)$bookStmt->fetchColumn(),
+        'books_finished' => (int)$finishStmt->fetchColumn(),
+        // Sweep achievements are event snapshots: a legendary left behind,
+        // for example, cannot be faithfully reconstructed from later storage.
+        // Their unlocked rows above are the source of truth.
+        'sweep_full_scan' => 0,
+        'sweep_collapse' => 0,
+        'sweep_legendary_recovered' => 0,
+        'sweep_legendary_lost' => 0,
+    ];
     $achievements = [];
     foreach (pw_reputation_achievement_catalog() as $achievement) {
         $achievement['unlocked_at'] = $unlocked[$achievement['key']] ?? null;

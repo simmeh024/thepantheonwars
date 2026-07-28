@@ -1841,7 +1841,47 @@ function pw_reputation_achievement_catalog(): array {
         // actually roll it -- so these sit higher than their counts suggest.
         ['key' => 'storm_witness', 'name' => 'Storm Witness', 'description' => 'Stood through severe weather on a world.', 'points' => 10, 'tier' => 'bronze', 'category' => 'Lore', 'progress_type' => 'severe_weather', 'target' => 1, 'icon' => '◇', 'track' => 'severe_weather', 'track_label' => 'Severe Weather', 'track_order' => 1],
         ['key' => 'stormchaser', 'name' => 'Stormchaser', 'description' => 'Stood through severe weather on five worlds.', 'points' => 60, 'tier' => 'gold', 'category' => 'Lore', 'progress_type' => 'severe_weather', 'target' => 5, 'icon' => '◈', 'track' => 'severe_weather', 'track_label' => 'Severe Weather', 'track_order' => 2],
+        ['key' => 'sweep_full_scan', 'name' => 'All Clear', 'description' => 'Banked a Salvage Sweep after using every available scan.', 'points' => 20, 'tier' => 'silver', 'category' => 'Salvage Sweep', 'progress_type' => 'sweep_full_scan', 'target' => 1, 'icon' => '◆'],
+        ['key' => 'sweep_collapse', 'name' => 'Collapse Recorded', 'description' => 'Lost a Salvage Sweep when the sector collapsed.', 'points' => 5, 'tier' => 'bronze', 'category' => 'Salvage Sweep', 'progress_type' => 'sweep_collapse', 'target' => 1, 'icon' => '✕'],
+        ['key' => 'sweep_legendary_recovered', 'name' => 'Legend Recovered', 'description' => 'Banked a legendary item from a Salvage Sweep.', 'points' => 75, 'tier' => 'gold', 'category' => 'Salvage Sweep', 'progress_type' => 'sweep_legendary_recovered', 'target' => 1, 'icon' => '✧'],
+        ['key' => 'sweep_legendary_lost', 'name' => 'Legend Lost', 'description' => 'Lost a legendary item in a Salvage Sweep collapse.', 'points' => 15, 'tier' => 'silver', 'category' => 'Salvage Sweep', 'progress_type' => 'sweep_legendary_lost', 'target' => 1, 'icon' => '◈'],
     ];
+}
+
+/**
+ * Unlock an event-driven achievement exactly once.
+ *
+ * Some achievements are a fact at the point the event happens rather than a
+ * count that can be reconstructed from an ordinary profile query. Keeping the
+ * insert and award together means a sweep collapse, for example, cannot be
+ * double-awarded by two requests racing to close the same field.
+ */
+function pw_unlock_reputation_achievement(PDO $db, int $userId, string $key): bool {
+    if ($userId <= 0 || $key === '') return false;
+    $achievement = null;
+    foreach (pw_reputation_achievement_catalog() as $candidate) {
+        if ($candidate['key'] === $key) {
+            $achievement = $candidate;
+            break;
+        }
+    }
+    if (!$achievement) return false;
+    try {
+        $insert = $db->prepare('INSERT IGNORE INTO user_reputation_achievements (user_id, achievement_key) VALUES (?, ?)');
+        $insert->execute([$userId, $key]);
+        if ($insert->rowCount() !== 1) return false;
+        pw_award_reputation($db, $userId, (int)$achievement['points'], 'achievement_' . $key, [
+            'label' => $achievement['name'] . ' achievement',
+            'source_type' => 'achievement',
+            'note' => $achievement['description'],
+        ]);
+        return true;
+    } catch (Throwable $e) {
+        /* Achievement history is an optional expansion on older installs; a
+         * recovered haul must never fail simply because its badge table has
+         * not been migrated yet. */
+        return false;
+    }
 }
 
 function pw_evaluate_reputation_achievements(PDO $db, int $userId): void {

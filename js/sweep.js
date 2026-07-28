@@ -28,6 +28,7 @@
   var loginButton = document.getElementById('sweep-login');
   var profileCard = document.getElementById('sweep-profile-card');
   var stimBeltCard = document.getElementById('sweep-stim-belt-card');
+  var recordCard = document.getElementById('sweep-record-card');
   var trophyList = document.getElementById('sweep-trophy-list');
   var crewSort = document.getElementById('sweep-crew-sort');
   var choiceModal = document.getElementById('sweep-choice-modal');
@@ -38,6 +39,12 @@
 
   function esc(value) { var node = document.createElement('div'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
   function num(value) { return Number(value || 0).toLocaleString(); }
+  function duration(value) {
+    var seconds = Math.max(0, Number(value || 0));
+    var minutes = Math.floor(seconds / 60);
+    var remainder = seconds % 60;
+    return minutes ? minutes + 'm ' + remainder + 's' : remainder + 's';
+  }
   function setStatus(message, isError) {
     status.textContent = message || '';
     status.classList.toggle('is-error', !!isError);
@@ -252,6 +259,19 @@
       + (overflow ? '<p class="sweep-result-overflow">' + overflow + ' item' + (overflow === 1 ? '' : 's') + ' could not be stored because the relevant hold is full.</p>' : '');
   }
 
+  function achievementMarkup(result) {
+    var achievements = (result.payout && result.payout.achievements) || [];
+    if (!achievements.length) return '';
+    return '<section class="sweep-achievement-unlocks" aria-label="Achievements unlocked this sweep">'
+      + '<span class="eyebrow">Achievement unlocked</span><div class="sweep-achievement-list">'
+      + achievements.map(function (achievement) {
+        var tier = String(achievement.tier || 'bronze').toLowerCase().replace(/[^a-z0-9-]/g, '');
+        return '<article class="sweep-achievement is-tier-' + esc(tier) + '">'
+          + '<span class="sweep-achievement-mark" aria-hidden="true">' + esc(achievement.icon || '\u25c6') + '</span>'
+          + '<span><strong>' + esc(achievement.name) + '</strong><small>' + esc(achievement.description) + '</small></span></article>';
+      }).join('') + '</div></section>';
+  }
+
   /* The cabinet deliberately repeats only recoveries that actually made it
      home. The full field map remains the source of truth for what was left
      behind; this is the satisfying, tangible receipt for a successful haul. */
@@ -321,6 +341,7 @@
       + collapseMarkup(result)
       + conditionMarkup(field.condition, true)
       + resultPayoutMarkup(result)
+      + achievementMarkup(result)
       + rewardCabinetMarkup(result)
       + '<div class="sweep-result-legend"><span class="is-secured">\u2713 Secured</span><span class="is-missed">\u2014 Left in field</span>'
       + (result.payout && result.payout.tether ? '<span class="is-tethered">\u2726 Tethered</span>' : '') + '</div>'
@@ -413,6 +434,37 @@
       + '</dl>'
       + conditionMarkup(tier.condition, true)
       + '<p class="sweep-muted">Swept ' + num(state.data.sweeps_at_rank) + ' time' + (Number(state.data.sweeps_at_rank) === 1 ? '' : 's') + ' at this rank.</p>';
+  }
+
+  function renderSectorRecords() {
+    if (!recordCard) return;
+    var tier = state.data && state.data.tier;
+    var records = state.data && state.data.sector_records;
+    if (!tier || !records) {
+      recordCard.hidden = true;
+      recordCard.innerHTML = '';
+      return;
+    }
+    var runs = Number(records.runs_banked || 0);
+    var rarest = String(records.rarest_tier || '');
+    var values = [
+      { label: 'Fastest secure', value: runs ? duration(records.fastest_seconds) : '\u2014', medal: '\u23f1' },
+      { label: 'Best haul index', value: runs ? num(records.best_haul_value) : '\u2014', medal: '\u25c6' },
+      { label: 'Longest safe run', value: runs ? num(records.longest_safe_scans) + ' scans' : '\u2014', medal: '\u25c8' },
+      { label: 'Rarest recovery', value: rarest || '\u2014', medal: '\u2727', tier: rarest }
+    ];
+    recordCard.hidden = false;
+    recordCard.innerHTML = '<span class="eyebrow">Sector records</span><h2 id="sweep-record-title">'
+      + esc(tier.name || ('Sector ' + tier.rank_number)) + '</h2>'
+      + '<p class="sweep-record-note">' + (runs
+        ? num(runs) + ' banked run' + (runs === 1 ? '' : 's') + ' logged in this sector.'
+        : 'Bank a sector recovery to write its first record.') + '</p>'
+      + '<div class="sweep-record-grid">' + values.map(function (record) {
+        var tierClass = record.tier ? ' is-tier-' + esc(record.tier) : '';
+        return '<div class="sweep-record' + tierClass + '"><span class="sweep-record-medal" aria-hidden="true">'
+          + record.medal + '</span><span><small>' + esc(record.label) + '</small><strong>'
+          + esc(record.value) + '</strong></span></div>';
+      }).join('') + '</div>';
   }
 
   function renderLadder() {
@@ -794,6 +846,7 @@
     renderStimBelt();
     renderTrophies();
     renderSector();
+    renderSectorRecords();
     renderLadder();
     renderBoard();
     renderCrew();
@@ -821,6 +874,7 @@
       crewList.innerHTML = '<p class="sweep-muted">The roster could not be read.</p>';
       if (profileCard) profileCard.innerHTML = '<p class="sweep-muted">The commander record could not be read.</p>';
       if (stimBeltCard) stimBeltCard.hidden = true;
+      if (recordCard) recordCard.hidden = true;
       if (trophyList) trophyList.innerHTML = '<p class="sweep-muted">The vault could not be read.</p>';
       boardArea.innerHTML = '<p class="sweep-muted">' + esc(error.message) + '</p>';
       boardActions.hidden = true;
@@ -868,7 +922,7 @@
       else state.fieldMessage = 'Nothing in that cell.';
       if (data.ended !== 'collapse') setStatus(state.fieldMessage);
       if (data.ended === 'collapse') {
-        showResult(data.result, { tether: data.tether });
+        showResult(data.result, { tether: data.tether, achievements: data.achievements || [] });
         return load();
       }
       clearRecentReveal();

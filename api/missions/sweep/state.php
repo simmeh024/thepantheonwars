@@ -187,6 +187,7 @@ try {
     }
 
     $tierPayload = $tier ? array_merge($tier, ['condition' => pw_sweep_condition_public($tier['condition_key'])]) : null;
+    $sectorRecords = $tier ? pw_sweep_sector_records($db, $userId, (int)$tier['rank_number']) : null;
     pw_json([
         'ok' => true,
         'player' => $player,
@@ -194,6 +195,7 @@ try {
         'reputation' => array_merge($reputation, ['level_number' => $rank]),
         'credits' => pw_missions_credit_balance($db, $userId),
         'tier' => $tierPayload,
+        'sector_records' => $sectorRecords,
         'ladder' => $ladder,
         'crew' => $roster,
         'stims' => $stims,
