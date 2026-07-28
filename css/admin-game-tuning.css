@@ -103,17 +103,24 @@
  * One small seven-slot ladder per role. The total and gap answer the balance
  * question quickly; the slot cells then show exactly which authored release
  * makes a role trail the leader. */
-.tuning-ilvl-ceilings { display: grid; gap: 10px; }
+.tuning-ilvl-ceilings { display: grid; gap: 7px; }
+.tuning-ilvl-controls { display: grid; grid-template-columns: repeat(4, minmax(126px, 1fr)); gap: 8px; margin: 2px 0 12px; padding: 9px 10px; border: 1px solid rgba(90,149,185,.24); background: rgba(6,15,28,.28); }
+.tuning-ilvl-controls .admin-field { min-width: 0; margin: 0; }
+.tuning-ilvl-controls label { color: #8ba3b4; font-size: .54rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.tuning-ilvl-controls input, .tuning-ilvl-controls select { width: 100%; min-width: 0; padding: 7px 8px; font-size: .66rem; }
 .tuning-ilvl-note { margin: 0; color: #a9c2d0; font-size: .63rem; line-height: 1.48; }
-.tuning-ilvl-role-list { display: grid; gap: 7px; }
+.tuning-ilvl-count { margin: 0 0 2px; color: #8ba3b4; font-size: .55rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.tuning-ilvl-role-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(235px, 1fr)); gap: 7px; }
+.tuning-ilvl-role-list .admin-empty { grid-column: 1 / -1; }
 .tuning-ilvl-role { display: grid; gap: 6px; padding: 9px 10px; border: 1px solid rgba(90,149,185,.3); border-left: 3px solid #9edba8; background: rgba(6,15,28,.42); }
 .tuning-ilvl-role.is-behind { border-left-color: #edc179; }
 .tuning-ilvl-role.is-subject { border-color: rgba(126,227,232,.72); background: rgba(10,32,48,.58); box-shadow: inset 0 0 0 1px rgba(126,227,232,.12); }
-.tuning-ilvl-role header { display: flex; align-items: baseline; justify-content: space-between; gap: 9px; }
+.tuning-ilvl-role header { display: flex; align-items: start; justify-content: space-between; gap: 9px; }
 .tuning-ilvl-role header > strong { color: #edf6f8; font: 600 .73rem/1.15 'Cinzel', serif; }
-.tuning-ilvl-role header > span { display: inline-flex; align-items: baseline; gap: 4px; color: #a9e8bc; white-space: nowrap; }
-.tuning-ilvl-role header small { color: #82b89a; font: 800 .44rem/1 'Jost', sans-serif; letter-spacing: .09em; }
-.tuning-ilvl-role header b { color: #cbf4d6; font: 700 .77rem/1 'Cinzel', serif; }
+.tuning-ilvl-role-metrics { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
+.tuning-ilvl-role-metrics span { display: inline-flex; align-items: baseline; gap: 3px; color: #a9e8bc; white-space: nowrap; }
+.tuning-ilvl-role-metrics small { color: #82b89a; font: 800 .44rem/1 'Jost', sans-serif; letter-spacing: .09em; }
+.tuning-ilvl-role-metrics b { color: #cbf4d6; font: 700 .77rem/1 'Cinzel', serif; }
 .tuning-ilvl-role > p { margin: -2px 0 0; color: #8faaba; font-size: .58rem; }
 .tuning-ilvl-role > p b { color: #d2e3e9; font-weight: 700; }
 .tuning-ilvl-slot-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
@@ -221,6 +228,10 @@
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas: "controls" "aside" "output";
   }
+}
+
+@media (max-width: 620px) {
+  .tuning-ilvl-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* Rarity rows. Toned like the item tiers elsewhere in the console so the same

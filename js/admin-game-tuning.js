@@ -225,26 +225,57 @@
     var slotCount = Math.max(1, Number(ceilings.slot_count) || slotKeys.length);
     var leaderTotal = Math.max(0, Number(ceilings.leader_total) || 0);
     var selected = crewById(state.crewId);
-    host.innerHTML = '<p class="tuning-ilvl-note">AVG is total maximum iLvl divided by all ' + slotCount + ' worn slots. A gap exposes roles whose enabled catalogue trails the current leader.</p>'
-      + '<div class="tuning-ilvl-role-list">' + roleNames.map(function (roleName) {
-        var role = roles[roleName] || {};
-        var total = Math.max(0, Number(role.total) || 0);
-        var average = Math.round(Math.max(0, Number(role.average) || 0));
-        var covered = Math.max(0, Number(role.slots_covered) || 0);
-        var gap = Math.max(0, leaderTotal - total);
-        var subject = selected && selected.role === roleName;
-        var slotValues = slotKeys.map(function (slot) {
-          var level = Math.max(0, Number((role.slots || {})[slot]) || 0);
+    var search = (el('tuning-ilvl-search').value || '').trim().toLowerCase();
+    var filter = el('tuning-ilvl-filter').value || 'all';
+    var sortBy = el('tuning-ilvl-sort').value || 'average';
+    var direction = el('tuning-ilvl-direction').value === 'asc' ? 1 : -1;
+    var rows = roleNames.map(function (roleName) {
+      var role = roles[roleName] || {};
+      var slotLevels = slotKeys.map(function (slot) { return Math.max(0, Number((role.slots || {})[slot]) || 0); });
+      var total = Math.max(0, Number(role.total) || 0);
+      return {
+        name: roleName,
+        role: role,
+        levels: slotLevels,
+        total: total,
+        average: Math.max(0, Number(role.average) || 0),
+        maximum: slotLevels.length ? Math.max.apply(null, slotLevels) : 0,
+        minimum: slotLevels.length ? Math.min.apply(null, slotLevels) : 0,
+        covered: Math.max(0, Number(role.slots_covered) || 0),
+        gap: Math.max(0, leaderTotal - total),
+        subject: !!(selected && selected.role === roleName)
+      };
+    }).filter(function (row) {
+      if (search && row.name.toLowerCase().indexOf(search) === -1) return false;
+      if (filter === 'subject') return row.subject;
+      if (filter === 'leaders') return row.gap === 0;
+      if (filter === 'behind') return row.gap > 0;
+      if (filter === 'complete') return row.covered >= slotCount;
+      if (filter === 'incomplete') return row.covered < slotCount;
+      return true;
+    }).sort(function (left, right) {
+      var difference = (Number(left[sortBy]) || 0) - (Number(right[sortBy]) || 0);
+      if (difference) return difference * direction;
+      return left.name.localeCompare(right.name);
+    });
+    var content = rows.map(function (row) {
+      var average = Math.round(row.average);
+      var slotValues = slotKeys.map(function (slot, index) {
+          var level = row.levels[index];
           var label = slotLabel(slot);
           return '<span class="tuning-ilvl-slot' + (level ? '' : ' is-missing') + '" title="' + esc(label + ': iLvl ' + (level || 0)) + '"><small>'
             + esc(tuningSlotShortLabel(slot)) + '</small><b>' + (level || '&mdash;') + '</b></span>';
         }).join('');
-        return '<article class="tuning-ilvl-role' + (subject ? ' is-subject' : '') + (gap ? ' is-behind' : ' is-leader') + '">'
-          + '<header><strong>' + esc(roleName) + '</strong><span><small>AVG iLvl</small><b>' + average + '</b></span></header>'
-          + '<p><b>' + total + '</b> total &middot; ' + covered + ' / ' + slotCount + ' slots authored</p>'
+      return '<article class="tuning-ilvl-role' + (row.subject ? ' is-subject' : '') + (row.gap ? ' is-behind' : ' is-leader') + '">'
+          + '<header><strong>' + esc(row.name) + '</strong><div class="tuning-ilvl-role-metrics">'
+          + '<span><small>AVG</small><b>' + average + '</b></span><span><small>MAX</small><b>' + row.maximum + '</b></span><span><small>MIN</small><b>' + row.minimum + '</b></span></div></header>'
+          + '<p><b>' + row.total + '</b> total &middot; ' + row.covered + ' / ' + slotCount + ' slots authored</p>'
           + '<div class="tuning-ilvl-slot-grid">' + slotValues + '</div>'
-          + '<em>' + (gap ? gap + ' total iLvl below leader' : 'Role leader') + '</em></article>';
-      }).join('') + '</div>';
+          + '<em>' + (row.gap ? row.gap + ' total iLvl below leader' : 'Role leader') + '</em></article>';
+      }).join('');
+    host.innerHTML = '<p class="tuning-ilvl-note">AVG is total maximum iLvl divided by all ' + slotCount + ' worn slots. MAX and MIN are the strongest and weakest slot ceilings; a missing slot counts as zero for MIN.</p>'
+      + '<p class="tuning-ilvl-count">' + rows.length + ' of ' + roleNames.length + ' roles shown</p>'
+      + '<div class="tuning-ilvl-role-list">' + (content || '<p class="admin-empty">No roles match these filters.</p>') + '</div>';
   }
 
   /* ---- Rarity ------------------------------------------------------------
@@ -701,6 +732,10 @@
     el('tuning-fixed-level').addEventListener('input', function () { state.level = Math.max(1, Number(this.value) || 1); run(); });
     el('tuning-crew-count').addEventListener('input', function () { state.crewCount = Math.max(1, Number(this.value) || 1); run(); });
     el('tuning-item-search').addEventListener('input', renderItems);
+    el('tuning-ilvl-search').addEventListener('input', renderItemLevelCeilings);
+    ['tuning-ilvl-filter', 'tuning-ilvl-sort', 'tuning-ilvl-direction'].forEach(function (id) {
+      el(id).addEventListener('change', renderItemLevelCeilings);
+    });
 
     el('tuning-item-list').addEventListener('click', function (event) {
       var button = event.target.closest('[data-item-id]');

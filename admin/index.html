@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=323"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=7">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=323"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=8">
 </head>
 <body>
 
@@ -2316,13 +2316,19 @@
             <div class="admin-form-card-head"><h2>What the stats do</h2><p>Every rate below is read from the same constants the mission engine multiplies by, so this cannot describe a rule the game no longer follows.</p></div>
             <div class="tuning-stat-reference" id="tuning-stat-reference"></div>
           </div>
-          <div class="admin-form-card tuning-ilvl-ceilings-card">
-            <div class="admin-form-card-head"><h2>Role iLvl ceilings</h2><p>The highest enabled item level in every gear slot, grouped by role. Level gates decide when gear can be worn, but never reduce the published endgame target.</p></div>
-            <div class="tuning-ilvl-ceilings" id="tuning-ilvl-ceilings"><p class="admin-list-empty">Loading role ceilings&hellip;</p></div>
-          </div>
         </div>
 
         <div class="tuning-output">
+          <div class="admin-form-card tuning-ilvl-ceilings-card">
+            <div class="admin-form-card-head"><h2>Role iLvl ceilings</h2><p>The highest enabled item level in every gear slot, grouped by role. Level gates decide when gear can be worn, but never reduce the published endgame target.</p></div>
+            <div class="tuning-ilvl-controls" aria-label="Role item level controls">
+              <div class="admin-field"><label for="tuning-ilvl-search">Find role</label><input type="search" id="tuning-ilvl-search" placeholder="Search roles"></div>
+              <div class="admin-field"><label for="tuning-ilvl-filter">Show</label><select id="tuning-ilvl-filter"><option value="all">All roles</option><option value="subject">Current subject</option><option value="leaders">Catalogue leaders</option><option value="behind">Below leader</option><option value="complete">All slots authored</option><option value="incomplete">Missing a slot</option></select></div>
+              <div class="admin-field"><label for="tuning-ilvl-sort">Sort by</label><select id="tuning-ilvl-sort"><option value="average">Average iLvl</option><option value="maximum">Highest slot iLvl</option><option value="minimum">Lowest slot iLvl</option></select></div>
+              <div class="admin-field"><label for="tuning-ilvl-direction">Direction</label><select id="tuning-ilvl-direction"><option value="desc">Highest first</option><option value="asc">Lowest first</option></select></div>
+            </div>
+            <div class="tuning-ilvl-ceilings" id="tuning-ilvl-ceilings"><p class="admin-list-empty">Loading role ceilings&hellip;</p></div>
+          </div>
           <div class="admin-form-card">
             <div class="admin-form-card-head">
               <h2 id="tuning-chart-title">Simulation</h2>
@@ -4636,7 +4642,7 @@
 </div>
 
 <script src="../js/members.js?v=43"></script>
-<script src="../js/admin-missions.js?v=18"></script><script src="../js/admin-loot-tables.js?v=8"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=7"></script>
+<script src="../js/admin-missions.js?v=18"></script><script src="../js/admin-loot-tables.js?v=8"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=8"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
