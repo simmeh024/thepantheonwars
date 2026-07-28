@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=325"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=8">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=326"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=8">
 </head>
 <body>
 
@@ -1791,28 +1791,12 @@
       <div class="composer-editor-layout">
         <aside class="composer-dispatch-panel">
           <h2>Development Dispatches</h2>
-          <p class="admin-field-hint">Search approved dispatches and attach the ones this article should reference.</p>
-          <div class="composer-dispatch-filters">
-            <input type="search" class="admin-search" id="composer-dispatch-search" placeholder="Search subject or summary&hellip;">
-            <select class="admin-search admin-tag-select" id="composer-dispatch-tag-filter">
-              <option value="">All categories</option>
-              <option value="feature">Feature</option>
-              <option value="improvement">Improvement</option>
-              <option value="fix">Fix</option>
-              <option value="performance">Performance</option>
-              <option value="ui_ux">UI / UX</option>
-              <option value="lore">Lore</option>
-              <option value="infrastructure">Infrastructure</option>
-              <option value="refactor">Refactor</option>
-              <option value="experimental">Experimental</option>
-            </select>
-            <label class="composer-dispatch-filter-checkbox"><input type="checkbox" id="composer-dispatch-unused-only"> Unused only</label>
-          </div>
-          <div class="composer-dispatch-cards" id="composer-dispatch-cards">
-            <div class="admin-list-empty">Loading dispatches&hellip;</div>
-          </div>
+          <p class="admin-field-hint">Attach approved dispatches as private reference material for this article.</p>
+          <button type="button" class="btn btn-solid composer-add-dispatches-btn" id="composer-dispatch-picker-open-btn">+ Add dispatches</button>
 
-          <h2>Attached (<span id="composer-attached-count">0</span>)</h2>
+          <div class="composer-attached-heading">
+            <h2>Attached (<span id="composer-attached-count">0</span>)</h2>
+          </div>
           <p class="admin-field-hint">Drag to reorder. Notes are private and never published.</p>
           <ul class="composer-attached-list" id="composer-attached-list">
             <li class="admin-list-empty">No dispatches attached yet.</li>
@@ -2769,6 +2753,40 @@
       <a class="btn" id="composer-dispatch-detail-github" href="#" target="_blank" rel="noopener">Open GitHub</a>
       <button type="button" class="btn btn-solid" id="composer-dispatch-detail-insert-btn">Insert summary</button>
       <button type="button" class="btn" id="composer-dispatch-detail-cancel">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="admin-modal admin-modal-over" id="composer-dispatch-picker-modal" hidden>
+  <div class="admin-modal-backdrop"></div>
+  <div class="admin-modal-inner admin-modal-inner-wide composer-dispatch-picker-inner">
+    <button type="button" class="admin-modal-close" id="composer-dispatch-picker-close" aria-label="Close">&times;</button>
+    <h3 class="admin-modal-title">Add dispatches</h3>
+    <p class="admin-modal-sub">Search approved Development Dispatches, select as many as needed, then add them to this article in one action.</p>
+    <div class="composer-dispatch-filters composer-dispatch-picker-filters">
+      <input type="search" class="admin-search" id="composer-dispatch-search" placeholder="Search subject or approved summary&hellip;">
+      <select class="admin-search admin-tag-select" id="composer-dispatch-tag-filter">
+        <option value="">All categories</option>
+        <option value="feature">Feature</option>
+        <option value="improvement">Improvement</option>
+        <option value="fix">Fix</option>
+        <option value="performance">Performance</option>
+        <option value="ui_ux">UI / UX</option>
+        <option value="lore">Lore</option>
+        <option value="infrastructure">Infrastructure</option>
+        <option value="refactor">Refactor</option>
+        <option value="experimental">Experimental</option>
+      </select>
+      <label class="composer-dispatch-filter-checkbox"><input type="checkbox" id="composer-dispatch-unused-only"> Unused only</label>
+    </div>
+    <div class="composer-dispatch-picker-selection" id="composer-dispatch-picker-selection" aria-live="polite">No dispatches selected.</div>
+    <div class="composer-dispatch-cards" id="composer-dispatch-cards">
+      <div class="admin-list-empty">Open the picker to load approved dispatches.</div>
+    </div>
+    <p class="admin-modal-error" id="composer-dispatch-picker-error"></p>
+    <div class="admin-modal-actions">
+      <button type="button" class="btn btn-solid" id="composer-dispatch-picker-add-btn" disabled>Add selected</button>
+      <button type="button" class="btn" id="composer-dispatch-picker-cancel-btn">Cancel</button>
     </div>
   </div>
 </div>
@@ -17919,9 +17937,17 @@
   var composerDispatchTagFilterEl = document.getElementById('composer-dispatch-tag-filter');
   var composerDispatchUnusedOnlyEl = document.getElementById('composer-dispatch-unused-only');
   var composerDispatchCardsEl = document.getElementById('composer-dispatch-cards');
+  var composerDispatchPickerModal = document.getElementById('composer-dispatch-picker-modal');
+  var composerDispatchPickerOpenBtn = document.getElementById('composer-dispatch-picker-open-btn');
+  var composerDispatchPickerCloseBtn = document.getElementById('composer-dispatch-picker-close');
+  var composerDispatchPickerCancelBtn = document.getElementById('composer-dispatch-picker-cancel-btn');
+  var composerDispatchPickerAddBtn = document.getElementById('composer-dispatch-picker-add-btn');
+  var composerDispatchPickerSelectionEl = document.getElementById('composer-dispatch-picker-selection');
+  var composerDispatchPickerErrorEl = document.getElementById('composer-dispatch-picker-error');
   var composerAttachedListEl = document.getElementById('composer-attached-list');
   var composerAttachedCountEl = document.getElementById('composer-attached-count');
   var composerDispatchSearchTimer = null;
+  var composerDispatchPickerSelectedIds = {};
 
   var composerDetailModal = document.getElementById('composer-dispatch-detail-modal');
   var composerDetailClose = document.getElementById('composer-dispatch-detail-close');
@@ -18077,6 +18103,7 @@
     composerMarkReadyBtn.hidden = readOnly;
     composerPublishBtn.hidden = readOnly;
     document.querySelectorAll('.composer-attached-item-remove, .composer-dispatch-card-actions button').forEach(function (b) { b.disabled = readOnly; });
+    composerDispatchPickerOpenBtn.disabled = readOnly || !pwHasPermission('dispatch_composer.edit');
   }
 
   function composerUpdateStatusBadge() {
@@ -18100,8 +18127,9 @@
     refreshImageThumb('composer_featured');
     composerBodyInput.innerHTML = '';
     composerAttachedItems = [];
+    composerDispatchPickerSelectedIds = {};
+    closeComposerDispatchPicker();
     loadComposerPost();
-    loadComposerCandidates();
   }
 
   function loadComposerPost() {
@@ -18311,9 +18339,39 @@
     input.click();
   });
 
-  // ---------- Dispatch reference panel ----------
+  // ---------- Dispatch reference picker ----------
+  function composerCanEditDispatches() {
+    return pwHasPermission('dispatch_composer.edit') && composerCurrentStatus !== 'published' && composerCurrentStatus !== 'archived';
+  }
+
+  function closeComposerDispatchPicker() {
+    composerDispatchPickerModal.hidden = true;
+    composerDispatchPickerErrorEl.textContent = '';
+    composerDispatchPickerErrorEl.classList.remove('show');
+  }
+
+  function updateComposerDispatchPickerSelection() {
+    var selectedCount = Object.keys(composerDispatchPickerSelectedIds).length;
+    composerDispatchPickerSelectionEl.textContent = selectedCount
+      ? selectedCount + (selectedCount === 1 ? ' dispatch selected.' : ' dispatches selected.')
+      : 'No dispatches selected.';
+    composerDispatchPickerSelectionEl.classList.toggle('has-selection', selectedCount > 0);
+    composerDispatchPickerAddBtn.disabled = selectedCount === 0 || !composerCanEditDispatches();
+    composerDispatchPickerAddBtn.textContent = selectedCount
+      ? 'Add selected (' + selectedCount + ')'
+      : 'Add selected';
+  }
+
+  function composerConfidenceMarkup(confidence) {
+    var score = confidence && Number.isFinite(Number(confidence.score)) ? Math.round(Number(confidence.score)) : null;
+    var level = confidence && ['high', 'medium', 'low'].indexOf(confidence.level) !== -1 ? confidence.level : 'low';
+    var label = confidence && confidence.label ? String(confidence.label) : 'Review confidence';
+    return '<span class="composer-dispatch-card-confidence is-' + level + '">' + escapeHtml(score === null ? label : score + '% confidence') + '</span>';
+  }
+
   function loadComposerCandidates() {
-    composerDispatchCardsEl.innerHTML = '<div class="admin-list-empty">Loading dispatches&hellip;</div>';
+    if (!composerCurrentId) return;
+    composerDispatchCardsEl.innerHTML = '<div class="admin-list-empty">Loading approved dispatches&hellip;</div>';
     var params = new URLSearchParams();
     params.set('composer_post_id', composerCurrentId);
     var q = composerDispatchSearchEl.value.trim();
@@ -18333,80 +18391,76 @@
   function renderComposerDispatchCards(dispatches) {
     var unusedOnly = composerDispatchUnusedOnlyEl.checked;
     var filtered = unusedOnly ? dispatches.filter(function (d) { return !d.attached && !d.published_elsewhere.length; }) : dispatches;
+    composerDispatchCardsEl.dataset.cache = JSON.stringify(dispatches);
     if (!filtered.length) {
       composerDispatchCardsEl.innerHTML = '<div class="admin-list-empty">No matching approved dispatches.</div>';
+      updateComposerDispatchPickerSelection();
       return;
     }
-    var canEdit = pwHasPermission('dispatch_composer.edit') && composerCurrentStatus !== 'published' && composerCurrentStatus !== 'archived';
+    var canEdit = composerCanEditDispatches();
     composerDispatchCardsEl.innerHTML = filtered.map(function (d) {
+      var isSelected = !!composerDispatchPickerSelectedIds[d.id] && !d.attached;
       var usedNote = d.published_elsewhere.length
         ? '<p class="composer-dispatch-card-used-elsewhere">Published in: ' + escapeHtml(d.published_elsewhere.map(function (u) { return u.title; }).join(', ')) + '</p>'
         : '';
-      var actionBtn = d.attached
-        ? '<button type="button" class="btn" data-composer-detach="' + d.id + '"' + (canEdit ? '' : ' disabled') + '>Remove from article</button>'
-        : '<button type="button" class="btn btn-solid" data-composer-attach="' + d.id + '"' + (canEdit ? '' : ' disabled') + '>Add to article</button>';
+      var selectionControl = d.attached
+        ? '<span class="composer-dispatch-card-attached">Already attached</span>'
+        : '<input type="checkbox" class="composer-dispatch-card-select" data-composer-select="' + d.id + '" aria-label="Select ' + escapeHtml(d.subject) + '"' + (isSelected ? ' checked' : '') + (canEdit ? '' : ' disabled') + '>';
       return (
-        '<div class="composer-dispatch-card' + (d.attached ? ' is-attached' : '') + '">' +
+        '<article class="composer-dispatch-card' + (d.attached ? ' is-attached' : '') + (isSelected ? ' is-selected' : '') + '">' +
           '<div class="composer-dispatch-card-top">' +
-            '<span class="composer-dispatch-card-tag">' + escapeHtml(d.tag) + '</span>' +
-            '<span>' + Math.round(d.confidence) + '% confidence</span>' +
+            '<div class="composer-dispatch-card-top-left">' + selectionControl + '<span class="composer-dispatch-card-tag">' + escapeHtml(d.tag) + '</span></div>' +
+            composerConfidenceMarkup(d.confidence) +
           '</div>' +
           '<h3 class="composer-dispatch-card-title">' + escapeHtml(d.subject) + '</h3>' +
           '<p class="composer-dispatch-card-summary">' + escapeHtml(d.translation) + '</p>' +
-          '<div class="composer-dispatch-card-meta"><span>' + escapeHtml(fmtDate(d.committed_at)) + '</span><span>#' + escapeHtml(d.sha.substring(0, 7)) + '</span></div>' +
+          '<div class="composer-dispatch-card-meta"><span>' + escapeHtml(fmtDate(d.committed_at)) + '</span><span>#' + escapeHtml(String(d.sha || '').substring(0, 7)) + '</span></div>' +
           usedNote +
-          '<div class="composer-dispatch-card-actions">' +
-            actionBtn +
-            '<button type="button" class="btn" data-composer-view-detail="' + d.id + '">View full dispatch</button>' +
-          '</div>' +
-        '</div>'
+          '<div class="composer-dispatch-card-actions"><button type="button" class="btn" data-composer-view-detail="' + d.id + '">View full dispatch</button></div>' +
+        '</article>'
       );
     }).join('');
-    composerDispatchCardsEl.dataset.cache = JSON.stringify(dispatches);
+    updateComposerDispatchPickerSelection();
   }
 
   function composerCandidateById(id) {
     try { return JSON.parse(composerDispatchCardsEl.dataset.cache || '[]').filter(function (d) { return d.id === id; })[0]; } catch (e) { return null; }
   }
 
+  function openComposerDispatchPicker() {
+    if (!composerCanEditDispatches()) return;
+    composerDispatchPickerSelectedIds = {};
+    composerDispatchSearchEl.value = '';
+    composerDispatchTagFilterEl.value = '';
+    composerDispatchUnusedOnlyEl.checked = false;
+    composerDispatchPickerErrorEl.textContent = '';
+    composerDispatchPickerErrorEl.classList.remove('show');
+    composerDispatchPickerModal.hidden = false;
+    updateComposerDispatchPickerSelection();
+    loadComposerCandidates();
+    window.setTimeout(function () { composerDispatchSearchEl.focus(); }, 0);
+  }
+
+  composerDispatchPickerOpenBtn.addEventListener('click', openComposerDispatchPicker);
+  composerDispatchPickerCloseBtn.addEventListener('click', closeComposerDispatchPicker);
+  composerDispatchPickerCancelBtn.addEventListener('click', closeComposerDispatchPicker);
+  composerDispatchPickerModal.querySelector('.admin-modal-backdrop').addEventListener('click', closeComposerDispatchPicker);
+
+  composerDispatchCardsEl.addEventListener('change', function (event) {
+    var checkbox = event.target.closest('[data-composer-select]');
+    if (!checkbox) return;
+    var dispatchId = parseInt(checkbox.getAttribute('data-composer-select'), 10);
+    if (!dispatchId) return;
+    if (checkbox.checked) composerDispatchPickerSelectedIds[dispatchId] = true;
+    else delete composerDispatchPickerSelectedIds[dispatchId];
+    renderComposerDispatchCards(JSON.parse(composerDispatchCardsEl.dataset.cache || '[]'));
+  });
+
   composerDispatchCardsEl.addEventListener('click', function (event) {
-    var attachBtn = event.target.closest('[data-composer-attach]');
-    var detachBtn = event.target.closest('[data-composer-detach]');
     var detailBtn = event.target.closest('[data-composer-view-detail]');
-    if (attachBtn) {
-      var attachId = parseInt(attachBtn.getAttribute('data-composer-attach'), 10);
-      fetch('/api/admin/dispatch-composer/items/add.php', {
-        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ composer_post_id: composerCurrentId, dispatch_id: attachId, csrf: window.PW_AUTH.csrf })
-      })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          if (!data.ok) throw new Error(data.error || 'Could not attach this dispatch.');
-          loadComposerPost();
-          loadComposerCandidates();
-        })
-        .catch(function (error) { window.alert(error.message || 'Could not attach this dispatch.'); });
-      return;
-    }
-    if (detachBtn) {
-      var detachId = parseInt(detachBtn.getAttribute('data-composer-detach'), 10);
-      fetch('/api/admin/dispatch-composer/items/remove.php', {
-        method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ composer_post_id: composerCurrentId, dispatch_id: detachId, csrf: window.PW_AUTH.csrf })
-      })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          if (!data.ok) throw new Error(data.error || 'Could not remove this dispatch.');
-          loadComposerPost();
-          loadComposerCandidates();
-        })
-        .catch(function (error) { window.alert(error.message || 'Could not remove this dispatch.'); });
-      return;
-    }
-    if (detailBtn) {
-      var candidate = composerCandidateById(parseInt(detailBtn.getAttribute('data-composer-view-detail'), 10));
-      if (candidate) openComposerDetailModal(candidate);
-    }
+    if (!detailBtn) return;
+    var candidate = composerCandidateById(parseInt(detailBtn.getAttribute('data-composer-view-detail'), 10));
+    if (candidate) openComposerDetailModal(candidate);
   });
 
   composerDispatchSearchEl.addEventListener('input', function () {
@@ -18418,6 +18472,30 @@
     var cached = [];
     try { cached = JSON.parse(composerDispatchCardsEl.dataset.cache || '[]'); } catch (e) {}
     renderComposerDispatchCards(cached);
+  });
+
+  composerDispatchPickerAddBtn.addEventListener('click', function () {
+    var selectedIds = Object.keys(composerDispatchPickerSelectedIds).map(function (id) { return parseInt(id, 10); }).filter(Boolean);
+    if (!selectedIds.length || !composerCanEditDispatches()) return;
+    composerDispatchPickerAddBtn.disabled = true;
+    composerDispatchPickerErrorEl.textContent = '';
+    composerDispatchPickerErrorEl.classList.remove('show');
+    fetch('/api/admin/dispatch-composer/items/add-batch.php', {
+      method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ composer_post_id: composerCurrentId, dispatch_ids: selectedIds, csrf: window.PW_AUTH.csrf })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.ok) throw new Error(data.error || 'Could not add the selected dispatches.');
+        closeComposerDispatchPicker();
+        composerDispatchPickerSelectedIds = {};
+        loadComposerPost();
+      })
+      .catch(function (error) {
+        composerDispatchPickerErrorEl.textContent = error.message || 'Could not add the selected dispatches.';
+        composerDispatchPickerErrorEl.classList.add('show');
+        updateComposerDispatchPickerSelection();
+      });
   });
 
   // ---------- Attached list: render, reorder (drag), note, remove ----------
@@ -18453,7 +18531,6 @@
       .then(function (data) {
         if (!data.ok) throw new Error(data.error || 'Could not remove this dispatch.');
         loadComposerPost();
-        loadComposerCandidates();
       })
       .catch(function (error) { window.alert(error.message || 'Could not remove this dispatch.'); });
   });
