@@ -104,6 +104,8 @@ pw_json([
     'crew_tiers' => pw_missions_crew_tier_profile(),
     'role_rates' => pw_missions_role_rates(),
     'gear_slots' => pw_missions_gear_slots(),
+    // The same endgame role ceilings the player-facing MAXED badge uses.
+    'item_level_ceilings' => pw_missions_item_level_role_ceilings($db),
     'max_level' => PW_MISSION_MAX_LEVEL,
     'max_points' => PW_TUNING_MAX_POINTS,
     'gear_ready' => $gearReady,

@@ -197,6 +197,56 @@
       + rarityGroupMarkup(crew);
   }
 
+  /* Role ceilings are sent by the same shared helper that decides the crew
+   * card's MAXED state. Requirement levels stay visible on individual gear,
+   * but never lower this target: a level-three Engineer is progressing toward
+   * the published Engineer ceiling, not finished merely because higher gear is
+   * still locked. */
+  function tuningSlotShortLabel(key) {
+    var labels = { head: 'H', chest: 'C', main_hand: 'MH', off_hand: 'OH', legs: 'L', feet: 'F', utility: 'U' };
+    return labels[key] || String(slotLabel(key)).slice(0, 2).toUpperCase();
+  }
+
+  function renderItemLevelCeilings() {
+    var host = el('tuning-ilvl-ceilings');
+    if (!host) return;
+    var ceilings = catalog && catalog.item_level_ceilings;
+    if (!ceilings || !ceilings.ready) {
+      host.innerHTML = '<p class="admin-empty">Item levels will appear here after the Mission Item Levels migration has been run.</p>';
+      return;
+    }
+    var roles = ceilings.roles || {};
+    var roleNames = Object.keys(roles);
+    if (!roleNames.length) {
+      host.innerHTML = '<p class="admin-empty">No supported crew roles are available to compare.</p>';
+      return;
+    }
+    var slotKeys = Object.keys((catalog && catalog.gear_slots) || {});
+    var slotCount = Math.max(1, Number(ceilings.slot_count) || slotKeys.length);
+    var leaderTotal = Math.max(0, Number(ceilings.leader_total) || 0);
+    var selected = crewById(state.crewId);
+    host.innerHTML = '<p class="tuning-ilvl-note">AVG is total maximum iLvl divided by all ' + slotCount + ' worn slots. A gap exposes roles whose enabled catalogue trails the current leader.</p>'
+      + '<div class="tuning-ilvl-role-list">' + roleNames.map(function (roleName) {
+        var role = roles[roleName] || {};
+        var total = Math.max(0, Number(role.total) || 0);
+        var average = Math.round(Math.max(0, Number(role.average) || 0));
+        var covered = Math.max(0, Number(role.slots_covered) || 0);
+        var gap = Math.max(0, leaderTotal - total);
+        var subject = selected && selected.role === roleName;
+        var slotValues = slotKeys.map(function (slot) {
+          var level = Math.max(0, Number((role.slots || {})[slot]) || 0);
+          var label = slotLabel(slot);
+          return '<span class="tuning-ilvl-slot' + (level ? '' : ' is-missing') + '" title="' + esc(label + ': iLvl ' + (level || 0)) + '"><small>'
+            + esc(tuningSlotShortLabel(slot)) + '</small><b>' + (level || '&mdash;') + '</b></span>';
+        }).join('');
+        return '<article class="tuning-ilvl-role' + (subject ? ' is-subject' : '') + (gap ? ' is-behind' : ' is-leader') + '">'
+          + '<header><strong>' + esc(roleName) + '</strong><span><small>AVG iLvl</small><b>' + average + '</b></span></header>'
+          + '<p><b>' + total + '</b> total &middot; ' + covered + ' / ' + slotCount + ' slots authored</p>'
+          + '<div class="tuning-ilvl-slot-grid">' + slotValues + '</div>'
+          + '<em>' + (gap ? gap + ' total iLvl below leader' : 'Role leader') + '</em></article>';
+      }).join('') + '</div>';
+  }
+
   /* ---- Rarity ------------------------------------------------------------
    * A crew member's rarity is worth three separate things and none of them
    * were on this page: it scales every level-derived stat, it raises the
@@ -605,7 +655,7 @@
     state.levelTo = Number(config.level_to) || catalog.max_level;
     state.crewCount = Number(config.crew_count) || 1;
     syncInputs();
-    renderSlots(); renderItems(); renderStatReference(); renderResearch(); renderMissions(); run();
+    renderSlots(); renderItems(); renderStatReference(); renderItemLevelCeilings(); renderResearch(); renderMissions(); run();
   }
 
   function syncInputs() {
@@ -642,7 +692,7 @@
           return item && (!item.required_role || item.required_role === crew.role);
         });
       }
-      renderSlots(); renderItems(); renderStatReference(); run();
+      renderSlots(); renderItems(); renderStatReference(); renderItemLevelCeilings(); run();
     });
     el('tuning-mode').addEventListener('change', function () { state.mode = this.value; syncInputs(); run(); });
     el('tuning-metric').addEventListener('change', function () { state.metric = this.value; renderChart(); renderTable(); });
@@ -799,7 +849,7 @@
       var firstMission = (data.missions || []).filter(function (m) { return m.is_enabled; })[0];
       if (firstMission) state.missionIds = [Number(firstMission.id)];
       syncInputs();
-      renderSlots(); renderItems(); renderStatReference(); renderResearch(); renderMissions(); loadScenarios(); run();
+      renderSlots(); renderItems(); renderStatReference(); renderItemLevelCeilings(); renderResearch(); renderMissions(); loadScenarios(); run();
     }).catch(function (error) { setError(error.message); });
   }
 

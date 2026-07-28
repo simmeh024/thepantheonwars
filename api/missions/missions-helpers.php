@@ -1548,18 +1548,83 @@ function pw_missions_apply_gear(PDO $db, int $userId, array $crewRows): array {
 }
 
 /**
+ * The published equipment ceiling for every role. The target intentionally
+ * ignores required_level: an item's level gate controls when it can be worn,
+ * but it must not make a low-level crew member look endgame-maxed. Generic gear
+ * contributes to every role; a role-locked piece contributes only to its role.
+ *
+ * This is shared by the crew display and Game Tuning so both surfaces answer
+ * the same question when an administrator compares the role ladders.
+ */
+function pw_missions_item_level_role_ceilings(PDO $db): array {
+    $slots = pw_missions_gear_slots();
+    $slotKeys = array_keys($slots);
+    $ready = pw_mission_item_levels_ready($db);
+    $roles = array_keys(pw_missions_role_rates());
+    $result = [
+        'ready' => $ready,
+        'slot_count' => count($slotKeys),
+        'roles' => [],
+        'leader_total' => 0,
+        'leader_average' => 0.0,
+    ];
+    foreach ($roles as $role) {
+        $result['roles'][$role] = [
+            'role' => $role,
+            'slots' => array_fill_keys($slotKeys, 0),
+            'total' => 0,
+            'average' => 0.0,
+            'slots_covered' => 0,
+        ];
+    }
+    if (!$ready) return $result;
+
+    $items = $db->query(
+        'SELECT slot, item_level, required_role
+         FROM game_loot_definitions
+         WHERE is_enabled = 1 AND slot <> "" AND item_level > 0'
+    )->fetchAll();
+    foreach ($items as $item) {
+        $slot = (string)$item['slot'];
+        $itemLevel = max(0, (int)$item['item_level']);
+        $requiredRole = trim((string)($item['required_role'] ?? ''));
+        if (!isset($slots[$slot]) || $itemLevel < 1) continue;
+        foreach ($roles as $role) {
+            if ($requiredRole !== '' && strcasecmp($requiredRole, $role) !== 0) continue;
+            $result['roles'][$role]['slots'][$slot] = max($result['roles'][$role]['slots'][$slot], $itemLevel);
+        }
+    }
+    foreach ($roles as $role) {
+        $total = 0;
+        $covered = 0;
+        foreach ($slotKeys as $slot) {
+            $level = (int)$result['roles'][$role]['slots'][$slot];
+            $total += $level;
+            if ($level > 0) $covered++;
+        }
+        $result['roles'][$role]['total'] = $total;
+        $result['roles'][$role]['average'] = round($total / max(1, count($slotKeys)), 1);
+        $result['roles'][$role]['slots_covered'] = $covered;
+        $result['leader_total'] = max($result['leader_total'], $total);
+    }
+    $result['leader_average'] = round($result['leader_total'] / max(1, count($slotKeys)), 1);
+    return $result;
+}
+
+/**
  * Add display-only iLvl progress to an already-equipped roster. The average is
  * always the equipped total divided by all seven slots, so an empty slot is a
- * visible gap instead of disappearing from the denominator. The ceiling is
- * resolved from the enabled catalogue for this crew member's current level and
- * role; disabled or incompatible future gear cannot make a player look behind
- * a target they cannot actually equip.
+ * visible gap instead of disappearing from the denominator. The ceiling is the
+ * full enabled catalogue for the crew's role, even when a higher-level piece
+ * cannot yet be equipped: progression should not be labelled as complete just
+ * because the next release is still level-gated.
  */
 function pw_missions_apply_item_levels(PDO $db, array $crewRows): array {
     $slots = pw_missions_gear_slots();
     $slotKeys = array_keys($slots);
     $denominator = max(1, count($slotKeys));
-    $ready = pw_mission_item_levels_ready($db);
+    $catalogue = pw_missions_item_level_role_ceilings($db);
+    $ready = !empty($catalogue['ready']);
 
     if (!$ready) {
         foreach ($crewRows as $index => $row) {
@@ -1575,28 +1640,9 @@ function pw_missions_apply_item_levels(PDO $db, array $crewRows): array {
         return $crewRows;
     }
 
-    /* One catalogue read for the whole roster avoids a seven-slot query per
-     * crew member. Role and level eligibility are intentionally evaluated in
-     * PHP below, because each roster row has different limits. */
-    $catalogue = array_fill_keys($slotKeys, []);
-    $items = $db->query(
-        'SELECT slot, item_level, required_level, required_role
-         FROM game_loot_definitions
-         WHERE is_enabled = 1 AND slot <> "" AND item_level > 0'
-    )->fetchAll();
-    foreach ($items as $item) {
-        $slot = (string)$item['slot'];
-        if (!isset($catalogue[$slot])) continue;
-        $catalogue[$slot][] = [
-            'item_level' => max(0, (int)$item['item_level']),
-            'required_level' => (int)$item['required_level'],
-            'required_role' => (string)$item['required_role'],
-        ];
-    }
-
     foreach ($crewRows as $index => $row) {
-        $level = (int)($row['level'] ?? 0);
         $role = (string)($row['role'] ?? '');
+        $roleCeiling = $catalogue['roles'][$role] ?? ['slots' => []];
         $equipped = is_array($row['gear'] ?? null) ? $row['gear'] : [];
         $currentTotal = 0;
         foreach ($equipped as $item) $currentTotal += max(0, (int)($item['item_level'] ?? 0));
@@ -1605,12 +1651,7 @@ function pw_missions_apply_item_levels(PDO $db, array $crewRows): array {
         $catalogueSlots = 0;
         $slotsAtMax = 0;
         foreach ($slotKeys as $slot) {
-            $slotMax = 0;
-            foreach ($catalogue[$slot] as $candidate) {
-                if ($level < $candidate['required_level']) continue;
-                if ($candidate['required_role'] !== '' && strcasecmp($candidate['required_role'], $role) !== 0) continue;
-                $slotMax = max($slotMax, $candidate['item_level']);
-            }
+            $slotMax = max(0, (int)($roleCeiling['slots'][$slot] ?? 0));
             if ($slotMax < 1) continue;
             $catalogueSlots++;
             $maxTotal += $slotMax;
@@ -1624,10 +1665,11 @@ function pw_missions_apply_item_levels(PDO $db, array $crewRows): array {
         $crewRows[$index]['item_level_max_average'] = round($maxTotal / $denominator, 1);
         $crewRows[$index]['item_level_catalogue_slots'] = $catalogueSlots;
         $crewRows[$index]['item_level_slots_at_max'] = $slotsAtMax;
-        /* A crew is legendary only when every enabled, currently compatible
-         * slot ceiling is equipped. Missing catalogue slots remain zero in the
-         * fixed seven-slot average but do not make a release with fewer authored
-         * slots impossible to complete. */
+        /* A crew is legendary only when every enabled role ceiling is equipped.
+         * Missing catalogue slots remain zero in the fixed seven-slot average
+         * but do not make a release with fewer authored slots impossible to
+         * complete. Required level gates are deliberately not a shortcut to
+         * this state -- they are the visible next step in the progression. */
         $crewRows[$index]['item_level_maxed'] = $catalogueSlots > 0 && $slotsAtMax === $catalogueSlots && $currentTotal >= $maxTotal;
     }
     return $crewRows;

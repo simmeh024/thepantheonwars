@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=323"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=6">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=323"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=7">
 </head>
 <body>
 
@@ -2315,6 +2315,10 @@
           <div class="admin-form-card">
             <div class="admin-form-card-head"><h2>What the stats do</h2><p>Every rate below is read from the same constants the mission engine multiplies by, so this cannot describe a rule the game no longer follows.</p></div>
             <div class="tuning-stat-reference" id="tuning-stat-reference"></div>
+          </div>
+          <div class="admin-form-card tuning-ilvl-ceilings-card">
+            <div class="admin-form-card-head"><h2>Role iLvl ceilings</h2><p>The highest enabled item level in every gear slot, grouped by role. Level gates decide when gear can be worn, but never reduce the published endgame target.</p></div>
+            <div class="tuning-ilvl-ceilings" id="tuning-ilvl-ceilings"><p class="admin-list-empty">Loading role ceilings&hellip;</p></div>
           </div>
         </div>
 
@@ -4632,7 +4636,7 @@
 </div>
 
 <script src="../js/members.js?v=43"></script>
-<script src="../js/admin-missions.js?v=17"></script><script src="../js/admin-loot-tables.js?v=8"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=6"></script>
+<script src="../js/admin-missions.js?v=17"></script><script src="../js/admin-loot-tables.js?v=8"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=7"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
