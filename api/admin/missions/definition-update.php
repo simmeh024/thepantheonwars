@@ -18,6 +18,7 @@ $statsReady = pw_mission_stats_ready($db);
 $creditsReady = pw_mission_credits_ready($db);
 $watermarkReady = pw_mission_watermark_ready($db);
 $researchLocksReady = pw_mission_research_locks_ready($db);
+$progressionReady = pw_mission_contract_progression_ready($db);
 // Same one-array rule as definition-create.php: the SET clause and its values
 // come from a single source so they cannot drift apart.
 $columns = [
@@ -34,6 +35,13 @@ if ($statsReady) { $columns['base_success_percent'] = $data['base_success_percen
 if ($creditsReady) $columns['credit_reward'] = $data['credit_reward'];
 if ($watermarkReady) { $columns['watermark_url'] = $data['watermark_url']; $columns['watermark_opacity'] = $data['watermark_opacity']; }
 if ($researchLocksReady) $columns['requires_research_unlock'] = $data['requires_research_unlock'];
+if ($progressionReady) {
+    $columns['contract_tier'] = $data['contract_tier'];
+    $columns['recommended_item_level'] = $data['recommended_item_level'];
+    $columns['reward_item_level_min'] = $data['reward_item_level_min'];
+    $columns['reward_item_level_max'] = $data['reward_item_level_max'];
+    $columns['featured_slots'] = $data['featured_slots'];
+}
 if (pw_mission_overlord_contracts_ready($db)) $columns['overlord_id'] = $data['overlord_id'];
 if (pw_mission_contested_contracts_ready($db)) {
     $columns['is_contested'] = $data['is_contested'];

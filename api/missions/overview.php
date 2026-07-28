@@ -155,6 +155,7 @@ try {
     $creditsReady = pw_mission_credits_ready($db);
     $watermarkReady = pw_mission_watermark_ready($db);
     $itemLevelsReady = pw_mission_item_levels_ready($db);
+    $progressionReady = pw_mission_contract_progression_ready($db);
     $missionsStmt = $db->prepare(
         'SELECT mission.id, mission.world_key, mission.name, mission.slug, mission.description, mission.mission_type, mission.duration_seconds,
                 mission.min_crew, mission.max_crew, mission.xp_reward, mission.reputation_reward, mission.sort_order, mission.is_enabled,
@@ -162,6 +163,7 @@ try {
         . ($creditsReady ? ' mission.credit_reward,' : ' 0 AS credit_reward,')
         . ($watermarkReady ? ' mission.watermark_url, mission.watermark_opacity,' : ' "" AS watermark_url, 10 AS watermark_opacity,')
         . ($statsReady ? ' mission.base_success_percent, mission.loot_rolls,' : ' 100 AS base_success_percent, 0 AS loot_rolls,')
+        . ($progressionReady ? ' mission.contract_tier, mission.recommended_item_level, mission.reward_item_level_min, mission.reward_item_level_max, mission.featured_slots,' : ' 1 AS contract_tier, 0 AS recommended_item_level, 0 AS reward_item_level_min, 0 AS reward_item_level_max, "" AS featured_slots,')
         . ($campaignReady ? ' mission.is_campaign_final,' : ' 0 AS is_campaign_final,') .
                ' prerequisite.name AS unlocks_after_mission_name
          FROM game_mission_definitions mission
@@ -180,7 +182,7 @@ try {
     );
     $missionsStmt->execute();
     $worldMissions = array_map(static function ($row) use ($claimedCounts, $fatigueReady, $lastCrewByMission) {
-        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls', 'watermark_opacity'] as $field) $row[$field] = (int)$row[$field];
+        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls', 'watermark_opacity', 'contract_tier', 'recommended_item_level', 'reward_item_level_min', 'reward_item_level_max'] as $field) $row[$field] = (int)$row[$field];
         // Re-validated on the way out, not only on the way in: this reaches the
         // browser as a CSS url(), so a row edited straight in the database must
         // not be able to put an arbitrary path there.
@@ -188,6 +190,7 @@ try {
         $row['unlocks_after_mission_id'] = $row['unlocks_after_mission_id'] !== null ? (int)$row['unlocks_after_mission_id'] : null;
         $row['is_enabled'] = (bool)$row['is_enabled'];
         $row['is_campaign_final'] = (bool)$row['is_campaign_final'];
+        $row['featured_slots'] = pw_missions_featured_slots($row['featured_slots']);
         if ($row['unlocks_after_mission_id'] !== null) {
             $row['unlocks_after_completion_count'] = max(1, $row['unlocks_after_completion_count']);
         }
@@ -218,6 +221,7 @@ try {
      * further operations exist. */
     $publicFields = ['id', 'world_key', 'name', 'slug', 'description', 'mission_type', 'duration_seconds',
         'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'base_success_percent', 'loot_rolls',
+        'contract_tier', 'recommended_item_level', 'reward_item_level_min', 'reward_item_level_max', 'featured_slots',
         'watermark_url', 'watermark_opacity', 'fatigue_cost', 'last_crew_ids'];
     $slots = [];
     foreach (pw_missions_build_campaign_tracks($missionsById) as $chain) {
@@ -477,7 +481,7 @@ try {
     );
     if ($overlordContract['contract']) {
         $row = $overlordContract['contract'];
-        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order'] as $field) {
+        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order', 'contract_tier', 'recommended_item_level', 'reward_item_level_min', 'reward_item_level_max'] as $field) {
             $row[$field] = (int)($row[$field] ?? 0);
         }
         $row['credit_reward'] = (int)($row['credit_reward'] ?? 0);
@@ -485,6 +489,7 @@ try {
         $row['loot_rolls'] = (int)($row['loot_rolls'] ?? 0);
         $row['watermark_url'] = pw_missions_watermark_url($row['watermark_url'] ?? '');
         $row['watermark_opacity'] = (int)($row['watermark_opacity'] ?? 10);
+        $row['featured_slots'] = $progressionReady ? pw_missions_featured_slots($row['featured_slots'] ?? '') : [];
         $row['is_enabled'] = true;
         $row['is_campaign_final'] = false;
         $row['unlocks_after_mission_id'] = null;
@@ -598,6 +603,7 @@ try {
             : [],
         'gear_ready' => pw_mission_gear_ready($db),
         'item_levels_ready' => $itemLevelsReady,
+        'contract_progression_ready' => $progressionReady,
         'max_gear_stat' => PW_MISSION_MAX_GEAR_STAT,
         'loot' => $loot,
         'inventory_workbench_ready' => $inventoryWorkbenchReady,

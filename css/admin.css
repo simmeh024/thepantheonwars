@@ -4311,6 +4311,21 @@
   cursor: pointer;
 }
 .mission-definition-settings-row .admin-field { min-width: 0; }
+.mission-progression-editor { margin: 16px 0; padding: 16px; border: 1px solid rgba(126,203,158,.5); background: linear-gradient(135deg, rgba(13,47,37,.54), rgba(19,18,43,.48)); box-shadow: inset 3px 0 rgba(126,203,158,.42); }
+.mission-progression-editor .admin-subsection-head { margin: 0 0 13px; padding-bottom: 10px; border-bottom-color: rgba(126,203,158,.22); }
+.mission-progression-editor .admin-subsection-head h2 { color: #bcebc7; }
+.mission-progression-editor .admin-subsection-head p { max-width: 680px; }
+.mission-progression-featured { min-width: 0; margin: 3px 0 0; padding: 11px 12px 10px; border: 1px solid rgba(126,203,158,.3); background: rgba(5,20,24,.34); }
+.mission-progression-featured legend { padding: 0 5px; color: #a9e8bc; font: 700 .68rem/1 'Jost', sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.mission-progression-slot-list { display: flex; flex-wrap: wrap; gap: 7px; }
+.mission-progression-slot-option { display: inline-flex; align-items: center; gap: 6px; min-height: 30px; padding: 5px 8px; border: 1px solid rgba(105,146,169,.34); background: rgba(7,17,31,.5); color: #b9cad5; cursor: pointer; font: 700 .63rem/1 'Jost', sans-serif; letter-spacing: .05em; text-transform: uppercase; }
+.mission-progression-slot-option:has(input:checked) { border-color: rgba(126,203,158,.78); background: rgba(36,103,64,.32); color: #c9f4d3; box-shadow: inset 0 0 12px rgba(126,203,158,.08); }
+.mission-progression-slot-option:has(input:disabled) { cursor: not-allowed; opacity: .44; }
+.mission-progression-slot-option input { width: 14px; height: 14px; margin: 0; accent-color: #7ecb9e; }
+.mission-progression-preview { display: grid; gap: 4px; margin-top: 12px; padding: 10px 11px; border: 1px solid rgba(92,158,180,.34); background: rgba(5,14,28,.58); color: #aebfca; font-size: .68rem; line-height: 1.45; }
+.mission-progression-preview strong { color: #81dce3; font: 700 .6rem/1 'Jost', sans-serif; letter-spacing: .11em; text-transform: uppercase; }
+.mission-progression-preview .mission-progression-preview-saved { margin-top: 3px; padding-top: 8px; border-top: 1px solid rgba(92,158,180,.2); }
+.mission-progression-preview .mission-progression-preview-warning { color: #e6c17e; }
 .mission-crew-settings-row {
   display: grid;
   grid-template-columns: minmax(108px, .72fr) minmax(132px, .9fr) minmax(176px, 1.45fr) minmax(176px, 1.45fr);

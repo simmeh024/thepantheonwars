@@ -18,8 +18,10 @@ try {
     $creditsReady = pw_mission_credits_ready($db);
     $contestedReady = pw_mission_contested_contracts_ready($db);
     $salvageRecoveryReady = pw_mission_salvage_recovery_contracts_ready($db);
+    $progressionReady = pw_mission_contract_progression_ready($db);
     if ($creditsReady) $statsColumns .= ', md.credit_reward';
     if ($salvageRecoveryReady) $statsColumns .= ', md.is_salvage_recovery_contract';
+    if ($progressionReady) $statsColumns .= ', md.contract_tier, md.recommended_item_level, md.reward_item_level_min, md.reward_item_level_max, md.featured_slots';
     $missionStmt = $db->prepare(
         'SELECT pm.*, md.name AS mission_name, md.mission_type, md.duration_seconds AS mission_duration_seconds' . $statsColumns . '
          FROM game_player_missions pm
@@ -337,8 +339,9 @@ try {
         }
     };
     $recoveredTarget = $succeeded && (!$isContested || $rivalOutcome === 'won');
+    $progression = $progressionReady ? pw_missions_contract_progression($mission) : null;
     if ($recoveredTarget && $statsReady) {
-        $loot = pw_missions_roll_loot($db, (string)$mission['world_key'], (int)($mission['loot_rolls'] ?? 0), $effects);
+        $loot = pw_missions_roll_loot($db, (string)$mission['world_key'], (int)($mission['loot_rolls'] ?? 0), $effects, $progression);
         $collectSkipped(pw_missions_store_loot($db, $userId, $loot, $research, [
             'source_type' => 'mission',
             'source_id' => $missionId,
@@ -351,7 +354,7 @@ try {
      * roll and inventory write remains inside this transaction, so a failure
      * anywhere rolls the whole claim back. */
     $lootTableAwards = $recoveredTarget
-        ? pw_missions_roll_loot_tables($db, $userId, (int)$mission['mission_definition_id'])
+        ? pw_missions_roll_loot_tables($db, $userId, (int)$mission['mission_definition_id'], $progression)
         : ['granted' => [], 'duplicates' => [], 'pending' => [], 'gear' => []];
     if (!empty($lootTableAwards['gear'])) {
         $collectSkipped(pw_missions_store_loot($db, $userId, $lootTableAwards['gear'], $research, [

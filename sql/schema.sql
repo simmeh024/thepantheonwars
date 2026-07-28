@@ -1806,6 +1806,10 @@ CREATE TABLE IF NOT EXISTS game_mission_definitions (
   CONSTRAINT fk_game_mission_definition_successor FOREIGN KEY (unlocks_after_mission_id) REFERENCES game_mission_definitions(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Contract progression metadata (tier, recommended squad iLvl, equipment
+-- reward band, and up to two featured slots) is added by
+-- sql/migration_mission_contract_progression.sql. It lives on the mission so
+-- shared loot tables can serve different points on the contract ladder.
 CREATE TABLE IF NOT EXISTS game_player_missions (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,

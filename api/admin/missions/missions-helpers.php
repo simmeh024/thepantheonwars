@@ -9,6 +9,48 @@ function pw_admin_mission_successions_require_ready(PDO $db): void {
     pw_missions_require_successions_ready($db);
 }
 
+/** Validate the small, reusable progression payload for saves and live previews. */
+function pw_admin_mission_progression_input(array $input): array {
+    /* Progression is authored on a mission, not a reusable loot table: the
+     * same table can serve two contracts, while their intended upgrade step
+     * must still differ. A zero iLvl means "do not constrain this side of the
+     * band", preserving legacy missions until their author opts them in. */
+    $contractTier = filter_var($input['contract_tier'] ?? 1, FILTER_VALIDATE_INT);
+    if ($contractTier === false || $contractTier < 1 || $contractTier > PW_MISSION_MAX_CONTRACT_TIER) {
+        pw_error('Contract tier must be between 1 and ' . PW_MISSION_MAX_CONTRACT_TIER . '.');
+    }
+    $recommendedItemLevel = filter_var($input['recommended_item_level'] ?? 0, FILTER_VALIDATE_INT);
+    $rewardItemLevelMin = filter_var($input['reward_item_level_min'] ?? 0, FILTER_VALIDATE_INT);
+    $rewardItemLevelMax = filter_var($input['reward_item_level_max'] ?? 0, FILTER_VALIDATE_INT);
+    foreach (['Recommended squad iLvl' => $recommendedItemLevel, 'Reward iLvl minimum' => $rewardItemLevelMin, 'Reward iLvl maximum' => $rewardItemLevelMax] as $label => $value) {
+        if ($value === false || $value < 0 || $value > 9999) pw_error($label . ' must be between 0 and 9,999.');
+    }
+    if (($rewardItemLevelMin === 0) !== ($rewardItemLevelMax === 0)) {
+        pw_error('Set both ends of the reward iLvl band, or leave both at 0 to keep it open.');
+    }
+    if ($rewardItemLevelMin > 0 && $rewardItemLevelMax < $rewardItemLevelMin) {
+        pw_error('Reward iLvl maximum cannot be below its minimum.');
+    }
+    $featuredRaw = $input['featured_slots'] ?? [];
+    if (is_string($featuredRaw)) $featuredRaw = $featuredRaw === '' ? [] : explode(',', $featuredRaw);
+    if (!is_array($featuredRaw) || count($featuredRaw) > 2) pw_error('Choose up to two featured upgrade slots.');
+    $featuredSlots = [];
+    $validSlots = pw_missions_gear_slots();
+    foreach ($featuredRaw as $rawSlot) {
+        $slot = strtolower(trim((string)$rawSlot));
+        if (!isset($validSlots[$slot])) pw_error('Choose valid featured equipment slots.');
+        if (isset($featuredSlots[$slot])) pw_error('Each featured equipment slot may only be selected once.');
+        $featuredSlots[$slot] = true;
+    }
+    return [
+        'contract_tier' => (int)$contractTier,
+        'recommended_item_level' => (int)$recommendedItemLevel,
+        'reward_item_level_min' => (int)$rewardItemLevelMin,
+        'reward_item_level_max' => (int)$rewardItemLevelMax,
+        'featured_slots' => implode(',', array_keys($featuredSlots)),
+    ];
+}
+
 function pw_admin_mission_definition_input(array $input): array {
     $name = trim((string)($input['name'] ?? ''));
     if ($name === '' || mb_strlen($name) > 150) pw_error('Mission name must be between 1 and 150 characters.');
@@ -50,6 +92,7 @@ function pw_admin_mission_definition_input(array $input): array {
     if ($baseSuccess === false || $baseSuccess < 1 || $baseSuccess > 100) pw_error('Base success chance must be between 1% and 100%.');
     $lootRolls = filter_var($input['loot_rolls'] ?? 0, FILTER_VALIDATE_INT);
     if ($lootRolls === false || $lootRolls < 0 || $lootRolls > 10) pw_error('Loot rolls must be between 0 and 10.');
+    $progression = pw_admin_mission_progression_input($input);
     /* Attaching an Overlord turns this mission into a daily contract: it is
      * withdrawn from the ordinary board and only offered to players aligned
      * with that Overlord. Validated against the roster rather than accepted as
@@ -123,7 +166,157 @@ function pw_admin_mission_definition_input(array $input): array {
         'is_campaign_final' => !empty($input['is_campaign_final']) ? 1 : 0,
         'base_success_percent' => $baseSuccess,
         'loot_rolls' => $lootRolls,
+        'contract_tier' => $progression['contract_tier'],
+        'recommended_item_level' => $progression['recommended_item_level'],
+        'reward_item_level_min' => $progression['reward_item_level_min'],
+        'reward_item_level_max' => $progression['reward_item_level_max'],
+        'featured_slots' => $progression['featured_slots'],
     ];
+}
+
+/**
+ * One batch query for Mission Control's authoring preview. It reports the
+ * live, enabled wearable rewards attached through every table, after this
+ * contract's own band and featured-slot rules are applied. This deliberately
+ * does not mutate or second-guess the tables; it makes a bad fit visible
+ * before a player discovers it by running the contract.
+ *
+ * @param array<int,array> $missions
+ * @return array<int,array>
+ */
+function pw_admin_mission_progression_previews(PDO $db, array $missions): array {
+    $previews = [];
+    $progressionByMission = [];
+    $roles = array_keys(pw_missions_role_rates());
+    $lootTablesReady = pw_mission_loot_table_gear_ready($db);
+    foreach ($missions as $mission) {
+        $missionId = (int)($mission['id'] ?? 0);
+        if ($missionId === 0) continue;
+        $progressionByMission[$missionId] = pw_missions_contract_progression($mission);
+        $previews[$missionId] = [
+            'ready' => pw_mission_contract_progression_ready($db),
+            'loot_tables_ready' => $lootTablesReady,
+            'linked_tables' => 0,
+            'wearable_entries' => 0,
+            'world_pool_entries' => 0,
+            'linked_table_entries' => 0,
+            'eligible_entries' => 0,
+            'filtered_entries' => 0,
+            'featured_entries' => 0,
+            'item_level_min' => 0,
+            'item_level_average' => 0.0,
+            'item_level_max' => 0,
+            'roles_covered' => 0,
+        ];
+    }
+    if (!$previews || !pw_mission_contract_progression_ready($db)) return $previews;
+
+    $tablesSeen = [];
+    $rolesCovered = [];
+    $weightedLevels = [];
+    $weights = [];
+    if ($lootTablesReady) {
+        $missionIds = array_keys($previews);
+        $stmt = $db->prepare(
+            'SELECT link.mission_definition_id, link.loot_table_id, link.chance_percent AS link_chance,
+                    table_row.is_enabled AS table_enabled, entry.entry_type, entry.chance_percent AS entry_chance,
+                    gear.id AS gear_id, gear.is_enabled AS gear_enabled, gear.slot, gear.item_level, gear.required_role
+             FROM game_mission_loot_tables link
+             JOIN game_loot_tables table_row ON table_row.id = link.loot_table_id
+             LEFT JOIN game_loot_table_entries entry ON entry.loot_table_id = table_row.id
+             LEFT JOIN game_loot_definitions gear ON gear.id = entry.loot_definition_id
+             WHERE link.mission_definition_id IN (' . pw_missions_placeholders(count($missionIds)) . ')'
+            . (pw_mission_loot_table_sweep_flag_ready($db) ? ' AND table_row.is_sweep_only = 0' : '')
+        );
+        $stmt->execute($missionIds);
+        foreach ($stmt->fetchAll() as $row) {
+            $missionId = (int)$row['mission_definition_id'];
+            if (!isset($previews[$missionId]) || empty($row['table_enabled'])) continue;
+            $tablesSeen[$missionId][(int)$row['loot_table_id']] = true;
+            if (($row['entry_type'] ?? '') !== 'gear' || empty($row['gear_enabled']) || (int)($row['gear_id'] ?? 0) < 1) continue;
+            $slot = (string)($row['slot'] ?? '');
+            $itemLevel = max(0, (int)($row['item_level'] ?? 0));
+            if ($slot === '' || $itemLevel < 1) continue;
+            $previews[$missionId]['wearable_entries']++;
+            $previews[$missionId]['linked_table_entries']++;
+            $progression = $progressionByMission[$missionId];
+            if (!pw_missions_contract_gear_is_eligible($row, $progression)) {
+                $previews[$missionId]['filtered_entries']++;
+                continue;
+            }
+            $previews[$missionId]['eligible_entries']++;
+            if (pw_missions_contract_gear_is_featured($row, $progression)) $previews[$missionId]['featured_entries']++;
+            $previews[$missionId]['item_level_min'] = $previews[$missionId]['item_level_min'] === 0
+                ? $itemLevel : min($previews[$missionId]['item_level_min'], $itemLevel);
+            $previews[$missionId]['item_level_max'] = max($previews[$missionId]['item_level_max'], $itemLevel);
+            $weight = max(0.0, (float)$row['link_chance']) * pw_missions_contract_gear_chance((float)$row['entry_chance'], $row, $progression);
+            $weightedLevels[$missionId] = ($weightedLevels[$missionId] ?? 0.0) + ($itemLevel * $weight);
+            $weights[$missionId] = ($weights[$missionId] ?? 0.0) + $weight;
+            $requiredRole = trim((string)($row['required_role'] ?? ''));
+            foreach ($roles as $role) {
+                if ($requiredRole === '' || strcasecmp($requiredRole, $role) === 0) $rolesCovered[$missionId][$role] = true;
+            }
+        }
+    }
+    /* A mission can also use its world's ordinary pool through loot_rolls,
+     * independently of attached tables. Include that path in the authoring
+     * preview so a band that looks healthy on its tables cannot quietly leave
+     * the normal success rolls empty. */
+    $missionsByWorld = [];
+    foreach ($missions as $mission) {
+        $missionId = (int)($mission['id'] ?? 0);
+        $worldKey = trim((string)($mission['world_key'] ?? ''));
+        if ($missionId !== 0 && $worldKey !== '' && (int)($mission['loot_rolls'] ?? 0) > 0) {
+            $missionsByWorld[$worldKey][] = $missionId;
+        }
+    }
+    if ($missionsByWorld) {
+        $worldKeys = array_keys($missionsByWorld);
+        $worldStmt = $db->prepare(
+            'SELECT world_key, id, slot, item_level, required_role, drop_weight
+             FROM game_loot_definitions
+             WHERE world_key IN (' . pw_missions_placeholders(count($worldKeys)) . ') AND is_enabled = 1'
+        );
+        $worldStmt->execute($worldKeys);
+        foreach ($worldStmt->fetchAll() as $item) {
+            $worldKey = (string)($item['world_key'] ?? '');
+            $slot = (string)($item['slot'] ?? '');
+            $itemLevel = max(0, (int)($item['item_level'] ?? 0));
+            if ($slot === '' || $itemLevel < 1 || empty($missionsByWorld[$worldKey])) continue;
+            foreach ($missionsByWorld[$worldKey] as $missionId) {
+                $previews[$missionId]['wearable_entries']++;
+                $previews[$missionId]['world_pool_entries']++;
+                $progression = $progressionByMission[$missionId];
+                if (!pw_missions_contract_gear_is_eligible($item, $progression)) {
+                    $previews[$missionId]['filtered_entries']++;
+                    continue;
+                }
+                $previews[$missionId]['eligible_entries']++;
+                if (pw_missions_contract_gear_is_featured($item, $progression)) $previews[$missionId]['featured_entries']++;
+                $previews[$missionId]['item_level_min'] = $previews[$missionId]['item_level_min'] === 0
+                    ? $itemLevel : min($previews[$missionId]['item_level_min'], $itemLevel);
+                $previews[$missionId]['item_level_max'] = max($previews[$missionId]['item_level_max'], $itemLevel);
+                $weight = max(1.0, (float)($item['drop_weight'] ?? 0));
+                if (pw_missions_contract_gear_is_featured($item, $progression)) {
+                    $weight *= PW_MISSION_FEATURED_SLOT_CHANCE_MULTIPLIER;
+                }
+                $weightedLevels[$missionId] = ($weightedLevels[$missionId] ?? 0.0) + ($itemLevel * $weight);
+                $weights[$missionId] = ($weights[$missionId] ?? 0.0) + $weight;
+                $requiredRole = trim((string)($item['required_role'] ?? ''));
+                foreach ($roles as $role) {
+                    if ($requiredRole === '' || strcasecmp($requiredRole, $role) === 0) $rolesCovered[$missionId][$role] = true;
+                }
+            }
+        }
+    }
+    foreach ($previews as $missionId => &$preview) {
+        $preview['linked_tables'] = count($tablesSeen[$missionId] ?? []);
+        $preview['item_level_average'] = !empty($weights[$missionId])
+            ? round($weightedLevels[$missionId] / $weights[$missionId], 1) : 0.0;
+        $preview['roles_covered'] = count($rolesCovered[$missionId] ?? []);
+    }
+    unset($preview);
+    return $previews;
 }
 
 /**

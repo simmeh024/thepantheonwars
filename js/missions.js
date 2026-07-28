@@ -338,6 +338,7 @@
       + ' · ' + Number(contract.min_crew) + (Number(contract.max_crew) !== Number(contract.min_crew) ? '–' + Number(contract.max_crew) : '') + ' crew</span>'
       + (contract.is_contested ? '<span class="mission-contract-contested">Contested · ' + escapeHtml(contract.rival_faction_name || 'Rival recovery team') + '</span>' : '')
       + (reward.length ? '<span class="mission-contract-reward">' + escapeHtml(reward.join(' · ')) + '</span>' : '')
+      + missionProgressionMarkup(contract)
       + (claimed
         ? '<p class="mission-contract-copy is-done">Completed today. A new contract is issued at 00:00 UTC.</p>'
         : (inFlight
@@ -635,6 +636,27 @@
     return parts.length ? '<p class="mission-risk">' + parts.join('') + '</p>' : '';
   }
 
+  /* A compact progression brief gives players the why behind a contract's
+   * reward table without exposing exact per-entry odds. It only appears after
+   * the contract-progression migration is live, so older deployments retain
+   * their previous card layout exactly. */
+  function missionProgressionMarkup(mission) {
+    if (!state.data || !state.data.contract_progression_ready) return '';
+    var labels = { head: 'Head', chest: 'Chest', main_hand: 'Main hand', off_hand: 'Off hand', legs: 'Legs', feet: 'Feet', utility: 'Utility' };
+    var tier = Math.max(1, Number(mission.contract_tier) || 1);
+    var recommended = Math.max(0, Number(mission.recommended_item_level) || 0);
+    var minimum = Math.max(0, Number(mission.reward_item_level_min) || 0);
+    var maximum = Math.max(0, Number(mission.reward_item_level_max) || 0);
+    var featured = Array.isArray(mission.featured_slots) ? mission.featured_slots.map(function (slot) { return labels[slot] || ''; }).filter(Boolean) : [];
+    if (tier === 1 && recommended === 0 && minimum === 0 && maximum === 0 && !featured.length) return '';
+    var items = [];
+    if (recommended > 0) items.push('<span>Recommended avg iLvl ' + recommended + '</span>');
+    if (minimum > 0 && maximum > 0) items.push('<span>Equipment iLvl ' + minimum + '–' + maximum + '</span>');
+    if (featured.length) items.push('<span class="is-featured">Featured: ' + escapeHtml(featured.join(' · ')) + '</span>');
+    return '<section class="mission-progression"><div class="mission-progression-head"><strong>Tier ' + tier + ' contract</strong><small>Upgrade path</small></div>'
+      + (items.length ? '<div class="mission-progression-items">' + items.join('') + '</div>' : '') + '</section>';
+  }
+
   /* Each entry is one slot: a standalone mission, or a campaign track showing
    * only its current step. The server sends nothing about a sealed operation,
    * so there is no locked-card branch here by design. */
@@ -660,6 +682,7 @@
          * authored length, not of who is sent on it. */
         + (Number(mission.fatigue_cost) > 0 ? '<div><dt>Fatigue</dt><dd class="is-fatigue">−' + Number(mission.fatigue_cost) + ' per crew</dd></div>' : '') + '</dl>'
       + missionRiskMarkup(mission)
+      + missionProgressionMarkup(mission)
       + '<button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + (canLaunch ? 'Select Crew' : 'Crew Unavailable') + '</button>'
       + (campaign ? campaignBarMarkup(campaign) : '') + '</article>';
   }

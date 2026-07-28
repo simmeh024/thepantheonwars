@@ -267,6 +267,16 @@
 .mission-risk-chance { border-color: rgba(224,138,114,0.4) !important; color: #e0a894 !important; }
 .mission-risk-chance em { color: #9edba8; font-style: normal; }
 .mission-risk-loot { border-color: rgba(199,154,232,0.4) !important; color: #c79ae8 !important; }
+
+/* Contract progression is stated before launch: the tier tells a player where
+ * this operation sits, while the authored band and featured slots explain how
+ * it improves their loadout without exposing the table's exact odds. */
+.mission-progression { display: grid; gap: 5px; margin: 11px 0 0; padding: 9px 10px; border: 1px solid rgba(126,203,158,.38); background: linear-gradient(110deg, rgba(14,54,39,.52), rgba(11,25,42,.48)); }
+.mission-progression-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: #bcebc7; font: 700 .6rem/1 'Jost', sans-serif; letter-spacing: .1em; text-transform: uppercase; }
+.mission-progression-head small { color: #7ecb9e; font-size: .54rem; letter-spacing: .08em; }
+.mission-progression-items { display: flex; flex-wrap: wrap; gap: 5px; }
+.mission-progression-items span { padding: 3px 5px; border: 1px solid rgba(126,203,158,.26); background: rgba(5,21,27,.42); color: #a7cbb1; font-size: .58rem; font-weight: 600; line-height: 1.25; }
+.mission-progression-items span.is-featured { border-color: rgba(226,201,127,.46); color: #f0d88e; }
 @media (prefers-reduced-motion: reduce) { .crew-stat-bar i { transition: none; } }
 @media (max-width: 470px) { .crew-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
@@ -1018,6 +1028,8 @@
 .mission-contract-name { color: #eef1f6; font-size: 0.86rem; line-height: 1.25; }
 .mission-contract-meta { color: #a9c2d0; font-size: 0.62rem; letter-spacing: .05em; text-transform: uppercase; }
 .mission-contract-reward { color: var(--overlord-text, #e2c76a); font-size: 0.68rem; font-weight: 600; }
+.mission-contract-card .mission-progression { margin-top: 1px; border-color: color-mix(in srgb, var(--overlord-accent, #c9a227) 44%, transparent); background: color-mix(in srgb, var(--overlord-accent, #c9a227) 10%, rgba(5,15,28,.58)); }
+.mission-contract-card .mission-progression-head { color: var(--overlord-text, #e2c76a); }.mission-contract-card .mission-progression-head small { color: var(--overlord-text, #e2c76a); opacity: .78; }.mission-contract-card .mission-progression-items span { border-color: color-mix(in srgb, var(--overlord-accent, #c9a227) 30%, transparent); color: #c6d4de; }.mission-contract-card .mission-progression-items span.is-featured { color: #f1d98d; }
 .mission-contract-contested { width: fit-content; padding: 3px 6px; border: 1px solid rgba(235,150,113,0.48); background: rgba(91,39,47,0.3); color: #f0b092; font-size: .57rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
 .mission-contract-copy { margin: 0; color: #a9c2d0; font-size: 0.68rem; line-height: 1.45; }
 .mission-contract-copy.is-done { color: #9edba8; }

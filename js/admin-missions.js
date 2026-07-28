@@ -3,7 +3,8 @@
 
   var definitions = [];
   /* Overlord roster and contract readiness, both supplied by definitions-list. */
-  var overlords = [], contractsReady = false, contestedContractsReady = false, salvageRecoveryContractsReady = false, overlordClearancesReady = false, contractRank = 10;
+  var overlords = [], contractsReady = false, contestedContractsReady = false, salvageRecoveryContractsReady = false, overlordClearancesReady = false, contractProgressionReady = false, contractRank = 10;
+  var missionGearSlots = [];
   var crew = [];
   var gear = [];
   var gearMeta = null;
@@ -12,6 +13,9 @@
   var currentDefinition = null;
   var currentCrew = null;
   var currentGear = null;
+  var draftProgressionPreview = null;
+  var progressionPreviewTimer = null;
+  var progressionPreviewSequence = 0;
 
   var definitionList = document.getElementById('mission-definition-list');
   var crewList = document.getElementById('mission-crew-list');
@@ -117,6 +121,11 @@
       if (mission.is_contested && detail) detail.textContent += ' | Contested by ' + (mission.rival_faction_name || 'a rival recovery team');
       if (mission.is_salvage_recovery_contract && detail) detail.textContent += ' | Sweep recovery pool';
       if (mission.requires_overlord_clearance && detail) detail.textContent += ' | Blocked tile';
+      if (contractProgressionReady && detail) {
+        detail.textContent += ' | Tier ' + (Number(mission.contract_tier) || 1);
+        if (Number(mission.recommended_item_level) > 0) detail.textContent += ' · rec. iLvl ' + Number(mission.recommended_item_level);
+        if (Number(mission.reward_item_level_min) > 0 && Number(mission.reward_item_level_max) > 0) detail.textContent += ' · rewards iLvl ' + Number(mission.reward_item_level_min) + '–' + Number(mission.reward_item_level_max);
+      }
       if (can('missions.edit')) {
         row.addEventListener('click', function () { openDefinition(mission); });
         row.addEventListener('keydown', function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDefinition(mission); } });
@@ -186,7 +195,7 @@
   }
 
   function loadDefinitions() {
-    return request('/api/admin/missions/definitions-list.php').then(function (data) { definitions = data.missions || []; overlords = data.overlords || []; contractsReady = !!data.contracts_ready; contestedContractsReady = !!data.contested_contracts_ready; salvageRecoveryContractsReady = !!data.salvage_recovery_contracts_ready; overlordClearancesReady = !!data.overlord_clearances_ready; contractRank = Number(data.contract_rank) || 10; renderDefinitions(); refreshCount(); }).catch(function (error) { blank(definitionList, error.message || 'Could not load mission definitions. Run the Missions V0 migration first.'); });
+    return request('/api/admin/missions/definitions-list.php').then(function (data) { definitions = data.missions || []; overlords = data.overlords || []; contractsReady = !!data.contracts_ready; contestedContractsReady = !!data.contested_contracts_ready; salvageRecoveryContractsReady = !!data.salvage_recovery_contracts_ready; overlordClearancesReady = !!data.overlord_clearances_ready; contractProgressionReady = !!data.contract_progression_ready; missionGearSlots = data.gear_slots || []; contractRank = Number(data.contract_rank) || 10; renderDefinitions(); refreshCount(); }).catch(function (error) { blank(definitionList, error.message || 'Could not load mission definitions. Run the Missions V0 migration first.'); });
   }
 
   function loadCrew() {
@@ -297,7 +306,119 @@
     toggle.disabled = !isContract;
   }
 
+  function featuredMissionSlots() {
+    return Array.prototype.map.call(document.querySelectorAll('#mission-definition-featured-slots input:checked'), function (input) { return input.value; });
+  }
+
+  function syncFeaturedMissionSlotLimit() {
+    var selected = featuredMissionSlots();
+    document.querySelectorAll('#mission-definition-featured-slots input').forEach(function (input) {
+      input.disabled = !input.checked && selected.length >= 2;
+    });
+  }
+
+  function renderMissionProgressionSlots(mission) {
+    var section = document.getElementById('mission-definition-progression-fields');
+    var target = document.getElementById('mission-definition-featured-slots');
+    if (!section || !target) return;
+    section.hidden = !contractProgressionReady;
+    if (!contractProgressionReady) { target.replaceChildren(); return; }
+    var selected = mission && Array.isArray(mission.featured_slots) ? mission.featured_slots : [];
+    target.innerHTML = missionGearSlots.map(function (slot) {
+      var key = String(slot.key || '');
+      var checked = selected.indexOf(key) !== -1 ? ' checked' : '';
+      return '<label class="mission-progression-slot-option"><input type="checkbox" value="' + escapeHtml(key) + '"' + checked + '><span>' + escapeHtml(slot.label || key) + '</span></label>';
+    }).join('');
+    target.querySelectorAll('input').forEach(function (input) {
+      input.addEventListener('change', function () {
+        if (featuredMissionSlots().length > 2) input.checked = false;
+        syncFeaturedMissionSlotLimit();
+        updateMissionProgressionPreview(currentDefinition);
+        scheduleMissionProgressionPreview();
+      });
+    });
+    syncFeaturedMissionSlotLimit();
+  }
+
+  function authoredMissionProgression() {
+    return {
+      tier: Math.max(1, Number(document.getElementById('mission-definition-contract-tier').value) || 1),
+      recommended: Math.max(0, Number(document.getElementById('mission-definition-recommended-ilvl').value) || 0),
+      minimum: Math.max(0, Number(document.getElementById('mission-definition-reward-ilvl-min').value) || 0),
+      maximum: Math.max(0, Number(document.getElementById('mission-definition-reward-ilvl-max').value) || 0),
+      featured: featuredMissionSlots()
+    };
+  }
+
+  function updateMissionProgressionPreview(mission, livePreview) {
+    var preview = document.getElementById('mission-definition-progression-preview');
+    if (!preview || !contractProgressionReady) return;
+    var progression = authoredMissionProgression();
+    var labels = {};
+    missionGearSlots.forEach(function (slot) { labels[slot.key] = slot.label; });
+    var playerLines = ['<strong>Player-facing brief</strong>', '<span>Tier ' + progression.tier + ' contract'
+      + (progression.recommended ? ' · recommended avg iLvl ' + progression.recommended : '') + '.</span>'];
+    playerLines.push('<span>' + (progression.minimum && progression.maximum
+      ? 'Wearable rewards: iLvl ' + progression.minimum + '–' + progression.maximum + '.'
+      : progression.minimum || progression.maximum
+        ? 'Wearable rewards: complete both ends of the iLvl band before saving.'
+        : 'Wearable rewards: open iLvl band.') + '</span>');
+    playerLines.push('<span>' + (progression.featured.length
+      ? 'Featured slots: ' + escapeHtml(progression.featured.map(function (slot) { return labels[slot] || slot; }).join(' · ')) + ' (2× drop priority).'
+      : 'No featured slots selected.') + '</span>');
+    var saved = livePreview || (mission && mission.progression_preview);
+    if (!saved) {
+      playerLines.push('<span class="mission-progression-preview-warning">Calculating the current world-pool and loot-table reward coverage&hellip;</span>');
+      preview.innerHTML = playerLines.join('');
+      return;
+    }
+    var savedLines = ['<strong class="mission-progression-preview-saved">' + (livePreview ? 'Live reward check' : 'Saved reward check') + '</strong>'];
+    if (!saved.ready) savedLines.push('<span class="mission-progression-preview-warning">The gear and item-level migrations are required before table coverage can be calculated.</span>');
+    else if (!Number(saved.wearable_entries)) savedLines.push('<span class="mission-progression-preview-warning">No enabled wearable entries are available through this contract&rsquo;s world pool or attached loot tables.</span>');
+    else {
+      var sources = [];
+      if (Number(saved.world_pool_entries)) sources.push(Number(saved.world_pool_entries) + ' world-pool');
+      if (Number(saved.linked_table_entries)) sources.push(Number(saved.linked_table_entries) + ' table ' + (Number(saved.linked_table_entries) === 1 ? 'entry' : 'entries') + ' across ' + Number(saved.linked_tables) + ' linked table' + (Number(saved.linked_tables) === 1 ? '' : 's'));
+      savedLines.push('<span>' + Number(saved.eligible_entries) + ' of ' + Number(saved.wearable_entries) + ' wearable entries fit this band'
+        + (sources.length ? ' (' + sources.join(' + ') + ')' : '')
+        + (Number(saved.filtered_entries) ? '; ' + Number(saved.filtered_entries) + ' filtered out' : '') + '.</span>');
+      savedLines.push('<span>iLvl spread ' + Number(saved.item_level_min) + '–' + Number(saved.item_level_max) + ' · typical iLvl ' + Number(saved.item_level_average || 0).toFixed(1)
+        + ' · ' + Number(saved.roles_covered) + ' role' + (Number(saved.roles_covered) === 1 ? '' : 's') + ' covered.</span>');
+      if (Number(saved.featured_entries)) savedLines.push('<span>' + Number(saved.featured_entries) + ' eligible reward entr' + (Number(saved.featured_entries) === 1 ? 'y is' : 'ies are') + ' in a featured slot.</span>');
+    }
+    if (saved.loot_tables_ready === false) savedLines.push('<span class="mission-progression-preview-warning">Loot-table coverage is unavailable until its gear migration is installed; this check currently reflects the ordinary world pool only.</span>');
+    preview.innerHTML = playerLines.concat(savedLines).join('');
+  }
+
+  function scheduleMissionProgressionPreview() {
+    if (!contractProgressionReady) return;
+    if (progressionPreviewTimer) window.clearTimeout(progressionPreviewTimer);
+    var sequence = ++progressionPreviewSequence;
+    progressionPreviewTimer = window.setTimeout(function () {
+      var progression = authoredMissionProgression();
+      request('/api/admin/missions/progression-preview.php', {
+        mission_id: currentDefinition ? currentDefinition.id : '',
+        world_key: document.getElementById('mission-definition-world').value,
+        loot_rolls: document.getElementById('mission-definition-loot-rolls').value,
+        contract_tier: progression.tier,
+        recommended_item_level: progression.recommended,
+        reward_item_level_min: progression.minimum,
+        reward_item_level_max: progression.maximum,
+        featured_slots: progression.featured
+      }).then(function (data) {
+        if (sequence !== progressionPreviewSequence || definitionModal.hidden) return;
+        draftProgressionPreview = data.preview || null;
+        updateMissionProgressionPreview(currentDefinition, draftProgressionPreview);
+      }).catch(function () {
+        /* The saved check stays visible if a transient preview request fails;
+         * saving still receives the normal, explicit server validation. */
+      });
+    }, 170);
+  }
+
   function definitionValues(mission) {
+    draftProgressionPreview = null;
+    progressionPreviewSequence++;
     document.getElementById('mission-definition-name').value = mission ? mission.name : '';
     document.getElementById('mission-definition-slug').value = mission ? mission.slug : '';
     document.getElementById('mission-definition-description').value = mission ? mission.description : '';
@@ -334,6 +455,13 @@
     document.getElementById('mission-definition-success').value = mission && mission.base_success_percent !== undefined ? mission.base_success_percent : 100;
     document.getElementById('mission-definition-loot-rolls').value = mission && mission.loot_rolls !== undefined ? mission.loot_rolls : 0;
     document.getElementById('mission-definition-credits').value = mission && mission.credit_reward !== undefined ? mission.credit_reward : 0;
+    document.getElementById('mission-definition-contract-tier').value = mission && mission.contract_tier !== undefined ? mission.contract_tier : 1;
+    document.getElementById('mission-definition-recommended-ilvl').value = mission && mission.recommended_item_level !== undefined ? mission.recommended_item_level : 0;
+    document.getElementById('mission-definition-reward-ilvl-min').value = mission && mission.reward_item_level_min !== undefined ? mission.reward_item_level_min : 0;
+    document.getElementById('mission-definition-reward-ilvl-max').value = mission && mission.reward_item_level_max !== undefined ? mission.reward_item_level_max : 0;
+    renderMissionProgressionSlots(mission);
+    updateMissionProgressionPreview(mission);
+    scheduleMissionProgressionPreview();
     document.getElementById('mission-definition-watermark').value = mission && mission.watermark_url ? mission.watermark_url : '';
     document.getElementById('mission-definition-watermark-opacity').value = mission && mission.watermark_opacity ? mission.watermark_opacity : 10;
     updateMissionWatermarkPreview();
@@ -371,10 +499,14 @@
     setTimeout(function () { document.getElementById('mission-definition-name').focus(); }, 25);
   }
 
-  function closeDefinition() { definitionModal.hidden = true; currentDefinition = null; }
+  function closeDefinition() {
+    definitionModal.hidden = true; currentDefinition = null; draftProgressionPreview = null;
+    progressionPreviewSequence++;
+    if (progressionPreviewTimer) { window.clearTimeout(progressionPreviewTimer); progressionPreviewTimer = null; }
+  }
 
   function definitionPayload() {
-    return {
+    var payload = {
       name: document.getElementById('mission-definition-name').value.trim(),
       slug: document.getElementById('mission-definition-slug').value.trim(),
       description: document.getElementById('mission-definition-description').value.trim(),
@@ -402,6 +534,14 @@
       watermark_url: document.getElementById('mission-definition-watermark').value.trim(),
       watermark_opacity: document.getElementById('mission-definition-watermark-opacity').value
     };
+    if (contractProgressionReady) {
+      payload.contract_tier = document.getElementById('mission-definition-contract-tier').value;
+      payload.recommended_item_level = document.getElementById('mission-definition-recommended-ilvl').value;
+      payload.reward_item_level_min = document.getElementById('mission-definition-reward-ilvl-min').value;
+      payload.reward_item_level_max = document.getElementById('mission-definition-reward-ilvl-max').value;
+      payload.featured_slots = featuredMissionSlots();
+    }
+    return payload;
   }
 
   function updatePortraitPreview() {
@@ -491,6 +631,11 @@
   document.getElementById('mission-definition-contested').addEventListener('change', syncMissionSalvageRecoveryField);
   document.getElementById('mission-definition-salvage-recovery').addEventListener('change', syncMissionContestedFields);
   document.getElementById('mission-definition-salvage-recovery').addEventListener('change', syncMissionSalvageRecoveryField);
+  ['mission-definition-contract-tier', 'mission-definition-recommended-ilvl', 'mission-definition-reward-ilvl-min', 'mission-definition-reward-ilvl-max'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', function () { updateMissionProgressionPreview(currentDefinition); scheduleMissionProgressionPreview(); });
+  });
+  document.getElementById('mission-definition-loot-rolls').addEventListener('input', scheduleMissionProgressionPreview);
+  document.getElementById('mission-definition-world').addEventListener('change', scheduleMissionProgressionPreview);
   document.getElementById('mission-crew-name').addEventListener('input', function () {
     var slug = document.getElementById('mission-crew-slug');
     if (!currentCrew && !slug.dataset.touched) slug.value = slugify(this.value);

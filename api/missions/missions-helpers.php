@@ -1478,6 +1478,72 @@ function pw_mission_field_grade_ready(PDO $db): bool {
         && pw_schema_has($db, 'game_loot_definitions', ['field_grade']);
 }
 
+/* Contract progression turns a mission's item table into a deliberate next
+ * step. It remains additive: before the manual migration is applied, missions
+ * continue to read every configured reward exactly as they always have. */
+const PW_MISSION_MAX_CONTRACT_TIER = 10;
+const PW_MISSION_FEATURED_SLOT_CHANCE_MULTIPLIER = 2.0;
+
+function pw_mission_contract_progression_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    return $ready = pw_mission_item_levels_ready($db)
+        && pw_schema_has($db, 'game_mission_definitions', [
+            'contract_tier', 'recommended_item_level',
+            'reward_item_level_min', 'reward_item_level_max', 'featured_slots',
+        ]);
+}
+
+/** Decode the small, closed featured-slot list stored on a mission definition. */
+function pw_missions_featured_slots($raw): array {
+    $values = is_array($raw) ? $raw : explode(',', (string)$raw);
+    $slots = pw_missions_gear_slots();
+    $result = [];
+    foreach ($values as $value) {
+        $slot = strtolower(trim((string)$value));
+        if ($slot !== '' && isset($slots[$slot])) $result[$slot] = true;
+    }
+    return array_keys($result);
+}
+
+/** One normalized shape for the live reward paths and both admin readers. */
+function pw_missions_contract_progression(array $mission): array {
+    $minimum = max(0, min(9999, (int)($mission['reward_item_level_min'] ?? 0)));
+    $maximum = max(0, min(9999, (int)($mission['reward_item_level_max'] ?? 0)));
+    if ($minimum > 0 && $maximum > 0 && $maximum < $minimum) $maximum = $minimum;
+    return [
+        'tier' => max(1, min(PW_MISSION_MAX_CONTRACT_TIER, (int)($mission['contract_tier'] ?? 1))),
+        'recommended_item_level' => max(0, min(9999, (int)($mission['recommended_item_level'] ?? 0))),
+        'reward_item_level_min' => $minimum,
+        'reward_item_level_max' => $maximum,
+        'featured_slots' => pw_missions_featured_slots($mission['featured_slots'] ?? ''),
+    ];
+}
+
+/** Progression bands govern wearable gear only; salvage, stims and crew stay authored per table. */
+function pw_missions_contract_gear_is_eligible(array $gear, array $progression): bool {
+    $slot = strtolower(trim((string)($gear['slot'] ?? $gear['gear_slot'] ?? '')));
+    if ($slot === '') return true;
+    $itemLevel = max(0, (int)($gear['item_level'] ?? $gear['gear_item_level'] ?? 0));
+    $minimum = (int)($progression['reward_item_level_min'] ?? 0);
+    $maximum = (int)($progression['reward_item_level_max'] ?? 0);
+    return !($minimum > 0 && $itemLevel < $minimum)
+        && !($maximum > 0 && $itemLevel > $maximum);
+}
+
+function pw_missions_contract_gear_is_featured(array $gear, array $progression): bool {
+    $slot = strtolower(trim((string)($gear['slot'] ?? $gear['gear_slot'] ?? '')));
+    return $slot !== '' && in_array($slot, $progression['featured_slots'] ?? [], true);
+}
+
+/** The same multiplier is used for weighted world-pool loot and independent table rolls. */
+function pw_missions_contract_gear_chance(float $chance, array $gear, array $progression): float {
+    if (pw_missions_contract_gear_is_featured($gear, $progression)) {
+        $chance *= PW_MISSION_FEATURED_SLOT_CHANCE_MULTIPLIER;
+    }
+    return min(100.0, max(0.0, $chance));
+}
+
 /**
  * What a player's crew are wearing, keyed by player_crew_id then slot.
  *
@@ -2110,9 +2176,11 @@ function pw_missions_loot_roll_count(int $baseRolls, array $effects): int {
  * the debrief -- including equipment art and bonuses when gear is available --
  * one entry per item awarded, with the Science upgrade already applied.
  */
-function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array $effects): array {
+function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array $effects, ?array $progression = null): array {
     $rolls = pw_missions_loot_roll_count($baseRolls, $effects);
     if ($rolls < 1) return [];
+
+    $progression = $progression ?? pw_missions_contract_progression([]);
 
     $gearReady = pw_mission_gear_ready($db);
     $itemLevelsReady = pw_mission_item_levels_ready($db);
@@ -2128,6 +2196,9 @@ function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array 
     $stmt = $db->prepare('SELECT id, name, slug, tier, drop_weight' . $gearColumns . ' FROM game_loot_definitions WHERE world_key = ? AND is_enabled = 1');
     $stmt->execute([$worldKey]);
     $pool = $stmt->fetchAll();
+    $pool = array_values(array_filter($pool, static function (array $item) use ($progression): bool {
+        return pw_missions_contract_gear_is_eligible($item, $progression);
+    }));
     if (!$pool) return [];
 
     /* Normalise the weights on the pool itself, not on a copy: an administrator
@@ -2135,7 +2206,11 @@ function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array 
      * random_int(1, 0) and throw. Every item stays drawable at minimum weight. */
     $byTier = [];
     foreach ($pool as $index => $item) {
-        $pool[$index]['drop_weight'] = max(1, (int)$item['drop_weight']);
+        $weight = max(1, (int)$item['drop_weight']);
+        if (pw_missions_contract_gear_is_featured($item, $progression)) {
+            $weight = (int)round($weight * PW_MISSION_FEATURED_SLOT_CHANCE_MULTIPLIER);
+        }
+        $pool[$index]['drop_weight'] = max(1, $weight);
         $byTier[$item['tier']][] = $pool[$index];
     }
     $tiers = pw_missions_loot_tiers();
@@ -2812,9 +2887,11 @@ function pw_missions_loot_entry_statement(PDO $db): PDOStatement {
  *
  * @return array{granted: array, duplicates: array, pending: array, gear: array}
  */
-function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefinitionId): array {
+function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefinitionId, ?array $progression = null): array {
     $result = ['granted' => [], 'duplicates' => [], 'pending' => [], 'gear' => []];
     if (!pw_mission_loot_tables_ready($db)) return $result;
+
+    $progression = $progression ?? pw_missions_contract_progression([]);
 
     /* A locked rare table is absent from the roll unless its exact access
      * protocol is owned. The check is server-side and happens at claim time,
@@ -2869,8 +2946,9 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
         if (!pw_missions_percent_roll((float)$link['chance_percent'])) continue;
         $entryStmt->execute([(int)$link['loot_table_id']]);
         foreach ($entryStmt->fetchAll() as $entry) {
-            if (!pw_missions_percent_roll((float)$entry['chance_percent'])) continue;
             if (($entry['entry_type'] ?? 'crew') === 'gear') {
+                if (!pw_missions_contract_gear_is_eligible($entry, $progression)) continue;
+                if (!pw_missions_percent_roll(pw_missions_contract_gear_chance((float)$entry['chance_percent'], $entry, $progression))) continue;
                 $result['gear'][] = [
                     'id' => (int)$entry['loot_definition_id'],
                     'name' => $entry['gear_name'],
@@ -2893,6 +2971,7 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
                 ];
                 continue;
             }
+            if (!pw_missions_percent_roll((float)$entry['chance_percent'])) continue;
             $crewId = (int)$entry['crew_definition_id'];
             $award = ['id' => $crewId, 'name' => $entry['crew_name'], 'role' => $entry['role'], 'portrait_url' => $entry['portrait_url'], 'tier' => (string)($entry['crew_tier'] ?? 'common')];
             /* There is never a second copy of a crew member, so a duplicate
