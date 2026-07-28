@@ -948,6 +948,9 @@
     document.getElementById('mission-gear-modal-title').textContent = currentGear ? 'Edit Equipment' : 'Add Equipment';
     document.getElementById('mission-gear-delete-btn').hidden = !currentGear || !can('missions.delete') || currentGear.owned_count > 0;
     document.getElementById('mission-gear-save-btn').disabled = !can('missions.edit');
+    var copyButton = document.getElementById('mission-gear-copy-btn');
+    copyButton.hidden = !currentGear;
+    copyButton.disabled = !currentGear || !can('missions.edit');
     resetModalMessage('mission-gear-modal');
     gearModal.hidden = false;
     setTimeout(function () { document.getElementById('mission-gear-name').focus(); }, 25);
@@ -981,6 +984,37 @@
       payload['bonus_' + stat.key] = document.getElementById('mission-gear-bonus-' + stat.key).value;
     });
     return payload;
+  }
+
+  /* Duplication keeps all authored mechanics -- including iLvl, rarity,
+   * requirements, bonuses and art -- but gives the new row a human-readable
+   * name and a locally unique slug. The latter remains server-validated, so a
+   * simultaneous copy from another admin can never overwrite anything. */
+  function copiedGearName(value) {
+    var suffix = ' Copy';
+    var name = String(value || '').trim() || 'Equipment';
+    return name.slice(0, 120 - suffix.length) + suffix;
+  }
+
+  function copiedGearSlug(value) {
+    var stem = slugify(value) || 'equipment';
+    var suffix = '-copy';
+    var attempt = 1;
+    var exists = function (candidate) {
+      return gear.some(function (item) { return String(item.slug || '').toLowerCase() === candidate.toLowerCase(); });
+    };
+    var candidate = stem.slice(0, 120 - suffix.length) + suffix;
+    while (exists(candidate)) {
+      attempt++;
+      suffix = '-copy-' + attempt;
+      candidate = stem.slice(0, 120 - suffix.length) + suffix;
+    }
+    return candidate;
+  }
+
+  function showModalStatus(id, message) {
+    var target = document.getElementById(id);
+    target.textContent = message; target.classList.add('show');
   }
 
   document.getElementById('mission-gear-create-btn').addEventListener('click', function () { openGear(null); });
@@ -1038,6 +1072,27 @@
           window.alert('Slot changed, so ' + result.unequipped + ' equipped cop' + (result.unequipped === 1 ? 'y was' : 'ies were') + ' returned to their owners.');
         }
         return loadGear();
+      })
+      .catch(function (error) { showModalError('mission-gear-modal-error', error.message); })
+      .then(function () { button.disabled = !can('missions.edit'); button.classList.remove('is-busy'); });
+  });
+  document.getElementById('mission-gear-copy-btn').addEventListener('click', function () {
+    if (!currentGear || !can('missions.edit')) return;
+    var button = this;
+    var payload = gearPayload();
+    payload.name = copiedGearName(payload.name);
+    payload.slug = copiedGearSlug(payload.slug);
+    button.disabled = true; button.classList.add('is-busy'); resetModalMessage('mission-gear-modal');
+    request('/api/admin/missions/gear-save.php', payload)
+      .then(function (result) {
+        return loadGear().then(function () {
+          currentGear = gear.filter(function (item) { return Number(item.id) === Number(result.id); })[0] || null;
+          if (!currentGear) throw new Error('The copy was saved, but could not be reloaded.');
+          gearValues(currentGear);
+          document.getElementById('mission-gear-modal-title').textContent = 'Edit Equipment Copy';
+          document.getElementById('mission-gear-delete-btn').hidden = !can('missions.delete');
+          showModalStatus('mission-gear-modal-status', 'Equipment copy created. Adjust it if needed, then save your changes.');
+        });
       })
       .catch(function (error) { showModalError('mission-gear-modal-error', error.message); })
       .then(function () { button.disabled = !can('missions.edit'); button.classList.remove('is-busy'); });
