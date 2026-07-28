@@ -12,6 +12,9 @@
   var activePanel = 'definitions';
   var activeCrewRarity = 'all';
   var activeGearCategory = 'all';
+  /* 'all' or a role name. */
+  var activeCrewRole = 'all';
+  var crewRoles = [];
   /* 'all', 'unrestricted' (no role requirement at all), or a role name. */
   var activeGearRole = 'all';
   /* The state each list was last built from, so a re-entry that changed nothing
@@ -122,7 +125,7 @@
    * changing the catalogue, and the readiness flags are part of the gear key
    * because they decide which columns a row prints at all. */
   function crewRenderKey(visible) {
-    return activeCrewRarity + '|' + can('missions.edit') + '|' + JSON.stringify(visible);
+    return activeCrewRarity + '|' + activeCrewRole + '|' + can('missions.edit') + '|' + JSON.stringify(visible);
   }
 
   function gearRenderKey(visible) {
@@ -131,8 +134,59 @@
       + '|' + JSON.stringify(visible);
   }
 
+  /* Rarity and role compose, the same way the two gear filters do: "which
+   * legendary Engineers exist" is the question a progression band is tuned
+   * against, and neither filter answers it alone. */
   function filteredCrew() {
-    return activeCrewRarity === 'all' ? crew : crew.filter(function (member) { return member.tier === activeCrewRarity; });
+    return crew.filter(function (member) {
+      if (activeCrewRarity !== 'all' && member.tier !== activeCrewRarity) return false;
+      return activeCrewRole === 'all' || member.role === activeCrewRole;
+    });
+  }
+
+  function crewFiltersActive() {
+    return activeCrewRarity !== 'all' || activeCrewRole !== 'all';
+  }
+
+  /* "legendary Engineer crew members", "epic crew members", "Engineer crew
+   * members" -- a role is something a crew member is, so it reads as an
+   * adjective here rather than as the "for <role>" a gear requirement needs. */
+  function crewFilterLabel() {
+    var parts = [];
+    if (activeCrewRarity !== 'all') parts.push(activeCrewRarity);
+    if (activeCrewRole !== 'all') parts.push(activeCrewRole);
+    parts.push('crew members');
+    return parts.join(' ');
+  }
+
+  /** One button per crew role, from the list crew-list.php sends. */
+  function renderCrewRoleFilters() {
+    var container = document.getElementById('crew-management-role-filters');
+    if (!container) return;
+    container.querySelectorAll('[data-crew-role-filter]').forEach(function (button) {
+      if (button.getAttribute('data-crew-role-filter') !== 'all') button.remove();
+    });
+    crewRoles.forEach(function (role) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'admin-filter-tab';
+      button.setAttribute('data-crew-role-filter', role);
+      button.setAttribute('role', 'tab');
+      button.textContent = role;
+      container.appendChild(button);
+    });
+    /* A role retired from the engine while it was the active filter would
+     * otherwise leave the roster empty with no button left to clear it. */
+    if (activeCrewRole !== 'all' && crewRoles.indexOf(activeCrewRole) === -1) activeCrewRole = 'all';
+    syncCrewRoleFilterState();
+  }
+
+  function syncCrewRoleFilterState() {
+    document.querySelectorAll('[data-crew-role-filter]').forEach(function (button) {
+      var isActive = button.getAttribute('data-crew-role-filter') === activeCrewRole;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
   }
 
   /* Category and role compose, deliberately: "which stim does a Fixer need" is a
@@ -208,7 +262,7 @@
   function refreshCrewCount() {
     if (!crewCount) return;
     var visible = filteredCrew().length;
-    crewCount.textContent = activeCrewRarity === 'all'
+    crewCount.textContent = !crewFiltersActive()
       ? visible + ' crew member' + (visible === 1 ? '' : 's')
       : visible + ' of ' + crew.length + ' crew member' + (crew.length === 1 ? '' : 's');
   }
@@ -303,7 +357,10 @@
     if (!crewList) return;
     var visibleCrew = filteredCrew();
     refreshCrewCount();
-    if (!visibleCrew.length) { blank(crewList, activeCrewRarity === 'all' ? 'No crew definitions yet.' : 'No ' + activeCrewRarity + ' crew members yet.'); return; }
+    if (!visibleCrew.length) {
+      blank(crewList, crewFiltersActive() ? 'No ' + crewFilterLabel() + ' yet.' : 'No crew definitions yet.');
+      return;
+    }
     /* Entering a section re-fetches by design (see showSection), but rebuilding
      * identical rows is not free: it discards every <img> and makes the browser
      * decode the full-resolution art again. Skip when both the data and the
@@ -372,7 +429,14 @@
   }
 
   function loadCrew() {
-    return request('/api/admin/missions/crew-list.php').then(function (data) { crew = data.crew || []; renderCrew(); }).catch(function (error) { blank(crewList, error.message || 'Could not load crew definitions.'); });
+    return request('/api/admin/missions/crew-list.php').then(function (data) {
+      crew = data.crew || [];
+      crewRoles = data.roles || [];
+      /* Before renderCrew(), since this can retire the active role filter and
+       * the render has to reflect that rather than the value it just cleared. */
+      renderCrewRoleFilters();
+      renderCrew();
+    }).catch(function (error) { blank(crewList, error.message || 'Could not load crew definitions.'); });
   }
 
   /* Gear is loot with a slot, so this list is every loot definition -- Gear
@@ -816,9 +880,19 @@
       renderGear();
     });
   });
-  /* Delegated, unlike the two filter groups above: the per-role buttons are
-   * appended once the catalogue loads, so binding each one at startup would
-   * bind only the two that ship in the markup. */
+  /* Both role groups are delegated, unlike the rarity and category groups: their
+   * buttons are appended once the catalogue loads, so binding each one at
+   * startup would only ever reach the options that ship in the markup. */
+  var crewRoleFilters = document.getElementById('crew-management-role-filters');
+  if (crewRoleFilters) {
+    crewRoleFilters.addEventListener('click', function (event) {
+      var tab = event.target.closest('[data-crew-role-filter]');
+      if (!tab) return;
+      activeCrewRole = tab.getAttribute('data-crew-role-filter') || 'all';
+      syncCrewRoleFilterState();
+      renderCrew();
+    });
+  }
   var gearRoleFilters = document.getElementById('gear-management-role-filters');
   if (gearRoleFilters) {
     gearRoleFilters.addEventListener('click', function (event) {

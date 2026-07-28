@@ -22,4 +22,13 @@ $rows = array_map(static function ($row) use (&$thumbnailBudget) {
     $row['portrait_thumb_url'] = pw_mission_thumbnail_for((string)$row['portrait_url'], $thumbnailBudget);
     return $row;
 }, $rows);
-pw_json(['ok' => true, 'crew' => $rows, 'crew_capacity_ready' => $capacityReady]);
+/* The engine's own role list, not the roles present in the roster: a role with
+ * no crew yet should still offer a filter button, which is how an administrator
+ * sees that the role exists and has nothing authored for it. Same source the
+ * crew validator uses, so the two cannot drift. */
+pw_json([
+    'ok' => true,
+    'crew' => $rows,
+    'crew_capacity_ready' => $capacityReady,
+    'roles' => array_keys(pw_missions_role_rates()),
+]);

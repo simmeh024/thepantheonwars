@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=330"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=8">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=331"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=8">
 </head>
 <body>
 
@@ -2117,18 +2117,27 @@
     <section class="admin-section" id="section-crew-management" hidden>
       <div class="admin-section-head">
         <h1>Crew Management</h1>
-        <p>Maintain the reusable crew templates that players recruit into their roster. Filter the roster by rarity to tune each progression band.</p>
+        <p>Maintain the reusable crew templates that players recruit into their roster. Filter the roster by rarity or role to tune each progression band.</p>
       </div>
       <div class="admin-toolbar mission-admin-toolbar crew-management-toolbar">
-        <div class="admin-filter-tabs crew-rarity-tabs" id="crew-management-rarity-filters" role="tablist" aria-label="Crew rarity filters">
-          <button type="button" class="admin-filter-tab active" data-crew-rarity-filter="all" role="tab" aria-selected="true">All rarities</button>
-          <button type="button" class="admin-filter-tab crew-rarity-filter is-common" data-crew-rarity-filter="common" role="tab" aria-selected="false">Common</button>
-          <button type="button" class="admin-filter-tab crew-rarity-filter is-uncommon" data-crew-rarity-filter="uncommon" role="tab" aria-selected="false">Uncommon</button>
-          <button type="button" class="admin-filter-tab crew-rarity-filter is-rare" data-crew-rarity-filter="rare" role="tab" aria-selected="false">Rare</button>
-          <button type="button" class="admin-filter-tab crew-rarity-filter is-epic" data-crew-rarity-filter="epic" role="tab" aria-selected="false">Epic</button>
-          <button type="button" class="admin-filter-tab crew-rarity-filter is-legendary" data-crew-rarity-filter="legendary" role="tab" aria-selected="false">Legendary</button>
+        <div class="mission-filter-groups">
+          <div class="admin-filter-tabs crew-rarity-tabs" id="crew-management-rarity-filters" role="tablist" aria-label="Crew rarity filters">
+            <button type="button" class="admin-filter-tab active" data-crew-rarity-filter="all" role="tab" aria-selected="true">All rarities</button>
+            <button type="button" class="admin-filter-tab crew-rarity-filter is-common" data-crew-rarity-filter="common" role="tab" aria-selected="false">Common</button>
+            <button type="button" class="admin-filter-tab crew-rarity-filter is-uncommon" data-crew-rarity-filter="uncommon" role="tab" aria-selected="false">Uncommon</button>
+            <button type="button" class="admin-filter-tab crew-rarity-filter is-rare" data-crew-rarity-filter="rare" role="tab" aria-selected="false">Rare</button>
+            <button type="button" class="admin-filter-tab crew-rarity-filter is-epic" data-crew-rarity-filter="epic" role="tab" aria-selected="false">Epic</button>
+            <button type="button" class="admin-filter-tab crew-rarity-filter is-legendary" data-crew-rarity-filter="legendary" role="tab" aria-selected="false">Legendary</button>
+          </div>
+          <!-- One button per crew role, appended from the endpoint's own role
+               list, exactly as Gear Management does it. -->
+          <div class="admin-filter-tabs mission-role-tabs crew-role-tabs" id="crew-management-role-filters" role="tablist" aria-label="Crew role filters">
+            <button type="button" class="admin-filter-tab active" data-crew-role-filter="all" role="tab" aria-selected="true">All roles</button>
+          </div>
         </div>
-        <button type="button" class="btn btn-solid" id="mission-crew-create-btn" data-requires-permission="missions.edit">+ Add Crew Member</button>
+        <div class="mission-toolbar-actions">
+          <button type="button" class="btn btn-solid" id="mission-crew-create-btn" data-requires-permission="missions.edit">+ Add Crew Member</button>
+        </div>
         <span class="admin-count" id="crew-management-count"></span>
       </div>
       <div class="mission-admin-panel" id="crew-management-panel">
@@ -2143,7 +2152,7 @@
         <p>Manage every item in the expedition catalogue. Start with the full overview, then narrow it to equipment, salvage, or stims.</p>
       </div>
       <div class="admin-toolbar mission-admin-toolbar gear-management-toolbar">
-        <div class="gear-filter-groups">
+        <div class="mission-filter-groups">
           <div class="admin-filter-tabs gear-category-tabs" id="gear-management-category-filters" role="tablist" aria-label="Gear category filters">
             <button type="button" class="admin-filter-tab active" data-gear-category-filter="all" role="tab" aria-selected="true">All items</button>
             <button type="button" class="admin-filter-tab" data-gear-category-filter="gear" role="tab" aria-selected="false">Equipment</button>
@@ -2153,12 +2162,12 @@
           <!-- The two static options are the ones that always apply; one button
                per crew role is appended from the endpoint's own role list, so a
                new role never needs this markup edited. -->
-          <div class="admin-filter-tabs gear-role-tabs" id="gear-management-role-filters" role="tablist" aria-label="Gear required-role filters">
+          <div class="admin-filter-tabs mission-role-tabs gear-role-tabs" id="gear-management-role-filters" role="tablist" aria-label="Gear required-role filters">
             <button type="button" class="admin-filter-tab active" data-gear-role-filter="all" role="tab" aria-selected="true">All roles</button>
             <button type="button" class="admin-filter-tab" data-gear-role-filter="unrestricted" role="tab" aria-selected="false">Anyone</button>
           </div>
         </div>
-        <div class="gear-toolbar-actions">
+        <div class="mission-toolbar-actions">
           <!-- Reads the filtered view, not the whole catalogue: the point is to
                see what a single role's or category's item levels look like. -->
           <div class="gear-ilvl-summary" id="gear-management-ilvl-summary" hidden>
@@ -4724,7 +4733,7 @@
 </div>
 
 <script src="../js/members.js?v=43"></script>
-<script src="../js/admin-missions.js?v=26"></script><script src="../js/admin-loot-tables.js?v=10"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=8"></script>
+<script src="../js/admin-missions.js?v=27"></script><script src="../js/admin-loot-tables.js?v=10"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=8"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
