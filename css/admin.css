@@ -4172,6 +4172,12 @@
 /* --- Mission Control ----------------------------------------------------- */
 .mission-admin-toolbar { align-items: center; flex-wrap: wrap; }
 .mission-admin-toolbar .admin-filter-tabs { margin-right: auto; }
+.crew-rarity-tabs, .gear-category-tabs { gap: 6px; }
+.crew-rarity-filter.is-common { color: var(--text-dim); }
+.crew-rarity-filter.is-uncommon { color: #53c996; border-color: rgba(83,201,150,.35); background: rgba(83,201,150,.08); }
+.crew-rarity-filter.is-rare { color: #62c8dd; border-color: rgba(98,200,221,.38); background: rgba(98,200,221,.08); }
+.crew-rarity-filter.is-epic { color: #c39af1; border-color: rgba(195,154,241,.4); background: rgba(195,154,241,.08); }
+.crew-rarity-filter.is-legendary { color: var(--gold-bright); border-color: rgba(224,178,74,.42); background: rgba(224,178,74,.09); }
 .mission-admin-columns,
 .mission-admin-row {
   display: grid;
@@ -4203,7 +4209,7 @@
 }
 .mission-admin-reward { color: var(--gold-bright); font-size: .78rem; white-space: nowrap; }
 .mission-admin-type { color: var(--purple-light); font-size: .77rem; text-transform: capitalize; }
-.mission-admin-crew-columns { grid-template-columns: minmax(190px, 2fr) minmax(95px, .8fr) minmax(78px, .65fr) minmax(78px, .65fr) minmax(95px, .8fr) minmax(85px, .72fr); }
+.mission-admin-crew-columns { grid-template-columns: minmax(170px, 1.7fr) minmax(82px, .72fr) minmax(76px, .64fr) minmax(72px, .62fr) minmax(72px, .6fr) minmax(86px, .72fr) minmax(80px, .66fr); }
 .mission-admin-player-columns { grid-template-columns: minmax(135px, 1fr) minmax(170px, 1.3fr) minmax(150px, 1.2fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(85px, .75fr); }
 /* Seven columns rather than six: an item's slot and its rarity are the two
  * things an administrator scans for, and folding either into the name column
@@ -4214,7 +4220,14 @@
 .mission-gear-tier.is-common { color: var(--text-dim); }
 .mission-gear-tier.is-uncommon { color: #3ecf8e; }
 .mission-gear-tier.is-rare { color: #50c9bf; }
+.mission-gear-tier.is-epic { color: #c39af1; }
 .mission-gear-tier.is-legendary { color: var(--gold-bright); }
+.mission-crew-tier { font-size: .72rem; font-weight: 600; text-transform: capitalize; }
+.mission-crew-tier.is-common { color: var(--text-dim); }
+.mission-crew-tier.is-uncommon { color: #3ecf8e; }
+.mission-crew-tier.is-rare { color: #50c9bf; }
+.mission-crew-tier.is-epic { color: #c39af1; }
+.mission-crew-tier.is-legendary { color: var(--gold-bright); }
 .mission-gear-bonus-row .admin-field { min-width: 0; }
 #mission-gear-bonus-summary.is-warning { color: var(--status-warning) !important; }
 .mission-gear-stat-help { position: relative; display: inline-grid; width: 14px; height: 14px; place-items: center; margin-left: 3px; border: 1px solid rgba(126,203,158,.58); border-radius: 50%; color: #9ee6bd; cursor: help; font: 800 .56rem/1 'Jost', sans-serif; letter-spacing: 0; text-transform: none; vertical-align: 1px; }

@@ -10,6 +10,8 @@
   var gearMeta = null;
   var playerMissions = [];
   var activePanel = 'definitions';
+  var activeCrewRarity = 'all';
+  var activeGearCategory = 'all';
   var currentDefinition = null;
   var currentCrew = null;
   var currentGear = null;
@@ -21,7 +23,9 @@
   var crewList = document.getElementById('mission-crew-list');
   var gearList = document.getElementById('mission-gear-list');
   var playerMissionList = document.getElementById('mission-player-missions-list');
-  var count = document.getElementById('mission-admin-count');
+  var missionCount = document.getElementById('mission-admin-count');
+  var crewCount = document.getElementById('crew-management-count');
+  var gearCount = document.getElementById('gear-management-count');
   var definitionModal = document.getElementById('mission-definition-modal');
   var crewModal = document.getElementById('mission-crew-modal');
   var gearModal = document.getElementById('mission-gear-modal');
@@ -80,19 +84,41 @@
     list.innerHTML = '<div class="admin-list-empty">' + escapeHtml(message) + '</div>';
   }
 
-  function refreshCount() {
-    if (!count) return;
+  function refreshMissionCount() {
+    if (!missionCount) return;
     // Presentation is a settings form, not a list, so there is nothing to
     // count -- printing "0 player missions" beside it would be wrong.
-    if (activePanel === 'presentation') { count.textContent = ''; return; }
+    if (activePanel === 'presentation') { missionCount.textContent = ''; return; }
     var counts = {
       definitions: [definitions.length, ' mission'],
-      crew: [crew.length, ' crew member'],
-      gear: [gear.length, ' item'],
       'player-missions': [playerMissions.length, ' player mission']
     };
     var entry = counts[activePanel] || counts.definitions;
-    count.textContent = entry[0] + entry[1] + (entry[0] === 1 ? '' : 's');
+    missionCount.textContent = entry[0] + entry[1] + (entry[0] === 1 ? '' : 's');
+  }
+
+  function filteredCrew() {
+    return activeCrewRarity === 'all' ? crew : crew.filter(function (member) { return member.tier === activeCrewRarity; });
+  }
+
+  function filteredGear() {
+    return activeGearCategory === 'all' ? gear : gear.filter(function (item) { return item.category === activeGearCategory; });
+  }
+
+  function refreshCrewCount() {
+    if (!crewCount) return;
+    var visible = filteredCrew().length;
+    crewCount.textContent = activeCrewRarity === 'all'
+      ? visible + ' crew member' + (visible === 1 ? '' : 's')
+      : visible + ' of ' + crew.length + ' crew member' + (crew.length === 1 ? '' : 's');
+  }
+
+  function refreshGearCount() {
+    if (!gearCount) return;
+    var visible = filteredGear().length;
+    gearCount.textContent = activeGearCategory === 'all'
+      ? visible + ' item' + (visible === 1 ? '' : 's')
+      : visible + ' of ' + gear.length + ' item' + (gear.length === 1 ? '' : 's');
   }
 
   function renderDefinitions() {
@@ -136,9 +162,11 @@
 
   function renderCrew() {
     if (!crewList) return;
-    if (!crew.length) { blank(crewList, 'No crew definitions yet.'); return; }
+    var visibleCrew = filteredCrew();
+    refreshCrewCount();
+    if (!visibleCrew.length) { blank(crewList, activeCrewRarity === 'all' ? 'No crew definitions yet.' : 'No ' + activeCrewRarity + ' crew members yet.'); return; }
     crewList.innerHTML = '';
-    crew.forEach(function (member) {
+    visibleCrew.forEach(function (member) {
       var row = document.createElement('div');
       row.className = 'admin-row mission-admin-row mission-admin-crew-columns';
       row.setAttribute('aria-disabled', can('missions.edit') ? 'false' : 'true');
@@ -147,6 +175,7 @@
       row.innerHTML =
         '<div class="mission-admin-title">' + portrait + '<div><strong>' + escapeHtml(member.name) + '</strong><small>Level ' + member.starting_level + ' · ' + escapeHtml(member.slug) + '</small></div></div>' +
         '<span>' + escapeHtml(member.role) + '</span>' +
+        '<span class="mission-crew-tier is-' + escapeHtml(member.tier || 'common') + '">' + escapeHtml(member.tier || 'common') + '</span>' +
         '<span>' + escapeHtml(member.world_affinity) + '</span>' +
         '<span>' + (member.is_starter ? 'Yes' : 'No') + '</span>' +
         '<span>' + member.player_count + ' player' + (member.player_count === 1 ? '' : 's') + '</span>' +
@@ -161,6 +190,7 @@
 
   function renderPlayerMissions() {
     if (!playerMissionList) return;
+    refreshMissionCount();
     if (!can('missions.player_missions')) { blank(playerMissionList, 'You do not have permission to view player mission diagnostics.'); return; }
     if (!playerMissions.length) { blank(playerMissionList, 'No player missions have been launched yet.'); return; }
     playerMissionList.innerHTML = '';
@@ -181,7 +211,7 @@
 
   function switchPanel(panel) {
     activePanel = panel;
-    ['definitions', 'crew', 'gear', 'player-missions', 'presentation'].forEach(function (name) {
+    ['definitions', 'player-missions', 'presentation'].forEach(function (name) {
       var isActive = name === panel;
       var view = document.getElementById('mission-admin-' + name + '-panel');
       if (view) view.hidden = !isActive;
@@ -189,21 +219,19 @@
       if (tab) { tab.classList.toggle('active', isActive); tab.setAttribute('aria-selected', isActive ? 'true' : 'false'); }
     });
     document.getElementById('mission-definition-create-btn').hidden = panel !== 'definitions' || !can('missions.edit');
-    document.getElementById('mission-crew-create-btn').hidden = panel !== 'crew' || !can('missions.edit');
-    document.getElementById('mission-gear-create-btn').hidden = panel !== 'gear' || !can('missions.edit');
-    refreshCount();
+    refreshMissionCount();
   }
 
   function loadDefinitions() {
-    return request('/api/admin/missions/definitions-list.php').then(function (data) { definitions = data.missions || []; overlords = data.overlords || []; contractsReady = !!data.contracts_ready; contestedContractsReady = !!data.contested_contracts_ready; salvageRecoveryContractsReady = !!data.salvage_recovery_contracts_ready; overlordClearancesReady = !!data.overlord_clearances_ready; contractProgressionReady = !!data.contract_progression_ready; missionGearSlots = data.gear_slots || []; contractRank = Number(data.contract_rank) || 10; renderDefinitions(); refreshCount(); }).catch(function (error) { blank(definitionList, error.message || 'Could not load mission definitions. Run the Missions V0 migration first.'); });
+    return request('/api/admin/missions/definitions-list.php').then(function (data) { definitions = data.missions || []; overlords = data.overlords || []; contractsReady = !!data.contracts_ready; contestedContractsReady = !!data.contested_contracts_ready; salvageRecoveryContractsReady = !!data.salvage_recovery_contracts_ready; overlordClearancesReady = !!data.overlord_clearances_ready; contractProgressionReady = !!data.contract_progression_ready; missionGearSlots = data.gear_slots || []; contractRank = Number(data.contract_rank) || 10; renderDefinitions(); refreshMissionCount(); }).catch(function (error) { blank(definitionList, error.message || 'Could not load mission definitions. Run the Missions V0 migration first.'); });
   }
 
   function loadCrew() {
-    return request('/api/admin/missions/crew-list.php').then(function (data) { crew = data.crew || []; renderCrew(); refreshCount(); }).catch(function (error) { blank(crewList, error.message || 'Could not load crew definitions.'); });
+    return request('/api/admin/missions/crew-list.php').then(function (data) { crew = data.crew || []; renderCrew(); }).catch(function (error) { blank(crewList, error.message || 'Could not load crew definitions.'); });
   }
 
-  /* Gear is loot with a slot, so this list is every loot definition -- the Gear
-   * tab is the only management surface game_loot_definitions has ever had, and
+  /* Gear is loot with a slot, so this list is every loot definition -- Gear
+   * Management is the only management surface game_loot_definitions has ever had, and
    * hiding the slotless items would leave the existing salvage unreachable. */
   function loadGear() {
     return request('/api/admin/missions/gear-list.php').then(function (data) {
@@ -211,19 +239,28 @@
       gearMeta = data;
       populateGearOptions();
       renderGear();
-      refreshCount();
     }).catch(function (error) { blank(gearList, error.message || 'Could not load equipment. Run sql/migration_mission_gear.sql first.'); });
   }
 
   function loadPlayerMissions() {
     if (!can('missions.player_missions')) { renderPlayerMissions(); return Promise.resolve(); }
-    return request('/api/admin/missions/player-missions-list.php').then(function (data) { playerMissions = data.missions || []; renderPlayerMissions(); refreshCount(); }).catch(function (error) { blank(playerMissionList, error.message || 'Could not load player mission diagnostics.'); });
+    return request('/api/admin/missions/player-missions-list.php').then(function (data) { playerMissions = data.missions || []; renderPlayerMissions(); }).catch(function (error) { blank(playerMissionList, error.message || 'Could not load player mission diagnostics.'); });
   }
 
   window.loadMissionControl = function () {
     switchPanel(activePanel);
     applyPresentationPermissions();
-    return Promise.all([loadDefinitions(), loadCrew(), loadGear(), loadPlayerMissions(), loadWatermark()]);
+    return Promise.all([loadDefinitions(), loadPlayerMissions(), loadWatermark()]);
+  };
+
+  window.loadCrewManagement = function () {
+    document.getElementById('mission-crew-create-btn').hidden = !can('missions.edit');
+    return loadCrew();
+  };
+
+  window.loadGearManagement = function () {
+    document.getElementById('mission-gear-create-btn').hidden = !can('missions.edit');
+    return loadGear();
   };
 
   /* A view-only session may inspect the watermark settings but not change them.
@@ -609,6 +646,28 @@
       switchPanel(tab.getAttribute('data-mission-panel'));
     });
   });
+  document.querySelectorAll('[data-crew-rarity-filter]').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      activeCrewRarity = tab.getAttribute('data-crew-rarity-filter') || 'all';
+      document.querySelectorAll('[data-crew-rarity-filter]').forEach(function (button) {
+        var isActive = button === tab;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+      renderCrew();
+    });
+  });
+  document.querySelectorAll('[data-gear-category-filter]').forEach(function (tab) {
+    tab.addEventListener('click', function () {
+      activeGearCategory = tab.getAttribute('data-gear-category-filter') || 'all';
+      document.querySelectorAll('[data-gear-category-filter]').forEach(function (button) {
+        var isActive = button === tab;
+        button.classList.toggle('active', isActive);
+        button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+      });
+      renderGear();
+    });
+  });
   document.getElementById('mission-definition-create-btn').addEventListener('click', function () { openDefinition(null); });
   document.getElementById('mission-crew-create-btn').addEventListener('click', function () { openCrew(null); });
   document.getElementById('mission-definition-modal-close').addEventListener('click', closeDefinition);
@@ -924,9 +983,14 @@
 
   function renderGear() {
     if (!gearList) return;
-    if (!gear.length) { blank(gearList, 'No equipment or salvage defined yet.'); return; }
+    var visibleGear = filteredGear();
+    refreshGearCount();
+    if (!visibleGear.length) {
+      blank(gearList, activeGearCategory === 'all' ? 'No equipment, salvage, or stims defined yet.' : 'No ' + activeGearCategory + ' items defined yet.');
+      return;
+    }
     gearList.innerHTML = '';
-    gear.forEach(function (item) {
+    visibleGear.forEach(function (item) {
       var row = document.createElement('div');
       row.className = 'admin-row mission-admin-row mission-admin-gear-columns';
       row.tabIndex = 0;

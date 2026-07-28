@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=327"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=8">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=328"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=8">
 </head>
 <body>
 
@@ -65,6 +65,8 @@
       </button>
       <ul class="admin-nav-list admin-nav-list-collapsible">
         <li data-requires-permission="missions.view"><button type="button" class="admin-nav-link" data-section="mission-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18V6l8-3 8 3v12l-8 3z"/><path d="m4 6 8 3 8-3M12 9v12"/><path d="m8 14 2 2 4-4"/></svg>Missions</button></li>
+        <li data-requires-permission="missions.view"><button type="button" class="admin-nav-link" data-section="crew-management"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 21v-1.5a5.5 5.5 0 0 1 11 0V21"/><path d="M16 7h5M18.5 4.5V9.5"/></svg>Crew Management</button></li>
+        <li data-requires-permission="missions.view"><button type="button" class="admin-nav-link" data-section="gear-management"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12l2 5-3 2v8H7v-8L4 9z"/><path d="M9 4v5h6V4M10 14h4"/></svg>Gear Management</button></li>
         <li data-requires-permission="loot_tables.view"><button type="button" class="admin-nav-link" data-section="loot-tables"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8h18v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M2 5h20v3H2z"/><path d="M12 8v13"/><path d="M12 5c-1.6-2.6-5.4-2.2-5.4.3 0 1.4 1.6 2 5.4 2s5.4-.6 5.4-2C17.4 2.8 13.6 2.4 12 5Z"/></svg>Loot Tables</button></li>
         <li data-requires-permission="market.view"><button type="button" class="admin-nav-link" data-section="market-control"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h16v12H4z"/><path d="M3 5h18v3H3z"/><path d="M8 12h8M8 16h5"/><circle cx="17" cy="16" r="1"/></svg>Market Control</button></li>
         <li data-requires-permission="research.view"><button type="button" class="admin-nav-link" data-section="research-management"><svg class="admin-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><circle cx="5" cy="7" r="2"/><circle cx="19" cy="7" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="19" cy="18" r="2"/><path d="m7 8.5 3 2M17 8.5l-3 2M7 16.5l3-2M17 16.5l-3-2"/></svg>Research Management</button></li>
@@ -2056,37 +2058,22 @@
     <section class="admin-section" id="section-mission-control" hidden>
       <div class="admin-section-head">
         <h1>Mission Control</h1>
-        <p>Manage the Neoh expedition loop: reusable mission definitions, the shared crew roster, and player mission diagnostics.</p>
+        <p>Manage mission definitions, player mission diagnostics, and the presentation of the Missions page.</p>
       </div>
 
       <div class="admin-toolbar mission-admin-toolbar">
         <div class="admin-filter-tabs" id="mission-admin-tabs" role="tablist" aria-label="Mission Control views">
           <button type="button" class="admin-filter-tab active" data-mission-panel="definitions" role="tab" aria-selected="true">Mission Definitions</button>
-          <button type="button" class="admin-filter-tab" data-mission-panel="crew" role="tab" aria-selected="false">Crew</button>
-          <button type="button" class="admin-filter-tab" data-mission-panel="gear" role="tab" aria-selected="false">Gear</button>
           <button type="button" class="admin-filter-tab" data-mission-panel="player-missions" role="tab" aria-selected="false" data-requires-permission="missions.player_missions">Player Missions</button>
           <button type="button" class="admin-filter-tab" data-mission-panel="presentation" role="tab" aria-selected="false">Presentation</button>
         </div>
         <button type="button" class="btn btn-solid" id="mission-definition-create-btn" data-requires-permission="missions.edit">+ Add Mission</button>
-        <button type="button" class="btn btn-solid" id="mission-crew-create-btn" data-requires-permission="missions.edit" hidden>+ Add Crew Member</button>
-        <button type="button" class="btn btn-solid" id="mission-gear-create-btn" data-requires-permission="missions.edit" hidden>+ Add Equipment</button>
         <span class="admin-count" id="mission-admin-count"></span>
       </div>
 
       <div class="mission-admin-panel" id="mission-admin-definitions-panel">
         <div class="mission-admin-columns" aria-hidden="true"><span>Mission</span><span>Type</span><span>Duration</span><span>Crew</span><span>Rewards</span><span>Status</span></div>
         <div class="admin-list mission-admin-list" id="mission-definition-list"><div class="admin-list-empty">Loading mission definitions&hellip;</div></div>
-      </div>
-
-      <div class="mission-admin-panel" id="mission-admin-crew-panel" hidden>
-        <div class="mission-admin-columns mission-admin-crew-columns" aria-hidden="true"><span>Crew member</span><span>Role</span><span>World</span><span>Starter</span><span>Assigned</span><span>Status</span></div>
-        <div class="admin-list mission-admin-list" id="mission-crew-list"><div class="admin-list-empty">Loading crew&hellip;</div></div>
-      </div>
-
-      <div class="mission-admin-panel" id="mission-admin-gear-panel" hidden>
-        <p class="admin-field-hint mission-gear-intro">Equipment is loot with a slot. An item with a slot can be equipped by a crew member and grants its stat bonuses; an item with no slot stays plain salvage. Both drop through the same weighted pool, so a rarity promotion can upgrade a player into better gear. iLvl is published manually per release; the editor's live calculator is a baseline, not an automatic override.</p>
-        <div class="mission-admin-columns mission-admin-gear-columns" aria-hidden="true"><span>Item</span><span>Slot</span><span>Rarity</span><span>iLvl</span><span>Bonuses</span><span>Requires</span><span>Held</span><span>Status</span></div>
-        <div class="admin-list mission-admin-list" id="mission-gear-list"><div class="admin-list-empty">Loading equipment&hellip;</div></div>
       </div>
 
       <div class="mission-admin-panel" id="mission-admin-player-missions-panel" hidden>
@@ -2124,6 +2111,51 @@
           <p class="admin-modal-error" id="mission-watermark-error"></p><p class="admin-modal-status" id="mission-watermark-status"></p>
           <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="mission-watermark-save-btn">Save Presentation</button></div>
         </div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-crew-management" hidden>
+      <div class="admin-section-head">
+        <h1>Crew Management</h1>
+        <p>Maintain the reusable crew templates that players recruit into their roster. Filter the roster by rarity to tune each progression band.</p>
+      </div>
+      <div class="admin-toolbar mission-admin-toolbar crew-management-toolbar">
+        <div class="admin-filter-tabs crew-rarity-tabs" id="crew-management-rarity-filters" role="tablist" aria-label="Crew rarity filters">
+          <button type="button" class="admin-filter-tab active" data-crew-rarity-filter="all" role="tab" aria-selected="true">All rarities</button>
+          <button type="button" class="admin-filter-tab crew-rarity-filter is-common" data-crew-rarity-filter="common" role="tab" aria-selected="false">Common</button>
+          <button type="button" class="admin-filter-tab crew-rarity-filter is-uncommon" data-crew-rarity-filter="uncommon" role="tab" aria-selected="false">Uncommon</button>
+          <button type="button" class="admin-filter-tab crew-rarity-filter is-rare" data-crew-rarity-filter="rare" role="tab" aria-selected="false">Rare</button>
+          <button type="button" class="admin-filter-tab crew-rarity-filter is-epic" data-crew-rarity-filter="epic" role="tab" aria-selected="false">Epic</button>
+          <button type="button" class="admin-filter-tab crew-rarity-filter is-legendary" data-crew-rarity-filter="legendary" role="tab" aria-selected="false">Legendary</button>
+        </div>
+        <button type="button" class="btn btn-solid" id="mission-crew-create-btn" data-requires-permission="missions.edit">+ Add Crew Member</button>
+        <span class="admin-count" id="crew-management-count"></span>
+      </div>
+      <div class="mission-admin-panel" id="crew-management-panel">
+        <div class="mission-admin-columns mission-admin-crew-columns" aria-hidden="true"><span>Crew member</span><span>Role</span><span>Rarity</span><span>World</span><span>Starter</span><span>Assigned</span><span>Status</span></div>
+        <div class="admin-list mission-admin-list" id="mission-crew-list"><div class="admin-list-empty">Loading crew&hellip;</div></div>
+      </div>
+    </section>
+
+    <section class="admin-section" id="section-gear-management" hidden>
+      <div class="admin-section-head">
+        <h1>Gear Management</h1>
+        <p>Manage every item in the expedition catalogue. Start with the full overview, then narrow it to equipment, salvage, or stims.</p>
+      </div>
+      <div class="admin-toolbar mission-admin-toolbar gear-management-toolbar">
+        <div class="admin-filter-tabs gear-category-tabs" id="gear-management-category-filters" role="tablist" aria-label="Gear category filters">
+          <button type="button" class="admin-filter-tab active" data-gear-category-filter="all" role="tab" aria-selected="true">All items</button>
+          <button type="button" class="admin-filter-tab" data-gear-category-filter="gear" role="tab" aria-selected="false">Equipment</button>
+          <button type="button" class="admin-filter-tab" data-gear-category-filter="salvage" role="tab" aria-selected="false">Salvage</button>
+          <button type="button" class="admin-filter-tab" data-gear-category-filter="stim" role="tab" aria-selected="false">Stims</button>
+        </div>
+        <button type="button" class="btn btn-solid" id="mission-gear-create-btn" data-requires-permission="missions.edit">+ Add Equipment</button>
+        <span class="admin-count" id="gear-management-count"></span>
+      </div>
+      <div class="mission-admin-panel" id="gear-management-panel">
+        <p class="admin-field-hint mission-gear-intro">Equipment is loot with a slot. Slotless items remain either salvage or stims, and all three categories can be managed here. iLvl is published manually per release; the editor&rsquo;s live calculator is a baseline, not an automatic override.</p>
+        <div class="mission-admin-columns mission-admin-gear-columns" aria-hidden="true"><span>Item</span><span>Slot</span><span>Rarity</span><span>iLvl</span><span>Bonuses</span><span>Requires</span><span>Held</span><span>Status</span></div>
+        <div class="admin-list mission-admin-list" id="mission-gear-list"><div class="admin-list-empty">Loading equipment&hellip;</div></div>
       </div>
     </section>
 
@@ -4672,7 +4704,7 @@
 </div>
 
 <script src="../js/members.js?v=43"></script>
-<script src="../js/admin-missions.js?v=21"></script><script src="../js/admin-loot-tables.js?v=9"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=8"></script>
+<script src="../js/admin-missions.js?v=22"></script><script src="../js/admin-loot-tables.js?v=9"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=8"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
@@ -4923,6 +4955,8 @@
     if (name === 'forum-control') { loadForumCategories(); loadForumBoards(); }
     if (name === 'reputation-levels') loadReputationLevelList();
     if (name === 'mission-control') loadMissionControl();
+    if (name === 'crew-management') loadCrewManagement();
+    if (name === 'gear-management') loadGearManagement();
     if (name === 'loot-tables') loadLootTables();
     if (name === 'market-control') loadMarketControl();
     if (name === 'research-management') loadResearchManagement();
