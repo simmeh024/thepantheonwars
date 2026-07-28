@@ -118,8 +118,9 @@ if ($identity) {
     try {
         $db->beginTransaction();
         try {
-            $stmt = $db->prepare('INSERT INTO users (username, email, email_verified_at, password_hash, display_name) VALUES (?, ?, UTC_TIMESTAMP(), NULL, ?)');
-            $stmt->execute([$username, $profile['email'], $displayName]);
+            // OAuth sign-ups follow the same explicit least-privilege role as password registration.
+            $stmt = $db->prepare('INSERT INTO users (username, email, email_verified_at, password_hash, display_name, role) VALUES (?, ?, UTC_TIMESTAMP(), NULL, ?, ?)');
+            $stmt->execute([$username, $profile['email'], $displayName, 'member']);
         } catch (PDOException $e) {
             // Graceful compatibility while the code deployment is waiting for
             // its manual column migration; the user can still join through
@@ -127,8 +128,8 @@ if ($identity) {
             if ($e->getCode() !== '42S22') {
                 throw $e;
             }
-            $stmt = $db->prepare('INSERT INTO users (username, email, password_hash, display_name) VALUES (?, ?, NULL, ?)');
-            $stmt->execute([$username, $profile['email'], $displayName]);
+            $stmt = $db->prepare('INSERT INTO users (username, email, password_hash, display_name, role) VALUES (?, ?, NULL, ?, ?)');
+            $stmt->execute([$username, $profile['email'], $displayName, 'member']);
         }
         $userId = (int)$db->lastInsertId();
         $stmt = $db->prepare('INSERT INTO oauth_identities (user_id, provider, provider_subject, provider_email, last_used_at) VALUES (?, ?, ?, ?, UTC_TIMESTAMP())');

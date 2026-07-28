@@ -40,8 +40,9 @@ if ($stmt->fetch()) {
 
 $hash = password_hash($password, PASSWORD_DEFAULT);
 
-$stmt = $db->prepare('INSERT INTO users (username, email, password_hash, display_name) VALUES (?, ?, ?, ?)');
-$stmt->execute([$username, $email, $hash, $username]);
+// Public registrations must never inherit a database default for permissions.
+$stmt = $db->prepare('INSERT INTO users (username, email, password_hash, display_name, role) VALUES (?, ?, ?, ?, ?)');
+$stmt->execute([$username, $email, $hash, $username, 'member']);
 $userId = (int)$db->lastInsertId();
 
 session_regenerate_id(true);

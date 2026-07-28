@@ -577,7 +577,48 @@
 
 .admin-list { border: 1px solid var(--border-soft); background: var(--panel); }
 #forum-category-list { margin-bottom: 24px; }
-.admin-list-empty { padding: 30px; text-align: center; color: var(--text-faint); font-size: 0.88rem; }
+.admin-list-empty {
+  position: relative;
+  display: grid;
+  min-height: 128px;
+  align-content: center;
+  justify-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 38px 28px 32px;
+  overflow: hidden;
+  border: 1px dashed rgba(128, 101, 205, 0.5);
+  background:
+    radial-gradient(circle at 50% 22%, rgba(141, 105, 229, 0.18), transparent 44%),
+    linear-gradient(135deg, rgba(37, 23, 68, 0.78), rgba(12, 10, 28, 0.82));
+  color: var(--text-faint);
+  font-size: 0.83rem;
+  line-height: 1.55;
+  text-align: center;
+  isolation: isolate;
+}
+.admin-list-empty::before {
+  content: '\25c7';
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 1px solid rgba(226, 191, 117, 0.52);
+  border-radius: 50%;
+  color: #f0d58b;
+  background: rgba(226, 191, 117, 0.09);
+  box-shadow: 0 0 22px rgba(159, 105, 237, 0.18);
+  font: 700 1.15rem/1 'Cinzel', serif;
+}
+.admin-list-empty::after {
+  content: 'NEXT // USE FILTERS OR CONTROLS ABOVE';
+  color: rgba(183, 157, 241, 0.82);
+  font: 700 0.55rem/1.2 'Jost', sans-serif;
+  letter-spacing: 0.16em;
+}
+@media (max-width: 560px) {
+  .admin-list-empty { min-height: 112px; padding: 28px 18px 24px; }
+}
 .admin-row {
   display: flex; align-items: center; gap: 16px;
   padding: 16px 18px; border-bottom: 1px solid var(--border-soft);
