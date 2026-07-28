@@ -4187,6 +4187,10 @@
 .mission-gear-tier.is-legendary { color: var(--gold-bright); }
 .mission-gear-bonus-row .admin-field { min-width: 0; }
 #mission-gear-bonus-summary.is-warning { color: var(--status-warning) !important; }
+.mission-gear-stat-help { position: relative; display: inline-grid; width: 14px; height: 14px; place-items: center; margin-left: 3px; border: 1px solid rgba(126,203,158,.58); border-radius: 50%; color: #9ee6bd; cursor: help; font: 800 .56rem/1 'Jost', sans-serif; letter-spacing: 0; text-transform: none; vertical-align: 1px; }
+.mission-gear-stat-help::after { content: attr(data-tooltip); position: absolute; z-index: 30; top: calc(100% + 8px); left: 50%; width: 218px; padding: 8px 9px; border: 1px solid rgba(126,203,158,.48); background: #0c1d22; box-shadow: 0 10px 24px rgba(0,0,0,.46); color: #c2d9cf; font: 500 .66rem/1.42 'Jost', sans-serif; letter-spacing: normal; text-align: left; text-transform: none; opacity: 0; pointer-events: none; transform: translate(-50%, -3px); transition: opacity .15s ease, transform .15s ease, visibility .15s ease; visibility: hidden; white-space: normal; }
+.mission-gear-stat-help:hover::after, .mission-gear-stat-help:focus-visible::after { opacity: 1; transform: translate(-50%, 0); visibility: visible; }
+.mission-gear-stat-help:focus-visible { outline: 2px solid var(--purple-bright); outline-offset: 2px; }
 .mission-admin-ilvl { color: #8ee3bd; font: 700 .66rem/1 'Jost', sans-serif; letter-spacing: .04em; white-space: nowrap; }
 .mission-gear-ilvl-row .admin-field { min-width: min(100%, 240px); }
 .mission-gear-ilvl-calculator output { display: grid; gap: 4px; min-height: 41px; padding: 9px 10px; border: 1px solid rgba(126,203,158,.42); background: linear-gradient(115deg, rgba(17,57,41,.52), rgba(12,24,42,.56)); }

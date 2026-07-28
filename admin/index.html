@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=322"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=6">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=323"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=6">
 </head>
 <body>
 
@@ -4391,10 +4391,10 @@
     <p class="admin-field-hint">Drop weight is relative within a rarity: an item at 200 is drawn twice as often as one at 100. Zero is treated as the minimum rather than never, so nothing in the pool becomes unreachable.</p>
     <div class="admin-subsection-head"><h2>Stat bonuses</h2><p>Added to the crew member's own stats while equipped. Levelling stops at <span id="mission-gear-cap-natural">50</span>; equipment carries a crew member to <span id="mission-gear-cap-total">80</span>, so gear is still worth something on a maxed specialist. A negative value authors a trade-off item.</p></div>
     <div class="admin-field-row mission-gear-bonus-row">
-      <div class="admin-field"><label for="mission-gear-bonus-strength">Strength</label><input type="number" id="mission-gear-bonus-strength" min="-10" max="15" step="1" value="0"></div>
-      <div class="admin-field"><label for="mission-gear-bonus-cunning">Cunning</label><input type="number" id="mission-gear-bonus-cunning" min="-10" max="15" step="1" value="0"></div>
-      <div class="admin-field"><label for="mission-gear-bonus-science">Science</label><input type="number" id="mission-gear-bonus-science" min="-10" max="15" step="1" value="0"></div>
-      <div class="admin-field"><label for="mission-gear-bonus-charisma">Charisma</label><input type="number" id="mission-gear-bonus-charisma" min="-10" max="15" step="1" value="0"></div>
+      <div class="admin-field"><label for="mission-gear-bonus-strength">Strength <span class="mission-gear-stat-help" tabindex="0" role="img" aria-label="Strength effect: each point adds 0.5 percentage points to mission success chance." data-tooltip="Each point adds 0.5 percentage points to mission success chance. Negative values subtract the same amount.">?</span></label><input type="number" id="mission-gear-bonus-strength" min="-10" max="15" step="1" value="0"></div>
+      <div class="admin-field"><label for="mission-gear-bonus-cunning">Cunning <span class="mission-gear-stat-help" tabindex="0" role="img" aria-label="Cunning effect: each point adds 1 percentage point toward an extra reward roll." data-tooltip="Each point adds 1 percentage point toward an extra reward roll. Negative values subtract the same amount.">?</span></label><input type="number" id="mission-gear-bonus-cunning" min="-10" max="15" step="1" value="0"></div>
+      <div class="admin-field"><label for="mission-gear-bonus-science">Science <span class="mission-gear-stat-help" tabindex="0" role="img" aria-label="Science effect: each point adds 1.5 percentage points to reward rarity promotion, up to the 95 percent cap." data-tooltip="Each point adds 1.5 percentage points to the chance a reward is promoted one rarity tier, up to the 95% cap. Negative values subtract the same amount.">?</span></label><input type="number" id="mission-gear-bonus-science" min="-10" max="15" step="1" value="0"></div>
+      <div class="admin-field"><label for="mission-gear-bonus-charisma">Charisma <span class="mission-gear-stat-help" tabindex="0" role="img" aria-label="Charisma effect: each point adds 0.5 percent to crew experience earned." data-tooltip="Each point adds 0.5% to crew experience earned from a successful mission. Negative values subtract the same amount.">?</span></label><input type="number" id="mission-gear-bonus-charisma" min="-10" max="15" step="1" value="0"></div>
     </div>
     <p class="admin-field-hint" id="mission-gear-bonus-summary"></p>
     <div class="admin-field-row mission-gear-ilvl-row" id="mission-gear-ilvl-row">
