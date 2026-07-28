@@ -619,6 +619,67 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Crew and Gear Management were slow to open; two causes, neither of them the
+  database.** No migration. Reported as the pages taking a long time to load,
+  after a separate report that their rarity/category filters "were not working"
+  -- that first one was a stale deploy, the filter code was correct and was
+  verified working live.
+  **Measured before changing anything, on the live console.** The page itself
+  is fine: navigation completes in 477ms, first contentful paint at 460ms.
+  Both endpoints are fine too, from their own `Server-Timing`: `crew-list.php`
+  15ms of PHP over 8ms of DB, `gear-list.php` 12ms over 7ms, 7 queries each.
+  **That DB figure also disproved a theory worth recording**: the per-request
+  `information_schema.COLUMNS` snapshot behind every `pw_*_ready()` probe reads
+  132 tables and looked like an obvious suspect, and it is not -- 8ms of total
+  DB time leaves no room for it. Do not go after it without a measurement.
+  **Cause 1: 9.82MB of images across 55 requests.** Row thumbnails were drawn
+  from the uploaded art at full resolution -- portraits stored at 960x1200,
+  item icons at 1200x1200, up to 276KB apiece -- into a 42px cell, eagerly.
+  Gear renders 46 rows and 7 fit the viewport, so 39 rows of full-size JPEG
+  were paid for before anyone scrolled. Now `loading="lazy"`,
+  `decoding="async"` and the real 42x42 display size, on both lists, on the
+  loot-table entry rows sharing that thumbnail class, and on the image-library
+  picker grid (a 260px scroll box over the whole upload folder, so it gains the
+  most). **The stored art is still full-size** -- a visible row still fetches
+  276KB for a 42px square, and real thumbnails in the upload pipeline plus a
+  backfill remain the proper fix.
+  **Cause 2, and the one to remember when splitting a page out:** `Split crew
+  and gear into dedicated admin pages` moved them from **panels** to
+  **sections**. As panels they were `hidden` and `switchPanel()` only unhid
+  one, so flipping tabs cost nothing and the rows were built once per Mission
+  Control visit. As sections they go through `showSection()`, which
+  deliberately re-fetches on every entry -- so a free toggle silently became a
+  full reload. Re-entering Gear Management measured 1003/1005/997ms with every
+  image already cached, all of it rebuilding 46 rows and decoding their art
+  again. `renderCrew()`/`renderGear()` now compare what they are about to draw
+  against what is on screen and return early when nothing moved. The key covers
+  the active filter, the edit permission and the gear readiness flags, since
+  each changes the markup without changing the catalogue; the DOM is checked
+  too, so a stale key with an emptied list still redraws. **Re-fetching on
+  entry is deliberately unchanged** -- a section is still an explicit request
+  for current data, and only the wasted rebuild goes away.
+  **A verification lesson that cost real time: an extracted-function harness
+  silently lied.** Pulling the crew/gear render functions out of
+  `js/admin-missions.js` into a fixture with the modals hand-copied aborted the
+  file's top-level init on one missing modal field, so `GEAR_STATS` was never
+  assigned and every gear render died with "Cannot read properties of undefined
+  (reading 'map')" -- indistinguishable from a product bug, and it sent the
+  investigation after a defect that did not exist. The whole real
+  `admin/index.html` with its external scripts inlined and **only `fetch`
+  stubbed** is the fixture to build for this console; every code path then runs
+  as shipped. Under it: first render 10 crew and 46 gear rows, unchanged
+  re-entry reusing every row, filters still rebuilding (epic 2, salvage 23,
+  equipment 23, all 46), a renamed item forcing a rebuild, and a reused row's
+  edit modal still opening the right record -- that last check matters, because
+  a reused row keeps its original click closure.
+  **Also measured and deliberately left alone:** `home-system-health.php` costs
+  2.83s of PHP on a cold run (7ms of DB -- it is the GitHub call plus the real
+  spaCy model-load probe), and its 60-second shared cache works, repeat calls
+  returning in 4-11ms. Home is therefore slow once per minute-window, not every
+  time, and it is already a deferred separate request that does not block the
+  rest of the page. Raising that TTL is the one-line change if it ever annoys.
+  `admin-missions.js?v=23` / `admin-loot-tables.js?v=10`.
+
 - **Crew rarity on the card, and arriving crew as an event.** No migration.
   **One tone per rarity**, reusing the `--gear-tier` triple the item surfaces
   already use, so the same five words are the same five colours everywhere.
