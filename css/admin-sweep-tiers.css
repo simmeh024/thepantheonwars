@@ -1,12 +1,16 @@
 /* Sweep Tiers list. A scan-first grid, matching the Book/World/Quiz rows:
  * rank, name, manifest, board shape, state -- so forty rungs can be read down
  * a column rather than opened one at a time. */
-.sweep-tier-row { display: grid; grid-template-columns: 92px minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1.2fr) auto; align-items: center; gap: 14px; text-align: left; }
+.sweep-tier-row { display: grid; grid-template-columns: 92px minmax(0, 1.1fr) minmax(0, 1fr) minmax(110px, .8fr) minmax(0, 1.2fr) auto; align-items: center; gap: 14px; text-align: left; }
 .sweep-tier-rank { display: flex; align-items: baseline; gap: 7px; }
 .sweep-tier-rank b { color: #8ddde1; font: 600 0.95rem/1 'Cinzel', serif; }
 .sweep-tier-rank small { overflow: hidden; color: #8ba5b8; font-size: 0.6rem; text-overflow: ellipsis; white-space: nowrap; }
 .sweep-tier-name { overflow: hidden; color: #eef3f8; font-size: 0.82rem; text-overflow: ellipsis; white-space: nowrap; }
 .sweep-tier-manifest { overflow: hidden; color: #b6cbd8; font-size: 0.72rem; text-overflow: ellipsis; white-space: nowrap; }
+.sweep-tier-condition { --condition-color: #8ddde1; overflow: hidden; padding: 3px 6px; border: 1px solid rgba(141,221,225,0.38); background: rgba(18,54,68,0.45); color: var(--condition-color); font: 700 0.53rem/1.3 'Jost', sans-serif; letter-spacing: 0.07em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.is-template-interference { --condition-color: #d1a7ef; border-color: rgba(205,124,236,0.52); background: rgba(54,26,74,0.52); }
+.is-template-unstable { --condition-color: #f0a8a0; border-color: rgba(224,120,110,0.58); background: rgba(70,20,20,0.5); }
+.is-template-debris { --condition-color: #ecc987; border-color: rgba(236,201,135,0.58); background: rgba(66,48,20,0.5); }
 .sweep-tier-shape { color: #93aec1; font-size: 0.67rem; }
 .sweep-tier-state { justify-self: end; }
 .admin-pill { display: inline-block; padding: 2px 7px; border: 1px solid rgba(103,152,190,0.35); color: #9db4c6; font: 600 0.56rem/1.5 'Jost', sans-serif; letter-spacing: 0.07em; text-transform: uppercase; }
@@ -17,10 +21,20 @@
 /* A sweep manifest, marked in the Loot Table list -- which will soon be mostly
  * sweep manifests, so the ones that still feed missions need to stand out. */
 .admin-pill.is-sweep { border-color: rgba(158,219,168,0.55); color: #9edba8; }
+/* The admin preview is deliberately generated from the same fixed condition
+ * metadata shown to players. It is a warning with a visual identity, not an
+ * editable bit of descriptive copy that can drift away from its rule. */
+.sweep-tier-condition-preview { --condition-color: #8ddde1; display: grid; gap: 4px; margin-top: 8px; padding: 9px 10px; border: 1px solid rgba(141,221,225,0.38); border-left: 3px solid var(--condition-color); background: rgba(18,54,68,0.42); color: #c7dce6; }
+.sweep-tier-condition-preview.is-template-interference { --condition-color: #d1a7ef; border-color: rgba(205,124,236,0.52); background: rgba(54,26,74,0.52); }
+.sweep-tier-condition-preview.is-template-unstable { --condition-color: #f0a8a0; border-color: rgba(224,120,110,0.58); background: rgba(70,20,20,0.5); }
+.sweep-tier-condition-preview.is-template-debris { --condition-color: #ecc987; border-color: rgba(236,201,135,0.58); background: rgba(66,48,20,0.5); }
+.sweep-tier-condition-preview strong { color: var(--condition-color); font: 700 0.62rem/1.2 'Jost', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }
+.sweep-tier-condition-preview span { color: #d2e0e8; font-size: 0.68rem; line-height: 1.4; }
+.sweep-tier-condition-preview small { color: var(--condition-color); font-size: 0.6rem; line-height: 1.3; }
 
 @media (max-width: 900px) {
   .sweep-tier-row { grid-template-columns: minmax(0, 1fr) auto; gap: 5px 12px; }
   .sweep-tier-rank { grid-column: 1; }
   .sweep-tier-state { grid-row: 1; grid-column: 2; }
-  .sweep-tier-name, .sweep-tier-manifest, .sweep-tier-shape { grid-column: 1 / -1; }
+  .sweep-tier-name, .sweep-tier-manifest, .sweep-tier-condition, .sweep-tier-shape { grid-column: 1 / -1; }
 }

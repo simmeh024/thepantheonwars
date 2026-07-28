@@ -57,7 +57,15 @@ try {
     /* The board is fixed at launch, research included: unlocking a protocol
      * mid-sweep must not change a field already being walked. */
     $bonuses = pw_sweep_crew_bonuses($member, $tier, $research);
-    $hazards = pw_sweep_effective_hazards($tier, $research);
+    $conditionRun = pw_sweep_apply_condition(
+        $tier,
+        $bonuses,
+        pw_sweep_effective_hazards($tier, $research),
+        (float)($research['sweep_recognition_percent'] ?? 0)
+    );
+    $condition = $conditionRun['condition'];
+    $bonuses = $conditionRun['bonuses'];
+    $hazards = $conditionRun['hazard_count'];
     /* The seed is the whole secret of the board, so it comes from the CSPRNG
      * and is never returned by any endpoint. */
     $seed = random_int(1, 2147483646);
@@ -71,20 +79,20 @@ try {
 
     $insert = $db->prepare(
         'INSERT INTO game_player_sweep_runs
-            (user_id, player_crew_id, rank_number, loot_table_id, grid_rows, grid_cols, hazard_count,
+            (user_id, player_crew_id, rank_number, condition_key, loot_table_id, grid_rows, grid_cols, hazard_count,
              picks_total, hint_radius, shrug_percent, grid_seed, cache_credits, xp_reward,
              tether_percent, recognition_percent, momentum_percent, stabiliser_points, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "active")'
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "active")'
     );
     /* The sector's own rank, not the player's. With a sparse ladder those
      * differ, and counting a run against the rank the player happened to hold
      * would scatter one sector's history across every rank above it. */
     $insert->execute([
-        $userId, $crewId, $tier['rank_number'], $tier['loot_table_id'], $tier['grid_rows'], $tier['grid_cols'],
+        $userId, $crewId, $tier['rank_number'], $condition['key'], $tier['loot_table_id'], $tier['grid_rows'], $tier['grid_cols'],
         $hazards, $bonuses['picks_total'], $bonuses['hint_radius'], $bonuses['shrug_percent'],
         $seed, $tier['cache_credits'], $bonuses['xp_reward'],
         round((float)($research['sweep_tether_percent'] ?? 0), 2),
-        round((float)($research['sweep_recognition_percent'] ?? 0), 2),
+        round((float)$conditionRun['recognition_percent'], 2),
         round((float)($research['sweep_momentum_percent'] ?? 0), 2),
         round((float)($research['sweep_stabiliser_points'] ?? 0), 2),
     ]);

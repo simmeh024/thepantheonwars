@@ -58,7 +58,15 @@ try {
     $sectors = [];
     foreach ($rows as $row) {
         $tier = pw_sweep_normalise_tier($row);
-        $bonuses = pw_sweep_crew_bonuses($stats, $tier);
+        $conditionRun = pw_sweep_apply_condition(
+            $tier,
+            pw_sweep_crew_bonuses($stats, $tier),
+            pw_sweep_effective_hazards($tier),
+            0.0
+        );
+        $bonuses = $conditionRun['bonuses'];
+        $simulatedTier = $tier;
+        $simulatedTier['hazard_count'] = $conditionRun['hazard_count'];
         $sectors[] = array_merge(
             [
                 'rank_number' => $tier['rank_number'],
@@ -67,14 +75,15 @@ try {
                 'has_manifest' => $tier['loot_table_id'] !== null && $tier['loot_table_enabled'],
                 'grid' => $tier['grid_rows'] . '×' . $tier['grid_cols'],
                 'cells' => $tier['grid_rows'] * $tier['grid_cols'],
-                'hazards' => $tier['hazard_count'],
+                'hazards' => $simulatedTier['hazard_count'],
                 'picks' => $bonuses['picks_total'],
                 'hint_radius' => $bonuses['hint_radius'],
                 'shrug_percent' => $bonuses['shrug_percent'],
                 'fatigue_cost' => $tier['fatigue_cost'],
                 'xp_reward' => $bonuses['xp_reward'],
+                'condition' => pw_sweep_condition_public($tier['condition_key']),
             ],
-            pw_tuning_sweep_outcome($tier, $bonuses)
+            pw_tuning_sweep_outcome($simulatedTier, $bonuses)
         );
     }
 

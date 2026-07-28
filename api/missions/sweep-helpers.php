@@ -37,14 +37,61 @@ const PW_SWEEP_SHRUG_CAP = 60.0;
 /** Charisma adds to the XP a banked sweep pays. */
 const PW_SWEEP_CHARISMA_XP_PER_POINT = 0.8;
 
+/**
+ * Sector conditions are authored as a fixed set, rather than free text: each
+ * one changes live rules, has a warning the player can act on, and owns one
+ * visual template across Admin and the field screen. A hand-written warning
+ * would invite an author to promise a penalty the engine does not enforce.
+ */
+function pw_sweep_condition_types(): array {
+    return [
+        'clear' => [
+            'label' => 'Nominal field',
+            'warning' => 'Nominal conditions. Field systems are operating within expected limits.',
+            'effect' => 'No sector penalty.',
+            'template' => 'nominal',
+        ],
+        'signal_interference' => [
+            'label' => 'Signal interference',
+            'warning' => 'Warning: this sector has heavy signal interference. Cache Recognition previews are not possible.',
+            'effect' => 'Cache Recognition previews disabled.',
+            'template' => 'interference',
+        ],
+        'unstable_structure' => [
+            'label' => 'Unstable structure',
+            'warning' => 'Danger: failing supports add one collapse after shoring has been applied.',
+            'effect' => '+1 collapse after shoring.',
+            'template' => 'unstable',
+        ],
+        'dense_debris' => [
+            'label' => 'Dense debris',
+            'warning' => 'Caution: dense debris slows every route through this sector. One scan is lost after crew and research bonuses.',
+            'effect' => '-1 scan after bonuses.',
+            'template' => 'debris',
+        ],
+    ];
+}
+
+/** Unknown or retired condition keys always fail safely to a nominal field. */
+function pw_sweep_condition(string $key): array {
+    $types = pw_sweep_condition_types();
+    $key = strtolower(trim($key));
+    return array_merge(['key' => 'clear'], $types[$key] ?? $types['clear'], ['key' => isset($types[$key]) ? $key : 'clear']);
+}
+
+/** The browser receives words and a visual template, never a client-editable rule. */
+function pw_sweep_condition_public(string $key): array {
+    return pw_sweep_condition($key);
+}
+
 function pw_sweep_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db) || !pw_mission_fatigue_ready($db) || !pw_mission_loot_tables_ready($db)) {
         return $ready = false;
     }
-    return $ready = pw_schema_has($db, 'game_sweep_tiers', ['rank_number', 'loot_table_id'])
-        && pw_schema_has($db, 'game_player_sweep_runs', ['grid_seed', 'revealed_cells'])
+    return $ready = pw_schema_has($db, 'game_sweep_tiers', ['rank_number', 'loot_table_id', 'condition_key'])
+        && pw_schema_has($db, 'game_player_sweep_runs', ['grid_seed', 'revealed_cells', 'condition_key'])
         && pw_schema_has($db, 'game_player_sweep_finds', ['run_id', 'cell_index']);
 }
 
@@ -63,6 +110,10 @@ function pw_sweep_missing_requirement(PDO $db): string {
         || !pw_schema_has($db, 'game_player_sweep_runs', ['grid_seed', 'revealed_cells'])
         || !pw_schema_has($db, 'game_player_sweep_finds', ['run_id', 'cell_index'])) {
         return 'sql/migration_salvage_sweep.sql';
+    }
+    if (!pw_schema_has($db, 'game_sweep_tiers', ['condition_key'])
+        || !pw_schema_has($db, 'game_player_sweep_runs', ['condition_key'])) {
+        return 'sql/migration_sweep_sector_conditions.sql';
     }
     return '';
 }
@@ -126,6 +177,7 @@ function pw_sweep_normalise_tier(array $tier): array {
         'cache_credits' => max(0, (int)$tier['cache_credits']),
         'fatigue_cost' => max(0, (int)$tier['fatigue_cost']),
         'xp_reward' => max(0, (int)$tier['xp_reward']),
+        'condition_key' => pw_sweep_condition((string)($tier['condition_key'] ?? 'clear'))['key'],
     ];
 }
 
@@ -178,6 +230,27 @@ function pw_sweep_effective_hazards(array $tier, array $research = []): int {
     if ($hazards <= 1) return $hazards;
     $removed = (int)floor($hazards * max(0.0, (float)($research['sweep_collapse_percent'] ?? 0)) / 100);
     return max(1, $hazards - $removed);
+}
+
+/** Freeze a sector condition beside the board values it changes at launch. */
+function pw_sweep_apply_condition(array $tier, array $bonuses, int $hazards, float $recognitionPercent): array {
+    $condition = pw_sweep_condition((string)($tier['condition_key'] ?? 'clear'));
+    $cells = max(1, (int)$tier['grid_rows'] * (int)$tier['grid_cols']);
+    if ($condition['key'] === 'signal_interference') {
+        $recognitionPercent = 0.0;
+    } elseif ($condition['key'] === 'unstable_structure') {
+        /* Applied after Shoring deliberately: this is an environmental failure
+         * at launch, not another authored collapse research could erase. */
+        $hazards = min($cells - 2, max(0, $hazards + 1));
+    } elseif ($condition['key'] === 'dense_debris') {
+        $bonuses['picks_total'] = max(1, (int)$bonuses['picks_total'] - 1);
+    }
+    return [
+        'condition' => $condition,
+        'hazard_count' => $hazards,
+        'bonuses' => $bonuses,
+        'recognition_percent' => max(0.0, $recognitionPercent),
+    ];
 }
 
 /**
@@ -402,6 +475,7 @@ function pw_sweep_run_payload(PDO $db, array $run): array {
     return [
         'id' => (int)$run['id'],
         'rank_number' => (int)$run['rank_number'],
+        'condition' => pw_sweep_condition_public((string)($run['condition_key'] ?? 'clear')),
         'previews' => $previews,
         'recognition_percent' => $recognition,
         'momentum_percent' => (float)($run['momentum_percent'] ?? 0),
@@ -540,6 +614,7 @@ function pw_sweep_result_payload(PDO $db, array $run): array {
     return [
         'id' => (int)$run['id'],
         'rank_number' => (int)$run['rank_number'],
+        'condition' => pw_sweep_condition_public((string)($run['condition_key'] ?? 'clear')),
         'grid_rows' => $rows,
         'grid_cols' => $cols,
         'picks_used' => (int)$run['picks_used'],

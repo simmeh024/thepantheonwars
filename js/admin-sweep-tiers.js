@@ -8,13 +8,15 @@
 (function () {
   'use strict';
 
-  var tiers = [], ranks = [], lootTables = [], limits = { max_rows: 8, max_cols: 8, max_picks: 40 };
+  var tiers = [], ranks = [], lootTables = [], conditionTypes = [], limits = { max_rows: 8, max_cols: 8, max_picks: 40 };
   var current = null;
   var list = document.getElementById('sweep-tier-list');
   var count = document.getElementById('sweep-tier-count');
   var modal = document.getElementById('sweep-tier-modal');
   var rankSelect = document.getElementById('sweep-tier-rank');
   var lootSelect = document.getElementById('sweep-tier-loot-table');
+  var conditionSelect = document.getElementById('sweep-tier-condition');
+  var conditionPreview = document.getElementById('sweep-tier-condition-preview');
   var hazardHint = document.getElementById('sweep-tier-hazard-hint');
   if (!list) return;
 
@@ -45,6 +47,12 @@
     return 'Rank ' + number;
   }
 
+  function conditionFor(key) {
+    for (var i = 0; i < conditionTypes.length; i++) if (conditionTypes[i].key === key) return conditionTypes[i];
+    return conditionTypes[0] || { key: 'clear', label: 'Nominal field', warning: 'Nominal conditions.', effect: 'No sector penalty.', template: 'nominal' };
+  }
+  function conditionTemplate(condition) { return String((condition || {}).template || 'nominal').replace(/[^a-z0-9-]/gi, ''); }
+
   function render() {
     if (!tiers.length) {
       list.innerHTML = '<p class="admin-list-empty">No sweep sectors yet. Add one for the lowest rank a sweep should be available at.</p>';
@@ -58,10 +66,12 @@
       var manifest = tier.loot_table_id
         ? (tier.loot_table_enabled ? esc(tier.loot_table_name) : '<b class="admin-pill is-warn">' + esc(tier.loot_table_name) + ' (disabled)</b>')
         : '<b class="admin-pill is-warn">No manifest</b>';
+      var condition = tier.condition || conditionFor(tier.condition_key);
       return '<button type="button" class="admin-row sweep-tier-row" data-sweep-rank="' + tier.rank_number + '">'
         + '<span class="sweep-tier-rank"><b>' + tier.rank_number + '</b><small>' + esc(rankName(tier.rank_number)) + '</small></span>'
         + '<span class="sweep-tier-name">' + esc(tier.name || 'Sector ' + tier.rank_number) + '</span>'
         + '<span class="sweep-tier-manifest">' + manifest + '</span>'
+        + '<span class="sweep-tier-condition is-template-' + conditionTemplate(condition) + '" title="' + esc(condition.warning) + '">' + esc(condition.label) + '</span>'
         + '<span class="sweep-tier-shape">' + tier.grid_rows + '&times;' + tier.grid_cols + ' &middot; ' + tier.base_picks + ' scans &middot; ' + tier.hazard_count + ' collapses</span>'
         + '<span class="sweep-tier-state">' + (tier.is_enabled ? '<b class="admin-pill is-on">Enabled</b>' : '<b class="admin-pill">Disabled</b>') + '</span>'
         + '</button>';
@@ -101,6 +111,19 @@
       + (rest.length ? '<optgroup label="Other loot tables">' + rest.map(option).join('') + '</optgroup>' : '');
   }
 
+  function fillConditions(selected) {
+    conditionSelect.innerHTML = conditionTypes.map(function (condition) {
+      return '<option value="' + esc(condition.key) + '"' + (condition.key === selected ? ' selected' : '') + '>'
+        + esc(condition.label) + '</option>';
+    }).join('');
+  }
+
+  function syncConditionPreview() {
+    var condition = conditionFor(conditionSelect.value);
+    conditionPreview.className = 'sweep-tier-condition-preview is-template-' + conditionTemplate(condition);
+    conditionPreview.innerHTML = '<strong>' + esc(condition.label) + '</strong><span>' + esc(condition.warning) + '</span><small>' + esc(condition.effect) + '</small>';
+  }
+
   function syncHazardHint() {
     var cells = (Number(el('sweep-tier-rows').value) || 0) * (Number(el('sweep-tier-cols').value) || 0);
     var max = Math.max(0, cells - 2);
@@ -117,6 +140,7 @@
       : 'One board per rank. Pick the rank it opens at.';
     fillRanks(tier ? tier.rank_number : null);
     fillLootTables(tier ? tier.loot_table_id : '');
+    fillConditions(tier && tier.condition ? tier.condition.key : (tier ? tier.condition_key : 'clear'));
     el('sweep-tier-name').value = tier ? tier.name : '';
     el('sweep-tier-rows').value = tier ? tier.grid_rows : 5;
     el('sweep-tier-cols').value = tier ? tier.grid_cols : 5;
@@ -127,6 +151,7 @@
     el('sweep-tier-xp').value = tier ? tier.xp_reward : 30;
     el('sweep-tier-enabled').checked = tier ? tier.is_enabled : true;
     syncHazardHint();
+    syncConditionPreview();
     setError(''); setNotice('');
     el('sweep-tier-save-btn').disabled = !can('sweep_tiers.manage');
     el('sweep-tier-delete-btn').hidden = !tier || !can('sweep_tiers.manage');
@@ -140,6 +165,7 @@
       tiers = data.tiers || [];
       ranks = data.ranks || [];
       lootTables = data.loot_tables || [];
+      conditionTypes = data.condition_types || [];
       limits = data.limits || limits;
       render();
     }).catch(function (error) {
@@ -164,6 +190,7 @@
       cache_credits: el('sweep-tier-cache').value,
       fatigue_cost: el('sweep-tier-fatigue').value,
       xp_reward: el('sweep-tier-xp').value,
+      condition_key: conditionSelect.value,
       is_enabled: el('sweep-tier-enabled').checked
     }).then(function () {
       return load().then(function () { closeModal(); });
@@ -201,6 +228,7 @@
   el('sweep-tier-cancel-btn').addEventListener('click', closeModal);
   el('sweep-tier-rows').addEventListener('input', syncHazardHint);
   el('sweep-tier-cols').addEventListener('input', syncHazardHint);
+  conditionSelect.addEventListener('change', syncConditionPreview);
 
   window.PW_LOAD_SWEEP_TIERS = load;
 }());

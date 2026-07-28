@@ -79,7 +79,7 @@
     /* The thing itself, when it has artwork. A glyph is the fallback for a
        definition with no image and for the outcomes that are not objects at
        all -- a collapse, an empty pocket, a braced escape. */
-    var icon = safeImage(cell.icon);
+    var icon = cell.type === 'cache' ? 'images/credit-stick.webp' : safeImage(cell.icon);
     var art = icon
       ? '<img class="sweep-cell-art" src="' + esc(icon) + '" alt="">'
       : '<span class="sweep-cell-glyph" aria-hidden="true">' + (CELL_GLYPH[cell.type] || CELL_GLYPH.empty) + '</span>';
@@ -100,6 +100,19 @@
       + art + hint + '</div>';
   }
 
+  function conditionMarkup(condition, compact) {
+    condition = condition || {};
+    var key = String(condition.key || 'clear').replace(/[^a-z0-9-]/gi, '');
+    var template = String(condition.template || 'nominal').replace(/[^a-z0-9-]/gi, '');
+    var label = String(condition.label || 'Nominal field');
+    var warning = String(condition.warning || 'Nominal conditions. Field systems are operating within expected limits.');
+    var effect = String(condition.effect || 'No sector penalty.');
+    return '<aside class="sweep-condition is-template-' + esc(template) + (compact ? ' is-compact' : '') + '"'
+      + ' data-sweep-condition="' + esc(key) + '"><span class="sweep-condition-label">Sector condition</span>'
+      + '<strong>' + esc(label) + '</strong><p>' + esc(warning) + '</p>'
+      + '<small>' + esc(effect) + '</small></aside>';
+  }
+
   /* Full field markup belongs exclusively to a finished run. The live board
      remains deliberately ignorant of unopened cells. */
   function resultCellMarkup(cell, cols, result) {
@@ -107,7 +120,7 @@
     var col = Number(cell.index) % cols + 1;
     var type = String(cell.type || 'empty');
     var label = String(cell.label || (type === 'hazard' ? 'Collapse' : 'No recovery'));
-    var icon = safeImage(cell.icon);
+    var icon = type === 'cache' ? 'images/credit-stick.webp' : safeImage(cell.icon);
     var tier = String(cell.tier || '').toLowerCase();
     var shiny = tier && tier !== 'common' ? ' is-shiny is-tier-' + esc(tier) : '';
     var isReward = ['gear', 'crew', 'cache'].indexOf(type) !== -1;
@@ -192,6 +205,7 @@
     boardArea.innerHTML = '<section class="sweep-result is-' + (won ? 'won' : 'lost') + '" aria-labelledby="sweep-result-title">'
       + '<div class="sweep-result-head"><span class="eyebrow">' + (won ? 'Field debrief' : 'Recovery debrief') + '</span>'
       + '<h3 id="sweep-result-title">' + heading + '</h3><p>' + esc(copy) + '</p></div>'
+      + conditionMarkup(field.condition, true)
       + resultPayoutMarkup(result)
       + '<div class="sweep-result-legend"><span class="is-secured">\u2713 Secured</span><span class="is-missed">\u2014 Left in field</span>'
       + (result.payout && result.payout.tether ? '<span class="is-tethered">\u2726 Tethered</span>' : '') + '</div>'
@@ -230,6 +244,7 @@
     var spent = run.ended_reason === 'spent';
     boardMeta.innerHTML = '<span><small>Scans</small><strong>' + run.picks_left + ' / ' + run.picks_total + '</strong></span>'
       + '<span><small>Credits held</small><strong>' + num(run.credits_found) + '</strong></span>'
+      + '<span><small>Condition</small><strong>' + esc((run.condition || {}).label || 'Nominal field') + '</strong></span>'
       + (run.hint_radius > 0 ? '<span><small>Survey</small><strong>' + run.hint_radius + ' ring' + (run.hint_radius === 1 ? '' : 's') + '</strong></span>' : '')
       + (run.shrug_percent > 0 ? '<span><small>Brace</small><strong>' + (run.shrug_used ? 'spent' : run.shrug_percent + '%') + '</strong></span>' : '')
       /* Momentum is shown as what it is worth right now rather than as its
@@ -250,7 +265,8 @@
     for (var index = 0; index < run.grid_rows * run.grid_cols; index++) {
       cells.push(cellMarkup(index, open[index], playable, preview[index]));
     }
-    boardArea.innerHTML = '<div class="sweep-grid" style="--sweep-cols:' + run.grid_cols + '" role="group" aria-label="Salvage field">'
+    boardArea.innerHTML = conditionMarkup(run.condition, true)
+      + '<div class="sweep-grid" style="--sweep-cols:' + run.grid_cols + '" role="group" aria-label="Salvage field">'
       + cells.join('') + '</div>'
       + (spent ? '<p class="sweep-muted sweep-spent">Every scan is spent. Withdraw to keep what you have.</p>' : '');
     boardActions.hidden = run.status !== 'active';
@@ -277,6 +293,7 @@
       + '<div><dt>Base scans</dt><dd>' + tier.base_picks + '</dd></div>'
       + '<div><dt>Fatigue</dt><dd>' + tier.fatigue_cost + '</dd></div>'
       + '</dl>'
+      + conditionMarkup(tier.condition, true)
       + '<p class="sweep-muted">Swept ' + num(state.data.sweeps_at_rank) + ' time' + (Number(state.data.sweeps_at_rank) === 1 ? '' : 's') + ' at this rank.</p>';
   }
 
@@ -293,7 +310,7 @@
          and gives nothing away. */
       var detail = row.unlocked
         ? row.grid_rows + '\u00d7' + row.grid_cols + ' \u00b7 ' + row.hazard_count + ' collapse'
-          + (Number(row.hazard_count) === 1 ? '' : 's')
+          + (Number(row.hazard_count) === 1 ? '' : 's') + ' \u00b7 ' + esc((row.condition || {}).label || 'Nominal')
         : 'Rank ' + row.rank_number + ' required';
       return '<li class="sweep-rung ' + cls + '">'
         + '<span class="sweep-rung-mark">' + row.rank_number + '</span>'

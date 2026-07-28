@@ -43,6 +43,20 @@
 .sweep-board-meta small { color: #86a5ba; font: 700 0.5rem/1 'Jost', sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
 .sweep-board-meta strong { color: #eaf3f8; font: 600 0.85rem/1 'Cinzel', serif; }
 
+/* --- Sector conditions ---------------------------------------------------
+ * Every admin-authored condition has one warning and one visual language. The
+ * condition is frozen onto the run at launch, so this banner always describes
+ * the rules the player is actually facing rather than a later sector edit. */
+.sweep-condition { --condition-color: #8ddde1; display: grid; gap: 4px; margin: 0 0 13px; padding: 10px 11px; border: 1px solid rgba(141,221,225,0.4); border-left: 3px solid var(--condition-color); background: linear-gradient(110deg, rgba(12,49,64,0.72), rgba(8,21,39,0.74)); }
+.sweep-condition.is-compact { margin-top: 10px; }
+.sweep-condition-label { color: var(--condition-color); font: 700 0.48rem/1 'Jost', sans-serif; letter-spacing: 0.13em; text-transform: uppercase; }
+.sweep-condition strong { color: #eef7fa; font: 600 0.75rem/1.2 'Cinzel', serif; }
+.sweep-condition p { margin: 0; color: #c2d4de; font-size: 0.67rem; line-height: 1.45; }
+.sweep-condition small { color: var(--condition-color); font-size: 0.59rem; line-height: 1.35; }
+.sweep-condition.is-template-interference { --condition-color: #d4acef; border-color: rgba(205,124,236,0.58); background: repeating-linear-gradient(0deg, rgba(205,124,236,0.055) 0 2px, transparent 2px 5px), linear-gradient(110deg, rgba(55,25,78,0.78), rgba(20,13,42,0.8)); }
+.sweep-condition.is-template-unstable { --condition-color: #f0a8a0; border-color: rgba(224,120,110,0.62); background: linear-gradient(110deg, rgba(78,21,22,0.77), rgba(30,12,25,0.82)); }
+.sweep-condition.is-template-debris { --condition-color: #ecc987; border-color: rgba(236,201,135,0.62); background: repeating-linear-gradient(135deg, rgba(236,201,135,0.045) 0 5px, transparent 5px 10px), linear-gradient(110deg, rgba(70,49,19,0.74), rgba(30,23,19,0.8)); }
+
 .sweep-grid { display: grid; grid-template-columns: repeat(var(--sweep-cols, 5), minmax(0, 1fr)); gap: 6px; max-width: 640px; }
 .sweep-cell { display: grid; aspect-ratio: 1; place-items: center; padding: 0; border: 1px solid rgba(103,152,190,0.3); background: rgba(7,17,31,0.75); color: #6f8ea2; font: 600 1rem/1 'Cinzel', serif; cursor: pointer; transition: border-color .16s ease, background .16s ease, transform .16s ease; }
 button.sweep-cell:hover:not(:disabled), button.sweep-cell:focus-visible { border-color: rgba(126,227,232,0.75); background: rgba(18,44,68,0.9); color: #cdeff3; outline: none; transform: translateY(-1px); }
@@ -72,6 +86,7 @@ button.sweep-cell:disabled { cursor: default; opacity: 0.75; }
  * icon scaled to fill reads as a blown-up sketch -- the same conclusion the
  * stim belt reached at the same size. */
 .sweep-cell-art { display: block; width: 100%; height: 100%; object-fit: cover; }
+.sweep-cell.is-cache .sweep-cell-art { filter: saturate(1.08) contrast(1.04); }
 
 /* --- Shine ----------------------------------------------------------------
  * Rarity above common is worth noticing on a board where most cells are not.

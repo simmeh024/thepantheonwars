@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS game_sweep_tiers (
   cache_credits INT UNSIGNED NOT NULL DEFAULT 120,
   fatigue_cost TINYINT UNSIGNED NOT NULL DEFAULT 20,
   xp_reward SMALLINT UNSIGNED NOT NULL DEFAULT 30,
+  condition_key VARCHAR(40) NOT NULL DEFAULT 'clear',
   is_enabled TINYINT(1) NOT NULL DEFAULT 1,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -39,6 +40,7 @@ CREATE TABLE IF NOT EXISTS game_player_sweep_runs (
   user_id INT UNSIGNED NOT NULL,
   player_crew_id BIGINT UNSIGNED NOT NULL,
   rank_number SMALLINT UNSIGNED NOT NULL,
+  condition_key VARCHAR(40) NOT NULL DEFAULT 'clear',
   loot_table_id INT UNSIGNED NULL,
   grid_rows TINYINT UNSIGNED NOT NULL,
   grid_cols TINYINT UNSIGNED NOT NULL,
@@ -89,6 +91,14 @@ ALTER TABLE game_player_sweep_runs
   ADD COLUMN IF NOT EXISTS recognition_percent DECIMAL(5,2) NOT NULL DEFAULT 0.00,
   ADD COLUMN IF NOT EXISTS momentum_percent DECIMAL(5,2) NOT NULL DEFAULT 0.00,
   ADD COLUMN IF NOT EXISTS stabiliser_points DECIMAL(5,2) NOT NULL DEFAULT 0.00;
+
+-- Conditions are settings on the sector, frozen onto each run as it starts so
+-- a later edit cannot change a board already being played.
+ALTER TABLE game_sweep_tiers
+  ADD COLUMN IF NOT EXISTS condition_key VARCHAR(40) NOT NULL DEFAULT 'clear';
+
+ALTER TABLE game_player_sweep_runs
+  ADD COLUMN IF NOT EXISTS condition_key VARCHAR(40) NOT NULL DEFAULT 'clear';
 
 -- A manifest written for a sweep sector should not also be dropping from
 -- missions. This flag takes it out of the mission roll entirely and out of the

@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=319"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=2"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=6">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=319"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=6">
 </head>
 <body>
 
@@ -2227,6 +2227,7 @@
                 <div class="admin-field"><label for="sweep-tier-name">Sector name</label><input type="text" id="sweep-tier-name" maxlength="120" placeholder="Collapsed relay yard"></div>
               </div>
               <div class="admin-field"><label for="sweep-tier-loot-table">Recovery manifest</label><select id="sweep-tier-loot-table"><option value="">No manifest</option></select><span class="admin-field-hint">Every find on this board is drawn from this loot table, weighted by its entries' own chances. A sector with no manifest cannot be opened.</span></div>
+              <div class="admin-field"><label for="sweep-tier-condition">Sector condition</label><select id="sweep-tier-condition"></select><span class="admin-field-hint">A fixed environmental modifier. Its warning and visual template are shown to players before launch.</span><div class="sweep-tier-condition-preview" id="sweep-tier-condition-preview"></div></div>
               <div class="admin-field-row">
                 <div class="admin-field"><label for="sweep-tier-rows">Field rows</label><input type="number" id="sweep-tier-rows" min="2" max="8" step="1" value="5"></div>
                 <div class="admin-field"><label for="sweep-tier-cols">Field columns</label><input type="number" id="sweep-tier-cols" min="2" max="8" step="1" value="5"></div>
@@ -4609,7 +4610,7 @@
 </div>
 
 <script src="../js/members.js?v=43"></script>
-<script src="../js/admin-missions.js?v=12"></script><script src="../js/admin-loot-tables.js?v=7"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-sweep-tiers.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=6"></script>
+<script src="../js/admin-missions.js?v=12"></script><script src="../js/admin-loot-tables.js?v=7"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-sweep-tiers.js?v=3"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=6"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };

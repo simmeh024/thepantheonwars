@@ -51,6 +51,7 @@ try {
             'fatigue_cost' => $tier['fatigue_cost'],
             'cache_credits' => $tier['cache_credits'],
             'xp_reward' => $tier['xp_reward'],
+            'condition' => pw_sweep_condition_public($tier['condition_key']),
             'unlocked' => $unlocked,
             'is_current' => $tier['rank_number'] === $activeRank,
             'sweeps_completed' => $completed[$tier['rank_number']] ?? 0,
@@ -87,6 +88,18 @@ try {
     foreach ($crew as $member) {
         $fatigue = pw_missions_resolve_fatigue($member, $fatigueMax, $now, $recovery);
         $bonuses = $tier ? pw_sweep_crew_bonuses($member, $tier, $research) : ['picks_total' => 0, 'hint_radius' => 0, 'shrug_percent' => 0, 'xp_reward' => 0];
+        if ($tier) {
+            /* Dense debris changes the deployed crew's scan count, so the
+             * roster projection must use the same launch helper as start.php
+             * instead of promising a scan that the board will take away. */
+            $conditionRun = pw_sweep_apply_condition(
+                $tier,
+                $bonuses,
+                pw_sweep_effective_hazards($tier, $research),
+                (float)($research['sweep_recognition_percent'] ?? 0)
+            );
+            $bonuses = $conditionRun['bonuses'];
+        }
         $roster[] = [
             'id' => (int)$member['id'],
             'name' => (string)$member['name'],
@@ -119,13 +132,14 @@ try {
         'credits_ready' => true,
     ];
 
+    $tierPayload = $tier ? array_merge($tier, ['condition' => pw_sweep_condition_public($tier['condition_key'])]) : null;
     pw_json([
         'ok' => true,
         'player' => $player,
         'trophies' => pw_sweep_recent_trophies($db, $userId),
         'reputation' => array_merge($reputation, ['level_number' => $rank]),
         'credits' => pw_missions_credit_balance($db, $userId),
-        'tier' => $tier,
+        'tier' => $tierPayload,
         'ladder' => $ladder,
         'crew' => $roster,
         'run' => pw_sweep_public_run($db, $userId),

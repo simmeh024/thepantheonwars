@@ -16,6 +16,10 @@ if ($rank === false || $rank < 1 || $rank > 99) pw_error('Choose a reputation ra
 $name = trim((string)($input['name'] ?? ''));
 if (mb_strlen($name) > 120) pw_error('The sector name may not exceed 120 characters.');
 
+$conditionRaw = strtolower(trim((string)($input['condition_key'] ?? 'clear')));
+$condition = pw_sweep_condition($conditionRaw);
+if ($conditionRaw !== $condition['key']) pw_error('Choose a valid sector condition.');
+
 $rows = filter_var($input['grid_rows'] ?? null, FILTER_VALIDATE_INT);
 $cols = filter_var($input['grid_cols'] ?? null, FILTER_VALIDATE_INT);
 if ($rows === false || $rows < 2 || $rows > PW_SWEEP_MAX_ROWS) pw_error('Field rows must be between 2 and ' . PW_SWEEP_MAX_ROWS . '.');
@@ -59,16 +63,16 @@ try {
     $stmt = $db->prepare(
         'INSERT INTO game_sweep_tiers
             (rank_number, name, loot_table_id, grid_rows, grid_cols, base_picks, hazard_count,
-             cache_credits, fatigue_cost, xp_reward, is_enabled)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+             cache_credits, fatigue_cost, xp_reward, condition_key, is_enabled)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
             name = VALUES(name), loot_table_id = VALUES(loot_table_id),
             grid_rows = VALUES(grid_rows), grid_cols = VALUES(grid_cols),
             base_picks = VALUES(base_picks), hazard_count = VALUES(hazard_count),
             cache_credits = VALUES(cache_credits), fatigue_cost = VALUES(fatigue_cost),
-            xp_reward = VALUES(xp_reward), is_enabled = VALUES(is_enabled)'
+            xp_reward = VALUES(xp_reward), condition_key = VALUES(condition_key), is_enabled = VALUES(is_enabled)'
     );
-    $stmt->execute([$rank, $name, $lootTableId, $rows, $cols, $picks, $hazards, $cache, $fatigue, $xp, $enabled]);
+    $stmt->execute([$rank, $name, $lootTableId, $rows, $cols, $picks, $hazards, $cache, $fatigue, $xp, $condition['key'], $enabled]);
 } catch (Throwable $e) {
     pw_error('That sweep tier could not be saved.', 500);
 }

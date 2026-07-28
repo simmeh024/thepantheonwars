@@ -22,6 +22,7 @@ try {
         $tier['is_enabled'] = (bool)$tier['is_enabled'];
         $tier['loot_table_enabled'] = !empty($tier['loot_table_enabled']);
         $tier['cells'] = $tier['grid_rows'] * $tier['grid_cols'];
+        $tier['condition'] = pw_sweep_condition_public((string)($tier['condition_key'] ?? 'clear'));
     }
     unset($tier);
 
@@ -48,11 +49,17 @@ try {
     }
     unset($table);
 
+    $conditionTypes = [];
+    foreach (pw_sweep_condition_types() as $key => $condition) {
+        $conditionTypes[] = array_merge(['key' => $key], $condition);
+    }
+
     pw_json([
         'ok' => true,
         'tiers' => $tiers,
         'ranks' => $ranks,
         'loot_tables' => $lootTables,
+        'condition_types' => $conditionTypes,
         'limits' => [
             'max_rows' => PW_SWEEP_MAX_ROWS,
             'max_cols' => PW_SWEEP_MAX_COLS,

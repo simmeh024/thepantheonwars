@@ -15,7 +15,8 @@ named beside them; if one of those changes, change it here too.
   (`api/admin/sweep-tiers/{list,save,delete}.php`, `js/admin-sweep-tiers.js`)
 - Balance: Admin → Game Control → **Game Tuning** → Salvage Sweep sectors
   (`api/admin/game-tuning/sweep.php`)
-- Schema: `sql/migration_salvage_sweep.sql`
+- Schema: `sql/migration_salvage_sweep.sql`, then
+  `sql/migration_sweep_sector_conditions.sql` for existing installs
 
 ---
 
@@ -42,7 +43,7 @@ start.php
    • charges the crew member's fatigue, sets them to on_mission
    • rolls a secret seed
    • freezes the board: size, collapses, scans, survey, brace, and the four
-     research perks, all written onto the run row
+     research perks, plus its sector condition, all written onto the run row
         │
         ▼
    ┌───► pick.php  (one cell)
@@ -89,6 +90,21 @@ sector at rank 1 covers every player until a second is written.
 Each sector sets: field size, number of collapses, base scans, cache ceiling,
 fatigue cost, XP reward, and the **loot table** every find is drawn from. A
 sector with no usable loot table cannot be opened.
+
+### Sector conditions
+
+An administrator assigns exactly one condition to each sector. The condition
+is displayed before launch and across the board in its own visual template, so
+the warning is part of the decision rather than hidden in a tooltip. It is
+frozen onto the run at launch: changing a sector later cannot alter a board
+already being played.
+
+| Condition | Warning / effect |
+|---|---|
+| Nominal field | No sector penalty. |
+| Signal interference | Cache Recognition previews are not possible. |
+| Unstable structure | One collapse is added after Shoring has been applied. |
+| Dense debris | One scan is removed after crew and research bonuses. |
 
 ### The crew member — four stats, four different jobs
 
@@ -194,7 +210,7 @@ Change any of these and the mechanic changes with it.
    reveal would make withdrawing meaningless.
 2. **A collapse pays nothing** except what the Emergency Tether returns.
 3. **The board is frozen at launch.** Unlocking a protocol mid-sweep must not
-   change a field already being walked.
+   change a field already being walked. This includes the sector condition.
 4. **One board at a time.** Otherwise a player could open several, spend every
    crew member's fatigue at once, and bank only the luckiest.
 5. **The seed never leaves the server**, and unopened cells are sent as nothing
