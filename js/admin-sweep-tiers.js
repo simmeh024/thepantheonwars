@@ -131,25 +131,40 @@
     hazardHint.textContent = 'Between 0 and ' + max + ' on this field: two cells must stay safe.';
   }
 
+  function lastTier() {
+    /* The endpoint orders tiers by rank, but use a reduction here so this
+       remains correct if a future list presentation groups or reorders them. */
+    return tiers.reduce(function (latest, tier) {
+      return !latest || Number(tier.rank_number) > Number(latest.rank_number) ? tier : latest;
+    }, null);
+  }
+
   function openModal(tier) {
     if (!tier && !can('sweep_tiers.manage')) return;
+    /* New sectors start as a true copy of the highest existing sector. Rank is
+       intentionally excluded: it identifies the record, must be unique, and
+       is the one choice an author needs to make for the new board. */
+    var source = tier || lastTier();
+    var copying = !tier && !!source;
     current = tier || null;
     el('sweep-tier-modal-title').textContent = tier ? 'Sector ' + tier.rank_number : 'New sector';
     el('sweep-tier-modal-sub').textContent = tier
       ? 'Opens for anyone holding rank ' + tier.rank_number + ' or above, until a higher sector does.'
-      : 'One board per rank. Pick the rank it opens at.';
+      : (copying
+        ? 'Copied from sector ' + source.rank_number + '. Pick the new rank it opens at.'
+        : 'One board per rank. Pick the rank it opens at.');
     fillRanks(tier ? tier.rank_number : null);
-    fillLootTables(tier ? tier.loot_table_id : '');
-    fillConditions(tier && tier.condition ? tier.condition.key : (tier ? tier.condition_key : 'clear'));
-    el('sweep-tier-name').value = tier ? tier.name : '';
-    el('sweep-tier-rows').value = tier ? tier.grid_rows : 5;
-    el('sweep-tier-cols').value = tier ? tier.grid_cols : 5;
-    el('sweep-tier-picks').value = tier ? tier.base_picks : 5;
-    el('sweep-tier-hazards').value = tier ? tier.hazard_count : 4;
-    el('sweep-tier-cache').value = tier ? tier.cache_credits : 120;
-    el('sweep-tier-fatigue').value = tier ? tier.fatigue_cost : 20;
-    el('sweep-tier-xp').value = tier ? tier.xp_reward : 30;
-    el('sweep-tier-enabled').checked = tier ? tier.is_enabled : true;
+    fillLootTables(source ? source.loot_table_id : '');
+    fillConditions(source && source.condition ? source.condition.key : (source ? source.condition_key : 'clear'));
+    el('sweep-tier-name').value = source ? source.name : '';
+    el('sweep-tier-rows').value = source ? source.grid_rows : 5;
+    el('sweep-tier-cols').value = source ? source.grid_cols : 5;
+    el('sweep-tier-picks').value = source ? source.base_picks : 5;
+    el('sweep-tier-hazards').value = source ? source.hazard_count : 4;
+    el('sweep-tier-cache').value = source ? source.cache_credits : 120;
+    el('sweep-tier-fatigue').value = source ? source.fatigue_cost : 20;
+    el('sweep-tier-xp').value = source ? source.xp_reward : 30;
+    el('sweep-tier-enabled').checked = source ? source.is_enabled : true;
     syncHazardHint();
     syncConditionPreview();
     setError(''); setNotice('');
