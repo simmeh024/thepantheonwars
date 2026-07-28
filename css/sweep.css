@@ -375,6 +375,14 @@ button.sweep-cell.is-scanning { border-color: #f0d891; color: #fff0c2; animation
 .sweep-figure.is-science i { color: #6fd7b0; }
 .sweep-figure.is-charisma i { color: #e8c66f; }
 
+/* A concise pre-flight read that turns the four independent sweep figures into
+ * an actionable loadout assessment for the sector the commander has open. */
+.sweep-readiness { --readiness-color: #e3a89d; display: grid; gap: 7px; padding: 8px 9px; border: 1px solid var(--readiness-color); border-left: 3px solid var(--readiness-color); background: linear-gradient(110deg, rgba(22,43,57,.72), rgba(8,17,31,.62)); }
+.sweep-readiness.is-a { --readiness-color: #9edba8; }.sweep-readiness.is-b { --readiness-color: #7ee3e8; }.sweep-readiness.is-c { --readiness-color: #ecc987; }
+.sweep-readiness-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }.sweep-readiness-head span { display: grid; gap: 1px; }.sweep-readiness-head small, .sweep-readiness-metrics small { color: var(--readiness-color); font: 800 .46rem/1 'Jost', sans-serif; letter-spacing: .12em; text-transform: uppercase; }.sweep-readiness-head strong { color: #e9f4f6; font: 600 .7rem/1.2 'Cinzel', serif; }.sweep-readiness-head > b { color: var(--readiness-color); font: 700 .86rem/1 'Cinzel', serif; }.sweep-readiness-head > b i { margin-left: 2px; color: #7994a6; font: 600 .48rem/1 Jost, sans-serif; font-style: normal; }
+.sweep-readiness-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; }.sweep-readiness-metrics span { display: grid; gap: 2px; min-width: 0; padding: 4px; border: 1px solid rgba(104,151,180,.22); background: rgba(3,10,19,.38); }.sweep-readiness-metrics strong { overflow: hidden; color: #d8e6ec; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }.sweep-readiness-metrics span.is-low { border-color: rgba(225,156,145,.4); }.sweep-readiness-metrics span.is-low strong { color: #efb3aa; }
+.sweep-readiness p { margin: 0; color: #efb2a7; font-size: .57rem; line-height: 1.38; }.sweep-readiness p.is-clear { color: #a9dcb7; }
+
 .sweep-crew-foot { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 8px; }
 .sweep-crew-fatigue { display: grid; flex: 1 1 130px; gap: 4px; min-width: 0; }
 .sweep-crew-fatigue small { color: #9db4c6; font-size: 0.6rem; }

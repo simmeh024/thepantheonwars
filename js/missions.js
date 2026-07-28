@@ -1147,13 +1147,12 @@
    * offering no button. */
   function bestEquipTarget(item) {
     if (!item || !item.slot || !state.data) return null;
-    var score = gearPower(item);
     var best = null;
     (state.data.crew || []).forEach(function (crew) {
       if (!resultGearFitsCrew(item, crew)) return;
       if (crewAvailability(crew) !== 'available') return;
       var current = crew.gear && crew.gear[item.slot] ? crew.gear[item.slot] : null;
-      var gain = score - gearPower(current);
+      var gain = roleGearScore(crew, item) - roleGearScore(crew, current);
       if (gain <= 0) return;
       /* An empty slot wins ties against an equal-power replacement: filling a
        * gap is worth more than swapping like for like. */
@@ -1822,6 +1821,56 @@
       + '<strong>' + escapeHtml(formatValue(value)) + '</strong>' + previewMarkup + '</dd></div>';
   }
 
+  /* A launch projection says what the selected crew will earn. This companion
+   * answers the loadout question before launch: are their equipment bonuses
+   * covering the risks this operation exposes? It is advisory, never a gate. */
+  function missionReadinessMarkup(projection, mission) {
+    if (!projection || !projection.crew || !projection.crew.length) return '';
+    var required = Math.max(1, Number(mission.min_crew) || 1);
+    var slotsPerCrew = gearSlots().length;
+    var hasGear = slotsPerCrew > 0;
+    var totalSlots = projection.crew.length * slotsPerCrew;
+    var fitted = 0;
+    var gearBonus = { strength: 0, cunning: 0, science: 0, charisma: 0 };
+    projection.crew.forEach(function (crew) {
+      var equipped = crew.gear || {};
+      gearSlots().forEach(function (slot) { if (equipped[slot.key]) fitted++; });
+      Object.keys(gearBonus).forEach(function (key) { gearBonus[key] += Number((crew.gear_bonus || {})[key]) || 0; });
+    });
+    var coverage = totalSlots ? Math.round((fitted / totalSlots) * 100) : 0;
+    var rule = affinityRule(mission.mission_type);
+    var score = Math.round(
+      Math.min(20, (projection.crew.length / required) * 20)
+      + (rule ? (projection.matched > 0 ? 20 : 0) : 20)
+      + (hasGear ? Math.min(25, coverage * 0.25) : 25)
+      + Math.min(20, Number(projection.success_percent) * 0.2)
+      + Math.min(8, Number(projection.loot_percent) * 0.16)
+      + Math.min(7, Number(projection.upgrade_percent) * 0.12)
+    );
+    score = Math.max(0, Math.min(100, score));
+    var grade = score >= 82 ? { key: 'a', label: 'Ready' }
+      : score >= 68 ? { key: 'b', label: 'Steady' }
+      : score >= 52 ? { key: 'c', label: 'Exposed' }
+      : { key: 'd', label: 'Underprepared' };
+    var checks = [
+      { key: 'resilience', label: 'Resilience', value: Number(projection.success_percent) + '% success', low: Number(projection.success_percent) < 72 || (hasGear && gearBonus.strength < 1) },
+      { key: 'recovery', label: 'Recovery', value: '+' + fmt(projection.loot_percent) + '% loot', low: hasGear && gearBonus.cunning < 1 },
+      { key: 'quality', label: 'Reward quality', value: '+' + fmt(projection.upgrade_percent) + '% tier', low: hasGear && gearBonus.science < 1 },
+      { key: 'coverage', label: 'Loadout fit', value: hasGear ? fitted + ' / ' + totalSlots + ' slots' : 'Not unlocked', low: hasGear && coverage < 50 }
+    ];
+    var risks = [];
+    if (projection.crew.length < required) risks.push('Crew coverage: assign ' + (required - projection.crew.length) + ' more crew member' + (required - projection.crew.length === 1 ? '' : 's') + '.');
+    if (projection.penalty && rule) risks.push('Specialist gap: add a ' + Object.keys(rule.preferred).join(' or ') + '.');
+    if (hasGear && gearBonus.strength < 1) risks.push('Resilience: Strength gear raises success odds.');
+    if (hasGear && gearBonus.cunning < 1) risks.push('Recovery: Cunning gear earns more loot draws.');
+    if (hasGear && gearBonus.science < 1) risks.push('Quality: Science gear improves tier upgrades.');
+    if (hasGear && coverage < 50) risks.push('Loadout coverage: ' + (totalSlots - fitted) + ' slot' + (totalSlots - fitted === 1 ? '' : 's') + ' still empty.');
+    return '<section class="mission-loadout-readiness is-' + grade.key + '"><div class="mission-loadout-readiness-head"><span><small>Loadout readiness</small><strong>'
+      + grade.label + '</strong></span><b>' + score + '<i>/100</i></b></div><div class="mission-loadout-readiness-checks">'
+      + checks.map(function (check) { return '<span class="is-' + check.key + (check.low ? ' is-low' : '') + '"><small>' + escapeHtml(check.label) + '</small><strong>' + escapeHtml(check.value) + '</strong></span>'; }).join('')
+      + '</div>' + (risks.length ? '<ul class="mission-loadout-readiness-risks">' + risks.slice(0, 3).map(function (risk) { return '<li>' + escapeHtml(risk) + '</li>'; }).join('') + '</ul>' : '<p class="mission-loadout-readiness-clear">' + (hasGear ? 'Loadout coverage is supporting this operation.' : 'Equipment loadouts are not unlocked on this command yet.') + '</p>') + '</section>';
+  }
+
   function renderLaunchRival() {
     var mission = state.launchMission;
     if (!launchRival) return;
@@ -1883,6 +1932,7 @@
       + (note ? '<p class="mission-projection-note' + (projection.penalty ? ' is-warning' : ' is-good') + '">' + escapeHtml(note) + '</p>' : '')
       + (weatherNote ? '<p class="mission-projection-note is-weather">' + escapeHtml(weatherNote) + '</p>' : '')
       + (rivalNote ? '<p class="mission-projection-note is-rival">' + escapeHtml(rivalNote) + '</p>' : '')
+      + missionReadinessMarkup(projection, mission)
       + '<p class="mission-projection-caveat">Projected from the crew you have chosen. Command confirms the final figures on return.</p>';
   }
 
@@ -1940,7 +1990,7 @@
   /* ---- Equipment advice (idea 7) --------------------------------------
    * How many of this crew member's slots hold nothing, or hold something a
    * spare item in the inventory would beat. Reuses the loadout modal's own
-   * bestLoadoutCandidate()/gearPower(), so "better" means exactly what the
+   * bestLoadoutCandidate()/loadoutImprovesCrew(), so "better" means exactly what the
    * Equip best action already means -- there is one definition of better gear
    * in this file, not two.
    *
@@ -1959,7 +2009,7 @@
       var current = crew.gear && crew.gear[slot.key] ? crew.gear[slot.key] : null;
       if (!current) empty++;
       var best = bestLoadoutCandidate(crew, slot.key);
-      if (best && !best.equipped && gearPower(best.item) > gearPower(current)) count++;
+      if (best && !best.equipped && loadoutImprovesCrew(crew, slot.key, best.item, current)) count++;
     });
     return { count: count, empty: empty };
   }
@@ -2891,6 +2941,59 @@
     return rows.length ? rows.join('') : '<span class="mission-loadout-delta-cell">No change to this crew member’s stats</span>';
   }
 
+  /* A generic power score is useful for comparing arbitrary loot, but a
+   * Vanguard with a little more Science is not necessarily better prepared
+   * than one carrying Strength gear. These are display and sorting weights;
+   * the server still applies every stat bonus exactly, whatever role wears it. */
+  var ROLE_GEAR_FOCUS = {
+    Vanguard: { key: 'strength', label: 'Strength', benefit: 'mission success' },
+    Pathfinder: { key: 'charisma', label: 'Charisma', benefit: 'crew XP' },
+    Engineer: { key: 'science', label: 'Science', benefit: 'reward quality' },
+    Fixer: { key: 'cunning', label: 'Cunning', benefit: 'credits and loot' }
+  };
+
+  function roleGearFocus(crew) {
+    return ROLE_GEAR_FOCUS[String(crew && crew.role || '')] || { key: '', label: 'Balanced', benefit: 'operation value' };
+  }
+
+  function roleGearScore(crew, item) {
+    if (!item) return 0;
+    var focus = roleGearFocus(crew);
+    var bonus = item.bonus || {};
+    var score = gearPower(item);
+    /* gearPower is expressed in hundreds, so focus needs its own larger lane:
+     * a two-point role stat must beat an otherwise attractive off-role bonus. */
+    if (focus.key) score += (Number(bonus[focus.key]) || 0) * 1000;
+    return score;
+  }
+
+  function loadoutImprovesCrew(crew, slotKey, item, current) {
+    if (!item) return false;
+    current = current === undefined ? (crew.gear && crew.gear[slotKey] ? crew.gear[slotKey] : null) : current;
+    return roleGearScore(crew, item) > roleGearScore(crew, current);
+  }
+
+  function loadoutItemSummary(item, emptyLabel) {
+    return item
+      ? item.name + ' · ' + (gearBonusText(item.bonus) || 'No stat bonus')
+      : (emptyLabel || 'Empty');
+  }
+
+  function loadoutComparisonMarkup(crew, candidate, label) {
+    var current = crew.gear && crew.gear[state.loadoutSlot] ? crew.gear[state.loadoutSlot] : null;
+    return '<span class="mission-loadout-delta-label">' + escapeHtml(label || 'Compare equipment') + '</span>'
+      + '<span class="mission-loadout-compare-items"><span><small>Current</small><strong>'
+      + escapeHtml(loadoutItemSummary(current, 'Empty ' + slotLabel(state.loadoutSlot))) + '</strong></span><span><small>Selected</small><strong>'
+      + escapeHtml(loadoutItemSummary(candidate, 'Empty slot')) + '</strong></span></span>'
+      + '<span class="mission-loadout-compare-stats">' + loadoutDelta(crew, candidate) + '</span>';
+  }
+
+  function loadoutBaselineMarkup(crew) {
+    var current = crew.gear && crew.gear[state.loadoutSlot] ? crew.gear[state.loadoutSlot] : null;
+    return '<span class="mission-loadout-delta-label">Current slot</span><span class="mission-loadout-compare-items is-single"><span><small>Equipped</small><strong>'
+      + escapeHtml(loadoutItemSummary(current, 'Empty ' + slotLabel(state.loadoutSlot))) + '</strong></span></span><span class="mission-loadout-compare-hint">Hover or focus an item to compare the full swap.</span>';
+  }
+
   function openLoadout(crewId) {
     if (!gearReady()) return;
     var crew = (state.data && state.data.crew || []).filter(function (member) { return Number(member.id) === Number(crewId); })[0];
@@ -2926,7 +3029,8 @@
     return loadoutCandidates(crew, slotKey).filter(function (entry) {
       return !entry.reason;
     }).sort(function (a, b) {
-      return gearPower(b.item) - gearPower(a.item) || Number(b.item.id) - Number(a.item.id);
+      return roleGearScore(crew, b.item) - roleGearScore(crew, a.item)
+        || gearPower(b.item) - gearPower(a.item) || Number(b.item.id) - Number(a.item.id);
     })[0] || null;
   }
 
@@ -2973,9 +3077,12 @@
       var value = Number(bonus[key]) || 0;
       return value ? STAT_INFO[key].effect(value) : '';
     }).filter(Boolean);
+    var focus = roleGearFocus(crew);
     loadoutSummary.innerHTML = '<span class="mission-loadout-summary-slots"><strong>' + filled + ' / ' + gearSlots().length + '</strong><small>slots fitted</small></span>'
       + '<span class="mission-loadout-summary-bonus"><strong>' + escapeHtml(bonusText || 'No gear bonus') + '</strong><small>'
-      + escapeHtml(effects.length ? effects.join(' · ') : 'Fit equipment to improve mission outcomes') + '</small></span>';
+      + escapeHtml(effects.length ? effects.join(' · ') : 'Fit equipment to improve mission outcomes') + '</small></span>'
+      + '<span class="mission-loadout-summary-focus"><strong>' + escapeHtml(crew.role + ' focus · ' + focus.label) + '</strong><small>'
+      + escapeHtml(focus.label + ' improves ' + focus.benefit + ' for this role.') + '</small></span>';
   }
 
   function renderLoadoutOptions(crew) {
@@ -2991,6 +3098,7 @@
       if (entry.equipped) meta.push('equipped');
       else if (entry.item.quantity > 1) meta.push(entry.spare + ' spare of ' + entry.item.quantity);
       var isRecommended = recommended && recommended.item.id === entry.item.id && !entry.equipped;
+      if (isRecommended) meta.push(roleGearFocus(crew).label + ' focus');
       return '<button type="button" class="mission-loadout-option' + (entry.equipped ? ' is-equipped' : '')
         + (isRecommended ? ' is-recommended' : '')
         + (entry.reason && !entry.equipped ? ' is-blocked' : '') + ' is-' + escapeHtml(entry.item.tier) + '"'
@@ -2998,7 +3106,7 @@
         + ' title="' + escapeHtml(gearTooltip(entry.item)) + '">'
         + '<span class="mission-loadout-option-icon">' + gearIconHtml(slotKey, entry.item.icon_url) + '</span>'
         + '<span class="mission-loadout-option-copy"><strong>' + escapeHtml(entry.item.name)
-        + (isRecommended ? '<em>Best available</em>' : '') + '</strong>'
+        + (isRecommended ? '<em>Role pick</em>' : '') + '</strong>'
         + '<small>' + escapeHtml(meta.join(' · ')) + (entry.reason && !entry.equipped ? ' · ' + escapeHtml(entry.reason) : '') + '</small></span></button>';
     }).join('');
     loadoutOptions.innerHTML = (current
@@ -3007,16 +3115,16 @@
         + '<small>Leave this slot empty. The item stays in your inventory.</small></span></button>'
       : '')
       + (rows || '<p class="missions-empty">Nothing in your inventory fits this slot yet.</p>');
-    loadoutDeltaBox.innerHTML = '';
+    loadoutDeltaBox.innerHTML = loadoutBaselineMarkup(crew);
   }
 
   function renderLoadoutActions(crew) {
     var current = crew.gear && crew.gear[state.loadoutSlot] ? crew.gear[state.loadoutSlot] : null;
     var best = bestLoadoutCandidate(crew, state.loadoutSlot);
-    var canImprove = best && !best.equipped && gearPower(best.item) > gearPower(current);
+    var canImprove = best && !best.equipped && loadoutImprovesCrew(crew, state.loadoutSlot, best.item, current);
     if (loadoutBest) {
       loadoutBest.disabled = !canImprove || state.loadoutAutoRunning;
-      loadoutBest.textContent = canImprove ? 'Equip best ' + slotLabel(state.loadoutSlot).toLowerCase() : 'Best ' + slotLabel(state.loadoutSlot).toLowerCase() + ' equipped';
+      loadoutBest.textContent = canImprove ? 'Equip role pick' : 'Role pick equipped';
     }
     if (loadoutAuto) loadoutAuto.disabled = state.loadoutAutoRunning;
     if (loadoutModal) loadoutModal.classList.toggle('is-auto-equipping', state.loadoutAutoRunning);
@@ -3072,7 +3180,7 @@
       var slot = slots[index];
       var current = currentCrew.gear && currentCrew.gear[slot] ? currentCrew.gear[slot] : null;
       var best = bestLoadoutCandidate(currentCrew, slot);
-      if (!best || best.equipped || gearPower(best.item) <= gearPower(current)) return equipNext(index + 1);
+      if (!best || best.equipped || !loadoutImprovesCrew(currentCrew, slot, best.item, current)) return equipNext(index + 1);
       state.loadoutSlot = slot;
       renderLoadout();
       return requestLoadoutChange(currentCrew, slot, best.item.id).then(function () {
@@ -3085,7 +3193,7 @@
     equipNext(0).then(function () {
       state.loadoutAutoRunning = false;
       renderLoadout();
-      setStatus(changed ? 'Best available equipment fitted to ' + crew.name + '.' : crew.name + ' already has the best available loadout.');
+      setStatus(changed ? 'Role-focused equipment fitted to ' + crew.name + '.' : crew.name + ' already has the best role-focused loadout.');
     }).catch(function (error) {
       state.loadoutAutoRunning = false;
       loadoutError.textContent = error.message;
@@ -3101,14 +3209,15 @@
     loadoutSlots.classList.add('is-previewing');
     var active = loadoutSlots.querySelector('.mission-loadout-slot-card.is-active');
     if (active) active.classList.add('is-preview-target');
-    loadoutDeltaBox.innerHTML = '<span class="mission-loadout-delta-label">' + escapeHtml(id ? 'Preview equip' : 'Preview removal') + '</span>' + loadoutDelta(crew, item);
+    loadoutDeltaBox.innerHTML = loadoutComparisonMarkup(crew, item, id ? 'Preview equip' : 'Preview removal');
   }
 
   function clearLoadoutPreview() {
     if (!loadoutSlots) return;
     loadoutSlots.classList.remove('is-previewing');
     loadoutSlots.querySelectorAll('.is-preview-target').forEach(function (slot) { slot.classList.remove('is-preview-target'); });
-    loadoutDeltaBox.innerHTML = '';
+    var crew = loadoutCrew();
+    if (crew) loadoutDeltaBox.innerHTML = loadoutBaselineMarkup(crew);
   }
 
   if (loadoutSlots) {
@@ -3132,19 +3241,7 @@
       submitLoadout(Number(button.getAttribute('data-item-id')));
     });
     /* Hovering a candidate previews the swap. Focus counts too: a keyboard user
-     * gets the same preview, which :hover alone would never give them. */
-    ['mouseover', 'focusin'].forEach(function (type) {
-      loadoutOptions.addEventListener(type, function (event) {
-        var button = event.target.closest('.mission-loadout-option');
-        var crew = loadoutCrew();
-        if (!button || !crew) return;
-        var id = Number(button.getAttribute('data-item-id'));
-        var item = id ? (state.data.loot || []).filter(function (entry) { return entry.id === id; })[0] : null;
-        loadoutDeltaBox.innerHTML = '<span class="mission-loadout-delta-label">'
-          + escapeHtml(id ? 'If equipped' : 'If removed') + '</span>' + loadoutDelta(crew, item);
-      });
-    });
-    loadoutOptions.addEventListener('mouseleave', function () { loadoutDeltaBox.innerHTML = ''; });
+     * gets the same current-versus-selected comparison rather than only a colour cue. */
     ['mouseover', 'focusin'].forEach(function (type) {
       loadoutOptions.addEventListener(type, function (event) {
         showLoadoutPreview(event.target.closest('.mission-loadout-option'));
@@ -3797,6 +3894,9 @@
        * deducted from the quantity ledger, so destroying one would leave a crew
        * member wearing something nobody owns -- the server refuses it too. */
       var actions = [];
+      if (isGear && inventoryQuickEquipCandidates(item).length) {
+        actions.push('<button type="button" class="btn btn-solid mission-inventory-quick-equip" data-inventory-quick-equip="' + Number(item.id) + '">Equip to&hellip;</button>');
+      }
       if (isGear) actions.push('<button type="button" class="btn" data-inventory-compare="' + Number(item.id) + '">Compare</button>');
       if (isStim) {
         actions.push('<button type="button" class="btn btn-solid mission-inventory-use" data-stim-use="' + Number(item.id) + '">Use</button>');
@@ -3982,6 +4082,60 @@
     if (state.data) renderInventory(state.data);
   }
 
+  function loadoutDeltaText(crew, slotKey, item) {
+    var current = crew.gear && crew.gear[slotKey] ? crew.gear[slotKey] : null;
+    var cap = Number(state.data && state.data.max_gear_stat) || 80;
+    return ['strength', 'cunning', 'science', 'charisma'].map(function (key) {
+      var now = Math.max(0, Number(crew[key]) || 0);
+      var next = Math.max(0, Math.min(cap, now - (current ? Number(current.bonus[key]) || 0 : 0) + (Number(item.bonus[key]) || 0)));
+      var delta = next - now;
+      return delta ? (delta > 0 ? '+' : '') + delta + ' ' + STAT_INFO[key].short : '';
+    }).filter(Boolean).join(' · ') || 'No stat change';
+  }
+
+  /* The short route from an inventory find to the standing-by crew member it
+   * can actually help. gear-equip.php repeats these checks before it commits. */
+  function inventoryQuickEquipCandidates(item) {
+    if (!item || !item.slot || !state.data) return [];
+    var spare = Number(item.quantity) - Number(item.equipped_count);
+    if (spare < 1) return [];
+    return (state.data.crew || []).filter(function (crew) {
+      var current = crew.gear && crew.gear[item.slot] ? crew.gear[item.slot] : null;
+      return crewAvailability(crew) === 'available'
+        && resultGearFitsCrew(item, crew)
+        && (!current || Number(current.loot_definition_id) !== Number(item.id));
+    });
+  }
+
+  function quickEquipInventoryItem(button) {
+    var item = inventoryItem(Number(button.getAttribute('data-inventory-quick-equip')));
+    var candidates = inventoryQuickEquipCandidates(item);
+    if (!item || !candidates.length) {
+      setStatus('No crew member currently meets this equipment’s requirements.', true);
+      return;
+    }
+    openChoice({
+      eyebrow: 'Quick equip',
+      title: 'Equip ' + item.name,
+      copy: 'Choose a standing-by crew member. Command replaces only this item’s slot.',
+      confirmLabel: 'Equip',
+      options: candidates.map(function (crew) {
+        var current = crew.gear && crew.gear[item.slot] ? crew.gear[item.slot] : null;
+        return {
+          value: crew.id,
+          label: crew.name + ' · ' + crew.role,
+          meta: (current ? 'Replace ' + current.name : 'Empty ' + slotLabel(item.slot)) + ' · ' + loadoutDeltaText(crew, item.slot, item)
+        };
+      })
+    }).then(function (choice) {
+      if (!choice) return null;
+      button.disabled = true;
+      return post('/api/missions/gear-equip.php', { crew_id: Number(choice.value), loot_definition_id: Number(item.id), csrf: window.PW_AUTH.csrf })
+        .then(function (result) { setStatus(result.message); return load(); })
+        .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
+    });
+  }
+
   function equipComparedInventoryItem(button) {
     var crewId = Number(button.getAttribute('data-inventory-compare-equip'));
     var itemId = Number(button.getAttribute('data-item-id'));
@@ -4055,6 +4209,8 @@
       if (use && !use.disabled) { useStim(use); return; }
       var favorite = event.target.closest('[data-inventory-favorite]');
       if (favorite) { var favoriteItem = inventoryItem(Number(favorite.getAttribute('data-inventory-favorite'))); if (favoriteItem) saveInventoryPreference(favoriteItem.id, !favoriteItem.is_favorite, favoriteItem.tag_key); return; }
+      var quickEquip = event.target.closest('[data-inventory-quick-equip]');
+      if (quickEquip && !quickEquip.disabled) { quickEquipInventoryItem(quickEquip); return; }
       var compare = event.target.closest('[data-inventory-compare]');
       if (compare) { compareInventoryItem(compare.getAttribute('data-inventory-compare')); return; }
       var convert = event.target.closest('[data-conversion-queue]');

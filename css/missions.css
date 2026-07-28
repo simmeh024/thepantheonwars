@@ -85,6 +85,14 @@
 .mission-loadout-delta-cell s { color: #6f889b; }
 .mission-loadout-delta-cell.is-better strong { color: #9edba8; }
 .mission-loadout-delta-cell.is-worse strong { color: #e0a894; }
+.mission-loadout-compare-items { display: grid; flex: 1 1 235px; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.mission-loadout-compare-items > span { min-width: 0; padding: 4px 6px; border-left: 2px solid rgba(117,143,167,.54); background: rgba(12,29,48,.48); }
+.mission-loadout-compare-items > span + span { border-left-color: rgba(121,217,223,.72); }
+.mission-loadout-compare-items small { display: block; color: #778fa2; font-size: .5rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.mission-loadout-compare-items strong { display: block; overflow: hidden; margin-top: 2px; color: #dce9ef; font-size: .61rem; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
+.mission-loadout-compare-items.is-single { grid-template-columns: minmax(0, 1fr); max-width: 260px; }
+.mission-loadout-compare-stats { display: flex; flex: 1 1 100%; flex-wrap: wrap; gap: 5px 10px; }
+.mission-loadout-compare-hint { color: #859dad; font-size: .59rem; line-height: 1.35; }
 
 /* Loadout command enhancements: the actual crew appears as a deliberately
  * quiet figure behind its gear, while the selected slot gets a live visual
@@ -151,6 +159,8 @@
   .mission-loadout-body { grid-template-columns: minmax(0, 1fr); }
   .mission-loadout-body::before { display: none; }
   .mission-loadout-slots::before { inset: 10% 28%; opacity: .12; }
+  .mission-loadout-compare-items { flex-basis: 100%; }
+  .mission-loadout-readiness-checks { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .missions-inventory-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) { .missions-page.has-watermark::before { background-size: min(78vmin, 420px); } }
@@ -861,6 +871,11 @@
 .mission-projection-note { margin: 10px 0 0 !important; font-size: 0.68rem !important; font-weight: 600; }
 .mission-projection-note.is-good { color: #9edba8 !important; }
 .mission-projection-note.is-warning { color: #e0a894 !important; }
+.mission-loadout-readiness { --readiness-color: #e0a894; margin-top: 12px; padding: 10px; border: 1px solid var(--readiness-color); border-left: 3px solid var(--readiness-color); background: linear-gradient(105deg, rgba(24,39,58,.72), rgba(10,19,35,.66)); }
+.mission-loadout-readiness.is-a { --readiness-color: #9edba8; }.mission-loadout-readiness.is-b { --readiness-color: #8edee2; }.mission-loadout-readiness.is-c { --readiness-color: #ecc987; }
+.mission-loadout-readiness-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }.mission-loadout-readiness-head span { display: grid; gap: 1px; }.mission-loadout-readiness-head small, .mission-loadout-readiness-checks small { color: var(--readiness-color); font-size: .5rem; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }.mission-loadout-readiness-head strong { color: #edf6f8; font-size: .78rem; }.mission-loadout-readiness-head > b { color: var(--readiness-color); font: 700 1rem/1 'Cinzel', serif; }.mission-loadout-readiness-head > b i { margin-left: 2px; color: #7f9aab; font: 600 .55rem/1 Jost, sans-serif; font-style: normal; }
+.mission-loadout-readiness-checks { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; margin-top: 9px; }.mission-loadout-readiness-checks > span { display: grid; gap: 2px; min-width: 0; padding: 5px; border: 1px solid rgba(111,151,178,.24); background: rgba(4,12,24,.35); }.mission-loadout-readiness-checks strong { overflow: hidden; color: #d7e6ed; font-size: .58rem; text-overflow: ellipsis; white-space: nowrap; }.mission-loadout-readiness-checks > span.is-low { border-color: rgba(224,168,148,.42); }.mission-loadout-readiness-checks > span.is-low strong { color: #efb5a8; }
+.mission-loadout-readiness-risks { display: grid; gap: 3px; margin: 9px 0 0; padding: 0; color: #f0baad; font-size: .6rem; line-height: 1.35; list-style: none; }.mission-loadout-readiness-risks li::before { content: '•'; margin-right: 5px; color: var(--readiness-color); }.mission-loadout-readiness-clear { margin: 8px 0 0 !important; color: #addcbb !important; font-size: .61rem !important; }
 .mission-projection-caveat { margin: 6px 0 0 !important; color: #7d94a6 !important; font-size: 0.62rem !important; line-height: 1.45 !important; }
 .mission-result-affinity { margin: 12px 0 0 !important; color: #9edba8 !important; font-size: 0.72rem !important; font-weight: 600; }
 .mission-result-affinity.is-warning { color: #e0a894 !important; }

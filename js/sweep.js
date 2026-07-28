@@ -608,6 +608,40 @@
     ];
   }
 
+  /* The figures explain each stat in isolation; this small brief combines them
+   * into a pre-flight read for the active sector. It is deliberately advisory:
+   * the start endpoint owns all launch validation and applies the condition. */
+  function sweepReadinessMarkup(member, tier) {
+    if (!tier) return '';
+    var projection = member.projection || {};
+    var scans = Number(projection.picks_total) || 0;
+    var brace = Number(projection.shrug_percent) || 0;
+    var survey = Number(projection.hint_radius) || 0;
+    var braceCap = Number(tuning().shrug_cap) || 60;
+    var condition = tier.condition || {};
+    var conditionKey = String(condition.key || 'clear');
+    var score = (member.can_deploy ? 15 : 0)
+      + Math.min(30, (scans / Math.max(1, Number(tier.base_picks) + 2)) * 30)
+      + Math.min(25, (brace / braceCap) * 25)
+      + Math.min(15, survey * 7.5)
+      + (conditionKey === 'clear' ? 15 : 8);
+    score = Math.round(Math.max(0, Math.min(100, score)));
+    var grade = score >= 78 ? { key: 'a', label: 'Ready' }
+      : score >= 62 ? { key: 'b', label: 'Steady' }
+      : score >= 45 ? { key: 'c', label: 'Exposed' }
+      : { key: 'd', label: 'At risk' };
+    var risks = [];
+    if (scans <= Number(tier.base_picks)) risks.push('Scan reserve: Cunning gear can add more field picks.');
+    if (brace < 25) risks.push('Resilience: Strength gear improves the brace chance.');
+    if (survey < 1) risks.push('Survey blind: Science gear unlocks collapse-count rings.');
+    if (conditionKey === 'signal_interference') risks.unshift('Signal interference: cache previews are disabled in this sector.');
+    if (conditionKey === 'unstable_structure') risks.unshift('Structural risk: this sector adds a collapse; favour Brace strength.');
+    if (conditionKey === 'dense_debris') risks.unshift('Dense debris: the sector removes one scan after bonuses.');
+    return '<section class="sweep-readiness is-' + grade.key + '"><div class="sweep-readiness-head"><span><small>Field readiness</small><strong>' + grade.label + '</strong></span><b>' + score + '<i>/100</i></b></div>'
+      + '<div class="sweep-readiness-metrics"><span' + (scans <= Number(tier.base_picks) ? ' class="is-low"' : '') + '><small>Scans</small><strong>' + scans + '</strong></span><span' + (brace < 25 ? ' class="is-low"' : '') + '><small>Brace</small><strong>' + fmt(brace) + '%</strong></span><span' + (survey < 1 ? ' class="is-low"' : '') + '><small>Survey</small><strong>' + survey + ' ring' + (survey === 1 ? '' : 's') + '</strong></span></div>'
+      + (risks.length ? '<p>' + esc(risks.slice(0, 2).join(' ')) + '</p>' : '<p class="is-clear">This loadout is covering the active sector well.</p>') + '</section>';
+  }
+
   function renderCrew() {
     var crew = (state.data && state.data.crew) || [];
     if (!crew.length) { crewList.innerHTML = '<p class="sweep-muted">No crew are available.</p>'; return; }
@@ -680,6 +714,7 @@
         + '<small class="sweep-crew-tier">' + esc(String(member.tier || 'common')) + '</small></span>'
         + '</div>'
         + '<div class="sweep-crew-projection">' + figures + '</div>'
+        + sweepReadinessMarkup(member, tier)
         + '<div class="sweep-crew-foot">'
         + '<span class="sweep-crew-fatigue">' + fatigueBar + '<small>' + have + ' / ' + max + ' fatigue'
         + (cost ? ' &middot; costs ' + cost : '') + '</small></span>'
