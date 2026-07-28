@@ -8,6 +8,12 @@ pw_sweep_require_ready($db);
 $userId = (int)$user['id'];
 
 try {
+    /* Keep this roster truthful when a commander comes straight from another
+     * page after a timer expires. Completed runs retain their crew until their
+     * rewards are claimed, so the Sweep page needs the same settlement pass as
+     * Mission Command before it decides why a crew member is unavailable. */
+    pw_missions_settle_due_runs($db, $userId);
+
     $standing = $db->prepare('SELECT reputation FROM users WHERE id = ?');
     $standing->execute([$userId]);
     $reputation = pw_reputation_info((int)$standing->fetchColumn());
@@ -72,16 +78,30 @@ try {
     /* The same favourites the missions roster uses -- one flag, one meaning.
      * Guarded, because the column arrives with its own migration. */
     $favoritesReady = pw_mission_crew_favorites_ready($db);
+    $contractsReady = pw_mission_overlord_contracts_ready($db);
     $crewStmt = $db->prepare(
         'SELECT pc.id, pc.level, pc.status, pc.fatigue, pc.fatigue_updated_at, c.name, c.role, c.portrait_url,'
         . ($favoritesReady ? ' pc.is_favorite,' : ' 0 AS is_favorite,') . '
-                ' . (pw_mission_crew_capacity_ready($db) ? 'c.tier' : '"common" AS tier') . '
+                ' . (pw_mission_crew_capacity_ready($db) ? 'c.tier,' : '"common" AS tier,') . '
+                assignment.mission_id AS assignment_mission_id,
+                assignment.mission_status AS assignment_mission_status,
+                assignment.mission_name AS assignment_mission_name,
+                assignment.is_contract AS assignment_is_contract
          FROM game_player_crew pc
          JOIN game_crew_definitions c ON c.id = pc.crew_definition_id AND c.is_enabled = 1
+         LEFT JOIN (
+             SELECT link.player_crew_id, pm.id AS mission_id, pm.status AS mission_status,
+                    md.name AS mission_name, '
+            . ($contractsReady ? 'md.overlord_id IS NOT NULL' : '0') . ' AS is_contract
+             FROM game_player_mission_crew link
+             JOIN game_player_missions pm ON pm.id = link.player_mission_id
+             JOIN game_mission_definitions md ON md.id = pm.mission_definition_id
+             WHERE pm.user_id = ? AND pm.status IN ("active", "completed")
+         ) assignment ON assignment.player_crew_id = pc.id
          WHERE pc.user_id = ? AND pc.status <> "retired"
          ORDER BY c.name ASC'
     );
-    $crewStmt->execute([$userId]);
+    $crewStmt->execute([$userId, $userId]);
     $crew = pw_missions_apply_level_stats($crewStmt->fetchAll());
     $crew = pw_missions_apply_gear($db, $userId, $crew);
     $roster = [];
@@ -109,6 +129,10 @@ try {
             'is_favorite' => $favoritesReady && !empty($member['is_favorite']),
             'level' => (int)$member['level'],
             'status' => (string)$member['status'],
+            'assignment_mission_id' => $member['assignment_mission_id'] !== null ? (int)$member['assignment_mission_id'] : null,
+            'assignment_mission_status' => (string)($member['assignment_mission_status'] ?? ''),
+            'assignment_mission_name' => (string)($member['assignment_mission_name'] ?? ''),
+            'assignment_is_contract' => $contractsReady && !empty($member['assignment_is_contract']),
             'fatigue' => $fatigue,
             'fatigue_max' => $fatigueMax,
             'strength' => (int)($member['strength'] ?? 0),

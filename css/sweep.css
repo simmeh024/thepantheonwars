@@ -320,6 +320,9 @@ button.sweep-cell.is-scanning { border-color: #f0d891; color: #fff0c2; animation
 .sweep-crew-bar u { position: absolute; top: -1px; bottom: -1px; width: 2px; background: #ecc987; text-decoration: none; }
 .sweep-crew.is-blocked .sweep-crew-bar i { background: linear-gradient(90deg, #4a6478, #6f8ea2); }
 .sweep-crew-blocked { color: #d8a98f; font-size: 0.62rem; }
+.sweep-crew-contract-finished { color: #9edba8; font: 700 0.58rem/1.3 'Jost', sans-serif; letter-spacing: 0.06em; text-align: right; text-decoration: none; text-transform: uppercase; }
+.sweep-crew-contract-finished span { margin-left: 2px; font-size: 0.75rem; }
+.sweep-crew-contract-finished:hover, .sweep-crew-contract-finished:focus-visible { color: #d4f4da; text-decoration: underline; outline: none; }
 .sweep-crew-foot .btn { min-height: 30px; padding: 0 14px; font-size: 0.6rem; }
 
 /* The rail folds first: at this width the board is still comfortable and the

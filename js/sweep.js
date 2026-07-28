@@ -512,6 +512,8 @@
         || String(left.name).localeCompare(String(right.name));
     });
     crewList.innerHTML = ordered.map(function (member) {
+      var contractFinished = member.status === 'on_mission'
+        && member.assignment_mission_status === 'completed' && !!member.assignment_is_contract;
       var why = !tier ? 'No sector open'
         : (member.status !== 'available' ? 'On assignment'
         : (member.fatigue < tier.fatigue_cost ? 'Needs ' + tier.fatigue_cost + ' fatigue' : ''));
@@ -560,7 +562,10 @@
         + (cost ? ' &middot; costs ' + cost : '') + '</small></span>'
         + (member.can_deploy
           ? '<button type="button" class="btn btn-solid" data-sweep-send="' + member.id + '">Send</button>'
-          : '<span class="sweep-crew-blocked">' + esc(why) + '</span>')
+          : (contractFinished
+            ? '<a class="sweep-crew-contract-finished" href="missions.html#missions-active-list" title="Open '
+              + esc(member.assignment_mission_name || 'finished contract') + ' and claim its rewards">Contract finished <span aria-hidden="true">&rarr;</span></a>'
+          : '<span class="sweep-crew-blocked">' + esc(why) + '</span>'))
         + '</div></div>';
     }).join('');
   }
