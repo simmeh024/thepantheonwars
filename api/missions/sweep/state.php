@@ -112,6 +112,7 @@ try {
     $crewStmt->execute([$userId, $userId]);
     $crew = pw_missions_apply_level_stats($crewStmt->fetchAll());
     $crew = pw_missions_apply_gear($db, $userId, $crew);
+    $crew = pw_missions_apply_item_levels($db, $crew);
     $roster = [];
     foreach ($crew as $member) {
         $fatigue = pw_missions_resolve_fatigue($member, $fatigueMax, $now, $recovery);
@@ -147,6 +148,14 @@ try {
             'cunning' => (int)($member['cunning'] ?? 0),
             'science' => (int)($member['science'] ?? 0),
             'charisma' => (int)($member['charisma'] ?? 0),
+            'item_level_ready' => !empty($member['item_level_ready']),
+            'item_level_total' => (int)($member['item_level_total'] ?? 0),
+            'item_level_average' => (float)($member['item_level_average'] ?? 0),
+            'item_level_max_total' => (int)($member['item_level_max_total'] ?? 0),
+            'item_level_max_average' => (float)($member['item_level_max_average'] ?? 0),
+            'item_level_maxed' => !empty($member['item_level_maxed']),
+            'item_level_catalogue_slots' => (int)($member['item_level_catalogue_slots'] ?? 0),
+            'item_level_slots_at_max' => (int)($member['item_level_slots_at_max'] ?? 0),
             'can_deploy' => $tier !== null && $member['status'] === 'available' && $fatigue >= $tier['fatigue_cost'],
             'projection' => $bonuses,
         ];

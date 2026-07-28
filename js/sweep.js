@@ -199,6 +199,8 @@
     var icon = type === 'cache' ? 'images/credit-stick.webp'
       : (type === 'hazard' ? 'images/Collapsed.webp' : safeImage(cell.icon));
     var tier = String(cell.tier || '').toLowerCase();
+    var itemLevel = type === 'gear' && Number(cell.item_level) > 0
+      ? ' · iLvl ' + Math.round(Number(cell.item_level)) : '';
     var shiny = tier && tier !== 'common' ? ' is-shiny is-tier-' + esc(tier) : '';
     var isReward = ['gear', 'crew', 'cache'].indexOf(type) !== -1;
     var tether = result.payout && result.payout.tether;
@@ -211,8 +213,8 @@
     return '<div class="sweep-cell is-open is-result is-' + esc(type) + shiny
       + (isReward && !secured && !tethered ? ' is-unrecovered' : '')
       + (tethered ? ' is-tethered' : '') + '" role="img" tabindex="0"'
-      + ' aria-label="' + esc('Row ' + row + ', column ' + col + ': ' + label + (isReward ? '; ' + stateLabel : '')) + '"'
-      + ' title="' + esc('R' + row + ' C' + col + ': ' + label + (isReward ? ' — ' + stateLabel : '')) + '">'
+      + ' aria-label="' + esc('Row ' + row + ', column ' + col + ': ' + label + itemLevel + (isReward ? '; ' + stateLabel : '')) + '"'
+      + ' title="' + esc('R' + row + ' C' + col + ': ' + label + itemLevel + (isReward ? ' — ' + stateLabel : '')) + '">'
       + art + '<span class="sweep-result-cell-position" aria-hidden="true">' + row + ',' + col + '</span>'
       + (isReward ? '<span class="sweep-result-cell-state" aria-hidden="true">' + (secured ? '\u2713' : (tethered ? '\u2726' : '\u2014')) + '</span>' : '')
       + '</div>';
@@ -231,8 +233,10 @@
       var tethered = tether && Number(tether.cell_index) === Number(cell.index);
       var secured = result.field.status === 'banked' && !!cell.revealed;
       var resultState = secured ? 'Secured' : (tethered && tether.state !== 'no_room' ? 'Tethered' : 'Left behind');
+      var itemLevel = String(cell.type) === 'gear' && Number(cell.item_level) > 0
+        ? ' · iLvl ' + Math.round(Number(cell.item_level)) : '';
       return '<li class="' + (secured ? 'is-secured' : (tethered ? 'is-tethered' : 'is-missed')) + '">'
-        + '<b>R' + row + ' C' + col + '</b><span>' + esc(cell.label) + '</span><small>' + esc(resultState) + '</small></li>';
+        + '<b>R' + row + ' C' + col + '</b><span>' + esc(String(cell.label || '') + itemLevel) + '</span><small>' + esc(resultState) + '</small></li>';
     }).join('') + '</ul>';
   }
 
@@ -298,11 +302,14 @@
           ? '<img src="' + esc(icon) + '" alt="">'
           : '<span aria-hidden="true">' + (CELL_GLYPH[type] || CELL_GLYPH.gear) + '</span>';
         var label = String(cell.label || (type === 'cache' ? 'Credits' : 'Recovery'));
+        var itemLevel = type === 'gear' && Number(cell.item_level) > 0
+          ? 'iLvl ' + Math.round(Number(cell.item_level)) + ' \u00b7 ' + String(cell.tier || 'common')
+          : String(cell.tier || 'common');
         return '<article class="sweep-reward-cabinet-item is-' + esc(type) + ' is-tier-' + esc(tier) + '"'
           + ' style="--haul-delay:' + Math.min(rewardIndex, 9) * 70 + 'ms">'
           + '<span class="sweep-reward-cabinet-art">' + art + '</span><span class="sweep-reward-cabinet-copy">'
           + '<small>' + esc(type === 'cache' ? 'Credit cache' : type === 'crew' ? 'Crew recovery' : 'Equipment') + '</small>'
-          + '<strong>' + esc(label) + '</strong><em>' + esc(tier) + '</em></span></article>';
+          + '<strong>' + esc(label) + '</strong><em>' + esc(itemLevel) + '</em></span></article>';
       }).join('') + '</div></section>';
   }
 
@@ -642,6 +649,23 @@
       + (risks.length ? '<p>' + esc(risks.slice(0, 2).join(' ')) + '</p>' : '<p class="is-clear">This loadout is covering the active sector well.</p>') + '</section>';
   }
 
+  /* The server uses all seven loadout slots for the average, then resolves the
+   * maximum from enabled gear this specific crew can currently equip. Green is
+   * progress; legendary is reserved for that complete compatible loadout. */
+  function sweepItemLevelMarkup(member) {
+    if (!member || !member.item_level_ready || Number(member.item_level_catalogue_slots) < 1) return '';
+    var current = Number(member.item_level_average) || 0;
+    var maximum = Number(member.item_level_max_average) || 0;
+    var format = function (value) { return (Math.round(value * 10) / 10).toFixed(value % 1 ? 1 : 0); };
+    var maxed = !!member.item_level_maxed;
+    var slots = Number(member.item_level_slots_at_max) || 0;
+    var catalogueSlots = Number(member.item_level_catalogue_slots) || 0;
+    var title = 'Average iLvl ' + format(current) + ' from ' + (Number(member.item_level_total) || 0) + ' equipped iLvl across all 7 slots. '
+      + 'Enabled compatible catalogue ceiling: ' + format(maximum) + ' (' + slots + ' of ' + catalogueSlots + ' slot maxima equipped).';
+    return '<span class="sweep-crew-ilvl ' + (maxed ? 'is-legendary' : 'is-progress') + '" title="' + esc(title) + '"><small>AVG iLvl</small><b>'
+      + format(current) + '</b><em>' + (maxed ? 'MAXED' : '/ ' + format(maximum)) + '</em></span>';
+  }
+
   function renderCrew() {
     var crew = (state.data && state.data.crew) || [];
     if (!crew.length) { crewList.innerHTML = '<p class="sweep-muted">No crew are available.</p>'; return; }
@@ -711,7 +735,7 @@
         + '<span class="sweep-crew-face">' + face + '</span>'
         + '<span class="sweep-crew-name"><strong>' + esc(member.name) + '</strong>'
         + '<em>' + esc(member.role) + ' &middot; L' + member.level + '</em>'
-        + '<small class="sweep-crew-tier">' + esc(String(member.tier || 'common')) + '</small></span>'
+        + '<small class="sweep-crew-tier">' + esc(String(member.tier || 'common')) + '</small>' + sweepItemLevelMarkup(member) + '</span>'
         + '</div>'
         + '<div class="sweep-crew-projection">' + figures + '</div>'
         + sweepReadinessMarkup(member, tier)

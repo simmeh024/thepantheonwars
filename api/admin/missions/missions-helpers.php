@@ -259,6 +259,14 @@ function pw_admin_mission_gear_input(array $input): array {
     $slot = strtolower(trim((string)($input['slot'] ?? '')));
     if ($slot !== '' && !isset(pw_missions_gear_slots()[$slot])) pw_error('Choose a valid equipment slot.');
 
+    /* Item level is a release-authored value, not a derived stat score. The
+     * admin calculator suggests a baseline, but publishing a higher level on a
+     * later release is intentional. Slotless salvage and stims cannot affect a
+     * seven-slot loadout average, so they always retain 0. */
+    $itemLevel = filter_var($input['item_level'] ?? 1, FILTER_VALIDATE_INT);
+    if ($itemLevel === false || $itemLevel < 0 || $itemLevel > 9999) pw_error('Item level must be between 0 and 9,999.');
+    if ($slot === '') $itemLevel = 0;
+
     $dropWeight = filter_var($input['drop_weight'] ?? 100, FILTER_VALIDATE_INT);
     if ($dropWeight === false || $dropWeight < 0 || $dropWeight > 10000) pw_error('Drop weight must be between 0 and 10,000.');
 
@@ -325,6 +333,7 @@ function pw_admin_mission_gear_input(array $input): array {
         'bonus_charisma' => $bonuses['charisma'],
         'required_level' => $requiredLevel,
         'required_role' => $requiredRole,
+        'item_level' => (int)$itemLevel,
         'icon_url' => $iconUrl,
         'stim_effect' => $stimEffect,
         'stim_value' => round((float)$stimValue, 2),

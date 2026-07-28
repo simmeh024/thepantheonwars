@@ -1867,6 +1867,8 @@ CREATE TABLE IF NOT EXISTS game_loot_definitions (
 -- live on game_loot_definitions and are added by
 -- sql/migration_mission_inventory.sql, in the same way the gear columns above
 -- are added by sql/migration_mission_gear.sql rather than declared here.
+-- The authored item_level column is added by
+-- sql/migration_mission_item_levels.sql.
 -- The stim belt: which stim sits in which quick slot on the command view.
 -- Capacity is base plus the stim_slots research effect, resolved in PHP by
 -- pw_missions_stim_slot_capacity() -- it is not a column, so a rank or a

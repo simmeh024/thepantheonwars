@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=321"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=6">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=322"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=6">
 </head>
 <body>
 
@@ -2100,8 +2100,8 @@
       </div>
 
       <div class="mission-admin-panel" id="mission-admin-gear-panel" hidden>
-        <p class="admin-field-hint mission-gear-intro">Equipment is loot with a slot. An item with a slot can be equipped by a crew member and grants its stat bonuses; an item with no slot stays plain salvage. Both drop through the same weighted pool, so a rarity promotion can upgrade a player into better gear.</p>
-        <div class="mission-admin-columns mission-admin-gear-columns" aria-hidden="true"><span>Item</span><span>Slot</span><span>Rarity</span><span>Bonuses</span><span>Requires</span><span>Held</span><span>Status</span></div>
+        <p class="admin-field-hint mission-gear-intro">Equipment is loot with a slot. An item with a slot can be equipped by a crew member and grants its stat bonuses; an item with no slot stays plain salvage. Both drop through the same weighted pool, so a rarity promotion can upgrade a player into better gear. iLvl is published manually per release; the editor's live calculator is a baseline, not an automatic override.</p>
+        <div class="mission-admin-columns mission-admin-gear-columns" aria-hidden="true"><span>Item</span><span>Slot</span><span>Rarity</span><span>iLvl</span><span>Bonuses</span><span>Requires</span><span>Held</span><span>Status</span></div>
         <div class="admin-list mission-admin-list" id="mission-gear-list"><div class="admin-list-empty">Loading equipment&hellip;</div></div>
       </div>
 
@@ -4397,6 +4397,10 @@
       <div class="admin-field"><label for="mission-gear-bonus-charisma">Charisma</label><input type="number" id="mission-gear-bonus-charisma" min="-10" max="15" step="1" value="0"></div>
     </div>
     <p class="admin-field-hint" id="mission-gear-bonus-summary"></p>
+    <div class="admin-field-row mission-gear-ilvl-row" id="mission-gear-ilvl-row">
+      <div class="admin-field"><label for="mission-gear-item-level">Item level</label><input type="number" id="mission-gear-item-level" min="1" max="9999" step="1" value="1"><p class="admin-field-hint">Set this manually when publishing a stronger equipment release.</p></div>
+      <div class="admin-field mission-gear-ilvl-calculator"><label>Live iLvl calculation</label><output id="mission-gear-ilvl-calculation"><strong>iLvl 1</strong><small>Choose a slot to calculate an equipment baseline.</small></output></div>
+    </div>
     <div class="admin-subsection-head" id="mission-gear-stim-head"><h2>Stim</h2><p>A stim is consumed rather than worn, so it cannot also occupy a slot. Fatigue is restored to one resting crew member the moment it is used; the two boosts open an account-wide window that every operation launched inside it reads.</p></div>
     <div class="admin-field-row" id="mission-gear-stim-row">
       <div class="admin-field"><label for="mission-gear-stim-effect">Stim effect</label><select id="mission-gear-stim-effect"><option value="">Not a stim</option></select></div>
@@ -4628,7 +4632,7 @@
 </div>
 
 <script src="../js/members.js?v=43"></script>
-<script src="../js/admin-missions.js?v=15"></script><script src="../js/admin-loot-tables.js?v=8"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-sweep-tiers.js?v=4"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=6"></script>
+<script src="../js/admin-missions.js?v=16"></script><script src="../js/admin-loot-tables.js?v=8"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-sweep-tiers.js?v=4"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=6"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };

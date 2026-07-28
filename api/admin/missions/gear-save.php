@@ -25,6 +25,9 @@ $columns = ['name', 'slug', 'description', 'tier', 'slot', 'world_key', 'drop_we
 if (pw_mission_stims_ready($db)) {
     array_splice($columns, -1, 0, ['stim_effect', 'stim_value', 'stim_duration_seconds']);
 }
+if (pw_mission_item_levels_ready($db)) {
+    array_splice($columns, -1, 0, ['item_level']);
+}
 $values = array_map(static function ($column) use ($data) { return $data[$column]; }, $columns);
 
 if ($id) {

@@ -17,7 +17,7 @@
     inventoryConversionQueue: {}, inventoryCompareItemId: null,
     /* List mode exposes the only multi-item destructive action. The selection
      * is local and revalidated against current holdings before every submit. */
-    inventoryView: 'grid', inventoryBulkSelection: {} };
+    inventoryView: 'grid', inventorySort: 'ilvl-desc', inventoryBulkSelection: {} };
   var gate = document.getElementById('missions-gate');
   var content = document.getElementById('missions-content');
   var statusMessage = document.getElementById('missions-status-message');
@@ -76,6 +76,16 @@
   var inventoryStateFilter = document.getElementById('missions-inventory-state-filter');
   var inventoryFavoriteFilter = document.getElementById('missions-inventory-favorite-filter');
   var inventoryTagFilter = document.getElementById('missions-inventory-tag-filter');
+  /* Kept as a tiny DOM insertion so an older cached missions.html still gains
+   * the iLvl-first sort as soon as this cache-busted script arrives. */
+  var inventorySort = document.getElementById('missions-inventory-sort');
+  if (!inventorySort && inventoryTagFilter && inventoryTagFilter.closest('label')) {
+    var inventorySortLabel = document.createElement('label');
+    inventorySortLabel.className = 'missions-crew-control';
+    inventorySortLabel.innerHTML = '<span>Sort</span><select id="missions-inventory-sort"><option value="ilvl-desc">iLvl: high first</option><option value="ilvl-asc">iLvl: low first</option><option value="rarity-desc">Rarity: high first</option><option value="name-asc">Name: A–Z</option></select>';
+    inventoryTagFilter.closest('label').insertAdjacentElement('afterend', inventorySortLabel);
+    inventorySort = inventorySortLabel.querySelector('select');
+  }
   var inventoryMeters = document.getElementById('missions-inventory-meters');
   var inventoryBoosts = document.getElementById('missions-inventory-boosts');
   var inventoryWorkbench = document.getElementById('mission-inventory-workbench');
@@ -882,6 +892,23 @@
     return '<div class="crew-stat-card"><div class="crew-stat-grid">' + cells + '</div>' + roleLine + '</div>';
   }
 
+  /* The average is already resolved on the server from equipped iLvl / 7 and
+   * the highest enabled compatible catalogue item in every slot. Green means
+   * there is still a reachable upgrade; the legendary treatment is reserved
+   * for a crew member currently wearing every applicable slot maximum. */
+  function crewItemLevelMarkup(crew) {
+    if (!crew || !crew.item_level_ready || Number(crew.item_level_catalogue_slots) < 1) return '';
+    var current = itemLevelFormat(crew.item_level_average);
+    var maximum = itemLevelFormat(crew.item_level_max_average);
+    var maxed = !!crew.item_level_maxed;
+    var slots = Number(crew.item_level_slots_at_max) || 0;
+    var catalogueSlots = Number(crew.item_level_catalogue_slots) || 0;
+    var title = 'Average iLvl ' + current + ' from ' + (Number(crew.item_level_total) || 0) + ' equipped iLvl across all 7 slots. '
+      + 'The enabled compatible catalogue ceiling is ' + maximum + ' (' + slots + ' of ' + catalogueSlots + ' available slot maxima equipped).';
+    return '<span class="crew-item-level ' + (maxed ? 'is-legendary' : 'is-progress') + '" title="' + escapeHtml(title) + '"><small>AVG iLvl</small><strong>'
+      + current + '</strong><em>' + (maxed ? 'MAXED' : '/ ' + maximum) + '</em></span>';
+  }
+
   function renderCrew(data) {
     if (!data.crew.length) {
       crewFilterSummary.textContent = '';
@@ -948,7 +975,7 @@
         + '<span class="mission-crew-tier">' + escapeHtml(crewTierLabel(tier)) + '</span>'
         + favoriteButton
         + '<div class="mission-crew-visual"><span class="mission-crew-portrait-wrap">' + portraitMarkup + statusDot + '</span>' + crewLoadoutStrip(crew) + '</div>'
-        + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3>' + missionCopy + '<p>' + escapeHtml(crew.description) + '</p>'
+        + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3>' + crewItemLevelMarkup(crew) + missionCopy + '<p>' + escapeHtml(crew.description) + '</p>'
         + '<div class="crew-progression ' + profile.className + (atMaxLevel ? ' is-max-level' : '') + '"><div class="crew-rank-insignia" aria-label="' + escapeHtml(crew.role) + ' level ' + crew.level + '"><span>' + profile.code + '</span><small>L' + crew.level + '</small></div><div class="crew-progression-copy"><div><span>' + profile.rankLabel + '</span><strong>' + rankValue + '</strong></div><div class="crew-xp-track"><span style="width:' + progress + '%"></span></div></div></div>'
         + fatigueMarkup(crew)
         + crewStatCard(crew) + '</div></article>';
@@ -1192,6 +1219,7 @@
     var target = bestEquipTarget(item);
     var bonus = gearBonusText(item.bonus);
     var meta = [slotLabel(item.slot), item.tier];
+    if (itemLevelValue(item)) meta.push('iLvl ' + itemLevelValue(item));
     if (entry.upgraded) meta.push(entry.upgraded === entry.count ? 'upgraded' : entry.upgraded + ' upgraded');
     var advice = target
       ? '<span class="mission-result-gear-upgrade is-' + (target.current ? 'crew' : 'empty') + '">'
@@ -1209,7 +1237,7 @@
         + ' aria-label="' + escapeHtml('Equip ' + item.name + ' on ' + target.crew.name) + '">Equip</button>'
       : '';
     return '<li class="mission-result-gear is-' + escapeHtml(item.tier) + '" data-loot-definition-id="' + Number(item.id) + '">'
-      + '<span class="mission-result-gear-icon">' + gearIconHtml(item.slot, item.icon_url) + '</span>'
+      + '<span class="mission-result-gear-icon">' + gearIconHtml(item.slot, item.icon_url) + itemLevelBadge(item, 'mission-result-ilvl') + '</span>'
       + '<span class="mission-result-gear-copy"><strong>' + escapeHtml(item.name)
       + (entry.count > 1 ? '<b class="mission-result-gear-count">&times;' + entry.count + '</b>' : '') + '</strong>'
       + '<small>' + escapeHtml(meta.join(' · ')) + '</small>'
@@ -2865,10 +2893,29 @@
     }).filter(Boolean).join(' · ');
   }
 
+  function itemLevelValue(item) {
+    return Math.max(0, Number(item && item.item_level) || 0);
+  }
+
+  function itemLevelFormat(value) {
+    var safe = Math.max(0, Number(value) || 0);
+    return (Math.round(safe * 10) / 10).toFixed(safe % 1 ? 1 : 0);
+  }
+
+  /* One compact badge shape, reused from the crew silhouette to the reward
+   * screen. iLvl belongs only to a wearable item; stims and salvage must not
+   * imitate a piece of equipment by showing a zero-level badge. */
+  function itemLevelBadge(item, extraClass) {
+    if (!item || !item.slot || itemLevelValue(item) < 1) return '';
+    return '<span class="mission-item-ilvl' + (extraClass ? ' ' + extraClass : '') + '"><small>iLvl</small><b>'
+      + itemLevelValue(item) + '</b></span>';
+  }
+
   function gearTooltip(item) {
     var parts = [item.name, item.tier.charAt(0).toUpperCase() + item.tier.slice(1) + ' · ' + item.slot_label];
     var bonus = gearBonusText(item.bonus);
     parts.push(bonus ? 'While equipped: ' + bonus : 'No stat bonus');
+    if (itemLevelValue(item)) parts.push('iLvl ' + itemLevelValue(item));
     if (item.description) parts.push(item.description);
     return parts.join('\n');
   }
@@ -2887,7 +2934,7 @@
       return '<span class="mission-gear-slot mission-gear-slot--' + escapeHtml(slot.key.replace(/_/g, '-'))
         + (item ? ' is-filled is-' + escapeHtml(item.tier) : ' is-empty') + '"'
         + ' tabindex="0" role="img" title="' + escapeHtml(label) + '" aria-label="' + escapeHtml(label.split('\n').join('. ')) + '">'
-        + gearIconHtml(slot.key, item ? item.icon_url : '') + '</span>';
+        + gearIconHtml(slot.key, item ? item.icon_url : '') + itemLevelBadge(item, 'mission-gear-slot-ilvl') + '</span>';
     }).join('');
     var deployed = crewAvailability(crew) !== 'available';
     return '<div class="mission-crew-loadout">'
@@ -2974,6 +3021,7 @@
   }
 
   function loadoutItemSummary(item, emptyLabel) {
+    if (item && itemLevelValue(item)) return item.name + ' · iLvl ' + itemLevelValue(item) + ' · ' + (gearBonusText(item.bonus) || 'No stat bonus');
     return item
       ? item.name + ' · ' + (gearBonusText(item.bonus) || 'No stat bonus')
       : (emptyLabel || 'Empty');
@@ -3058,7 +3106,7 @@
         + '<button type="button" class="mission-loadout-slot' + (item ? ' is-filled is-' + escapeHtml(item.tier) : ' is-empty')
         + (active ? ' is-active' : '') + '" data-slot="' + escapeHtml(slot.key) + '"'
         + ' title="' + escapeHtml(label) + '" aria-pressed="' + (active ? 'true' : 'false') + '">'
-        + gearIconHtml(slot.key, item ? item.icon_url : '')
+        + gearIconHtml(slot.key, item ? item.icon_url : '') + itemLevelBadge(item, 'mission-loadout-slot-ilvl')
         + '<span class="mission-loadout-slot-name">' + escapeHtml(slot.label) + '</span>'
         + '<small>' + escapeHtml(item ? item.name : (recommended ? 'Recommended: ' + recommended.item.name : 'Empty')) + '</small></button>'
         + (item ? '<button type="button" class="mission-loadout-slot-remove" data-remove-slot="' + escapeHtml(slot.key) + '" aria-label="Unequip ' + escapeHtml(item.name) + '" title="Unequip ' + escapeHtml(item.name) + '">&times;</button>' : '')
@@ -3094,6 +3142,7 @@
     var rows = candidates.map(function (entry) {
       var bonus = gearBonusText(entry.item.bonus);
       var meta = [entry.item.tier.charAt(0).toUpperCase() + entry.item.tier.slice(1)];
+      if (itemLevelValue(entry.item)) meta.push('iLvl ' + itemLevelValue(entry.item));
       if (bonus) meta.push(bonus);
       if (entry.equipped) meta.push('equipped');
       else if (entry.item.quantity > 1) meta.push(entry.spare + ' spare of ' + entry.item.quantity);
@@ -3104,7 +3153,7 @@
         + (entry.reason && !entry.equipped ? ' is-blocked' : '') + ' is-' + escapeHtml(entry.item.tier) + '"'
         + ' data-item-id="' + entry.item.id + '"' + (entry.reason && !entry.equipped ? ' disabled' : '')
         + ' title="' + escapeHtml(gearTooltip(entry.item)) + '">'
-        + '<span class="mission-loadout-option-icon">' + gearIconHtml(slotKey, entry.item.icon_url) + '</span>'
+        + '<span class="mission-loadout-option-icon">' + gearIconHtml(slotKey, entry.item.icon_url) + itemLevelBadge(entry.item, 'mission-loadout-option-ilvl') + '</span>'
         + '<span class="mission-loadout-option-copy"><strong>' + escapeHtml(entry.item.name)
         + (isRecommended ? '<em>Role pick</em>' : '') + '</strong>'
         + '<small>' + escapeHtml(meta.join(' · ')) + (entry.reason && !entry.equipped ? ' · ' + escapeHtml(entry.reason) : '') + '</small></span></button>';
@@ -3838,6 +3887,21 @@
         : '<p class="mission-inventory-bulk-note">Switch to list view to select equipment and salvage together for a confirmed bulk destroy.</p>');
   }
 
+  function inventorySortItems(items) {
+    var mode = (inventorySort && inventorySort.value) || state.inventorySort || 'ilvl-desc';
+    state.inventorySort = mode;
+    var tierRank = { common: 1, uncommon: 2, rare: 3, epic: 4, legendary: 5 };
+    return items.slice().sort(function (left, right) {
+      var by = 0;
+      if (mode === 'ilvl-desc') by = itemLevelValue(right) - itemLevelValue(left);
+      if (mode === 'ilvl-asc') by = itemLevelValue(left) - itemLevelValue(right);
+      if (mode === 'rarity-desc') by = (tierRank[right.tier] || 0) - (tierRank[left.tier] || 0);
+      if (mode === 'name-asc') by = String(left.name || '').localeCompare(String(right.name || ''));
+      return by || itemLevelValue(right) - itemLevelValue(left)
+        || String(left.name || '').localeCompare(String(right.name || ''));
+    });
+  }
+
   function renderInventory(data) {
     renderStimBelt(data);
     renderResearchAlert(data);
@@ -3873,6 +3937,7 @@
       if (filters.tag !== 'all' && filters.tag !== 'untagged' && item.tag_key !== filters.tag) return false;
       return true;
     });
+    visible = inventorySortItems(visible);
     var totalItems = loot.reduce(function (sum, item) { return sum + Number(item.quantity); }, 0);
     inventoryCount.textContent = totalItems + (totalItems === 1 ? ' item' : ' items');
     inventorySummary.textContent = visible.length === loot.length
@@ -3880,7 +3945,9 @@
       : 'Showing ' + visible.length + ' of ' + loot.length + ' entries.';
     inventoryList.classList.toggle('is-list', state.inventoryView === 'list');
     if (!visible.length) { inventoryList.innerHTML = '<p class="missions-empty">Nothing matches these filters.</p>'; return; }
-    inventoryList.innerHTML = visible.map(function (item) {
+    inventoryList.innerHTML = (state.inventoryView === 'list'
+      ? '<div class="mission-inventory-list-head" aria-hidden="true"><span>Item</span><span>iLvl</span></div>'
+      : '') + visible.map(function (item) {
       var category = item.category || (item.slot ? 'gear' : 'salvage');
       var isGear = category === 'gear';
       var isStim = category === 'stim';
@@ -3890,6 +3957,7 @@
       if (Number(item.required_level) > 1) requires.push('Level ' + item.required_level);
       if (item.required_role) requires.push(item.required_role + ' only');
       var typeLabel = isGear ? slotLabel(item.slot) : isStim ? 'Stim' : 'Salvage';
+      var listItemLevel = '<span class="mission-inventory-list-ilvl' + (isGear && itemLevelValue(item) ? ' is-gear' : '') + '">' + (isGear && itemLevelValue(item) ? 'iLvl ' + itemLevelValue(item) : '—') + '</span>';
       /* Only spare copies get a Destroy button. An equipped copy is not
        * deducted from the quantity ledger, so destroying one would leave a crew
        * member wearing something nobody owns -- the server refuses it too. */
@@ -3917,9 +3985,11 @@
         : '';
       return '<article class="mission-inventory-card is-' + escapeHtml(item.tier) + ' is-' + escapeHtml(category) + (item.is_favorite ? ' is-favorite' : '') + (state.inventoryView === 'list' ? ' is-list-row' : '') + '">'
         + bulkSelect
-        + '<span class="mission-inventory-icon">' + gearIconHtml(item.slot, item.icon_url) + '</span>'
+        + '<span class="mission-inventory-icon">' + gearIconHtml(item.slot, item.icon_url) + itemLevelBadge(item, 'mission-inventory-icon-ilvl') + '</span>'
+        + listItemLevel
         + '<div class="mission-inventory-copy"><h3>' + escapeHtml(item.name) + '</h3>'
         + '<p class="mission-inventory-meta"><span class="mission-inventory-tier">' + escapeHtml(item.tier) + '</span>'
+        + itemLevelBadge(item, 'mission-inventory-ilvl')
         + ' &middot; ' + escapeHtml(typeLabel)
         + ' &middot; x' + item.quantity + '</p>'
         + (bonus ? '<p class="mission-inventory-bonus">' + escapeHtml(bonus) + '</p>' : '')
@@ -4283,7 +4353,7 @@
     if (destroy && !destroy.disabled) destroySelectedInventory(destroy);
   });
 
-  [inventoryTypeFilter, inventorySlotFilter, inventoryTierFilter, inventoryStateFilter, inventoryFavoriteFilter, inventoryTagFilter].forEach(function (control) {
+  [inventoryTypeFilter, inventorySlotFilter, inventoryTierFilter, inventoryStateFilter, inventoryFavoriteFilter, inventoryTagFilter, inventorySort].forEach(function (control) {
     if (control) control.addEventListener('change', function () { if (state.data) renderInventory(state.data); });
   });
 

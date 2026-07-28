@@ -452,10 +452,11 @@ function pw_sweep_run_payload(PDO $db, array $run): array {
     $radius = (int)$run['hint_radius'];
     $hazards = pw_sweep_hazard_cells((int)$run['grid_seed'], $rows * $cols, (int)$run['hazard_count']);
     foreach ($cells as $index => $cell) {
-        $detail = $names[$index] ?? ['label' => '', 'icon' => '', 'tier' => ''];
+        $detail = $names[$index] ?? ['label' => '', 'icon' => '', 'tier' => '', 'item_level' => 0];
         $cells[$index]['label'] = $detail['label'];
         $cells[$index]['icon'] = $detail['icon'];
         $cells[$index]['tier'] = $detail['tier'];
+        $cells[$index]['item_level'] = (int)($detail['item_level'] ?? 0);
         $cells[$index]['hint'] = $radius > 0 && $cell['type'] !== 'hazard'
             ? pw_sweep_adjacent_hazards((int)$index, $rows, $cols, $hazards, $radius)
             : null;
@@ -543,13 +544,14 @@ function pw_sweep_result_payload(PDO $db, array $run): array {
         $stored = $finds[$index] ?? null;
         if ($stored !== null) {
             $type = (string)$stored['find_type'];
-            $detail = $labels[$index] ?? ['label' => '', 'icon' => '', 'tier' => ''];
+            $detail = $labels[$index] ?? ['label' => '', 'icon' => '', 'tier' => '', 'item_level' => 0];
             $cell = [
                 'index' => $index,
                 'type' => $type,
                 'label' => (string)($detail['label'] ?: ($type === 'cache' ? 'Credit cache' : 'Recovered find')),
                 'icon' => (string)$detail['icon'],
                 'tier' => (string)$detail['tier'],
+                'item_level' => (int)($detail['item_level'] ?? 0),
                 'credits' => (int)$stored['credits'],
                 'revealed' => true,
             ];
@@ -576,6 +578,7 @@ function pw_sweep_result_payload(PDO $db, array $run): array {
                 'label' => '',
                 'icon' => '',
                 'tier' => '',
+                'item_level' => 0,
                 /* Credit caches only become a precise amount when their scan
                  * is made: Momentum depends on the scan order. An unopened
                  * cache is named honestly without inventing a payout. */
@@ -595,6 +598,7 @@ function pw_sweep_result_payload(PDO $db, array $run): array {
                 $cell['label'] = (string)($isGear ? ($entry['gear_name'] ?? 'Field item') : ($entry['crew_name'] ?? 'Field contact'));
                 $cell['icon'] = pw_missions_gear_icon_url(($isGear ? $entry['gear_icon_url'] : $entry['portrait_url']) ?? '');
                 $cell['tier'] = strtolower((string)($isGear ? ($entry['tier'] ?? 'common') : ($entry['crew_tier'] ?? 'common')));
+                $cell['item_level'] = $isGear ? max(0, (int)($entry['gear_item_level'] ?? 0)) : 0;
             } elseif ($type === 'hazard') {
                 $cell['label'] = 'Collapse';
             } elseif ($type === 'shrug') {
@@ -638,7 +642,7 @@ function pw_sweep_result_payload(PDO $db, array $run): array {
  * re-arted or re-tiered later then shows correctly on a board already played,
  * and nothing is stored twice.
  *
- * @return array<int, array{label:string,icon:string,tier:string}>
+ * @return array<int, array{label:string,icon:string,tier:string,item_level:int}>
  */
 function pw_sweep_find_labels(PDO $db, array $run): array {
     $stmt = $db->prepare('SELECT cell_index, find_type, loot_definition_id, crew_definition_id, credits FROM game_player_sweep_finds WHERE run_id = ?');
@@ -653,13 +657,17 @@ function pw_sweep_find_labels(PDO $db, array $run): array {
     $loot = [];
     if ($lootIds) {
         $ids = array_keys($lootIds);
-        $q = $db->prepare('SELECT id, name, tier, icon_url FROM game_loot_definitions WHERE id IN (' . pw_missions_placeholders(count($ids)) . ')');
+        $itemLevelsReady = pw_mission_item_levels_ready($db);
+        $q = $db->prepare('SELECT id, name, tier, icon_url, '
+            . ($itemLevelsReady ? 'item_level' : '0 AS item_level')
+            . ' FROM game_loot_definitions WHERE id IN (' . pw_missions_placeholders(count($ids)) . ')');
         $q->execute($ids);
         foreach ($q->fetchAll() as $row) {
             $loot[(int)$row['id']] = [
                 'label' => (string)$row['name'],
                 'icon' => pw_missions_gear_icon_url($row['icon_url'] ?? ''),
                 'tier' => strtolower((string)($row['tier'] ?? 'common')),
+                'item_level' => max(0, (int)($row['item_level'] ?? 0)),
             ];
         }
     }
@@ -677,17 +685,18 @@ function pw_sweep_find_labels(PDO $db, array $run): array {
                 // endpoint could have produced is echoed back.
                 'icon' => pw_missions_gear_icon_url($row['portrait_url'] ?? ''),
                 'tier' => strtolower((string)($row['tier'] ?? 'common')),
+                'item_level' => 0,
             ];
         }
     }
-    $blank = ['label' => '', 'icon' => '', 'tier' => ''];
+    $blank = ['label' => '', 'icon' => '', 'tier' => '', 'item_level' => 0];
     $details = [];
     foreach ($rows as $row) {
         $index = (int)$row['cell_index'];
         if ($row['find_type'] === 'cache') {
             // A cache is credits, not an object, so it has art of its own and
             // no rarity to be shiny about.
-            $details[$index] = ['label' => number_format((int)$row['credits']) . ' credits', 'icon' => '', 'tier' => ''];
+            $details[$index] = ['label' => number_format((int)$row['credits']) . ' credits', 'icon' => '', 'tier' => '', 'item_level' => 0];
         } elseif ($row['loot_definition_id'] !== null) {
             $details[$index] = $loot[(int)$row['loot_definition_id']] ?? array_merge($blank, ['label' => 'Recovered item']);
         } elseif ($row['crew_definition_id'] !== null) {

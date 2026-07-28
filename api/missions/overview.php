@@ -103,6 +103,7 @@ try {
     /* Equipment is then folded into the level-derived values before any effect
      * is computed, so every card and mission projection reads the true total. */
     $crew = pw_missions_apply_gear($db, $userId, $crew);
+    $crew = pw_missions_apply_item_levels($db, $crew);
     foreach ($crew as $index => $row) {
         $crew[$index]['role_effect'] = pw_missions_crew_effects([$row]);
     }
@@ -153,6 +154,7 @@ try {
     $campaignReady = pw_mission_campaign_ready($db);
     $creditsReady = pw_mission_credits_ready($db);
     $watermarkReady = pw_mission_watermark_ready($db);
+    $itemLevelsReady = pw_mission_item_levels_ready($db);
     $missionsStmt = $db->prepare(
         'SELECT mission.id, mission.world_key, mission.name, mission.slug, mission.description, mission.mission_type, mission.duration_seconds,
                 mission.min_crew, mission.max_crew, mission.xp_reward, mission.reputation_reward, mission.sort_order, mission.is_enabled,
@@ -341,6 +343,7 @@ try {
             ? 'SELECT l.id, l.name, l.slug, l.description, l.tier, pl.quantity, pl.first_acquired_at,
                       l.slot, l.bonus_strength, l.bonus_cunning, l.bonus_science, l.bonus_charisma,
                       l.required_level, l.required_role, l.icon_url,'
+               . ($itemLevelsReady ? ' l.item_level,' : ' 0 AS item_level,')
                . ($stimsReady ? ' l.stim_effect, l.stim_value, l.stim_duration_seconds,' : ' "" AS stim_effect, 0 AS stim_value, 0 AS stim_duration_seconds,') . '
                       (SELECT COUNT(*) FROM game_player_crew_gear g
                         WHERE g.user_id = pl.user_id AND g.loot_definition_id = l.id) AS equipped_count'
@@ -358,7 +361,7 @@ try {
                WHERE pl.user_id = ? AND pl.quantity > 0
                ORDER BY FIELD(l.tier, "legendary", "rare", "uncommon", "common"), l.name ASC');
         $lootStmt->execute([$userId]);
-        $loot = array_map(static function ($row) use ($gearReady, $stimsReady, $inventoryWorkbenchReady) {
+        $loot = array_map(static function ($row) use ($gearReady, $stimsReady, $itemLevelsReady, $inventoryWorkbenchReady) {
             $row['id'] = (int)$row['id'];
             $row['quantity'] = (int)$row['quantity'];
             /* One shape either way, so the browser never has to know which
@@ -368,6 +371,7 @@ try {
             $row['icon_url'] = $gearReady ? pw_missions_gear_icon_url($row['icon_url']) : '';
             $row['required_level'] = $gearReady ? (int)$row['required_level'] : 1;
             $row['required_role'] = $gearReady ? (string)$row['required_role'] : '';
+            $row['item_level'] = $itemLevelsReady ? max(0, (int)$row['item_level']) : 0;
             $row['equipped_count'] = $gearReady ? (int)$row['equipped_count'] : 0;
             /* One shape whichever migrations have run, so the panel never has
              * to branch: before the inventory migration nothing is a stim. */
@@ -584,6 +588,7 @@ try {
                 array_keys(pw_missions_gear_slots()), array_values(pw_missions_gear_slots()))
             : [],
         'gear_ready' => pw_mission_gear_ready($db),
+        'item_levels_ready' => $itemLevelsReady,
         'max_gear_stat' => PW_MISSION_MAX_GEAR_STAT,
         'loot' => $loot,
         'inventory_workbench_ready' => $inventoryWorkbenchReady,

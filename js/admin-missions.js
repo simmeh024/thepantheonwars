@@ -766,6 +766,13 @@
 
     document.getElementById('mission-gear-cap-natural').textContent = String(gearMeta.max_stat || 50);
     document.getElementById('mission-gear-cap-total').textContent = String(gearMeta.max_gear_stat || 80);
+
+    /* iLvl has its own migration because normal equipment must keep working if
+     * a code deploy lands before a manual database update. Hide the authored
+     * value until it can actually be saved instead of inviting an admin to type
+     * into a field the server deliberately cannot persist yet. */
+    var itemLevelRow = document.getElementById('mission-gear-ilvl-row');
+    if (itemLevelRow) itemLevelRow.hidden = gearMeta.item_levels_ready === false;
   }
 
   function renderGear() {
@@ -789,6 +796,7 @@
         '<div><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.slug) + '</small></div></div>' +
         '<span class="mission-admin-cell-sub">' + escapeHtml(item.slot_label || 'Salvage') + '</span>' +
         '<span class="mission-gear-tier is-' + escapeHtml(item.tier) + '">' + escapeHtml(item.tier) + '</span>' +
+        '<span class="mission-admin-ilvl">' + (gearMeta && gearMeta.item_levels_ready === false ? '&mdash;' : (item.slot ? 'iLvl ' + Number(item.item_level || 0) : '&mdash;')) + '</span>' +
         '<span class="mission-admin-cell-sub">' + escapeHtml(bonuses || '—') + '</span>' +
         '<span class="mission-admin-cell-sub">' + escapeHtml(requires.length ? requires.join(' · ') : 'Anyone') + '</span>' +
         '<span class="mission-admin-cell-sub">' + escapeHtml(String(held)) + '</span>' +
@@ -831,6 +839,39 @@
   /* Live feedback on the stim fields, and on the two combinations the server
    * rejects: a stim that also occupies a slot, and a timed boost with no
    * duration to run for. */
+  /* The calculator is a transparent authoring guide, never a write rule. A
+   * new release can intentionally publish above it, which is how iLvl creates
+   * a visible progression even when two releases use similar stat shapes. */
+  function updateGearItemLevelCalculator() {
+    var row = document.getElementById('mission-gear-ilvl-row');
+    var field = document.getElementById('mission-gear-item-level');
+    var output = document.getElementById('mission-gear-ilvl-calculation');
+    if (!row || !field || !output || row.hidden) return;
+    var slot = document.getElementById('mission-gear-slot').value;
+    field.disabled = slot === '';
+    if (slot === '') {
+      output.innerHTML = '<strong>Not applicable</strong><small>iLvl belongs to equipment. Salvage and stims remain at 0.</small>';
+      return;
+    }
+    var bonuses = GEAR_STATS.map(function (stat) {
+      return Number(document.getElementById('mission-gear-bonus-' + stat.key).value) || 0;
+    });
+    var positive = bonuses.reduce(function (total, value) { return total + Math.max(0, value); }, 0);
+    var tradeoff = bonuses.reduce(function (total, value) { return total + Math.max(0, -value); }, 0);
+    var peak = bonuses.reduce(function (largest, value) { return Math.max(largest, Math.max(0, value)); }, 0);
+    var tier = document.getElementById('mission-gear-tier').value;
+    var rarityBudget = { common: 0, uncommon: 8, rare: 18, epic: 32, legendary: 50 }[tier] || 0;
+    var level = Math.max(1, Number(document.getElementById('mission-gear-required-level').value) || 1);
+    var roleBonus = document.getElementById('mission-gear-required-role').value ? 4 : 0;
+    var suggested = Math.max(1, Math.round(1 + ((level - 1) * 0.8) + (positive * 2.4) + (peak * 1.6) + rarityBudget + roleBonus - (tradeoff * 1.2)));
+    output.innerHTML = '<strong>Suggested iLvl ' + suggested + '</strong><small>'
+      + 'Rarity +' + rarityBudget + ' &middot; bonuses +' + Math.round((positive * 2.4) + (peak * 1.6))
+      + ' &middot; level gate +' + Math.round((level - 1) * 0.8)
+      + (roleBonus ? ' &middot; role gate +4' : '')
+      + (tradeoff ? ' &middot; trade-off -' + Math.round(tradeoff * 1.2) : '')
+      + '. Enter the release iLvl manually; this suggestion never overwrites it.</small>';
+  }
+
   function updateGearStimSummary() {
     var summary = document.getElementById('mission-gear-stim-summary');
     var effect = document.getElementById('mission-gear-stim-effect').value;
@@ -873,6 +914,8 @@
     });
     document.getElementById('mission-gear-required-level').value = item ? item.required_level : 1;
     document.getElementById('mission-gear-required-role').value = item ? (item.required_role || '') : '';
+    var itemLevelInput = document.getElementById('mission-gear-item-level');
+    if (itemLevelInput) itemLevelInput.value = item ? (Number(item.item_level) || 1) : 1;
     document.getElementById('mission-gear-world').value = item ? item.world_key : 'neoh';
     document.getElementById('mission-gear-icon').value = item ? (item.icon_url || '') : '';
     document.getElementById('mission-gear-stim-effect').value = item ? (item.stim_effect || '') : '';
@@ -890,6 +933,7 @@
       : '';
     updateGearIconPreview();
     updateGearBonusSummary();
+    updateGearItemLevelCalculator();
     updateGearStimSummary();
   }
 
@@ -928,6 +972,11 @@
       stim_duration_seconds: Math.round((Number(document.getElementById('mission-gear-stim-duration').value) || 0) * 60),
       is_enabled: document.getElementById('mission-gear-enabled').checked
     };
+    var itemLevelRow = document.getElementById('mission-gear-ilvl-row');
+    var itemLevelInput = document.getElementById('mission-gear-item-level');
+    if (itemLevelRow && itemLevelInput && !itemLevelRow.hidden) {
+      payload.item_level = itemLevelInput.value;
+    }
     GEAR_STATS.forEach(function (stat) {
       payload['bonus_' + stat.key] = document.getElementById('mission-gear-bonus-' + stat.key).value;
     });
@@ -945,13 +994,21 @@
   document.getElementById('mission-gear-slug').addEventListener('input', function () { this.dataset.touched = 'true'; });
   document.getElementById('mission-gear-slot').addEventListener('change', function () {
     updateGearBonusSummary();
+    updateGearItemLevelCalculator();
     updateGearStimSummary();
+  });
+  ['mission-gear-tier', 'mission-gear-required-level', 'mission-gear-required-role'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', updateGearItemLevelCalculator);
+    document.getElementById(id).addEventListener('change', updateGearItemLevelCalculator);
   });
   ['mission-gear-stim-effect', 'mission-gear-stim-value', 'mission-gear-stim-duration'].forEach(function (id) {
     document.getElementById(id).addEventListener('input', updateGearStimSummary);
   });
   GEAR_STATS.forEach(function (stat) {
-    document.getElementById('mission-gear-bonus-' + stat.key).addEventListener('input', updateGearBonusSummary);
+    document.getElementById('mission-gear-bonus-' + stat.key).addEventListener('input', function () {
+      updateGearBonusSummary();
+      updateGearItemLevelCalculator();
+    });
   });
   document.getElementById('mission-gear-icon-clear').addEventListener('click', function () {
     if (!can('missions.edit')) return;

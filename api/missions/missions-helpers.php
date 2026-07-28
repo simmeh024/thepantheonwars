@@ -1453,6 +1453,20 @@ function pw_mission_gear_ready(PDO $db): bool {
 }
 
 /**
+ * Item levels are additive content metadata layered on top of normal gear.
+ * Keep this readiness separate from pw_mission_gear_ready(): a deploy that
+ * arrives before its manual migration must leave existing equipment usable,
+ * merely without iLvl readouts, rather than taking the whole loadout system
+ * offline.
+ */
+function pw_mission_item_levels_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    return $ready = pw_mission_gear_ready($db)
+        && pw_schema_has($db, 'game_loot_definitions', ['item_level']);
+}
+
+/**
  * What a player's crew are wearing, keyed by player_crew_id then slot.
  *
  * One query for the whole roster rather than one per crew member -- the same
@@ -1464,11 +1478,12 @@ function pw_mission_gear_ready(PDO $db): bool {
 function pw_missions_load_crew_gear(PDO $db, int $userId, array $playerCrewIds): array {
     $ids = array_values(array_unique(array_map('intval', $playerCrewIds)));
     if (!$ids || !pw_mission_gear_ready($db)) return [];
+    $itemLevelColumn = pw_mission_item_levels_ready($db) ? ', l.item_level' : ', 0 AS item_level';
     $stmt = $db->prepare(
         'SELECT g.player_crew_id, g.slot, g.loot_definition_id,
                 l.name, l.slug, l.tier, l.description, l.icon_url,
                 l.bonus_strength, l.bonus_cunning, l.bonus_science, l.bonus_charisma,
-                l.required_level, l.required_role
+                l.required_level, l.required_role' . $itemLevelColumn . '
          FROM game_player_crew_gear g
          JOIN game_loot_definitions l ON l.id = g.loot_definition_id
          WHERE g.user_id = ? AND g.player_crew_id IN (' . pw_missions_placeholders(count($ids)) . ')'
@@ -1498,6 +1513,7 @@ function pw_missions_load_crew_gear(PDO $db, int $userId, array $playerCrewIds):
             ],
             'required_level' => (int)$row['required_level'],
             'required_role' => (string)$row['required_role'],
+            'item_level' => max(0, (int)$row['item_level']),
         ];
     }
     return $byCrew;
@@ -1529,6 +1545,92 @@ function pw_missions_apply_gear(PDO $db, int $userId, array $crewRows): array {
     return pw_missions_apply_gear_bonuses($crewRows, pw_missions_load_crew_gear($db, $userId, array_map(static function ($row) {
         return (int)($row['id'] ?? 0);
     }, $crewRows)));
+}
+
+/**
+ * Add display-only iLvl progress to an already-equipped roster. The average is
+ * always the equipped total divided by all seven slots, so an empty slot is a
+ * visible gap instead of disappearing from the denominator. The ceiling is
+ * resolved from the enabled catalogue for this crew member's current level and
+ * role; disabled or incompatible future gear cannot make a player look behind
+ * a target they cannot actually equip.
+ */
+function pw_missions_apply_item_levels(PDO $db, array $crewRows): array {
+    $slots = pw_missions_gear_slots();
+    $slotKeys = array_keys($slots);
+    $denominator = max(1, count($slotKeys));
+    $ready = pw_mission_item_levels_ready($db);
+
+    if (!$ready) {
+        foreach ($crewRows as $index => $row) {
+            $crewRows[$index]['item_level_ready'] = false;
+            $crewRows[$index]['item_level_total'] = 0;
+            $crewRows[$index]['item_level_average'] = 0.0;
+            $crewRows[$index]['item_level_max_total'] = 0;
+            $crewRows[$index]['item_level_max_average'] = 0.0;
+            $crewRows[$index]['item_level_maxed'] = false;
+            $crewRows[$index]['item_level_catalogue_slots'] = 0;
+            $crewRows[$index]['item_level_slots_at_max'] = 0;
+        }
+        return $crewRows;
+    }
+
+    /* One catalogue read for the whole roster avoids a seven-slot query per
+     * crew member. Role and level eligibility are intentionally evaluated in
+     * PHP below, because each roster row has different limits. */
+    $catalogue = array_fill_keys($slotKeys, []);
+    $items = $db->query(
+        'SELECT slot, item_level, required_level, required_role
+         FROM game_loot_definitions
+         WHERE is_enabled = 1 AND slot <> "" AND item_level > 0'
+    )->fetchAll();
+    foreach ($items as $item) {
+        $slot = (string)$item['slot'];
+        if (!isset($catalogue[$slot])) continue;
+        $catalogue[$slot][] = [
+            'item_level' => max(0, (int)$item['item_level']),
+            'required_level' => (int)$item['required_level'],
+            'required_role' => (string)$item['required_role'],
+        ];
+    }
+
+    foreach ($crewRows as $index => $row) {
+        $level = (int)($row['level'] ?? 0);
+        $role = (string)($row['role'] ?? '');
+        $equipped = is_array($row['gear'] ?? null) ? $row['gear'] : [];
+        $currentTotal = 0;
+        foreach ($equipped as $item) $currentTotal += max(0, (int)($item['item_level'] ?? 0));
+
+        $maxTotal = 0;
+        $catalogueSlots = 0;
+        $slotsAtMax = 0;
+        foreach ($slotKeys as $slot) {
+            $slotMax = 0;
+            foreach ($catalogue[$slot] as $candidate) {
+                if ($level < $candidate['required_level']) continue;
+                if ($candidate['required_role'] !== '' && strcasecmp($candidate['required_role'], $role) !== 0) continue;
+                $slotMax = max($slotMax, $candidate['item_level']);
+            }
+            if ($slotMax < 1) continue;
+            $catalogueSlots++;
+            $maxTotal += $slotMax;
+            if (max(0, (int)($equipped[$slot]['item_level'] ?? 0)) >= $slotMax) $slotsAtMax++;
+        }
+
+        $crewRows[$index]['item_level_ready'] = true;
+        $crewRows[$index]['item_level_total'] = $currentTotal;
+        $crewRows[$index]['item_level_average'] = round($currentTotal / $denominator, 1);
+        $crewRows[$index]['item_level_max_total'] = $maxTotal;
+        $crewRows[$index]['item_level_max_average'] = round($maxTotal / $denominator, 1);
+        $crewRows[$index]['item_level_catalogue_slots'] = $catalogueSlots;
+        $crewRows[$index]['item_level_slots_at_max'] = $slotsAtMax;
+        /* A crew is legendary only when every enabled, currently compatible
+         * slot ceiling is equipped. Missing catalogue slots remain zero in the
+         * fixed seven-slot average but do not make a release with fewer authored
+         * slots impossible to complete. */
+        $crewRows[$index]['item_level_maxed'] = $catalogueSlots > 0 && $slotsAtMax === $catalogueSlots && $currentTotal >= $maxTotal;
+    }
+    return $crewRows;
 }
 
 /**
@@ -1946,9 +2048,11 @@ function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array 
     if ($rolls < 1) return [];
 
     $gearReady = pw_mission_gear_ready($db);
+    $itemLevelsReady = pw_mission_item_levels_ready($db);
     $gearColumns = $gearReady
         ? ', slot, bonus_strength, bonus_cunning, bonus_science, bonus_charisma, required_level, required_role, icon_url'
         : '';
+    if ($itemLevelsReady) $gearColumns .= ', item_level';
     /* Without this an awarded stim reaches pw_missions_store_loot() with no
      * stim_effect and is counted against the salvage ceiling instead of its
      * own. */
@@ -2002,6 +2106,7 @@ function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array 
             'icon_url' => $gearReady ? pw_missions_gear_icon_url($item['icon_url'] ?? '') : '',
             'required_level' => $gearReady ? (int)($item['required_level'] ?? 1) : 1,
             'required_role' => $gearReady ? (string)($item['required_role'] ?? '') : '',
+            'item_level' => $itemLevelsReady ? max(0, (int)($item['item_level'] ?? 0)) : 0,
             'stim_effect' => $stimsReady ? (string)($item['stim_effect'] ?? '') : '',
             'stim_value' => $stimsReady ? (float)($item['stim_value'] ?? 0) : 0.0,
             'stim_duration_seconds' => $stimsReady ? (int)($item['stim_duration_seconds'] ?? 0) : 0,
@@ -2591,6 +2696,7 @@ function pw_missions_require_loot_table_gear_ready(PDO $db): void {
  */
 function pw_missions_loot_entry_statement(PDO $db): PDOStatement {
     $gearEnabled = pw_mission_loot_table_gear_ready($db);
+    $itemLevelsReady = pw_mission_item_levels_ready($db);
     $crewCapacityReady = pw_mission_crew_capacity_ready($db);
     /* A stim entry is an ordinary "gear" table entry that happens to be
      * consumable, so it needs no new entry_type -- only its own columns, so the
@@ -2605,6 +2711,7 @@ function pw_missions_loot_entry_statement(PDO $db): PDOStatement {
                     gear.bonus_science AS gear_bonus_science, gear.bonus_charisma AS gear_bonus_charisma,
                     gear.required_level AS gear_required_level, gear.required_role AS gear_required_role,
                     gear.icon_url AS gear_icon_url'
+            . ($itemLevelsReady ? ', gear.item_level AS gear_item_level' : ', 0 AS gear_item_level')
             . ($stimsReady ? ', gear.stim_effect AS gear_stim_effect, gear.stim_value AS gear_stim_value, gear.stim_duration_seconds AS gear_stim_duration' : '') . '
              FROM game_loot_table_entries entry
              LEFT JOIN game_crew_definitions crew ON crew.id = entry.crew_definition_id
@@ -2676,6 +2783,7 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
     if (!$links) return $result;
 
     $stimsReady = pw_mission_stims_ready($db);
+    $itemLevelsReady = pw_mission_item_levels_ready($db);
     $crewCapacityReady = pw_mission_crew_capacity_ready($db);
     $entryStmt = pw_missions_loot_entry_statement($db);
     // A player's existing roster, read once: the duplicate check runs against
@@ -2705,6 +2813,7 @@ function pw_missions_roll_loot_tables(PDO $db, int $userId, int $missionDefiniti
                     'icon_url' => pw_missions_gear_icon_url($entry['gear_icon_url'] ?? ''),
                     'required_level' => (int)($entry['gear_required_level'] ?? 1),
                     'required_role' => (string)($entry['gear_required_role'] ?? ''),
+                    'item_level' => $itemLevelsReady ? max(0, (int)($entry['gear_item_level'] ?? 0)) : 0,
                     'stim_effect' => $stimsReady ? (string)($entry['gear_stim_effect'] ?? '') : '',
                     'stim_value' => $stimsReady ? (float)($entry['gear_stim_value'] ?? 0) : 0.0,
                     'stim_duration_seconds' => $stimsReady ? (int)($entry['gear_stim_duration'] ?? 0) : 0,

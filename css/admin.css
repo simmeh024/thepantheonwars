@@ -4178,7 +4178,7 @@
 /* Seven columns rather than six: an item's slot and its rarity are the two
  * things an administrator scans for, and folding either into the name column
  * would hide the one field that decides whether the item is gear at all. */
-.mission-admin-gear-columns { grid-template-columns: minmax(160px, 1.8fr) minmax(78px, .7fr) minmax(74px, .62fr) minmax(110px, .95fr) minmax(90px, .78fr) minmax(74px, .62fr) minmax(80px, .7fr); }
+.mission-admin-gear-columns { grid-template-columns: minmax(150px, 1.7fr) minmax(72px, .64fr) minmax(68px, .58fr) minmax(62px, .5fr) minmax(100px, .82fr) minmax(84px, .72fr) minmax(68px, .58fr) minmax(76px, .66fr); }
 .mission-gear-intro { margin: -4px 0 14px !important; max-width: 780px; }
 .mission-gear-tier { font-size: .72rem; font-weight: 600; text-transform: capitalize; }
 .mission-gear-tier.is-common { color: var(--text-dim); }
@@ -4187,6 +4187,11 @@
 .mission-gear-tier.is-legendary { color: var(--gold-bright); }
 .mission-gear-bonus-row .admin-field { min-width: 0; }
 #mission-gear-bonus-summary.is-warning { color: var(--status-warning) !important; }
+.mission-admin-ilvl { color: #8ee3bd; font: 700 .66rem/1 'Jost', sans-serif; letter-spacing: .04em; white-space: nowrap; }
+.mission-gear-ilvl-row .admin-field { min-width: min(100%, 240px); }
+.mission-gear-ilvl-calculator output { display: grid; gap: 4px; min-height: 41px; padding: 9px 10px; border: 1px solid rgba(126,203,158,.42); background: linear-gradient(115deg, rgba(17,57,41,.52), rgba(12,24,42,.56)); }
+.mission-gear-ilvl-calculator output strong { color: #a8e8bc; font: 600 .78rem/1.2 'Cinzel', serif; }
+.mission-gear-ilvl-calculator output small { color: #9db9ae; font-size: .62rem; line-height: 1.38; }
 .mission-admin-empty { padding: 28px 16px; color: var(--text-faint); text-align: center; }
 .mission-portrait-field { display: flex; align-items: center; gap: 8px; }
 .mission-portrait-field input { min-width: 0; flex: 1; }
