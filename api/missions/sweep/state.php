@@ -156,6 +156,36 @@ try {
         'credits_ready' => true,
     ];
 
+    /* The Field Kit is duplicated on Sweep so a commander can prepare and use
+     * its quick slots without leaving the recovery field. It deliberately
+     * carries only stims they actually hold, not the wider inventory payload
+     * Mission Command needs for equipment and salvage management. */
+    $stims = [];
+    if (pw_mission_stims_ready($db)) {
+        $stimStmt = $db->prepare(
+            'SELECT l.id, l.name, l.tier, l.icon_url, l.stim_effect, l.stim_value,
+                    l.stim_duration_seconds, l.is_enabled, pl.quantity
+             FROM game_player_loot pl
+             JOIN game_loot_definitions l ON l.id = pl.loot_definition_id
+             WHERE pl.user_id = ? AND pl.quantity > 0 AND l.stim_effect <> ""
+             ORDER BY FIELD(l.tier, "legendary", "rare", "uncommon", "common"), l.name ASC'
+        );
+        $stimStmt->execute([$userId]);
+        foreach ($stimStmt->fetchAll() as $stim) {
+            $stims[] = [
+                'id' => (int)$stim['id'],
+                'name' => (string)$stim['name'],
+                'tier' => (string)$stim['tier'],
+                'icon_url' => pw_missions_gear_icon_url($stim['icon_url']),
+                'stim_effect' => (string)$stim['stim_effect'],
+                'stim_value' => (float)$stim['stim_value'],
+                'stim_duration_seconds' => (int)$stim['stim_duration_seconds'],
+                'quantity' => (int)$stim['quantity'],
+                'is_enabled' => (bool)$stim['is_enabled'],
+            ];
+        }
+    }
+
     $tierPayload = $tier ? array_merge($tier, ['condition' => pw_sweep_condition_public($tier['condition_key'])]) : null;
     pw_json([
         'ok' => true,
@@ -166,6 +196,8 @@ try {
         'tier' => $tierPayload,
         'ladder' => $ladder,
         'crew' => $roster,
+        'stims' => $stims,
+        'stim_slots' => pw_missions_stim_slots($db, $userId, $research),
         'run' => pw_sweep_public_run($db, $userId),
         'sweeps_at_rank' => $completed[$activeRank] ?? 0,
         'crew_favorites_ready' => $favoritesReady,

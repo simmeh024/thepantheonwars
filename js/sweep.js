@@ -27,8 +27,14 @@
   var abandonButton = document.getElementById('sweep-abandon');
   var loginButton = document.getElementById('sweep-login');
   var profileCard = document.getElementById('sweep-profile-card');
+  var stimBeltCard = document.getElementById('sweep-stim-belt-card');
   var trophyList = document.getElementById('sweep-trophy-list');
   var crewSort = document.getElementById('sweep-crew-sort');
+  var choiceModal = document.getElementById('sweep-choice-modal');
+  var choiceOptions = document.getElementById('sweep-choice-options');
+  var choiceError = document.getElementById('sweep-choice-error');
+  var choiceConfirm = document.getElementById('sweep-choice-confirm');
+  var choiceState = { resolve: null, options: [], selected: null, lastFocus: null };
 
   function esc(value) { var node = document.createElement('div'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
   function num(value) { return Number(value || 0).toLocaleString(); }
@@ -80,7 +86,8 @@
     /* The thing itself, when it has artwork. A glyph is the fallback for a
        definition with no image and for the outcomes that are not objects at
        all -- a collapse, an empty pocket, a braced escape. */
-    var icon = cell.type === 'cache' ? 'images/credit-stick.webp' : safeImage(cell.icon);
+    var icon = cell.type === 'cache' ? 'images/credit-stick.webp'
+      : (cell.type === 'hazard' ? 'images/Collapsed.webp' : safeImage(cell.icon));
     var art = icon
       ? '<img class="sweep-cell-art" src="' + esc(icon) + '" alt="">'
       : '<span class="sweep-cell-glyph" aria-hidden="true">' + (CELL_GLYPH[cell.type] || CELL_GLYPH.empty) + '</span>';
@@ -180,7 +187,8 @@
     var col = Number(cell.index) % cols + 1;
     var type = String(cell.type || 'empty');
     var label = String(cell.label || (type === 'hazard' ? 'Collapse' : 'No recovery'));
-    var icon = type === 'cache' ? 'images/credit-stick.webp' : safeImage(cell.icon);
+    var icon = type === 'cache' ? 'images/credit-stick.webp'
+      : (type === 'hazard' ? 'images/Collapsed.webp' : safeImage(cell.icon));
     var tier = String(cell.tier || '').toLowerCase();
     var shiny = tier && tier !== 'common' ? ' is-shiny is-tier-' + esc(tier) : '';
     var isReward = ['gear', 'crew', 'cache'].indexOf(type) !== -1;
@@ -598,6 +606,163 @@
       + '<div class="sweep-profile-credits"><span>Total credits</span><strong>' + num(player.credits) + '</strong></div>';
   }
 
+  function stimSummary(item) {
+    var value = fmt(item.stim_value);
+    if (item.stim_effect === 'fatigue') return 'Restores ' + value + ' fatigue.';
+    var minutes = Math.max(1, Math.round((Number(item.stim_duration_seconds) || 0) / 60));
+    var label = item.stim_effect === 'luck' ? 'luck' : 'speed';
+    return '+' + value + '% ' + label + ' for ' + minutes + ' minute' + (minutes === 1 ? '' : 's') + '.';
+  }
+
+  function stimIconMarkup(item) {
+    var icon = safeImage(item.icon_url);
+    if (icon) return '<img src="' + esc(icon) + '" alt="">';
+    return item.stim_effect === 'fatigue' ? '\u271a' : (item.stim_effect === 'luck' ? '\u2726' : '\u21af');
+  }
+
+  /* The right-rail Field Kit mirrors the Missions belt: all slots stay visible
+     so a quick-slot research unlock is tangible, while the buttons remain the
+     real API-backed actions rather than a static inventory preview. */
+  function renderStimBelt() {
+    if (!stimBeltCard) return;
+    var belt = (state.data && state.data.stim_slots) || null;
+    if (!belt || !belt.ready || !belt.capacity) { stimBeltCard.hidden = true; return; }
+    stimBeltCard.hidden = false;
+    var columns = Math.max(1, Number(belt.columns) || 4);
+    var filled = (belt.slots || []).filter(function (slot) {
+      return slot.item && slot.item.is_enabled && Number(slot.item.quantity) > 0;
+    }).length;
+    var cells = (belt.slots || []).map(function (slot) {
+      var item = slot.item;
+      var usable = item && item.is_enabled && Number(item.quantity) > 0;
+      if (!usable) {
+        var reason = !item ? 'Empty quick slot'
+          : (!item.is_enabled ? item.name + ' — withdrawn from service' : item.name + ' — none left');
+        return '<button type="button" class="sweep-stim-slot is-empty" data-sweep-stim-slot="' + Number(slot.slot_index) + '"'
+          + ' title="' + esc(reason) + '" aria-label="' + esc(reason + '. Choose a stim.') + '"><span aria-hidden="true">+</span></button>';
+      }
+      var label = item.name + ' — ' + stimSummary(item) + ' ' + item.quantity + ' held.';
+      return '<span class="sweep-stim-slot is-filled is-' + esc(item.tier || 'common')
+        + ' is-effect-' + esc(item.stim_effect || '') + '">'
+        + '<button type="button" class="sweep-stim-slot-use" data-sweep-stim-use="' + Number(item.id) + '"'
+        + ' title="' + esc(label) + '" aria-label="' + esc('Use ' + label) + '">'
+        + '<span class="sweep-stim-slot-icon">' + stimIconMarkup(item) + '</span><b>' + Number(item.quantity) + '</b></button>'
+        + '<button type="button" class="sweep-stim-slot-clear" data-sweep-stim-slot-clear="' + Number(slot.slot_index) + '"'
+        + ' title="Clear this quick slot" aria-label="' + esc('Clear ' + item.name + ' from quick slot ' + (Number(slot.slot_index) + 1)) + '">&times;</button></span>';
+    }).join('');
+    stimBeltCard.innerHTML = '<span class="eyebrow">Field kit</span><span class="sweep-stim-belt-head"><strong>Stim belt</strong>'
+      + '<span>' + filled + ' / ' + Number(belt.capacity) + '</span></span>'
+      + '<div class="sweep-stim-belt-grid" style="grid-template-columns:repeat(' + columns + ',minmax(0,1fr))">' + cells + '</div>'
+      + '<p>Click a stim to use it. Research widens the belt.</p>';
+  }
+
+  function closeChoice(result) {
+    var resolve = choiceState.resolve;
+    choiceState.resolve = null;
+    if (choiceModal && choiceModal.open && typeof choiceModal.close === 'function') choiceModal.close();
+    else if (choiceModal) choiceModal.removeAttribute('open');
+    if (choiceState.lastFocus && document.contains(choiceState.lastFocus)) {
+      try { choiceState.lastFocus.focus(); } catch (error) { /* The belt may have re-rendered. */ }
+    }
+    choiceState.lastFocus = null;
+    if (resolve) resolve(result || null);
+  }
+
+  function renderChoiceOptions() {
+    if (!choiceOptions) return;
+    choiceOptions.innerHTML = choiceState.options.map(function (option, index) {
+      var active = String(option.value) === String(choiceState.selected);
+      return '<button type="button" class="sweep-choice-option' + (active ? ' is-active' : '') + '"'
+        + ' role="radio" aria-checked="' + (active ? 'true' : 'false') + '"'
+        + ' tabindex="' + (active || (choiceState.selected === null && index === 0) ? '0' : '-1') + '"'
+        + ' data-sweep-choice-value="' + esc(String(option.value)) + '"><span>' + esc(option.label) + '</span>'
+        + (option.meta ? '<small>' + esc(option.meta) + '</small>' : '') + '</button>';
+    }).join('');
+  }
+
+  function openChoice(config) {
+    if (!choiceModal) return Promise.resolve(null);
+    if (choiceState.resolve) closeChoice(null);
+    choiceState.options = config.options || [];
+    choiceState.selected = choiceState.options.length ? String(choiceState.options[0].value) : null;
+    choiceState.lastFocus = document.activeElement;
+    document.getElementById('sweep-choice-eyebrow').textContent = config.eyebrow || '';
+    document.getElementById('sweep-choice-title').textContent = config.title || '';
+    var copy = document.getElementById('sweep-choice-copy');
+    copy.textContent = config.copy || '';
+    copy.hidden = !config.copy;
+    choiceError.textContent = '';
+    choiceConfirm.textContent = config.confirmLabel || 'Confirm';
+    renderChoiceOptions();
+    if (typeof choiceModal.showModal === 'function') choiceModal.showModal();
+    else choiceModal.setAttribute('open', '');
+    window.setTimeout(function () {
+      var first = choiceOptions.querySelector('[tabindex="0"]');
+      (first || choiceConfirm).focus();
+    }, 25);
+    return new Promise(function (resolve) { choiceState.resolve = resolve; });
+  }
+
+  function assignStimSlot(button) {
+    var slotIndex = Number(button.getAttribute('data-sweep-stim-slot'));
+    var belt = (state.data && state.data.stim_slots) || { slots: [] };
+    var slotted = {};
+    (belt.slots || []).forEach(function (slot) { if (slot.item) slotted[Number(slot.item.id)] = true; });
+    var candidates = ((state.data && state.data.stims) || []).filter(function (item) {
+      return item.is_enabled && Number(item.quantity) > 0 && !slotted[Number(item.id)];
+    });
+    if (!candidates.length) {
+      setStatus(Object.keys(slotted).length ? 'Every stim you hold is already on the belt.' : 'You are not carrying any stims yet.', true);
+      return;
+    }
+    openChoice({
+      eyebrow: 'Field kit', title: 'Quick slot ' + (slotIndex + 1),
+      copy: 'Pick the stim to keep one click away in this slot.', confirmLabel: 'Assign',
+      options: candidates.map(function (item) { return { value: item.id, label: item.name + ' ×' + item.quantity, meta: stimSummary(item) }; })
+    }).then(function (choice) {
+      if (!choice) return null;
+      button.disabled = true;
+      return request('/api/missions/stim-slot.php', { slot_index: slotIndex, loot_definition_id: Number(choice.value) })
+        .then(function (result) { setStatus(result.message); return load(); })
+        .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
+    });
+  }
+
+  function clearStimSlot(button) {
+    button.disabled = true;
+    request('/api/missions/stim-slot.php', { slot_index: Number(button.getAttribute('data-sweep-stim-slot-clear')), loot_definition_id: null })
+      .then(function (result) { setStatus(result.message); return load(); })
+      .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
+  }
+
+  function sendStim(button, payload) {
+    button.disabled = true;
+    return request('/api/missions/stim-use.php', payload)
+      .then(function (result) { setStatus(result.message); return load(); })
+      .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
+  }
+
+  function useStim(button) {
+    var itemId = Number(button.getAttribute('data-sweep-stim-use'));
+    var item = ((state.data && state.data.stims) || []).filter(function (entry) { return Number(entry.id) === itemId; })[0];
+    if (!item) return;
+    var payload = { loot_definition_id: itemId };
+    if (item.stim_effect !== 'fatigue') { sendStim(button, payload); return; }
+    var candidates = ((state.data && state.data.crew) || []).filter(function (member) {
+      return member.status === 'available' && Number(member.fatigue) < Number(member.fatigue_max);
+    });
+    if (!candidates.length) { setStatus('Every crew member standing by is already fully rested.', true); return; }
+    openChoice({
+      eyebrow: 'Field kit', title: 'Give ' + item.name,
+      copy: 'Only crew standing by are listed — rest does not accrue in the field.', confirmLabel: 'Give stim',
+      options: candidates.map(function (member) { return { value: member.id, label: member.name, meta: member.fatigue + ' / ' + member.fatigue_max + ' fatigue' }; })
+    }).then(function (choice) {
+      if (!choice) return null;
+      payload.crew_id = Number(choice.value);
+      return sendStim(button, payload);
+    });
+  }
+
   /* Banked epic and legendary finds only. A run that collapsed with a
      legendary on the board never won it, and this is the one panel whose whole
      job is to record what was kept. */
@@ -626,6 +791,7 @@
 
   function render() {
     renderProfile();
+    renderStimBelt();
     renderTrophies();
     renderSector();
     renderLadder();
@@ -654,6 +820,7 @@
       ladder.innerHTML = '<li class="sweep-muted">The sector ladder could not be read.</li>';
       crewList.innerHTML = '<p class="sweep-muted">The roster could not be read.</p>';
       if (profileCard) profileCard.innerHTML = '<p class="sweep-muted">The commander record could not be read.</p>';
+      if (stimBeltCard) stimBeltCard.hidden = true;
       if (trophyList) trophyList.innerHTML = '<p class="sweep-muted">The vault could not be read.</p>';
       boardArea.innerHTML = '<p class="sweep-muted">' + esc(error.message) + '</p>';
       boardActions.hidden = true;
@@ -757,6 +924,47 @@
       if (!button) return;
       send(Number(button.getAttribute('data-sweep-send')));
     });
+  }
+  if (stimBeltCard) {
+    stimBeltCard.addEventListener('click', function (event) {
+      var clear = event.target.closest('[data-sweep-stim-slot-clear]');
+      if (clear && !clear.disabled) { clearStimSlot(clear); return; }
+      var use = event.target.closest('[data-sweep-stim-use]');
+      if (use && !use.disabled) { useStim(use); return; }
+      var empty = event.target.closest('[data-sweep-stim-slot]');
+      if (empty && !empty.disabled) assignStimSlot(empty);
+    });
+  }
+  if (choiceModal) {
+    choiceOptions.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-sweep-choice-value]');
+      if (!button) return;
+      choiceState.selected = button.getAttribute('data-sweep-choice-value');
+      renderChoiceOptions();
+      var active = choiceOptions.querySelector('.is-active');
+      if (active) active.focus();
+    });
+    choiceOptions.addEventListener('keydown', function (event) {
+      var keys = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 };
+      var step = keys[event.key];
+      if (!step) return;
+      event.preventDefault();
+      var buttons = Array.prototype.slice.call(choiceOptions.querySelectorAll('[data-sweep-choice-value]'));
+      if (!buttons.length) return;
+      var current = buttons.indexOf(document.activeElement);
+      var next = buttons[(current + step + buttons.length) % buttons.length];
+      choiceState.selected = next.getAttribute('data-sweep-choice-value');
+      renderChoiceOptions();
+      choiceOptions.querySelector('.is-active').focus();
+    });
+    choiceConfirm.addEventListener('click', function () {
+      if (choiceState.selected === null) { choiceError.textContent = 'Choose one of the options first.'; return; }
+      closeChoice({ value: choiceState.selected });
+    });
+    document.getElementById('sweep-choice-cancel').addEventListener('click', function () { closeChoice(null); });
+    document.getElementById('sweep-choice-close').addEventListener('click', function () { closeChoice(null); });
+    choiceModal.addEventListener('cancel', function (event) { event.preventDefault(); closeChoice(null); });
+    choiceModal.addEventListener('click', function (event) { if (event.target === choiceModal) closeChoice(null); });
   }
   if (crewSort) crewSort.addEventListener('change', function () { renderCrew(); });
   if (crewList) {
