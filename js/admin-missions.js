@@ -3,7 +3,7 @@
 
   var definitions = [];
   /* Overlord roster and contract readiness, both supplied by definitions-list. */
-  var overlords = [], contractsReady = false, contractRank = 10;
+  var overlords = [], contractsReady = false, contestedContractsReady = false, contractRank = 10;
   var crew = [];
   var gear = [];
   var gearMeta = null;
@@ -114,6 +114,7 @@
       if (mission.is_campaign_final && detail) detail.textContent += ' | Campaign finale';
       if (mission.requires_research_unlock && detail) detail.textContent += ' | Research locked';
       if (mission.overlord_name && detail) detail.textContent += ' | Contract: ' + mission.overlord_name;
+      if (mission.is_contested && detail) detail.textContent += ' | Contested by ' + (mission.rival_faction_name || 'a rival recovery team');
       if (can('missions.edit')) {
         row.addEventListener('click', function () { openDefinition(mission); });
         row.addEventListener('keydown', function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDefinition(mission); } });
@@ -183,7 +184,7 @@
   }
 
   function loadDefinitions() {
-    return request('/api/admin/missions/definitions-list.php').then(function (data) { definitions = data.missions || []; overlords = data.overlords || []; contractsReady = !!data.contracts_ready; contractRank = Number(data.contract_rank) || 10; renderDefinitions(); refreshCount(); }).catch(function (error) { blank(definitionList, error.message || 'Could not load mission definitions. Run the Missions V0 migration first.'); });
+    return request('/api/admin/missions/definitions-list.php').then(function (data) { definitions = data.missions || []; overlords = data.overlords || []; contractsReady = !!data.contracts_ready; contestedContractsReady = !!data.contested_contracts_ready; contractRank = Number(data.contract_rank) || 10; renderDefinitions(); refreshCount(); }).catch(function (error) { blank(definitionList, error.message || 'Could not load mission definitions. Run the Missions V0 migration first.'); });
   }
 
   function loadCrew() {
@@ -256,6 +257,20 @@
     }
   }
 
+  function syncMissionContestedFields() {
+    var field = document.getElementById('mission-definition-contested-field');
+    var overlord = document.getElementById('mission-definition-overlord');
+    var toggle = document.getElementById('mission-definition-contested');
+    var faction = document.getElementById('mission-definition-rival-faction');
+    if (!field || !overlord || !toggle || !faction) return;
+    field.hidden = !contestedContractsReady;
+    var isContract = contractsReady && overlord.value !== '';
+    if (!isContract) toggle.checked = false;
+    toggle.disabled = !isContract;
+    faction.disabled = !isContract || !toggle.checked;
+    if (!isContract) faction.value = '';
+  }
+
   function definitionValues(mission) {
     document.getElementById('mission-definition-name').value = mission ? mission.name : '';
     document.getElementById('mission-definition-slug').value = mission ? mission.slug : '';
@@ -283,6 +298,8 @@
         }).join('');
       overlordSelect.value = mission && mission.overlord_id ? String(mission.overlord_id) : '';
     }
+    document.getElementById('mission-definition-contested').checked = mission ? !!mission.is_contested : false;
+    document.getElementById('mission-definition-rival-faction').value = mission && mission.rival_faction_name ? mission.rival_faction_name : '';
     populateMissionSuccessionOptions(mission);
     document.getElementById('mission-definition-unlock-completions').value = mission && mission.unlocks_after_mission_id ? mission.unlocks_after_completion_count : 0;
     document.getElementById('mission-definition-campaign-final').checked = mission ? !!mission.is_campaign_final : false;
@@ -293,6 +310,7 @@
     document.getElementById('mission-definition-watermark-opacity').value = mission && mission.watermark_opacity ? mission.watermark_opacity : 10;
     updateMissionWatermarkPreview();
     syncMissionSuccessionFields();
+    syncMissionContestedFields();
   }
 
   function resetModalMessage(prefix) {
@@ -341,6 +359,8 @@
       is_enabled: document.getElementById('mission-definition-enabled').checked,
       requires_research_unlock: document.getElementById('mission-definition-research-locked').checked,
       overlord_id: contractsReady ? document.getElementById('mission-definition-overlord').value : '',
+      is_contested: contestedContractsReady && document.getElementById('mission-definition-contested').checked,
+      rival_faction_name: contestedContractsReady ? document.getElementById('mission-definition-rival-faction').value.trim() : '',
       unlocks_after_mission_id: document.getElementById('mission-definition-unlocks-after').value,
       unlocks_after_completion_count: document.getElementById('mission-definition-unlock-completions').value,
       is_campaign_final: document.getElementById('mission-definition-campaign-final').checked,
@@ -432,6 +452,8 @@
   });
   document.getElementById('mission-definition-slug').addEventListener('input', function () { this.dataset.touched = 'true'; });
   document.getElementById('mission-definition-unlocks-after').addEventListener('change', syncMissionSuccessionFields);
+  document.getElementById('mission-definition-overlord').addEventListener('change', syncMissionContestedFields);
+  document.getElementById('mission-definition-contested').addEventListener('change', syncMissionContestedFields);
   document.getElementById('mission-crew-name').addEventListener('input', function () {
     var slug = document.getElementById('mission-crew-slug');
     if (!currentCrew && !slug.dataset.touched) slug.value = slugify(this.value);

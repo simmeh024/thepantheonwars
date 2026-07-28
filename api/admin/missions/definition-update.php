@@ -35,6 +35,10 @@ if ($creditsReady) $columns['credit_reward'] = $data['credit_reward'];
 if ($watermarkReady) { $columns['watermark_url'] = $data['watermark_url']; $columns['watermark_opacity'] = $data['watermark_opacity']; }
 if ($researchLocksReady) $columns['requires_research_unlock'] = $data['requires_research_unlock'];
 if (pw_mission_overlord_contracts_ready($db)) $columns['overlord_id'] = $data['overlord_id'];
+if (pw_mission_contested_contracts_ready($db)) {
+    $columns['is_contested'] = $data['is_contested'];
+    $columns['rival_faction_name'] = $data['rival_faction_name'];
+}
 $assignments = array_map(static function ($column) { return $column . ' = ?'; }, array_keys($columns));
 $stmt = $db->prepare('UPDATE game_mission_definitions SET ' . implode(', ', $assignments) . ' WHERE id = ?');
 $values = array_values($columns);

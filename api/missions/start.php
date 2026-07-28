@@ -42,6 +42,19 @@ try {
         pw_missions_overlord_affinity($db, $user['overlord_affinity'] ?? null)
     );
     if ($contractBlock !== null) throw new RuntimeException($contractBlock);
+    /* A contested recovery plan is chosen exactly once, at launch. The browser
+     * may only name one of the three authored approaches; whether this is a
+     * contest and which faction is involved always comes from the locked
+     * contract definition. */
+    $contestedReady = pw_mission_contested_contracts_ready($db);
+    $isContested = pw_missions_contested_contract_is_enabled($mission, $contestedReady);
+    $rivalApproach = null;
+    if ($isContested) {
+        $rivalApproach = pw_missions_contested_contract_approach($input['rival_approach'] ?? null);
+        if ($rivalApproach === null) {
+            throw new RuntimeException('Choose how your crew will handle the rival recovery team.');
+        }
+    }
     if ($mission['unlocks_after_mission_id'] !== null) {
         $requiredCompletions = max(1, (int)$mission['unlocks_after_completion_count']);
         $completedStmt = $db->prepare(
@@ -113,6 +126,14 @@ try {
     $effects['duration_percent'] = min(90.0, (float)$effects['duration_percent'] + (float)$research['mission_speed_percent']);
     $duration = pw_missions_effective_duration((int)$mission['duration_seconds'], $effects);
 
+    /* Push Ahead cuts the crew's real clock after every ordinary duration
+     * modifier has been resolved. This is not a client-only preview: the
+     * stored completion time is the time judged at claim, and is what the
+     * active-contract race renders. */
+    if ($isContested && $rivalApproach === 'push') {
+        $duration = max(1, (int)round($duration * (100 - PW_MISSION_CONTESTED_PUSH_DURATION_PERCENT) / 100));
+    }
+
     $now = pw_missions_utc_now($db);
 
     /* Fatigue is charged here, at launch, from the mission's authored length
@@ -127,6 +148,9 @@ try {
      * crew member's pool. */
     if ($fatigueReady) {
         $fatigueCost = pw_missions_fatigue_cost((int)$mission['duration_seconds']);
+        if ($isContested && $rivalApproach === 'push' && $fatigueCost > 0) {
+            $fatigueCost = (int)ceil($fatigueCost * (100 + PW_MISSION_CONTESTED_PUSH_FATIGUE_PERCENT) / 100);
+        }
         if ($fatigueCost > 0) {
             $fatigueMax = pw_missions_fatigue_max($db, $userId, $research);
             $fatigueRecovery = (float)($research['fatigue_recovery_percent'] ?? 0);
@@ -147,6 +171,17 @@ try {
     }
 
     $completesAt = $now->modify('+' . $duration . ' seconds');
+    $rivalFaction = $isContested ? pw_missions_contested_contract_faction($mission['rival_faction_name'] ?? '') : '';
+    /* The rival's clock is picked server-side and persisted with the run. It
+     * is based on the unmodified authored duration so crew composition and the
+     * Push Ahead choice meaningfully change the race; a later editor change
+     * cannot rewrite a recovery team already in the field. Safe Cut declines
+     * the race altogether and has no rival deadline. */
+    $rivalCompletesAt = null;
+    if ($isContested && $rivalApproach !== 'safe') {
+        $rivalSeconds = max(60, (int)round((int)$mission['duration_seconds'] * random_int(92, 108) / 100));
+        $rivalCompletesAt = $now->modify('+' . $rivalSeconds . ' seconds');
+    }
     $weatherReady = pw_mission_weather_ready($db);
     $columns = ['user_id', 'mission_definition_id', 'world_key', 'status', 'started_at', 'completes_at', 'xp_reward', 'reputation_reward'];
     $values = [
@@ -159,6 +194,15 @@ try {
             $weather ? $weather['condition'] : null,
             $weather ? $weather['icon'] : null,
             $weather && $weather['severe'] ? 1 : 0
+        );
+    }
+    if ($contestedReady) {
+        array_push($columns, 'is_contested', 'rival_faction_name', 'rival_approach', 'rival_completes_at');
+        array_push($values,
+            $isContested ? 1 : 0,
+            $isContested ? $rivalFaction : null,
+            $isContested ? $rivalApproach : null,
+            $rivalCompletesAt ? pw_missions_datetime($rivalCompletesAt) : null
         );
     }
     $insert = $db->prepare(
@@ -179,7 +223,17 @@ try {
         throw new RuntimeException('Crew availability changed while the mission was launching.');
     }
     $db->commit();
-    pw_json(['ok' => true, 'mission_id' => $playerMissionId, 'completes_at' => pw_missions_datetime($completesAt)]);
+    pw_json([
+        'ok' => true,
+        'mission_id' => $playerMissionId,
+        'completes_at' => pw_missions_datetime($completesAt),
+        'rival' => $isContested ? [
+            'contested' => true,
+            'faction' => $rivalFaction,
+            'approach' => $rivalApproach,
+            'rival_completes_at' => $rivalCompletesAt ? pw_missions_datetime($rivalCompletesAt) : null,
+        ] : null,
+    ]);
 } catch (Throwable $e) {
     if ($db->inTransaction()) $db->rollBack();
     pw_error($e instanceof RuntimeException ? $e->getMessage() : 'Could not launch this mission. Please try again.', 409);

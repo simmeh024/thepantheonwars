@@ -16,6 +16,7 @@ try {
     $db->beginTransaction();
     $statsColumns = pw_mission_stats_ready($db) ? ', md.base_success_percent, md.loot_rolls' : '';
     $creditsReady = pw_mission_credits_ready($db);
+    $contestedReady = pw_mission_contested_contracts_ready($db);
     if ($creditsReady) $statsColumns .= ', md.credit_reward';
     $missionStmt = $db->prepare(
         'SELECT pm.*, md.name AS mission_name, md.mission_type, md.duration_seconds AS mission_duration_seconds' . $statsColumns . '
@@ -109,6 +110,10 @@ try {
     $xpAwarded = 0;
     $reputationAwarded = 0;
     $creditsAwarded = 0;
+    $rival = null;
+    $rivalOutcome = null;
+    $rivalBonusCredits = 0;
+    $isContested = $contestedReady && !empty($mission['is_contested']);
     $loot = [];
     if ($succeeded) {
         $xpAwarded = (int)round((int)$mission['xp_reward'] * (1 + ($effects['xp_percent'] / 100)));
@@ -123,6 +128,59 @@ try {
         $creditsAwarded = $creditsReady
             ? (int)round((int)($mission['credit_reward'] ?? 0) * (1 + ($effects['credit_percent'] / 100)))
             : 0;
+    }
+
+    /* A contest is judged only after the crew has successfully reached the
+     * site. The operation roll remains meaningful -- an unsafe crew can still
+     * fail before it ever gets to race. Race rewards are reduced deliberately
+     * rather than flipping the run to `failed`: the crew completed a real
+     * contract and should return, close the daily slot, and receive the
+     * clearly stated partial debrief. */
+    if ($isContested) {
+        $approach = pw_missions_contested_contract_approach($mission['rival_approach'] ?? null) ?? 'secure';
+        $faction = pw_missions_contested_contract_faction($mission['rival_faction_name'] ?? '');
+        $rivalOutcome = 'operation_failed';
+        if ($succeeded) {
+            if ($approach === 'safe') {
+                $rivalOutcome = 'safe';
+                $xpAwarded = (int)floor($xpAwarded * PW_MISSION_CONTESTED_SAFE_REWARD_PERCENT / 100);
+                $reputationAwarded = (int)floor($reputationAwarded * PW_MISSION_CONTESTED_SAFE_REWARD_PERCENT / 100);
+                $creditsAwarded = (int)floor($creditsAwarded * PW_MISSION_CONTESTED_SAFE_REWARD_PERCENT / 100);
+            } else {
+                $rivalAt = (string)($mission['rival_completes_at'] ?? '');
+                $playerAt = (string)($mission['completes_at'] ?? '');
+                $playerWon = $rivalAt === '' || $playerAt <= $rivalAt;
+                if ($playerWon) {
+                    $rivalOutcome = 'won';
+                    if ($creditsAwarded > 0) {
+                        $rivalBonusCredits = max(1, (int)round($creditsAwarded * 0.25));
+                        $creditsAwarded += $rivalBonusCredits;
+                    }
+                } else {
+                    $delay = max(0, strtotime($playerAt . ' UTC') - strtotime($rivalAt . ' UTC'));
+                    $decisiveDelay = max(60, (int)round((int)$mission['mission_duration_seconds'] * 0.20));
+                    if ($delay > $decisiveDelay) {
+                        $rivalOutcome = 'decisive_loss';
+                        $xpAwarded = (int)floor($xpAwarded * PW_MISSION_CONTESTED_DECISIVE_XP_PERCENT / 100);
+                        $reputationAwarded = 0;
+                        $creditsAwarded = 0;
+                    } else {
+                        $rivalOutcome = 'narrow_loss';
+                        $xpAwarded = (int)floor($xpAwarded * PW_MISSION_CONTESTED_NARROW_REWARD_PERCENT / 100);
+                        $reputationAwarded = (int)floor($reputationAwarded * PW_MISSION_CONTESTED_NARROW_REWARD_PERCENT / 100);
+                        $creditsAwarded = (int)floor($creditsAwarded * PW_MISSION_CONTESTED_NARROW_REWARD_PERCENT / 100);
+                    }
+                }
+            }
+        }
+        $rival = [
+            'contested' => true,
+            'faction' => $faction,
+            'approach' => $approach,
+            'outcome' => $rivalOutcome,
+            'rival_completes_at' => $mission['rival_completes_at'] ?? null,
+            'bonus_credits' => $rivalBonusCredits,
+        ];
     }
 
     /* A failed mission returns its crew with no XP, no reputation and no loot,
@@ -259,7 +317,8 @@ try {
             $lootSkipped[$definitionId] = ($lootSkipped[$definitionId] ?? 0) + $quantity;
         }
     };
-    if ($succeeded && $statsReady) {
+    $recoveredTarget = $succeeded && (!$isContested || $rivalOutcome === 'won');
+    if ($recoveredTarget && $statsReady) {
         $loot = pw_missions_roll_loot($db, (string)$mission['world_key'], (int)($mission['loot_rolls'] ?? 0), $effects);
         $collectSkipped(pw_missions_store_loot($db, $userId, $loot, $research));
     }
@@ -268,7 +327,7 @@ try {
      * mission in Loot Table Management and can award characters and gear. Every
      * roll and inventory write remains inside this transaction, so a failure
      * anywhere rolls the whole claim back. */
-    $lootTableAwards = $succeeded
+    $lootTableAwards = $recoveredTarget
         ? pw_missions_roll_loot_tables($db, $userId, (int)$mission['mission_definition_id'])
         : ['granted' => [], 'duplicates' => [], 'pending' => [], 'gear' => []];
     if (!empty($lootTableAwards['gear'])) {
@@ -309,6 +368,10 @@ try {
     if ($creditsReady) {
         $sets[] = 'credits_awarded = ?';
         $values[] = $creditsAwarded;
+    }
+    if ($contestedReady && $isContested) {
+        array_push($sets, 'rival_outcome = ?', 'rival_bonus_credits = ?');
+        array_push($values, $rivalOutcome, $rivalBonusCredits);
     }
     $values[] = $missionId;
     $missionUpdate = $db->prepare('UPDATE game_player_missions SET ' . implode(', ', $sets) . ' WHERE id = ? AND status = "completed"');
@@ -356,6 +419,7 @@ try {
         'crew_duplicate_credits' => $creditsReady ? $duplicateCredits : 0,
         'credits_total' => $creditBalance,
         'credits_ready' => $creditsReady,
+        'rival' => $rival,
         'level_ups' => $levelUps,
         'crew_results' => $crewResults,
         'loot' => $loot,

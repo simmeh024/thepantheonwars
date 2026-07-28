@@ -22,6 +22,7 @@ try {
     $researchLocksReady = pw_mission_research_locks_ready($db);
     $fatigueReady = pw_mission_fatigue_ready($db);
     $contractsReady = pw_mission_overlord_contracts_ready($db);
+    $contestedContractsReady = pw_mission_contested_contracts_ready($db);
     /* Always called: the helper returns defaults when the Research Facility has
      * not been migrated, and it is also where running stims are folded in, so
      * branching here would ignore a boost the player had already spent. */
@@ -265,6 +266,9 @@ try {
     $playerMissionStmt = $db->prepare(
         'SELECT pm.id, pm.world_key, pm.status, pm.started_at, pm.completes_at, pm.completed_at, pm.claimed_at,
                 pm.xp_reward, pm.reputation_reward, ' . ($creditsReady ? 'pm.credits_awarded,' : '0 AS credits_awarded,')
+        . ($contestedContractsReady
+            ? ' pm.is_contested, pm.rival_faction_name, pm.rival_approach, pm.rival_completes_at, pm.rival_outcome, pm.rival_bonus_credits,'
+            : ' 0 AS is_contested, "" AS rival_faction_name, "" AS rival_approach, NULL AS rival_completes_at, "" AS rival_outcome, 0 AS rival_bonus_credits,')
         . ($watermarkReady ? ' md.watermark_url, md.watermark_opacity,' : ' "" AS watermark_url, 10 AS watermark_opacity,') . ' md.name, md.slug, md.mission_type,
                 (pm.completes_at <= UTC_TIMESTAMP()) AS is_ready,
                 GROUP_CONCAT(c.name ORDER BY c.name SEPARATOR "|~|") AS crew_names
@@ -278,11 +282,16 @@ try {
          ORDER BY CASE pm.status WHEN "active" THEN 0 WHEN "completed" THEN 1 ELSE 2 END, pm.started_at DESC, pm.id DESC'
     );
     $playerMissionStmt->execute([$userId]);
-    $allPlayerMissions = array_map(static function ($row) {
+    $allPlayerMissions = array_map(static function ($row) use ($contestedContractsReady) {
         $row['id'] = (int)$row['id'];
         $row['xp_reward'] = (int)$row['xp_reward'];
         $row['reputation_reward'] = (int)$row['reputation_reward'];
         $row['credits_awarded'] = (int)$row['credits_awarded'];
+        $row['is_contested'] = $contestedContractsReady && !empty($row['is_contested']);
+        $row['rival_faction_name'] = $row['is_contested'] ? pw_missions_contested_contract_faction($row['rival_faction_name']) : '';
+        $row['rival_approach'] = $row['is_contested'] ? (pw_missions_contested_contract_approach($row['rival_approach']) ?? 'secure') : '';
+        $row['rival_outcome'] = $row['is_contested'] ? (string)($row['rival_outcome'] ?? '') : '';
+        $row['rival_bonus_credits'] = (int)($row['rival_bonus_credits'] ?? 0);
         $row['watermark_opacity'] = (int)$row['watermark_opacity'];
         $row['watermark_url'] = pw_missions_watermark_url($row['watermark_url']);
         $row['is_ready'] = (bool)$row['is_ready'];
@@ -417,10 +426,14 @@ try {
         $row['fatigue_cost'] = $fatigueReady ? pw_missions_fatigue_cost($row['duration_seconds']) : 0;
         $row['last_crew_ids'] = $lastCrewByMission[(int)$row['id']] ?? [];
         $row['is_overlord_contract'] = true;
+        $row['is_contested'] = pw_missions_contested_contract_is_enabled($row, $contestedContractsReady);
+        $row['rival_faction_name'] = $row['is_contested']
+            ? pw_missions_contested_contract_faction($row['rival_faction_name'] ?? '')
+            : '';
         /* The same public field list the ordinary board is trimmed to, so a
          * contract cannot leak a column the mission cards never expose. */
         $contractPublic = [];
-        foreach (array_merge($publicFields, ['is_overlord_contract']) as $field) {
+        foreach (array_merge($publicFields, ['is_overlord_contract', 'is_contested', 'rival_faction_name']) as $field) {
             if (array_key_exists($field, $row)) $contractPublic[$field] = $row[$field];
         }
         $overlordContract['contract'] = $contractPublic;

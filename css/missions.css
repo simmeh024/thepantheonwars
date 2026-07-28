@@ -360,14 +360,24 @@
 .mission-result-modal::backdrop { background: rgba(3,4,12,0.8); backdrop-filter: blur(4px); }
 .mission-result-inner { position: relative; padding: 28px; background: linear-gradient(150deg, rgba(17,48,66,0.96), rgba(20,12,42,0.98)); }
 .mission-result-inner.is-failed { background: linear-gradient(150deg, rgba(62,25,30,0.9), rgba(23,11,30,0.98)); }
+.mission-result-inner.is-rival-loss { background: linear-gradient(150deg, rgba(61,39,30,0.94), rgba(27,13,34,0.98)); }
 .mission-result-inner::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: linear-gradient(90deg, #6ce5eb, #8d67d3); }
 .mission-result-inner.is-failed::before { background: linear-gradient(90deg, #e0705c, #a2506e); }
+.mission-result-inner.is-rival-loss::before { background: linear-gradient(90deg, #e8a45f, #af5c6f); }
 .mission-result-body .eyebrow { display: block; margin-bottom: 6px; color: #79d9df; font-size: 0.62rem; }
 .mission-result-inner.is-failed .mission-result-body .eyebrow { color: #e8a08e; }
 .mission-result-body h2 { margin: 0 34px 4px 0; font-size: 1.42rem; }
 .mission-result-mission { margin: 0 0 9px; color: #9ae2e6; font-size: 0.68rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .mission-result-inner.is-failed .mission-result-mission { color: #e0a894; }
 .mission-result-lead { margin: 0; color: #aec3cf; font-size: 0.82rem; line-height: 1.55; }
+.mission-result-rival { display: grid; gap: 4px; margin-top: 14px; padding: 11px 12px; border: 1px solid rgba(120,214,222,0.46); background: linear-gradient(120deg, rgba(20,69,81,0.42), rgba(20,13,43,0.56)); }
+.mission-result-rival > span { color: #79d9df; font-size: 0.56rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-result-rival strong { color: #eaf6f7; font: 600 .92rem/1.2 'Cinzel', serif; }
+.mission-result-rival p { margin: 0; color: #b7cbd5; font-size: .7rem; line-height: 1.45; }
+.mission-result-rival.is-won { border-color: rgba(126,227,168,0.55); background: linear-gradient(120deg, rgba(25,88,64,0.42), rgba(20,13,43,0.56)); }
+.mission-result-rival.is-won > span, .mission-result-rival.is-won strong { color: #a8edbd; }
+.mission-result-rival.is-safe { border-color: rgba(126,184,231,0.5); }.mission-result-rival.is-safe > span, .mission-result-rival.is-safe strong { color: #a4d5f4; }
+.mission-result-rival.is-narrow_loss, .mission-result-rival.is-decisive_loss { border-color: rgba(234,165,96,0.58); background: linear-gradient(120deg, rgba(97,50,34,0.42), rgba(35,14,38,0.58)); }.mission-result-rival.is-narrow_loss > span, .mission-result-rival.is-narrow_loss strong, .mission-result-rival.is-decisive_loss > span, .mission-result-rival.is-decisive_loss strong { color: #f2bf83; }
 .mission-result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 9px; margin-top: 18px; }
 .mission-result-stat { padding: 11px 12px; border: 1px solid rgba(103,152,190,0.3); background: rgba(8,18,33,0.55); }
 .mission-result-stat span { display: block; color: #8ba5be; font-size: 0.58rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
@@ -551,6 +561,10 @@
 .mission-duration { color: #d6c18b; }
 .mission-active-card h3, .mission-definition-card h3 { margin: 0 0 7px; color: #f0edf8; font-size: 1.02rem; }
 .mission-crew-line { min-height: 22px; margin: 0; color: #a8bfd0; font-size: 0.76rem; }
+.mission-rival-race { display: grid; gap: 7px; margin-top: 12px; padding: 10px 11px; border: 1px solid rgba(224,138,114,0.38); background: rgba(56,24,42,0.44); }
+.mission-rival-race-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }.mission-rival-race-head span { color: #e3a08b; font-size: .55rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }.mission-rival-race-head strong { color: #eeddd6; font: 600 .72rem/1.2 'Cinzel', serif; text-align: right; }
+.mission-rival-race-track { display: grid; grid-template-columns: minmax(75px, auto) minmax(0, 1fr); align-items: center; gap: 9px; }.mission-rival-race-track > span:first-child { overflow: hidden; color: #aebfca; font-size: .61rem; text-overflow: ellipsis; white-space: nowrap; }.mission-rival-race-track.is-rival > span:first-child { color: #dfa38f; }
+.mission-rival-progress { display: block; height: 5px; overflow: hidden; border: 1px solid rgba(119,153,177,0.34); background: rgba(2,7,16,0.7); }.mission-rival-progress i { display: block; height: 100%; background: linear-gradient(90deg, #67d7df, #96e1bc); box-shadow: 0 0 8px rgba(103,215,223,0.48); transition: width .8s linear; }.mission-rival-race-track.is-rival .mission-rival-progress i { background: linear-gradient(90deg, #c86662, #eda46b); box-shadow: 0 0 8px rgba(231,133,91,0.46); }.mission-rival-race > p { margin: 1px 0 0; color: #b6aab3; font-size: .62rem; line-height: 1.4; }.mission-rival-race.is-safe { border-color: rgba(111,184,223,0.42); background: rgba(22,45,71,0.44); }.mission-rival-race.is-safe > div { display: grid; gap: 3px; }.mission-rival-race.is-safe span { color: #9bd4ed; font-size: .55rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }.mission-rival-race.is-safe strong { color: #d1ecf4; font: 600 .76rem/1.2 'Cinzel', serif; }
 .mission-active-footer { display: flex; align-items: end; justify-content: space-between; gap: 12px; margin-top: 19px; padding-top: 13px; border-top: 1px solid rgba(93,146,183,0.25); }
 .mission-active-footer > div { display: grid; gap: 2px; }
 .mission-countdown { display: block; color: #f0d591; font: 600 0.92rem/1.15 'Cinzel', serif; }
@@ -673,6 +687,17 @@
 .mission-launch-brief-role { padding: 4px 8px; border: 1px solid rgba(126,227,232,0.4); color: #cfe7ef; font-size: 0.66rem; font-weight: 600; }
 .mission-launch-brief-role em { color: #9edba8; font-style: normal; }
 .mission-launch-brief-penalty { padding: 4px 8px; border: 1px solid rgba(224,138,114,0.42); color: #e0a894; font-size: 0.63rem; font-weight: 600; }
+.mission-launch-rival { margin-top: 15px; padding: 13px; border: 1px solid rgba(220,137,105,0.48); background: linear-gradient(120deg, rgba(67,30,39,0.54), rgba(21,17,45,0.68)); }
+.mission-launch-rival[hidden] { display: none; }
+.mission-launch-rival-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 8px; }
+.mission-launch-rival-head span { color: #e5a28d; font-size: .58rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-launch-rival-head strong { color: #f0e2dc; font: 600 .78rem/1.25 'Cinzel', serif; }
+.mission-launch-rival > p { margin: 6px 0 10px; color: #bfadb8; font-size: .68rem; line-height: 1.42; }
+.mission-launch-rival-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+.mission-launch-rival-option { display: grid; gap: 4px; min-height: 80px; padding: 9px 10px; border: 1px solid rgba(208,142,112,0.3); background: rgba(8,14,30,0.46); color: #bfcad3; text-align: left; cursor: pointer; font: inherit; }
+.mission-launch-rival-option strong { color: #e7d8d2; font-size: .68rem; letter-spacing: .04em; text-transform: uppercase; }.mission-launch-rival-option span { color: #9bacb9; font-size: .61rem; line-height: 1.35; }
+.mission-launch-rival-option:hover, .mission-launch-rival-option:focus-visible { border-color: rgba(236,169,119,0.78); outline: none; }.mission-launch-rival-option.is-selected { border-color: #efad78; background: linear-gradient(140deg, rgba(113,53,42,0.62), rgba(40,20,56,0.78)); box-shadow: inset 0 0 0 1px rgba(239,173,120,0.2), 0 0 14px rgba(222,115,83,0.11); }.mission-launch-rival-option.is-selected strong { color: #ffe2bd; }
+@media (max-width: 620px) { .mission-launch-rival-options { grid-template-columns: 1fr; }.mission-launch-rival-option { min-height: 0; } }
 .mission-launch-crew-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin: 18px 0 9px; }
 .mission-launch-slots { color: #90abba; font-size: 0.63rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .mission-launch-slots.is-ready { color: #9edba8; }
@@ -977,6 +1002,7 @@
 .mission-contract-name { color: #eef1f6; font-size: 0.86rem; line-height: 1.25; }
 .mission-contract-meta { color: #a9c2d0; font-size: 0.62rem; letter-spacing: .05em; text-transform: uppercase; }
 .mission-contract-reward { color: var(--overlord-text, #e2c76a); font-size: 0.68rem; font-weight: 600; }
+.mission-contract-contested { width: fit-content; padding: 3px 6px; border: 1px solid rgba(235,150,113,0.48); background: rgba(91,39,47,0.3); color: #f0b092; font-size: .57rem; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
 .mission-contract-copy { margin: 0; color: #a9c2d0; font-size: 0.68rem; line-height: 1.45; }
 .mission-contract-copy.is-done { color: #9edba8; }
 .mission-contract-launch { width: 100%; margin-top: 2px; padding: 8px 10px !important; font-size: 0.66rem !important; }

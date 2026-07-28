@@ -64,6 +64,21 @@ function pw_admin_mission_definition_input(array $input): array {
         $check->execute([$overlordId]);
         if (!$check->fetch()) pw_error('That Overlord no longer exists.', 404);
     }
+    /* A contested recovery is meaningful only as a daily Overlord contract.
+     * Keep the rule in the shared input validator, not only in the editor: an
+     * API request cannot turn an ordinary board mission into an unbounded race.
+     * The migration probe lets older production installs retain their existing
+     * contract editor unchanged until the new columns are installed. */
+    $contestedReady = pw_mission_contested_contracts_ready(pw_db());
+    $isContested = $contestedReady && !empty($input['is_contested']) ? 1 : 0;
+    $rivalFaction = trim((string)($input['rival_faction_name'] ?? ''));
+    if ($isContested && $overlordId === null) {
+        pw_error('Contested recovery can only be enabled on an Overlord contract.');
+    }
+    if ($isContested && mb_strlen($rivalFaction) > 100) {
+        pw_error('Rival faction name must be 100 characters or fewer.');
+    }
+    if ($isContested) $rivalFaction = pw_missions_contested_contract_faction($rivalFaction);
     $unlocksAfterRaw = trim((string)($input['unlocks_after_mission_id'] ?? ''));
     $unlocksAfterMissionId = null;
     if ($unlocksAfterRaw !== '') {
@@ -82,6 +97,8 @@ function pw_admin_mission_definition_input(array $input): array {
         'is_enabled' => !empty($input['is_enabled']) ? 1 : 0, 'sort_order' => $sortOrder,
         'requires_research_unlock' => !empty($input['requires_research_unlock']) ? 1 : 0,
         'overlord_id' => $overlordId,
+        'is_contested' => $isContested,
+        'rival_faction_name' => $isContested ? $rivalFaction : null,
         'unlocks_after_mission_id' => $unlocksAfterMissionId,
         'unlocks_after_completion_count' => $unlocksAfterCompletionCount,
         'is_campaign_final' => !empty($input['is_campaign_final']) ? 1 : 0,

@@ -2106,6 +2106,13 @@ CREATE TABLE IF NOT EXISTS game_player_wallet (
   CONSTRAINT fk_game_player_wallet_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- sql/migration_contested_contracts.sql adds the optional rival-recovery
+-- configuration to game_mission_definitions (is_contested,
+-- rival_faction_name) and snapshots it against game_player_missions
+-- (is_contested, rival_faction_name, rival_approach, rival_completes_at,
+-- rival_outcome, rival_bonus_credits). Existing contracts remain ordinary
+-- daily contracts until an administrator enables the new flag.
+
 -- sql/migration_market.sql. The admin catalogue is distinct from the shared
 -- six-hour rotation snapshot: a price, rank gate, or weight edit applies to a
 -- future refresh without changing the offer a player is presently viewing.

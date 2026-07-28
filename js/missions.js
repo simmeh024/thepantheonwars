@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var state = { data: null, serverOffset: 0, launchMission: null, launchProjection: null, launchPenaltyAck: false,
+  var state = { data: null, serverOffset: 0, launchMission: null, launchProjection: null, launchPenaltyAck: false, rivalApproach: '',
     loadoutCrewId: null, loadoutSlot: null, loadoutAutoRunning: false, crewPage: 1, refreshQueued: false, feedSlot: null,
     /* When the current payload was received. Fatigue arrives already caught up
      * to that instant, so the page ages it forward from here rather than
@@ -36,6 +36,7 @@
   var launchError = document.getElementById('mission-launch-error');
   var launchConfirm = document.getElementById('mission-launch-confirm');
   var launchBrief = document.getElementById('mission-launch-brief');
+  var launchRival = document.getElementById('mission-launch-rival');
   var launchSlots = document.getElementById('mission-launch-slots');
   var launchRecommend = document.getElementById('mission-launch-recommend');
   var launchRack = document.getElementById('mission-launch-rack');
@@ -80,6 +81,16 @@
   var resultBody = document.getElementById('mission-result-body');
   var resultRerun = document.getElementById('mission-result-rerun');
   var resultError = document.getElementById('mission-result-error');
+
+  /* Kept as a small DOM insertion so an older cached missions.html can still
+   * receive the new contract choices when the script has cache-busted. */
+  if (!launchRival && launchBrief) {
+    launchRival = document.createElement('div');
+    launchRival.id = 'mission-launch-rival';
+    launchRival.className = 'mission-launch-rival';
+    launchRival.hidden = true;
+    launchBrief.insertAdjacentElement('afterend', launchRival);
+  }
 
   function escapeHtml(value) { var node = document.createElement('div'); node.textContent = value == null ? '' : String(value); return node.innerHTML; }
   function apiDate(value) { return value ? new Date(String(value).replace(' ', 'T') + 'Z') : null; }
@@ -299,6 +310,7 @@
       + '<span class="mission-contract-meta">' + escapeHtml(String(contract.mission_type).toUpperCase())
       + ' · ' + escapeHtml(missionDuration(contract.duration_seconds))
       + ' · ' + Number(contract.min_crew) + (Number(contract.max_crew) !== Number(contract.min_crew) ? '–' + Number(contract.max_crew) : '') + ' crew</span>'
+      + (contract.is_contested ? '<span class="mission-contract-contested">Contested · ' + escapeHtml(contract.rival_faction_name || 'Rival recovery team') + '</span>' : '')
       + (reward.length ? '<span class="mission-contract-reward">' + escapeHtml(reward.join(' · ')) + '</span>' : '')
       + (claimed
         ? '<p class="mission-contract-copy is-done">Completed today. A new contract is issued at 00:00 UTC.</p>'
@@ -403,6 +415,12 @@
       packet.setAttribute('cx', point.x.toFixed(2));
       packet.setAttribute('cy', point.y.toFixed(2));
     });
+    document.querySelectorAll('.mission-rival-progress[data-race-started-at][data-race-completes-at]').forEach(function (track) {
+      var progress = missionRouteProgress(track.getAttribute('data-race-started-at'), track.getAttribute('data-race-completes-at'), false);
+      var fill = track.querySelector('i');
+      if (fill) fill.style.width = progress.toFixed(2) + '%';
+      track.setAttribute('aria-valuenow', Math.round(progress));
+    });
   }
 
   function missionRouteMarkup(mission, isCompleted) {
@@ -428,6 +446,31 @@
       + '</svg></div>';
   }
 
+  function rivalOutcomeLabel(outcome) {
+    return {
+      won: 'Rival beaten',
+      safe: 'Safe cut',
+      narrow_loss: 'Narrow rival loss',
+      decisive_loss: 'Rival secured target',
+      operation_failed: 'Operation failed'
+    }[outcome] || 'Contested recovery';
+  }
+
+  function rivalRaceMarkup(mission) {
+    if (!mission || !mission.is_contested) return '';
+    var faction = String(mission.rival_faction_name || 'Independent recovery team');
+    var approach = String(mission.rival_approach || 'secure');
+    if (approach === 'safe') {
+      return '<div class="mission-rival-race is-safe"><div><span>Contested recovery</span><strong>Safe cut selected</strong></div><p>Command avoided the rival clock. This run pays a reduced recovery share, but the target cannot be taken by ' + escapeHtml(faction) + '.</p></div>';
+    }
+    var crewProgress = missionRouteProgress(mission.started_at, mission.completes_at, false);
+    var rivalProgress = missionRouteProgress(mission.started_at, mission.rival_completes_at, false);
+    return '<div class="mission-rival-race"><div class="mission-rival-race-head"><span>Contested recovery</span><strong>' + escapeHtml(faction) + '</strong></div>'
+      + '<div class="mission-rival-race-track is-crew"><span>Your crew</span><span class="mission-rival-progress" role="progressbar" aria-label="Your crew recovery progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(crewProgress) + '" data-race-started-at="' + escapeHtml(mission.started_at || '') + '" data-race-completes-at="' + escapeHtml(mission.completes_at || '') + '"><i style="width:' + crewProgress.toFixed(2) + '%"></i></span></div>'
+      + '<div class="mission-rival-race-track is-rival"><span>' + escapeHtml(faction) + '</span><span class="mission-rival-progress" role="progressbar" aria-label="Rival recovery progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(rivalProgress) + '" data-race-started-at="' + escapeHtml(mission.started_at || '') + '" data-race-completes-at="' + escapeHtml(mission.rival_completes_at || '') + '"><i style="width:' + rivalProgress.toFixed(2) + '%"></i></span></div>'
+      + '<p>' + (approach === 'push' ? 'Push ahead in effect: shorter clock, higher fatigue.' : 'Secure route in effect: normal recovery clock.') + '</p></div>';
+  }
+
   function renderActive(data) {
     if (!data.active_missions.length) { activeList.innerHTML = '<p class="missions-empty">No crews are currently in the field.</p>'; return; }
     activeList.innerHTML = data.active_missions.map(function (mission) {
@@ -440,7 +483,7 @@
       // The same mission keeps its emblem while a crew is in the field, so the
       // operation reads as the same thing on both cards.
       var watermark = missionWatermark(mission);
-      return '<article class="mission-active-card is-' + escapeHtml(mission.status) + watermark.className + '"' + watermark.style + '>' + missionRouteMarkup(mission, isCompleted) + '<div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-world">' + escapeHtml(mission.world_key) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p class="mission-crew-line">' + escapeHtml((mission.crew_names || []).join(' · ')) + '</p><div class="mission-active-footer"><div><strong class="mission-countdown" data-completes-at="' + escapeHtml(mission.completes_at) + '">' + (isCompleted ? 'Mission complete' : 'Calculating…') + '</strong><small>' + (isCompleted ? 'Ready for reward claim' : 'Completion verified by command') + '</small></div>' + action + '</div></article>';
+      return '<article class="mission-active-card is-' + escapeHtml(mission.status) + watermark.className + '"' + watermark.style + '>' + missionRouteMarkup(mission, isCompleted) + '<div class="mission-card-top"><span class="mission-type">' + escapeHtml(mission.mission_type) + '</span><span class="mission-world">' + escapeHtml(mission.world_key) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p class="mission-crew-line">' + escapeHtml((mission.crew_names || []).join(' · ')) + '</p>' + rivalRaceMarkup(mission) + '<div class="mission-active-footer"><div><strong class="mission-countdown" data-completes-at="' + escapeHtml(mission.completes_at) + '">' + (isCompleted ? 'Mission complete' : 'Calculating…') + '</strong><small>' + (isCompleted ? 'Ready for reward claim' : 'Completion verified by command') + '</small></div>' + action + '</div></article>';
     }).join('');
     updateMissionRouteProgress();
   }
@@ -984,7 +1027,8 @@
       var rewards = failed
         ? 'No rewards recovered'
         : '+' + mission.xp_reward + ' XP · +' + mission.reputation_reward + ' rep' + (mission.credits_awarded > 0 ? ' · +' + credits(mission.credits_awarded) + ' cr' : '');
-      return '<article class="mission-history-row' + (failed ? ' is-failed' : '') + '"><div><span class="mission-world">' + escapeHtml(mission.world_key) + '</span><strong>' + escapeHtml(mission.name) + '</strong><p>' + escapeHtml((mission.crew_names || []).join(' · ')) + '</p></div><div><small>Completed</small><span>' + formatDate(mission.completed_at) + '</span></div><div><small>Rewards</small><span>' + escapeHtml(rewards) + '</span></div><div><span class="mission-history-status' + (failed ? ' is-failed' : '') + '">' + (failed ? 'Failed' : 'Claimed') + '</span></div></article>';
+      var outcome = mission.is_contested && mission.rival_outcome ? rivalOutcomeLabel(mission.rival_outcome) : (failed ? 'Failed' : 'Claimed');
+      return '<article class="mission-history-row' + (failed ? ' is-failed' : '') + '"><div><span class="mission-world">' + escapeHtml(mission.world_key) + '</span><strong>' + escapeHtml(mission.name) + '</strong><p>' + escapeHtml((mission.crew_names || []).join(' · ')) + (mission.is_contested ? ' · ' + escapeHtml(mission.rival_faction_name || 'Rival recovery team') : '') + '</p></div><div><small>Completed</small><span>' + formatDate(mission.completed_at) + '</span></div><div><small>Rewards</small><span>' + escapeHtml(rewards) + '</span></div><div><span class="mission-history-status' + (failed ? ' is-failed' : '') + '">' + escapeHtml(outcome) + '</span></div></article>';
     }).join('');
   }
 
@@ -1248,12 +1292,41 @@
       ? { missionId: Number(result.mission_id), crewIds: (result.crew_ids || []).map(Number) }
       : null;
     var failed = result.succeeded === false;
+    var rival = result.rival && result.rival.contested ? result.rival : null;
+    var rivalLoss = rival && (rival.outcome === 'narrow_loss' || rival.outcome === 'decisive_loss');
     resultInner.classList.toggle('is-failed', failed);
     resultInner.classList.toggle('is-success', !failed);
+    resultInner.classList.toggle('is-rival-loss', !!rivalLoss);
+    resultInner.classList.toggle('is-rival-win', !!(rival && rival.outcome === 'won'));
     var title = failed ? 'Mission failed' : 'Mission complete';
     var lead = failed
       ? 'Your crew is back at command with nothing recovered, and this run does not count towards a campaign unlock.'
       : 'Your crew has returned. Command has logged the following against your record.';
+    var rivalMarkup = '';
+    if (rival) {
+      var rivalTitle = rivalOutcomeLabel(rival.outcome);
+      var rivalCopy = '';
+      if (rival.outcome === 'won') {
+        title = 'Target secured first';
+        lead = 'Your crew reached the recovery site before the opposing team and secured the full haul.';
+        rivalCopy = 'Command beat ' + (rival.faction || 'the rival recovery team') + ' to the target.' + (Number(rival.bonus_credits) > 0 ? ' The contract also paid a +' + credits(rival.bonus_credits) + ' credit first-recovery bonus.' : '');
+      } else if (rival.outcome === 'safe') {
+        title = 'Safe extraction complete';
+        lead = 'Your crew took the secured route and returned without giving the rival a chance at the target.';
+        rivalCopy = 'Safe Cut avoided ' + (rival.faction || 'the rival recovery team') + ', paying the stated 60% recovery share with no headline find.';
+      } else if (rival.outcome === 'narrow_loss') {
+        title = 'Rival secured the target';
+        lead = 'Your crew completed the operation, but the rival recovery team arrived first.';
+        rivalCopy = (rival.faction || 'The rival recovery team') + ' beat the crew by a narrow margin. Command paid the 40% recovery share; no headline find was available.';
+      } else if (rival.outcome === 'decisive_loss') {
+        title = 'Rival ran the field';
+        lead = 'Your crew reached the operation site after the target had already been cleared.';
+        rivalCopy = (rival.faction || 'The rival recovery team') + ' secured the field decisively. The crew retains 25% XP for the work, but no reputation, credits, or recovery haul.';
+      } else {
+        rivalCopy = 'The crew did not complete the operation before the contested recovery could be judged.';
+      }
+      rivalMarkup = '<div class="mission-result-rival is-' + escapeHtml(rival.outcome || 'operation_failed') + '"><span>Contested recovery</span><strong>' + escapeHtml(rivalTitle) + '</strong><p>' + escapeHtml(rivalCopy) + '</p></div>';
+    }
 
     var rows = [];
     if (!failed) {
@@ -1394,6 +1467,7 @@
       + '<h2 id="mission-result-title">' + escapeHtml(title) + '</h2>'
       + '<p class="mission-result-mission">' + escapeHtml(result.mission_name || '') + '</p>'
       + '<p class="mission-result-lead">' + escapeHtml(lead) + '</p>'
+      + rivalMarkup
       + rollMarkup(result)
       + affinityLine + weatherLine
       + '<div class="mission-result-grid">' + grid + '</div>' + extras;
@@ -1420,6 +1494,11 @@
       return 'Mission failed at ' + result.success_percent + '% success. Your crew returned without rewards, and this run does not count towards a campaign unlock.';
     }
     var parts = ['Rewards claimed: +' + result.xp_awarded_per_crew + ' XP per crew'];
+    if (result.rival && result.rival.contested) {
+      var rivalLabel = rivalOutcomeLabel(result.rival.outcome);
+      parts.unshift(rivalLabel + ' against ' + (result.rival.faction || 'a rival recovery team'));
+      if (Number(result.rival.bonus_credits) > 0) parts.push('+' + credits(result.rival.bonus_credits) + ' first-recovery bonus');
+    }
     if (result.xp_bonus_percent > 0) parts[0] += ' (includes +' + fmt(result.xp_bonus_percent) + '% crew bonus)';
     if (result.reputation_awarded > 0) parts.push('+' + result.reputation_awarded + ' reputation');
     if (result.credits_awarded > 0) parts.push('+' + credits(result.credits_awarded) + ' credits (total ' + credits(result.credits_total) + ')');
@@ -1607,6 +1686,18 @@
     var baseSeconds = Number(mission.duration_seconds) || 0;
     var seconds = Math.round(baseSeconds * (1 - (durationPercent / 100)) * (1 + (penaltyDuration / 100)));
     var baseSuccess = isFinite(Number(mission.base_success_percent)) ? Number(mission.base_success_percent) : 100;
+    var contestApproach = mission.is_contested ? (state.rivalApproach || 'secure') : '';
+    var rewardMultiplier = contestApproach === 'safe' ? 0.60 : 1;
+    if (contestApproach === 'push') seconds = Math.max(1, Math.round(seconds * 0.85));
+    var projectedDuration = Math.max(30, Math.min(Math.round(baseSeconds * (1 + (penaltyDuration / 100))), seconds));
+    var projectedCredits = Math.round((Number(mission.credit_reward) || 0) * (1 + ((affinity.credit_percent + roleCreditPercent + researchCredits) / 100)));
+    var projectedReputation = Math.round((Number(mission.reputation_reward) || 0) * (1 + ((affinity.reputation_percent + researchReputation) / 100))) + Math.floor(reputationFlat);
+    var projectedXp = Math.round((Number(mission.xp_reward) || 0) * (1 + (xpPercent / 100)));
+    if (rewardMultiplier < 1) {
+      projectedCredits = Math.floor(projectedCredits * rewardMultiplier);
+      projectedReputation = Math.floor(projectedReputation * rewardMultiplier);
+      projectedXp = Math.floor(projectedXp * rewardMultiplier);
+    }
 
     return {
       crew: crew,
@@ -1616,16 +1707,17 @@
       weather: conditions,
       penalty_duration_percent: penaltyDuration,
       penalty_success_percent: penaltySuccess,
-      duration_seconds: Math.max(30, Math.min(Math.round(baseSeconds * (1 + (penaltyDuration / 100))), seconds)),
+      duration_seconds: projectedDuration,
       base_duration_seconds: baseSeconds,
       success_percent: Math.max(5, Math.min(100, Math.round(baseSuccess + (totals.strength * 0.5) + affinity.success_percent - penaltySuccess))),
       base_success_percent: baseSuccess,
-      credits: Math.round((Number(mission.credit_reward) || 0) * (1 + ((affinity.credit_percent + roleCreditPercent + researchCredits) / 100))),
+      credits: projectedCredits,
       base_credits: Number(mission.credit_reward) || 0,
-      reputation: Math.round((Number(mission.reputation_reward) || 0) * (1 + ((affinity.reputation_percent + researchReputation) / 100))) + Math.floor(reputationFlat),
+      reputation: projectedReputation,
       base_reputation: Number(mission.reputation_reward) || 0,
-      xp: Math.round((Number(mission.xp_reward) || 0) * (1 + (xpPercent / 100))),
+      xp: projectedXp,
       base_xp: Number(mission.xp_reward) || 0,
+      rival_approach: contestApproach,
       loot_percent: totals.cunning * 1.0,
       upgrade_percent: Math.min(95, Math.max(0, Math.min(95, (totals.science * 1.5) + affinity.upgrade_percent) - weatherUpgrade) + researchLuck)
     };
@@ -1651,6 +1743,25 @@
     return '<div class="mission-projection-cell' + tone + (previewMarkup ? ' has-preview' : '') + '"><dt>' + escapeHtml(label) + '</dt><dd>'
       + (changed ? '<s>' + escapeHtml(formatValue(base)) + '</s> ' : '')
       + '<strong>' + escapeHtml(formatValue(value)) + '</strong>' + previewMarkup + '</dd></div>';
+  }
+
+  function renderLaunchRival() {
+    var mission = state.launchMission;
+    if (!launchRival) return;
+    if (!mission || !mission.is_contested) { launchRival.hidden = true; launchRival.innerHTML = ''; return; }
+    var faction = String(mission.rival_faction_name || 'Independent recovery team');
+    var selected = state.rivalApproach || 'secure';
+    var options = [
+      { key: 'push', title: 'Push ahead', copy: '15% faster. Costs 25% more fatigue; best chance to beat the rival.' },
+      { key: 'secure', title: 'Secure route', copy: 'Normal recovery clock and normal rewards. Race ' + faction + ' to the target.' },
+      { key: 'safe', title: 'Safe cut', copy: 'No rival race. Earn 60% XP, reputation and credits; no headline recovery.' }
+    ];
+    launchRival.hidden = false;
+    launchRival.innerHTML = '<div class="mission-launch-rival-head"><span>Contested recovery</span><strong>Rival: ' + escapeHtml(faction) + '</strong></div><p>Choose your recovery doctrine before deployment. Command locks it to this run.</p><div class="mission-launch-rival-options" role="radiogroup" aria-label="Rival recovery approach">'
+      + options.map(function (option) {
+        var active = option.key === selected;
+        return '<button type="button" class="mission-launch-rival-option' + (active ? ' is-selected' : '') + '" data-rival-approach="' + option.key + '" role="radio" aria-checked="' + (active ? 'true' : 'false') + '"><strong>' + escapeHtml(option.title) + '</strong><span>' + escapeHtml(option.copy) + '</span></button>';
+      }).join('') + '</div>';
   }
 
   function renderLaunchProjection(projection, preview) {
@@ -1684,9 +1795,17 @@
     var weatherNote = conditionLines.length && state.data.weather
       ? state.data.weather.condition + ' over Neoh: ' + conditionLines.map(function (line) { return line.text; }).join(', ') + '.'
       : '';
+    var rivalNote = projection.rival_approach === 'push'
+      ? 'Push Ahead selected: command has shortened this crew’s real clock by 15% and will charge 25% more fatigue.'
+      : projection.rival_approach === 'safe'
+        ? 'Safe Cut selected: the rival cannot take the target, but the displayed XP, reputation and credits are reduced to 60%; no headline recovery can be claimed.'
+        : projection.rival_approach === 'secure'
+          ? 'Secure Route selected: normal clock and full recovery rewards. Reach the target before the rival team.'
+          : '';
     launchProjection.innerHTML = '<dl class="mission-projection-grid">' + rows + '</dl>'
       + (note ? '<p class="mission-projection-note' + (projection.penalty ? ' is-warning' : ' is-good') + '">' + escapeHtml(note) + '</p>' : '')
       + (weatherNote ? '<p class="mission-projection-note is-weather">' + escapeHtml(weatherNote) + '</p>' : '')
+      + (rivalNote ? '<p class="mission-projection-note is-rival">' + escapeHtml(rivalNote) + '</p>' : '')
       + '<p class="mission-projection-caveat">Projected from the crew you have chosen. Command confirms the final figures on return.</p>';
   }
 
@@ -2107,7 +2226,7 @@
       if (contract && Number(contract.id) === Number(missionId)) mission = contract;
     }
     if (!mission) return;
-    state.launchMission = mission; state.launchPenaltyAck = false; launchError.textContent = '';
+    state.launchMission = mission; state.launchPenaltyAck = false; state.rivalApproach = mission.is_contested ? 'secure' : ''; launchError.textContent = '';
     // A fresh rack per open. Carrying a selection between operations would put
     // crew into slots chosen against a different mission's affinity and cost.
     state.launchSlots = [];
@@ -2130,6 +2249,7 @@
       launchRepeat.textContent = 'Repeat last crew' + (previous ? ' (' + previous + ')' : '');
     }
     if (launchModal) launchModal.classList.toggle('is-single-slot', rackSize(mission) === 1);
+    renderLaunchRival();
     renderLaunchCrew();
     tickCountdowns();
     if (typeof launchModal.showModal === 'function') launchModal.showModal(); else launchModal.setAttribute('open', '');
@@ -2148,7 +2268,8 @@
 
   function closeLaunch() {
     if (launchModal.open && typeof launchModal.close === 'function') launchModal.close(); else launchModal.removeAttribute('open');
-    state.launchMission = null; state.launchProjection = null; state.launchPenaltyAck = false;
+    state.launchMission = null; state.launchProjection = null; state.launchPenaltyAck = false; state.rivalApproach = '';
+    if (launchRival) { launchRival.hidden = true; launchRival.innerHTML = ''; }
     launchConfirm.textContent = 'Launch Mission';
   }
 
@@ -2240,6 +2361,15 @@
   if (launchFilterOpen) launchFilterOpen.addEventListener('change', renderTray);
   if (launchRecommend) launchRecommend.addEventListener('click', recommendLaunchCrew);
   if (launchRepeat) launchRepeat.addEventListener('click', repeatLastCrew);
+  if (launchRival) launchRival.addEventListener('click', function (event) {
+    var option = event.target.closest('[data-rival-approach]');
+    if (!option || !state.launchMission || !state.launchMission.is_contested) return;
+    state.rivalApproach = option.getAttribute('data-rival-approach') || 'secure';
+    state.launchPenaltyAck = false;
+    launchError.textContent = '';
+    renderLaunchRival();
+    updateLaunchState(null);
+  });
 
   /* ---- Drag and drop ----------------------------------------------------
    * Plain HTML5 drag events. The dragged crew id is held in state as well as in
@@ -2469,7 +2599,7 @@
       return;
     }
     launchConfirm.disabled = true; launchConfirm.classList.add('is-busy'); launchError.textContent = '';
-    post('/api/missions/start.php', { mission_id: state.launchMission.id, crew_ids: crewIds, csrf: window.PW_AUTH.csrf }).then(function () { closeLaunch(); setStatus('Mission launched. Your crew is now in the field.'); load(); }).catch(function (error) { launchError.textContent = error.message; }).finally(function () { launchConfirm.disabled = false; launchConfirm.classList.remove('is-busy'); });
+    post('/api/missions/start.php', { mission_id: state.launchMission.id, crew_ids: crewIds, rival_approach: state.launchMission.is_contested ? state.rivalApproach : '', csrf: window.PW_AUTH.csrf }).then(function () { closeLaunch(); setStatus('Mission launched. Your crew is now in the field.'); load(); }).catch(function (error) { launchError.textContent = error.message; }).finally(function () { launchConfirm.disabled = false; launchConfirm.classList.remove('is-busy'); });
   });
   activeList.addEventListener('click', function (event) {
     var button = event.target.closest('.mission-action'); if (!button) return;

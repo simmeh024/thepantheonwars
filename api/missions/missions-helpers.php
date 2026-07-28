@@ -83,12 +83,50 @@ function pw_mission_campaign_ready(PDO $db): bool {
 
 /** Reputation rank at which contracts begin. */
 const PW_MISSION_OVERLORD_CONTRACT_RANK = 10;
+const PW_MISSION_CONTESTED_PUSH_DURATION_PERCENT = 15;
+const PW_MISSION_CONTESTED_PUSH_FATIGUE_PERCENT = 25;
+const PW_MISSION_CONTESTED_SAFE_REWARD_PERCENT = 60;
+const PW_MISSION_CONTESTED_NARROW_REWARD_PERCENT = 40;
+const PW_MISSION_CONTESTED_DECISIVE_XP_PERCENT = 25;
 
 function pw_mission_overlord_contracts_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_missions_ready($db)) return $ready = false;
     return $ready = pw_schema_has($db, 'game_mission_definitions', ['overlord_id']);
+}
+
+/**
+ * Contested contracts extend daily Overlord work with a rival recovery team.
+ * They deliberately remain additive: before the migration, a contract is the
+ * exact same normal contract it was before, rather than a partially-rendered
+ * race that can neither be configured nor settled.
+ */
+function pw_mission_contested_contracts_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_mission_overlord_contracts_ready($db)) return $ready = false;
+    return $ready = pw_schema_has($db, 'game_mission_definitions', ['is_contested', 'rival_faction_name'])
+        && pw_schema_has($db, 'game_player_missions', [
+            'is_contested', 'rival_faction_name', 'rival_approach',
+            'rival_completes_at', 'rival_outcome', 'rival_bonus_credits',
+        ]);
+}
+
+function pw_missions_contested_contract_is_enabled(array $mission, bool $ready): bool {
+    return $ready && !empty($mission['is_contested'])
+        && isset($mission['overlord_id']) && $mission['overlord_id'] !== null
+        && (int)$mission['overlord_id'] > 0;
+}
+
+function pw_missions_contested_contract_faction($value): string {
+    $name = trim((string)$value);
+    return $name !== '' ? $name : 'Independent recovery team';
+}
+
+function pw_missions_contested_contract_approach($value): ?string {
+    $approach = strtolower(trim((string)$value));
+    return in_array($approach, ['push', 'secure', 'safe'], true) ? $approach : null;
 }
 
 /**
