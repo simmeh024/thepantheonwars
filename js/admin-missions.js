@@ -800,11 +800,63 @@
     if (value) preview.src = assetUrl(value);
   }
 
+  /**
+   * The editor's Role options, from the same list the filters use.
+   *
+   * These four were written into the markup, so a role added to
+   * pw_missions_role_rates() could be filtered for but never authored -- and one
+   * removed from it stayed offerable until somebody noticed. Rebuilt from the
+   * endpoint instead, preserving the current selection the way
+   * populateGearOptions() does.
+   *
+   * A stored role the engine no longer knows is kept as an option rather than
+   * dropped: without it the select would fall back to its first entry and an
+   * administrator opening the record to read it would silently reassign the
+   * role on the next save. Labelled, so the state is visible; the server still
+   * rejects it, which is the correct outcome for a value it cannot honour.
+   */
+  function populateCrewRoleOptions(member) {
+    var select = document.getElementById('mission-crew-role');
+    if (!select) return;
+    var stored = member && member.role ? String(member.role) : '';
+    var previous = select.value;
+    var roles = crewRoles.length ? crewRoles.slice() : ['Vanguard', 'Pathfinder', 'Engineer', 'Fixer'];
+    select.innerHTML = '';
+    roles.forEach(function (role) {
+      var option = document.createElement('option');
+      option.value = role;
+      option.textContent = role;
+      select.appendChild(option);
+    });
+    if (stored !== '' && roles.indexOf(stored) === -1) {
+      var retired = document.createElement('option');
+      retired.value = stored;
+      retired.textContent = stored + ' (not in engine)';
+      select.appendChild(retired);
+    }
+    /* Restoring rather than resetting, so rebuilding the list never discards a
+     * choice already made. crewValues() overwrites it a line later for a real
+     * record; this matters if the options are ever rebuilt with the modal open. */
+    if (previous && Array.prototype.some.call(select.options, function (option) { return option.value === previous; })) {
+      select.value = previous;
+    }
+  }
+
+  /** The role a new crew member starts on: the long-standing default if the
+   *  engine still offers it, otherwise the first role it does. */
+  function defaultCrewRole() {
+    var roles = crewRoles.length ? crewRoles : ['Vanguard'];
+    return roles.indexOf('Vanguard') !== -1 ? 'Vanguard' : roles[0];
+  }
+
   function crewValues(member) {
+    /* Before the value is applied below, so an existing member's own role is
+     * among the options by the time it is selected. */
+    populateCrewRoleOptions(member);
     document.getElementById('mission-crew-name').value = member ? member.name : '';
     document.getElementById('mission-crew-slug').value = member ? member.slug : '';
     document.getElementById('mission-crew-description').value = member ? member.description : '';
-    document.getElementById('mission-crew-role').value = member ? member.role : 'Vanguard';
+    document.getElementById('mission-crew-role').value = member ? member.role : defaultCrewRole();
     document.getElementById('mission-crew-portrait').value = member ? member.portrait_url : '';
     document.getElementById('mission-crew-starting-level').value = member ? member.starting_level : 1;
     document.getElementById('mission-crew-world-affinity').value = member ? member.world_affinity : 'neoh';
