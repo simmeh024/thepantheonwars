@@ -12,6 +12,8 @@
   var activePanel = 'definitions';
   var activeCrewRarity = 'all';
   var activeGearCategory = 'all';
+  /* 'all', 'unrestricted' (no role requirement at all), or a role name. */
+  var activeGearRole = 'all';
   /* The state each list was last built from, so a re-entry that changed nothing
    * can leave the existing rows (and their already-decoded art) alone. */
   var renderedCrewKey = null;
@@ -124,7 +126,7 @@
   }
 
   function gearRenderKey(visible) {
-    return activeGearCategory + '|' + can('missions.edit') + '|'
+    return activeGearCategory + '|' + activeGearRole + '|' + can('missions.edit') + '|'
       + (gearMeta ? [gearMeta.item_levels_ready, gearMeta.field_grade_ready, gearMeta.stims_ready].join(',') : '')
       + '|' + JSON.stringify(visible);
   }
@@ -133,8 +135,74 @@
     return activeCrewRarity === 'all' ? crew : crew.filter(function (member) { return member.tier === activeCrewRarity; });
   }
 
+  /* Category and role compose, deliberately: "which stim does a Fixer need" is a
+   * real question, and either filter alone cannot answer it. Salvage and stims
+   * carry no role requirement, so pairing one with a named role is legitimately
+   * empty rather than broken -- refreshGearCount() and the empty message both
+   * name the pair so that reads as a filter result and not a missing catalogue. */
   function filteredGear() {
-    return activeGearCategory === 'all' ? gear : gear.filter(function (item) { return item.category === activeGearCategory; });
+    return gear.filter(function (item) {
+      if (activeGearCategory !== 'all' && item.category !== activeGearCategory) return false;
+      if (activeGearRole === 'all') return true;
+      var required = item.required_role || '';
+      return activeGearRole === 'unrestricted' ? required === '' : required === activeGearRole;
+    });
+  }
+
+  function gearFiltersActive() {
+    return activeGearCategory !== 'all' || activeGearRole !== 'all';
+  }
+
+  /* What the current pair of filters is asking for, as a phrase that reads
+   * correctly for either filter alone and for both together: "equipment for
+   * Fixer", "stims", "items without a role requirement". */
+  function gearFilterLabel() {
+    var nouns = { gear: 'equipment', salvage: 'salvage', stim: 'stims' };
+    var noun = nouns[activeGearCategory] || 'items';
+    if (activeGearRole === 'unrestricted') return noun + ' without a role requirement';
+    if (activeGearRole !== 'all') return noun + ' for ' + activeGearRole;
+    return noun;
+  }
+
+  /**
+   * One button per crew role, from the role list the endpoint already sends.
+   *
+   * Built rather than written into the markup so adding a role to the engine
+   * needs no HTML edit -- the same reason the tier and role selects in the
+   * editor are populated from this response. The two static options stay in the
+   * markup because they are not roles and always apply.
+   */
+  function renderGearRoleFilters() {
+    var container = document.getElementById('gear-management-role-filters');
+    if (!container || !gearMeta) return;
+    var roles = gearMeta.roles || [];
+    container.querySelectorAll('[data-gear-role-filter]').forEach(function (button) {
+      var value = button.getAttribute('data-gear-role-filter');
+      if (value !== 'all' && value !== 'unrestricted') button.remove();
+    });
+    roles.forEach(function (role) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'admin-filter-tab';
+      button.setAttribute('data-gear-role-filter', role);
+      button.setAttribute('role', 'tab');
+      button.textContent = role;
+      container.appendChild(button);
+    });
+    /* A role removed from the engine while it was the active filter would
+     * otherwise leave the list permanently empty with no button to clear it. */
+    if (activeGearRole !== 'all' && activeGearRole !== 'unrestricted' && roles.indexOf(activeGearRole) === -1) {
+      activeGearRole = 'all';
+    }
+    syncGearRoleFilterState();
+  }
+
+  function syncGearRoleFilterState() {
+    document.querySelectorAll('[data-gear-role-filter]').forEach(function (button) {
+      var isActive = button.getAttribute('data-gear-role-filter') === activeGearRole;
+      button.classList.toggle('active', isActive);
+      button.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
   }
 
   function refreshCrewCount() {
@@ -148,7 +216,7 @@
   function refreshGearCount() {
     if (!gearCount) return;
     var visible = filteredGear().length;
-    gearCount.textContent = activeGearCategory === 'all'
+    gearCount.textContent = !gearFiltersActive()
       ? visible + ' item' + (visible === 1 ? '' : 's')
       : visible + ' of ' + gear.length + ' item' + (gear.length === 1 ? '' : 's');
   }
@@ -276,6 +344,9 @@
       gear = data.gear || [];
       gearMeta = data;
       populateGearOptions();
+      /* Before renderGear(), since it can retire the active role filter and the
+       * render has to reflect that rather than the value it just cleared. */
+      renderGearRoleFilters();
       renderGear();
     }).catch(function (error) { blank(gearList, error.message || 'Could not load equipment. Run sql/migration_mission_gear.sql first.'); });
   }
@@ -706,6 +777,19 @@
       renderGear();
     });
   });
+  /* Delegated, unlike the two filter groups above: the per-role buttons are
+   * appended once the catalogue loads, so binding each one at startup would
+   * bind only the two that ship in the markup. */
+  var gearRoleFilters = document.getElementById('gear-management-role-filters');
+  if (gearRoleFilters) {
+    gearRoleFilters.addEventListener('click', function (event) {
+      var tab = event.target.closest('[data-gear-role-filter]');
+      if (!tab) return;
+      activeGearRole = tab.getAttribute('data-gear-role-filter') || 'all';
+      syncGearRoleFilterState();
+      renderGear();
+    });
+  }
   document.getElementById('mission-definition-create-btn').addEventListener('click', function () { openDefinition(null); });
   document.getElementById('mission-crew-create-btn').addEventListener('click', function () { openCrew(null); });
   document.getElementById('mission-definition-modal-close').addEventListener('click', closeDefinition);
@@ -1026,7 +1110,9 @@
     var visibleGear = filteredGear();
     refreshGearCount();
     if (!visibleGear.length) {
-      blank(gearList, activeGearCategory === 'all' ? 'No equipment, salvage, or stims defined yet.' : 'No ' + activeGearCategory + ' items defined yet.');
+      blank(gearList, gearFiltersActive()
+        ? 'No ' + gearFilterLabel() + ' yet.'
+        : 'No equipment, salvage, or stims defined yet.');
       return;
     }
     /* Same reasoning as renderCrew(): 46 catalogue rows carry 46 icons, and a

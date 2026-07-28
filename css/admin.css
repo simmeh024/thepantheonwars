@@ -4173,6 +4173,19 @@
 .mission-admin-toolbar { align-items: center; flex-wrap: wrap; }
 .mission-admin-toolbar .admin-filter-tabs { margin-right: auto; }
 .crew-rarity-tabs, .gear-category-tabs { gap: 6px; }
+/* Gear Management carries two independent filters, category and required role.
+   Measured at 1280px the toolbar has 927px of content width, and the ten pills
+   plus the create button want about 1200 -- so they are stacked as two rows
+   rather than one wrapping line, which keeps each filter reading as its own
+   group and leaves the create button and count on the right of both. The wrapper
+   takes the auto margin, and the rule below cancels the auto margin the shared
+   toolbar rule would otherwise apply to each group inside it. */
+.gear-filter-groups { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-right: auto; }
+.gear-filter-groups .admin-filter-tabs { flex-wrap: wrap; }
+.gear-management-toolbar .admin-filter-tabs { margin-right: 0; }
+/* Right-aligned however the bar wraps: at a width where the button drops to its
+   own line, a default-aligned button would sit at the far left of it. */
+.gear-management-toolbar #mission-gear-create-btn { margin-left: auto; }
 .crew-rarity-filter.is-common { color: var(--text-dim); }
 .crew-rarity-filter.is-uncommon { color: #53c996; border-color: rgba(83,201,150,.35); background: rgba(83,201,150,.08); }
 .crew-rarity-filter.is-rare { color: #62c8dd; border-color: rgba(98,200,221,.38); background: rgba(98,200,221,.08); }
@@ -4391,6 +4404,7 @@
 }
 @media (max-width: 620px) {
   .mission-admin-toolbar .admin-filter-tabs { width: 100%; margin-right: 0; }
+  .gear-filter-groups { width: 100%; }
   .mission-admin-row,
   .mission-admin-crew-columns,
   .mission-admin-gear-columns,
