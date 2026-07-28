@@ -339,7 +339,11 @@ try {
     $recoveredTarget = $succeeded && (!$isContested || $rivalOutcome === 'won');
     if ($recoveredTarget && $statsReady) {
         $loot = pw_missions_roll_loot($db, (string)$mission['world_key'], (int)($mission['loot_rolls'] ?? 0), $effects);
-        $collectSkipped(pw_missions_store_loot($db, $userId, $loot, $research));
+        $collectSkipped(pw_missions_store_loot($db, $userId, $loot, $research, [
+            'source_type' => 'mission',
+            'source_id' => $missionId,
+            'note' => 'Mission: ' . (string)$mission['mission_name'],
+        ]));
     }
 
     /* Loot tables are independent of the item pool above: they are attached per
@@ -350,7 +354,11 @@ try {
         ? pw_missions_roll_loot_tables($db, $userId, (int)$mission['mission_definition_id'])
         : ['granted' => [], 'duplicates' => [], 'pending' => [], 'gear' => []];
     if (!empty($lootTableAwards['gear'])) {
-        $collectSkipped(pw_missions_store_loot($db, $userId, $lootTableAwards['gear'], $research));
+        $collectSkipped(pw_missions_store_loot($db, $userId, $lootTableAwards['gear'], $research, [
+            'source_type' => 'mission_loot_table',
+            'source_id' => $missionId,
+            'note' => 'Mission reward table: ' . (string)$mission['mission_name'],
+        ]));
         $loot = array_merge($loot, $lootTableAwards['gear']);
     }
 
@@ -371,7 +379,11 @@ try {
                 'slot' => (string)($salvageRecovery['loot_slot'] ?? ''),
                 'icon_url' => pw_missions_gear_icon_url($salvageRecovery['loot_icon_url'] ?? ''),
             ]];
-            $storedOutcome = pw_missions_store_loot($db, $userId, $recoveredItem, $research);
+            $storedOutcome = pw_missions_store_loot($db, $userId, $recoveredItem, $research, [
+                'source_type' => 'salvage_recovery',
+                'source_id' => (int)$salvageRecovery['id'],
+                'note' => 'Recovered through a Salvage contract',
+            ]);
             $collectSkipped($storedOutcome);
             $stored = empty($storedOutcome['skipped']);
             $loot = array_merge($loot, $recoveredItem);

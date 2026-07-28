@@ -1911,6 +1911,37 @@ CREATE TABLE IF NOT EXISTS game_player_loot (
   CONSTRAINT fk_game_player_loot_definition FOREIGN KEY (loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- sql/migration_inventory_workbench.sql.
+-- Inventory workbench metadata deliberately stays separate from the quantity
+-- ledger above: it adds player organisation and provenance without making a
+-- deployment ahead of the manual migration interrupt ordinary inventory use.
+CREATE TABLE IF NOT EXISTS game_player_loot_preferences (
+  user_id INT UNSIGNED NOT NULL,
+  loot_definition_id INT UNSIGNED NOT NULL,
+  is_favorite TINYINT(1) NOT NULL DEFAULT 0,
+  tag_key VARCHAR(24) NOT NULL DEFAULT '',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_id, loot_definition_id),
+  KEY idx_game_player_loot_preferences_filter (user_id, is_favorite, tag_key),
+  CONSTRAINT fk_game_player_loot_preferences_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_game_player_loot_preferences_item FOREIGN KEY (loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS game_player_loot_history (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NOT NULL,
+  loot_definition_id INT UNSIGNED NOT NULL,
+  event_type VARCHAR(24) NOT NULL,
+  source_type VARCHAR(32) NOT NULL DEFAULT 'unknown',
+  source_id BIGINT UNSIGNED NULL,
+  quantity INT UNSIGNED NOT NULL DEFAULT 1,
+  note VARCHAR(180) NOT NULL DEFAULT '',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  KEY idx_game_player_loot_history_item (user_id, loot_definition_id, created_at, id),
+  CONSTRAINT fk_game_player_loot_history_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  CONSTRAINT fk_game_player_loot_history_item FOREIGN KEY (loot_definition_id) REFERENCES game_loot_definitions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- sql/migration_research_system.sql, sql/migration_research_categories.sql,
 -- sql/migration_research_final_category.sql,
 -- sql/migration_mission_research_locks.sql, and

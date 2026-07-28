@@ -85,6 +85,8 @@ try {
         if ($delete->rowCount() !== 1) throw new RuntimeException('That item could not be destroyed.');
     }
 
+    pw_missions_record_loot_history($db, $userId, [$itemId => $destroy], 'destroyed', 'quartermaster', null, 'Destroyed from inventory');
+
     $usage = pw_missions_inventory_usage($db, $userId, $researchEffects);
     $db->commit();
     pw_json([

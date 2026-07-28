@@ -1829,6 +1829,65 @@ function pw_missions_effective_success(int $baseSuccessPercent, array $effects):
 }
 
 /* ------------------------------------------------------------------------
+ * Inventory workbench.
+ *
+ * These tables extend the quantity ledger; they never replace it. A deploy
+ * can therefore land before the manual migration without making the existing
+ * inventory unavailable. The UI receives one readiness flag and leaves the
+ * new controls out until both the preference and event tables exist.
+ * ---------------------------------------------------------------------- */
+
+function pw_mission_inventory_workbench_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_mission_gear_ready($db) || !pw_mission_credits_ready($db)) return $ready = false;
+    return $ready = pw_schema_has($db, 'game_player_loot_preferences', ['user_id', 'loot_definition_id', 'is_favorite', 'tag_key'])
+        && pw_schema_has($db, 'game_player_loot_history', ['user_id', 'loot_definition_id', 'event_type', 'source_type', 'created_at']);
+}
+
+/** The small fixed tag vocabulary keeps filters useful and avoids free-text labels becoming another moderation surface. */
+function pw_missions_inventory_tags(): array {
+    return ['keep', 'contract', 'sweep', 'sell'];
+}
+
+/**
+ * Salvage conversion is intentionally a pressure valve, not a second income
+ * loop. Rare and legendary discoveries are never convertible, and even a full
+ * stack of ordinary debris pays markedly less than a mission or Sweep.
+ */
+function pw_missions_salvage_conversion_value(string $tier): int {
+    $values = ['common' => 2, 'uncommon' => 5];
+    return $values[strtolower(trim($tier))] ?? 0;
+}
+
+/**
+ * Append a player-safe inventory event. Source ids deliberately have no
+ * foreign key because one item can originate from a mission, a Sweep run, a
+ * market rotation or a recovery offer; the typed id and readable note keep the
+ * trail useful without inventing a fragile polymorphic relation.
+ *
+ * @param array<int,int> $quantities definition id => quantity
+ */
+function pw_missions_record_loot_history(PDO $db, int $userId, array $quantities, string $eventType, string $sourceType = '', ?int $sourceId = null, string $note = ''): void {
+    if (!$quantities || !pw_mission_inventory_workbench_ready($db)) return;
+    $eventType = preg_match('/\A[a-z_]{1,24}\z/', $eventType) ? $eventType : 'updated';
+    $sourceType = preg_match('/\A[a-z_]{1,32}\z/', $sourceType) ? $sourceType : 'unknown';
+    $sourceId = $sourceId !== null && $sourceId > 0 ? $sourceId : null;
+    $note = trim(substr($note, 0, 180));
+    $stmt = $db->prepare(
+        'INSERT INTO game_player_loot_history
+             (user_id, loot_definition_id, event_type, source_type, source_id, quantity, note)
+         VALUES (?, ?, ?, ?, ?, ?, ?)'
+    );
+    foreach ($quantities as $definitionId => $quantity) {
+        $definitionId = (int)$definitionId;
+        $quantity = (int)$quantity;
+        if ($definitionId < 1 || $quantity < 1) continue;
+        $stmt->execute([$userId, $definitionId, $eventType, $sourceType, $sourceId, $quantity, $note]);
+    }
+}
+
+/* ------------------------------------------------------------------------
  * Loot.
  *
  * Cunning buys extra draws: every whole 100% of loot bonus is one guaranteed
@@ -1972,7 +2031,7 @@ function pw_missions_roll_loot(PDO $db, string $worldKey, int $baseRolls, array 
  *
  * @return array{stored: array<int,int>, skipped: array<int,int>} Quantities by definition id.
  */
-function pw_missions_store_loot(PDO $db, int $userId, array $awarded, array $researchEffects = []): array {
+function pw_missions_store_loot(PDO $db, int $userId, array $awarded, array $researchEffects = [], array $provenance = []): array {
     $result = ['stored' => [], 'skipped' => []];
     if (!$awarded) return $result;
     $counts = [];
@@ -2002,6 +2061,22 @@ function pw_missions_store_loot(PDO $db, int $userId, array $awarded, array $res
             $result['stored'][$definitionId] = $fits;
         }
         if ($fits < $quantity) $result['skipped'][$definitionId] = $quantity - $fits;
+    }
+    /* The item ledger remains the source of truth for what a player owns; this
+     * append-only log only explains how the stock arrived. Keeping it here
+     * means a mission, a Sweep haul and a tether rescue cannot drift into three
+     * subtly different provenance implementations. The readiness guard makes
+     * a code deploy ahead of the manual migration harmless. */
+    if ($result['stored']) {
+        pw_missions_record_loot_history(
+            $db,
+            $userId,
+            $result['stored'],
+            'acquired',
+            (string)($provenance['source_type'] ?? 'unknown'),
+            isset($provenance['source_id']) ? (int)$provenance['source_id'] : null,
+            (string)($provenance['note'] ?? '')
+        );
     }
     return $result;
 }

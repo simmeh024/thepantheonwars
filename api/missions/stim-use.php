@@ -132,6 +132,8 @@ try {
         if ($spend->rowCount() !== 1) throw new RuntimeException('That stim could not be used.');
     }
 
+    pw_missions_record_loot_history($db, $userId, [$itemId => 1], 'used', 'field_kit', null, 'Used from the field kit');
+
     $db->commit();
     pw_json([
         'ok' => true,

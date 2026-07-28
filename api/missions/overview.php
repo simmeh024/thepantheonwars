@@ -319,6 +319,16 @@ try {
     $loot = [];
     $gearReady = pw_mission_gear_ready($db);
     $stimsReady = pw_mission_stims_ready($db);
+    $inventoryWorkbenchReady = pw_mission_inventory_workbench_ready($db);
+    /* Preferences are optional metadata. Select neutral values before the
+     * migration so the browser has one stable item shape and a cached deploy
+     * can never turn a missing table into an overview failure. */
+    $workbenchFields = $inventoryWorkbenchReady
+        ? ', COALESCE(pref.is_favorite, 0) AS is_favorite, COALESCE(pref.tag_key, "") AS tag_key'
+        : ', 0 AS is_favorite, "" AS tag_key';
+    $workbenchJoin = $inventoryWorkbenchReady
+        ? ' LEFT JOIN game_player_loot_preferences pref ON pref.user_id = pl.user_id AND pref.loot_definition_id = pl.loot_definition_id'
+        : '';
     if ($statsReady) {
         /* The gear columns and the equipped count arrive with the gear migration;
          * selected in a separate branch because a missing column is a hard SQL
@@ -333,18 +343,22 @@ try {
                       l.required_level, l.required_role, l.icon_url,'
                . ($stimsReady ? ' l.stim_effect, l.stim_value, l.stim_duration_seconds,' : ' "" AS stim_effect, 0 AS stim_value, 0 AS stim_duration_seconds,') . '
                       (SELECT COUNT(*) FROM game_player_crew_gear g
-                        WHERE g.user_id = pl.user_id AND g.loot_definition_id = l.id) AS equipped_count
+                        WHERE g.user_id = pl.user_id AND g.loot_definition_id = l.id) AS equipped_count'
+               . $workbenchFields . '
                FROM game_player_loot pl
                JOIN game_loot_definitions l ON l.id = pl.loot_definition_id
+               ' . $workbenchJoin . '
                WHERE pl.user_id = ? AND pl.quantity > 0
                ORDER BY FIELD(l.tier, "legendary", "rare", "uncommon", "common"), l.name ASC'
-            : 'SELECT l.id, l.name, l.slug, l.description, l.tier, pl.quantity, pl.first_acquired_at
+            : 'SELECT l.id, l.name, l.slug, l.description, l.tier, pl.quantity, pl.first_acquired_at'
+               . $workbenchFields . '
                FROM game_player_loot pl
                JOIN game_loot_definitions l ON l.id = pl.loot_definition_id
+               ' . $workbenchJoin . '
                WHERE pl.user_id = ? AND pl.quantity > 0
                ORDER BY FIELD(l.tier, "legendary", "rare", "uncommon", "common"), l.name ASC');
         $lootStmt->execute([$userId]);
-        $loot = array_map(static function ($row) use ($gearReady, $stimsReady) {
+        $loot = array_map(static function ($row) use ($gearReady, $stimsReady, $inventoryWorkbenchReady) {
             $row['id'] = (int)$row['id'];
             $row['quantity'] = (int)$row['quantity'];
             /* One shape either way, so the browser never has to know which
@@ -360,6 +374,9 @@ try {
             $row['stim_effect'] = $stimsReady ? (string)$row['stim_effect'] : '';
             $row['stim_value'] = $stimsReady ? (float)$row['stim_value'] : 0.0;
             $row['stim_duration_seconds'] = $stimsReady ? (int)$row['stim_duration_seconds'] : 0;
+            $row['is_favorite'] = $inventoryWorkbenchReady && !empty($row['is_favorite']);
+            $row['tag_key'] = $inventoryWorkbenchReady ? (string)$row['tag_key'] : '';
+            $row['history'] = [];
             // Resolved on the server so the panel, the caps and the destroy and
             // use endpoints all agree on what each item is.
             $row['category'] = pw_missions_inventory_category($row);
@@ -372,6 +389,36 @@ try {
             foreach (['bonus_strength', 'bonus_cunning', 'bonus_science', 'bonus_charisma'] as $key) unset($row[$key]);
             return $row;
         }, $lootStmt->fetchAll());
+        /* Five newest events per held item is enough to explain provenance
+         * without making a long-lived account ship its entire audit trail on
+         * every Mission page refresh. Items predating the migration still have
+         * first_acquired_at, which the browser labels as legacy stock. */
+        if ($inventoryWorkbenchReady && $loot) {
+            $lootIds = array_map(static function (array $item) { return (int)$item['id']; }, $loot);
+            $historyStmt = $db->prepare(
+                'SELECT loot_definition_id, event_type, source_type, source_id, quantity, note, created_at
+                 FROM game_player_loot_history
+                 WHERE user_id = ? AND loot_definition_id IN (' . pw_missions_placeholders(count($lootIds)) . ')
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT 1200'
+            );
+            $historyStmt->execute(array_merge([$userId], $lootIds));
+            $historyByLoot = [];
+            foreach ($historyStmt->fetchAll() as $event) {
+                $definitionId = (int)$event['loot_definition_id'];
+                if (count($historyByLoot[$definitionId] ?? []) >= 5) continue;
+                $historyByLoot[$definitionId][] = [
+                    'event_type' => (string)$event['event_type'],
+                    'source_type' => (string)$event['source_type'],
+                    'source_id' => $event['source_id'] === null ? null : (int)$event['source_id'],
+                    'quantity' => (int)$event['quantity'],
+                    'note' => (string)$event['note'],
+                    'created_at' => (string)$event['created_at'],
+                ];
+            }
+            foreach ($loot as &$item) $item['history'] = $historyByLoot[(int)$item['id']] ?? [];
+            unset($item);
+        }
     }
 
     // What the full available roster would contribute if sent out together --
@@ -539,6 +586,7 @@ try {
         'gear_ready' => pw_mission_gear_ready($db),
         'max_gear_stat' => PW_MISSION_MAX_GEAR_STAT,
         'loot' => $loot,
+        'inventory_workbench_ready' => $inventoryWorkbenchReady,
         /* Two independent ceilings and how full each is, plus the running
          * boosts. Sent even when nothing is held so the quartermaster card can
          * always state the limits it is about to enforce. */

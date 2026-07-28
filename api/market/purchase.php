@@ -90,6 +90,7 @@ try {
     if ($offer['offer_type'] === 'gear') {
         $grant = $db->prepare('INSERT INTO game_player_loot (user_id, loot_definition_id, quantity) VALUES (?, ?, 1) ON DUPLICATE KEY UPDATE quantity = quantity + 1');
         $grant->execute([$userId, (int)$offer['loot_definition_id']]);
+        pw_missions_record_loot_history($db, $userId, [(int)$offer['loot_definition_id'] => 1], 'acquired', 'market', $itemId, 'Purchased from the Neoh Market');
     } else {
         $crewReceipt = pw_missions_receive_crew($db, $userId, (int)$offer['crew_definition_id'], 'market', $itemId);
         if ($crewReceipt['state'] === 'duplicate') throw new RuntimeException('That character is already recorded on your expedition.');

@@ -901,7 +901,11 @@ function pw_sweep_tether_rescue(PDO $db, int $userId, array $run): ?array {
     /* Through the same store path a claim uses, so the quartermaster ceilings
      * apply -- a rescued item can still be refused for want of room, and the
      * caller reports that rather than pretending it was kept. */
-    $stored = pw_missions_store_loot($db, $userId, $gear, pw_research_player_effects($db, $userId));
+    $stored = pw_missions_store_loot($db, $userId, $gear, pw_research_player_effects($db, $userId), [
+        'source_type' => 'sweep_tether',
+        'source_id' => (int)$run['id'],
+        'note' => 'Tethered from a collapsed Sweep cell',
+    ]);
     return [
         'kind' => 'gear',
         'name' => (string)$item['name'],

@@ -127,7 +127,7 @@
 @keyframes loadout-connector-pulse { 0%, 100% { opacity: .34; } 50% { opacity: 1; } }
 
 /* Inventory */
-.missions-inventory-controls { display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); gap: 10px 12px; align-items: end; margin: -3px 0 16px; padding: 13px; border: 1px solid rgba(80,129,168,0.34); background: rgba(10,20,38,0.48); }
+.missions-inventory-controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px 12px; align-items: end; margin: -3px 0 16px; padding: 13px; border: 1px solid rgba(80,129,168,0.34); background: rgba(10,20,38,0.48); }
 .missions-inventory-controls .missions-crew-filter-summary { grid-column: 1 / -1; }
 .missions-inventory-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(258px, 1fr)); gap: 12px; }
 .mission-inventory-card { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 12px; padding: 13px; border: 1px solid rgba(var(--gear-tier), 0.38); background: linear-gradient(140deg, rgba(16,33,57,0.9), rgba(22,13,45,0.86)); }
@@ -1080,6 +1080,38 @@
 .mission-inventory-actions .btn { padding: 7px 12px; font-size: 0.64rem; }
 .mission-inventory-destroy { border-color: rgba(192,90,90,0.46); color: #e59a9a; }
 .mission-inventory-destroy:hover, .mission-inventory-destroy:focus-visible { border-color: rgba(224,138,138,0.8); color: #f2bcbc; }
+
+/* Inventory workbench: private organisation, a practical equipment comparison
+ * and a deliberately modest outlet for low-value salvage. These surfaces share
+ * the quartermaster palette, while rare discoveries retain their own item-tier
+ * colour on the cards rather than reading like generic currency. */
+.mission-inventory-workbench, .mission-inventory-conversion-queue { margin: 0 0 14px; border: 1px solid rgba(93,190,198,.42); background: linear-gradient(130deg, rgba(8,34,48,.72), rgba(23,17,48,.72)); }
+.mission-inventory-workbench-head, .mission-inventory-queue-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; padding: 13px 14px; border-bottom: 1px solid rgba(93,190,198,.24); }
+.mission-inventory-workbench-head h3 { margin: 3px 0 2px; color: #eaf7f7; font: 600 .84rem/1.2 'Cinzel', serif; }
+.mission-inventory-workbench-head p, .mission-inventory-queue-head small { display: block; margin: 0; color: #9fc5cb; font-size: .65rem; line-height: 1.4; }
+.mission-inventory-workbench-head > button { display: grid; flex: 0 0 auto; width: 27px; height: 27px; place-items: center; padding: 0; border: 1px solid rgba(128,203,209,.52); background: rgba(9,23,42,.7); color: #bdebed; cursor: pointer; font: 1.05rem/1 inherit; }
+.mission-inventory-workbench-head > button:hover, .mission-inventory-workbench-head > button:focus-visible { border-color: #bdebed; background: rgba(24,72,86,.8); }
+.mission-inventory-compare-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1px; background: rgba(93,190,198,.18); }
+.mission-inventory-compare-list article { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; padding: 11px 13px; background: rgba(8,20,37,.78); }
+.mission-inventory-compare-list article > div { min-width: 0; }
+.mission-inventory-compare-list article strong, .mission-inventory-compare-list article small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mission-inventory-compare-list article strong { color: #e8f4f5; font-size: .72rem; }
+.mission-inventory-compare-list article small { margin-top: 3px; color: #92adb9; font-size: .59rem; }
+.mission-inventory-compare-list .btn { flex: 0 0 auto; padding: 6px 9px; font-size: .6rem; }
+.mission-inventory-compare-deltas { display: flex; flex-wrap: wrap; gap: 4px 7px; margin-top: 7px; color: #708a9a; font-size: .57rem; font-weight: 700; }
+.mission-inventory-compare-deltas .is-better { color: #91e2b0; }.mission-inventory-compare-deltas .is-worse { color: #e99b9b; }
+.mission-inventory-compare-state { flex: 0 0 auto; color: #79d9df; font-size: .58rem; font-weight: 700; text-align: right; }.mission-inventory-compare-state.is-blocked { color: #d7aa78; }
+.mission-inventory-queue-head > div { display: grid; gap: 3px; }.mission-inventory-queue-head strong { color: #ddf0ef; font-size: .73rem; }.mission-inventory-queue-payout { flex: 0 0 auto; color: #9edba8 !important; font-size: .78rem !important; white-space: nowrap; }
+.mission-inventory-queue-items { display: flex; flex-wrap: wrap; gap: 7px; padding: 11px 14px 0; }
+.mission-inventory-queue-items > span { display: inline-flex; align-items: center; gap: 7px; padding: 5px 7px 5px 9px; border: 1px solid rgba(126,203,158,.38); background: rgba(20,52,43,.48); color: #c9e5d3; font-size: .62rem; }
+.mission-inventory-queue-items button { display: grid; width: 17px; height: 17px; place-items: center; padding: 0; border: 0; background: transparent; color: #b5c9d0; cursor: pointer; font: .95rem/1 inherit; }.mission-inventory-queue-items button:hover, .mission-inventory-queue-items button:focus-visible { color: #f1bbbb; }
+.mission-inventory-queue-actions { display: flex; flex-wrap: wrap; gap: 7px; padding: 11px 14px 13px; }.mission-inventory-queue-actions .btn { padding: 7px 10px; font-size: .62rem; }
+.mission-inventory-card.is-favorite { box-shadow: inset 0 0 0 1px rgba(235,207,113,.24), 0 0 15px rgba(235,207,113,.06); }
+.mission-inventory-organisation { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 9px; padding-top: 8px; border-top: 1px solid rgba(108,150,181,.2); }
+.mission-inventory-favorite { display: grid; width: 25px; height: 25px; place-items: center; padding: 0; border: 1px solid rgba(133,161,177,.4); background: rgba(10,22,39,.58); color: #6f8594; cursor: pointer; font: .84rem/1 inherit; }.mission-inventory-favorite.is-active { border-color: rgba(234,202,105,.82); color: #f0d46f; text-shadow: 0 0 9px rgba(240,212,111,.7); }.mission-inventory-favorite:hover, .mission-inventory-favorite:focus-visible { border-color: #f0d46f; }
+.mission-inventory-organisation label { display: inline-flex; align-items: center; gap: 6px; color: #809cac; font-size: .57rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }.mission-inventory-organisation select { max-width: 94px; padding: 4px 20px 4px 6px; border-color: rgba(102,153,182,.44); background-color: rgba(9,21,38,.86); color: #c9dce4; font: .6rem inherit; }
+.mission-inventory-history { margin-top: 8px; border-top: 1px solid rgba(108,150,181,.2); color: #90adbb; font-size: .6rem; }.mission-inventory-history summary { padding-top: 8px; color: #8cced2; cursor: pointer; font-weight: 700; list-style: none; }.mission-inventory-history summary::-webkit-details-marker { display: none; }.mission-inventory-history summary::before { content: '+'; display: inline-block; width: 13px; color: #b9e8e8; }.mission-inventory-history[open] summary::before { content: '−'; }.mission-inventory-history summary span { color: #7293a5; }.mission-inventory-history ol { display: grid; gap: 6px; margin: 8px 0 0; padding: 0; list-style: none; }.mission-inventory-history li { display: grid; gap: 2px; padding-left: 7px; border-left: 1px solid rgba(94,183,190,.38); }.mission-inventory-history li strong { color: #bdd5d9; font-size: .59rem; }.mission-inventory-history li span { color: #7e9dac; line-height: 1.35; }.mission-inventory-legacy { margin: 8px 0 0 !important; color: #6f8a9a !important; font-size: .59rem !important; }
+.mission-inventory-convert { border-color: rgba(126,203,158,.48); color: #a6e3ba; }.mission-inventory-convert:hover, .mission-inventory-convert:focus-visible { border-color: #a6e3ba; color: #dbf6e3; }.mission-inventory-convert-value { margin: 6px 0 0 !important; color: #a2dbae !important; font-size: .62rem !important; font-weight: 700; }
 
 /* Rewards an operation earned but could not be stored. Deliberately warm rather
  * than alarming: nothing failed, the payout was simply short. */

@@ -11,7 +11,10 @@
      * source of truth for the launch modal -- see the rack section below. */
     launchSlots: [], dragCrewId: null,
     /* Mission id and crew of the run just claimed, for the debrief's re-run. */
-    resultRerun: null };
+    resultRerun: null,
+    /* The conversion queue is deliberately local until the player confirms.
+     * It is a convenience tray, not a second server-side inventory state. */
+    inventoryConversionQueue: {}, inventoryCompareItemId: null };
   var gate = document.getElementById('missions-gate');
   var content = document.getElementById('missions-content');
   var statusMessage = document.getElementById('missions-status-message');
@@ -68,8 +71,12 @@
   var inventorySlotFilter = document.getElementById('missions-inventory-slot-filter');
   var inventoryTierFilter = document.getElementById('missions-inventory-tier-filter');
   var inventoryStateFilter = document.getElementById('missions-inventory-state-filter');
+  var inventoryFavoriteFilter = document.getElementById('missions-inventory-favorite-filter');
+  var inventoryTagFilter = document.getElementById('missions-inventory-tag-filter');
   var inventoryMeters = document.getElementById('missions-inventory-meters');
   var inventoryBoosts = document.getElementById('missions-inventory-boosts');
+  var inventoryWorkbench = document.getElementById('mission-inventory-workbench');
+  var inventoryConversionQueue = document.getElementById('mission-inventory-conversion-queue');
   var inventoryRailCard = document.getElementById('mission-quartermaster-card');
   var stimBeltCard = document.getElementById('mission-stim-belt-card');
   var researchAlert = document.getElementById('mission-research-alert');
@@ -3171,7 +3178,9 @@
       type: inventoryTypeFilter ? inventoryTypeFilter.value : 'all',
       slot: inventorySlotFilter ? inventorySlotFilter.value : 'all',
       tier: inventoryTierFilter ? inventoryTierFilter.value : 'all',
-      state: inventoryStateFilter ? inventoryStateFilter.value : 'all'
+      state: inventoryStateFilter ? inventoryStateFilter.value : 'all',
+      favorite: inventoryFavoriteFilter ? inventoryFavoriteFilter.value : 'all',
+      tag: inventoryTagFilter ? inventoryTagFilter.value : 'all'
     };
   }
 
@@ -3567,6 +3576,122 @@
     researchAlert.innerHTML = '<span aria-hidden="true">!</span><span class="sr-only">' + escapeHtml(text) + '</span>';
   }
 
+  function inventoryTagOptions(selected) {
+    var labels = { '': 'No tag', keep: 'Keep', contract: 'Contract', sweep: 'Sweep', sell: 'Sell' };
+    return Object.keys(labels).map(function (key) {
+      return '<option value="' + escapeHtml(key) + '"' + (key === String(selected || '') ? ' selected' : '') + '>'
+        + escapeHtml(labels[key]) + '</option>';
+    }).join('');
+  }
+
+  function inventoryHistoryMarkup(item, workbenchReady) {
+    var events = item.history || [];
+    if (!workbenchReady) return '';
+    var sourceLabels = {
+      mission: 'Mission reward', mission_loot_table: 'Mission reward table', sweep: 'Salvage Sweep haul',
+      sweep_tether: 'Tethered from collapse', salvage_recovery: 'Salvage contract', market: 'Neoh Market',
+      salvage_conversion: 'Salvage conversion', quartermaster: 'Quartermaster', field_kit: 'Field kit', research: 'Research Facility'
+    };
+    var eventLabels = { acquired: 'Received', converted: 'Converted', destroyed: 'Destroyed', used: 'Used', researched: 'Spent' };
+    if (!events.length) {
+      return '<p class="mission-inventory-legacy">Legacy stock &middot; first logged ' + escapeHtml(formatDate(item.first_acquired_at)) + '</p>';
+    }
+    return '<details class="mission-inventory-history"><summary>Provenance <span>(' + events.length + ')</span></summary><ol>'
+      + events.map(function (event) {
+        var source = sourceLabels[event.source_type] || String(event.source_type || 'Inventory record').replace(/_/g, ' ');
+        var note = event.note || source;
+        return '<li><strong>' + escapeHtml(eventLabels[event.event_type] || event.event_type) + ' &times;' + Number(event.quantity) + '</strong>'
+          + '<span>' + escapeHtml(note) + ' &middot; ' + escapeHtml(formatDate(event.created_at)) + '</span></li>';
+      }).join('') + '</ol></details>';
+  }
+
+  function isConvertibleSalvage(item) {
+    var category = item.category || (item.slot ? 'gear' : 'salvage');
+    var tier = String(item.tier || '').toLowerCase();
+    return category === 'salvage' && (tier === 'common' || tier === 'uncommon');
+  }
+
+  function salvageConversionValue(item) {
+    return item && String(item.tier || '').toLowerCase() === 'uncommon' ? 5 : 2;
+  }
+
+  function reconcileConversionQueue(loot) {
+    var byId = {};
+    (loot || []).forEach(function (item) { byId[Number(item.id)] = item; });
+    Object.keys(state.inventoryConversionQueue || {}).forEach(function (key) {
+      var item = byId[Number(key)];
+      if (!item || !isConvertibleSalvage(item)) {
+        delete state.inventoryConversionQueue[key];
+        return;
+      }
+      var quantity = Math.min(Number(item.quantity) || 0, Number(state.inventoryConversionQueue[key]) || 0);
+      if (quantity < 1) delete state.inventoryConversionQueue[key];
+      else state.inventoryConversionQueue[key] = quantity;
+    });
+  }
+
+  function renderConversionQueue(data) {
+    if (!inventoryConversionQueue) return;
+    if (!data.inventory_workbench_ready) { inventoryConversionQueue.hidden = true; inventoryConversionQueue.innerHTML = ''; return; }
+    reconcileConversionQueue(data.loot || []);
+    var byId = {};
+    (data.loot || []).forEach(function (item) { byId[Number(item.id)] = item; });
+    var entries = Object.keys(state.inventoryConversionQueue).map(function (key) {
+      var item = byId[Number(key)];
+      if (!item) return null;
+      return { item: item, quantity: Number(state.inventoryConversionQueue[key]) || 0 };
+    }).filter(Boolean);
+    if (!entries.length) { inventoryConversionQueue.hidden = true; inventoryConversionQueue.innerHTML = ''; return; }
+    var units = entries.reduce(function (sum, entry) { return sum + entry.quantity; }, 0);
+    var payout = entries.reduce(function (sum, entry) { return sum + (entry.quantity * salvageConversionValue(entry.item)); }, 0);
+    inventoryConversionQueue.hidden = false;
+    inventoryConversionQueue.innerHTML = '<div class="mission-inventory-queue-head"><div><span class="eyebrow">Conversion queue</span><strong>'
+      + units + ' low-value salvage ' + (units === 1 ? 'item' : 'items') + '</strong><small>Common pays 2 credits; uncommon pays 5. Rare finds cannot be converted.</small></div>'
+      + '<strong class="mission-inventory-queue-payout">+' + credits(payout) + ' credits</strong></div>'
+      + '<div class="mission-inventory-queue-items">' + entries.map(function (entry) {
+        return '<span>' + escapeHtml(entry.item.name) + ' &times;' + entry.quantity
+          + '<button type="button" data-conversion-remove="' + Number(entry.item.id) + '" aria-label="Remove ' + escapeHtml(entry.item.name) + ' from conversion queue" title="Remove from queue">&times;</button></span>';
+      }).join('') + '</div><div class="mission-inventory-queue-actions"><button type="button" class="btn btn-solid" data-conversion-confirm>Convert for '
+      + credits(payout) + ' credits</button><button type="button" class="btn" data-conversion-clear>Clear queue</button></div>';
+  }
+
+  function comparisonDeltaMarkup(crew, item, current) {
+    var cap = Number(state.data && state.data.max_gear_stat) || 80;
+    var rows = ['strength', 'cunning', 'science', 'charisma'].map(function (key) {
+      var now = Math.max(0, Number(crew[key]) || 0);
+      var next = Math.max(0, Math.min(cap, now - (current ? Number(current.bonus[key]) || 0 : 0) + (Number(item.bonus[key]) || 0)));
+      var delta = next - now;
+      return '<span class="' + (delta > 0 ? 'is-better' : delta < 0 ? 'is-worse' : '') + '">' + STAT_INFO[key].short + ' '
+        + (delta > 0 ? '+' : '') + delta + '</span>';
+    }).join('');
+    return '<span class="mission-inventory-compare-deltas">' + rows + '</span>';
+  }
+
+  function renderInventoryWorkbench(data) {
+    if (!inventoryWorkbench) return;
+    var item = (data.loot || []).filter(function (entry) { return Number(entry.id) === Number(state.inventoryCompareItemId); })[0];
+    if (!item || !item.slot) { inventoryWorkbench.hidden = true; inventoryWorkbench.innerHTML = ''; return; }
+    var spare = Number(item.quantity) - Number(item.equipped_count);
+    inventoryWorkbench.hidden = false;
+    inventoryWorkbench.innerHTML = '<div class="mission-inventory-workbench-head"><div><span class="eyebrow">Equipment comparison</span><h3>' + escapeHtml(item.name) + '</h3><p>'
+      + escapeHtml(slotLabel(item.slot)) + ' &middot; ' + escapeHtml(gearBonusText(item.bonus) || 'No stat bonus') + '</p></div>'
+      + '<button type="button" data-inventory-compare-close aria-label="Close equipment comparison">&times;</button></div>'
+      + '<div class="mission-inventory-compare-list">' + (data.crew || []).map(function (crew) {
+        var current = crew.gear && crew.gear[item.slot] ? crew.gear[item.slot] : null;
+        var equippedHere = current && Number(current.loot_definition_id) === Number(item.id);
+        var reason = '';
+        if (crew.status !== 'available') reason = 'In the field';
+        else if (Number(crew.level) < Number(item.required_level)) reason = 'Needs level ' + item.required_level;
+        else if (item.required_role && item.required_role !== crew.role) reason = item.required_role + ' only';
+        else if (!equippedHere && spare < 1) reason = 'Every copy is in use';
+        var action = equippedHere ? '<span class="mission-inventory-compare-state">Equipped here</span>'
+          : reason ? '<span class="mission-inventory-compare-state is-blocked">' + escapeHtml(reason) + '</span>'
+          : '<button type="button" class="btn" data-inventory-compare-equip="' + Number(crew.id) + '" data-item-id="' + Number(item.id) + '">Equip</button>';
+        return '<article><div><strong>' + escapeHtml(crew.name) + '</strong><small>' + escapeHtml(crew.role) + ' &middot; Lv ' + Number(crew.level)
+          + ' &middot; ' + escapeHtml(current ? current.name : 'Empty ' + slotLabel(item.slot)) + '</small>' + comparisonDeltaMarkup(crew, item, current) + '</div>' + action + '</article>';
+      }).join('') + '</div>';
+  }
+
   function renderInventory(data) {
     renderStimBelt(data);
     renderResearchAlert(data);
@@ -3580,6 +3705,12 @@
     inventorySection.hidden = false;
     if (inventoryMeters) inventoryMeters.innerHTML = inventoryMeterMarkup(data.inventory || {}, false);
     renderInventoryBoosts(data);
+    [inventoryFavoriteFilter, inventoryTagFilter].forEach(function (control) {
+      var label = control && control.closest('label');
+      if (label) label.hidden = !data.inventory_workbench_ready;
+    });
+    renderInventoryWorkbench(data);
+    renderConversionQueue(data);
     populateInventoryFilters(loot);
     var filters = inventoryFilters();
     var visible = loot.filter(function (item) {
@@ -3590,6 +3721,9 @@
       var spare = Number(item.quantity) - Number(item.equipped_count);
       if (filters.state === 'equipped' && Number(item.equipped_count) < 1) return false;
       if (filters.state === 'spare' && spare < 1) return false;
+      if (filters.favorite === 'favorites' && !item.is_favorite) return false;
+      if (filters.tag === 'untagged' && item.tag_key) return false;
+      if (filters.tag !== 'all' && filters.tag !== 'untagged' && item.tag_key !== filters.tag) return false;
       return true;
     });
     var totalItems = loot.reduce(function (sum, item) { return sum + Number(item.quantity); }, 0);
@@ -3612,6 +3746,7 @@
        * deducted from the quantity ledger, so destroying one would leave a crew
        * member wearing something nobody owns -- the server refuses it too. */
       var actions = [];
+      if (isGear) actions.push('<button type="button" class="btn" data-inventory-compare="' + Number(item.id) + '">Compare</button>');
       if (isStim) {
         actions.push('<button type="button" class="btn btn-solid mission-inventory-use" data-stim-use="' + Number(item.id) + '">Use</button>');
       }
@@ -3619,7 +3754,14 @@
         actions.push('<button type="button" class="btn mission-inventory-destroy" data-destroy-item="' + Number(item.id) + '"'
           + ' data-item-name="' + escapeHtml(item.name) + '" data-spare="' + spare + '">Destroy</button>');
       }
-      return '<article class="mission-inventory-card is-' + escapeHtml(item.tier) + ' is-' + escapeHtml(category) + '">'
+      if (data.inventory_workbench_ready && isConvertibleSalvage(item)) {
+        var queued = Number(state.inventoryConversionQueue[Number(item.id)]) || 0;
+        actions.push('<button type="button" class="btn mission-inventory-convert" data-conversion-queue="' + Number(item.id) + '">' + (queued ? 'Queue &times;' + queued : 'Queue for credits') + '</button>');
+      }
+      var organisation = data.inventory_workbench_ready
+        ? '<div class="mission-inventory-organisation"><button type="button" class="mission-inventory-favorite' + (item.is_favorite ? ' is-active' : '') + '" data-inventory-favorite="' + Number(item.id) + '" aria-pressed="' + (item.is_favorite ? 'true' : 'false') + '" title="' + (item.is_favorite ? 'Remove favorite' : 'Favorite item') + '">&#9733;<span class="sr-only">' + (item.is_favorite ? 'Remove favorite' : 'Favorite item') + '</span></button><label><span>Tag</span><select data-inventory-tag="' + Number(item.id) + '">' + inventoryTagOptions(item.tag_key) + '</select></label></div>'
+        : '';
+      return '<article class="mission-inventory-card is-' + escapeHtml(item.tier) + ' is-' + escapeHtml(category) + (item.is_favorite ? ' is-favorite' : '') + '">'
         + '<span class="mission-inventory-icon">' + gearIconHtml(item.slot, item.icon_url) + '</span>'
         + '<div class="mission-inventory-copy"><h3>' + escapeHtml(item.name) + '</h3>'
         + '<p class="mission-inventory-meta"><span class="mission-inventory-tier">' + escapeHtml(item.tier) + '</span>'
@@ -3636,6 +3778,9 @@
               : 'Not assigned to anyone')
             + '</p>'
           : '<p class="mission-inventory-state">' + escapeHtml(isStim ? 'Ready to use' : 'Kept for research') + '</p>')
+        + (isConvertibleSalvage(item) && data.inventory_workbench_ready ? '<p class="mission-inventory-convert-value">Low value &middot; ' + salvageConversionValue(item) + ' credits each</p>' : '')
+        + inventoryHistoryMarkup(item, data.inventory_workbench_ready)
+        + organisation
         + (actions.length ? '<div class="mission-inventory-actions">' + actions.join('') + '</div>' : '')
         + '</div></article>';
     }).join('');
@@ -3707,16 +3852,136 @@
       .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
   }
 
+  function inventoryItem(itemId) {
+    return ((state.data && state.data.loot) || []).filter(function (item) { return Number(item.id) === Number(itemId); })[0] || null;
+  }
+
+  function saveInventoryPreference(itemId, favorite, tag) {
+    var item = inventoryItem(itemId);
+    if (!item || !state.data || !state.data.inventory_workbench_ready) return;
+    var before = { favorite: !!item.is_favorite, tag: String(item.tag_key || '') };
+    item.is_favorite = !!favorite;
+    item.tag_key = tag || '';
+    renderInventory(state.data);
+    post('/api/missions/inventory-preference.php', {
+      loot_definition_id: Number(itemId), is_favorite: !!favorite, tag_key: tag || '', csrf: window.PW_AUTH.csrf
+    }).then(function () {
+      setStatus((favorite ? 'Favorite saved.' : 'Inventory tag saved.'));
+    }).catch(function (error) {
+      item.is_favorite = before.favorite;
+      item.tag_key = before.tag;
+      renderInventory(state.data);
+      setStatus(error.message, true);
+    });
+  }
+
+  function queueSalvageConversion(button) {
+    var item = inventoryItem(Number(button.getAttribute('data-conversion-queue')));
+    if (!item || !isConvertibleSalvage(item) || !state.data || !state.data.inventory_workbench_ready) return;
+    var current = Number(state.inventoryConversionQueue[Number(item.id)]) || 0;
+    openChoice({
+      eyebrow: 'Salvage conversion',
+      title: 'Queue ' + item.name,
+      copy: 'This pays ' + salvageConversionValue(item) + ' credits each. Rare and higher finds are never convertible.',
+      confirmLabel: 'Update queue',
+      quantity: { label: 'How many to queue', min: 1, max: Number(item.quantity), value: current || Number(item.quantity) }
+    }).then(function (choice) {
+      if (!choice) return;
+      state.inventoryConversionQueue[Number(item.id)] = Number(choice.quantity) || 1;
+      renderInventory(state.data);
+    });
+  }
+
+  function convertQueuedSalvage(button) {
+    if (!state.data) return;
+    var items = Object.keys(state.inventoryConversionQueue).map(function (id) {
+      return { loot_definition_id: Number(id), quantity: Number(state.inventoryConversionQueue[id]) || 0 };
+    }).filter(function (item) { return item.quantity > 0; });
+    if (!items.length) return;
+    var total = items.reduce(function (sum, entry) {
+      var item = inventoryItem(entry.loot_definition_id);
+      return sum + (item ? entry.quantity * salvageConversionValue(item) : 0);
+    }, 0);
+    openChoice({
+      eyebrow: 'Salvage conversion',
+      title: 'Convert queued salvage?',
+      copy: 'This permanently converts the queued common and uncommon salvage into ' + credits(total) + ' credits.',
+      confirmLabel: 'Convert ' + credits(total) + ' credits', danger: false
+    }).then(function (choice) {
+      if (!choice) return;
+      button.disabled = true;
+      return post('/api/missions/inventory-convert.php', { items: items, csrf: window.PW_AUTH.csrf })
+        .then(function (result) {
+          state.inventoryConversionQueue = {};
+          setStatus(result.message);
+          return load();
+        }).catch(function (error) {
+          button.disabled = false;
+          setStatus(error.message, true);
+        });
+    });
+  }
+
+  function compareInventoryItem(itemId) {
+    state.inventoryCompareItemId = Number(itemId);
+    if (state.data) renderInventory(state.data);
+  }
+
+  function equipComparedInventoryItem(button) {
+    var crewId = Number(button.getAttribute('data-inventory-compare-equip'));
+    var itemId = Number(button.getAttribute('data-item-id'));
+    if (!crewId || !itemId) return;
+    button.disabled = true;
+    post('/api/missions/gear-equip.php', { crew_id: crewId, loot_definition_id: itemId, csrf: window.PW_AUTH.csrf })
+      .then(function (result) { setStatus(result.message); return load(); })
+      .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
+  }
+
   if (inventoryList) {
     inventoryList.addEventListener('click', function (event) {
       var destroy = event.target.closest('[data-destroy-item]');
       if (destroy && !destroy.disabled) { destroyInventoryItem(destroy); return; }
       var use = event.target.closest('[data-stim-use]');
-      if (use && !use.disabled) useStim(use);
+      if (use && !use.disabled) { useStim(use); return; }
+      var favorite = event.target.closest('[data-inventory-favorite]');
+      if (favorite) { var favoriteItem = inventoryItem(Number(favorite.getAttribute('data-inventory-favorite'))); if (favoriteItem) saveInventoryPreference(favoriteItem.id, !favoriteItem.is_favorite, favoriteItem.tag_key); return; }
+      var compare = event.target.closest('[data-inventory-compare]');
+      if (compare) { compareInventoryItem(compare.getAttribute('data-inventory-compare')); return; }
+      var convert = event.target.closest('[data-conversion-queue]');
+      if (convert) queueSalvageConversion(convert);
+    });
+    inventoryList.addEventListener('change', function (event) {
+      var tag = event.target.closest('[data-inventory-tag]');
+      if (!tag) return;
+      var item = inventoryItem(Number(tag.getAttribute('data-inventory-tag')));
+      if (item) saveInventoryPreference(item.id, item.is_favorite, tag.value);
     });
   }
 
-  [inventoryTypeFilter, inventorySlotFilter, inventoryTierFilter, inventoryStateFilter].forEach(function (control) {
+  if (inventoryWorkbench) inventoryWorkbench.addEventListener('click', function (event) {
+    var close = event.target.closest('[data-inventory-compare-close]');
+    if (close) { state.inventoryCompareItemId = null; if (state.data) renderInventory(state.data); return; }
+    var equip = event.target.closest('[data-inventory-compare-equip]');
+    if (equip && !equip.disabled) equipComparedInventoryItem(equip);
+  });
+
+  if (inventoryConversionQueue) inventoryConversionQueue.addEventListener('click', function (event) {
+    var remove = event.target.closest('[data-conversion-remove]');
+    if (remove) {
+      delete state.inventoryConversionQueue[Number(remove.getAttribute('data-conversion-remove'))];
+      if (state.data) renderInventory(state.data);
+      return;
+    }
+    if (event.target.closest('[data-conversion-clear]')) {
+      state.inventoryConversionQueue = {};
+      if (state.data) renderInventory(state.data);
+      return;
+    }
+    var confirm = event.target.closest('[data-conversion-confirm]');
+    if (confirm && !confirm.disabled) convertQueuedSalvage(confirm);
+  });
+
+  [inventoryTypeFilter, inventorySlotFilter, inventoryTierFilter, inventoryStateFilter, inventoryFavoriteFilter, inventoryTagFilter].forEach(function (control) {
     if (control) control.addEventListener('change', function () { if (state.data) renderInventory(state.data); });
   });
 

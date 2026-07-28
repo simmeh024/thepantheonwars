@@ -89,7 +89,11 @@ try {
     }
 
     $research = pw_research_player_effects($db, $userId);
-    $storage = $gear ? pw_missions_store_loot($db, $userId, $gear, $research) : ['stored' => [], 'skipped' => []];
+    $storage = $gear ? pw_missions_store_loot($db, $userId, $gear, $research, [
+        'source_type' => 'sweep',
+        'source_id' => (int)$run['id'],
+        'note' => 'Salvage Sweep haul',
+    ]) : ['stored' => [], 'skipped' => []];
     $skipped = $storage['skipped'] ?? [];
 
     $credits = (int)$run['credits_found'];

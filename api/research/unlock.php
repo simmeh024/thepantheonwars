@@ -89,6 +89,7 @@ try {
         $consume = $db->prepare('UPDATE game_player_loot SET quantity = quantity - ? WHERE user_id = ? AND loot_definition_id = ? AND quantity >= ?');
         $consume->execute([$salvageQuantity, $userId, $salvageId, $salvageQuantity]);
         if ($consume->rowCount() !== 1) throw new RuntimeException('Your salvage inventory changed. Refresh and try again.');
+        pw_missions_record_loot_history($db, $userId, [$salvageId => $salvageQuantity], 'researched', 'research', $nodeId, 'Spent on protocol: ' . (string)$node['name']);
     }
 
     $unlock = $db->prepare('INSERT INTO game_player_research (user_id, research_node_id) VALUES (?, ?)');
