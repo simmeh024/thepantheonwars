@@ -810,8 +810,25 @@
   function updateGearIconPreview() {
     var preview = document.getElementById('mission-gear-icon-preview');
     var value = document.getElementById('mission-gear-icon').value.trim();
+    var downloadButton = document.getElementById('mission-gear-icon-download');
     preview.hidden = !value;
     if (value) preview.src = assetUrl(value);
+    downloadButton.disabled = !value;
+    downloadButton.title = value ? 'Download the selected equipment image.' : 'Choose an image first.';
+  }
+
+  function downloadGearIcon() {
+    var value = document.getElementById('mission-gear-icon').value.trim();
+    if (!value) return;
+    var url = assetUrl(value);
+    var sourceName = url.split(/[?#]/)[0].split('/').pop();
+    var link = document.createElement('a');
+    link.href = url;
+    link.download = sourceName || 'equipment-image';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }
 
   /* Live feedback on what the item is worth, and on the one combination the
@@ -1049,6 +1066,7 @@
     document.getElementById('mission-gear-icon').value = '';
     updateGearIconPreview();
   });
+  document.getElementById('mission-gear-icon-download').addEventListener('click', downloadGearIcon);
   wireImageField({
     input: 'mission-gear-icon', upload: 'mission-gear-icon-upload',
     browse: 'mission-gear-icon-browse', file: 'mission-gear-icon-file',
