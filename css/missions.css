@@ -46,7 +46,7 @@
 /* Loadout modal: the slot grid on the left, the inventory for the selected slot
  * on the right. Utility spans the grid because it is the odd seventh slot, and
  * a lone square in a two-column grid reads as a gap. */
-.mission-loadout-modal { width: min(720px, calc(100vw - 28px)); padding: 0; border: 1px solid rgba(105,213,222,0.5); color: var(--text); background: #100d22; box-shadow: 0 24px 90px rgba(0,0,0,0.7), 0 0 45px rgba(71,207,218,0.13); }
+.mission-loadout-modal { width: min(780px, calc(100vw - 28px)); padding: 0; border: 1px solid rgba(105,213,222,0.5); color: var(--text); background: #100d22; box-shadow: 0 24px 90px rgba(0,0,0,0.7), 0 0 45px rgba(71,207,218,0.13); }
 .mission-loadout-modal::backdrop { background: rgba(3,4,12,0.78); backdrop-filter: blur(4px); }
 .mission-loadout-inner { position: relative; padding: 28px; background: linear-gradient(145deg, rgba(17,48,66,0.96), rgba(20,12,42,0.98)); }
 .mission-loadout-modal .eyebrow { margin-bottom: 6px; color: #79d9df; font-size: 0.6rem; }
