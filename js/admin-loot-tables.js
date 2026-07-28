@@ -12,7 +12,10 @@
   var crewCatalogue = [];
   var gearCatalogue = [];
   var missions = [];
-  var activePanel = 'tables';
+  /* Contracts and Sweeps share the table editor but keep their manifests out
+     of one another's working list. Mission assignments remain a separate
+     view because they edit links rather than a table's reward entries. */
+  var activePanel = 'contracts';
   var currentTable = null;
   var currentMission = null;
   var draftEntries = [];
@@ -177,26 +180,36 @@
 
   function refreshCount() {
     if (!count) return;
-    var total = activePanel === 'tables' ? tables.length : missions.length;
-    count.textContent = total + (activePanel === 'tables'
-      ? (total === 1 ? ' loot table' : ' loot tables')
-      : (total === 1 ? ' mission' : ' missions'));
+    if (activePanel === 'missions') {
+      count.textContent = missions.length + (missions.length === 1 ? ' mission' : ' missions');
+      return;
+    }
+    var total = filteredTables().length;
+    var kind = activePanel === 'sweeps' ? 'sweep' : 'contract';
+    count.textContent = total + ' ' + kind + (total === 1 ? ' loot table' : ' loot tables');
   }
 
   function switchPanel(panel) {
     activePanel = panel;
-    ['tables', 'missions'].forEach(function (name) {
+    var tableView = panel !== 'missions';
+    ['contracts', 'sweeps', 'missions'].forEach(function (name) {
       var isActive = name === panel;
-      var view = document.getElementById('loot-admin-' + name + '-panel');
-      if (view) view.hidden = !isActive;
       var tab = document.querySelector('[data-loot-panel="' + name + '"]');
       if (tab) {
         tab.classList.toggle('active', isActive);
         tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
       }
     });
-    document.getElementById('loot-table-create-btn').hidden = panel !== 'tables' || !can('loot_tables.edit');
+    document.getElementById('loot-admin-tables-panel').hidden = !tableView;
+    document.getElementById('loot-admin-missions-panel').hidden = tableView;
+    document.getElementById('loot-table-create-btn').hidden = !tableView || !can('loot_tables.edit');
+    if (tableView) renderTables();
     refreshCount();
+  }
+
+  function filteredTables() {
+    var sweep = activePanel === 'sweeps';
+    return tables.filter(function (table) { return !!table.is_sweep_only === sweep; });
   }
 
   /* Copy the open table, then open the copy. The point is to keep going --
@@ -230,12 +243,15 @@
 
   function renderTables() {
     if (!tableList) return;
-    if (!tables.length) {
-      blank(tableList, 'No loot tables yet. Add one to start awarding characters and gear from missions.');
+    var visibleTables = filteredTables();
+    if (!visibleTables.length) {
+      blank(tableList, activePanel === 'sweeps'
+        ? 'No Salvage Sweep manifests yet. Add a loot table and mark it as a Salvage Sweep manifest.'
+        : 'No contract loot tables yet. Add one to start awarding characters and gear from missions.');
       return;
     }
     tableList.innerHTML = '';
-    tables.forEach(function (table) {
+    visibleTables.forEach(function (table) {
       var entries = table.entries || [];
       // Each entry rolls independently, so a summed chance would be misleading.
       var best = entries.reduce(function (highest, entry) {
