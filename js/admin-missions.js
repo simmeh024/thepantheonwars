@@ -3,7 +3,7 @@
 
   var definitions = [];
   /* Overlord roster and contract readiness, both supplied by definitions-list. */
-  var overlords = [], contractsReady = false, contestedContractsReady = false, salvageRecoveryContractsReady = false, contractRank = 10;
+  var overlords = [], contractsReady = false, contestedContractsReady = false, salvageRecoveryContractsReady = false, overlordClearancesReady = false, contractRank = 10;
   var crew = [];
   var gear = [];
   var gearMeta = null;
@@ -116,6 +116,7 @@
       if (mission.overlord_name && detail) detail.textContent += ' | Contract: ' + mission.overlord_name;
       if (mission.is_contested && detail) detail.textContent += ' | Contested by ' + (mission.rival_faction_name || 'a rival recovery team');
       if (mission.is_salvage_recovery_contract && detail) detail.textContent += ' | Sweep recovery pool';
+      if (mission.requires_overlord_clearance && detail) detail.textContent += ' | Blocked tile';
       if (can('missions.edit')) {
         row.addEventListener('click', function () { openDefinition(mission); });
         row.addEventListener('keydown', function (event) { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); openDefinition(mission); } });
@@ -185,7 +186,7 @@
   }
 
   function loadDefinitions() {
-    return request('/api/admin/missions/definitions-list.php').then(function (data) { definitions = data.missions || []; overlords = data.overlords || []; contractsReady = !!data.contracts_ready; contestedContractsReady = !!data.contested_contracts_ready; salvageRecoveryContractsReady = !!data.salvage_recovery_contracts_ready; contractRank = Number(data.contract_rank) || 10; renderDefinitions(); refreshCount(); }).catch(function (error) { blank(definitionList, error.message || 'Could not load mission definitions. Run the Missions V0 migration first.'); });
+    return request('/api/admin/missions/definitions-list.php').then(function (data) { definitions = data.missions || []; overlords = data.overlords || []; contractsReady = !!data.contracts_ready; contestedContractsReady = !!data.contested_contracts_ready; salvageRecoveryContractsReady = !!data.salvage_recovery_contracts_ready; overlordClearancesReady = !!data.overlord_clearances_ready; contractRank = Number(data.contract_rank) || 10; renderDefinitions(); refreshCount(); }).catch(function (error) { blank(definitionList, error.message || 'Could not load mission definitions. Run the Missions V0 migration first.'); });
   }
 
   function loadCrew() {
@@ -285,6 +286,17 @@
     toggle.disabled = !isOrdinary || !!(contested && contested.checked);
   }
 
+  function syncMissionOverlordClearanceField() {
+    var field = document.getElementById('mission-definition-overlord-clearance-field');
+    var toggle = document.getElementById('mission-definition-overlord-clearance');
+    var overlord = document.getElementById('mission-definition-overlord');
+    if (!field || !toggle || !overlord) return;
+    field.hidden = !overlordClearancesReady;
+    var isContract = contractsReady && overlord.value !== '';
+    if (!isContract) toggle.checked = false;
+    toggle.disabled = !isContract;
+  }
+
   function definitionValues(mission) {
     document.getElementById('mission-definition-name').value = mission ? mission.name : '';
     document.getElementById('mission-definition-slug').value = mission ? mission.slug : '';
@@ -315,6 +327,7 @@
     document.getElementById('mission-definition-contested').checked = mission ? !!mission.is_contested : false;
     document.getElementById('mission-definition-rival-faction').value = mission && mission.rival_faction_name ? mission.rival_faction_name : '';
     document.getElementById('mission-definition-salvage-recovery').checked = mission ? !!mission.is_salvage_recovery_contract : false;
+    document.getElementById('mission-definition-overlord-clearance').checked = mission ? !!mission.requires_overlord_clearance : false;
     populateMissionSuccessionOptions(mission);
     document.getElementById('mission-definition-unlock-completions').value = mission && mission.unlocks_after_mission_id ? mission.unlocks_after_completion_count : 0;
     document.getElementById('mission-definition-campaign-final').checked = mission ? !!mission.is_campaign_final : false;
@@ -327,6 +340,7 @@
     syncMissionSuccessionFields();
     syncMissionContestedFields();
     syncMissionSalvageRecoveryField();
+    syncMissionOverlordClearanceField();
   }
 
   function resetModalMessage(prefix) {
@@ -378,6 +392,7 @@
       is_contested: contestedContractsReady && document.getElementById('mission-definition-contested').checked,
       rival_faction_name: contestedContractsReady ? document.getElementById('mission-definition-rival-faction').value.trim() : '',
       is_salvage_recovery_contract: salvageRecoveryContractsReady && document.getElementById('mission-definition-salvage-recovery').checked,
+      requires_overlord_clearance: overlordClearancesReady && document.getElementById('mission-definition-overlord-clearance').checked,
       unlocks_after_mission_id: document.getElementById('mission-definition-unlocks-after').value,
       unlocks_after_completion_count: document.getElementById('mission-definition-unlock-completions').value,
       is_campaign_final: document.getElementById('mission-definition-campaign-final').checked,
@@ -471,6 +486,7 @@
   document.getElementById('mission-definition-unlocks-after').addEventListener('change', syncMissionSuccessionFields);
   document.getElementById('mission-definition-overlord').addEventListener('change', syncMissionContestedFields);
   document.getElementById('mission-definition-overlord').addEventListener('change', syncMissionSalvageRecoveryField);
+  document.getElementById('mission-definition-overlord').addEventListener('change', syncMissionOverlordClearanceField);
   document.getElementById('mission-definition-contested').addEventListener('change', syncMissionContestedFields);
   document.getElementById('mission-definition-contested').addEventListener('change', syncMissionSalvageRecoveryField);
   document.getElementById('mission-definition-salvage-recovery').addEventListener('change', syncMissionContestedFields);

@@ -138,7 +138,8 @@ function pw_mission_overlord_clearances_ready(PDO $db): bool {
     static $ready = null;
     if ($ready !== null) return $ready;
     if (!pw_mission_overlord_contracts_ready($db)) return $ready = false;
-    return $ready = pw_schema_has($db, 'game_player_overlord_contract_clearances', [
+    return $ready = pw_schema_has($db, 'game_mission_definitions', ['requires_overlord_clearance'])
+        && pw_schema_has($db, 'game_player_overlord_contract_clearances', [
         'user_id', 'mission_definition_id', 'issued_date', 'collapse_index', 'safe_picks', 'status',
     ]);
 }
@@ -457,6 +458,10 @@ function pw_missions_overlord_contract_daily_block(PDO $db, int $userId, array $
 function pw_missions_overlord_contract_block(PDO $db, int $userId, array $mission, int $rank, ?array $overlord): ?string {
     $block = pw_missions_overlord_contract_daily_block($db, $userId, $mission, $rank, $overlord);
     if ($block !== null) return $block;
+    /* A blocked tile is an authored complication, not a tax on every daily
+     * contract. Definitions created before this option intentionally stay
+     * clear, and the admin can opt an individual Overlord operation in. */
+    if (empty($mission['requires_overlord_clearance'])) return null;
     if (!pw_mission_overlord_clearances_ready($db)) return null;
     $clearance = pw_missions_overlord_clearance_state($db, $userId, (int)$mission['id']);
     if ($clearance['status'] === 'cleared') return null;

@@ -26,6 +26,9 @@ try {
     if ($mission['overlord_id'] === null || (int)$mission['overlord_id'] < 1) {
         throw new RuntimeException('Only an issued Overlord contract has a blocked access tile.');
     }
+    if (empty($mission['requires_overlord_clearance'])) {
+        throw new RuntimeException('This Overlord contract has no blocked access tile.');
+    }
     $rank = (int)(pw_reputation_info((int)($user['reputation'] ?? 0))['level_number'] ?? 0);
     $overlord = pw_missions_overlord_affinity($db, $user['overlord_affinity'] ?? null);
     $block = pw_missions_overlord_contract_daily_block($db, $userId, $mission, $rank, $overlord);

@@ -91,6 +91,11 @@ function pw_admin_mission_definition_input(array $input): array {
     if ($isSalvageRecovery && $isContested) {
         pw_error('A salvage recovery pool mission cannot also be a contested contract.');
     }
+    $clearanceReady = pw_mission_overlord_clearances_ready(pw_db());
+    $requiresOverlordClearance = $clearanceReady && !empty($input['requires_overlord_clearance']) ? 1 : 0;
+    if ($requiresOverlordClearance && $overlordId === null) {
+        pw_error('A blocked-tile clearance can only be enabled on an Overlord contract.');
+    }
     $unlocksAfterRaw = trim((string)($input['unlocks_after_mission_id'] ?? ''));
     $unlocksAfterMissionId = null;
     if ($unlocksAfterRaw !== '') {
@@ -112,6 +117,7 @@ function pw_admin_mission_definition_input(array $input): array {
         'is_contested' => $isContested,
         'rival_faction_name' => $isContested ? $rivalFaction : null,
         'is_salvage_recovery_contract' => $isSalvageRecovery,
+        'requires_overlord_clearance' => $requiresOverlordClearance,
         'unlocks_after_mission_id' => $unlocksAfterMissionId,
         'unlocks_after_completion_count' => $unlocksAfterCompletionCount,
         'is_campaign_final' => !empty($input['is_campaign_final']) ? 1 : 0,

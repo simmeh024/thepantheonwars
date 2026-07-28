@@ -12,6 +12,7 @@ $researchLocksReady = pw_mission_research_locks_ready($db);
 $contractsReady = pw_mission_overlord_contracts_ready($db);
 $contestedContractsReady = pw_mission_contested_contracts_ready($db);
 $salvageRecoveryContractsReady = pw_mission_salvage_recovery_contracts_ready($db);
+$overlordClearancesReady = pw_mission_overlord_clearances_ready($db);
 $rows = $db->query(
     'SELECT mission.id, mission.world_key, mission.name, mission.slug, mission.description, mission.mission_type,
             mission.duration_seconds, mission.min_crew, mission.max_crew, mission.xp_reward, mission.reputation_reward,
@@ -24,6 +25,7 @@ $rows = $db->query(
     . ($contractsReady ? ' mission.overlord_id, overlord.name AS overlord_name,' : ' NULL AS overlord_id, NULL AS overlord_name,') .
     ($contestedContractsReady ? ' mission.is_contested, mission.rival_faction_name,' : ' 0 AS is_contested, "" AS rival_faction_name,') .
     ($salvageRecoveryContractsReady ? ' mission.is_salvage_recovery_contract,' : ' 0 AS is_salvage_recovery_contract,') .
+    ($overlordClearancesReady ? ' mission.requires_overlord_clearance,' : ' 0 AS requires_overlord_clearance,') .
            ' prerequisite.name AS unlocks_after_mission_name, mission.created_at, mission.updated_at
      FROM game_mission_definitions mission
      LEFT JOIN game_mission_definitions prerequisite ON prerequisite.id = mission.unlocks_after_mission_id'
@@ -43,6 +45,7 @@ $rows = array_map(static function ($row) {
     $row['overlord_id'] = $row['overlord_id'] !== null ? (int)$row['overlord_id'] : null;
     $row['is_contested'] = !empty($row['is_contested']);
     $row['is_salvage_recovery_contract'] = !empty($row['is_salvage_recovery_contract']);
+    $row['requires_overlord_clearance'] = !empty($row['requires_overlord_clearance']);
     $row['rival_faction_name'] = $row['is_contested'] ? pw_missions_contested_contract_faction($row['rival_faction_name']) : '';
     return $row;
 }, $rows);
@@ -52,4 +55,4 @@ $overlords = $contractsReady
     ? $db->query('SELECT id, name, epithet FROM overlords ORDER BY sort_order ASC, name ASC')->fetchAll()
     : [];
 $overlords = array_map(static function ($row) { $row['id'] = (int)$row['id']; return $row; }, $overlords);
-pw_json(['ok' => true, 'missions' => $rows, 'campaign_ready' => $campaignReady, 'contracts_ready' => $contractsReady, 'contested_contracts_ready' => $contestedContractsReady, 'salvage_recovery_contracts_ready' => $salvageRecoveryContractsReady, 'overlords' => $overlords, 'contract_rank' => PW_MISSION_OVERLORD_CONTRACT_RANK]);
+pw_json(['ok' => true, 'missions' => $rows, 'campaign_ready' => $campaignReady, 'contracts_ready' => $contractsReady, 'contested_contracts_ready' => $contestedContractsReady, 'salvage_recovery_contracts_ready' => $salvageRecoveryContractsReady, 'overlord_clearances_ready' => $overlordClearancesReady, 'overlords' => $overlords, 'contract_rank' => PW_MISSION_OVERLORD_CONTRACT_RANK]);

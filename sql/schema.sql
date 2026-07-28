@@ -2120,6 +2120,8 @@ CREATE TABLE IF NOT EXISTS game_player_wallet (
 -- ledger carries the exact loot id that the successful recovery returns. The
 -- migration also creates game_player_overlord_contract_clearances, which
 -- persists each daily Overlord contract's four-quadrant access-tile result.
+-- The definition-level requires_overlord_clearance flag defaults off, so only
+-- Overlord contracts specifically marked in Mission Control gain the tile.
 
 CREATE TABLE IF NOT EXISTS game_player_salvage_recovery_contracts (
   id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,

@@ -38,6 +38,7 @@ if (pw_mission_contested_contracts_ready($db)) {
     $columns['rival_faction_name'] = $data['rival_faction_name'];
 }
 if (pw_mission_salvage_recovery_contracts_ready($db)) $columns['is_salvage_recovery_contract'] = $data['is_salvage_recovery_contract'];
+if (pw_mission_overlord_clearances_ready($db)) $columns['requires_overlord_clearance'] = $data['requires_overlord_clearance'];
 $stmt = $db->prepare(
     'INSERT INTO game_mission_definitions (' . implode(', ', array_keys($columns)) . ')'
     . ' VALUES (' . pw_missions_placeholders(count($columns)) . ')'

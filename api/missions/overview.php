@@ -438,11 +438,14 @@ try {
         /* The same public field list the ordinary board is trimmed to, so a
          * contract cannot leak a column the mission cards never expose. */
         $contractPublic = [];
-        foreach (array_merge($publicFields, ['is_overlord_contract', 'is_contested', 'rival_faction_name']) as $field) {
+        $row['requires_overlord_clearance'] = !empty($row['requires_overlord_clearance']);
+        foreach (array_merge($publicFields, ['is_overlord_contract', 'is_contested', 'rival_faction_name', 'requires_overlord_clearance']) as $field) {
             if (array_key_exists($field, $row)) $contractPublic[$field] = $row[$field];
         }
         $overlordContract['contract'] = $contractPublic;
-        $overlordContract['clearance'] = pw_missions_overlord_clearance_state($db, $userId, (int)$row['id']);
+        $overlordContract['clearance'] = !empty($row['requires_overlord_clearance'])
+            ? pw_missions_overlord_clearance_state($db, $userId, (int)$row['id'])
+            : null;
     }
 
     /* A Sweep lead is its own private card rather than an ordinary board slot.

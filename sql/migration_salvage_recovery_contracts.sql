@@ -7,12 +7,19 @@
 -- per player per UTC day. The lost item's id is persisted rather than copied
 -- into a payload, so the claim path can return exactly the object left behind.
 --
--- Overlord clearance rows make the four-quadrant tile stable across refreshes.
--- One server-selected quadrant collapses; two safe scans are required before
--- today's daily Overlord contract may launch. Every statement is idempotent.
+-- Overlord clearance rows make an administrator-enabled four-quadrant tile
+-- stable across refreshes. One server-selected quadrant collapses; two safe
+-- scans are required before that daily Overlord contract may launch. Every
+-- statement is idempotent.
 
 ALTER TABLE game_mission_definitions
   ADD COLUMN IF NOT EXISTS is_salvage_recovery_contract TINYINT(1) NOT NULL DEFAULT 0 AFTER overlord_id;
+
+-- Existing contracts must remain launchable. A blocked tile is explicitly
+-- authored per Overlord contract, rather than silently becoming mandatory for
+-- every contract on the day this migration is deployed.
+ALTER TABLE game_mission_definitions
+  ADD COLUMN IF NOT EXISTS requires_overlord_clearance TINYINT(1) NOT NULL DEFAULT 0 AFTER is_salvage_recovery_contract;
 
 ALTER TABLE game_mission_definitions
   ADD INDEX IF NOT EXISTS idx_game_mission_salvage_recovery (is_salvage_recovery_contract, is_enabled, sort_order);

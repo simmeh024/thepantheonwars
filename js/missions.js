@@ -303,7 +303,8 @@
        cannot work -- the same standing rule as every other control here. */
     var inFlight = !claimed && !!state.in_flight;
     var clearance = state.clearance;
-    var clearanceBlocked = !claimed && !inFlight && clearance && clearance.ready && clearance.status !== 'cleared';
+    var requiresClearance = !!contract.requires_overlord_clearance;
+    var clearanceBlocked = !claimed && !inFlight && requiresClearance && clearance && clearance.ready && clearance.status !== 'cleared';
     contractCard.className = 'mission-contract-card' + (claimed ? ' is-claimed' : (inFlight ? ' is-running' : (clearanceBlocked ? ' is-clearance-blocked' : '')));
     var reward = [];
     if (Number(contract.xp_reward) > 0) reward.push('+' + Number(contract.xp_reward) + ' XP');
@@ -322,7 +323,7 @@
           ? '<p class="mission-contract-copy is-running">A contract is already under way. Collect it before accepting another.</p>'
           : clearanceBlocked
             ? clearanceMarkup(contract, clearance)
-            : (clearance && clearance.ready
+            : (requiresClearance && clearance && clearance.ready
               ? '<p class="mission-contract-clear">Access tile cleared. The route is stable.</p><button type="button" class="btn btn-solid mission-contract-launch" data-contract-id="' + Number(contract.id) + '">Accept contract</button>'
               : '<button type="button" class="btn btn-solid mission-contract-launch" data-contract-id="' + Number(contract.id) + '">Accept contract</button>')));
   }
