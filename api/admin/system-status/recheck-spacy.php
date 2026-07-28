@@ -18,7 +18,7 @@ pw_require_csrf($input);
 
 $db = pw_db();
 pw_admin_runtime_cache_forget($db, 'admin-system-signals-v2');
-pw_admin_runtime_cache_forget($db, 'admin-system-status-detail-v2');
+pw_admin_runtime_cache_forget($db, 'admin-system-status-detail-v3');
 $spacy = pw_dispatch_spacy_status();
 
 pw_log_admin_activity(

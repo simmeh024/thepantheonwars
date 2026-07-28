@@ -23,7 +23,7 @@ $db = pw_db();
 // 60-second refresh made the page feel stalled even though the result is the
 // same for every admin. Keep a short shared snapshot; an explicit recheck
 // invalidates it when an operator needs an immediate result.
-$detailCacheKey = 'admin-system-status-detail-v2';
+$detailCacheKey = 'admin-system-status-detail-v3';
 $forceFresh = isset($_GET['fresh']) && $_GET['fresh'] === '1';
 if (!$forceFresh) {
     $cached = pw_admin_runtime_cache_read($db, $detailCacheKey);
@@ -142,6 +142,8 @@ $spacy = pw_dispatch_spacy_status();
 $embeddings = pw_dispatch_embedding_status();
 $avatarStorage = pw_check_avatar_storage();
 $totalStorage = pw_check_total_storage();
+$webrootFolders = pw_check_webroot_folder_storage();
+$backup = pw_check_last_backup($db);
 
 $detail = [
     'ok' => true,
@@ -167,6 +169,8 @@ $detail = [
     'cpu_load' => $cpuLoad,
     'avatar_storage' => $avatarStorage,
     'total_storage' => $totalStorage,
+    'webroot_folders' => $webrootFolders,
+    'backup' => $backup,
 ];
 
 // Five minutes avoids repeatedly starting the NLP workers during the page's

@@ -341,6 +341,64 @@ function pw_check_total_storage() {
     ];
 }
 
+// --- Deployed webroot folder usage -----------------------------------------------
+// The account-wide storage meter above includes cPanel-managed files and the
+// private secrets directory. This companion readout answers the practical
+// admin question: which folders currently deployed under public_html are
+// using space? It discovers top-level directories dynamically so a newly
+// deployed feature or upload library appears without another code change.
+function pw_check_webroot_folder_storage(): array {
+    $webroot = dirname(__DIR__, 3);
+    if (!is_dir($webroot)) {
+        return ['available' => false, 'folders' => []];
+    }
+
+    $paths = [];
+    try {
+        foreach (new DirectoryIterator($webroot) as $entry) {
+            if ($entry->isDot() || !$entry->isDir() || $entry->isLink()) {
+                continue;
+            }
+            $paths[$entry->getFilename()] = $entry->getPathname();
+        }
+    } catch (UnexpectedValueException $e) {
+        return ['available' => false, 'folders' => []];
+    }
+
+    if ($paths === [] || !function_exists('shell_exec')) {
+        return ['available' => false, 'folders' => []];
+    }
+
+    $command = 'du -sb ' . implode(' ', array_map('escapeshellarg', array_values($paths))) . ' 2>/dev/null';
+    $output = @shell_exec($command);
+    if ($output === null || trim($output) === '') {
+        return ['available' => false, 'folders' => []];
+    }
+
+    $folders = [];
+    foreach (preg_split('/\r?\n/', trim($output)) as $line) {
+        if (!preg_match('/^(\d+)\s+(.+)$/', $line, $matches)) {
+            continue;
+        }
+        $name = basename(trim($matches[2]));
+        if (!isset($paths[$name])) {
+            continue;
+        }
+        $bytes = (float)$matches[1];
+        $folders[] = [
+            'name' => $name,
+            'used_bytes' => $bytes,
+            'used_mb' => round($bytes / (1024 * 1024), 2),
+        ];
+    }
+
+    usort($folders, static function (array $left, array $right): int {
+        return $right['used_bytes'] <=> $left['used_bytes'];
+    });
+
+    return ['available' => true, 'folders' => $folders];
+}
+
 // --- SSL certificate expiry ------------------------------------------------------
 function pw_check_ssl_expiry($host = 'thepantheonwars.com') {
     $result = ['expires_at' => null, 'days_left' => null, 'status' => 'unknown', 'label' => 'Unknown'];

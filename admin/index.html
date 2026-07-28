@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=320"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=6">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=321"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=6">
 </head>
 <body>
 
@@ -1326,6 +1326,15 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>
             <span>Storage</span>
           </div>
+          <ul class="system-status-list system-status-list-wide system-status-list-single system-status-storage-backup">
+            <li>
+              <span class="system-status-item-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8v13H3V8"/><path d="M1 3h22v5H1z"/><line x1="10" y1="12" x2="14" y2="12"/></svg>
+                Backup Status
+              </span>
+              <span class="system-status-value" id="sys-detail-backup">&hellip;</span>
+            </li>
+          </ul>
           <div class="system-status-storage-row system-status-storage-row-wide system-status-storage-row-first">
             <div class="system-status-storage-head">
               <span class="system-status-item-label">
@@ -1349,6 +1358,11 @@
             <div class="system-status-storage-bar-track">
               <div class="system-status-storage-bar-fill" id="sys-detail-avatar-bar"></div>
             </div>
+          </div>
+          <div class="storage-folder-sizes" id="storage-folder-sizes">
+            <p class="storage-folder-sizes-head">Deployed Webroot Folders</p>
+            <p class="storage-folder-sizes-note">Current usage for every top-level folder in <code>public_html</code>.</p>
+            <ul class="storage-folder-sizes-list" id="storage-folder-sizes-list"><li>Loading folder usage&hellip;</li></ul>
           </div>
         </div>
 
@@ -8315,6 +8329,8 @@
   var sysDetailAvatarBarEl = document.getElementById('sys-detail-avatar-bar');
   var sysDetailTotalStorageValueEl = document.getElementById('sys-detail-total-storage-value');
   var sysDetailTotalStorageBarEl = document.getElementById('sys-detail-total-storage-bar');
+  var sysDetailBackupEl = document.getElementById('sys-detail-backup');
+  var storageFolderSizesListEl = document.getElementById('storage-folder-sizes-list');
   var sysDetailDbSizeValueEl = document.getElementById('sys-detail-dbsize-value');
   var sysDetailDbSizeBarEl = document.getElementById('sys-detail-dbsize-bar');
   var sysDetailDbConnEl = document.getElementById('sys-detail-dbconn');
@@ -8384,6 +8400,42 @@
       li.appendChild(metaSpan);
       dbTableSizesListEl.appendChild(li);
     });
+  }
+
+  function formatStorageBytes(bytes) {
+    var value = Number(bytes) || 0;
+    if (value >= 1024 * 1024 * 1024) return (value / (1024 * 1024 * 1024)).toFixed(2) + ' GB';
+    if (value >= 1024 * 1024) return (value / (1024 * 1024)).toFixed(2) + ' MB';
+    if (value >= 1024) return (value / 1024).toFixed(1) + ' KB';
+    return Math.round(value) + ' B';
+  }
+
+  function renderStorageFolderSizes(storage) {
+    if (!storageFolderSizesListEl) return;
+    storageFolderSizesListEl.innerHTML = '';
+    if (!storage || !storage.available) {
+      var unavailable = document.createElement('li');
+      unavailable.textContent = 'Folder usage is currently unavailable.';
+      storageFolderSizesListEl.appendChild(unavailable);
+      return;
+    }
+    (storage.folders || []).forEach(function (folder) {
+      var li = document.createElement('li');
+      var name = document.createElement('span');
+      name.className = 'storage-folder-sizes-name';
+      name.textContent = folder.name;
+      var size = document.createElement('span');
+      size.className = 'storage-folder-sizes-meta';
+      size.textContent = formatStorageBytes(folder.used_bytes);
+      li.appendChild(name);
+      li.appendChild(size);
+      storageFolderSizesListEl.appendChild(li);
+    });
+    if (!(storage.folders || []).length) {
+      var empty = document.createElement('li');
+      empty.textContent = 'No deployed folders were found.';
+      storageFolderSizesListEl.appendChild(empty);
+    }
   }
 
   function renderSqlPerformance(performance) {
@@ -8507,6 +8559,7 @@
         setPlainStatusValue(sysDetailSpacyEl, data.spacy);
         setPlainStatusValue(sysDetailEmbeddingsEl, data.embeddings);
         setPlainStatusValue(sysDetailMailEl, data.mail);
+        setPlainStatusValue(sysDetailBackupEl, data.backup);
         setPlainStatusValue(sysDetailDbLoadEl, data.db_load);
         setPlainStatusValue(sysDetailDbConnEl, data.db_connections);
         setPlainStatusValue(sysDetailDbQpsEl, data.db_qps);
@@ -8519,6 +8572,7 @@
         setAvatarStorageBar(sysDetailAvatarValueEl, sysDetailAvatarBarEl, data.avatar_storage);
         setAvatarStorageBar(sysDetailTotalStorageValueEl, sysDetailTotalStorageBarEl, data.total_storage);
         setAvatarStorageBar(sysDetailDbSizeValueEl, sysDetailDbSizeBarEl, data.database_size);
+        renderStorageFolderSizes(data.webroot_folders);
         renderDbTableSizes(data.db_tables);
         renderSqlPerformance(data.sql_performance);
       })

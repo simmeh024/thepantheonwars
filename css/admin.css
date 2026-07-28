@@ -1905,6 +1905,69 @@
   color: var(--text-faint);
   font-size: 0.76rem;
 }
+.system-status-storage-backup {
+  margin: 0 0 18px;
+  padding: 0 0 18px;
+  border-bottom: 1px solid var(--border);
+}
+.storage-folder-sizes {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+.storage-folder-sizes-head {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.storage-folder-sizes-note {
+  margin: 5px 0 11px;
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  line-height: 1.45;
+}
+.storage-folder-sizes-note code {
+  color: var(--gold-bright);
+  font-family: 'Courier New', monospace;
+}
+.storage-folder-sizes-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.storage-folder-sizes-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  gap: 10px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--border-soft);
+  color: var(--text-dim);
+  font-size: 0.76rem;
+}
+.storage-folder-sizes-name {
+  overflow: hidden;
+  color: var(--text);
+  font-family: 'Courier New', monospace;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.storage-folder-sizes-meta {
+  flex-shrink: 0;
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+@media (max-width: 650px) {
+  .storage-folder-sizes-list { grid-template-columns: 1fr; }
+}
 
 .cpu-chart-note {
   margin: 0 0 16px;
