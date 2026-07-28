@@ -267,6 +267,15 @@ function pw_admin_mission_gear_input(array $input): array {
     if ($itemLevel === false || $itemLevel < 0 || $itemLevel > 9999) pw_error('Item level must be between 0 and 9,999.');
     if ($slot === '') $itemLevel = 0;
 
+    /* Field Grade is deliberately invisible in player payloads. It is a small
+     * author-only reliability edge, with an intentionally narrow range so it
+     * can distinguish two otherwise identical releases without replacing the
+     * visible strength progression. Slotless salvage and stims cannot be worn,
+     * so they can never carry the edge. */
+    $fieldGrade = filter_var($input['field_grade'] ?? 0, FILTER_VALIDATE_INT);
+    if ($fieldGrade === false || $fieldGrade < 0 || $fieldGrade > 50) pw_error('Field Grade must be between 0 and 50.');
+    if ($slot === '') $fieldGrade = 0;
+
     $dropWeight = filter_var($input['drop_weight'] ?? 100, FILTER_VALIDATE_INT);
     if ($dropWeight === false || $dropWeight < 0 || $dropWeight > 10000) pw_error('Drop weight must be between 0 and 10,000.');
 
@@ -334,6 +343,7 @@ function pw_admin_mission_gear_input(array $input): array {
         'required_level' => $requiredLevel,
         'required_role' => $requiredRole,
         'item_level' => (int)$itemLevel,
+        'field_grade' => (int)$fieldGrade,
         'icon_url' => $iconUrl,
         'stim_effect' => $stimEffect,
         'stim_value' => round((float)$stimValue, 2),

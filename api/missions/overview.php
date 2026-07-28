@@ -430,6 +430,15 @@ try {
     $rosterEffects = pw_missions_crew_effects(array_filter($crew, static function ($member) {
         return $member['status'] === 'available' && $member['definition_enabled'];
     }));
+    /* Field Grade participates in server-side outcomes but must never be
+     * inspectable through a player gear payload. The aggregate effects above
+     * are already calculated; remove only the authored source values before
+     * serialising the roster. */
+    foreach ($crew as $index => $row) {
+        unset($crew[$index]['field_grade_success_percent']);
+        if (!is_array($row['gear'] ?? null)) continue;
+        foreach ($row['gear'] as $slot => $item) unset($crew[$index]['gear'][$slot]['field_grade']);
+    }
 
     /* The commander card in the right rail. Only ever this player's own record,
      * and only what the card actually draws -- name, reputation standing and

@@ -28,6 +28,9 @@ if (pw_mission_stims_ready($db)) {
 if (pw_mission_item_levels_ready($db)) {
     array_splice($columns, -1, 0, ['item_level']);
 }
+if (pw_mission_field_grade_ready($db)) {
+    array_splice($columns, -1, 0, ['field_grade']);
+}
 $values = array_map(static function ($column) use ($data) { return $data[$column]; }, $columns);
 
 if ($id) {

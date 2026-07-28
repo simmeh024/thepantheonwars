@@ -103,9 +103,10 @@ function pw_tuning_research_effects(PDO $db, array $nodeIds): array {
 function pw_tuning_loadout(PDO $db, array $itemIds): array {
     $ids = array_values(array_unique(array_filter(array_map('intval', $itemIds), static function ($id) { return $id > 0; })));
     if (!$ids || !pw_mission_gear_ready($db)) return [];
+    $fieldGradeColumn = pw_mission_field_grade_ready($db) ? ', field_grade' : ', 0 AS field_grade';
     $stmt = $db->prepare(
         'SELECT id, name, slot, tier, icon_url, required_level, required_role,
-                bonus_strength, bonus_cunning, bonus_science, bonus_charisma
+                bonus_strength, bonus_cunning, bonus_science, bonus_charisma' . $fieldGradeColumn . '
          FROM game_loot_definitions
          WHERE is_enabled = 1 AND slot <> "" AND id IN (' . pw_missions_placeholders(count($ids)) . ')'
     );
@@ -124,6 +125,7 @@ function pw_tuning_loadout(PDO $db, array $itemIds): array {
             'icon_url' => (string)$row['icon_url'],
             'required_level' => (int)$row['required_level'],
             'required_role' => (string)$row['required_role'],
+            'field_grade' => max(0, (int)$row['field_grade']),
             'bonus' => [
                 'strength' => (int)$row['bonus_strength'],
                 'cunning' => (int)$row['bonus_cunning'],

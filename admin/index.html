@@ -4409,6 +4409,7 @@
     <p class="admin-field-hint" id="mission-gear-bonus-summary"></p>
     <div class="admin-field-row mission-gear-ilvl-row" id="mission-gear-ilvl-row">
       <div class="admin-field"><label for="mission-gear-item-level">Item level</label><input type="number" id="mission-gear-item-level" min="1" max="9999" step="1" value="1"><p class="admin-field-hint">Set this manually when publishing a stronger equipment release.</p></div>
+      <div class="admin-field" id="mission-gear-field-grade-row"><label for="mission-gear-field-grade">Field Grade <span class="mission-gear-stat-help" tabindex="0" role="img" aria-label="Field Grade effect: hidden from players; each point adds 0.10 percentage points to mission success." data-tooltip="Admin-only. Each point adds 0.10 percentage points to mission success while equipped, and raises the suggested iLvl. It is never shown on player gear.">?</span></label><input type="number" id="mission-gear-field-grade" min="0" max="50" step="1" value="0"><p class="admin-field-hint">Hidden stat: +0.10% mission success per point.</p></div>
       <div class="admin-field mission-gear-ilvl-calculator"><label>Live iLvl calculation</label><output id="mission-gear-ilvl-calculation"><strong>iLvl 1</strong><small>Choose a slot to calculate an equipment baseline.</small></output></div>
     </div>
     <div class="admin-subsection-head" id="mission-gear-stim-head"><h2>Stim</h2><p>A stim is consumed rather than worn, so it cannot also occupy a slot. Fatigue is restored to one resting crew member the moment it is used; the two boosts open an account-wide window that every operation launched inside it reads.</p></div>
@@ -4642,7 +4643,7 @@
 </div>
 
 <script src="../js/members.js?v=43"></script>
-<script src="../js/admin-missions.js?v=18"></script><script src="../js/admin-loot-tables.js?v=9"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=8"></script>
+<script src="../js/admin-missions.js?v=19"></script><script src="../js/admin-loot-tables.js?v=9"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=8"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };

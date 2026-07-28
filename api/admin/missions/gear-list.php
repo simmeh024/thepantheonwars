@@ -9,11 +9,13 @@ $db = pw_db(); pw_admin_mission_gear_require_ready($db);
  * are currently carrying, which is what makes an item unsafe to delete. */
 $stimsReady = pw_mission_stims_ready($db);
 $itemLevelsReady = pw_mission_item_levels_ready($db);
+$fieldGradeReady = pw_mission_field_grade_ready($db);
 $rows = $db->query(
     'SELECT l.id, l.name, l.slug, l.description, l.tier, l.slot, l.world_key, l.drop_weight,
             l.bonus_strength, l.bonus_cunning, l.bonus_science, l.bonus_charisma,
             l.required_level, l.required_role, l.icon_url,'
-    . ($itemLevelsReady ? ' l.item_level,' : ' 0 AS item_level,') . ' l.is_enabled, l.created_at, l.updated_at,'
+    . ($itemLevelsReady ? ' l.item_level,' : ' 0 AS item_level,')
+    . ($fieldGradeReady ? ' l.field_grade,' : ' 0 AS field_grade,') . ' l.is_enabled, l.created_at, l.updated_at,'
     . ($stimsReady ? ' l.stim_effect, l.stim_value, l.stim_duration_seconds,' : ' "" AS stim_effect, 0 AS stim_value, 0 AS stim_duration_seconds,') . '
             (SELECT COALESCE(SUM(pl.quantity), 0) FROM game_player_loot pl WHERE pl.loot_definition_id = l.id) AS owned_count,
             (SELECT COUNT(*) FROM game_player_crew_gear g WHERE g.loot_definition_id = l.id) AS equipped_count
@@ -22,7 +24,7 @@ $rows = $db->query(
 )->fetchAll();
 $slots = pw_missions_gear_slots();
 $rows = array_map(static function ($row) use ($slots, $stimsReady) {
-    foreach (['id', 'drop_weight', 'bonus_strength', 'bonus_cunning', 'bonus_science', 'bonus_charisma', 'required_level', 'item_level', 'owned_count', 'equipped_count'] as $key) {
+    foreach (['id', 'drop_weight', 'bonus_strength', 'bonus_cunning', 'bonus_science', 'bonus_charisma', 'required_level', 'item_level', 'field_grade', 'owned_count', 'equipped_count'] as $key) {
         $row[$key] = (int)$row[$key];
     }
     $row['is_enabled'] = (bool)$row['is_enabled'];
@@ -44,6 +46,7 @@ pw_json([
     'max_stat' => PW_MISSION_MAX_STAT,
     'max_gear_stat' => PW_MISSION_MAX_GEAR_STAT,
     'item_levels_ready' => $itemLevelsReady,
+    'field_grade_ready' => $fieldGradeReady,
     'stims_ready' => $stimsReady,
     'stim_effect_types' => pw_missions_stim_effect_types(),
 ]);

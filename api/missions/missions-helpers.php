@@ -1466,6 +1466,18 @@ function pw_mission_item_levels_ready(PDO $db): bool {
         && pw_schema_has($db, 'game_loot_definitions', ['item_level']);
 }
 
+/* Field Grade is a small hidden reliability value authored only in Mission
+ * Control. Readiness stays separate so a code deploy that arrives before its
+ * migration leaves every existing mission calculation unchanged. */
+const PW_MISSION_FIELD_GRADE_SUCCESS_PER_POINT = 0.10;
+
+function pw_mission_field_grade_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    return $ready = pw_mission_item_levels_ready($db)
+        && pw_schema_has($db, 'game_loot_definitions', ['field_grade']);
+}
+
 /**
  * What a player's crew are wearing, keyed by player_crew_id then slot.
  *
@@ -1479,11 +1491,12 @@ function pw_missions_load_crew_gear(PDO $db, int $userId, array $playerCrewIds):
     $ids = array_values(array_unique(array_map('intval', $playerCrewIds)));
     if (!$ids || !pw_mission_gear_ready($db)) return [];
     $itemLevelColumn = pw_mission_item_levels_ready($db) ? ', l.item_level' : ', 0 AS item_level';
+    $fieldGradeColumn = pw_mission_field_grade_ready($db) ? ', l.field_grade' : ', 0 AS field_grade';
     $stmt = $db->prepare(
         'SELECT g.player_crew_id, g.slot, g.loot_definition_id,
                 l.name, l.slug, l.tier, l.description, l.icon_url,
                 l.bonus_strength, l.bonus_cunning, l.bonus_science, l.bonus_charisma,
-                l.required_level, l.required_role' . $itemLevelColumn . '
+                l.required_level, l.required_role' . $itemLevelColumn . $fieldGradeColumn . '
          FROM game_player_crew_gear g
          JOIN game_loot_definitions l ON l.id = g.loot_definition_id
          WHERE g.user_id = ? AND g.player_crew_id IN (' . pw_missions_placeholders(count($ids)) . ')'
@@ -1514,6 +1527,7 @@ function pw_missions_load_crew_gear(PDO $db, int $userId, array $playerCrewIds):
             'required_level' => (int)$row['required_level'],
             'required_role' => (string)$row['required_role'],
             'item_level' => max(0, (int)$row['item_level']),
+            'field_grade' => max(0, (int)$row['field_grade']),
         ];
     }
     return $byCrew;
@@ -1691,9 +1705,11 @@ function pw_missions_apply_gear_bonuses(array $crewRows, array $gearByCrew): arr
     $stats = pw_missions_gear_stat_keys();
     foreach ($crewRows as $index => $row) {
         $bonus = array_fill_keys($stats, 0);
+        $fieldGrade = 0;
         $equipped = $gearByCrew[(int)($row['id'] ?? 0)] ?? [];
         foreach ($equipped as $item) {
             foreach ($stats as $stat) $bonus[$stat] += (int)$item['bonus'][$stat];
+            $fieldGrade += max(0, (int)($item['field_grade'] ?? 0));
         }
         foreach ($stats as $stat) {
             $base = max(0, (int)($row[$stat] ?? 0));
@@ -1706,6 +1722,7 @@ function pw_missions_apply_gear_bonuses(array $crewRows, array $gearByCrew): arr
         $crewRows[$index]['gear'] = $equipped;
         $crewRows[$index]['gear_bonus'] = $bonus;
         $crewRows[$index]['gear_slots_filled'] = count($equipped);
+        $crewRows[$index]['field_grade_success_percent'] = round($fieldGrade * PW_MISSION_FIELD_GRADE_SUCCESS_PER_POINT, 2);
     }
     return $crewRows;
 }
@@ -1884,6 +1901,7 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?arr
     $xpPercent = 0.0;
     $reputationFlat = 0.0;
     $creditPercent = 0.0;
+    $fieldGradeSuccessPercent = 0.0;
 
     foreach ($crew as $member) {
         $level = max(0, min(PW_MISSION_MAX_LEVEL, (int)($member['level'] ?? 0)));
@@ -1901,6 +1919,7 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?arr
         if (isset($rate['xp_percent_per_level'])) $xpPercent += $level * $rate['xp_percent_per_level'];
         if (isset($rate['reputation_per_level'])) $reputationFlat += $level * $rate['reputation_per_level'];
         if (isset($rate['credit_percent_per_level'])) $creditPercent += $level * $rate['credit_percent_per_level'];
+        $fieldGradeSuccessPercent += max(0.0, (float)($member['field_grade_success_percent'] ?? 0));
     }
 
     // Charisma adds to the same XP pool the Pathfinder role bonus feeds.
@@ -1939,7 +1958,10 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?arr
          * stocked, rank-gated Market, so a large payout cannot break anything
          * the way a near-zero mission clock would. */
         'credit_percent' => round($affinity['credit_percent'] + $creditPercent, 2),
-        'success_percent' => round(($totals['strength'] * PW_MISSION_STRENGTH_SUCCESS_PER_POINT) + $affinity['success_percent']
+        // Field Grade joins the same success pool as Strength but has no
+        // player-facing breakdown; it is the intentional hidden edge between
+        // otherwise matching pieces of equipment.
+        'success_percent' => round(($totals['strength'] * PW_MISSION_STRENGTH_SUCCESS_PER_POINT) + $fieldGradeSuccessPercent + $affinity['success_percent']
             - $affinity['penalty_success_percent'] - $conditions['success_percent'], 2),
         'loot_percent' => round($totals['cunning'] * PW_MISSION_CUNNING_LOOT_PER_POINT, 2),
         // The storm's toll on the promotion roll comes off after the cap, and is
@@ -1967,9 +1989,12 @@ function pw_missions_effective_duration(int $baseSeconds, array $effects): int {
     return max(30, min((int)round($baseSeconds * $penalty), $seconds));
 }
 
-function pw_missions_effective_success(int $baseSuccessPercent, array $effects): int {
-    $percent = (int)round($baseSuccessPercent + $effects['success_percent']);
-    return max(5, min(100, $percent));
+function pw_missions_effective_success(int $baseSuccessPercent, array $effects): float {
+    /* Percent rolls already use hundredths, so preserve them here. Field Grade
+     * is deliberately only 0.10 percentage points per authored value; rounding
+     * at this boundary would make its first four points statistically inert. */
+    $percent = round($baseSuccessPercent + (float)($effects['success_percent'] ?? 0), 2);
+    return max(5.0, min(100.0, $percent));
 }
 
 /* ------------------------------------------------------------------------
