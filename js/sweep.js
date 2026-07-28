@@ -656,7 +656,7 @@
     if (!member || !member.item_level_ready || Number(member.item_level_catalogue_slots) < 1) return '';
     var current = Number(member.item_level_average) || 0;
     var maximum = Number(member.item_level_max_average) || 0;
-    var format = function (value) { return (Math.round(value * 10) / 10).toFixed(value % 1 ? 1 : 0); };
+    var format = function (value) { return String(Math.round(Math.max(0, Number(value) || 0))); };
     var maxed = !!member.item_level_maxed;
     var slots = Number(member.item_level_slots_at_max) || 0;
     var catalogueSlots = Number(member.item_level_catalogue_slots) || 0;

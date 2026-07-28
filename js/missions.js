@@ -2899,7 +2899,7 @@
 
   function itemLevelFormat(value) {
     var safe = Math.max(0, Number(value) || 0);
-    return (Math.round(safe * 10) / 10).toFixed(safe % 1 ? 1 : 0);
+    return String(Math.round(safe));
   }
 
   /* One compact badge shape, reused from the crew silhouette to the reward
