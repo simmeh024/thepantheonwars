@@ -10,7 +10,7 @@
 (function () {
   'use strict';
 
-  var state = { data: null, busy: false, lastFind: null, result: null };
+  var state = { data: null, busy: false, result: null, scanningCell: null, recentCell: null, fieldMessage: '' };
   var gate = document.getElementById('sweep-gate');
   var content = document.getElementById('sweep-content');
   var status = document.getElementById('sweep-status');
@@ -69,7 +69,8 @@
       var label = known
         ? 'Scan cell ' + (index + 1) + ', identified as ' + PREVIEW_WORD[known].toLowerCase()
         : 'Scan cell ' + (index + 1);
-      return '<button type="button" class="sweep-cell' + (known ? ' is-known is-known-' + known : '') + '"'
+      return '<button type="button" class="sweep-cell' + (known ? ' is-known is-known-' + known : '')
+        + (state.scanningCell === index ? ' is-scanning' : '') + '"'
         + ' data-sweep-cell="' + index + '"' + (playable ? '' : ' disabled')
         + (known ? ' title="' + esc(PREVIEW_WORD[known]) + '"' : '')
         + ' aria-label="' + esc(label) + '">'
@@ -95,7 +96,7 @@
     var tier = String(cell.tier || '').toLowerCase();
     var shiny = tier && tier !== 'common' ? ' is-shiny is-tier-' + esc(tier) : '';
     var spoken = label + (tier && tier !== 'common' ? ' (' + tier + ')' : '');
-    return '<div class="sweep-cell is-open is-' + esc(cell.type) + shiny + '" role="img" tabindex="0"'
+    return '<div class="sweep-cell is-open is-' + esc(cell.type) + shiny + (state.recentCell === index ? ' is-recent' : '') + '" role="img" tabindex="0"'
       + ' aria-label="' + esc('Cell ' + (index + 1) + ': ' + spoken) + '" title="' + esc(spoken) + '">'
       + art + hint + '</div>';
   }
@@ -111,6 +112,65 @@
       + ' data-sweep-condition="' + esc(key) + '"><span class="sweep-condition-label">Sector condition</span>'
       + '<strong>' + esc(label) + '</strong><p>' + esc(warning) + '</p>'
       + '<small>' + esc(effect) + '</small></aside>';
+  }
+
+  function fieldCrew(run) {
+    var crew = ((state.data && state.data.crew) || []).filter(function (member) {
+      return Number(member.id) === Number(run.player_crew_id);
+    })[0];
+    return crew || { name: 'Field operative', role: 'Sweep crew', portrait_url: '' };
+  }
+
+  function fieldFaceMarkup(crew) {
+    var portrait = safeImage(crew.portrait_url);
+    return portrait
+      ? '<img src="' + esc(portrait) + '" alt="">'
+      : '<span aria-hidden="true">' + esc(String(crew.name || '?').charAt(0)) + '</span>';
+  }
+
+  function fieldLocation(run) {
+    var last = Number(run.last_cell_index);
+    var hasPosition = Number.isInteger(last) && last >= 0;
+    var cells = Math.max(1, Number(run.grid_rows) * Number(run.grid_cols));
+    var position = hasPosition ? Math.min(cells - 1, last) : 0;
+    var row = Math.floor(position / Number(run.grid_cols)) + 1;
+    var col = position % Number(run.grid_cols) + 1;
+    return {
+      hasPosition: hasPosition,
+      row: row,
+      col: col,
+      left: ((col - 0.5) / Number(run.grid_cols)) * 100,
+      top: ((row - 0.5) / Number(run.grid_rows)) * 100
+    };
+  }
+
+  function fieldPresenceMarkup(run) {
+    var crew = fieldCrew(run);
+    var location = fieldLocation(run);
+    var scanTarget = state.scanningCell === null ? '' : 'Scanning cell ' + (Number(state.scanningCell) + 1) + '.';
+    var message = scanTarget || state.fieldMessage || (location.hasPosition
+      ? 'Holding at row ' + location.row + ', column ' + location.col + '. Awaiting your next scan.'
+      : 'At the field edge. Awaiting your first scan.');
+    return '<div class="sweep-field-presence">'
+      + '<span class="sweep-field-face">' + fieldFaceMarkup(crew) + '</span><span class="sweep-field-copy"><small>Deployed crew</small><strong>' + esc(crew.name) + '</strong>'
+      + '<em>' + esc(crew.role) + '</em><span class="sweep-field-radio" aria-live="polite">' + esc(message) + '</span></span></div>';
+  }
+
+  function fieldMarkerMarkup(run) {
+    var crew = fieldCrew(run);
+    var location = fieldLocation(run);
+    return '<span class="sweep-field-marker' + (state.scanningCell !== null ? ' is-scanning' : '') + '"'
+      + ' style="left:' + location.left.toFixed(3) + '%;top:' + location.top.toFixed(3) + '%" aria-hidden="true">'
+      + fieldFaceMarkup(crew) + '</span>';
+  }
+
+  function clearRecentReveal() {
+    var revealed = state.recentCell;
+    window.setTimeout(function () {
+      if (state.recentCell !== revealed) return;
+      state.recentCell = null;
+      renderBoard();
+    }, 760);
   }
 
   /* Full field markup belongs exclusively to a finished run. The live board
@@ -184,6 +244,51 @@
       + (overflow ? '<p class="sweep-result-overflow">' + overflow + ' item' + (overflow === 1 ? '' : 's') + ' could not be stored because the relevant hold is full.</p>' : '');
   }
 
+  /* The cabinet deliberately repeats only recoveries that actually made it
+     home. The full field map remains the source of truth for what was left
+     behind; this is the satisfying, tangible receipt for a successful haul. */
+  function rewardCabinetMarkup(result) {
+    var field = result.field || {};
+    var tether = result.payout && result.payout.tether;
+    var rewards = (field.cells || []).filter(function (cell) {
+      var tethered = tether && Number(tether.cell_index) === Number(cell.index) && tether.state !== 'no_room';
+      return ['gear', 'crew', 'cache'].indexOf(String(cell.type)) !== -1
+        && ((field.status === 'banked' && !!cell.revealed) || tethered);
+    });
+    if (!rewards.length) return '';
+    return '<section class="sweep-reward-cabinet" aria-labelledby="sweep-reward-cabinet-title">'
+      + '<div class="sweep-reward-cabinet-head"><span class="eyebrow">Secured haul</span>'
+      + '<h4 id="sweep-reward-cabinet-title">Recovered cargo</h4>'
+      + '<p>Every recovery below has cleared the field and entered your stores.</p></div>'
+      + '<div class="sweep-reward-cabinet-grid">' + rewards.map(function (cell, rewardIndex) {
+        var type = String(cell.type || 'gear');
+        var tier = String(cell.tier || 'common').toLowerCase().replace(/[^a-z0-9-]/g, '');
+        var icon = type === 'cache' ? 'images/credit-stick.webp' : safeImage(cell.icon);
+        var art = icon
+          ? '<img src="' + esc(icon) + '" alt="">'
+          : '<span aria-hidden="true">' + (CELL_GLYPH[type] || CELL_GLYPH.gear) + '</span>';
+        var label = String(cell.label || (type === 'cache' ? 'Credits' : 'Recovery'));
+        return '<article class="sweep-reward-cabinet-item is-' + esc(type) + ' is-tier-' + esc(tier) + '"'
+          + ' style="--haul-delay:' + Math.min(rewardIndex, 9) * 70 + 'ms">'
+          + '<span class="sweep-reward-cabinet-art">' + art + '</span><span class="sweep-reward-cabinet-copy">'
+          + '<small>' + esc(type === 'cache' ? 'Credit cache' : type === 'crew' ? 'Crew recovery' : 'Equipment') + '</small>'
+          + '<strong>' + esc(label) + '</strong><em>' + esc(tier) + '</em></span></article>';
+      }).join('') + '</div></section>';
+  }
+
+  function collapseMarkup(result) {
+    var field = result.field || {};
+    if (field.status !== 'lost') return '';
+    var tether = result.payout && result.payout.tether;
+    var saved = tether && tether.state !== 'no_room';
+    var detail = saved
+      ? (tether.name || 'One recovery') + ' was pulled clear by the emergency tether.'
+      : (tether ? (tether.name || 'The tethered recovery') + ' reached the line, but could not be stored.' : 'The crew escaped, but the unsecured haul was swallowed by the collapse.');
+    return '<aside class="sweep-collapse-alert' + (saved ? ' is-tethered' : '') + '" role="status">'
+      + '<span class="sweep-collapse-mark" aria-hidden="true">!</span><span><small>Critical field event</small>'
+      + '<strong>Sector collapse recorded</strong><p>' + esc(detail) + '</p></span></aside>';
+  }
+
   function renderResult() {
     var result = state.result;
     var field = result.field;
@@ -202,11 +307,13 @@
     boardMeta.innerHTML = '<span><small>Rewards on field</small><strong>' + Number(field.reward_count || 0) + '</strong></span>'
       + '<span><small>Left unopened</small><strong>' + Number(field.unrecovered_count || 0) + '</strong></span>'
       + '<span><small>Scans used</small><strong>' + Number(field.picks_used || 0) + ' / ' + Number(field.picks_total || 0) + '</strong></span>';
-    boardArea.innerHTML = '<section class="sweep-result is-' + (won ? 'won' : 'lost') + '" aria-labelledby="sweep-result-title">'
+    boardArea.innerHTML = '<section class="sweep-result is-' + (won ? 'won' : 'lost') + (field.status === 'lost' ? ' is-collapse' : '') + '" aria-labelledby="sweep-result-title">'
       + '<div class="sweep-result-head"><span class="eyebrow">' + (won ? 'Field debrief' : 'Recovery debrief') + '</span>'
       + '<h3 id="sweep-result-title">' + heading + '</h3><p>' + esc(copy) + '</p></div>'
+      + collapseMarkup(result)
       + conditionMarkup(field.condition, true)
       + resultPayoutMarkup(result)
+      + rewardCabinetMarkup(result)
       + '<div class="sweep-result-legend"><span class="is-secured">\u2713 Secured</span><span class="is-missed">\u2014 Left in field</span>'
       + (result.payout && result.payout.tether ? '<span class="is-tethered">\u2726 Tethered</span>' : '') + '</div>'
       + '<div class="sweep-grid sweep-result-grid" style="--sweep-cols:' + Number(field.grid_cols) + '" role="group" aria-label="Complete Salvage Sweep field">' + cells + '</div>'
@@ -220,6 +327,8 @@
 
   function showResult(field, payout) {
     if (!field) return;
+    state.scanningCell = null;
+    state.recentCell = null;
     state.result = { field: field, payout: payout || {} };
   }
 
@@ -266,8 +375,9 @@
       cells.push(cellMarkup(index, open[index], playable, preview[index]));
     }
     boardArea.innerHTML = conditionMarkup(run.condition, true)
-      + '<div class="sweep-grid" style="--sweep-cols:' + run.grid_cols + '" role="group" aria-label="Salvage field">'
-      + cells.join('') + '</div>'
+      + '<div class="sweep-field-stage">' + fieldPresenceMarkup(run)
+      + '<div class="sweep-field-grid-wrap"><div class="sweep-grid" style="--sweep-cols:' + run.grid_cols + '" role="group" aria-label="Salvage field">'
+      + cells.join('') + '</div>' + fieldMarkerMarkup(run) + '</div></div>'
       + (spent ? '<p class="sweep-muted sweep-spent">Every scan is spent. Withdraw to keep what you have.</p>' : '');
     boardActions.hidden = run.status !== 'active';
     bankButton.disabled = state.busy;
@@ -548,6 +658,9 @@
   function send(crewId) {
     if (state.busy) return;
     state.result = null;
+    state.scanningCell = null;
+    state.recentCell = null;
+    state.fieldMessage = '';
     state.busy = true;
     setStatus('Opening the field…');
     request('/api/missions/sweep/start.php', { crew_id: crewId }).then(function () {
@@ -560,28 +673,37 @@
 
   function pick(cell) {
     if (state.busy) return;
+    state.scanningCell = cell;
+    state.fieldMessage = 'Scan pulse engaged. Reading the field.';
     state.busy = true;
     renderBoard();
     request('/api/missions/sweep/pick.php', { cell: cell }).then(function (data) {
       state.data.run = data.run;
+      state.scanningCell = null;
+      state.recentCell = cell;
       var find = data.find || {};
       if (data.ended === 'collapse') {
         var saved = data.tether;
-        setStatus(saved
+        state.fieldMessage = saved
           ? 'The field gave way. The tether held \u2014 ' + (saved.name || 'one item')
             + (saved.state === 'no_room' ? ' came back, but there was no room for it.' : ' came back with the crew.')
-          : 'The field gave way. The haul is lost.', !saved);
+          : 'The field gave way. The haul is lost.';
+        setStatus(state.fieldMessage, !saved);
       }
-      else if (data.shrugged) setStatus('A collapse — braced through it. That was the one chance.');
-      else if (find.type === 'cache') setStatus('Recovered ' + find.label + '.');
-      else if (find.label) setStatus('Recovered ' + find.label + '.');
-      else setStatus('Nothing in that cell.');
+      else if (data.shrugged) state.fieldMessage = 'A collapse — braced through it. That was the one chance.';
+      else if (find.type === 'cache') state.fieldMessage = 'Recovered ' + find.label + '.';
+      else if (find.label) state.fieldMessage = 'Recovered ' + find.label + '.';
+      else state.fieldMessage = 'Nothing in that cell.';
+      if (data.ended !== 'collapse') setStatus(state.fieldMessage);
       if (data.ended === 'collapse') {
         showResult(data.result, { tether: data.tether });
         return load();
       }
+      clearRecentReveal();
       if (data.ended) return load();
     }).catch(function (error) {
+      state.scanningCell = null;
+      state.fieldMessage = 'Field link interrupted.';
       setStatus(error.message, true);
     }).then(function () { state.busy = false; renderBoard(); });
   }
@@ -612,6 +734,9 @@
       var close = event.target.closest('[data-sweep-result-close]');
       if (close) {
         state.result = null;
+        state.scanningCell = null;
+        state.recentCell = null;
+        state.fieldMessage = '';
         setStatus('');
         renderBoard();
         return;

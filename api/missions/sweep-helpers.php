@@ -437,7 +437,8 @@ function pw_sweep_run_payload(PDO $db, array $run): array {
     }
     /* A revealed cell with no find row was a hazard or an empty pocket. Both
      * are still revealed, so the board has to say so. */
-    foreach (array_keys(pw_sweep_revealed($run)) as $index) {
+    $revealed = pw_sweep_revealed($run);
+    foreach (array_keys($revealed) as $index) {
         if (!isset($cells[$index])) $cells[$index] = ['index' => (int)$index, 'type' => 'empty', 'credits' => 0];
     }
     ksort($cells);
@@ -475,6 +476,8 @@ function pw_sweep_run_payload(PDO $db, array $run): array {
     return [
         'id' => (int)$run['id'],
         'rank_number' => (int)$run['rank_number'],
+        'player_crew_id' => (int)$run['player_crew_id'],
+        'last_cell_index' => $revealed ? (int)array_key_last($revealed) : null,
         'condition' => pw_sweep_condition_public((string)($run['condition_key'] ?? 'clear')),
         'previews' => $previews,
         'recognition_percent' => $recognition,
