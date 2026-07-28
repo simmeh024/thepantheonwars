@@ -12,6 +12,10 @@
   var activePanel = 'definitions';
   var activeCrewRarity = 'all';
   var activeGearCategory = 'all';
+  /* The state each list was last built from, so a re-entry that changed nothing
+   * can leave the existing rows (and their already-decoded art) alone. */
+  var renderedCrewKey = null;
+  var renderedGearKey = null;
   var currentDefinition = null;
   var currentCrew = null;
   var currentGear = null;
@@ -97,6 +101,20 @@
     missionCount.textContent = entry[0] + entry[1] + (entry[0] === 1 ? '' : 's');
   }
 
+  /* What the rendered rows are a function of. The active filter is part of the
+   * key because switching it changes which rows belong on screen without
+   * changing the catalogue, and the readiness flags are part of the gear key
+   * because they decide which columns a row prints at all. */
+  function crewRenderKey(visible) {
+    return activeCrewRarity + '|' + can('missions.edit') + '|' + JSON.stringify(visible);
+  }
+
+  function gearRenderKey(visible) {
+    return activeGearCategory + '|' + can('missions.edit') + '|'
+      + (gearMeta ? [gearMeta.item_levels_ready, gearMeta.field_grade_ready, gearMeta.stims_ready].join(',') : '')
+      + '|' + JSON.stringify(visible);
+  }
+
   function filteredCrew() {
     return activeCrewRarity === 'all' ? crew : crew.filter(function (member) { return member.tier === activeCrewRarity; });
   }
@@ -165,6 +183,12 @@
     var visibleCrew = filteredCrew();
     refreshCrewCount();
     if (!visibleCrew.length) { blank(crewList, activeCrewRarity === 'all' ? 'No crew definitions yet.' : 'No ' + activeCrewRarity + ' crew members yet.'); return; }
+    /* Entering a section re-fetches by design (see showSection), but rebuilding
+     * identical rows is not free: it discards every <img> and makes the browser
+     * decode the full-resolution art again. Skip when both the data and the
+     * active filter are unchanged and the rows are still on screen. */
+    if (renderedCrewKey === crewRenderKey(visibleCrew) && crewList.querySelector('.admin-row')) return;
+    renderedCrewKey = crewRenderKey(visibleCrew);
     crewList.innerHTML = '';
     visibleCrew.forEach(function (member) {
       var row = document.createElement('div');
@@ -994,6 +1018,10 @@
       blank(gearList, activeGearCategory === 'all' ? 'No equipment, salvage, or stims defined yet.' : 'No ' + activeGearCategory + ' items defined yet.');
       return;
     }
+    /* Same reasoning as renderCrew(): 46 catalogue rows carry 46 icons, and a
+     * re-entry that changed nothing should not pay for them twice. */
+    if (renderedGearKey === gearRenderKey(visibleGear) && gearList.querySelector('.admin-row')) return;
+    renderedGearKey = gearRenderKey(visibleGear);
     gearList.innerHTML = '';
     visibleGear.forEach(function (item) {
       var row = document.createElement('div');
