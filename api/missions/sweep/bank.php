@@ -29,8 +29,12 @@ try {
         $db->prepare('UPDATE game_player_sweep_runs SET status = "abandoned", ended_reason = "abandoned", ended_at = ? WHERE id = ? AND status = "active"')
             ->execute([pw_missions_datetime($now), (int)$run['id']]);
         pw_sweep_release_crew($db, $userId, (int)$run['player_crew_id'], $now);
+        $runStmt = $db->prepare('SELECT * FROM game_player_sweep_runs WHERE id = ?');
+        $runStmt->execute([(int)$run['id']]);
+        $finished = $runStmt->fetch();
+        $result = pw_sweep_result_payload($db, $finished);
         $db->commit();
-        pw_json(['ok' => true, 'abandoned' => true]);
+        pw_json(['ok' => true, 'abandoned' => true, 'result' => $result]);
     }
 
     $finds = $db->prepare('SELECT * FROM game_player_sweep_finds WHERE run_id = ? ORDER BY cell_index ASC');
@@ -105,6 +109,11 @@ try {
     if ($update->rowCount() !== 1) throw new RuntimeException('That sweep was already closed.');
     pw_sweep_release_crew($db, $userId, (int)$run['player_crew_id'], $now);
 
+    $runStmt = $db->prepare('SELECT * FROM game_player_sweep_runs WHERE id = ?');
+    $runStmt->execute([(int)$run['id']]);
+    $finished = $runStmt->fetch();
+    $result = pw_sweep_result_payload($db, $finished);
+
     $db->commit();
     pw_json([
         'ok' => true,
@@ -117,6 +126,7 @@ try {
         'credits' => $credits,
         'credit_balance' => $balance,
         'xp' => $xp,
+        'result' => $result,
     ]);
 } catch (Throwable $e) {
     if ($db->inTransaction()) $db->rollBack();

@@ -424,6 +424,135 @@ function pw_sweep_run_payload(PDO $db, array $run): array {
 }
 
 /**
+ * The complete field after a run has closed.
+ *
+ * Unlike pw_sweep_run_payload(), this is expressly an after-action report: it
+ * names every reward and every collapse on the board. It must therefore only
+ * ever be called for a terminal run owned by the player receiving it. Keeping
+ * the reveal here, rather than teaching the active-run payload about masked
+ * cells, prevents a response or a cache from becoming a map while the player
+ * can still make decisions on the board.
+ */
+function pw_sweep_result_payload(PDO $db, array $run): array {
+    $status = (string)($run['status'] ?? '');
+    if (!in_array($status, ['banked', 'lost', 'abandoned'], true)) {
+        throw new InvalidArgumentException('A field can only be revealed once the sweep has closed.');
+    }
+
+    $findStmt = $db->prepare(
+        'SELECT cell_index, find_type, credits, loot_definition_id, crew_definition_id
+         FROM game_player_sweep_finds WHERE run_id = ? ORDER BY cell_index ASC'
+    );
+    $findStmt->execute([(int)$run['id']]);
+    $finds = [];
+    foreach ($findStmt->fetchAll() as $row) $finds[(int)$row['cell_index']] = $row;
+    $labels = pw_sweep_find_labels($db, $run);
+
+    /* revealed_cells is intentionally written in scan order. The final scan
+     * on a lost run is necessarily the collapse, which lets the debrief draw
+     * that red cell faithfully without recording hazards as finds. */
+    $revealed = pw_sweep_revealed($run);
+    $revealedIndexes = array_keys($revealed);
+    $firstRevealed = $revealedIndexes ? (int)$revealedIndexes[0] : -1;
+    $lastRevealed = $revealedIndexes ? (int)$revealedIndexes[count($revealedIndexes) - 1] : -1;
+    $rows = (int)$run['grid_rows'];
+    $cols = (int)$run['grid_cols'];
+    $cells = [];
+    $rewardCount = 0;
+    $unrecoveredCount = 0;
+
+    for ($index = 0; $index < $rows * $cols; $index++) {
+        $wasRevealed = isset($revealed[$index]);
+        $stored = $finds[$index] ?? null;
+        if ($stored !== null) {
+            $type = (string)$stored['find_type'];
+            $detail = $labels[$index] ?? ['label' => '', 'icon' => '', 'tier' => ''];
+            $cell = [
+                'index' => $index,
+                'type' => $type,
+                'label' => (string)($detail['label'] ?: ($type === 'cache' ? 'Credit cache' : 'Recovered find')),
+                'icon' => (string)$detail['icon'],
+                'tier' => (string)$detail['tier'],
+                'credits' => (int)$stored['credits'],
+                'revealed' => true,
+            ];
+        } else {
+            $outcome = pw_sweep_resolve_cell($db, $run, $index);
+            $type = (string)$outcome['type'];
+
+            /* A stabilised opening hazard and a braced collapse are not stored
+             * as finds. Both can be reconstructed from the frozen board and
+             * scan order, so the result matches the round the player played. */
+            if ($wasRevealed && $type === 'hazard') {
+                if ($status === 'lost' && $index === $lastRevealed) {
+                    $type = 'hazard';
+                } elseif ($index === $firstRevealed && (float)($run['stabiliser_points'] ?? 0) > 0) {
+                    $type = 'stabilised';
+                } elseif (!empty($run['shrug_used'])) {
+                    $type = 'shrug';
+                }
+            }
+
+            $cell = [
+                'index' => $index,
+                'type' => $type,
+                'label' => '',
+                'icon' => '',
+                'tier' => '',
+                /* Credit caches only become a precise amount when their scan
+                 * is made: Momentum depends on the scan order. An unopened
+                 * cache is named honestly without inventing a payout. */
+                'credits' => 0,
+                'revealed' => $wasRevealed,
+            ];
+            if ($type === 'cache') {
+                $cell['label'] = $wasRevealed ? 'Credit cache' : 'Unrecovered credit cache';
+            } elseif ($type === 'gear' || $type === 'crew') {
+                /* These values only occur below when a stored row exists; kept
+                 * for clarity if a future outcome introduces a direct type. */
+                $cell['label'] = 'Recovery';
+            } elseif ($outcome['type'] === 'find') {
+                $entry = $outcome['entry'];
+                $isGear = ($entry['entry_type'] ?? 'crew') === 'gear';
+                $cell['type'] = $isGear ? 'gear' : 'crew';
+                $cell['label'] = (string)($isGear ? ($entry['gear_name'] ?? 'Field item') : ($entry['crew_name'] ?? 'Field contact'));
+                $cell['icon'] = pw_missions_gear_icon_url(($isGear ? $entry['gear_icon_url'] : $entry['portrait_url']) ?? '');
+                $cell['tier'] = strtolower((string)($isGear ? ($entry['tier'] ?? 'common') : ($entry['crew_tier'] ?? 'common')));
+            } elseif ($type === 'hazard') {
+                $cell['label'] = 'Collapse';
+            } elseif ($type === 'shrug') {
+                $cell['label'] = 'Braced collapse';
+            } elseif ($type === 'stabilised') {
+                $cell['label'] = 'Stabilised collapse';
+            } else {
+                $cell['type'] = 'empty';
+                $cell['label'] = 'No recovery';
+            }
+        }
+
+        if (in_array($cell['type'], ['gear', 'crew', 'cache'], true)) {
+            $rewardCount++;
+            if (!$cell['revealed']) $unrecoveredCount++;
+        }
+        $cells[] = $cell;
+    }
+
+    return [
+        'id' => (int)$run['id'],
+        'rank_number' => (int)$run['rank_number'],
+        'grid_rows' => $rows,
+        'grid_cols' => $cols,
+        'picks_used' => (int)$run['picks_used'],
+        'picks_total' => (int)$run['picks_total'],
+        'status' => $status,
+        'ended_reason' => (string)($run['ended_reason'] ?? ''),
+        'reward_count' => $rewardCount,
+        'unrecovered_count' => $unrecoveredCount,
+        'cells' => $cells,
+    ];
+}
+
+/**
  * What each revealed cell held: its name, its artwork and its rarity.
  *
  * The find rows keep only the definition id, so the picture and the tier are
@@ -581,6 +710,7 @@ function pw_sweep_tether_rescue(PDO $db, int $userId, array $run): ?array {
         $award = $received['crew'];
         $award['state'] = $received['state'];
         $award['kind'] = 'crew';
+        $award['cell_index'] = (int)$row['cell_index'];
         return $award;
     }
     $definition = $db->prepare('SELECT * FROM game_loot_definitions WHERE id = ?');
@@ -605,5 +735,6 @@ function pw_sweep_tether_rescue(PDO $db, int $userId, array $run): ?array {
         'tier' => strtolower((string)$item['tier']),
         'icon' => pw_missions_gear_icon_url($item['icon_url'] ?? ''),
         'state' => empty($stored['skipped']) ? 'granted' : 'no_room',
+        'cell_index' => (int)$row['cell_index'],
     ];
 }

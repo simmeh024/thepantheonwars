@@ -10,7 +10,7 @@
 (function () {
   'use strict';
 
-  var state = { data: null, busy: false, lastFind: null };
+  var state = { data: null, busy: false, lastFind: null, result: null };
   var gate = document.getElementById('sweep-gate');
   var content = document.getElementById('sweep-content');
   var status = document.getElementById('sweep-status');
@@ -56,6 +56,7 @@
 
   var CELL_GLYPH = { gear: '◆', crew: '◉', cache: '¤', empty: '·', hazard: '✕', shrug: '✦' };
 
+  CELL_GLYPH.stabilised = '\u25c6';
   var PREVIEW_GLYPH = { material: '\u25b3', credits: '\u00a4', equipment: '\u25c6', unknown: '?' };
   var PREVIEW_WORD = { material: 'Material', credits: 'Credits', equipment: 'Equipment', unknown: 'Unknown' };
 
@@ -99,7 +100,120 @@
       + art + hint + '</div>';
   }
 
+  /* Full field markup belongs exclusively to a finished run. The live board
+     remains deliberately ignorant of unopened cells. */
+  function resultCellMarkup(cell, cols, result) {
+    var row = Math.floor(Number(cell.index) / cols) + 1;
+    var col = Number(cell.index) % cols + 1;
+    var type = String(cell.type || 'empty');
+    var label = String(cell.label || (type === 'hazard' ? 'Collapse' : 'No recovery'));
+    var icon = safeImage(cell.icon);
+    var tier = String(cell.tier || '').toLowerCase();
+    var shiny = tier && tier !== 'common' ? ' is-shiny is-tier-' + esc(tier) : '';
+    var isReward = ['gear', 'crew', 'cache'].indexOf(type) !== -1;
+    var tether = result.payout && result.payout.tether;
+    var tethered = tether && Number(tether.cell_index) === Number(cell.index);
+    var secured = result.field.status === 'banked' && !!cell.revealed;
+    var stateLabel = secured ? 'secured' : (tethered && tether.state !== 'no_room' ? 'recovered by tether' : 'left in the field');
+    var art = icon
+      ? '<img class="sweep-cell-art" src="' + esc(icon) + '" alt="">'
+      : '<span class="sweep-cell-glyph" aria-hidden="true">' + (CELL_GLYPH[type] || CELL_GLYPH.empty) + '</span>';
+    return '<div class="sweep-cell is-open is-result is-' + esc(type) + shiny
+      + (isReward && !secured && !tethered ? ' is-unrecovered' : '')
+      + (tethered ? ' is-tethered' : '') + '" role="img" tabindex="0"'
+      + ' aria-label="' + esc('Row ' + row + ', column ' + col + ': ' + label + (isReward ? '; ' + stateLabel : '')) + '"'
+      + ' title="' + esc('R' + row + ' C' + col + ': ' + label + (isReward ? ' — ' + stateLabel : '')) + '">'
+      + art + '<span class="sweep-result-cell-position" aria-hidden="true">' + row + ',' + col + '</span>'
+      + (isReward ? '<span class="sweep-result-cell-state" aria-hidden="true">' + (secured ? '\u2713' : (tethered ? '\u2726' : '\u2014')) + '</span>' : '')
+      + '</div>';
+  }
+
+  function resultManifestMarkup(result) {
+    var cols = Number(result.field.grid_cols) || 1;
+    var rewards = (result.field.cells || []).filter(function (cell) {
+      return ['gear', 'crew', 'cache'].indexOf(String(cell.type)) !== -1;
+    });
+    if (!rewards.length) return '<p class="sweep-muted">No recoveries were present in this field.</p>';
+    var tether = result.payout && result.payout.tether;
+    return '<ul class="sweep-result-manifest">' + rewards.map(function (cell) {
+      var row = Math.floor(Number(cell.index) / cols) + 1;
+      var col = Number(cell.index) % cols + 1;
+      var tethered = tether && Number(tether.cell_index) === Number(cell.index);
+      var secured = result.field.status === 'banked' && !!cell.revealed;
+      var resultState = secured ? 'Secured' : (tethered && tether.state !== 'no_room' ? 'Tethered' : 'Left behind');
+      return '<li class="' + (secured ? 'is-secured' : (tethered ? 'is-tethered' : 'is-missed')) + '">'
+        + '<b>R' + row + ' C' + col + '</b><span>' + esc(cell.label) + '</span><small>' + esc(resultState) + '</small></li>';
+    }).join('') + '</ul>';
+  }
+
+  function resultPayoutMarkup(result) {
+    var payout = result.payout || {};
+    var field = result.field;
+    var cards = [];
+    if (field.status === 'banked') {
+      if (payout.credits) cards.push({ label: 'Credits secured', value: num(payout.credits) });
+      if ((payout.gear || []).length) cards.push({ label: 'Items banked', value: String((payout.gear || []).length) });
+      if ((payout.crew_recruited || []).length) cards.push({ label: 'Crew joined', value: String((payout.crew_recruited || []).length) });
+      if ((payout.crew_pending || []).length) cards.push({ label: 'Crew offers', value: String((payout.crew_pending || []).length) });
+      if (payout.xp) cards.push({ label: 'Crew XP', value: num(payout.xp) });
+      if (!cards.length) cards.push({ label: 'Haul secured', value: 'No payout' });
+    } else if (payout.tether) {
+      cards.push({ label: payout.tether.state === 'no_room' ? 'Tether return blocked' : 'Tether return', value: payout.tether.name || 'One recovery' });
+    } else {
+      cards.push({ label: field.status === 'abandoned' ? 'Haul withdrawn' : 'Haul lost', value: 'No rewards kept' });
+    }
+    var overflow = field.status === 'banked' && payout.skipped ? Object.keys(payout.skipped).reduce(function (sum, id) {
+      return sum + Number(payout.skipped[id] || 0);
+    }, 0) : 0;
+    return '<div class="sweep-result-payout">' + cards.map(function (card) {
+      return '<span><small>' + esc(card.label) + '</small><strong>' + esc(card.value) + '</strong></span>';
+    }).join('') + '</div>'
+      + (overflow ? '<p class="sweep-result-overflow">' + overflow + ' item' + (overflow === 1 ? '' : 's') + ' could not be stored because the relevant hold is full.</p>' : '');
+  }
+
+  function renderResult() {
+    var result = state.result;
+    var field = result.field;
+    var won = field.status === 'banked';
+    var abandoned = field.status === 'abandoned';
+    var heading = won ? 'Recovery secured' : (abandoned ? 'Sweep withdrawn' : 'Field lost');
+    var copy = won
+      ? 'Your recovered haul has been processed. The complete field is now mapped below.'
+      : (abandoned
+        ? 'You withdrew before banking the haul. The complete field is mapped below for your debrief.'
+        : 'The field collapsed before the haul could be banked. The complete field is mapped below.');
+    var cells = (field.cells || []).map(function (cell) {
+      return resultCellMarkup(cell, Number(field.grid_cols), result);
+    }).join('');
+    boardTitle.textContent = heading;
+    boardMeta.innerHTML = '<span><small>Rewards on field</small><strong>' + Number(field.reward_count || 0) + '</strong></span>'
+      + '<span><small>Left unopened</small><strong>' + Number(field.unrecovered_count || 0) + '</strong></span>'
+      + '<span><small>Scans used</small><strong>' + Number(field.picks_used || 0) + ' / ' + Number(field.picks_total || 0) + '</strong></span>';
+    boardArea.innerHTML = '<section class="sweep-result is-' + (won ? 'won' : 'lost') + '" aria-labelledby="sweep-result-title">'
+      + '<div class="sweep-result-head"><span class="eyebrow">' + (won ? 'Field debrief' : 'Recovery debrief') + '</span>'
+      + '<h3 id="sweep-result-title">' + heading + '</h3><p>' + esc(copy) + '</p></div>'
+      + resultPayoutMarkup(result)
+      + '<div class="sweep-result-legend"><span class="is-secured">\u2713 Secured</span><span class="is-missed">\u2014 Left in field</span>'
+      + (result.payout && result.payout.tether ? '<span class="is-tethered">\u2726 Tethered</span>' : '') + '</div>'
+      + '<div class="sweep-grid sweep-result-grid" style="--sweep-cols:' + Number(field.grid_cols) + '" role="group" aria-label="Complete Salvage Sweep field">' + cells + '</div>'
+      + '<section class="sweep-result-manifest-wrap"><h4>Field manifest</h4><p>Every cache, item and crew recovery is listed by its row and column.</p>'
+      + resultManifestMarkup(result) + '</section>'
+      + '<div class="sweep-result-actions"><button type="button" class="btn btn-solid" data-sweep-result-close>Plan another sweep</button></div>'
+      + '</section>';
+    boardActions.hidden = true;
+    if (crewCard) crewCard.hidden = true;
+  }
+
+  function showResult(field, payout) {
+    if (!field) return;
+    state.result = { field: field, payout: payout || {} };
+  }
+
   function renderBoard() {
+    if (state.result) {
+      renderResult();
+      return;
+    }
     var run = state.data && state.data.run;
     if (!run) {
       boardTitle.textContent = 'No sweep under way';
@@ -416,6 +530,7 @@
 
   function send(crewId) {
     if (state.busy) return;
+    state.result = null;
     state.busy = true;
     setStatus('Opening the field…');
     request('/api/missions/sweep/start.php', { crew_id: crewId }).then(function () {
@@ -444,6 +559,10 @@
       else if (find.type === 'cache') setStatus('Recovered ' + find.label + '.');
       else if (find.label) setStatus('Recovered ' + find.label + '.');
       else setStatus('Nothing in that cell.');
+      if (data.ended === 'collapse') {
+        showResult(data.result, { tether: data.tether });
+        return load();
+      }
       if (data.ended) return load();
     }).catch(function (error) {
       setStatus(error.message, true);
@@ -464,6 +583,7 @@
         if (data.xp) parts.push(data.xp + ' XP');
         setStatus(parts.length ? 'Banked ' + parts.join(', ') + '.' : 'Banked an empty haul.');
       }
+      showResult(data.result, data);
       return load();
     }).catch(function (error) {
       setStatus(error.message, true);
@@ -472,6 +592,13 @@
 
   if (boardArea) {
     boardArea.addEventListener('click', function (event) {
+      var close = event.target.closest('[data-sweep-result-close]');
+      if (close) {
+        state.result = null;
+        setStatus('');
+        renderBoard();
+        return;
+      }
       var button = event.target.closest('[data-sweep-cell]');
       if (!button || button.disabled) return;
       pick(Number(button.getAttribute('data-sweep-cell')));

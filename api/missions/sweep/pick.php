@@ -141,6 +141,10 @@ try {
     $runStmt = $db->prepare('SELECT * FROM game_player_sweep_runs WHERE id = ?');
     $runStmt->execute([(int)$run['id']]);
     $fresh = $runStmt->fetch();
+    /* The result payload is intentionally built only after this transaction
+     * has written a terminal state. It is the one response allowed to reveal
+     * the whole field; an active board continues to receive only earned cells. */
+    $result = $status !== 'active' ? pw_sweep_result_payload($db, $fresh) : null;
     $db->commit();
     pw_json([
         'ok' => true,
@@ -149,6 +153,7 @@ try {
         'ended' => $ended,
         'tether' => $tether,
         'run' => pw_sweep_run_payload($db, $fresh),
+        'result' => $result,
     ]);
 } catch (Throwable $e) {
     if ($db->inTransaction()) $db->rollBack();

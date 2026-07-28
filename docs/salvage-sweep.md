@@ -65,6 +65,12 @@ bank.php
    • pays credits found, plus a rarity payout for any duplicate crew
    • pays XP to the crew member who ran the board
    • sends the crew member home, rest starting from now
+        │
+        ▼
+After-action reveal
+   • a banked, lost or abandoned run returns a complete field map
+   • every cache, item and crew recovery is marked by row and column
+   • the debrief distinguishes rewards secured from those left in the field
 ```
 
 Withdrawing early keeps everything found so far. That is the whole bargain: one
@@ -104,7 +110,9 @@ not a decision.
 `grid_seed` is drawn per run and **never leaves the server**. The hazard layout
 and every cell's contents derive from it, so a preview can be honest and a
 reload cannot reroll anything. The browser is sent only the cells already
-turned over.
+turned over while a run is active. Once the server has closed the run, its
+after-action report reveals the whole field; it is then no longer possible to
+make a decision from that information.
 
 ---
 
@@ -191,7 +199,8 @@ Change any of these and the mechanic changes with it.
    crew member's fatigue at once, and bank only the luckiest.
 5. **The seed never leaves the server**, and unopened cells are sent as nothing
    at all rather than as masked values — a masked value still says how many
-   cells hold something.
+   cells hold something. The only exception is the after-action report for a
+   closed run, when its full field map cannot influence play.
 6. **The crew member always comes home**, whether the run is banked, abandoned
    or lost. Only the haul is at stake.
 7. **The sector is re-resolved from the held rank on every launch.** Nothing the

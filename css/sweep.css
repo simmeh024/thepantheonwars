@@ -114,6 +114,48 @@ button.sweep-cell:disabled { cursor: default; opacity: 0.75; }
  * needs the override. */
 .sweep-board-actions[hidden] { display: none; }
 
+/* --- After-action field reveal ------------------------------------------
+ * The result replaces the live board after the server has closed the run.
+ * It keeps the original cell layout as a map, then repeats every reward in a
+ * row/column manifest so a player can read exactly where a missed item sat. */
+.sweep-result { display: grid; gap: 15px; }
+.sweep-result-head { padding: 15px; border: 1px solid rgba(126,227,232,0.42); background: linear-gradient(135deg, rgba(12,47,62,0.78), rgba(10,21,42,0.78)); }
+.sweep-result.is-lost .sweep-result-head { border-color: rgba(224,120,110,0.5); background: linear-gradient(135deg, rgba(58,16,16,0.78), rgba(25,13,31,0.8)); }
+.sweep-result-head h3 { margin: 4px 0 6px; color: #f2f7fb; font: 600 clamp(1rem, 2vw, 1.3rem)/1.2 'Cinzel', serif; }
+.sweep-result-head p { margin: 0; color: #bdd2df; font-size: 0.77rem; line-height: 1.55; }
+.sweep-result-payout { display: grid; grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)); gap: 7px; }
+.sweep-result-payout span { display: grid; gap: 4px; padding: 9px; border: 1px solid rgba(103,152,190,0.28); background: rgba(6,15,28,0.58); }
+.sweep-result-payout small { color: #8daabd; font: 700 0.49rem/1 'Jost', sans-serif; letter-spacing: 0.1em; text-transform: uppercase; }
+.sweep-result-payout strong { overflow: hidden; color: #eaf3f8; font: 600 0.72rem/1.25 'Cinzel', serif; text-overflow: ellipsis; white-space: nowrap; }
+.sweep-result-overflow { margin: -7px 0 0; color: #e8c98a; font-size: 0.68rem; line-height: 1.45; }
+.sweep-result-legend { display: flex; flex-wrap: wrap; gap: 7px 14px; color: #9db4c6; font: 700 0.55rem/1 'Jost', sans-serif; letter-spacing: 0.08em; text-transform: uppercase; }
+.sweep-result-legend .is-secured { color: #9edba8; }
+.sweep-result-legend .is-missed { color: #e8b0a6; }
+.sweep-result-legend .is-tethered { color: #d8a2f0; }
+.sweep-result-grid { max-width: none; }
+.sweep-cell.is-result { overflow: hidden; }
+.sweep-cell.is-result.is-unrecovered { filter: saturate(0.64); }
+.sweep-cell.is-result.is-unrecovered::after { content: ''; position: absolute; inset: 0; border: 2px solid rgba(224,120,110,0.65); pointer-events: none; }
+.sweep-cell.is-result.is-tethered { box-shadow: inset 0 0 14px rgba(205,124,236,0.4), 0 0 10px rgba(205,124,236,0.24); }
+.sweep-result-cell-position, .sweep-result-cell-state { position: absolute; z-index: 3; padding: 2px 3px; background: rgba(4,10,20,0.86); font: 700 0.46rem/1 'Jost', sans-serif; letter-spacing: 0.03em; }
+.sweep-result-cell-position { top: 2px; left: 2px; color: #b8cfdd; }
+.sweep-result-cell-state { right: 2px; bottom: 2px; color: #9edba8; font-size: 0.62rem; }
+.sweep-cell.is-result.is-unrecovered .sweep-result-cell-state { color: #e8b0a6; }
+.sweep-cell.is-result.is-tethered .sweep-result-cell-state { color: #d8a2f0; }
+.sweep-result-manifest-wrap { padding-top: 13px; border-top: 1px solid rgba(83,149,183,0.24); }
+.sweep-result-manifest-wrap h4 { margin: 0; color: #eaf3f8; font: 600 0.82rem/1.2 'Cinzel', serif; }
+.sweep-result-manifest-wrap > p { margin: 4px 0 9px; color: #92aebe; font-size: 0.65rem; line-height: 1.45; }
+.sweep-result-manifest { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 5px; margin: 0; padding: 0; list-style: none; }
+.sweep-result-manifest li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 7px; padding: 6px 7px; border: 1px solid rgba(103,152,190,0.25); background: rgba(6,14,26,0.58); }
+.sweep-result-manifest b { color: #9cbacb; font: 700 0.52rem/1 'Jost', sans-serif; letter-spacing: 0.06em; white-space: nowrap; }
+.sweep-result-manifest span { overflow: hidden; color: #d8e5ec; font: 600 0.65rem/1.2 'Cinzel', serif; text-overflow: ellipsis; white-space: nowrap; }
+.sweep-result-manifest small { color: #e8b0a6; font-size: 0.52rem; letter-spacing: 0.05em; text-transform: uppercase; white-space: nowrap; }
+.sweep-result-manifest .is-secured { border-color: rgba(158,219,168,0.38); }
+.sweep-result-manifest .is-secured small { color: #9edba8; }
+.sweep-result-manifest .is-tethered { border-color: rgba(205,124,236,0.48); }
+.sweep-result-manifest .is-tethered small { color: #d8a2f0; }
+.sweep-result-actions { display: flex; justify-content: flex-end; padding-top: 2px; }
+
 /* --- The ladder -----------------------------------------------------------
  * Same three states as the reputation rail: earned, current, sealed. Sealed
  * dims by a measured colour step rather than by opacity, which a contrast
