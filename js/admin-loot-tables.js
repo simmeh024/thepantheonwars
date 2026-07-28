@@ -21,6 +21,7 @@
   var draftEntries = [];
   var draftLinks = [];
   var researchLocksReady = false;
+  var itemLevelsReady = false;
 
   var tableList = document.getElementById('loot-table-list');
   var missionList = document.getElementById('loot-mission-list');
@@ -71,6 +72,29 @@
   function chance(value) {
     var number = Number(value) || 0;
     return String(Math.round(number * 1000) / 1000);
+  }
+
+  /* A table can independently award multiple rewards, so this is not an
+   * expected iLvl per mission. It answers the useful authoring question: when
+   * an equipment reward rolls, what iLvl does this table tend to supply?
+   * Each wearable entry's own chance is therefore its weight; characters,
+   * salvage and stims do not participate in a wearable iLvl at all. */
+  function gearItemLevelSummary(entries) {
+    if (!itemLevelsReady) return null;
+    var gear = (entries || []).filter(function (entry) {
+      return entryType(entry) === 'gear' && Number(entry.item_level) > 0;
+    });
+    if (!gear.length) return null;
+    var chanceTotal = gear.reduce(function (total, entry) {
+      return total + Math.max(0, Number(entry.chance_percent) || 0);
+    }, 0);
+    var weightedTotal = gear.reduce(function (total, entry) {
+      return total + Math.max(0, Number(entry.item_level) || 0) * Math.max(0, Number(entry.chance_percent) || 0);
+    }, 0);
+    return {
+      average: chanceTotal ? Math.round(weightedTotal / chanceTotal) : 0,
+      maximum: gear.reduce(function (highest, entry) { return Math.max(highest, Number(entry.item_level) || 0); }, 0)
+    };
   }
 
   function crewById(id) {
@@ -257,6 +281,7 @@
       var best = entries.reduce(function (highest, entry) {
         return Math.max(highest, Number(entry.chance_percent) || 0);
       }, 0);
+      var itemLevels = gearItemLevelSummary(entries);
       var names = entries.slice(0, 3).map(function (entry) { return entry.name || 'Missing reward'; });
       var summary = entries.length
         ? escapeHtml(names.join(', ')) + (entries.length > 3 ? ' <em>+' + (entries.length - 3) + ' more</em>' : '')
@@ -268,6 +293,8 @@
         '<div class="mission-admin-title"><div><strong>' + escapeHtml(table.name) + '</strong><small>' + escapeHtml(table.slug) + '</small></div></div>' +
         '<span class="loot-admin-cell">' + summary + '</span>' +
         '<span class="loot-admin-cell">' + (entries.length ? chance(best) + '%' : '&mdash;') + '</span>' +
+        '<span class="loot-admin-cell loot-admin-ilvl" title="Chance-weighted across wearable equipment rewards only">' + (itemLevels ? '<small>AVG iLvl</small><b>' + itemLevels.average + '</b>' : '&mdash;') + '</span>' +
+        '<span class="loot-admin-cell loot-admin-ilvl" title="Highest wearable equipment item level in this table">' + (itemLevels ? '<small>MAX iLvl</small><b>' + itemLevels.maximum + '</b>' : '&mdash;') + '</span>' +
         '<span class="loot-admin-cell">' + (table.mission_count ? table.mission_count + (table.mission_count === 1 ? ' mission' : ' missions') : '<em>Unused</em>') + '</span>' +
         '<span class="loot-admin-status">' +
           '<span class="admin-pill ' + (table.is_enabled ? 'is-on' : 'is-off') + '">' + (table.is_enabled ? 'Enabled' : 'Disabled') + '</span>' +
@@ -595,6 +622,7 @@
       gearCatalogue = data.gear || [];
       missions = data.missions || [];
       researchLocksReady = !!data.research_locks_ready;
+      itemLevelsReady = !!data.item_levels_ready;
       renderTables();
       renderMissions();
       refreshCount();

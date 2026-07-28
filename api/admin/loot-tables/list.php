@@ -5,6 +5,7 @@ pw_require_permission('loot_tables.view');
 $db = pw_db();
 pw_missions_require_loot_table_gear_ready($db);
 $researchLocksReady = pw_mission_loot_table_research_locks_ready($db);
+$itemLevelsReady = pw_mission_item_levels_ready($db);
 
 $tables = $db->query(
     'SELECT lt.id, lt.name, lt.slug, lt.description, lt.is_enabled, '
@@ -21,7 +22,8 @@ $entryRows = $db->query(
             entry.chance_percent, entry.sort_order,
             crew.name AS crew_name, crew.role, crew.portrait_url, crew.is_enabled AS crew_enabled,
             gear.name AS gear_name, gear.slug AS gear_slug, gear.tier AS gear_tier, gear.slot AS gear_slot,
-            gear.icon_url AS gear_icon_url, gear.is_enabled AS gear_enabled
+            gear.icon_url AS gear_icon_url, gear.is_enabled AS gear_enabled'
+    . ($itemLevelsReady ? ', gear.item_level AS gear_item_level' : ', 0 AS gear_item_level') . '
      FROM game_loot_table_entries entry
      LEFT JOIN game_crew_definitions crew ON crew.id = entry.crew_definition_id
      LEFT JOIN game_loot_definitions gear ON gear.id = entry.loot_definition_id
@@ -44,6 +46,9 @@ foreach ($entryRows as $row) {
         'slot' => $row['gear_slot'],
         'icon_url' => $row['gear_icon_url'],
         'gear_enabled' => (bool)$row['gear_enabled'],
+        // Slotless salvage and stims always remain iLvl 0. The management
+        // screen uses this to report only wearable-reward ceilings.
+        'item_level' => $itemLevelsReady ? max(0, (int)$row['gear_item_level']) : 0,
     ];
 }
 
@@ -124,4 +129,12 @@ foreach ($db->query(
     ];
 }
 
-pw_json(['ok' => true, 'tables' => $tables, 'crew' => $crew, 'gear' => $gear, 'missions' => $missions, 'research_locks_ready' => $researchLocksReady]);
+pw_json([
+    'ok' => true,
+    'tables' => $tables,
+    'crew' => $crew,
+    'gear' => $gear,
+    'missions' => $missions,
+    'research_locks_ready' => $researchLocksReady,
+    'item_levels_ready' => $itemLevelsReady,
+]);

@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=323"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=8">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=324"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=8">
 </head>
 <body>
 
@@ -2146,7 +2146,7 @@
     <section class="admin-section" id="section-loot-tables" hidden>
       <div class="admin-section-head">
         <h1>Loot Table Management</h1>
-        <p>Reusable groups of possible rewards. A mission opens a table with its own chance, and each character or gear entry inside the table then rolls independently &mdash; so one run can award several rewards, or none.</p>
+        <p>Reusable groups of possible rewards. A mission opens a table with its own chance, and each character or gear entry inside the table then rolls independently &mdash; so one run can award several rewards, or none. Average iLvl is weighted by each wearable reward&rsquo;s chance; max iLvl is the table&rsquo;s highest wearable reward.</p>
       </div>
 
       <div class="admin-toolbar">
@@ -2160,7 +2160,7 @@
       </div>
 
       <div class="mission-admin-panel" id="loot-admin-tables-panel">
-        <div class="mission-admin-columns loot-admin-columns" aria-hidden="true"><span>Loot table</span><span>Rewards</span><span>Best chance</span><span>Missions</span><span>Status</span></div>
+        <div class="mission-admin-columns loot-admin-columns" aria-hidden="true"><span>Loot table</span><span>Rewards</span><span>Best chance</span><span>Avg iLvl</span><span>Max iLvl</span><span>Missions</span><span>Status</span></div>
         <div class="admin-list mission-admin-list" id="loot-table-list"><div class="admin-list-empty">Loading loot tables&hellip;</div></div>
       </div>
 
@@ -4642,7 +4642,7 @@
 </div>
 
 <script src="../js/members.js?v=43"></script>
-<script src="../js/admin-missions.js?v=18"></script><script src="../js/admin-loot-tables.js?v=8"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=8"></script>
+<script src="../js/admin-missions.js?v=18"></script><script src="../js/admin-loot-tables.js?v=9"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=8"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };

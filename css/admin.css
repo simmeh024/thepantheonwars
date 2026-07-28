@@ -4221,12 +4221,15 @@
 /* Loot Table Management. Scan-first grids matching the Mission Control lists,
  * plus one editable row shape shared by table entries and mission attachments
  * -- both are "a thing plus a percentage", so they read the same way. */
-.loot-admin-columns { grid-template-columns: minmax(180px, 1.5fr) minmax(160px, 1.6fr) 110px 130px 110px; }
+.loot-admin-columns { grid-template-columns: minmax(160px, 1.4fr) minmax(150px, 1.5fr) 88px 84px 84px 120px 106px; }
 .loot-mission-columns { grid-template-columns: minmax(200px, 1.4fr) minmax(200px, 2fr) 110px; }
-.admin-row.loot-admin-row { display: grid; grid-template-columns: minmax(180px, 1.5fr) minmax(160px, 1.6fr) 110px 130px 110px; gap: 14px; align-items: center; text-align: left; }
+.admin-row.loot-admin-row { display: grid; grid-template-columns: minmax(160px, 1.4fr) minmax(150px, 1.5fr) 88px 84px 84px 120px 106px; gap: 12px; align-items: center; text-align: left; }
 .admin-row.loot-mission-row { display: grid; grid-template-columns: minmax(200px, 1.4fr) minmax(200px, 2fr) 110px; gap: 14px; align-items: center; text-align: left; }
 .loot-admin-cell { min-width: 0; color: var(--text-dim); font-size: .74rem; line-height: 1.4; overflow-wrap: anywhere; }
 .loot-admin-cell em { color: #7e94a6; font-style: normal; }
+.loot-admin-ilvl { display: inline-flex; align-items: baseline; gap: 4px; color: #a9e8bc; white-space: nowrap; }
+.loot-admin-ilvl small { color: #82b89a; font-size: .5rem; font-weight: 800; letter-spacing: .07em; }
+.loot-admin-ilvl b { color: #cbf4d6; font: 700 .76rem/1 'Cinzel', serif; }
 .loot-admin-status { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
 .loot-entry-list { display: grid; gap: 7px; margin: 4px 0 12px; }
 /* A portrait column only when there is a portrait, keyed off a class the
