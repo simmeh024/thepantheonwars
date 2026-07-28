@@ -391,6 +391,21 @@
       + '<div class="mission-salvage-recovery-actions"><span>Success returns this exact item.</span><button type="button" class="btn btn-solid mission-salvage-recovery-launch" data-salvage-recovery-id="' + Number(contract.id) + '">Plan recovery</button></div>';
   }
 
+  function crewPowerMarkup(power) {
+    if (!power || !power.ready || Number(power.crew_count) < 1 || Number(power.item_level_max_total) < 1) return '';
+    var current = itemLevelFormat(power.item_level_average);
+    var maximum = itemLevelFormat(power.item_level_max_average);
+    var progress = Math.max(0, Math.min(100, Number(power.progress_percent) || 0));
+    var maxed = !!power.item_level_maxed;
+    var crewCount = Number(power.crew_count) || 0;
+    var title = 'Crew power is the average equipped iLvl across all seven slots of all ' + crewCount + ' active crew member' + (crewCount === 1 ? '' : 's') + '. '
+      + 'Current average: ' + current + '. Enabled catalogue target: ' + maximum + '.';
+    return '<div class="mission-profile-power' + (maxed ? ' is-maxed' : '') + '" title="' + escapeHtml(title) + '">'
+      + '<span class="mission-profile-power-head"><small>Crew power</small><strong>AVG iLvl ' + current + '</strong></span>'
+      + '<span class="mission-profile-power-track"><i style="width:' + progress + '%"></i></span>'
+      + '<em>' + (maxed ? 'Maximum command power' : crewCount + ' crew · target ' + maximum) + '</em></div>';
+  }
+
   function renderProfile(data) {
     if (!profileCard) return;
     var player = data.player;
@@ -414,6 +429,7 @@
       + '</div>'
       + '<div class="mission-profile-rep"><span class="mission-profile-rep-track"><i style="width:' + progress + '%;background:' + escapeHtml(rankColor) + '"></i></span>'
         + '<small>' + escapeHtml(nextLine) + '</small></div>'
+      + crewPowerMarkup(player.crew_power)
       + overlordAffinityMarkup(player)
       + (player.credits_ready
         ? '<div class="mission-profile-credits"><span>Total credits</span><strong>' + credits(player.credits) + '</strong></div>'

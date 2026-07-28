@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/../missions/missions-helpers.php';
 
 // Public read (no login required) -- this is the profile members.js links
 // to from the nav dropdown, the member list, and forum post author names.
@@ -28,6 +29,8 @@ $user = $stmt->fetch();
 if (!$user) {
     pw_error('That member no longer exists.', 404);
 }
+
+$crewPower = pw_missions_crew_power_summaries($db, [$id])[$id] ?? pw_missions_crew_power_empty();
 
 // Reading progress is intentionally private except for this one active title.
 // Keep public profiles available during the short code-before-migration window
@@ -151,6 +154,7 @@ pw_json([
         'last_finished_book' => $lastFinishedBook,
         'books_finished_count' => $booksFinishedCount,
         'books_total' => $booksTotal,
+        'crew_power' => $crewPower,
         'achievement_showcase' => $showcase,
     ],
     'recentPosts' => array_map(function ($r) {

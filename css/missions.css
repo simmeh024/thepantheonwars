@@ -353,6 +353,10 @@
 .mission-profile-rep-track { display: block; height: 5px; overflow: hidden; background: rgba(3,6,14,0.8); box-shadow: inset 0 1px 2px rgba(0,0,0,0.38); }
 .mission-profile-rep-track i { display: block; height: 100%; transition: width .5s ease; }
 .mission-profile-rep small { display: block; margin-top: 6px; color: #8ba5be; font-size: 0.63rem; line-height: 1.4; }
+.mission-profile-power { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px 10px; margin-top: 13px; padding-top: 11px; border-top: 1px solid rgba(92,163,181,0.24); }
+.mission-profile-power-head { display: grid; gap: 2px; min-width: 0; }.mission-profile-power-head small { color: #86cbd2; font-size: .54rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }.mission-profile-power-head strong { color: #b6ebe1; font: 600 .78rem/1.15 'Cinzel', serif; }
+.mission-profile-power-track { grid-column: 1 / -1; display: block; height: 5px; overflow: hidden; background: rgba(3,6,14,.8); box-shadow: inset 0 1px 2px rgba(0,0,0,.38); }.mission-profile-power-track i { display: block; height: 100%; background: linear-gradient(90deg, #5dc8a0, #7ee3d2); box-shadow: 0 0 9px rgba(104,218,177,.5); transition: width .5s ease; }
+.mission-profile-power em { align-self: end; color: #91adba; font-size: .56rem; font-style: normal; line-height: 1.2; text-align: right; }.mission-profile-power.is-maxed { border-top-color: rgba(235,209,138,.48); }.mission-profile-power.is-maxed .mission-profile-power-head small, .mission-profile-power.is-maxed .mission-profile-power-head strong, .mission-profile-power.is-maxed em { color: #ebd18a; }.mission-profile-power.is-maxed .mission-profile-power-track i { background: linear-gradient(90deg, #d9ad5e, #f1dc94); box-shadow: 0 0 10px rgba(235,209,138,.62); }
 .mission-profile-credits { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(92,163,181,0.24); }
 .mission-profile-credits span { color: #8ba5be; font-size: 0.6rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
 .mission-profile-credits strong { color: #e9d399; font: 600 1.2rem/1 'Cinzel', serif; }
@@ -475,12 +479,13 @@
    * one without a rank defaults to 0 and jumps ahead of the avatar -- which is
    * exactly what the affinity row did before this rule. It follows the
    * reputation bar, matching the wide layout's DOM order. */
-  .mission-profile-affinity { grid-column: 1 / -1; order: 4; margin-top: 6px; }
+  .mission-profile-power { grid-column: 1 / -1; order: 4; margin-top: 4px; }
+  .mission-profile-affinity { grid-column: 1 / -1; order: 5; margin-top: 6px; }
   .mission-profile-credits { margin-top: 0; padding-top: 0; border-top: 0; }
 }
 @media (max-width: 560px) {
   .mission-profile-card { grid-template-columns: minmax(0, 1fr); }
-  .mission-profile-credits { margin-top: 12px; padding-top: 11px; border-top: 1px solid rgba(92,163,181,0.24); }
+  .mission-profile-power, .mission-profile-credits { margin-top: 12px; padding-top: 11px; border-top: 1px solid rgba(92,163,181,0.24); }
 }
 
 .missions-section { margin-top: 42px; }

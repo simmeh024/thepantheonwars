@@ -1756,6 +1756,114 @@ function pw_missions_apply_item_levels(PDO $db, array $crewRows): array {
 }
 
 /**
+ * The account-wide counterpart to a crew card's average iLvl. Every active
+ * crew member contributes all seven equipment slots, including empty ones, so
+ * recruiting a crew member creates a real new progression lane instead of
+ * inflating a commander's power by silently omitting their gaps.
+ */
+function pw_missions_crew_power_empty(): array {
+    return [
+        'ready' => false,
+        'crew_count' => 0,
+        'item_level_total' => 0,
+        'item_level_average' => 0.0,
+        'item_level_max_total' => 0,
+        'item_level_max_average' => 0.0,
+        'progress_percent' => 0.0,
+        'item_level_maxed' => false,
+    ];
+}
+
+/**
+ * @param array<int, array<string, mixed>> $crewRows Rows already enriched by
+ * pw_missions_apply_item_levels(). This is intentionally arithmetic-only so
+ * Mission Command and Sweep can reuse their roster query without another SQL
+ * read just to paint the commander card.
+ */
+function pw_missions_crew_power_from_roster(array $crewRows): array {
+    $summary = pw_missions_crew_power_empty();
+    if (!$crewRows) return $summary;
+
+    $allReady = true;
+    $allMaxed = true;
+    foreach ($crewRows as $crew) {
+        if (empty($crew['item_level_ready'])) {
+            $allReady = false;
+            break;
+        }
+        $summary['crew_count']++;
+        $summary['item_level_total'] += max(0, (int)($crew['item_level_total'] ?? 0));
+        $summary['item_level_max_total'] += max(0, (int)($crew['item_level_max_total'] ?? 0));
+        if (empty($crew['item_level_maxed'])) $allMaxed = false;
+    }
+    if (!$allReady || $summary['crew_count'] < 1) return pw_missions_crew_power_empty();
+
+    $slots = max(1, count(pw_missions_gear_slots()));
+    $denominator = $summary['crew_count'] * $slots;
+    $summary['ready'] = true;
+    $summary['item_level_average'] = round($summary['item_level_total'] / $denominator, 1);
+    $summary['item_level_max_average'] = round($summary['item_level_max_total'] / $denominator, 1);
+    $summary['progress_percent'] = $summary['item_level_max_total'] > 0
+        ? round(min(100, ($summary['item_level_total'] / $summary['item_level_max_total']) * 100), 1)
+        : 0.0;
+    $summary['item_level_maxed'] = $summary['item_level_max_total'] > 0 && $allMaxed;
+    return $summary;
+}
+
+/**
+ * Public profiles and forum posts can show this harmless progression signal,
+ * but a discussion can carry hundreds of authors. Resolve every requested
+ * commander's equipped total in one grouped query rather than turning a forum
+ * page into an N+1 gear lookup.
+ *
+ * @param array<int, int> $userIds
+ * @return array<int, array<string, int|float|bool>> keyed by user id
+ */
+function pw_missions_crew_power_summaries(PDO $db, array $userIds): array {
+    $ids = array_values(array_unique(array_filter(array_map('intval', $userIds), static function ($id) {
+        return $id > 0;
+    })));
+    $summaries = [];
+    foreach ($ids as $id) $summaries[$id] = pw_missions_crew_power_empty();
+    if (!$ids || !pw_mission_item_levels_ready($db)) return $summaries;
+
+    $catalogue = pw_missions_item_level_role_ceilings($db);
+    $slots = array_keys(pw_missions_gear_slots());
+    if (empty($catalogue['ready']) || !$slots) return $summaries;
+
+    $slotPlaceholders = pw_missions_placeholders(count($slots));
+    $userPlaceholders = pw_missions_placeholders(count($ids));
+    $stmt = $db->prepare(
+        'SELECT pc.user_id, pc.id AS player_crew_id, c.role,
+                COALESCE(SUM(GREATEST(0, l.item_level)), 0) AS item_level_total
+         FROM game_player_crew pc
+         JOIN game_crew_definitions c ON c.id = pc.crew_definition_id AND c.is_enabled = 1
+         LEFT JOIN game_player_crew_gear g
+           ON g.player_crew_id = pc.id AND g.user_id = pc.user_id AND g.slot IN (' . $slotPlaceholders . ')
+         LEFT JOIN game_loot_definitions l ON l.id = g.loot_definition_id
+         WHERE pc.user_id IN (' . $userPlaceholders . ') AND pc.status <> "retired"
+         GROUP BY pc.user_id, pc.id, c.role'
+    );
+    $stmt->execute(array_merge($slots, $ids));
+
+    $rosters = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $userId = (int)$row['user_id'];
+        $roleCeiling = $catalogue['roles'][(string)$row['role']] ?? ['total' => 0, 'slots_covered' => 0];
+        $currentTotal = max(0, (int)$row['item_level_total']);
+        $maxTotal = max(0, (int)($roleCeiling['total'] ?? 0));
+        $rosters[$userId][] = [
+            'item_level_ready' => true,
+            'item_level_total' => $currentTotal,
+            'item_level_max_total' => $maxTotal,
+            'item_level_maxed' => (int)($roleCeiling['slots_covered'] ?? 0) > 0 && $currentTotal >= $maxTotal,
+        ];
+    }
+    foreach ($ids as $id) $summaries[$id] = pw_missions_crew_power_from_roster($rosters[$id] ?? []);
+    return $summaries;
+}
+
+/**
  * The arithmetic half of the above, with no database in it: fold a set of
  * equipped items into each crew row's stats.
  *

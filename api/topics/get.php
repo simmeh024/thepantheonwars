@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/../missions/missions-helpers.php';
 
 // Rendering note: title/body/display name below are RAW text, not HTML-escaped.
 // The front-end must render them with textContent (never innerHTML) to stay XSS-safe.
@@ -41,6 +42,7 @@ $postCountStmt = $db->prepare(
 );
 $postCountStmt->execute([(int)$topic['user_id'], (int)$topic['user_id']]);
 $postCountRow = $postCountStmt->fetch();
+$crewPower = pw_missions_crew_power_summaries($db, [(int)$topic['user_id']])[(int)$topic['user_id']] ?? pw_missions_crew_power_empty();
 
 $likeCountStmt = $db->prepare("SELECT COUNT(*) AS cnt FROM message_likes WHERE target_type = 'topic' AND target_id = ?");
 $likeCountStmt->execute([$id]);
@@ -140,6 +142,7 @@ pw_json([
         'reputation' => pw_reputation_info((int)$topic['reputation']),
         'selected_icon' => $topic['selected_icon'],
         'post_count' => (int)$postCountRow['cnt'],
+        'crew_power' => $crewPower,
         'canDelete' => $canDeleteAny || ($currentId !== null && $currentId === (int)$topic['user_id']),
         'canModerate' => $canModerate,
         'canEditOwn' => $canEditOwn,

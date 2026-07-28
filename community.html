@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=316">
+<link rel="stylesheet" href="css/community-bundle.css?v=317">
 </head>
 <body>
 
@@ -2257,6 +2257,24 @@
     return wrap;
   }
 
+  function buildCrewPowerBadge(power) {
+    if (!power || !power.ready || Number(power.crew_count) < 1 || Number(power.item_level_max_total) < 1) return null;
+    var current = Math.round(Math.max(0, Number(power.item_level_average) || 0));
+    var maximum = Math.round(Math.max(0, Number(power.item_level_max_average) || 0));
+    var crewCount = Number(power.crew_count) || 0;
+    var badge = document.createElement('span');
+    badge.className = 'comment-crew-power' + (power.item_level_maxed ? ' is-maxed' : '');
+    badge.title = 'Crew power: average equipped iLvl across all seven slots of ' + crewCount + ' active crew member' + (crewCount === 1 ? '' : 's') + '. '
+      + 'Current ' + current + ', enabled catalogue target ' + maximum + '.';
+    var label = document.createElement('small');
+    label.textContent = 'Power';
+    var value = document.createElement('strong');
+    value.textContent = 'iLvl ' + current;
+    badge.appendChild(label);
+    badge.appendChild(value);
+    return badge;
+  }
+
   function buildTopicProfile(t) {
     var profile = document.createElement('div');
     profile.className = 'comment-profile';
@@ -2307,6 +2325,9 @@
     postCount.className = 'comment-postcount';
     postCount.textContent = t.post_count + (t.post_count === 1 ? ' post' : ' posts');
     info.appendChild(postCount);
+
+    var crewPower = buildCrewPowerBadge(t.crew_power);
+    if (crewPower) info.appendChild(crewPower);
 
     var repRow = document.createElement('div');
     repRow.className = 'reputation-bar-row';
@@ -2630,6 +2651,9 @@
     postCount.className = 'comment-postcount';
     postCount.textContent = c.post_count + (c.post_count === 1 ? ' post' : ' posts');
     info.appendChild(postCount);
+
+    var crewPower = buildCrewPowerBadge(c.crew_power);
+    if (crewPower) info.appendChild(crewPower);
 
     var repRow = document.createElement('div');
     repRow.className = 'reputation-bar-row';

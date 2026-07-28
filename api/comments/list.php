@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../helpers.php';
+require_once __DIR__ . '/../missions/missions-helpers.php';
 
 // Rendering note: bodies/display names below are RAW text, not HTML-escaped.
 // The front-end must render them with textContent (never innerHTML) to stay XSS-safe.
@@ -29,6 +30,7 @@ $rows = $stmt->fetchAll();
 // "N posts" next to the profile info without an extra round trip per row.
 $postCounts = [];
 $commentIds = [];
+$userIds = [];
 if ($rows) {
     $userIds = array_values(array_unique(array_map(function ($r) { return (int)$r['user_id']; }, $rows)));
     $placeholders = implode(',', array_fill(0, count($userIds), '?'));
@@ -41,6 +43,7 @@ if ($rows) {
     }
     $commentIds = array_map(function ($r) { return (int)$r['id']; }, $rows);
 }
+$crewPowers = pw_missions_crew_power_summaries($db, $userIds);
 
 // Reaction counts per comment + the current viewer's own reaction, if any.
 $reactionCounts = [];
@@ -100,7 +103,7 @@ if ($commentIds) {
     }
 }
 
-$out = array_map(function ($r) use ($currentId, $canModerate, $canDeleteAny, $postCounts, $reactionCounts, $myReactions, $likeCounts, $myLikes) {
+$out = array_map(function ($r) use ($currentId, $canModerate, $canDeleteAny, $postCounts, $crewPowers, $reactionCounts, $myReactions, $likeCounts, $myLikes) {
     $userId = (int)$r['user_id'];
     $id = (int)$r['id'];
     $canEditOwn = $currentId !== null && $currentId === $userId
@@ -123,6 +126,7 @@ $out = array_map(function ($r) use ($currentId, $canModerate, $canDeleteAny, $po
         'reputation' => pw_reputation_info((int)$r['reputation']),
         'selected_icon' => $r['selected_icon'],
         'post_count' => isset($postCounts[$userId]) ? $postCounts[$userId] : 0,
+        'crew_power' => $crewPowers[$userId] ?? pw_missions_crew_power_empty(),
         'canDelete' => $canDeleteAny || ($currentId !== null && $currentId === $userId),
         'canModerate' => $canModerate,
         'canEditOwn' => $canEditOwn,

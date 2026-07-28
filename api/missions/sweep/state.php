@@ -113,6 +113,7 @@ try {
     $crew = pw_missions_apply_level_stats($crewStmt->fetchAll());
     $crew = pw_missions_apply_gear($db, $userId, $crew);
     $crew = pw_missions_apply_item_levels($db, $crew);
+    $crewPower = pw_missions_crew_power_from_roster($crew);
     $roster = [];
     foreach ($crew as $member) {
         $fatigue = pw_missions_resolve_fatigue($member, $fatigueMax, $now, $recovery);
@@ -171,6 +172,7 @@ try {
         'reputation' => array_merge($reputation, ['level_number' => $rank]),
         'credits' => pw_missions_credit_balance($db, $userId),
         'credits_ready' => true,
+        'crew_power' => $crewPower,
     ];
 
     /* The Field Kit is duplicated on Sweep so a commander can prepare and use

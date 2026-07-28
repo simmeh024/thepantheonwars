@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=316">
+<link rel="stylesheet" href="css/community-bundle.css?v=317">
 </head>
 <body>
 
@@ -102,6 +102,11 @@
             <span id="member-status-text"></span>
           </span>
         </p>
+        <section class="member-crew-power" id="member-crew-power" hidden>
+          <div class="member-crew-power-head"><span>Crew Power</span><strong>AVG iLvl <b id="member-crew-power-value">0</b></strong></div>
+          <span class="member-crew-power-track" aria-hidden="true"><i id="member-crew-power-fill"></i></span>
+          <small id="member-crew-power-detail"></small>
+        </section>
         <a class="member-current-reading" id="member-current-reading" href="books.html" hidden>
           <span class="member-current-reading-label" id="member-current-reading-label">Currently Reading</span>
           <strong id="member-current-reading-title"></strong>
@@ -417,6 +422,25 @@
         avatarWrap.appendChild(avatarPresence);
 
         document.getElementById('member-joined').textContent = 'Joined ' + fmtDate(m.created_at);
+
+        var crewPower = m.crew_power || {};
+        var crewPowerEl = document.getElementById('member-crew-power');
+        if (crewPower.ready && Number(crewPower.crew_count) > 0 && Number(crewPower.item_level_max_total) > 0) {
+          var crewPowerCurrent = Math.round(Math.max(0, Number(crewPower.item_level_average) || 0));
+          var crewPowerMaximum = Math.round(Math.max(0, Number(crewPower.item_level_max_average) || 0));
+          var crewPowerProgress = Math.max(0, Math.min(100, Number(crewPower.progress_percent) || 0));
+          var crewPowerCount = Number(crewPower.crew_count) || 0;
+          document.getElementById('member-crew-power-value').textContent = crewPowerCurrent;
+          document.getElementById('member-crew-power-fill').style.width = crewPowerProgress + '%';
+          document.getElementById('member-crew-power-detail').textContent = crewPower.item_level_maxed
+            ? 'Maximum command power across ' + crewPowerCount + ' crew member' + (crewPowerCount === 1 ? '' : 's')
+            : crewPowerCount + ' crew · enabled catalogue target avg iLvl ' + crewPowerMaximum;
+          crewPowerEl.title = 'Crew power is the average equipped iLvl across all seven slots of all active crew members.';
+          crewPowerEl.classList.toggle('is-maxed', !!crewPower.item_level_maxed);
+          crewPowerEl.hidden = false;
+        } else {
+          crewPowerEl.hidden = true;
+        }
 
         var readingEl = document.getElementById('member-current-reading');
         var readingLabelEl = document.getElementById('member-current-reading-label');

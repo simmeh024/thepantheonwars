@@ -755,6 +755,21 @@
   /* The commander card the missions page shows, rendered from the same block
      the state endpoint now sends. Hand-duplicated rather than shared, which is
      this codebase's standing convention for markup across pages. */
+  function sweepCrewPowerMarkup(power) {
+    if (!power || !power.ready || Number(power.crew_count) < 1 || Number(power.item_level_max_total) < 1) return '';
+    var current = String(Math.round(Math.max(0, Number(power.item_level_average) || 0)));
+    var maximum = String(Math.round(Math.max(0, Number(power.item_level_max_average) || 0)));
+    var progress = Math.max(0, Math.min(100, Number(power.progress_percent) || 0));
+    var maxed = !!power.item_level_maxed;
+    var crewCount = Number(power.crew_count) || 0;
+    var title = 'Crew power is the average equipped iLvl across all seven slots of all ' + crewCount + ' active crew member' + (crewCount === 1 ? '' : 's') + '. '
+      + 'Current average: ' + current + '. Enabled catalogue target: ' + maximum + '.';
+    return '<div class="sweep-profile-power' + (maxed ? ' is-maxed' : '') + '" title="' + esc(title) + '">'
+      + '<span class="sweep-profile-power-head"><small>Crew power</small><strong>AVG iLvl ' + current + '</strong></span>'
+      + '<span class="sweep-profile-power-track"><i style="width:' + progress + '%"></i></span>'
+      + '<em>' + (maxed ? 'Maximum command power' : crewCount + ' crew · target ' + maximum) + '</em></div>';
+  }
+
   function renderProfile() {
     if (!profileCard) return;
     var player = state.data && state.data.player;
@@ -777,6 +792,7 @@
       + esc(reputation.level_name || 'Unranked') + '</span></span></div>'
       + '<div class="sweep-profile-rep"><span class="sweep-profile-track"><i style="width:' + progress + '%;background:' + esc(rankColor) + '"></i></span>'
       + '<small>' + esc(nextLine) + '</small></div>'
+      + sweepCrewPowerMarkup(player.crew_power)
       + '<div class="sweep-profile-credits"><span>Total credits</span><strong>' + num(player.credits) + '</strong></div>';
   }
 

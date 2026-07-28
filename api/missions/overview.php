@@ -104,6 +104,7 @@ try {
      * is computed, so every card and mission projection reads the true total. */
     $crew = pw_missions_apply_gear($db, $userId, $crew);
     $crew = pw_missions_apply_item_levels($db, $crew);
+    $crewPower = pw_missions_crew_power_from_roster($crew);
     foreach ($crew as $index => $row) {
         $crew[$index]['role_effect'] = pw_missions_crew_effects([$row]);
     }
@@ -460,6 +461,7 @@ try {
         'reputation' => $playerReputation,
         'credits' => $creditsReady ? pw_missions_credit_balance($db, $userId) : 0,
         'credits_ready' => $creditsReady,
+        'crew_power' => $crewPower,
         'overlord' => $playerOverlord === null ? null : [
             'slug' => (string)$playerOverlord['slug'],
             'name' => (string)$playerOverlord['name'],
