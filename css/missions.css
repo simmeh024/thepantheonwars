@@ -126,6 +126,10 @@
 .mission-loadout-slot-card:hover .mission-loadout-slot-remove, .mission-loadout-slot-card:focus-within .mission-loadout-slot-remove { opacity: 1; transform: translateY(0); }
 .mission-loadout-slot-remove:hover, .mission-loadout-slot-remove:focus-visible { border-color: #f0b0a0; background: rgba(80,24,36,.94); }
 .mission-loadout-slot-card.is-preview-target .mission-loadout-slot { border-color: rgba(230,201,120,.9); box-shadow: inset 0 0 0 1px rgba(230,201,120,.65), 0 0 15px rgba(230,201,120,.26); }
+.mission-loadout-slot-card.has-upgrade .mission-loadout-slot { border-color: rgba(126,203,158,.82); box-shadow: inset 0 0 0 1px rgba(126,203,158,.42), inset 0 0 22px rgba(126,203,158,.1), 0 0 14px rgba(126,203,158,.16); }
+.mission-loadout-slot-card.has-upgrade .mission-loadout-slot:hover, .mission-loadout-slot-card.has-upgrade .mission-loadout-slot:focus-visible { border-color: rgba(169,232,188,.96); box-shadow: inset 0 0 0 1px rgba(169,232,188,.62), inset 0 0 27px rgba(126,203,158,.16), 0 0 18px rgba(126,203,158,.26); }
+.mission-loadout-upgrade-pip { position: absolute; z-index: 5; top: 5px; left: 5px; display: grid; width: 18px; height: 18px; place-items: center; border: 1px solid rgba(169,232,188,.82); border-radius: 50%; background: rgba(13,62,43,.94); color: #b8f0c9; box-shadow: 0 0 10px rgba(126,203,158,.48); font: 800 .52rem/1 'Jost', sans-serif; pointer-events: none; }
+.mission-loadout-slot-card:nth-child(7) .mission-loadout-upgrade-pip { top: 7px; }
 .mission-loadout-slots.is-previewing::after { content: 'COMPARING'; position: absolute; z-index: 3; right: 5px; bottom: 5px; color: #e5c978; font-size: .5rem; font-weight: 700; letter-spacing: .12em; text-shadow: 0 1px 3px #050914; }
 .mission-loadout-option.is-recommended { border-color: rgba(229,201,120,.66); box-shadow: inset 3px 0 rgba(229,201,120,.75), 0 0 13px rgba(229,201,120,.08); }
 .mission-loadout-option strong { display: flex; align-items: center; gap: 7px; }
@@ -851,6 +855,7 @@
 .mission-gear-warning { display: inline-flex; align-items: center; gap: 5px; margin-top: 6px; padding: 2px 7px; border: 1px solid rgba(237,193,121,0.45); background: rgba(60,44,16,0.35); color: #edc179; font: 600 0.6rem/1.4 'Jost', sans-serif; cursor: pointer; }
 .mission-gear-warning:hover, .mission-gear-warning:focus-visible { border-color: rgba(237,193,121,0.85); background: rgba(80,58,20,0.5); color: #f6d99a; }
 .mission-gear-warning.is-compact { position: absolute; top: 6px; right: 34px; margin: 0; padding: 2px 6px; }
+.mission-crew-copy .mission-gear-warning { margin: 2px 0 0 6px; vertical-align: middle; }
 
 /* Crew fatigue. The pool a crew member spends to launch, shown on the roster
  * card under the XP bar it deliberately mirrors -- same track height, same
@@ -1135,6 +1140,11 @@
 .mission-inventory-queue-items button { display: grid; width: 17px; height: 17px; place-items: center; padding: 0; border: 0; background: transparent; color: #b5c9d0; cursor: pointer; font: .95rem/1 inherit; }.mission-inventory-queue-items button:hover, .mission-inventory-queue-items button:focus-visible { color: #f1bbbb; }
 .mission-inventory-queue-actions { display: flex; flex-wrap: wrap; gap: 7px; padding: 11px 14px 13px; }.mission-inventory-queue-actions .btn { padding: 7px 10px; font-size: .62rem; }
 .mission-inventory-card.is-favorite { box-shadow: inset 0 0 0 1px rgba(235,207,113,.24), 0 0 15px rgba(235,207,113,.06); }
+.mission-inventory-card.has-upgrade { outline: 1px solid rgba(126,203,158,.58); outline-offset: -3px; }
+.mission-inventory-upgrade { display: grid; grid-template-columns: auto minmax(0,1fr); column-gap: 7px; align-items: center; margin: 8px 0 0 !important; padding: 7px 8px; border: 1px solid rgba(126,203,158,.38); background: linear-gradient(100deg, rgba(17,66,45,.56), rgba(12,31,39,.36)); color: #c8e9d3; }
+.mission-inventory-upgrade > span { grid-row: 1 / span 2; align-self: stretch; display: grid; place-items: center; min-width: 54px; padding: 0 4px; border-right: 1px solid rgba(126,203,158,.3); color: #91e2b0; font-size: .5rem; font-weight: 800; letter-spacing: .08em; line-height: 1.2; text-align: center; text-transform: uppercase; }
+.mission-inventory-upgrade strong { overflow: hidden; color: #ddf4e4; font-size: .66rem; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; }
+.mission-inventory-upgrade small { overflow: hidden; margin-top: 2px; color: #a2cdb1; font-size: .57rem; line-height: 1.25; text-overflow: ellipsis; white-space: nowrap; }
 /* Rarity needs to read from the edge of the card, not only from a word in the
  * metadata. Higher tiers gain progressively stronger frames and light, while
  * their art frame mirrors the same colour at the first point the eye lands. */
@@ -1169,6 +1179,7 @@
 .missions-inventory-grid.is-list .mission-inventory-meta { font-size: .58rem !important; line-height: 1.25; }
 .missions-inventory-grid.is-list .mission-inventory-tier { min-height: 15px; padding: 0 4px; font-size: .5rem; }
 .missions-inventory-grid.is-list .mission-inventory-bonus, .missions-inventory-grid.is-list .mission-inventory-state, .missions-inventory-grid.is-list .mission-inventory-convert-value { margin-top: 3px !important; font-size: .59rem !important; line-height: 1.2; }
+.missions-inventory-grid.is-list .mission-inventory-upgrade { margin-top: 4px !important; padding: 4px 6px; column-gap: 5px; }.missions-inventory-grid.is-list .mission-inventory-upgrade > span { min-width: 46px; font-size: .45rem; }.missions-inventory-grid.is-list .mission-inventory-upgrade strong { font-size: .59rem; }.missions-inventory-grid.is-list .mission-inventory-upgrade small { font-size: .52rem; }
 .missions-inventory-grid.is-list .mission-inventory-desc, .missions-inventory-grid.is-list .mission-inventory-requires, .missions-inventory-grid.is-list .mission-inventory-history, .missions-inventory-grid.is-list .mission-inventory-organisation { display: none; }
 .missions-inventory-grid.is-list .mission-inventory-actions { gap: 5px; margin-top: 5px; }.missions-inventory-grid.is-list .mission-inventory-actions .btn { min-height: 24px; padding: 4px 8px; font-size: .58rem; }
 .missions-inventory-grid.is-list .mission-inventory-favorite { top: 8px; right: 10px; width: 22px; height: 22px; font-size: .76rem; }

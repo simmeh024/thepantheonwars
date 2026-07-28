@@ -1005,7 +1005,7 @@
         + '<span class="mission-crew-tier">' + escapeHtml(crewTierLabel(tier)) + '</span>'
         + favoriteButton
         + '<div class="mission-crew-visual"><span class="mission-crew-portrait-wrap">' + portraitMarkup + statusDot + '</span>' + crewLoadoutStrip(crew) + '</div>'
-        + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3>' + crewItemLevelMarkup(crew) + missionCopy + '<p>' + escapeHtml(crew.description) + '</p>'
+        + '<div class="mission-crew-copy"><span class="crew-role">' + escapeHtml(crew.role) + '</span><h3>' + escapeHtml(crew.name) + '</h3>' + crewItemLevelMarkup(crew) + gearWarningMarkup(crew, false) + missionCopy + '<p>' + escapeHtml(crew.description) + '</p>'
         + '<div class="crew-progression ' + profile.className + (atMaxLevel ? ' is-max-level' : '') + '"><div class="crew-rank-insignia" aria-label="' + escapeHtml(crew.role) + ' level ' + crew.level + '"><span>' + profile.code + '</span><small>L' + crew.level + '</small></div><div class="crew-progression-copy"><div><span>' + profile.rankLabel + '</span><strong>' + rankValue + '</strong></div><div class="crew-xp-track"><span style="width:' + progress + '%"></span></div></div></div>'
         + fatigueMarkup(crew)
         + crewStatCard(crew) + '</div></article>';
@@ -2066,21 +2066,40 @@
     gearSlots().forEach(function (slot) {
       var current = crew.gear && crew.gear[slot.key] ? crew.gear[slot.key] : null;
       if (!current) empty++;
-      var best = bestLoadoutCandidate(crew, slot.key);
-      if (best && !best.equipped && loadoutImprovesCrew(crew, slot.key, best.item, current)) count++;
+      if (loadoutUpgradeForSlot(crew, slot.key)) count++;
     });
     return { count: count, empty: empty };
+  }
+
+  /* The same check powers the roster badge, a loadout slot's pip, and the
+   * inventory callout. It is deliberately role-aware rather than merely an
+   * iLvl comparison: an item can be newer but still be worse for this crew's
+   * specialty, and players should never be told to downgrade. */
+  function loadoutUpgradeForSlot(crew, slotKey) {
+    var current = crew && crew.gear && crew.gear[slotKey] ? crew.gear[slotKey] : null;
+    var best = bestLoadoutCandidate(crew, slotKey);
+    if (!best || best.equipped || !loadoutImprovesCrew(crew, slotKey, best.item, current)) return null;
+    return { slotKey: slotKey, current: current, candidate: best, score_gain: roleGearScore(crew, best.item) - roleGearScore(crew, current) };
+  }
+
+  function bestCrewUpgrade(crew) {
+    var best = null;
+    gearSlots().forEach(function (slot) {
+      var upgrade = loadoutUpgradeForSlot(crew, slot.key);
+      if (upgrade && (!best || upgrade.score_gain > best.score_gain)) best = upgrade;
+    });
+    return best;
   }
 
   function gearWarningMarkup(crew, compact) {
     var upgrades = gearUpgrades(crew);
     if (!upgrades.count) return '';
-    var text = upgrades.count + (upgrades.count === 1 ? ' slot' : ' slots') + ' can be upgraded';
+    var text = upgrades.count + ' upgrade' + (upgrades.count === 1 ? '' : 's') + ' ready';
     var hint = crew.name + ' has better equipment available in your inventory for '
       + upgrades.count + (upgrades.count === 1 ? ' slot' : ' slots')
       + (upgrades.empty ? ', including ' + upgrades.empty + ' still empty' : '') + '.';
     return '<button type="button" class="mission-gear-warning' + (compact ? ' is-compact' : '') + '" data-gear-warning="' + Number(crew.id) + '"'
-      + ' title="' + escapeHtml(hint) + '" aria-label="' + escapeHtml(hint + ' Open loadout.') + '">'
+      + ' title="' + escapeHtml(hint) + '" aria-label="' + escapeHtml(hint + ' Open strongest available upgrade.') + '">'
       + '<span aria-hidden="true">▲</span>' + escapeHtml(compact ? String(upgrades.count) : text) + '</button>';
   }
 
@@ -2515,7 +2534,7 @@
 
   launchCrew.addEventListener('click', function (event) {
     var warning = event.target.closest('[data-gear-warning]');
-    if (warning) { openLoadout(warning.getAttribute('data-gear-warning')); return; }
+    if (warning) { openCrewBestUpgrade(warning.getAttribute('data-gear-warning')); return; }
     var select = event.target.closest('[data-tray-select]');
     if (select && !select.disabled) assignFromTray(Number(select.getAttribute('data-tray-select')));
   });
@@ -2551,7 +2570,7 @@
   if (launchRack) {
     launchRack.addEventListener('click', function (event) {
       var warning = event.target.closest('[data-gear-warning]');
-      if (warning) { openLoadout(warning.getAttribute('data-gear-warning')); return; }
+      if (warning) { openCrewBestUpgrade(warning.getAttribute('data-gear-warning')); return; }
       var clear = event.target.closest('[data-slot-clear]');
       if (!clear) return;
       launchError.textContent = '';
@@ -3072,12 +3091,12 @@
       + escapeHtml(loadoutItemSummary(current, 'Empty ' + slotLabel(state.loadoutSlot))) + '</strong></span></span><span class="mission-loadout-compare-hint">Hover or focus an item to compare the full swap.</span>';
   }
 
-  function openLoadout(crewId) {
+  function openLoadout(crewId, preferredSlot) {
     if (!gearReady()) return;
     var crew = (state.data && state.data.crew || []).filter(function (member) { return Number(member.id) === Number(crewId); })[0];
     if (!crew || crewAvailability(crew) !== 'available') return;
     state.loadoutCrewId = Number(crewId);
-    state.loadoutSlot = gearSlots()[0].key;
+    state.loadoutSlot = gearSlots().some(function (slot) { return slot.key === preferredSlot; }) ? preferredSlot : gearSlots()[0].key;
     loadoutError.textContent = '';
     renderLoadout();
     if (typeof loadoutModal.showModal === 'function') loadoutModal.showModal(); else loadoutModal.setAttribute('open', '');
@@ -3087,6 +3106,12 @@
     if (!loadoutModal) return;
     if (loadoutModal.open && typeof loadoutModal.close === 'function') loadoutModal.close(); else loadoutModal.removeAttribute('open');
     state.loadoutCrewId = null;
+  }
+
+  function openCrewBestUpgrade(crewId) {
+    var crew = memberById(crewId);
+    var upgrade = crew && bestCrewUpgrade(crew);
+    openLoadout(crewId, upgrade ? upgrade.slotKey : '');
   }
 
   /* Enhanced loadout command surface. These helpers keep the crew silhouette,
@@ -3130,15 +3155,19 @@
     loadoutSlots.innerHTML = gearSlots().map(function (slot) {
       var item = equipped[slot.key];
       var active = slot.key === state.loadoutSlot;
-      var recommended = !item ? bestLoadoutCandidate(crew, slot.key) : null;
-      var label = item ? gearTooltip(item) : 'Empty - ' + slot.label + (recommended ? '. Recommended: ' + recommended.item.name : '. No compatible equipment available.');
-      return '<div class="mission-loadout-slot-card' + (active ? ' is-active' : '') + '">'
+      var upgrade = loadoutUpgradeForSlot(crew, slot.key);
+      var next = upgrade && upgrade.candidate.item;
+      var levelChange = next && itemLevelValue(next) ? ' iLvl ' + itemLevelValue(item) + ' → ' + itemLevelValue(next) + '.' : '';
+      var label = (item ? gearTooltip(item) : 'Empty - ' + slot.label)
+        + (next ? '\nUpgrade available: ' + next.name + '.' + levelChange : item ? '' : '. No compatible equipment available.');
+      return '<div class="mission-loadout-slot-card' + (active ? ' is-active' : '') + (upgrade ? ' has-upgrade' : '') + '">'
         + '<button type="button" class="mission-loadout-slot' + (item ? ' is-filled is-' + escapeHtml(item.tier) : ' is-empty')
-        + (active ? ' is-active' : '') + '" data-slot="' + escapeHtml(slot.key) + '"'
+        + (active ? ' is-active' : '') + (upgrade ? ' is-upgrade-available' : '') + '" data-slot="' + escapeHtml(slot.key) + '"'
         + ' title="' + escapeHtml(label) + '" aria-pressed="' + (active ? 'true' : 'false') + '">'
         + gearIconHtml(slot.key, item ? item.icon_url : '') + itemLevelBadge(item, 'mission-loadout-slot-ilvl')
         + '<span class="mission-loadout-slot-name">' + escapeHtml(slot.label) + '</span>'
-        + '<small>' + escapeHtml(item ? item.name : (recommended ? 'Recommended: ' + recommended.item.name : 'Empty')) + '</small></button>'
+        + '<small>' + escapeHtml(item ? item.name : (next ? 'Recommended: ' + next.name : 'Empty')) + '</small>'
+        + (upgrade ? '<span class="mission-loadout-upgrade-pip" title="Upgrade available: ' + escapeHtml(next.name) + '"><span aria-hidden="true">▲</span><span class="sr-only">Upgrade available: ' + escapeHtml(next.name) + '</span></span>' : '') + '</button>'
         + (item ? '<button type="button" class="mission-loadout-slot-remove" data-remove-slot="' + escapeHtml(slot.key) + '" aria-label="Unequip ' + escapeHtml(item.name) + '" title="Unequip ' + escapeHtml(item.name) + '">&times;</button>' : '')
         + '</div>';
     }).join('');
@@ -3348,6 +3377,8 @@
     crewList.addEventListener('click', function (event) {
       var button = event.target.closest('.mission-loadout-btn');
       if (button && !button.disabled) openLoadout(button.getAttribute('data-crew-id'));
+      var warning = event.target.closest('[data-gear-warning]');
+      if (warning && !warning.disabled) openCrewBestUpgrade(warning.getAttribute('data-gear-warning'));
     });
   }
 
@@ -3983,6 +4014,7 @@
       var isStim = category === 'stim';
       var bonus = gearBonusText(item.bonus);
       var spare = Number(item.quantity) - Number(item.equipped_count);
+      var upgradeTargets = isGear ? inventoryUpgradeTargets(item) : [];
       var requires = [];
       if (Number(item.required_level) > 1) requires.push('Level ' + item.required_level);
       if (item.required_role) requires.push(item.required_role + ' only');
@@ -3995,7 +4027,7 @@
       if (isGear && inventoryQuickEquipCandidates(item).length) {
         actions.push('<button type="button" class="btn btn-solid mission-inventory-quick-equip" data-inventory-quick-equip="' + Number(item.id) + '">Equip to&hellip;</button>');
       }
-      if (isGear) actions.push('<button type="button" class="btn" data-inventory-compare="' + Number(item.id) + '">Compare</button>');
+      if (isGear) actions.push('<button type="button" class="btn" data-inventory-compare="' + Number(item.id) + '">' + (upgradeTargets.length ? 'Review upgrades' : 'Compare') + '</button>');
       if (isStim) {
         actions.push('<button type="button" class="btn btn-solid mission-inventory-use" data-stim-use="' + Number(item.id) + '">Use</button>');
       }
@@ -4013,7 +4045,7 @@
       var bulkSelect = state.inventoryView === 'list' && inventoryBulkEligible(item)
         ? '<label class="mission-inventory-bulk-check"><input type="checkbox" data-inventory-bulk-select="' + Number(item.id) + '"' + (state.inventoryBulkSelection[Number(item.id)] ? ' checked' : '') + '><span class="sr-only">Select ' + escapeHtml(item.name) + ' for bulk destroy</span></label>'
         : '';
-      return '<article class="mission-inventory-card is-' + escapeHtml(item.tier) + ' is-' + escapeHtml(category) + (item.is_favorite ? ' is-favorite' : '') + (state.inventoryView === 'list' ? ' is-list-row' : '') + '">'
+      return '<article class="mission-inventory-card is-' + escapeHtml(item.tier) + ' is-' + escapeHtml(category) + (item.is_favorite ? ' is-favorite' : '') + (upgradeTargets.length ? ' has-upgrade' : '') + (state.inventoryView === 'list' ? ' is-list-row' : '') + '">'
         + bulkSelect
         + '<span class="mission-inventory-icon">' + gearIconHtml(item.slot, item.icon_url) + itemLevelBadge(item, 'mission-inventory-icon-ilvl') + '</span>'
         + listItemLevel
@@ -4023,6 +4055,7 @@
         + ' &middot; ' + escapeHtml(typeLabel)
         + ' &middot; x' + item.quantity + '</p>'
         + (bonus ? '<p class="mission-inventory-bonus">' + escapeHtml(bonus) + '</p>' : '')
+        + inventoryUpgradeMarkup(item, upgradeTargets)
         + (isStim ? '<p class="mission-inventory-bonus">' + escapeHtml(stimSummary(item)) + '</p>' : '')
         + (item.description ? '<p class="mission-inventory-desc">' + escapeHtml(item.description) + '</p>' : '')
         + (requires.length ? '<p class="mission-inventory-requires">' + escapeHtml(requires.join(' · ')) + '</p>' : '')
@@ -4205,6 +4238,29 @@
         && resultGearFitsCrew(item, crew)
         && (!current || Number(current.loot_definition_id) !== Number(item.id));
     });
+  }
+
+  function inventoryUpgradeTargets(item) {
+    if (!item || !item.slot || !state.data || Number(item.quantity) - Number(item.equipped_count) < 1) return [];
+    return (state.data.crew || []).map(function (crew) {
+      if (crewAvailability(crew) !== 'available') return null;
+      var entry = loadoutCandidates(crew, item.slot).filter(function (candidate) { return Number(candidate.item.id) === Number(item.id); })[0];
+      var current = crew.gear && crew.gear[item.slot] ? crew.gear[item.slot] : null;
+      if (!entry || entry.reason || entry.equipped || !loadoutImprovesCrew(crew, item.slot, item, current)) return null;
+      return { crew: crew, current: current, score_gain: roleGearScore(crew, item) - roleGearScore(crew, current) };
+    }).filter(Boolean).sort(function (left, right) { return right.score_gain - left.score_gain; });
+  }
+
+  function inventoryUpgradeMarkup(item, targets) {
+    if (!targets || !targets.length) return '';
+    var target = targets[0];
+    var currentLevel = itemLevelValue(target.current);
+    var nextLevel = itemLevelValue(item);
+    var changes = loadoutDeltaText(target.crew, item.slot, item);
+    var itemLevel = nextLevel ? 'iLvl ' + currentLevel + ' → ' + nextLevel : '';
+    var extra = targets.length > 1 ? ' +' + (targets.length - 1) + ' other crew member' + (targets.length === 2 ? '' : 's') : '';
+    return '<p class="mission-inventory-upgrade"><span>Upgrade ready</span><strong>' + escapeHtml(target.crew.name + ' · ' + slotLabel(item.slot)) + '</strong><small>'
+      + escapeHtml([itemLevel, changes].filter(Boolean).join(' · ') || 'Role-focused stat improvement') + escapeHtml(extra) + '</small></p>';
   }
 
   function quickEquipInventoryItem(button) {
