@@ -91,7 +91,7 @@ button.sweep-cell:disabled { cursor: default; opacity: 0.75; }
 /* The deployed crew is a field readout, not a second control. Its marker
  * only uses the last cell already resolved by the server, so it brings the
  * board to life without implying anything about an unopened square. */
-.sweep-field-stage { display: grid; gap: 9px; }
+.sweep-field-stage { display: grid; width: min(100%, 640px); gap: 9px; margin-inline: auto; }
 .sweep-field-presence { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px; align-items: center; padding: 7px 8px; border: 1px solid rgba(92,174,196,0.32); border-left: 3px solid #7ee3e8; background: linear-gradient(100deg, rgba(10,39,55,0.72), rgba(8,17,31,0.68)); }
 .sweep-field-face, .sweep-field-marker { display: grid; overflow: hidden; place-items: center; border: 1px solid rgba(126,227,232,0.72); background: #0b1c30; color: #bdf2f3; font: 600 0.72rem/1 'Cinzel', serif; }
 .sweep-field-face { width: 32px; height: 32px; box-shadow: 0 0 10px rgba(126,227,232,0.18); }
@@ -101,7 +101,7 @@ button.sweep-cell:disabled { cursor: default; opacity: 0.75; }
 .sweep-field-copy strong { overflow: hidden; color: #eef7fa; font: 600 0.67rem/1.25 'Cinzel', serif; text-overflow: ellipsis; white-space: nowrap; }
 .sweep-field-copy em { overflow: hidden; color: #92afbf; font: 500 0.54rem/1.2 'Jost', sans-serif; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
 .sweep-field-radio { grid-column: 1 / -1; overflow: hidden; color: #afc9d6; font-size: 0.57rem; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; }
-.sweep-field-grid-wrap { position: relative; max-width: 640px; }
+.sweep-field-grid-wrap { position: relative; width: 100%; }
 .sweep-field-grid-wrap .sweep-grid { max-width: none; }
 .sweep-field-marker { position: absolute; z-index: 4; width: 25px; height: 25px; pointer-events: none; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px rgba(5,13,25,0.88), 0 0 13px rgba(126,227,232,0.6); animation: sweep-field-marker-idle 2.8s ease-in-out infinite; }
 @keyframes sweep-field-marker-idle { 0%, 100% { box-shadow: 0 0 0 2px rgba(5,13,25,0.88), 0 0 8px rgba(126,227,232,0.42); } 50% { box-shadow: 0 0 0 2px rgba(5,13,25,0.88), 0 0 16px rgba(126,227,232,0.76); } }
