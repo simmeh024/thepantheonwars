@@ -148,7 +148,7 @@ button.sweep-cell.is-scanning { border-color: #f0d891; color: #fff0c2; animation
 .sweep-cell.is-open .sweep-cell-hint { z-index: 2; padding: 1px 3px; background: rgba(4,10,20,0.92); }
 
 .sweep-spent { margin: 12px 0 0; }
-.sweep-board-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; }
+.sweep-board-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 15px; }
 /* An author rule setting display ties with the browser's own
  * [hidden] { display: none } and wins by being declared later, so Withdraw and
  * Abandon were on screen from first paint with no sweep to withdraw from. The
