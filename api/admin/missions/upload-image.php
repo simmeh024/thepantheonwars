@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../../helpers.php';
+require_once __DIR__ . '/missions-helpers.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') pw_error('Method not allowed.', 405);
 pw_require_permission('missions.edit');
@@ -52,4 +53,9 @@ $destinationPath = $directory . '/' . $filename;
 $written = $keepAlpha ? imagepng($destination, $destinationPath . '.tmp', 6) : imagejpeg($destination, $destinationPath . '.tmp', 85);
 if (!$written) { imagedestroy($destination); pw_error('Could not save the processed image.'); }
 imagedestroy($destination); rename($destinationPath . '.tmp', $destinationPath);
-pw_json(['ok' => true, 'url' => '/uploads/' . $folder . '/' . $filename]);
+/* Write the admin-list thumbnail now rather than leaving it to the next list
+ * load. Best-effort: a failure here only means the list serves the full-size
+ * image, which is what it did before thumbnails existed. */
+$url = '/uploads/' . $folder . '/' . $filename;
+pw_mission_write_thumbnail($url);
+pw_json(['ok' => true, 'url' => $url]);

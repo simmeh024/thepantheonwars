@@ -551,3 +551,87 @@ function pw_admin_mission_gear_require_ready(PDO $db): void {
         pw_error('Run sql/migration_mission_gear.sql before managing equipment.', 409);
     }
 }
+
+/* ---------------------------------------------------------------------------
+ * List thumbnails.
+ *
+ * An uploaded portrait is stored at up to 1200px on its longest edge because
+ * the player-facing crew card shows it large. The admin lists draw the same
+ * file into a 42px cell, so a catalogue of 46 items used to cost megabytes of
+ * art for squares the size of a favicon.
+ *
+ * A separate small file is written rather than the original being shrunk: the
+ * original is what the crew card and the modal preview use, and there is no
+ * getting it back once it is gone.
+ *
+ * Thumbnails live in a `thumbs/` subfolder, deliberately -- list-images.php
+ * scans the library folder itself, so a sibling file would appear in the
+ * picker as a choosable 96px portrait. They are also never stored in a
+ * database column: the URL is derived from the original's name, so the
+ * existing portrait/icon validators keep rejecting anything but a real
+ * library file.
+ * ------------------------------------------------------------------------- */
+const PW_MISSION_THUMBNAIL_EDGE = 96;
+
+/** Where the thumbnail for a library image would live, or '' if not eligible. */
+function pw_mission_thumbnail_url(string $url): string {
+    if (!preg_match('~^/uploads/(mission-crew-images)/(img_[a-f0-9]{16})\.jpg$~', $url, $match)) return '';
+    return '/uploads/' . $match[1] . '/thumbs/' . $match[2] . '.jpg';
+}
+
+function pw_mission_upload_path(string $url): string {
+    return realpath(__DIR__ . '/../../..') . str_replace('/', DIRECTORY_SEPARATOR, $url);
+}
+
+/**
+ * Write the small copy for one library image.
+ *
+ * Returns false on any failure, including a host without GD -- a missing
+ * thumbnail is not an error, it just means the caller keeps serving the
+ * original, which is exactly the pre-existing behaviour.
+ */
+function pw_mission_write_thumbnail(string $url): bool {
+    $thumbUrl = pw_mission_thumbnail_url($url);
+    if ($thumbUrl === '' || !function_exists('imagecreatefromjpeg')) return false;
+    $sourcePath = pw_mission_upload_path($url);
+    $thumbPath = pw_mission_upload_path($thumbUrl);
+    if (!is_file($sourcePath)) return false;
+    $directory = dirname($thumbPath);
+    if (!is_dir($directory) && !mkdir($directory, 0755, true) && !is_dir($directory)) return false;
+    $source = @imagecreatefromjpeg($sourcePath);
+    if (!$source) return false;
+    $sourceWidth = imagesx($source);
+    $sourceHeight = imagesy($source);
+    $scale = min(1, PW_MISSION_THUMBNAIL_EDGE / max(1, max($sourceWidth, $sourceHeight)));
+    $width = max(1, (int)round($sourceWidth * $scale));
+    $height = max(1, (int)round($sourceHeight * $scale));
+    $destination = imagecreatetruecolor($width, $height);
+    imagefilledrectangle($destination, 0, 0, $width, $height, imagecolorallocate($destination, 20, 18, 28));
+    imagecopyresampled($destination, $source, 0, 0, 0, 0, $width, $height, $sourceWidth, $sourceHeight);
+    imagedestroy($source);
+    /* Written to a temporary name and renamed, like the upload itself: a reader
+     * must never be handed a half-written file, and two admins loading the list
+     * at once will both be generating the same missing thumbnails. */
+    $written = @imagejpeg($destination, $thumbPath . '.tmp', 82);
+    imagedestroy($destination);
+    if (!$written) { @unlink($thumbPath . '.tmp'); return false; }
+    if (!@rename($thumbPath . '.tmp', $thumbPath)) { @unlink($thumbPath . '.tmp'); return false; }
+    return true;
+}
+
+/**
+ * The thumbnail URL for a library image, generating it on first sight.
+ *
+ * Generation is capped per request by reference, so the first load of a large
+ * catalogue does not sit through 46 resizes. Anything not reached keeps its
+ * full-size URL and is picked up by the next load; nothing is ever missing,
+ * only occasionally still large.
+ */
+function pw_mission_thumbnail_for(string $url, int &$budget): string {
+    $thumbUrl = pw_mission_thumbnail_url($url);
+    if ($thumbUrl === '') return '';
+    if (is_file(pw_mission_upload_path($thumbUrl))) return $thumbUrl;
+    if ($budget <= 0) return '';
+    $budget--;
+    return pw_mission_write_thumbnail($url) ? $thumbUrl : '';
+}

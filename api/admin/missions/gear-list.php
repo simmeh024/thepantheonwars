@@ -23,7 +23,10 @@ $rows = $db->query(
      ORDER BY l.slot ASC, FIELD(l.tier, "legendary", "rare", "uncommon", "common"), l.name ASC'
 )->fetchAll();
 $slots = pw_missions_gear_slots();
-$rows = array_map(static function ($row) use ($slots, $stimsReady) {
+/* See crew-list.php: the catalogue is the longest of these lists, so the cap
+ * matters most here. */
+$thumbnailBudget = 12;
+$rows = array_map(static function ($row) use ($slots, $stimsReady, &$thumbnailBudget) {
     foreach (['id', 'drop_weight', 'bonus_strength', 'bonus_cunning', 'bonus_science', 'bonus_charisma', 'required_level', 'item_level', 'field_grade', 'owned_count', 'equipped_count'] as $key) {
         $row[$key] = (int)$row[$key];
     }
@@ -35,6 +38,7 @@ $rows = array_map(static function ($row) use ($slots, $stimsReady) {
     // The same classifier the player-facing inventory uses, so the admin list
     // and the panel it feeds can never label an item differently.
     $row['category'] = pw_missions_inventory_category($row);
+    $row['icon_thumb_url'] = pw_mission_thumbnail_for((string)$row['icon_url'], $thumbnailBudget);
     return $row;
 }, $rows);
 pw_json([

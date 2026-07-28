@@ -13,9 +13,13 @@ $rows = $db->query(
      GROUP BY c.id
      ORDER BY c.is_starter DESC, c.role ASC, c.name ASC'
 )->fetchAll();
-$rows = array_map(static function ($row) {
+/* Shared across the whole list, so one load resizes at most this many images
+ * and the rest keep their full-size URL until the next one. */
+$thumbnailBudget = 12;
+$rows = array_map(static function ($row) use (&$thumbnailBudget) {
     $row['id'] = (int)$row['id']; $row['starting_level'] = (int)$row['starting_level']; $row['player_count'] = (int)$row['player_count'];
     $row['is_starter'] = (bool)$row['is_starter']; $row['is_enabled'] = (bool)$row['is_enabled'];
+    $row['portrait_thumb_url'] = pw_mission_thumbnail_for((string)$row['portrait_url'], $thumbnailBudget);
     return $row;
 }, $rows);
 pw_json(['ok' => true, 'crew' => $rows, 'crew_capacity_ready' => $capacityReady]);

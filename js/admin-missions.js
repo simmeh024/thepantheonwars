@@ -39,6 +39,20 @@
     return typeof window.pwHasPermission === 'function' && window.pwHasPermission(permission);
   }
 
+  /* One 42px list thumbnail.
+   *
+   * The endpoint sends a 96px copy where one exists and an empty string
+   * otherwise -- a freshly uploaded image whose thumbnail has not been written
+   * yet, or a site image outside the upload library, both of which fall back to
+   * the original rather than showing an empty cell. Lazy either way: a
+   * catalogue is longer than a viewport, and 42px is the size actually drawn,
+   * so declaring it stops the browser reserving room for the source dimensions. */
+  function rowThumbnail(thumbUrl, fullUrl) {
+    var source = thumbUrl || fullUrl;
+    return '<img class="mission-admin-portrait" src="' + escapeHtml(assetUrl(source))
+      + '" alt="" width="42" height="42" loading="lazy" decoding="async">';
+  }
+
   function escapeHtml(value) {
     var node = document.createElement('div');
     node.textContent = value == null ? '' : String(value);
@@ -195,10 +209,7 @@
       row.className = 'admin-row mission-admin-row mission-admin-crew-columns';
       row.setAttribute('aria-disabled', can('missions.edit') ? 'false' : 'true');
       if (can('missions.edit')) { row.tabIndex = 0; row.setAttribute('role', 'button'); }
-      /* Lazy, with its display size declared: an uploaded portrait is stored at
-       * full resolution (960x1200 and larger) and drawn here at 42px, so a long
-       * roster otherwise pulls megabytes of art for rows nobody has scrolled to. */
-      var portrait = member.portrait_url ? '<img class="mission-admin-portrait" src="' + escapeHtml(assetUrl(member.portrait_url)) + '" alt="" width="42" height="42" loading="lazy" decoding="async">' : '';
+      var portrait = member.portrait_url ? rowThumbnail(member.portrait_thumb_url, member.portrait_url) : '';
       row.innerHTML =
         '<div class="mission-admin-title">' + portrait + '<div><strong>' + escapeHtml(member.name) + '</strong><small>Level ' + member.starting_level + ' · ' + escapeHtml(member.slug) + '</small></div></div>' +
         '<span>' + escapeHtml(member.role) + '</span>' +
@@ -1036,7 +1047,7 @@
        * second is what a slot change would return to inventory. */
       var held = item.owned_count + (item.equipped_count ? ' · ' + item.equipped_count + ' worn' : '');
       row.innerHTML =
-        '<div class="mission-admin-title">' + (item.icon_url ? '<img class="mission-admin-portrait" src="' + escapeHtml(assetUrl(item.icon_url)) + '" alt="" width="42" height="42" loading="lazy" decoding="async">' : '') +
+        '<div class="mission-admin-title">' + (item.icon_url ? rowThumbnail(item.icon_thumb_url, item.icon_url) : '') +
         '<div><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.slug) + '</small></div></div>' +
         '<span class="mission-admin-cell-sub">' + escapeHtml(item.slot_label || 'Salvage') + '</span>' +
         '<span class="mission-gear-tier is-' + escapeHtml(item.tier) + '">' + escapeHtml(item.tier) + '</span>' +

@@ -640,9 +640,32 @@ at that time.
   `decoding="async"` and the real 42x42 display size, on both lists, on the
   loot-table entry rows sharing that thumbnail class, and on the image-library
   picker grid (a 260px scroll box over the whole upload folder, so it gains the
-  most). **The stored art is still full-size** -- a visible row still fetches
-  276KB for a 42px square, and real thumbnails in the upload pipeline plus a
-  backfill remain the proper fix.
+  most).
+  **Then real thumbnails, because lazy loading only defers the cost.** A visible
+  row still fetched 276KB for a 42px square. `pw_mission_write_thumbnail()`
+  writes a 96px copy (2x for a 42px cell) beside the original, and
+  `crew-list.php`/`gear-list.php` ship `portrait_thumb_url`/`icon_thumb_url`
+  alongside the full URL; the browser uses the thumbnail when there is one and
+  the original when there is not, so a cell is never empty.
+  **The original is never shrunk** -- the player-facing crew card and the modal
+  preview both show it large, and there is no getting it back.
+  **Thumbnails live in a `thumbs/` subfolder** rather than beside the original,
+  because `list-images.php` scans the library folder itself and a sibling file
+  would appear in the picker as a choosable 96px portrait. They are also **never
+  stored in a database column**: the URL is derived from the original's name, so
+  `pw_admin_mission_crew_portrait()` and `pw_missions_gear_icon_url()` keep
+  rejecting everything but a real library file. The subfolder inherits the
+  library's `.htaccess`, so PHP execution stays denied.
+  **No CLI backfill step.** A missing thumbnail is generated on first sight by
+  the list endpoint, capped at 12 per request (`pw_mission_thumbnail_for()`
+  takes the budget by reference), so a large catalogue warms up over a couple of
+  loads instead of sitting through 46 resizes at once, and anything not yet
+  reached simply serves the original. This suits a host where a one-off
+  `php tools/...` run is awkward, and it means the feature has no deploy order.
+  Written to a `.tmp` name and renamed, like the upload itself, since two admins
+  loading the list at once will both be generating the same missing files.
+  **The picker grid deliberately keeps the full-size image** (lazily): its cells
+  are 110x130, where a 96px thumbnail would visibly upscale.
   **Cause 2, and the one to remember when splitting a page out:** `Split crew
   and gear into dedicated admin pages` moved them from **panels** to
   **sections**. As panels they were `hidden` and `switchPanel()` only unhid
@@ -678,7 +701,16 @@ at that time.
   returning in 4-11ms. Home is therefore slow once per minute-window, not every
   time, and it is already a deferred separate request that does not block the
   rest of the page. Raising that TTL is the one-line change if it ever annoys.
-  `admin-missions.js?v=23` / `admin-loot-tables.js?v=10`.
+  **A sandbox note worth re-reading before writing a verification script:** the
+  crude regex-stripping brace/paren checker reports a *false* imbalance on
+  `api/admin/missions/missions-helpers.php` -- at HEAD, before any edit -- because
+  a regex literal's parens sit inside a single-quoted string it mishandles. A
+  checker that walks the source instead reports every touched file balanced.
+  Calibrate against the committed file first, exactly as the note about the JS
+  balance checker further down already says. And writing that script needed the
+  Write tool: a bash heredoc in this sandbox ate the backslash in its own
+  escape-handling branch and produced a syntax error.
+  `admin-missions.js?v=24` / `admin-loot-tables.js?v=10`.
 
 - **Crew rarity on the card, and arriving crew as an event.** No migration.
   **One tone per rarity**, reusing the `--gear-tier` triple the item surfaces
