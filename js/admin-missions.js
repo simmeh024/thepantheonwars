@@ -1608,7 +1608,14 @@
       .then(function (result) {
         closeGear();
         if (result.unequipped > 0) {
-          window.alert('Slot changed, so ' + result.unequipped + ' equipped cop' + (result.unequipped === 1 ? 'y was' : 'ies were') + ' returned to their owners.');
+          /* Says which edit caused it: "slot changed" on a requirement change
+           * would send an administrator looking for a slot they never touched. */
+          var cause = result.unequipped_reason === 'requirement'
+            ? 'Crew who no longer meet the requirements had it removed, so '
+            : 'Slot changed, so ';
+          window.alert(cause + (result.unequipped === 1
+            ? '1 equipped copy was returned to its owner.'
+            : result.unequipped + ' equipped copies were returned to their owners.'));
         }
         return loadGear();
       })
