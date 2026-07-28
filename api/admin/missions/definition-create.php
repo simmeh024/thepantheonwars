@@ -37,6 +37,7 @@ if (pw_mission_contested_contracts_ready($db)) {
     $columns['is_contested'] = $data['is_contested'];
     $columns['rival_faction_name'] = $data['rival_faction_name'];
 }
+if (pw_mission_salvage_recovery_contracts_ready($db)) $columns['is_salvage_recovery_contract'] = $data['is_salvage_recovery_contract'];
 $stmt = $db->prepare(
     'INSERT INTO game_mission_definitions (' . implode(', ', array_keys($columns)) . ')'
     . ' VALUES (' . pw_missions_placeholders(count($columns)) . ')'

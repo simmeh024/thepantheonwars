@@ -319,6 +319,23 @@
       + '<strong>Sector collapse recorded</strong><p>' + esc(detail) + '</p></span></aside>';
   }
 
+  /* A recovery lead is issued by the server only after the tether has failed
+   * to save a rare-or-better item. It is shown in the collapse debrief rather
+   * than as a vague later notification, so the player can immediately see why
+   * a route to Missions has appeared. */
+  function salvageRecoveryMarkup(result) {
+    var recovery = result.payout && result.payout.salvage_recovery_contract;
+    if (!recovery || !recovery.lost_item) return '';
+    var item = recovery.lost_item;
+    var tier = String(item.tier || 'rare').toLowerCase();
+    var icon = safeImage(item.icon_url);
+    return '<aside class="sweep-salvage-contract is-tier-' + esc(tier) + '" role="status">'
+      + '<span class="eyebrow">Salvage contract issued</span>'
+      + '<div>' + (icon ? '<img src="/' + esc(String(icon).replace(/^\//, '')) + '" alt="">' : '<span class="sweep-salvage-contract-glyph" aria-hidden="true">✦</span>')
+      + '<span><strong>' + esc(item.name) + '</strong><p>This important ' + esc(tier) + ' item was lost in the collapse. Complete the recovery contract to bring back this exact item.</p></span></div>'
+      + '<a class="btn btn-solid" href="missions.html#mission-salvage-recovery-section">Plan recovery</a></aside>';
+  }
+
   function renderResult() {
     var result = state.result;
     var field = result.field;
@@ -341,6 +358,7 @@
       + '<div class="sweep-result-head"><span class="eyebrow">' + (won ? 'Field debrief' : 'Recovery debrief') + '</span>'
       + '<h3 id="sweep-result-title">' + heading + '</h3><p>' + esc(copy) + '</p></div>'
       + collapseMarkup(result)
+      + salvageRecoveryMarkup(result)
       + conditionMarkup(field.condition, true)
       + resultPayoutMarkup(result)
       + achievementMarkup(result)
@@ -967,7 +985,7 @@
       else state.fieldMessage = 'Nothing in that cell.';
       if (data.ended !== 'collapse') setStatus(state.fieldMessage);
       if (data.ended === 'collapse') {
-        showResult(data.result, { tether: data.tether, achievements: data.achievements || [] });
+        showResult(data.result, { tether: data.tether, achievements: data.achievements || [], salvage_recovery_contract: data.salvage_recovery_contract || null });
         return load();
       }
       clearRecentReveal();

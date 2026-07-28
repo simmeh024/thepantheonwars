@@ -23,6 +23,22 @@ try {
     if (!$mission || !(bool)$mission['is_enabled'] || $mission['world_key'] !== 'neoh') {
         throw new RuntimeException('That mission is no longer available.');
     }
+    /* Pool definitions are never normal board missions. Their private offer is
+     * locked here before any crew is touched, which prevents a guessed id from
+     * launching an item-recovery run without first losing that item in a Sweep. */
+    $salvageRecoveryReady = pw_mission_salvage_recovery_contracts_ready($db);
+    $salvageRecovery = null;
+    if ($salvageRecoveryReady && !empty($mission['is_salvage_recovery_contract'])) {
+        $recoveryStmt = $db->prepare(
+            'SELECT * FROM game_player_salvage_recovery_contracts
+             WHERE user_id = ? AND mission_definition_id = ? AND status = "available" FOR UPDATE'
+        );
+        $recoveryStmt->execute([$userId, (int)$mission['id']]);
+        $salvageRecovery = $recoveryStmt->fetch();
+        if (!$salvageRecovery) {
+            throw new RuntimeException('This salvage recovery contract is no longer available.');
+        }
+    }
     if ((pw_mission_research_locks_ready($db) || pw_research_ready($db))
         && !pw_research_mission_is_unlocked($db, $userId, (int)$mission['id'])) {
         throw new RuntimeException('This classified mission requires its Research Facility protocol first.');
@@ -211,6 +227,15 @@ try {
     );
     $insert->execute($values);
     $playerMissionId = (int)$db->lastInsertId();
+    if ($salvageRecovery) {
+        $recoveryUpdate = $db->prepare(
+            'UPDATE game_player_salvage_recovery_contracts
+             SET status = "active", player_mission_id = ?
+             WHERE id = ? AND user_id = ? AND status = "available"'
+        );
+        $recoveryUpdate->execute([$playerMissionId, (int)$salvageRecovery['id'], $userId]);
+        if ($recoveryUpdate->rowCount() !== 1) throw new RuntimeException('This salvage recovery contract changed before launch.');
+    }
     $linkStmt = $db->prepare('INSERT INTO game_player_mission_crew (player_mission_id, player_crew_id) VALUES (?, ?)');
     foreach ($crewIds as $crewId) $linkStmt->execute([$playerMissionId, $crewId]);
 

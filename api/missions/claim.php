@@ -17,7 +17,9 @@ try {
     $statsColumns = pw_mission_stats_ready($db) ? ', md.base_success_percent, md.loot_rolls' : '';
     $creditsReady = pw_mission_credits_ready($db);
     $contestedReady = pw_mission_contested_contracts_ready($db);
+    $salvageRecoveryReady = pw_mission_salvage_recovery_contracts_ready($db);
     if ($creditsReady) $statsColumns .= ', md.credit_reward';
+    if ($salvageRecoveryReady) $statsColumns .= ', md.is_salvage_recovery_contract';
     $missionStmt = $db->prepare(
         'SELECT pm.*, md.name AS mission_name, md.mission_type, md.duration_seconds AS mission_duration_seconds' . $statsColumns . '
          FROM game_player_missions pm
@@ -40,6 +42,23 @@ try {
         $mission['status'] = 'completed';
     }
     if ($mission['status'] !== 'completed') throw new RuntimeException('Complete this mission before claiming its rewards.');
+
+    $salvageRecovery = null;
+    if ($salvageRecoveryReady && !empty($mission['is_salvage_recovery_contract'])) {
+        $recoverySlot = pw_mission_gear_ready($db) ? 'loot.slot' : '""';
+        $recoveryStmt = $db->prepare(
+            'SELECT offer.*, loot.name AS loot_name, LOWER(loot.tier) AS loot_tier,
+                    ' . $recoverySlot . ' AS loot_slot, loot.icon_url AS loot_icon_url
+             FROM game_player_salvage_recovery_contracts offer
+             LEFT JOIN game_loot_definitions loot ON loot.id = offer.loot_definition_id
+             WHERE offer.player_mission_id = ? AND offer.user_id = ? AND offer.status = "active" FOR UPDATE'
+        );
+        $recoveryStmt->execute([$missionId, $userId]);
+        $salvageRecovery = $recoveryStmt->fetch();
+        if (!$salvageRecovery || $salvageRecovery['loot_definition_id'] === null || !$salvageRecovery['loot_name']) {
+            throw new RuntimeException('The lost-item recovery record is no longer available.');
+        }
+    }
 
     $statsReady = pw_mission_stats_ready($db);
     $crewStmt = $db->prepare(
@@ -335,6 +354,44 @@ try {
         $loot = array_merge($loot, $lootTableAwards['gear']);
     }
 
+    /* The recovery lead names one exact object, not another random loot roll.
+     * It uses the same storage gate as every other item reward; a full hold is
+     * reported plainly in the debrief rather than cloning the item into an
+     * unbounded hidden inventory. A failed recovery closes the lead with no
+     * return, which is what gives the original Sweep loss its weight. */
+    $salvageRecoveryResult = null;
+    if ($salvageRecovery) {
+        $stored = false;
+        if ($succeeded) {
+            $recoveredItem = [[
+                'id' => (int)$salvageRecovery['loot_definition_id'],
+                'name' => (string)$salvageRecovery['loot_name'],
+                'tier' => (string)$salvageRecovery['loot_tier'],
+                'upgraded' => false,
+                'slot' => (string)($salvageRecovery['loot_slot'] ?? ''),
+                'icon_url' => pw_missions_gear_icon_url($salvageRecovery['loot_icon_url'] ?? ''),
+            ]];
+            $storedOutcome = pw_missions_store_loot($db, $userId, $recoveredItem, $research);
+            $collectSkipped($storedOutcome);
+            $stored = empty($storedOutcome['skipped']);
+            $loot = array_merge($loot, $recoveredItem);
+        }
+        $recoveryStatus = $succeeded ? 'claimed' : 'failed';
+        $recoveryUpdate = $db->prepare(
+            'UPDATE game_player_salvage_recovery_contracts SET status = ?
+             WHERE id = ? AND user_id = ? AND player_mission_id = ? AND status = "active"'
+        );
+        $recoveryUpdate->execute([$recoveryStatus, (int)$salvageRecovery['id'], $userId, $missionId]);
+        if ($recoveryUpdate->rowCount() !== 1) throw new RuntimeException('This salvage recovery contract was already settled.');
+        $salvageRecoveryResult = [
+            'active' => true,
+            'name' => (string)$salvageRecovery['loot_name'],
+            'tier' => strtolower((string)$salvageRecovery['loot_tier']),
+            'recovered' => $succeeded,
+            'stored' => $stored,
+        ];
+    }
+
     /* A crew member the roster already holds cannot be granted twice, and used
      * to be worth nothing at all -- a roll that landed and paid out silence.
      * It converts to credits at the rarity's rate instead.
@@ -420,6 +477,7 @@ try {
         'credits_total' => $creditBalance,
         'credits_ready' => $creditsReady,
         'rival' => $rival,
+        'salvage_recovery_contract' => $salvageRecoveryResult,
         'level_ups' => $levelUps,
         'crew_results' => $crewResults,
         'loot' => $loot,

@@ -79,6 +79,18 @@ function pw_admin_mission_definition_input(array $input): array {
         pw_error('Rival faction name must be 100 characters or fewer.');
     }
     if ($isContested) $rivalFaction = pw_missions_contested_contract_faction($rivalFaction);
+    /* A recovery lead is a private, one-off version of an ordinary mission.
+     * It cannot double as an Overlord's daily contract or a contested race;
+     * keeping those pools disjoint makes the issue rule understandable and
+     * prevents a lost Sweep item from leaking into someone else's allegiance. */
+    $recoveryReady = pw_mission_salvage_recovery_contracts_ready(pw_db());
+    $isSalvageRecovery = $recoveryReady && !empty($input['is_salvage_recovery_contract']) ? 1 : 0;
+    if ($isSalvageRecovery && $overlordId !== null) {
+        pw_error('A salvage recovery pool mission must remain an ordinary, non-Overlord mission.');
+    }
+    if ($isSalvageRecovery && $isContested) {
+        pw_error('A salvage recovery pool mission cannot also be a contested contract.');
+    }
     $unlocksAfterRaw = trim((string)($input['unlocks_after_mission_id'] ?? ''));
     $unlocksAfterMissionId = null;
     if ($unlocksAfterRaw !== '') {
@@ -99,6 +111,7 @@ function pw_admin_mission_definition_input(array $input): array {
         'overlord_id' => $overlordId,
         'is_contested' => $isContested,
         'rival_faction_name' => $isContested ? $rivalFaction : null,
+        'is_salvage_recovery_contract' => $isSalvageRecovery,
         'unlocks_after_mission_id' => $unlocksAfterMissionId,
         'unlocks_after_completion_count' => $unlocksAfterCompletionCount,
         'is_campaign_final' => !empty($input['is_campaign_final']) ? 1 : 0,

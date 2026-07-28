@@ -113,6 +113,156 @@ function pw_mission_contested_contracts_ready(PDO $db): bool {
         ]);
 }
 
+/*
+ * Salvage recovery contracts are regular, administrator-authored missions that
+ * are withheld from the ordinary board. A Sweep collapse can issue one of the
+ * checked definitions to recover a specific rare-or-better item from the lost
+ * field. The offer table is deliberately separate from player missions: the
+ * item has to survive until claim time, and a player must never be able to
+ * launch a pool definition merely by learning its id.
+ */
+function pw_mission_salvage_recovery_contracts_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_mission_overlord_contracts_ready($db) || !pw_mission_gear_ready($db)) return $ready = false;
+    return $ready = pw_schema_has($db, 'game_mission_definitions', ['is_salvage_recovery_contract'])
+        && pw_schema_has($db, 'game_player_salvage_recovery_contracts', [
+            'user_id', 'source_sweep_run_id', 'source_sweep_find_id',
+            'mission_definition_id', 'loot_definition_id', 'issued_date',
+            'player_mission_id', 'status',
+        ]);
+}
+
+/** An Overlord's daily contract is preceded by a small, persistent access puzzle. */
+function pw_mission_overlord_clearances_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_mission_overlord_contracts_ready($db)) return $ready = false;
+    return $ready = pw_schema_has($db, 'game_player_overlord_contract_clearances', [
+        'user_id', 'mission_definition_id', 'issued_date', 'collapse_index', 'safe_picks', 'status',
+    ]);
+}
+
+function pw_missions_overlord_clearance_picks($raw): array {
+    $picks = [];
+    foreach (explode(',', trim((string)$raw)) as $value) {
+        if ($value === '' || !ctype_digit($value)) continue;
+        $cell = (int)$value;
+        if ($cell >= 0 && $cell < 4) $picks[$cell] = true;
+    }
+    return array_keys($picks);
+}
+
+/** Never disclose the collapse cell while an access tile is still live. */
+function pw_missions_overlord_clearance_public(?array $row, bool $ready): array {
+    $status = $row ? (string)$row['status'] : 'blocked';
+    $safePicks = $row ? pw_missions_overlord_clearance_picks($row['safe_picks'] ?? '') : [];
+    $payload = [
+        'ready' => $ready,
+        'status' => in_array($status, ['blocked', 'cleared', 'collapsed'], true) ? $status : 'blocked',
+        'safe_picks' => $safePicks,
+        'required_safe_picks' => 2,
+    ];
+    if ($row && $status === 'collapsed') $payload['collapse_index'] = (int)$row['collapse_index'];
+    return $payload;
+}
+
+function pw_missions_overlord_clearance_state(PDO $db, int $userId, int $missionId): array {
+    $ready = pw_mission_overlord_clearances_ready($db);
+    if (!$ready) return pw_missions_overlord_clearance_public(null, false);
+    $stmt = $db->prepare(
+        'SELECT collapse_index, safe_picks, status
+         FROM game_player_overlord_contract_clearances
+         WHERE user_id = ? AND mission_definition_id = ? AND issued_date = UTC_DATE()'
+    );
+    $stmt->execute([$userId, $missionId]);
+    return pw_missions_overlord_clearance_public($stmt->fetch() ?: null, true);
+}
+
+/** The currently actionable recovery lead, if a Sweep collapse issued one. */
+function pw_missions_salvage_recovery_contract(PDO $db, int $userId): array {
+    $state = ['ready' => pw_mission_salvage_recovery_contracts_ready($db), 'contract' => null, 'lost_item' => null];
+    if (!$state['ready']) return $state;
+    $stmt = $db->prepare(
+        'SELECT offer.id AS recovery_contract_id, offer.issued_date, offer.mission_definition_id,
+                offer.loot_definition_id, mission.*, loot.name AS lost_item_name,
+                LOWER(loot.tier) AS lost_item_tier, loot.icon_url AS lost_item_icon_url
+         FROM game_player_salvage_recovery_contracts offer
+         JOIN game_mission_definitions mission ON mission.id = offer.mission_definition_id
+         LEFT JOIN game_loot_definitions loot ON loot.id = offer.loot_definition_id
+         WHERE offer.user_id = ? AND offer.status = "available"
+         ORDER BY offer.id DESC LIMIT 1'
+    );
+    $stmt->execute([$userId]);
+    $row = $stmt->fetch();
+    if (!$row) return $state;
+    $state['contract'] = $row;
+    $state['lost_item'] = [
+        'id' => (int)$row['loot_definition_id'],
+        'name' => (string)($row['lost_item_name'] ?? 'Important recovery'),
+        'tier' => strtolower((string)($row['lost_item_tier'] ?? 'rare')),
+        'icon_url' => pw_missions_gear_icon_url($row['lost_item_icon_url'] ?? ''),
+    ];
+    return $state;
+}
+
+/**
+ * Issue at most one actionable lead on a UTC date. This is called inside the
+ * Sweep collapse transaction after the emergency tether has had its chance.
+ */
+function pw_missions_issue_salvage_recovery_contract(PDO $db, int $userId, int $runId, ?array $tether): ?array {
+    if (!pw_mission_salvage_recovery_contracts_ready($db)) return null;
+    /* Do not stack private leads behind one another. Besides keeping the card
+     * honest, this means a player can never have an older lost item silently
+     * displaced by a newer collapse before deciding whether to pursue it. */
+    $open = $db->prepare(
+        'SELECT id FROM game_player_salvage_recovery_contracts
+         WHERE user_id = ? AND status IN ("available", "active") LIMIT 1 FOR UPDATE'
+    );
+    $open->execute([$userId]);
+    if ($open->fetch()) return null;
+    $lost = $db->prepare(
+        'SELECT find.id, find.cell_index, find.loot_definition_id, loot.name, LOWER(loot.tier) AS tier, loot.icon_url
+         FROM game_player_sweep_finds find
+         JOIN game_loot_definitions loot ON loot.id = find.loot_definition_id
+         WHERE find.run_id = ? AND LOWER(loot.tier) IN ("rare", "epic", "legendary")
+         ORDER BY find.id ASC'
+    );
+    $lost->execute([$runId]);
+    $candidates = array_values(array_filter($lost->fetchAll(), static function (array $find) use ($tether): bool {
+        return !($tether
+            && ($tether['kind'] ?? '') === 'gear'
+            && ($tether['state'] ?? '') !== 'no_room'
+            && (int)($tether['cell_index'] ?? -1) === (int)$find['cell_index']);
+    }));
+    if (!$candidates) return null;
+
+    $pool = $db->query(
+        'SELECT id FROM game_mission_definitions
+         WHERE is_enabled = 1 AND is_salvage_recovery_contract = 1 AND overlord_id IS NULL
+         ORDER BY sort_order ASC, id ASC'
+    )->fetchAll();
+    if (!$pool) return null;
+    $find = $candidates[random_int(0, count($candidates) - 1)];
+    $mission = $pool[random_int(0, count($pool) - 1)];
+    /* The unique user/date key is the concurrency guard. INSERT IGNORE makes a
+     * simultaneous collapse harmless: only its first issued lead is retained. */
+    $issue = $db->prepare(
+        'INSERT IGNORE INTO game_player_salvage_recovery_contracts
+         (user_id, source_sweep_run_id, source_sweep_find_id, mission_definition_id, loot_definition_id, issued_date, status)
+         VALUES (?, ?, ?, ?, ?, UTC_DATE(), "available")'
+    );
+    $issue->execute([$userId, $runId, (int)$find['id'], (int)$mission['id'], (int)$find['loot_definition_id']]);
+    if ($issue->rowCount() !== 1) return null;
+    return [
+        'mission_id' => (int)$mission['id'],
+        'lost_item' => [
+            'id' => (int)$find['loot_definition_id'], 'name' => (string)$find['name'],
+            'tier' => (string)$find['tier'], 'icon_url' => pw_missions_gear_icon_url($find['icon_url'] ?? ''),
+        ],
+    ];
+}
+
 function pw_missions_contested_contract_is_enabled(array $mission, bool $ready): bool {
     return $ready && !empty($mission['is_contested'])
         && isset($mission['overlord_id']) && $mission['overlord_id'] !== null
@@ -274,7 +424,7 @@ function pw_missions_daily_overlord_contract(PDO $db, int $userId, int $rank, ?a
  * Without this a player could read a contract id out of the network tab on any
  * day it happened to be offered and launch it every day afterwards.
  */
-function pw_missions_overlord_contract_block(PDO $db, int $userId, array $mission, int $rank, ?array $overlord): ?string {
+function pw_missions_overlord_contract_daily_block(PDO $db, int $userId, array $mission, int $rank, ?array $overlord): ?string {
     if (!pw_mission_overlord_contracts_ready($db)) return null;
     $overlordId = isset($mission['overlord_id']) && $mission['overlord_id'] !== null ? (int)$mission['overlord_id'] : 0;
     if ($overlordId < 1) return null;
@@ -302,6 +452,18 @@ function pw_missions_overlord_contract_block(PDO $db, int $userId, array $missio
         return 'That contract is not the one issued to you today.';
     }
     return null;
+}
+
+function pw_missions_overlord_contract_block(PDO $db, int $userId, array $mission, int $rank, ?array $overlord): ?string {
+    $block = pw_missions_overlord_contract_daily_block($db, $userId, $mission, $rank, $overlord);
+    if ($block !== null) return $block;
+    if (!pw_mission_overlord_clearances_ready($db)) return null;
+    $clearance = pw_missions_overlord_clearance_state($db, $userId, (int)$mission['id']);
+    if ($clearance['status'] === 'cleared') return null;
+    if ($clearance['status'] === 'collapsed') {
+        return 'The blocked access tile collapsed. This Overlord contract is unavailable until the next UTC reset.';
+    }
+    return 'Clear the blocked access tile before accepting this Overlord contract.';
 }
 
 /**

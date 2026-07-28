@@ -1017,6 +1017,31 @@
  * states are not read as the same thing at a glance. */
 .mission-contract-copy.is-running { color: #e8c98a; }
 .mission-contract-card.is-running { border-color: rgba(224,190,120,0.42); }
+.mission-contract-card.is-clearance-blocked { border-color: color-mix(in srgb, var(--overlord-accent, #c9a227) 70%, rgba(224,138,114,0.72)); }
+.mission-contract-clearance { display: grid; gap: 7px; margin-top: 3px; padding: 9px; border: 1px solid color-mix(in srgb, var(--overlord-accent, #c9a227) 38%, rgba(97,156,190,0.38)); background: rgba(5,13,27,0.5); }
+.mission-contract-clearance > span { color: var(--overlord-text, #e2c76a); font-size: .57rem; font-weight: 700; letter-spacing: .09em; text-transform: uppercase; }
+.mission-contract-clearance p { margin: 0; color: #a9c2d0; font-size: .63rem; line-height: 1.42; }
+.mission-contract-clearance small { color: #8faabb; font-size: .56rem; }
+.mission-contract-clearance-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; padding: 3px; border: 1px solid rgba(112,169,198,0.3); background: rgba(2,8,18,0.8); }
+.mission-contract-clearance-cell { position: relative; aspect-ratio: 1.7; min-height: 29px; padding: 0; border: 1px solid color-mix(in srgb, var(--overlord-accent, #c9a227) 34%, rgba(86,144,180,0.45)); background: linear-gradient(145deg, rgba(24,46,68,0.82), rgba(10,17,35,0.94)); color: #9edba8; cursor: pointer; transition: border-color .18s ease, background-color .18s ease, transform .18s ease; }
+.mission-contract-clearance-cell::after { content: ''; position: absolute; inset: 4px; border: 1px solid rgba(150,206,223,0.13); pointer-events: none; }
+.mission-contract-clearance-cell:hover:not(:disabled), .mission-contract-clearance-cell:focus-visible { border-color: var(--overlord-text, #e2c76a); background: color-mix(in srgb, var(--overlord-accent, #c9a227) 20%, rgba(10,17,35,0.94)); outline: none; transform: translateY(-1px); }
+.mission-contract-clearance-cell:disabled { cursor: default; }.mission-contract-clearance-cell.is-secure { border-color: rgba(115,211,157,0.62); background: linear-gradient(145deg, rgba(41,104,82,0.78), rgba(12,45,43,0.92)); }
+.mission-contract-clearance-cell span { position: relative; z-index: 1; font-size: .9rem; }
+.mission-contract-clearance.is-collapsed { border-color: rgba(224,138,114,0.56); background: linear-gradient(145deg, rgba(69,25,38,0.64), rgba(21,10,25,0.92)); }.mission-contract-clearance.is-collapsed > span { color: #e8a38f; }
+.mission-contract-clear { margin: 1px 0 0; color: #9edba8; font-size: .63rem; }
+
+/* A private Sweep lead takes a full-width command card: its lost object is the
+ * reason for the mission, so it is given the same visual weight as a result
+ * reward rather than buried among ordinary operations. */
+.mission-salvage-recovery-section { padding: 0; border: 0; background: transparent; }.mission-salvage-recovery-section[hidden] { display: none; }
+.mission-salvage-recovery-card { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(190px, .85fr) auto; align-items: center; gap: 18px; padding: 18px 20px; border: 1px solid rgba(126,198,222,0.5); background: linear-gradient(125deg, rgba(13,58,73,0.72), rgba(28,16,58,0.86)); box-shadow: inset 0 0 26px rgba(87,214,224,0.07), 0 10px 28px rgba(2,6,20,0.18); }
+.mission-salvage-recovery-card.is-tier-epic { border-color: rgba(184,126,234,0.66); background: linear-gradient(125deg, rgba(52,25,85,0.78), rgba(21,18,61,0.88)); }.mission-salvage-recovery-card.is-tier-legendary { border-color: rgba(240,203,117,0.72); background: linear-gradient(125deg, rgba(78,52,18,0.68), rgba(43,20,56,0.9)); }
+.mission-salvage-recovery-alert { display: grid; gap: 4px; }.mission-salvage-recovery-alert .eyebrow { margin: 0; color: #8be1e6; }.mission-salvage-recovery-alert strong { color: #f1edf9; font: 600 .96rem/1.25 'Cinzel', serif; }.mission-salvage-recovery-alert p { margin: 0; max-width: 48ch; color: #a9c2d0; font-size: .72rem; line-height: 1.45; }
+.mission-salvage-recovery-target { display: grid; grid-template-columns: 54px minmax(0, 1fr); align-items: center; gap: 10px; }.mission-salvage-recovery-art { display: grid; width: 54px; height: 54px; place-items: center; overflow: hidden; border: 1px solid rgba(126,213,222,0.48); background: rgba(5,13,27,0.74); color: #e9d399; }.mission-salvage-recovery-art img { width: 100%; height: 100%; object-fit: cover; }.mission-salvage-recovery-target small, .mission-salvage-recovery-target em { display: block; color: #91afbe; font-size: .58rem; font-style: normal; letter-spacing: .055em; text-transform: uppercase; }.mission-salvage-recovery-target strong { display: block; overflow: hidden; margin: 3px 0; color: #f2edf7; font: 600 .78rem/1.2 'Cinzel', serif; text-overflow: ellipsis; white-space: nowrap; }
+.mission-salvage-recovery-actions { display: grid; justify-items: end; gap: 8px; }.mission-salvage-recovery-actions span { max-width: 23ch; color: #9edba8; font-size: .61rem; line-height: 1.35; text-align: right; }.mission-salvage-recovery-actions .btn { white-space: nowrap; }
+.mission-result-salvage-recovery { margin: 14px 0 0; padding: 11px 13px; border: 1px solid rgba(126,213,222,0.48); background: rgba(11,47,60,0.42); }.mission-result-salvage-recovery span { display: block; color: #8be1e6; font-size: .57rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }.mission-result-salvage-recovery strong { display: block; margin-top: 3px; color: #eef5f6; font: 600 .8rem/1.25 'Cinzel', serif; }.mission-result-salvage-recovery p { margin: 4px 0 0; color: #a9c2d0; font-size: .68rem; line-height: 1.42; }.mission-result-salvage-recovery.is-failed { border-color: rgba(224,138,114,0.52); background: rgba(72,28,42,0.42); }.mission-result-salvage-recovery.is-failed span { color: #e8a38f; }
+@media (max-width: 760px) { .mission-salvage-recovery-card { grid-template-columns: 1fr; gap: 13px; }.mission-salvage-recovery-actions { justify-items: start; }.mission-salvage-recovery-actions span { max-width: none; text-align: left; } }
 
 /* ---------------------------------------------------------------------------
  * Inventory limits, stims and the quartermaster rail card.

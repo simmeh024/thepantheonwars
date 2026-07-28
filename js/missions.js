@@ -75,6 +75,8 @@
   var researchAlert = document.getElementById('mission-research-alert');
   var profileCard = document.getElementById('mission-profile-card');
   var contractCard = document.getElementById('mission-contract-card');
+  var salvageRecoverySection = document.getElementById('mission-salvage-recovery-section');
+  var salvageRecoveryCard = document.getElementById('mission-salvage-recovery-card');
   var dailyCard = document.getElementById('mission-daily-card');
   var resultModal = document.getElementById('mission-result-modal');
   var resultInner = document.getElementById('mission-result-inner');
@@ -300,7 +302,9 @@
        way, so the card's job is to say so rather than to offer a button that
        cannot work -- the same standing rule as every other control here. */
     var inFlight = !claimed && !!state.in_flight;
-    contractCard.className = 'mission-contract-card' + (claimed ? ' is-claimed' : (inFlight ? ' is-running' : ''));
+    var clearance = state.clearance;
+    var clearanceBlocked = !claimed && !inFlight && clearance && clearance.ready && clearance.status !== 'cleared';
+    contractCard.className = 'mission-contract-card' + (claimed ? ' is-claimed' : (inFlight ? ' is-running' : (clearanceBlocked ? ' is-clearance-blocked' : '')));
     var reward = [];
     if (Number(contract.xp_reward) > 0) reward.push('+' + Number(contract.xp_reward) + ' XP');
     if (Number(contract.reputation_reward) > 0) reward.push('+' + Number(contract.reputation_reward) + ' rep');
@@ -316,7 +320,52 @@
         ? '<p class="mission-contract-copy is-done">Completed today. A new contract is issued at 00:00 UTC.</p>'
         : (inFlight
           ? '<p class="mission-contract-copy is-running">A contract is already under way. Collect it before accepting another.</p>'
-          : '<button type="button" class="btn btn-solid mission-contract-launch" data-contract-id="' + Number(contract.id) + '">Accept contract</button>'));
+          : clearanceBlocked
+            ? clearanceMarkup(contract, clearance)
+            : (clearance && clearance.ready
+              ? '<p class="mission-contract-clear">Access tile cleared. The route is stable.</p><button type="button" class="btn btn-solid mission-contract-launch" data-contract-id="' + Number(contract.id) + '">Accept contract</button>'
+              : '<button type="button" class="btn btn-solid mission-contract-launch" data-contract-id="' + Number(contract.id) + '">Accept contract</button>')));
+  }
+
+  /* A blocked Overlord route starts as one tile and resolves into four equal
+   * quadrants. The browser only ever receives scans already made; the collapse
+   * index stays server-side until it is hit. */
+  function clearanceMarkup(contract, clearance) {
+    if (clearance.status === 'collapsed') {
+      return '<div class="mission-contract-clearance is-collapsed"><span>Access tile collapsed</span><p>The route failed during clearance. A new Overlord contract is issued at 00:00 UTC.</p></div>';
+    }
+    var secured = (clearance.safe_picks || []).map(Number);
+    var cells = [0, 1, 2, 3].map(function (cell) {
+      var isSecure = secured.indexOf(cell) !== -1;
+      return '<button type="button" class="mission-contract-clearance-cell' + (isSecure ? ' is-secure' : '') + '"'
+        + ' data-contract-clearance-id="' + Number(contract.id) + '" data-contract-clearance-cell="' + cell + '"'
+        + (isSecure ? ' disabled aria-label="Quadrant ' + (cell + 1) + ': secure"' : ' aria-label="Scan quadrant ' + (cell + 1) + '"') + '>'
+        + '<span>' + (isSecure ? '✓' : '') + '</span></button>';
+    }).join('');
+    return '<div class="mission-contract-clearance"><span>Blocked access tile</span><p>Split the tile and secure two stable quadrants. One quadrant will collapse the route.</p>'
+      + '<div class="mission-contract-clearance-grid" role="group" aria-label="Blocked access tile, choose a quadrant">' + cells + '</div>'
+      + '<small>' + secured.length + ' / ' + Number(clearance.required_safe_picks || 2) + ' stable quadrants secured</small></div>';
+  }
+
+  function renderSalvageRecovery(data) {
+    if (!salvageRecoverySection || !salvageRecoveryCard) return;
+    var state = data.salvage_recovery_contract;
+    if (!state || !state.ready || !state.contract || !state.lost_item) {
+      salvageRecoverySection.hidden = true;
+      salvageRecoveryCard.innerHTML = '';
+      return;
+    }
+    var contract = state.contract;
+    var item = state.lost_item;
+    var tier = String(item.tier || 'rare').toLowerCase();
+    var art = safeImage(item.icon_url)
+      ? '<img src="/' + escapeHtml(String(item.icon_url).replace(/^\//, '')) + '" alt="">'
+      : '<span aria-hidden="true">✦</span>';
+    salvageRecoverySection.hidden = false;
+    salvageRecoveryCard.className = 'mission-salvage-recovery-card is-tier-' + escapeHtml(tier);
+    salvageRecoveryCard.innerHTML = '<div class="mission-salvage-recovery-alert"><span class="eyebrow">Salvage contract issued</span><strong>Important recovery lost</strong><p>A Sweep collapse left a high-value item in the field. Complete this contract to recover it.</p></div>'
+      + '<div class="mission-salvage-recovery-target"><span class="mission-salvage-recovery-art">' + art + '</span><span><small>Lost ' + escapeHtml(tier) + ' item</small><strong>' + escapeHtml(item.name) + '</strong><em>' + escapeHtml(String(contract.mission_type || 'salvage').toUpperCase()) + ' · ' + escapeHtml(missionDuration(contract.duration_seconds)) + ' · ' + Number(contract.min_crew) + (Number(contract.max_crew) !== Number(contract.min_crew) ? '–' + Number(contract.max_crew) : '') + ' crew</em></span></div>'
+      + '<div class="mission-salvage-recovery-actions"><span>Success returns this exact item.</span><button type="button" class="btn btn-solid mission-salvage-recovery-launch" data-salvage-recovery-id="' + Number(contract.id) + '">Plan recovery</button></div>';
   }
 
   function renderProfile(data) {
@@ -1036,7 +1085,7 @@
     state.data = data;
     var server = apiDate(data.server_time);
     state.serverOffset = server && !isNaN(server) ? server.getTime() - Date.now() : 0;
-    applyWatermark(data.watermark); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCrewOffers(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderCrew(data); renderInventory(data); renderHistory(data); renderOverlordContract(data);
+    applyWatermark(data.watermark); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCrewOffers(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderSalvageRecovery(data); renderCrew(data); renderInventory(data); renderHistory(data); renderOverlordContract(data);
     /* The launch modal stays open across a background refresh -- equipping gear
      * from a slot's upgrade warning reloads the whole payload underneath it.
      * Re-resolve the mission against the new data and redraw the picker, or it
@@ -1288,11 +1337,13 @@
 
   function showResult(result) {
     if (!resultModal || !resultBody) return;
-    state.resultRerun = result.mission_id && (result.crew_ids || []).length
+    state.resultRerun = !result.salvage_recovery_contract && result.mission_id && (result.crew_ids || []).length
       ? { missionId: Number(result.mission_id), crewIds: (result.crew_ids || []).map(Number) }
       : null;
     var failed = result.succeeded === false;
     var rival = result.rival && result.rival.contested ? result.rival : null;
+    var salvageRecovery = result.salvage_recovery_contract && result.salvage_recovery_contract.active
+      ? result.salvage_recovery_contract : null;
     var rivalLoss = rival && (rival.outcome === 'narrow_loss' || rival.outcome === 'decisive_loss');
     resultInner.classList.toggle('is-failed', failed);
     resultInner.classList.toggle('is-success', !failed);
@@ -1326,6 +1377,19 @@
         rivalCopy = 'The crew did not complete the operation before the contested recovery could be judged.';
       }
       rivalMarkup = '<div class="mission-result-rival is-' + escapeHtml(rival.outcome || 'operation_failed') + '"><span>Contested recovery</span><strong>' + escapeHtml(rivalTitle) + '</strong><p>' + escapeHtml(rivalCopy) + '</p></div>';
+    }
+    var salvageRecoveryMarkup = '';
+    if (salvageRecovery) {
+      if (salvageRecovery.recovered) {
+        title = 'Lost item recovered';
+        lead = salvageRecovery.stored
+          ? 'Your crew recovered the exact item left behind in the Sweep collapse.'
+          : 'Your crew found the lost item, but the quartermaster had no room to store it.';
+        salvageRecoveryMarkup = '<div class="mission-result-salvage-recovery is-success"><span>Salvage recovery contract</span><strong>' + escapeHtml(salvageRecovery.name) + '</strong><p>' + (salvageRecovery.stored ? 'Recovered from the collapsed field.' : 'Recovery confirmed, but storage was full.') + '</p></div>';
+      } else {
+        lead = 'The crew returned, but the Sweep recovery target remains lost in the collapsed field.';
+        salvageRecoveryMarkup = '<div class="mission-result-salvage-recovery is-failed"><span>Salvage recovery contract</span><strong>' + escapeHtml(salvageRecovery.name) + '</strong><p>The recovery route failed. This lost item cannot be pursued again.</p></div>';
+      }
     }
 
     var rows = [];
@@ -1468,6 +1532,7 @@
       + '<p class="mission-result-mission">' + escapeHtml(result.mission_name || '') + '</p>'
       + '<p class="mission-result-lead">' + escapeHtml(lead) + '</p>'
       + rivalMarkup
+      + salvageRecoveryMarkup
       + rollMarkup(result)
       + affinityLine + weatherLine
       + '<div class="mission-result-grid">' + grid + '</div>' + extras;
@@ -2225,6 +2290,10 @@
       var contract = state.data && state.data.overlord_contract && state.data.overlord_contract.contract;
       if (contract && Number(contract.id) === Number(missionId)) mission = contract;
     }
+    if (!mission) {
+      var recovery = state.data && state.data.salvage_recovery_contract && state.data.salvage_recovery_contract.contract;
+      if (recovery && Number(recovery.id) === Number(missionId)) mission = recovery;
+    }
     if (!mission) return;
     state.launchMission = mission; state.launchPenaltyAck = false; state.rivalApproach = mission.is_contested ? 'secure' : ''; launchError.textContent = '';
     // A fresh rack per open. Carrying a selection between operations would put
@@ -2278,8 +2347,23 @@
    * ordinary mission definition with an Overlord attached, so crew selection,
    * fatigue and the projection all apply to it unchanged. */
   if (contractCard) contractCard.addEventListener('click', function (event) {
+    var cell = event.target.closest('[data-contract-clearance-cell]');
+    if (cell && !cell.disabled) {
+      cell.disabled = true;
+      post('/api/missions/overlord-clearance.php', {
+        mission_id: Number(cell.getAttribute('data-contract-clearance-id')),
+        cell: Number(cell.getAttribute('data-contract-clearance-cell')),
+        csrf: window.PW_AUTH.csrf
+      }).then(function (data) { setStatus(data.message || 'Access tile updated.'); return load(); })
+        .catch(function (error) { cell.disabled = false; setStatus(error.message, true); });
+      return;
+    }
     var button = event.target.closest('[data-contract-id]');
     if (button && !button.disabled) openLaunch(button.getAttribute('data-contract-id'));
+  });
+  if (salvageRecoveryCard) salvageRecoveryCard.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-salvage-recovery-id]');
+    if (button && !button.disabled) openLaunch(button.getAttribute('data-salvage-recovery-id'));
   });
   /* ---- Crew selection input ---------------------------------------------
    * Three routes to the same state, in this order of priority:

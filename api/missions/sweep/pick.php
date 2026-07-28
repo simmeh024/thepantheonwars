@@ -132,6 +132,14 @@ try {
     if ($ended === 'collapse' && (float)($run['tether_percent'] ?? 0) > 0) {
         $tether = pw_sweep_tether_rescue($db, $userId, $run);
     }
+    /* An unrecovered rare, epic, or legendary find can become a private
+     * recovery lead. It is deliberately after the tether: an item that made it
+     * home is no longer lost, and must never generate a second copy through a
+     * contract. The helper's unique daily guard also makes a rapid double pick
+     * incapable of issuing two leads. */
+    $salvageRecovery = $ended === 'collapse'
+        ? pw_missions_issue_salvage_recovery_contract($db, $userId, (int)$run['id'], $tether)
+        : null;
 
     $achievementKeys = [];
     if ($ended === 'collapse') {
@@ -163,6 +171,7 @@ try {
         'shrugged' => $shrugged,
         'ended' => $ended,
         'tether' => $tether,
+        'salvage_recovery_contract' => $salvageRecovery,
         'achievements' => pw_sweep_achievement_notices($achievementKeys),
         'run' => pw_sweep_run_payload($db, $fresh),
         'result' => $result,

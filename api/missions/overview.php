@@ -23,6 +23,7 @@ try {
     $fatigueReady = pw_mission_fatigue_ready($db);
     $contractsReady = pw_mission_overlord_contracts_ready($db);
     $contestedContractsReady = pw_mission_contested_contracts_ready($db);
+    $salvageRecoveryContractsReady = pw_mission_salvage_recovery_contracts_ready($db);
     /* Always called: the helper returns defaults when the Research Facility has
      * not been migrated, and it is also where running stims are folded in, so
      * branching here would ignore a boost the player had already spent. */
@@ -168,7 +169,11 @@ try {
          * ever offered as the daily contract, to the players it belongs to.
          * Filtered here rather than after the campaign tracks are built, so it
          * can never appear as a step in a chain it was never part of. */
-        . ($contractsReady ? ' AND mission.overlord_id IS NULL' : '') . '
+        . ($contractsReady ? ' AND mission.overlord_id IS NULL' : '')
+        /* Recovery-pool definitions are issued only after a qualifying Sweep
+         * loss. Keeping them out of campaign tracks is the browser-side half
+         * of start.php's stricter, offer-backed launch gate. */
+        . ($salvageRecoveryContractsReady ? ' AND mission.is_salvage_recovery_contract = 0' : '') . '
          ORDER BY mission.sort_order ASC, mission.id ASC'
     );
     $missionsStmt->execute();
@@ -437,6 +442,32 @@ try {
             if (array_key_exists($field, $row)) $contractPublic[$field] = $row[$field];
         }
         $overlordContract['contract'] = $contractPublic;
+        $overlordContract['clearance'] = pw_missions_overlord_clearance_state($db, $userId, (int)$row['id']);
+    }
+
+    /* A Sweep lead is its own private card rather than an ordinary board slot.
+     * The item information belongs beside the contract because that is the
+     * promise the player is deciding whether to risk a crew for. */
+    $salvageRecovery = pw_missions_salvage_recovery_contract($db, $userId);
+    if ($salvageRecovery['contract']) {
+        $row = $salvageRecovery['contract'];
+        foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'sort_order'] as $field) {
+            $row[$field] = (int)($row[$field] ?? 0);
+        }
+        $row['credit_reward'] = (int)($row['credit_reward'] ?? 0);
+        $row['base_success_percent'] = (int)($row['base_success_percent'] ?? 100);
+        $row['loot_rolls'] = (int)($row['loot_rolls'] ?? 0);
+        $row['watermark_url'] = pw_missions_watermark_url($row['watermark_url'] ?? '');
+        $row['watermark_opacity'] = (int)($row['watermark_opacity'] ?? 10);
+        $row['is_enabled'] = true;
+        $row['fatigue_cost'] = $fatigueReady ? pw_missions_fatigue_cost($row['duration_seconds']) : 0;
+        $row['last_crew_ids'] = $lastCrewByMission[(int)$row['id']] ?? [];
+        $row['is_salvage_recovery_contract'] = true;
+        $recoveryPublic = [];
+        foreach (array_merge($publicFields, ['is_salvage_recovery_contract', 'recovery_contract_id']) as $field) {
+            if (array_key_exists($field, $row)) $recoveryPublic[$field] = $row[$field];
+        }
+        $salvageRecovery['contract'] = $recoveryPublic;
     }
 
     // Neoh is the only world with operations today; the helper is world-generic.
@@ -457,6 +488,7 @@ try {
         'server_time' => $serverTime['value'],
         'player' => $player,
         'overlord_contract' => $overlordContract,
+        'salvage_recovery_contract' => $salvageRecovery,
         'watermark' => pw_missions_watermark_settings(),
         // Null until the dailies migration has been run; the card stays hidden.
         'daily' => pw_missions_daily_state($db, $userId),
