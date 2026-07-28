@@ -384,7 +384,7 @@
       var source = entrySource(entry);
       var imageUrl = source && (type === 'gear' ? source.icon_url : source.portrait_url);
       var image = imageUrl
-        ? '<img class="mission-admin-portrait" src="' + escapeHtml(assetUrl(imageUrl)) + '" alt="">'
+        ? '<img class="mission-admin-portrait" src="' + escapeHtml(assetUrl(imageUrl)) + '" alt="" width="42" height="42" loading="lazy" decoding="async">'
         : '';
       var typeLabel = type === 'gear' ? itemKindLabel(source) : 'Character';
       var enabled = source && source.is_enabled;

@@ -171,7 +171,10 @@
       row.className = 'admin-row mission-admin-row mission-admin-crew-columns';
       row.setAttribute('aria-disabled', can('missions.edit') ? 'false' : 'true');
       if (can('missions.edit')) { row.tabIndex = 0; row.setAttribute('role', 'button'); }
-      var portrait = member.portrait_url ? '<img class="mission-admin-portrait" src="' + escapeHtml(assetUrl(member.portrait_url)) + '" alt="">' : '';
+      /* Lazy, with its display size declared: an uploaded portrait is stored at
+       * full resolution (960x1200 and larger) and drawn here at 42px, so a long
+       * roster otherwise pulls megabytes of art for rows nobody has scrolled to. */
+      var portrait = member.portrait_url ? '<img class="mission-admin-portrait" src="' + escapeHtml(assetUrl(member.portrait_url)) + '" alt="" width="42" height="42" loading="lazy" decoding="async">' : '';
       row.innerHTML =
         '<div class="mission-admin-title">' + portrait + '<div><strong>' + escapeHtml(member.name) + '</strong><small>Level ' + member.starting_level + ' · ' + escapeHtml(member.slug) + '</small></div></div>' +
         '<span>' + escapeHtml(member.role) + '</span>' +
@@ -765,7 +768,9 @@
         images.forEach(function (image) {
           var button = document.createElement('button');
           button.type = 'button'; button.className = 'admin-image-choice';
-          button.innerHTML = '<img src="' + escapeHtml(assetUrl(image.url)) + '" alt=""><span>' + escapeHtml(image.name) + '</span>';
+          /* The library grid is a 260px scroll box over the whole upload folder,
+           * so only the visible tiles are worth fetching at full resolution. */
+          button.innerHTML = '<img src="' + escapeHtml(assetUrl(image.url)) + '" alt="" loading="lazy" decoding="async"><span>' + escapeHtml(image.name) + '</span>';
           button.addEventListener('click', function () {
             input.value = image.url;
             config.onChange(); closeImageModal();
@@ -1003,7 +1008,7 @@
        * second is what a slot change would return to inventory. */
       var held = item.owned_count + (item.equipped_count ? ' · ' + item.equipped_count + ' worn' : '');
       row.innerHTML =
-        '<div class="mission-admin-title">' + (item.icon_url ? '<img class="mission-admin-portrait" src="' + escapeHtml(assetUrl(item.icon_url)) + '" alt="">' : '') +
+        '<div class="mission-admin-title">' + (item.icon_url ? '<img class="mission-admin-portrait" src="' + escapeHtml(assetUrl(item.icon_url)) + '" alt="" width="42" height="42" loading="lazy" decoding="async">' : '') +
         '<div><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.slug) + '</small></div></div>' +
         '<span class="mission-admin-cell-sub">' + escapeHtml(item.slot_label || 'Salvage') + '</span>' +
         '<span class="mission-gear-tier is-' + escapeHtml(item.tier) + '">' + escapeHtml(item.tier) + '</span>' +
