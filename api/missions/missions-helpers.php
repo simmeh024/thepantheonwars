@@ -2100,6 +2100,10 @@ function pw_missions_store_loot(PDO $db, int $userId, array $awarded, array $res
  * ------------------------------------------------------------------------- */
 const PW_MISSION_INVENTORY_CAP = 100;
 const PW_MISSION_SALVAGE_CAP = 100;
+/* The quick clean-up action deliberately stops at the first two equipment
+ * levels. It is a safe way to clear opening-kit duplicates, never a shortcut
+ * that can quietly eat gear a player has only just grown into. */
+const PW_MISSION_BULK_LOW_GEAR_MAX_LEVEL = 2;
 /* What research may add to each of the two ceilings. Applied to both, by the
  * same amount, from one effect: which of the two a given node raises is not a
  * distinction the player can act on, and leaving the salvage ceiling

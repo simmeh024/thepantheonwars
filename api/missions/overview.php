@@ -592,6 +592,7 @@ try {
          * always state the limits it is about to enforce. */
         'inventory' => array_merge(pw_missions_inventory_usage($db, $userId, $researchEffects), [
             'stims_ready' => $stimsReady,
+            'bulk_low_gear_max_level' => PW_MISSION_BULK_LOW_GEAR_MAX_LEVEL,
             'stim_effect_types' => pw_missions_stim_effect_types(),
             'active_stims' => pw_missions_active_stims($db, $userId),
         ]),

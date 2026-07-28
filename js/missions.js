@@ -14,7 +14,10 @@
     resultRerun: null,
     /* The conversion queue is deliberately local until the player confirms.
      * It is a convenience tray, not a second server-side inventory state. */
-    inventoryConversionQueue: {}, inventoryCompareItemId: null };
+    inventoryConversionQueue: {}, inventoryCompareItemId: null,
+    /* List mode exposes the only multi-item destructive action. The selection
+     * is local and revalidated against current holdings before every submit. */
+    inventoryView: 'grid', inventoryBulkSelection: {} };
   var gate = document.getElementById('missions-gate');
   var content = document.getElementById('missions-content');
   var statusMessage = document.getElementById('missions-status-message');
@@ -77,6 +80,7 @@
   var inventoryBoosts = document.getElementById('missions-inventory-boosts');
   var inventoryWorkbench = document.getElementById('mission-inventory-workbench');
   var inventoryConversionQueue = document.getElementById('mission-inventory-conversion-queue');
+  var inventoryBulk = document.getElementById('mission-inventory-bulk');
   var inventoryRailCard = document.getElementById('mission-quartermaster-card');
   var stimBeltCard = document.getElementById('mission-stim-belt-card');
   var researchAlert = document.getElementById('mission-research-alert');
@@ -3692,6 +3696,51 @@
       }).join('') + '</div>';
   }
 
+  /* Bulk destruction intentionally has a narrower surface than the individual
+   * Destroy button: equipment and salvage only. Stims are active consumables,
+   * so a full stack of them is too easy to misread as ordinary inventory. */
+  function inventoryBulkEligible(item) {
+    var category = item.category || (item.slot ? 'gear' : 'salvage');
+    if (category === 'salvage') return Number(item.quantity) > 0;
+    return category === 'gear' && (Number(item.quantity) - Number(item.equipped_count)) > 0;
+  }
+
+  function inventoryBulkQuantity(item) {
+    var category = item.category || (item.slot ? 'gear' : 'salvage');
+    return category === 'gear'
+      ? Math.max(0, Number(item.quantity) - Number(item.equipped_count))
+      : Math.max(0, Number(item.quantity) || 0);
+  }
+
+  function reconcileInventoryBulkSelection(loot) {
+    var byId = {};
+    (loot || []).forEach(function (item) { byId[Number(item.id)] = item; });
+    Object.keys(state.inventoryBulkSelection || {}).forEach(function (key) {
+      if (!byId[Number(key)] || !inventoryBulkEligible(byId[Number(key)])) delete state.inventoryBulkSelection[key];
+    });
+  }
+
+  function renderInventoryBulk(data) {
+    if (!inventoryBulk) return;
+    if (!data.gear_ready) { inventoryBulk.hidden = true; inventoryBulk.innerHTML = ''; return; }
+    var loot = data.loot || [];
+    reconcileInventoryBulkSelection(loot);
+    var selected = loot.filter(function (item) { return !!state.inventoryBulkSelection[Number(item.id)] && inventoryBulkEligible(item); });
+    var selectedUnits = selected.reduce(function (sum, item) { return sum + inventoryBulkQuantity(item); }, 0);
+    var lowMax = Number(data.inventory && data.inventory.bulk_low_gear_max_level) || 2;
+    var lowGear = loot.filter(function (item) {
+      return (item.category || (item.slot ? 'gear' : 'salvage')) === 'gear'
+        && Number(item.required_level) <= lowMax && inventoryBulkQuantity(item) > 0;
+    });
+    var lowUnits = lowGear.reduce(function (sum, item) { return sum + inventoryBulkQuantity(item); }, 0);
+    inventoryBulk.hidden = false;
+    inventoryBulk.innerHTML = '<div class="mission-inventory-bulk-view"><span>View</span><button type="button" data-inventory-view="grid" class="' + (state.inventoryView === 'grid' ? 'is-active' : '') + '" aria-pressed="' + (state.inventoryView === 'grid' ? 'true' : 'false') + '">Grid</button><button type="button" data-inventory-view="list" class="' + (state.inventoryView === 'list' ? 'is-active' : '') + '" aria-pressed="' + (state.inventoryView === 'list' ? 'true' : 'false') + '">List</button></div>'
+      + '<div class="mission-inventory-bulk-shortcut"><span><strong>Low-level gear</strong><small>Spare Level 1–' + lowMax + ' equipment only; equipped copies are protected.</small></span><button type="button" class="btn mission-inventory-bulk-danger" data-bulk-low-gear' + (lowUnits ? '' : ' disabled') + '>Destroy ' + (lowUnits || 'no') + ' low-level ' + (lowUnits === 1 ? 'copy' : 'copies') + '</button></div>'
+      + (state.inventoryView === 'list'
+        ? '<div class="mission-inventory-bulk-selection"><span><strong>' + selected.length + ' selected</strong><small>' + selectedUnits + ' equipment / salvage ' + (selectedUnits === 1 ? 'item' : 'items') + ' ready to destroy</small></span><div><button type="button" class="btn" data-bulk-select-type="gear">Select equipment</button><button type="button" class="btn" data-bulk-select-type="salvage">Select salvage</button><button type="button" class="btn" data-bulk-clear' + (selected.length ? '' : ' disabled') + '>Clear</button><button type="button" class="btn mission-inventory-bulk-danger" data-bulk-destroy' + (selected.length ? '' : ' disabled') + '>Destroy selected</button></div></div>'
+        : '<p class="mission-inventory-bulk-note">Switch to list view to select equipment and salvage together for a confirmed bulk destroy.</p>');
+  }
+
   function renderInventory(data) {
     renderStimBelt(data);
     renderResearchAlert(data);
@@ -3711,6 +3760,7 @@
     });
     renderInventoryWorkbench(data);
     renderConversionQueue(data);
+    renderInventoryBulk(data);
     populateInventoryFilters(loot);
     var filters = inventoryFilters();
     var visible = loot.filter(function (item) {
@@ -3731,6 +3781,7 @@
     inventorySummary.textContent = visible.length === loot.length
       ? 'Showing everything you hold.'
       : 'Showing ' + visible.length + ' of ' + loot.length + ' entries.';
+    inventoryList.classList.toggle('is-list', state.inventoryView === 'list');
     if (!visible.length) { inventoryList.innerHTML = '<p class="missions-empty">Nothing matches these filters.</p>'; return; }
     inventoryList.innerHTML = visible.map(function (item) {
       var category = item.category || (item.slot ? 'gear' : 'salvage');
@@ -3761,7 +3812,11 @@
       var organisation = data.inventory_workbench_ready
         ? '<div class="mission-inventory-organisation"><button type="button" class="mission-inventory-favorite' + (item.is_favorite ? ' is-active' : '') + '" data-inventory-favorite="' + Number(item.id) + '" aria-pressed="' + (item.is_favorite ? 'true' : 'false') + '" title="' + (item.is_favorite ? 'Remove favorite' : 'Favorite item') + '">&#9733;<span class="sr-only">' + (item.is_favorite ? 'Remove favorite' : 'Favorite item') + '</span></button><label><span>Tag</span><select data-inventory-tag="' + Number(item.id) + '">' + inventoryTagOptions(item.tag_key) + '</select></label></div>'
         : '';
-      return '<article class="mission-inventory-card is-' + escapeHtml(item.tier) + ' is-' + escapeHtml(category) + (item.is_favorite ? ' is-favorite' : '') + '">'
+      var bulkSelect = state.inventoryView === 'list' && inventoryBulkEligible(item)
+        ? '<label class="mission-inventory-bulk-check"><input type="checkbox" data-inventory-bulk-select="' + Number(item.id) + '"' + (state.inventoryBulkSelection[Number(item.id)] ? ' checked' : '') + '><span class="sr-only">Select ' + escapeHtml(item.name) + ' for bulk destroy</span></label>'
+        : '';
+      return '<article class="mission-inventory-card is-' + escapeHtml(item.tier) + ' is-' + escapeHtml(category) + (item.is_favorite ? ' is-favorite' : '') + (state.inventoryView === 'list' ? ' is-list-row' : '') + '">'
+        + bulkSelect
         + '<span class="mission-inventory-icon">' + gearIconHtml(item.slot, item.icon_url) + '</span>'
         + '<div class="mission-inventory-copy"><h3>' + escapeHtml(item.name) + '</h3>'
         + '<p class="mission-inventory-meta"><span class="mission-inventory-tier">' + escapeHtml(item.tier) + '</span>'
@@ -3937,6 +3992,61 @@
       .catch(function (error) { button.disabled = false; setStatus(error.message, true); });
   }
 
+  function selectedBulkDestroyItems() {
+    return ((state.data && state.data.loot) || []).filter(function (item) {
+      return state.inventoryBulkSelection[Number(item.id)] && inventoryBulkEligible(item);
+    }).map(function (item) {
+      return { loot_definition_id: Number(item.id), quantity: inventoryBulkQuantity(item) };
+    });
+  }
+
+  function submitBulkDestroy(button, payload, title, copy) {
+    openChoice({ eyebrow: 'Quartermaster purge', title: title, copy: copy, confirmLabel: 'Destroy permanently', danger: true })
+      .then(function (choice) {
+        if (!choice) return;
+        button.disabled = true;
+        return post('/api/missions/inventory-bulk-destroy.php', Object.assign({ csrf: window.PW_AUTH.csrf }, payload))
+          .then(function (result) {
+            state.inventoryBulkSelection = {};
+            var kept = Number(result.equipped_copies_kept) || 0;
+            setStatus(result.message + (kept ? ' ' + kept + ' equipped ' + (kept === 1 ? 'copy was' : 'copies were') + ' kept.' : ''));
+            return load();
+          }).catch(function (error) {
+            button.disabled = false;
+            setStatus(error.message, true);
+          });
+      });
+  }
+
+  function destroySelectedInventory(button) {
+    var items = selectedBulkDestroyItems();
+    if (!items.length) return;
+    var units = items.reduce(function (sum, item) { return sum + item.quantity; }, 0);
+    submitBulkDestroy(
+      button,
+      { mode: 'selected', items: items },
+      'Destroy selected inventory?',
+      'This permanently destroys ' + units + ' equipment or salvage ' + (units === 1 ? 'item' : 'items') + ' across ' + items.length + ' ' + (items.length === 1 ? 'type' : 'types') + '. Equipped copies and stims cannot be included.'
+    );
+  }
+
+  function destroyLowLevelGear(button) {
+    var loot = (state.data && state.data.loot) || [];
+    var maxLevel = Number(state.data && state.data.inventory && state.data.inventory.bulk_low_gear_max_level) || 2;
+    var items = loot.filter(function (item) {
+      return (item.category || (item.slot ? 'gear' : 'salvage')) === 'gear'
+        && Number(item.required_level) <= maxLevel && inventoryBulkQuantity(item) > 0;
+    });
+    var units = items.reduce(function (sum, item) { return sum + inventoryBulkQuantity(item); }, 0);
+    if (!units) return;
+    submitBulkDestroy(
+      button,
+      { mode: 'low_level_gear' },
+      'Destroy spare Level 1–' + maxLevel + ' gear?',
+      'This permanently destroys ' + units + ' spare low-level equipment ' + (units === 1 ? 'copy' : 'copies') + '. Equipped copies are always kept.'
+    );
+  }
+
   if (inventoryList) {
     inventoryList.addEventListener('click', function (event) {
       var destroy = event.target.closest('[data-destroy-item]');
@@ -3951,6 +4061,14 @@
       if (convert) queueSalvageConversion(convert);
     });
     inventoryList.addEventListener('change', function (event) {
+      var bulk = event.target.closest('[data-inventory-bulk-select]');
+      if (bulk) {
+        var bulkId = Number(bulk.getAttribute('data-inventory-bulk-select'));
+        if (bulk.checked) state.inventoryBulkSelection[bulkId] = true;
+        else delete state.inventoryBulkSelection[bulkId];
+        if (state.data) renderInventory(state.data);
+        return;
+      }
       var tag = event.target.closest('[data-inventory-tag]');
       if (!tag) return;
       var item = inventoryItem(Number(tag.getAttribute('data-inventory-tag')));
@@ -3979,6 +4097,34 @@
     }
     var confirm = event.target.closest('[data-conversion-confirm]');
     if (confirm && !confirm.disabled) convertQueuedSalvage(confirm);
+  });
+
+  if (inventoryBulk) inventoryBulk.addEventListener('click', function (event) {
+    var view = event.target.closest('[data-inventory-view]');
+    if (view) {
+      state.inventoryView = view.getAttribute('data-inventory-view') === 'list' ? 'list' : 'grid';
+      if (state.data) renderInventory(state.data);
+      return;
+    }
+    var type = event.target.closest('[data-bulk-select-type]');
+    if (type) {
+      var selectedType = type.getAttribute('data-bulk-select-type');
+      ((state.data && state.data.loot) || []).forEach(function (item) {
+        var category = item.category || (item.slot ? 'gear' : 'salvage');
+        if (category === selectedType && inventoryBulkEligible(item)) state.inventoryBulkSelection[Number(item.id)] = true;
+      });
+      if (state.data) renderInventory(state.data);
+      return;
+    }
+    if (event.target.closest('[data-bulk-clear]')) {
+      state.inventoryBulkSelection = {};
+      if (state.data) renderInventory(state.data);
+      return;
+    }
+    var lowGear = event.target.closest('[data-bulk-low-gear]');
+    if (lowGear && !lowGear.disabled) { destroyLowLevelGear(lowGear); return; }
+    var destroy = event.target.closest('[data-bulk-destroy]');
+    if (destroy && !destroy.disabled) destroySelectedInventory(destroy);
   });
 
   [inventoryTypeFilter, inventorySlotFilter, inventoryTierFilter, inventoryStateFilter, inventoryFavoriteFilter, inventoryTagFilter].forEach(function (control) {
