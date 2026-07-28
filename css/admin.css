@@ -4180,12 +4180,37 @@
    group and leaves the create button and count on the right of both. The wrapper
    takes the auto margin, and the rule below cancels the auto margin the shared
    toolbar rule would otherwise apply to each group inside it. */
-.gear-filter-groups { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-right: auto; }
+.gear-filter-groups { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
 .gear-filter-groups .admin-filter-tabs { flex-wrap: wrap; }
 .gear-management-toolbar .admin-filter-tabs { margin-right: 0; }
-/* Right-aligned however the bar wraps: at a width where the button drops to its
-   own line, a default-aligned button would sit at the far left of it. */
-.gear-management-toolbar #mission-gear-create-btn { margin-left: auto; }
+/* Exactly one auto margin on this bar, on the right-hand cluster. The shared
+   rules put one on .admin-filter-tabs and another on .admin-count, and a flex
+   line with autos on both sides of an item splits the free space between them --
+   which left the create button floating mid-bar rather than beside the count. */
+.gear-toolbar-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-left: auto; }
+/* The count is the one item that will not fit beside everything else at 1280px,
+   so it is allowed to wrap -- but kept right-aligned when it does, where a
+   left-aligned figure under the filters reads as a stray label. */
+.gear-management-toolbar .admin-count { margin-left: auto; }
+/* iLvl summary for the filtered view. Echoes the Mail Log stat tiles rather than
+   inventing a second mini-figure treatment for the console. */
+/* The note sits under the two figures rather than beside them: measured at
+   1280px, a side-by-side note made the card 201px and pushed the whole
+   card-and-button cluster onto a fourth row, where stacking keeps it to 124px
+   and it shares the role row. */
+.gear-ilvl-summary {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 3px; padding: 6px 11px;
+  border: 1px solid var(--border-soft); border-radius: var(--radius-sm); background: rgba(255,255,255,0.02);
+}
+.gear-ilvl-stats { display: flex; gap: 12px; }
+.gear-ilvl-stat { display: flex; flex-direction: column; gap: 1px; min-width: 44px; }
+.gear-ilvl-value { font-family: 'Cinzel', serif; font-size: 1.05rem; line-height: 1.1; color: var(--text); }
+.gear-ilvl-label { font-size: 0.62rem; letter-spacing: 0.05em; text-transform: uppercase; color: var(--text-faint); }
+.gear-ilvl-note { font-size: 0.64rem; line-height: 1.25; color: var(--text-faint); white-space: nowrap; }
+/* Slightly tighter than the category pills: six roles plus the two standing
+   options is the widest row on this bar, and the trim is what lets the summary
+   card and the create button share a line with it at 1280px. */
+.gear-role-tabs .admin-filter-tab { padding: 8px 11px; }
 .crew-rarity-filter.is-common { color: var(--text-dim); }
 .crew-rarity-filter.is-uncommon { color: #53c996; border-color: rgba(83,201,150,.35); background: rgba(83,201,150,.08); }
 .crew-rarity-filter.is-rare { color: #62c8dd; border-color: rgba(98,200,221,.38); background: rgba(98,200,221,.08); }

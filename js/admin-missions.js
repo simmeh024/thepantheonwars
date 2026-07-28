@@ -213,6 +213,45 @@
       : visible + ' of ' + crew.length + ' crew member' + (crew.length === 1 ? '' : 's');
   }
 
+  /**
+   * Total and average iLvl for whatever the filters are currently showing.
+   *
+   * Counted over the items that actually carry an item level -- an iLvl belongs
+   * to equipment, and the row itself prints an em-dash for slotless salvage and
+   * stims. Averaging those in as zeros would report a Salvage view as "avg 0",
+   * which is a wrong number rather than an absent one, so the note says how many
+   * items the figures came from and the card reads em-dashes when none did.
+   *
+   * Hidden entirely until the iLvl migration has been run, matching the editor's
+   * own field: there is no honest figure to show while the column does not exist.
+   */
+  function refreshGearIlvlSummary() {
+    var card = document.getElementById('gear-management-ilvl-summary');
+    if (!card) return;
+    if (!gearMeta || gearMeta.item_levels_ready === false) { card.hidden = true; return; }
+    card.hidden = false;
+    var rated = filteredGear().filter(function (item) {
+      return item.slot && Number(item.item_level) > 0;
+    });
+    var total = rated.reduce(function (sum, item) { return sum + Number(item.item_level); }, 0);
+    var totalCell = document.getElementById('gear-management-ilvl-total');
+    var averageCell = document.getElementById('gear-management-ilvl-average');
+    var note = document.getElementById('gear-management-ilvl-note');
+    if (!rated.length) {
+      totalCell.innerHTML = '&mdash;';
+      averageCell.innerHTML = '&mdash;';
+      /* Spelled out in this case only: two em-dashes need explaining, where a
+       * real figure only needs its sample size. */
+      note.textContent = 'No iLvl in this view.';
+      return;
+    }
+    totalCell.textContent = String(total);
+    /* One decimal: a set of 7 items rarely averages to a whole number, and
+     * rounding to one would hide a real difference between two filters. */
+    averageCell.textContent = String(Math.round((total / rated.length) * 10) / 10);
+    note.textContent = 'from ' + rated.length + ' item' + (rated.length === 1 ? '' : 's');
+  }
+
   function refreshGearCount() {
     if (!gearCount) return;
     var visible = filteredGear().length;
@@ -1109,6 +1148,9 @@
     if (!gearList) return;
     var visibleGear = filteredGear();
     refreshGearCount();
+    /* Above both early returns: the figures have to be right for an empty view
+     * and for a re-entry that skips the rebuild, not only when rows are drawn. */
+    refreshGearIlvlSummary();
     if (!visibleGear.length) {
       blank(gearList, gearFiltersActive()
         ? 'No ' + gearFilterLabel() + ' yet.'

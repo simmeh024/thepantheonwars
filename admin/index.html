@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=329"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=8">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=330"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=8">
 </head>
 <body>
 
@@ -2158,7 +2158,18 @@
             <button type="button" class="admin-filter-tab" data-gear-role-filter="unrestricted" role="tab" aria-selected="false">Anyone</button>
           </div>
         </div>
-        <button type="button" class="btn btn-solid" id="mission-gear-create-btn" data-requires-permission="missions.edit">+ Add Equipment</button>
+        <div class="gear-toolbar-actions">
+          <!-- Reads the filtered view, not the whole catalogue: the point is to
+               see what a single role's or category's item levels look like. -->
+          <div class="gear-ilvl-summary" id="gear-management-ilvl-summary" hidden>
+            <div class="gear-ilvl-stats">
+              <div class="gear-ilvl-stat"><span class="gear-ilvl-value" id="gear-management-ilvl-total">&mdash;</span><span class="gear-ilvl-label">Total iLvl</span></div>
+              <div class="gear-ilvl-stat"><span class="gear-ilvl-value" id="gear-management-ilvl-average">&mdash;</span><span class="gear-ilvl-label">Avg iLvl</span></div>
+            </div>
+            <span class="gear-ilvl-note" id="gear-management-ilvl-note"></span>
+          </div>
+          <button type="button" class="btn btn-solid" id="mission-gear-create-btn" data-requires-permission="missions.edit">+ Add Equipment</button>
+        </div>
         <span class="admin-count" id="gear-management-count"></span>
       </div>
       <div class="mission-admin-panel" id="gear-management-panel">
@@ -4713,7 +4724,7 @@
 </div>
 
 <script src="../js/members.js?v=43"></script>
-<script src="../js/admin-missions.js?v=25"></script><script src="../js/admin-loot-tables.js?v=10"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=8"></script>
+<script src="../js/admin-missions.js?v=26"></script><script src="../js/admin-loot-tables.js?v=10"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=8"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };
