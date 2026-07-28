@@ -10,7 +10,7 @@
 (function () {
   'use strict';
 
-  var state = { data: null, busy: false, result: null, scanningCell: null, recentCell: null, fieldMessage: '' };
+  var state = { data: null, busy: false, result: null, scanningCell: null, recentCell: null, fieldMessage: '', ladderStart: null, ladderSignature: '' };
   var gate = document.getElementById('sweep-gate');
   var content = document.getElementById('sweep-content');
   var status = document.getElementById('sweep-status');
@@ -21,6 +21,8 @@
   var crewList = document.getElementById('sweep-crew-list');
   var crewCard = document.getElementById('sweep-crew-card');
   var ladder = document.getElementById('sweep-ladder');
+  var ladderUp = document.getElementById('sweep-ladder-up');
+  var ladderDown = document.getElementById('sweep-ladder-down');
   var sectorTitle = document.getElementById('sweep-sector-title');
   var sectorBody = document.getElementById('sweep-sector-body');
   var bankButton = document.getElementById('sweep-bank');
@@ -467,13 +469,46 @@
       }).join('') + '</div>';
   }
 
+  function ladderRankColor(value) {
+    var color = String(value || '');
+    return /^#[0-9a-f]{3,8}$/i.test(color) ? color : '#7ee3e8';
+  }
+
   function renderLadder() {
     var rows = (state.data && state.data.ladder) || [];
-    if (!rows.length) { ladder.innerHTML = '<li class="sweep-muted">No sectors have been surveyed yet.</li>'; return; }
-    ladder.innerHTML = rows.map(function (row) {
+    if (!rows.length) {
+      ladder.innerHTML = '<li class="sweep-muted">No sectors have been surveyed yet.</li>';
+      if (ladderUp) ladderUp.disabled = true;
+      if (ladderDown) ladderDown.disabled = true;
+      return;
+    }
+    var currentIndex = rows.findIndex(function (row) { return !!row.is_current; });
+    if (currentIndex < 0) {
+      currentIndex = 0;
+      rows.forEach(function (row, index) { if (row.unlocked) currentIndex = index; });
+    }
+    var signature = rows.map(function (row) { return row.rank_number; }).join(',') + ':' + currentIndex;
+    if (state.ladderSignature !== signature) {
+      /* Opening the page always anchors the commander's current sector at the
+         top. The two rungs after it are a deliberate, legible preview rather
+         than a scroll position the browser happens to remember. */
+      state.ladderSignature = signature;
+      state.ladderStart = currentIndex;
+    }
+    /* A short ladder stays short at its end: do not backfill with older
+       sectors, because the current unlocked sector must remain the first
+       visible rung even when it has fewer than two sectors ahead of it. */
+    var maxStart = Math.max(0, rows.length - 1);
+    var start = Math.max(0, Math.min(maxStart, Number(state.ladderStart) || 0));
+    state.ladderStart = start;
+    if (ladderUp) ladderUp.disabled = start <= 0;
+    if (ladderDown) ladderDown.disabled = start >= maxStart;
+    ladder.innerHTML = rows.slice(start, start + 3).map(function (row, visibleIndex) {
+      var rowIndex = start + visibleIndex;
       var cls = row.is_current ? 'is-current' : (row.unlocked ? 'is-earned' : 'is-sealed');
-      /* A sealed rung shows its rank and its board shape but never its
-         manifest name: what a field holds is the reward for reaching it. */
+      var distance = rowIndex - currentIndex;
+      if (distance === 1) cls += ' is-next-one';
+      if (distance === 2) cls += ' is-next-two';
       /* The manifest is not named. What a sector pays is the thing worth
          finding out by sweeping it, and printing the loot table's name turned
          the ladder into a contents list. The board shape is the useful part
@@ -482,12 +517,22 @@
         ? row.grid_rows + '\u00d7' + row.grid_cols + ' \u00b7 ' + row.hazard_count + ' collapse'
           + (Number(row.hazard_count) === 1 ? '' : 's') + ' \u00b7 ' + esc((row.condition || {}).label || 'Nominal')
         : 'Rank ' + row.rank_number + ' required';
-      return '<li class="sweep-rung ' + cls + '">'
+      return '<li class="sweep-rung ' + cls + '" style="--rank-color:' + esc(ladderRankColor(row.rank_color)) + '"'
+        + (row.is_current ? ' aria-current="step"' : '') + '>'
         + '<span class="sweep-rung-mark">' + row.rank_number + '</span>'
         + '<span class="sweep-rung-copy"><strong>' + esc(row.name) + '</strong><small>' + detail + '</small></span>'
         + (row.unlocked && row.sweeps_completed ? '<b>' + row.sweeps_completed + '</b>' : '')
         + '</li>';
     }).join('');
+  }
+
+  function moveLadder(direction) {
+    var rows = (state.data && state.data.ladder) || [];
+    if (!rows.length) return;
+    if (state.ladderStart === null) renderLadder();
+    var maxStart = Math.max(0, rows.length - 1);
+    state.ladderStart = Math.max(0, Math.min(maxStart, Number(state.ladderStart) + direction));
+    renderLadder();
   }
 
   /* ---- Crew -------------------------------------------------------------
@@ -972,6 +1017,8 @@
       pick(Number(button.getAttribute('data-sweep-cell')));
     });
   }
+  if (ladderUp) ladderUp.addEventListener('click', function () { moveLadder(-1); });
+  if (ladderDown) ladderDown.addEventListener('click', function () { moveLadder(1); });
   if (crewList) {
     crewList.addEventListener('click', function (event) {
       var button = event.target.closest('[data-sweep-send]');

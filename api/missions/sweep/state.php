@@ -18,6 +18,13 @@ try {
     $standing->execute([$userId]);
     $reputation = pw_reputation_info((int)$standing->fetchColumn());
     $rank = max(0, (int)($reputation['level_number'] ?? 0));
+    /* Sweep sectors inherit the colour of the reputation rung that unlocks
+     * them. The UI therefore reads as one continuous progression system rather
+     * than inventing a second colour language just for field recovery. */
+    $rankColors = [];
+    foreach (pw_reputation_levels() as $index => $level) {
+        $rankColors[$index + 1] = (string)($level['color'] ?? '#7ee3e8');
+    }
 
     /* The whole ladder, so a player can see what their standing is worth now
      * and what the next rungs hold. Sealed rungs deliberately carry their tier
@@ -58,6 +65,7 @@ try {
             'cache_credits' => $tier['cache_credits'],
             'xp_reward' => $tier['xp_reward'],
             'condition' => pw_sweep_condition_public($tier['condition_key']),
+            'rank_color' => $rankColors[$tier['rank_number']] ?? '#7ee3e8',
             'unlocked' => $unlocked,
             'is_current' => $tier['rank_number'] === $activeRank,
             'sweeps_completed' => $completed[$tier['rank_number']] ?? 0,
