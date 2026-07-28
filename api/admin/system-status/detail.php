@@ -18,6 +18,22 @@ require_once __DIR__ . '/../../dispatch-embeddings.php';
 pw_require_permission('dashboards.view_system_status');
 $db = pw_db();
 
+// This dashboard combines two cold-started Python workers with remote HTTPS
+// probes and an account-wide disk scan. Running that sequence for each
+// 60-second refresh made the page feel stalled even though the result is the
+// same for every admin. Keep a short shared snapshot; an explicit recheck
+// invalidates it when an operator needs an immediate result.
+$detailCacheKey = 'admin-system-status-detail-v2';
+$forceFresh = isset($_GET['fresh']) && $_GET['fresh'] === '1';
+if (!$forceFresh) {
+    $cached = pw_admin_runtime_cache_read($db, $detailCacheKey);
+    if ($cached !== null) {
+        $cached['ok'] = true;
+        $cached['cached'] = true;
+        pw_json($cached);
+    }
+}
+
 // --- GitHub Repository + API rate limit --------------------------------------
 $githubStatus = 'bad';
 $githubLabel = 'Unreachable';
@@ -127,7 +143,7 @@ $embeddings = pw_dispatch_embedding_status();
 $avatarStorage = pw_check_avatar_storage();
 $totalStorage = pw_check_total_storage();
 
-pw_json([
+$detail = [
     'ok' => true,
     'github' => ['status' => $githubStatus, 'label' => $githubLabel],
     'webhook' => ['status' => $webhookStatus, 'label' => $webhookLabel],
@@ -151,4 +167,9 @@ pw_json([
     'cpu_load' => $cpuLoad,
     'avatar_storage' => $avatarStorage,
     'total_storage' => $totalStorage,
-]);
+];
+
+// Five minutes avoids repeatedly starting the NLP workers during the page's
+// automatic refresh while remaining short enough for an admin health view.
+pw_admin_runtime_cache_write($db, $detailCacheKey, $detail, 300);
+pw_json($detail);
