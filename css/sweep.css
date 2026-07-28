@@ -198,6 +198,20 @@ button.sweep-cell.is-scanning { border-color: #f0d891; color: #fff0c2; animation
 .sweep-reward-cabinet-item.is-tier-epic { --cabinet-color: 205,124,236; }
 .sweep-reward-cabinet-item.is-tier-legendary { --cabinet-color: 233,211,153; }
 @keyframes sweep-haul-arrival { from { opacity: 0; transform: translateY(9px) scale(.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+/* Rarity is a moment on the reward page, not merely a colour label. The glint
+ * starts only after the card's arrival animation has settled, then escalates
+ * from a quiet rare pass to a layered legendary flare. */
+.sweep-reward-cabinet-item.is-tier-rare,
+.sweep-reward-cabinet-item.is-tier-epic,
+.sweep-reward-cabinet-item.is-tier-legendary { position: relative; overflow: hidden; }
+.sweep-reward-cabinet-item.is-tier-rare::after,
+.sweep-reward-cabinet-item.is-tier-epic::after,
+.sweep-reward-cabinet-item.is-tier-legendary::after { content: ''; position: absolute; z-index: 2; inset: -35% -65%; pointer-events: none; background: linear-gradient(105deg, transparent 43%, rgba(255,255,255,.5) 50%, transparent 57%); animation: sweep-reward-shine 5.8s ease-in-out infinite 1.05s; }
+.sweep-reward-cabinet-item.is-tier-rare::after { opacity: .42; }
+.sweep-reward-cabinet-item.is-tier-epic::after { opacity: .62; animation-duration: 4.1s; }
+.sweep-reward-cabinet-item.is-tier-legendary::after { opacity: .78; animation-duration: 3.25s; }
+.sweep-reward-cabinet-item.is-tier-legendary::before { content: ''; position: absolute; z-index: 2; inset: -35% -65%; pointer-events: none; background: linear-gradient(105deg, transparent 45%, rgba(255,236,181,.56) 50%, transparent 55%); animation: sweep-reward-shine 6.4s ease-in-out infinite 2.5s; }
+@keyframes sweep-reward-shine { 0%, 58%, 100% { transform: translateX(-140%) skewX(-18deg); } 28% { transform: translateX(140%) skewX(-18deg); } }
 .sweep-reward-cabinet-art { display: grid; width: 42px; height: 42px; overflow: hidden; place-items: center; border: 1px solid rgba(var(--cabinet-color),.65); background: rgba(4,10,20,.82); color: rgb(var(--cabinet-color)); font: 600 1rem/1 'Cinzel', serif; box-shadow: 0 0 11px rgba(var(--cabinet-color),.16); }
 .sweep-reward-cabinet-art img { width: 100%; height: 100%; object-fit: cover; }
 .sweep-reward-cabinet-copy { display: grid; min-width: 0; gap: 2px; }
@@ -420,7 +434,7 @@ button.sweep-cell.is-scanning { border-color: #f0d891; color: #fff0c2; animation
 @media (prefers-reduced-motion: reduce) {
   .sweep-cell { transition: none; }
   .sweep-stim-slot.is-empty, .sweep-choice-option { transition: none; }
-  .sweep-cell.is-shiny::before, .sweep-cell.is-shiny::after { animation: none; opacity: 0; }
+  .sweep-cell.is-shiny::before, .sweep-cell.is-shiny::after, .sweep-reward-cabinet-item.is-tier-rare::after, .sweep-reward-cabinet-item.is-tier-epic::after, .sweep-reward-cabinet-item.is-tier-legendary::before, .sweep-reward-cabinet-item.is-tier-legendary::after { animation: none; opacity: 0; }
   .sweep-field-marker, .sweep-field-marker.is-scanning, button.sweep-cell.is-scanning, .sweep-cell.is-open.is-recent, .sweep-result.is-collapse, .sweep-reward-cabinet-item { animation: none; }
   button.sweep-cell:hover:not(:disabled) { transform: none; }
 }

@@ -113,11 +113,17 @@ if (!empty($_SESSION['user_id'])) {
 // Every API endpoint includes this helper, so keep the baseline browser
 // protections here rather than relying on individual routes to remember them.
 // JSON responses should never be MIME-sniffed or framed, and cross-origin
-// navigations do not need the complete source URL as a referrer.
+// navigations do not need the complete source URL as a referrer. API data is
+// also deliberately private and live: caching a catalogue response means a
+// newly created item can be absent from an admin picker until the whole page
+// is reloaded.
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 header('X-Frame-Options: DENY');
 header('Referrer-Policy: strict-origin-when-cross-origin');
+header('Cache-Control: no-store, no-cache, must-revalidate, private, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 // --- GitHub API auth -----------------------------------------------------------
 // Optional: define GITHUB_TOKEN in the outside-webroot secrets file (see

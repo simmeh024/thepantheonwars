@@ -4836,45 +4836,49 @@
     try { localStorage.setItem(ACTIVE_SECTION_KEY, name); } catch (e) {}
     if (name === 'home') { startHomeAutoRefresh(); refreshHomeCards(); } else { stopHomeAutoRefresh(); }
     if (name === 'system-status') { startSystemStatusAutoRefresh(); } else { stopSystemStatusAutoRefresh(); }
-    if (!loadedSections[name]) {
-      loadedSections[name] = true;
-      if (name === 'audit-log') loadAuditLog();
-      if (name === 'system-status') { loadSystemStatusDetail(); loadCpuHistory(); }
-      if (name === 'dispatch-control') loadControlList();
-      if (name === 'news-management') loadNewsList();
-      if (name === 'site-settings') loadSiteSettings();
-      if (name === 'mail-settings') loadMailSettings();
-      if (name === 'mail-campaigns') loadCampaigns();
-      if (name === 'mail-templates') loadMailTemplates();
-      if (name === 'mail-log') { loadMailLog(); loadMailSuppressions(mailSuppressionType); }
-      if (name === 'dispatch-translations') loadList();
-      if (name === 'dispatch-composer') loadComposerDashboard();
-      if (name === 'translation-quality') loadQualityReports();
-      if (name === 'members') loadMembers();
-      if (name === 'topic-reports') loadTopicReports();
-      if (name === 'warnings') loadWarnings();
-      if (name === 'privacy-requests') loadPrivacyRequests();
-      if (name === 'forum-control') { loadForumCategories(); loadForumBoards(); }
-      if (name === 'reputation-levels') loadReputationLevelList();
-      if (name === 'mission-control') loadMissionControl();
-      if (name === 'loot-tables') loadLootTables();
-      if (name === 'market-control') loadMarketControl();
-      if (name === 'research-management') loadResearchManagement();
-      if (name === 'game-tuning') loadGameTuning();
-      if (name === 'sweep-tiers' && window.PW_LOAD_SWEEP_TIERS) window.PW_LOAD_SWEEP_TIERS();
-      if (name === 'book-control') loadBookList();
-      if (name === 'quiz-control') loadQuizQuestionList();
-      if (name === 'world-control') loadWorldList();
-      if (name === 'weather-control') loadWeatherControl();
-      if (name === 'overlord-control') loadOverlordList();
-      if (name === 'overlord-transmission-control') loadTransmissionList();
-      if (name === 'overlord-dialogue-control') loadDialogueTreeList();
-      if (name === 'known-figures-control') loadKnownFigureList();
-      if (name === 'timeline-control') loadTimelineList();
-      if (name === 'soundtrack-control') loadSoundtrackList();
-      if (name === 'roles-permissions') loadRoles();
-      if (name === 'visitor-stats') loadVisitorStats();
-    }
+    /* A section used to fetch only on its first visit. That left a picker with
+     * its old catalogue after its source was created elsewhere in the console
+     * (for example, a new item did not appear in Loot Tables until F5). Lists
+     * are cheap, and a section is an explicit request to see its current data,
+     * so reload on every entry while keeping the loaded flag for quick actions
+     * that need to know whether their supporting catalogue exists. */
+    loadedSections[name] = true;
+    if (name === 'audit-log') loadAuditLog();
+    if (name === 'system-status') { loadSystemStatusDetail(); loadCpuHistory(); }
+    if (name === 'dispatch-control') loadControlList();
+    if (name === 'news-management') loadNewsList();
+    if (name === 'site-settings') loadSiteSettings();
+    if (name === 'mail-settings') loadMailSettings();
+    if (name === 'mail-campaigns') loadCampaigns();
+    if (name === 'mail-templates') loadMailTemplates();
+    if (name === 'mail-log') { loadMailLog(); loadMailSuppressions(mailSuppressionType); }
+    if (name === 'dispatch-translations') loadList();
+    if (name === 'dispatch-composer') loadComposerDashboard();
+    if (name === 'translation-quality') loadQualityReports();
+    if (name === 'members') loadMembers();
+    if (name === 'topic-reports') loadTopicReports();
+    if (name === 'warnings') loadWarnings();
+    if (name === 'privacy-requests') loadPrivacyRequests();
+    if (name === 'forum-control') { loadForumCategories(); loadForumBoards(); }
+    if (name === 'reputation-levels') loadReputationLevelList();
+    if (name === 'mission-control') loadMissionControl();
+    if (name === 'loot-tables') loadLootTables();
+    if (name === 'market-control') loadMarketControl();
+    if (name === 'research-management') loadResearchManagement();
+    if (name === 'game-tuning') loadGameTuning();
+    if (name === 'sweep-tiers' && window.PW_LOAD_SWEEP_TIERS) window.PW_LOAD_SWEEP_TIERS();
+    if (name === 'book-control') loadBookList();
+    if (name === 'quiz-control') loadQuizQuestionList();
+    if (name === 'world-control') loadWorldList();
+    if (name === 'weather-control') loadWeatherControl();
+    if (name === 'overlord-control') loadOverlordList();
+    if (name === 'overlord-transmission-control') loadTransmissionList();
+    if (name === 'overlord-dialogue-control') loadDialogueTreeList();
+    if (name === 'known-figures-control') loadKnownFigureList();
+    if (name === 'timeline-control') loadTimelineList();
+    if (name === 'soundtrack-control') loadSoundtrackList();
+    if (name === 'roles-permissions') loadRoles();
+    if (name === 'visitor-stats') loadVisitorStats();
   }
 
   navLinks.forEach(function (l) {
