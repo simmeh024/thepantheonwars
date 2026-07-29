@@ -145,6 +145,164 @@ function pw_missions_overlord_standing_stages(): array {
     ];
 }
 
+/**
+ * What each rung is worth, per Overlord.
+ *
+ * The governing decision: every benefit is expressed in the effect vocabulary
+ * the research tree already uses, rather than as thirty bespoke mechanics.
+ * Those keys are plumbed through the launch projection, the claim payout, the
+ * mission card, the Sweep and the Market already, so a standing benefit reaches
+ * all of them by being folded into the same array -- the same argument that
+ * stopped stims needing their own pipeline. A benefit that needed its own
+ * branch in six files would be a benefit that silently missed one of them.
+ *
+ * Effects are cumulative up the ladder: reaching Trusted keeps what Recognized
+ * gave. Each patron's line follows their own character rather than being the
+ * same bonus in six colours --
+ *   Syn Dravus     knowledge   -> what you find, and what you can see coming
+ *   Malric Thorne  control     -> endurance and resilience; nothing slips
+ *   Korrus Vale    efficiency  -> the schedule, and room to hold the results
+ *   Lysara Venthe  care        -> crew recovery and the kit to sustain it
+ *   Zura Kaleth    patience    -> growth, in crew and in roster size
+ *   Maerion Thal   reputation  -> standing and the terms you trade on
+ *
+ * Unproven is deliberately empty. The bottom rung has to mean "not yet", or the
+ * ladder starts halfway up and the first climb is worth nothing.
+ */
+function pw_missions_overlord_standing_benefits(): array {
+    return [
+        'syn-dravus' => [
+            ['title' => 'Unread', 'copy' => 'The Mindweaver has not yet read you. Run his contracts.', 'effects' => []],
+            ['title' => 'Recognized', 'copy' => 'What comes back from an operation is worth more.', 'effects' => ['luck_percent' => 5.0]],
+            ['title' => 'Trusted', 'copy' => 'His survey data reaches your salvage fields.', 'effects' => ['luck_percent' => 5.0, 'sweep_survey_percent' => 25.0]],
+            ['title' => 'Favoured', 'copy' => 'You are told what is worth recovering before you go.', 'effects' => ['luck_percent' => 15.0, 'sweep_survey_percent' => 25.0]],
+            ['title' => 'Chosen', 'copy' => 'You see a field the way he does.', 'effects' => ['luck_percent' => 25.0, 'sweep_survey_percent' => 40.0, 'sweep_recognition_percent' => 20.0]],
+        ],
+        'malric-thorne' => [
+            ['title' => 'Unsworn', 'copy' => 'The Black Regent does not yet count you among his. Run his contracts.', 'effects' => []],
+            ['title' => 'Recognized', 'copy' => 'Work done in his name is reported upward.', 'effects' => ['reputation_percent' => 10.0]],
+            ['title' => 'Trusted', 'copy' => 'His people are not spent carelessly. Crew endure more.', 'effects' => ['reputation_percent' => 10.0, 'crew_fatigue' => 30]],
+            ['title' => 'Favoured', 'copy' => 'A field that turns on you finds your crew braced for it.', 'effects' => ['reputation_percent' => 18.0, 'crew_fatigue' => 50, 'sweep_brace_percent' => 20.0]],
+            ['title' => 'Chosen', 'copy' => 'Order holds wherever you are standing.', 'effects' => ['reputation_percent' => 30.0, 'crew_fatigue' => 80, 'sweep_brace_percent' => 35.0, 'sweep_stabiliser_points' => 2]],
+        ],
+        'korrus-vale' => [
+            ['title' => 'Unrated', 'copy' => 'The Reactor King has no figures on you yet. Run his contracts.', 'effects' => []],
+            ['title' => 'Recognized', 'copy' => 'Your operations are scheduled tighter.', 'effects' => ['mission_speed_percent' => 8.0]],
+            ['title' => 'Trusted', 'copy' => 'Crew are cycled back to the line faster.', 'effects' => ['mission_speed_percent' => 8.0, 'fatigue_recovery_percent' => 30.0]],
+            ['title' => 'Favoured', 'copy' => 'His depots are opened to you. Hold far more.', 'effects' => ['mission_speed_percent' => 14.0, 'fatigue_recovery_percent' => 40.0, 'inventory_capacity' => 50]],
+            ['title' => 'Chosen', 'copy' => 'The system runs at your pace. That is the point.', 'effects' => ['mission_speed_percent' => 22.0, 'fatigue_recovery_percent' => 60.0, 'inventory_capacity' => 100]],
+        ],
+        'lysara-venthe' => [
+            ['title' => 'Adrift', 'copy' => 'The Tidekeeper has not yet taken you in. Run her contracts.', 'effects' => []],
+            ['title' => 'Recognized', 'copy' => 'Your crew rest better between operations.', 'effects' => ['fatigue_recovery_percent' => 20.0]],
+            ['title' => 'Trusted', 'copy' => 'They are sent out with more in reserve.', 'effects' => ['fatigue_recovery_percent' => 20.0, 'crew_fatigue' => 30]],
+            ['title' => 'Favoured', 'copy' => 'Her dispensary is yours. Two more slots on the belt.', 'effects' => ['fatigue_recovery_percent' => 35.0, 'crew_fatigue' => 50, 'stim_slots' => 2]],
+            ['title' => 'Chosen', 'copy' => 'Nothing under your command is left where it fell.', 'effects' => ['fatigue_recovery_percent' => 60.0, 'crew_fatigue' => 80, 'stim_slots' => 3, 'sweep_tether_percent' => 25.0]],
+        ],
+        'zura-kaleth' => [
+            ['title' => 'Unrooted', 'copy' => 'The Rootbinder is waiting to see what you become. Run her contracts.', 'effects' => []],
+            ['title' => 'Recognized', 'copy' => 'Your crew learn faster from what they survive.', 'effects' => ['xp_percent' => 15.0]],
+            ['title' => 'Trusted', 'copy' => 'A field gives up one more scan to patient hands.', 'effects' => ['xp_percent' => 15.0, 'sweep_scans' => 1]],
+            ['title' => 'Favoured', 'copy' => 'Room for two more to grow under you.', 'effects' => ['xp_percent' => 25.0, 'sweep_scans' => 1, 'crew_capacity' => 2]],
+            ['title' => 'Chosen', 'copy' => 'Nothing near you stays the same for long.', 'effects' => ['xp_percent' => 40.0, 'sweep_scans' => 2, 'crew_capacity' => 4, 'sweep_momentum_percent' => 10.0]],
+        ],
+        'maerion-thal' => [
+            ['title' => 'Unnamed', 'copy' => 'The Sky Duke does not yet know your name. Run his contracts.', 'effects' => []],
+            ['title' => 'Recognized', 'copy' => 'Your contracts are settled at a better rate.', 'effects' => ['credit_percent' => 20.0]],
+            ['title' => 'Trusted', 'copy' => 'The market opens its books to you more often.', 'effects' => ['credit_percent' => 20.0, 'market_refresh_percent' => 50.0]],
+            ['title' => 'Favoured', 'copy' => 'You trade on his terms, not the floor’s.', 'effects' => ['credit_percent' => 30.0, 'market_refresh_percent' => 50.0, 'market_discount_percent' => 20.0]],
+            ['title' => 'Chosen', 'copy' => 'Your word carries as far as his does.', 'effects' => ['credit_percent' => 40.0, 'market_refresh_percent' => 50.0, 'market_discount_percent' => 30.0, 'reputation_percent' => 25.0]],
+        ],
+    ];
+}
+
+/**
+ * Human wording for one effect contribution, used to list what a rung grants.
+ *
+ * Derived from the effect keys rather than authored a second time beside them:
+ * a benefit whose sentence is written separately from its numbers is a benefit
+ * whose sentence eventually stops being true.
+ */
+function pw_missions_overlord_standing_effect_labels(array $effects): array {
+    $labels = [
+        'mission_speed_percent' => ['%s%% faster operations', true],
+        'xp_percent' => ['+%s%% crew XP', true],
+        'reputation_percent' => ['+%s%% reputation', true],
+        'credit_percent' => ['+%s%% credits', true],
+        'luck_percent' => ['+%s%% loot quality', true],
+        'fatigue_recovery_percent' => ['+%s%% crew recovery', true],
+        'market_discount_percent' => ['%s%% off market prices', true],
+        'market_refresh_percent' => ['+%s%% market refresh', true],
+        'sweep_survey_percent' => ['+%s%% sweep survey', true],
+        'sweep_brace_percent' => ['+%s%% sweep brace', true],
+        'sweep_recognition_percent' => ['+%s%% sweep recognition', true],
+        'sweep_momentum_percent' => ['+%s%% sweep momentum', true],
+        'sweep_tether_percent' => ['+%s%% sweep tether', true],
+        'crew_fatigue' => ['+%s crew fatigue ceiling', false],
+        'crew_capacity' => ['+%s crew berths', false],
+        'inventory_capacity' => ['+%s inventory capacity', false],
+        'stim_slots' => ['+%s stim slots', false],
+        'sweep_scans' => ['+%s sweep scan', false],
+        'sweep_stabiliser_points' => ['+%s sweep stabiliser', false],
+    ];
+    $out = [];
+    foreach ($effects as $key => $value) {
+        if (!isset($labels[$key]) || $value <= 0) continue;
+        [$format, $isPercent] = $labels[$key];
+        $number = $isPercent ? rtrim(rtrim(number_format((float)$value, 1, '.', ''), '0'), '.') : (string)(int)$value;
+        $out[] = sprintf($format, $number);
+    }
+    return $out;
+}
+
+/**
+ * The effect deltas the player's current standing grants, ready to fold.
+ *
+ * Returns the reached stage's own totals rather than a sum across stages: the
+ * table above is written cumulatively, so summing it would pay every earlier
+ * rung a second time.
+ */
+function pw_missions_overlord_standing_effects(PDO $db, int $userId, ?array $overlord = null): array {
+    if (!pw_mission_overlord_standing_ready($db)) return [];
+    try {
+        if ($overlord === null) {
+            $stmt = $db->prepare('SELECT overlord_affinity FROM users WHERE id = ?');
+            $stmt->execute([$userId]);
+            $overlord = pw_missions_overlord_affinity($db, (string)($stmt->fetchColumn() ?: ''));
+        }
+        if ($overlord === null) return [];
+        $table = pw_missions_overlord_standing_benefits();
+        $rungs = $table[(string)$overlord['slug']] ?? null;
+        if ($rungs === null) return [];
+        $read = $db->prepare('SELECT points FROM game_player_overlord_standing WHERE user_id = ? AND overlord_id = ?');
+        $read->execute([$userId, (int)$overlord['id']]);
+        $points = (int)($read->fetchColumn() ?: 0);
+        $index = pw_missions_overlord_standing_stage_index($points);
+        return $rungs[$index]['effects'] ?? [];
+    } catch (Throwable $e) {
+        /* A standing that cannot be read grants nothing rather than taking the
+         * whole effects pass -- and therefore every mission page -- down. */
+        return [];
+    }
+}
+
+/**
+ * Add the standing deltas onto an effects array.
+ *
+ * Only keys the array already defines are touched, so a benefit naming an
+ * effect this install's research tree does not have cannot introduce a stray
+ * key that a consumer would later read as a number and find an array.
+ */
+function pw_missions_apply_overlord_standing_effects(PDO $db, int $userId, array $effects): array {
+    foreach (pw_missions_overlord_standing_effects($db, $userId) as $key => $value) {
+        if (!array_key_exists($key, $effects) || !is_numeric($effects[$key])) continue;
+        $effects[$key] = is_int($effects[$key])
+            ? $effects[$key] + (int)$value
+            : $effects[$key] + (float)$value;
+    }
+    return $effects;
+}
+
 /** Index of the highest stage whose threshold the points have reached. */
 function pw_missions_overlord_standing_stage_index(int $points): int {
     $index = 0;
@@ -163,8 +321,8 @@ function pw_missions_overlord_standing_stage_index(int $points): int {
  * the card then hides the bar entirely rather than showing a zero that is
  * really an unknown.
  */
-function pw_missions_overlord_standing(PDO $db, int $userId, int $overlordId): array {
-    $stages = pw_missions_overlord_standing_stages();
+function pw_missions_overlord_standing(PDO $db, int $userId, int $overlordId, string $overlordSlug = ''): array {
+    $stages = pw_missions_overlord_standing_rungs($overlordSlug);
     $block = [
         'ready' => pw_mission_overlord_standing_ready($db),
         'points' => 0,
@@ -189,12 +347,31 @@ function pw_missions_overlord_standing(PDO $db, int $userId, int $overlordId): a
         return $block;
     }
 
-    return pw_missions_overlord_standing_view($points) + ['ready' => true, 'stages' => $stages];
+    return pw_missions_overlord_standing_view($points, $overlordSlug) + ['ready' => true, 'stages' => $stages];
+}
+
+/**
+ * The stage table with this Overlord's own rung titles and benefit lines
+ * merged onto it, so the card can name what each rung gives without holding a
+ * second copy of the table. An unknown slug falls back to the plain ladder --
+ * a seventh Overlord added in Overlord Control gets the standing bar and no
+ * benefits rather than no bar at all.
+ */
+function pw_missions_overlord_standing_rungs(string $overlordSlug): array {
+    $stages = pw_missions_overlord_standing_stages();
+    $rungs = pw_missions_overlord_standing_benefits()[$overlordSlug] ?? null;
+    foreach ($stages as $index => $stage) {
+        $rung = $rungs[$index] ?? null;
+        $stages[$index]['title'] = $rung['title'] ?? $stage['label'];
+        $stages[$index]['copy'] = $rung['copy'] ?? '';
+        $stages[$index]['grants'] = $rung === null ? [] : pw_missions_overlord_standing_effect_labels($rung['effects']);
+    }
+    return $stages;
 }
 
 /** The derived half of the block above, shared with the claim response. */
-function pw_missions_overlord_standing_view(int $points): array {
-    $stages = pw_missions_overlord_standing_stages();
+function pw_missions_overlord_standing_view(int $points, string $overlordSlug = ''): array {
+    $stages = pw_missions_overlord_standing_rungs($overlordSlug);
     $points = max(0, min(PW_MISSION_OVERLORD_STANDING_MAX, $points));
     $index = pw_missions_overlord_standing_stage_index($points);
     $next = $stages[$index + 1] ?? null;
@@ -221,6 +398,13 @@ function pw_missions_overlord_standing_view(int $points): array {
 function pw_missions_award_overlord_standing(PDO $db, int $userId, int $overlordId, int $amount): ?array {
     if (!pw_mission_overlord_standing_ready($db) || $overlordId < 1 || $amount < 1) return null;
     try {
+        /* Resolved here rather than passed in: the caller has a mission row,
+         * which carries the Overlord's id and not its slug, and the debrief
+         * wants the patron's own name for the rung ("Trusted" is the ladder,
+         * "Unsworn" is what Malric Thorne calls the bottom of it). */
+        $slugStmt = $db->prepare('SELECT slug FROM overlords WHERE id = ?');
+        $slugStmt->execute([$overlordId]);
+        $slug = (string)($slugStmt->fetchColumn() ?: '');
         $read = $db->prepare('SELECT points FROM game_player_overlord_standing WHERE user_id = ? AND overlord_id = ? FOR UPDATE');
         $read->execute([$userId, $overlordId]);
         $before = (int)($read->fetchColumn() ?: 0);
@@ -228,14 +412,14 @@ function pw_missions_award_overlord_standing(PDO $db, int $userId, int $overlord
         if ($after === $before) {
             /* Already at the ceiling. Still reported, so the debrief can say the
              * standing is full instead of silently paying nothing. */
-            return ['awarded' => 0, 'before' => pw_missions_overlord_standing_view($before), 'after' => pw_missions_overlord_standing_view($after)];
+            return ['awarded' => 0, 'before' => pw_missions_overlord_standing_view($before, $slug), 'after' => pw_missions_overlord_standing_view($after, $slug)];
         }
         $write = $db->prepare(
             'INSERT INTO game_player_overlord_standing (user_id, overlord_id, points) VALUES (?, ?, ?)
              ON DUPLICATE KEY UPDATE points = VALUES(points)'
         );
         $write->execute([$userId, $overlordId, $after]);
-        return ['awarded' => $after - $before, 'before' => pw_missions_overlord_standing_view($before), 'after' => pw_missions_overlord_standing_view($after)];
+        return ['awarded' => $after - $before, 'before' => pw_missions_overlord_standing_view($before, $slug), 'after' => pw_missions_overlord_standing_view($after, $slug)];
     } catch (Throwable $e) {
         /* Standing is a record of work already rewarded elsewhere, so a failure
          * here must never take the rest of the claim down with it. */

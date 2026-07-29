@@ -1034,32 +1034,39 @@
 .mission-profile-affinity-copy em { overflow: hidden; color: var(--overlord-text, #e2c76a); font-size: 0.63rem; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
 /* Unaligned: a prompt rather than a status, so it reads as something to do. */
 /* --- Overlord standing ----------------------------------------------------
- * A 500-point ladder in five stages under the affinity card. The colour of the
- * current stage arrives from the server as --standing-color, so the bar, the
- * rank word and the arrow are always the one tone -- and a retune of the stage
+ * A 500-point ladder in five stages under the affinity card. The current
+ * stage's colour arrives from the server as --standing-color, so the rank
+ * word, the arrow and the fill are always one tone, and a retune of the stage
  * table moves all three without touching this file.
  *
- * Spans both columns of the affinity grid rather than sitting beside the
- * sigil, and lives inside the anchor so it inherits that row's order at the
- * narrow breakpoint. */
-.mission-standing { display: grid; grid-column: 1 / -1; gap: 3px; margin-top: 9px; }
+ * The bar is segmented rather than a single track with five names printed
+ * beneath it: five words at a legible size do not fit this rail and rendered
+ * as one run-on string. A segment per stage carries the same five colours in
+ * the space the bar already occupies.
+ *
+ * Spans both columns of the affinity grid and lives inside the anchor, so it
+ * inherits that row's order at the narrow breakpoint. */
+.mission-standing { display: grid; grid-column: 1 / -1; gap: 4px; margin-top: 10px; padding-top: 9px; border-top: 1px solid color-mix(in srgb, var(--overlord-accent, #c9a227) 26%, transparent); }
 .mission-standing-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.mission-standing-rank { color: var(--standing-color, #8fa3b5); font: 700 0.68rem/1 'Cinzel', serif; letter-spacing: .06em; }
-.mission-standing-points { color: #9db3c2; font-size: 0.58rem; font-weight: 700; letter-spacing: .05em; }
-.mission-standing-track { position: relative; overflow: hidden; height: 8px; border: 1px solid rgba(103,152,190,0.34); background: rgba(6,15,28,0.62); }
-.mission-standing-fill { display: block; height: 100%; background: linear-gradient(90deg, color-mix(in srgb, var(--standing-color, #8fa3b5) 55%, transparent), var(--standing-color, #8fa3b5)); box-shadow: 0 0 10px color-mix(in srgb, var(--standing-color, #8fa3b5) 45%, transparent); transition: width .5s ease; }
-/* Stage boundaries, drawn over the fill. A passed tick is dimmer than one still
- * ahead: behind the fill it is history, ahead of it it is the next target. */
-.mission-standing-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(220,236,244,0.55); }
-.mission-standing-tick.is-passed { background: rgba(6,15,28,0.5); }
-/* Its own row, so the arrow cannot overlap the track or the labels. */
-.mission-standing-marker { position: relative; height: 9px; }
-.mission-standing-arrow { position: absolute; top: -2px; color: var(--standing-color, #8fa3b5); font-size: 0.72rem; font-weight: 700; line-height: 1; transform: translateX(-50%); }
-.mission-standing-stages { display: flex; justify-content: space-between; gap: 3px; }
-.mission-standing-stage { color: #7f93a4; font-size: 0.47rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
-.mission-standing-stage.is-earned { color: color-mix(in srgb, var(--standing-stage, #8fa3b5) 62%, #9fb4c4); }
-.mission-standing-stage.is-current { color: var(--standing-stage, #8fa3b5); }
-.mission-standing-next { color: #9db3c2; font-size: 0.57rem; }
+.mission-standing-rank { overflow: hidden; color: var(--standing-color, #8fa3b5); font: 700 0.72rem/1.1 'Cinzel', serif; letter-spacing: .04em; text-overflow: ellipsis; white-space: nowrap; }
+.mission-standing-points { flex: none; color: #a8bccb; font-size: 0.58rem; font-weight: 700; letter-spacing: .04em; }
+/* Segment widths are proportional to each stage's own span, so the widening
+ * gaps up the ladder are visible rather than averaged into five equal fifths. */
+.mission-standing-track { display: flex; gap: 2px; height: 9px; }
+.mission-standing-seg { position: relative; overflow: hidden; min-width: 2px; border: 1px solid color-mix(in srgb, var(--standing-seg, #8fa3b5) 34%, transparent); background: rgba(6,15,28,0.66); }
+.mission-standing-seg--cap { flex: none; width: 11px; }
+.mission-standing-seg.is-reached { border-color: color-mix(in srgb, var(--standing-seg, #8fa3b5) 72%, transparent); }
+.mission-standing-seg i { display: block; height: 100%; background: linear-gradient(90deg, color-mix(in srgb, var(--standing-seg, #8fa3b5) 62%, transparent), var(--standing-seg, #8fa3b5)); box-shadow: 0 0 8px color-mix(in srgb, var(--standing-seg, #8fa3b5) 42%, transparent); transition: width .5s ease; }
+/* Its own row, so the marker can never overlap the track or the copy below. */
+.mission-standing-marker { position: relative; height: 8px; }
+.mission-standing-arrow { position: absolute; top: -1px; color: var(--standing-color, #8fa3b5); font-size: 0.5rem; line-height: 1; transform: translateX(-50%); }
+.mission-standing-copy { margin: 1px 0 0 !important; color: #b6c8d5; font-size: 0.62rem !important; line-height: 1.4; }
+.mission-standing-grants { display: grid; gap: 2px; margin: 2px 0 0; padding: 0; list-style: none; }
+.mission-standing-grants li { position: relative; padding-left: 11px; color: var(--standing-color, #9db3c2); font-size: 0.61rem; font-weight: 600; line-height: 1.35; }
+.mission-standing-grants li::before { content: '+'; position: absolute; left: 0; font-weight: 700; opacity: .75; }
+.mission-standing-next { color: #a8bccb; font-size: 0.58rem; font-weight: 600; }
+.mission-standing-preview { display: grid; gap: 1px; margin: 0 !important; color: #8ba3b4; font-size: 0.56rem !important; line-height: 1.35; }
+.mission-standing-preview span { color: #7f93a4; font-size: 0.5rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 /* The debrief's own standing line, in the stage's colour so the sentence and
  * the bar it just moved read as the same thing. */
 .mission-result-standing { color: var(--standing-color, #9edba8) !important; }

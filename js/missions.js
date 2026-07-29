@@ -275,37 +275,68 @@
     var max = Math.max(1, Number(standing.max) || 500);
     var points = Math.max(0, Math.min(max, Number(standing.points) || 0));
     var percent = (points / max) * 100;
+    var reached = Number(standing.stage_index) || 0;
     var stage = standing.stage || stages[0];
     var next = standing.next_stage;
-    /* Ticks mark where each stage begins, so the fill can be read against the
-     * ladder rather than as a bare percentage. The first stage starts at zero
-     * and needs no mark -- the left edge of the bar already is it. */
-    var ticks = stages.slice(1).map(function (entry) {
-      var at = (Math.max(0, Number(entry.at) || 0) / max) * 100;
-      return '<span class="mission-standing-tick' + (points >= Number(entry.at) ? ' is-passed' : '')
-        + '" style="left:' + at.toFixed(2) + '%"></span>';
+    var toNext = next ? Number(standing.points_to_next) + ' to ' + next.label : 'Full standing';
+
+    /* The bar is segmented rather than one track with five names printed under
+     * it. Five words at a legible size do not fit a 210px rail -- they rendered
+     * as one run-on string with no gap, which is what this replaced. A segment
+     * per stage carries the same five colours in the space the bar already
+     * occupies, and the words that matter (where you are, what is next) are
+     * spelled out above and below it instead of all five at once.
+     *
+     * Each segment is proportional to its own stage's span, so the widening
+     * gaps up the ladder are visible: Chosen really is the long one. */
+    var segments = stages.map(function (entry, index) {
+      var from = Math.max(0, Number(entry.at) || 0);
+      var last = index + 1 >= stages.length;
+      /* The top stage sits exactly on the ceiling, so it spans nothing -- and a
+       * zero-width segment would leave the destination missing from the bar
+       * entirely. It gets a fixed keystone instead, empty or full, which is
+       * also the truth about it: Chosen is an arrival, not a stretch to cross. */
+      if (last) {
+        return '<span class="mission-standing-seg mission-standing-seg--cap' + (points >= from ? ' is-reached' : '')
+          + '" style="--standing-seg:' + escapeHtml(String(entry.color || '#8fa3b5')) + '">'
+          + '<i style="width:' + (points >= from ? 100 : 0) + '%"></i></span>';
+      }
+      var span = Math.max(1, (Number(stages[index + 1].at) || 0) - from);
+      var into = Math.max(0, Math.min(span, points - from));
+      return '<span class="mission-standing-seg' + (index <= reached ? ' is-reached' : '')
+        + '" style="flex-grow:' + span + ';--standing-seg:' + escapeHtml(String(entry.color || '#8fa3b5')) + '">'
+        + '<i style="width:' + ((into / span) * 100).toFixed(2) + '%"></i></span>';
     }).join('');
-    var labels = stages.map(function (entry, index) {
-      return '<span class="mission-standing-stage' + (index === Number(standing.stage_index) ? ' is-current' : '')
-        + (index < Number(standing.stage_index) ? ' is-earned' : '') + '"'
-        + ' style="--standing-stage:' + escapeHtml(String(entry.color || '#8fa3b5')) + '">'
-        + escapeHtml(entry.label) + '</span>';
-    }).join('');
-    var toNext = next
-      ? Number(standing.points_to_next) + ' to ' + next.label
-      : 'Full standing';
-    /* The arrow is decoration for a figure already written out beside it, so it
-     * is hidden from assistive technology rather than read as a stray caret. */
+
+    /* What this rung gave and what the next one gives. Without it the ladder is
+     * five words and a number -- the player can see they have climbed and not
+     * what climbing bought. Grants come from the server's own effect values, so
+     * the sentence cannot drift from what is actually applied. */
+    var grants = (stage.grants || []).length
+      ? '<ul class="mission-standing-grants">' + stage.grants.map(function (line) {
+          return '<li>' + escapeHtml(line) + '</li>';
+        }).join('') + '</ul>'
+      : '';
+    var nextGrants = next && (next.grants || []).length
+      ? '<p class="mission-standing-preview"><span>Next</span>' + escapeHtml(next.grants.join(' · ')) + '</p>'
+      : '';
+
+    /* The whole ladder in one sentence for assistive technology, since the
+     * segments are colour and width only. The arrow is decoration for a figure
+     * written out beside it, so it is hidden rather than read as a stray caret. */
+    var readout = 'Standing with this Overlord: ' + stage.label + ', ' + points + ' of ' + max + ' points. '
+      + toNext + '. The ladder is ' + stages.map(function (entry) { return entry.label; }).join(', ') + '.';
+
     return '<div class="mission-standing" style="--standing-color:' + escapeHtml(String(stage.color || '#8fa3b5')) + '">'
-      + '<div class="mission-standing-head"><span class="mission-standing-rank">' + escapeHtml(stage.label) + '</span>'
+      + '<div class="mission-standing-head"><span class="mission-standing-rank">' + escapeHtml(stage.title || stage.label) + '</span>'
       + '<span class="mission-standing-points">' + points + ' / ' + max + '</span></div>'
-      + '<div class="mission-standing-track" role="img" aria-label="'
-      + escapeHtml('Standing ' + stage.label + ', ' + points + ' of ' + max + ' points. ' + toNext + '.') + '">'
-      + '<span class="mission-standing-fill" style="width:' + percent.toFixed(2) + '%"></span>' + ticks + '</div>'
+      + '<div class="mission-standing-track" role="img" aria-label="' + escapeHtml(readout) + '">' + segments + '</div>'
       + '<div class="mission-standing-marker"><span class="mission-standing-arrow" aria-hidden="true" style="left:'
-      + percent.toFixed(2) + '%">&and;</span></div>'
-      + '<div class="mission-standing-stages">' + labels + '</div>'
-      + '<small class="mission-standing-next">' + escapeHtml(toNext) + '</small></div>';
+      + percent.toFixed(2) + '%">&#9650;</span></div>'
+      + (stage.copy ? '<p class="mission-standing-copy">' + escapeHtml(stage.copy) + '</p>' : '')
+      + grants
+      + '<small class="mission-standing-next">' + escapeHtml(toNext) + '</small>'
+      + nextGrants + '</div>';
   }
 
   function overlordAffinityMarkup(player) {

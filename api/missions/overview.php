@@ -471,7 +471,7 @@ try {
             /* Standing with this patron specifically. Resolved here rather than
              * on the contract block because it outlives any one day's contract:
              * it is what the affinity itself has come to be worth. */
-            'standing' => pw_missions_overlord_standing($db, $userId, (int)$playerOverlord['id']),
+            'standing' => pw_missions_overlord_standing($db, $userId, (int)$playerOverlord['id'], (string)$playerOverlord['slug']),
         ],
     ];
 

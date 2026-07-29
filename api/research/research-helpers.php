@@ -270,6 +270,15 @@ function pw_research_player_effects(PDO $db, int $userId): array {
      * pool and the Market, neither of which depends on the Research Facility
      * having been migrated. Returning bare defaults here would silently ignore
      * a boost the player had already spent. */
+    /* Overlord standing folds in here for the same reason stims do: this array
+     * is the single thing the launch projection, the claim payout, the mission
+     * card, the Sweep and the Market all read, so a benefit added here reaches
+     * every one of them unchanged. Threading a second array through those paths
+     * is how one of them ends up silently ignoring a benefit.
+     *
+     * Applied before the ceilings below, deliberately -- standing is another
+     * source of the same bonuses, not a licence to exceed their caps. */
+    $effects = pw_missions_apply_overlord_standing_effects($db, $userId, $effects);
     if (!pw_research_ready($db)) return pw_missions_apply_stim_effects($db, $userId, $effects);
     $lootTableLocksReady = pw_research_loot_table_locks_ready($db);
     $stmt = $db->prepare(
