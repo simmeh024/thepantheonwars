@@ -480,6 +480,14 @@
 .admin-filter-tab[data-filter="untranslated"] { background: rgba(78,134,233,0.11); border-color: rgba(78,134,233,0.34); color: #98bdff; }
 .admin-filter-tab:hover { transform: translateY(-1px); filter: brightness(1.12); }
 .admin-filter-tab.active { border-color: currentColor; box-shadow: 0 0 0 1px currentColor, 0 5px 16px rgba(0,0,0,0.2); }
+/* A filter, not a view. It sits beside the view tabs and reads in the same
+ * language, but it toggles rather than selects -- so it carries aria-pressed
+ * and takes the gold the console already uses for an applied narrowing, which
+ * keeps it from looking like a fourth tab that failed to activate. */
+.admin-filter-toggle { padding: 8px 14px; border: 1px solid rgba(150,100,230,0.28); background: rgba(124,79,214,0.08); color: #c8b4ee; cursor: pointer; font-family: 'Jost', sans-serif; font-size: 0.74rem; letter-spacing: 0.08em; text-transform: uppercase; transition: background-color .2s ease, border-color .2s ease, color .2s ease; }
+.admin-filter-toggle[hidden] { display: none; }
+.admin-filter-toggle:hover, .admin-filter-toggle:focus-visible { border-color: rgba(224,177,62,0.5); color: #f0d79a; }
+.admin-filter-toggle.is-active { border-color: rgba(224,177,62,0.75); background: rgba(224,177,62,0.14); color: #f4d88f; box-shadow: 0 0 0 1px rgba(224,177,62,0.4); }
 .admin-search {
   flex: 1 1 220px; max-width: 320px;
   background: var(--panel); border: 1px solid var(--border); color: var(--text);

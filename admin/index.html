@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
 <link rel="icon" href="../favicon.ico">
-<link rel="stylesheet" href="../css/admin-bundle.css?v=331"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=8">
+<link rel="stylesheet" href="../css/admin-bundle.css?v=332"><link rel="stylesheet" href="../css/admin-market.css?v=1"><link rel="stylesheet" href="../css/admin-research.css?v=7"><link rel="stylesheet" href="../css/admin-sweep-tiers.css?v=3"><link rel="stylesheet" href="../css/admin-game-tuning.css?v=8">
 </head>
 <body>
 
@@ -2058,15 +2058,15 @@
     <section class="admin-section" id="section-mission-control" hidden>
       <div class="admin-section-head">
         <h1>Mission Control</h1>
-        <p>Manage mission definitions, player mission diagnostics, and the presentation of the Missions page.</p>
+        <p>Manage mission definitions and player mission diagnostics.</p>
       </div>
 
       <div class="admin-toolbar mission-admin-toolbar">
         <div class="admin-filter-tabs" id="mission-admin-tabs" role="tablist" aria-label="Mission Control views">
           <button type="button" class="admin-filter-tab active" data-mission-panel="definitions" role="tab" aria-selected="true">Mission Definitions</button>
           <button type="button" class="admin-filter-tab" data-mission-panel="player-missions" role="tab" aria-selected="false" data-requires-permission="missions.player_missions">Player Missions</button>
-          <button type="button" class="admin-filter-tab" data-mission-panel="presentation" role="tab" aria-selected="false">Presentation</button>
         </div>
+        <button type="button" class="btn admin-filter-toggle" id="mission-contracts-filter" hidden aria-pressed="false" title="Show only missions attached to an Overlord">Contracts only</button>
         <button type="button" class="btn btn-solid" id="mission-definition-create-btn" data-requires-permission="missions.edit">+ Add Mission</button>
         <span class="admin-count" id="mission-admin-count"></span>
       </div>
@@ -2081,37 +2081,6 @@
         <div class="admin-list mission-admin-list" id="mission-player-missions-list"><div class="admin-list-empty">Loading player missions&hellip;</div></div>
       </div>
 
-      <div class="mission-admin-panel" id="mission-admin-presentation-panel" hidden>
-        <div class="admin-form-card">
-          <div class="admin-form-card-head">
-            <h2>Page watermark</h2>
-            <p>A single emblem drawn softly behind the Missions page for every player. It sits under all content and is never clickable, so it reads as part of the backdrop rather than as an image on the page.</p>
-          </div>
-          <div class="admin-field">
-            <label for="mission-watermark-url">Watermark image</label>
-            <div class="mission-portrait-field">
-              <img id="mission-watermark-preview" alt="" hidden>
-              <input type="text" id="mission-watermark-url" maxlength="255" placeholder="images/mission-sigil.png">
-              <input type="file" id="mission-watermark-file" accept="image/jpeg,image/png,image/webp" hidden>
-              <button type="button" class="btn" id="mission-watermark-upload">Upload image</button>
-              <button type="button" class="btn" id="mission-watermark-browse">Choose image</button>
-              <button type="button" class="btn" id="mission-watermark-clear">Clear</button>
-            </div>
-            <p class="admin-field-hint">A transparent PNG works best &mdash; uploads keep their transparency here rather than being flattened onto a panel the way crew portraits are. JPG and WEBP are accepted too. Leave this empty for no watermark.</p>
-          </div>
-          <div class="admin-field-row">
-            <div class="admin-field">
-              <label for="mission-watermark-opacity">Strength (%)</label>
-              <input type="number" id="mission-watermark-opacity" min="1" max="40" step="1" value="8">
-            </div>
-            <label class="admin-setting-toggle"><span><strong>Show watermark</strong><small>Turn off to hide it without losing the image or its settings.</small></span><input type="checkbox" id="mission-watermark-enabled"></label>
-          </div>
-          <p class="admin-field-hint">Strength is capped at 40% deliberately: past that the emblem starts competing with mission text for attention. Around 6&ndash;10% suits a light emblem on this page&rsquo;s dark backdrop.</p>
-          <div class="mission-watermark-demo" id="mission-watermark-demo" aria-hidden="true"><span class="mission-watermark-demo-art" id="mission-watermark-demo-art"></span><span class="mission-watermark-demo-copy"><strong>Neoh Operations</strong><small>Live preview at the current strength</small></span></div>
-          <p class="admin-modal-error" id="mission-watermark-error"></p><p class="admin-modal-status" id="mission-watermark-status"></p>
-          <div class="admin-modal-actions"><button type="button" class="btn btn-solid" id="mission-watermark-save-btn">Save Presentation</button></div>
-        </div>
-      </div>
     </section>
 
     <section class="admin-section" id="section-crew-management" hidden>
@@ -4446,7 +4415,7 @@
         <button type="button" class="btn" id="mission-definition-watermark-browse">Choose image</button>
         <button type="button" class="btn" id="mission-definition-watermark-clear">Clear</button>
       </div>
-      <p class="admin-field-hint">An emblem drawn faintly inside this mission&rsquo;s own card, and on its card again while a crew is in the field. A transparent PNG works best; uploads keep their transparency. Leave empty for no watermark. This is separate from the single page-wide watermark under Presentation.</p>
+      <p class="admin-field-hint">An emblem drawn faintly inside this mission&rsquo;s own card, and on its card again while a crew is in the field. A transparent PNG works best; uploads keep their transparency. Leave empty for no watermark.</p>
     </div>
     <div class="admin-field-row">
       <div class="admin-field"><label for="mission-definition-watermark-opacity">Watermark strength (%)</label><input type="number" id="mission-definition-watermark-opacity" min="1" max="40" step="1" value="10"></div>
@@ -4734,7 +4703,7 @@
 </div>
 
 <script src="../js/members.js?v=43"></script>
-<script src="../js/admin-missions.js?v=30"></script><script src="../js/admin-loot-tables.js?v=10"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=8"></script>
+<script src="../js/admin-missions.js?v=31"></script><script src="../js/admin-loot-tables.js?v=10"></script><script src="../js/admin-market.js?v=2"></script><script src="../js/admin-research.js?v=15"></script><script src="../js/admin-game-tuning.js?v=8"></script>
 <script>
 (function () {
   var TAG_LABELS = { feature: 'Feature', improvement: 'Improvement', fix: 'Fix', performance: 'Performance', ui_ux: 'UI / UX', lore: 'Lore', infrastructure: 'Infrastructure', refactor: 'Refactor', experimental: 'Experimental' };

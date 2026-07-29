@@ -3,7 +3,7 @@
 
   var definitions = [];
   /* Overlord roster and contract readiness, both supplied by definitions-list. */
-  var overlords = [], standingReady = false, standingMax = 500, contractsReady = false, contestedContractsReady = false, salvageRecoveryContractsReady = false, overlordClearancesReady = false, contractProgressionReady = false, contractRank = 10;
+  var overlords = [], contractsOnly = false, standingReady = false, standingMax = 500, contractsReady = false, contestedContractsReady = false, salvageRecoveryContractsReady = false, overlordClearancesReady = false, contractProgressionReady = false, contractRank = 10;
   var missionGearSlots = [];
   var crew = [];
   var gear = [];
@@ -109,15 +109,13 @@
 
   function refreshMissionCount() {
     if (!missionCount) return;
-    // Presentation is a settings form, not a list, so there is nothing to
-    // count -- printing "0 player missions" beside it would be wrong.
-    if (activePanel === 'presentation') { missionCount.textContent = ''; return; }
     var counts = {
-      definitions: [definitions.length, ' mission'],
+      definitions: [visibleDefinitions().length, ' mission'],
       'player-missions': [playerMissions.length, ' player mission']
     };
     var entry = counts[activePanel] || counts.definitions;
-    missionCount.textContent = entry[0] + entry[1] + (entry[0] === 1 ? '' : 's');
+    missionCount.textContent = entry[0] + entry[1] + (entry[0] === 1 ? '' : 's')
+      + (activePanel === 'definitions' && contractsOnly ? ' (contracts)' : '');
   }
 
   /* What the rendered rows are a function of. The active filter is part of the
@@ -314,11 +312,41 @@
       : visible + ' of ' + gear.length + ' item' + (gear.length === 1 ? '' : 's');
   }
 
+  /* A daily Overlord contract is an ordinary mission row with an overlord_id,
+     which is exactly what makes it hard to find: contracts and board missions
+     sit in one list, distinguished only by a clause in the detail line. This
+     filter is the one distinction the list cannot otherwise draw.
+
+     Derived from overlord_id rather than from the detail text -- the name is
+     editorial and can be blank, the id is the thing the engine gates on. */
+  function visibleDefinitions() {
+    if (!contractsOnly) return definitions;
+    return definitions.filter(function (mission) { return !!mission.overlord_id; });
+  }
+
+  function applyContractsFilter() {
+    var button = document.getElementById('mission-contracts-filter');
+    if (!button) return;
+    /* Hidden rather than shown-and-inert before the contracts migration: with
+       no overlord_id column there are no contracts to separate out, so the
+       control would only ever empty the list. */
+    button.hidden = !contractsReady || activePanel !== 'definitions';
+    button.setAttribute('aria-pressed', contractsOnly ? 'true' : 'false');
+    button.classList.toggle('is-active', contractsOnly);
+  }
+
   function renderDefinitions() {
     if (!definitionList) return;
-    if (!definitions.length) { blank(definitionList, 'No mission definitions yet.'); return; }
+    applyContractsFilter();
+    var rows = visibleDefinitions();
+    if (!rows.length) {
+      blank(definitionList, contractsOnly
+        ? 'No Overlord contracts yet. Attach an Overlord to a mission to create one.'
+        : 'No mission definitions yet.');
+      return;
+    }
     definitionList.innerHTML = '';
-    definitions.forEach(function (mission) {
+    rows.forEach(function (mission) {
       var row = document.createElement('div');
       row.className = 'admin-row mission-admin-row';
       row.setAttribute('aria-disabled', can('missions.edit') ? 'false' : 'true');
@@ -413,7 +441,7 @@
 
   function switchPanel(panel) {
     activePanel = panel;
-    ['definitions', 'player-missions', 'presentation'].forEach(function (name) {
+    ['definitions', 'player-missions'].forEach(function (name) {
       var isActive = name === panel;
       var view = document.getElementById('mission-admin-' + name + '-panel');
       if (view) view.hidden = !isActive;
@@ -421,6 +449,7 @@
       if (tab) { tab.classList.toggle('active', isActive); tab.setAttribute('aria-selected', isActive ? 'true' : 'false'); }
     });
     document.getElementById('mission-definition-create-btn').hidden = panel !== 'definitions' || !can('missions.edit');
+    applyContractsFilter();
     refreshMissionCount();
   }
 
@@ -461,8 +490,7 @@
 
   window.loadMissionControl = function () {
     switchPanel(activePanel);
-    applyPresentationPermissions();
-    return Promise.all([loadDefinitions(), loadPlayerMissions(), loadWatermark()]);
+    return Promise.all([loadDefinitions(), loadPlayerMissions()]);
   };
 
   window.loadCrewManagement = function () {
@@ -474,20 +502,6 @@
     document.getElementById('mission-gear-create-btn').hidden = !can('missions.edit');
     return loadGear();
   };
-
-  /* A view-only session may inspect the watermark settings but not change them.
-   * Computed here rather than left to the static data-requires-permission
-   * sweep, because updateWatermarkPreview() re-evaluates the toggle's disabled
-   * state on every change and would otherwise re-enable it. */
-  function applyPresentationPermissions() {
-    var editable = can('missions.edit');
-    ['mission-watermark-upload', 'mission-watermark-browse', 'mission-watermark-clear', 'mission-watermark-save-btn'].forEach(function (id) {
-      var element = document.getElementById(id);
-      if (element) element.disabled = !editable;
-    });
-    document.getElementById('mission-watermark-url').readOnly = !editable;
-    document.getElementById('mission-watermark-opacity').disabled = !editable;
-  }
 
   function populateMissionSuccessionOptions(mission) {
     var select = document.getElementById('mission-definition-unlocks-after');
@@ -1146,70 +1160,13 @@
     updateMissionWatermarkPreview();
   });
 
-  /* --- Presentation: the Missions page watermark ------------------------- */
-
-  function updateWatermarkPreview() {
-    var url = document.getElementById('mission-watermark-url').value.trim();
-    var preview = document.getElementById('mission-watermark-preview');
-    preview.hidden = !url;
-    if (url) preview.src = assetUrl(url);
-    var enabled = document.getElementById('mission-watermark-enabled');
-    // Nothing to show means nothing to switch on, matching the server, which
-    // stores "off" whenever the image is empty.
-    enabled.disabled = !url || !can('missions.edit');
-    if (!url) enabled.checked = false;
-    var opacity = Math.max(1, Math.min(40, Number(document.getElementById('mission-watermark-opacity').value) || 8));
-    var art = document.getElementById('mission-watermark-demo-art');
-    art.style.backgroundImage = url && enabled.checked ? 'url("' + assetUrl(url) + '")' : 'none';
-    art.style.opacity = String(opacity / 100);
-    document.getElementById('mission-watermark-demo').classList.toggle('is-empty', !url || !enabled.checked);
-  }
-
-  function applyWatermark(watermark) {
-    document.getElementById('mission-watermark-url').value = watermark && watermark.url ? watermark.url : '';
-    document.getElementById('mission-watermark-opacity').value = watermark && watermark.opacity ? watermark.opacity : 8;
-    document.getElementById('mission-watermark-enabled').checked = !!(watermark && watermark.enabled);
-    updateWatermarkPreview();
-  }
-
-  function loadWatermark() {
-    return request('/api/admin/missions/settings-get.php')
-      .then(function (data) { applyWatermark(data.watermark); })
-      .catch(function (error) { showModalError('mission-watermark-error', error.message || 'Could not load the mission presentation settings.'); });
-  }
-
-  wireImageField({
-    input: 'mission-watermark-url', upload: 'mission-watermark-upload',
-    browse: 'mission-watermark-browse', file: 'mission-watermark-file',
-    kind: 'watermark', errorTarget: 'mission-watermark-error', onChange: updateWatermarkPreview,
-    pickerTitle: 'Choose Watermark',
-    pickerSub: 'Select a previously uploaded watermark or a compatible site image. A transparent PNG reads best behind the page.',
-    emptyMessage: 'No watermarks have been uploaded yet. Upload a transparent PNG to start the library.',
-    uploadError: 'Could not upload this watermark.'
+  var contractsFilterButton = document.getElementById('mission-contracts-filter');
+  if (contractsFilterButton) contractsFilterButton.addEventListener('click', function () {
+    contractsOnly = !contractsOnly;
+    renderDefinitions();
+    refreshMissionCount();
   });
-  document.getElementById('mission-watermark-opacity').addEventListener('input', updateWatermarkPreview);
-  document.getElementById('mission-watermark-enabled').addEventListener('change', updateWatermarkPreview);
-  document.getElementById('mission-watermark-clear').addEventListener('click', function () {
-    if (!can('missions.edit')) return;
-    document.getElementById('mission-watermark-url').value = '';
-    updateWatermarkPreview();
-  });
-  document.getElementById('mission-watermark-save-btn').addEventListener('click', function () {
-    if (!can('missions.edit')) return;
-    var button = this;
-    showModalError('mission-watermark-error', '');
-    document.getElementById('mission-watermark-status').textContent = '';
-    button.disabled = true; button.classList.add('is-busy');
-    request('/api/admin/missions/settings-save.php', {
-      url: document.getElementById('mission-watermark-url').value.trim(),
-      opacity: document.getElementById('mission-watermark-opacity').value,
-      enabled: document.getElementById('mission-watermark-enabled').checked
-    }).then(function (data) {
-      applyWatermark(data.watermark);
-      document.getElementById('mission-watermark-status').textContent = 'Presentation saved.';
-    }).catch(function (error) { showModalError('mission-watermark-error', error.message); })
-      .then(function () { button.disabled = !can('missions.edit'); button.classList.remove('is-busy'); });
-  });
+
   /* --- Gear ------------------------------------------------------------- */
 
   var GEAR_STATS = [
