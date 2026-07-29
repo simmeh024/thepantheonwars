@@ -1851,6 +1851,79 @@ function pw_missions_contract_progression(array $mission): array {
     ];
 }
 
+/**
+ * How well this player's roster is equipped for one operation.
+ *
+ * Resolved on the server rather than in the browser, deliberately. The card is
+ * drawn before any crew is chosen, so the browser would have to re-derive
+ * "which crew would I send, and what do they average" from the roster it
+ * happens to hold -- a second implementation of a rule this side already owns,
+ * which is the exact drift this codebase keeps recording. The launch screen's
+ * own projection is a documented exception; a readiness figure on a card is not
+ * worth a second one.
+ *
+ * The comparison fields the operation's own max_crew best *available* crew by
+ * average iLvl, because that is the team a player would actually send. Deployed
+ * and resting crew are excluded for the same reason: a roster of eight where
+ * six are in the field is not an eight-strong roster today.
+ *
+ * Returns ready = false whenever there is nothing honest to say -- no
+ * recommendation authored, no item levels migrated, or nobody to send. A fit
+ * bar that cannot be computed must be absent, never wrong.
+ */
+function pw_missions_crew_fit_for_mission(array $crewRows, array $mission): array {
+    $fit = [
+        'ready' => false,
+        'average' => 0.0,
+        'recommended' => max(0, (int)($mission['recommended_item_level'] ?? 0)),
+        'crew_counted' => 0,
+        'percent' => 0,
+        'state' => 'unknown',
+    ];
+    if ($fit['recommended'] < 1) return $fit;
+
+    $candidates = [];
+    foreach ($crewRows as $crew) {
+        if (empty($crew['item_level_ready'])) return $fit;
+        if (($crew['status'] ?? '') !== 'available') continue;
+        $candidates[] = (float)($crew['item_level_average'] ?? 0);
+    }
+    if (!$candidates) return $fit;
+
+    rsort($candidates);
+    $take = max(1, (int)($mission['max_crew'] ?? 1));
+    $best = array_slice($candidates, 0, $take);
+    $average = array_sum($best) / count($best);
+
+    $fit['ready'] = true;
+    $fit['average'] = round($average, 1);
+    $fit['crew_counted'] = count($best);
+    /* Capped at 100 for the bar's width. The state below still distinguishes
+     * comfortably over from exactly at, so the cap costs no information. */
+    $fit['percent'] = (int)round(min(100, ($average / $fit['recommended']) * 100));
+    /* Three states, not two. "Under" and "at" is the decision the player is
+     * making; "over" is worth saying because it is the signal that an operation
+     * has stopped being a challenge and they should look further down the
+     * roster. The 0.9 floor is deliberate slack -- a crew one iLvl short of a
+     * recommendation is not under-equipped in any sense that matters. */
+    $fit['state'] = $average >= $fit['recommended'] * 1.15 ? 'over'
+        : ($average >= $fit['recommended'] * 0.9 ? 'ready' : 'under');
+    return $fit;
+}
+
+/**
+ * Which of the five visual tiers a contract tier falls in.
+ *
+ * Contract tiers run to PW_MISSION_MAX_CONTRACT_TIER (10) while the item-rarity
+ * ladder this reuses has five tones. Banding two tiers per tone keeps one
+ * colour language across gear, crew, standing and now operations rather than
+ * inventing a tenth colour nobody has learned.
+ */
+function pw_missions_contract_tier_band(int $tier): int {
+    $tier = max(1, min(PW_MISSION_MAX_CONTRACT_TIER, $tier));
+    return (int)min(5, ceil($tier / 2));
+}
+
 /** Progression bands govern wearable gear only; salvage, stims and crew stay authored per table. */
 function pw_missions_contract_gear_is_eligible(array $gear, array $progression): bool {
     $slot = strtolower(trim((string)($gear['slot'] ?? $gear['gear_slot'] ?? '')));

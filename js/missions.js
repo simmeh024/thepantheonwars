@@ -905,6 +905,61 @@
       + (items.length ? '<div class="mission-progression-items">' + items.join('') + '</div>' : '') + '</section>';
   }
 
+  /* The five tier tones, in the same order and the same words the item ladder
+   * uses. Contract tiers run to 10 and the ladder has five tones, so the server
+   * bands two tiers per tone -- one colour language across gear, crew, standing
+   * and now operations, rather than a tenth colour nobody has learned. */
+  var TIER_BANDS = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+
+  function missionTierBand(mission) {
+    var band = Number(mission.tier_band) || 0;
+    /* The server bands it; this fallback covers a response from before that
+     * field existed rather than being a second implementation of the rule. */
+    if (band < 1) band = Math.max(1, Math.min(5, Math.ceil((Number(mission.contract_tier) || 1) / 2)));
+    return TIER_BANDS[band - 1] || 'common';
+  }
+
+  /* Rewards and costs were one flat list of label/value pairs, so a fatigue
+   * charge against the crew rendered exactly like a prize. The figures lead now
+   * and the labels follow, and what the operation takes is a separate line
+   * below, reading as a debit. */
+  function missionRewardsMarkup(mission) {
+    var rewards = [{ value: '+' + mission.xp_reward, label: 'XP each' }];
+    if (Number(mission.reputation_reward) > 0) rewards.push({ value: '+' + mission.reputation_reward, label: 'Reputation' });
+    if (Number(mission.credit_reward) > 0) rewards.push({ value: '+' + credits(mission.credit_reward), label: 'Credits', cls: ' is-credits' });
+    var cells = rewards.map(function (entry) {
+      return '<span class="mission-reward-cell' + (entry.cls || '') + '"><b>' + escapeHtml(entry.value)
+        + '</b><small>' + escapeHtml(entry.label) + '</small></span>';
+    }).join('');
+    var crewRange = mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '');
+    var costs = ['<span>' + escapeHtml(crewRange + ' crew') + '</span>'];
+    if (Number(mission.fatigue_cost) > 0) {
+      costs.push('<span class="is-fatigue">' + escapeHtml('−' + Number(mission.fatigue_cost) + ' fatigue each') + '</span>');
+    }
+    return '<div class="mission-rewards">' + cells + '</div>'
+      + '<div class="mission-costs"><small>Costs</small>' + costs.join('') + '</div>';
+  }
+
+  /* The readiness line. Every figure comes from the server's own fit block --
+   * the browser never decides who would be sent or what they average, because
+   * that rule lives on the side that also resolves the launch. Absent entirely
+   * when the server could not compute one, rather than shown as a zero. */
+  function missionFitMarkup(mission) {
+    var fit = mission.fit;
+    if (!fit || !fit.ready) return '';
+    var average = Number(fit.average) || 0;
+    var recommended = Math.max(1, Number(fit.recommended) || 0);
+    var percent = Math.max(0, Math.min(100, Number(fit.percent) || 0));
+    var word = fit.state === 'over' ? 'Well equipped' : fit.state === 'ready' ? 'Ready' : 'Under-equipped';
+    var detail = 'Your best ' + fit.crew_counted + ' average iLvl ' + average
+      + ' against a recommended ' + recommended + '.';
+    return '<div class="mission-fit is-' + escapeHtml(fit.state) + '" title="' + escapeHtml(detail) + '">'
+      + '<div class="mission-fit-head"><strong>' + escapeHtml(word) + '</strong>'
+      + '<span>' + average + ' / ' + recommended + ' iLvl</span></div>'
+      + '<span class="mission-fit-track" role="img" aria-label="' + escapeHtml(word + '. ' + detail) + '">'
+      + '<i style="width:' + percent + '%"></i></span></div>';
+  }
+
   /* Each entry is one slot: a standalone mission, or a campaign track showing
    * only its current step. The server sends nothing about a sealed operation,
    * so there is no locked-card branch here by design. */
@@ -919,16 +974,23 @@
 
     var canLaunch = available >= mission.min_crew;
     var watermark = missionWatermark(mission);
-    /* No type pill on the card: the group heading above it already says which
-     * kind of operation this is. */
-    return '<article class="mission-definition-card' + (campaign ? ' has-campaign' : '') + watermark.className + '"' + watermark.style + '><div class="mission-card-top"><span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div><h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p>'
+    /* The head carries type, tier and duration across one line. The top-left of
+     * every card used to be empty -- the row held only a duration pill pushed
+     * to the right -- while the tier it now names was printed as a sentence
+     * further down. */
+    var tier = Number(mission.contract_tier) || 1;
+    return '<article class="mission-definition-card is-' + missionTierBand(mission)
+      + (campaign ? ' has-campaign' : '') + watermark.className + '"' + watermark.style + '>'
+      + '<div class="mission-card-top"><span class="mission-card-type">' + escapeHtml(mission.mission_type || 'Operation') + '</span>'
+      + '<span class="mission-card-tier" title="' + escapeHtml('Tier ' + tier + ' contract') + '">T' + tier + '</span>'
+      + '<span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div>'
+      + '<h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p>'
       + (campaign ? '' : '<p class="mission-unlock-state is-base">Available immediately</p>')
-      + '<dl class="mission-definition-meta"><div><dt>Crew</dt><dd>' + mission.min_crew + (mission.max_crew !== mission.min_crew ? '–' + mission.max_crew : '') + '</dd></div><div><dt>XP</dt><dd>+' + mission.xp_reward + ' per crew</dd></div><div><dt>Reputation</dt><dd>' + (mission.reputation_reward ? '+' + mission.reputation_reward : '—') + '</dd></div>'
-        + (Number(mission.credit_reward) > 0 ? '<div><dt>Credits</dt><dd class="is-credits">+' + credits(mission.credit_reward) + '</dd></div>' : '')
-        /* Stated on the card, before any crew is chosen, because that is the
-         * figure start.php charges -- it is a property of the operation's
-         * authored length, not of who is sent on it. */
-        + (Number(mission.fatigue_cost) > 0 ? '<div><dt>Fatigue</dt><dd class="is-fatigue">−' + Number(mission.fatigue_cost) + ' per crew</dd></div>' : '') + '</dl>'
+      /* The fatigue charge is stated before any crew is chosen, because that is
+       * the figure start.php takes -- a property of the operation's authored
+       * length, not of who is sent on it. */
+      + missionRewardsMarkup(mission)
+      + missionFitMarkup(mission)
       + missionRiskMarkup(mission)
       + missionProgressionMarkup(mission)
       + '<button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + (canLaunch ? 'Select Crew' : 'Crew Unavailable') + '</button>'

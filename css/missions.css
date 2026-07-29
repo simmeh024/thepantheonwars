@@ -1731,3 +1731,73 @@
   .missions-ops-clock small, .missions-ops-more { display: none; }
   .missions-section--act { margin-top: 38px; }
 }
+
+/* ==========================================================================
+ * Mission card: tier tone, head, rewards vs costs, and fit.
+ *
+ * Every operation used to look identical -- the same 3px teal-to-purple edge,
+ * the same weight, the same grey figures -- whether it was a twenty-minute
+ * recon or a tier-9 contract. Everything below is drawn from data the card was
+ * already carrying.
+ * ========================================================================== */
+
+/* --- Tier tone ------------------------------------------------------------
+ * Reuses --gear-tier, the same five-tone ladder gear rarity, crew rarity and
+ * Overlord standing already read, so a player who has learned what gold means
+ * on a crew card does not learn it twice. The card sets the property; the edge,
+ * the chip and the glow all read it. */
+.mission-definition-card.is-common { --gear-tier: 150,168,186; }
+.mission-definition-card.is-uncommon { --gear-tier: 158,219,168; }
+.mission-definition-card.is-rare { --gear-tier: 112,204,223; }
+.mission-definition-card.is-epic { --gear-tier: 205,124,236; }
+.mission-definition-card.is-legendary { --gear-tier: 233,211,153; }
+.mission-definition-card::before { background: linear-gradient(180deg, rgb(var(--gear-tier, 108,229,235)), rgba(var(--gear-tier, 141,103,211), 0.15)); box-shadow: 0 0 16px rgba(var(--gear-tier, 100,225,233), 0.45); }
+.mission-definition-card { border-color: rgba(var(--gear-tier, 88,142,181), 0.34); }
+.mission-definition-card:hover { border-color: rgba(var(--gear-tier, 88,142,181), 0.6); }
+/* The two loudest tiers earn a faint corner bloom. Held to the top corner and
+ * well under the text, because a wash across the card would cost the
+ * description its contrast for a signal the edge already carries. */
+.mission-definition-card.is-epic, .mission-definition-card.is-legendary { background-image: radial-gradient(circle at 100% 0%, rgba(var(--gear-tier), 0.14), transparent 42%); }
+
+/* --- Head -----------------------------------------------------------------
+ * Type, tier and duration on one line. The top-left of every card was empty --
+ * the row held a single duration pill pushed to the right. */
+.mission-definition-card .mission-card-top { justify-content: flex-start; gap: 7px; margin-bottom: 11px; }
+.mission-card-type { overflow: hidden; color: #9db3c2; font-size: 0.56rem; font-weight: 700; letter-spacing: .12em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.mission-card-tier { flex: none; padding: 2px 7px; border: 1px solid rgba(var(--gear-tier, 130,150,170), 0.62); color: rgb(var(--gear-tier, 190,205,218)); cursor: help; font: 700 0.6rem/1.35 'Cinzel', serif; letter-spacing: .04em; }
+.mission-definition-card .mission-duration { margin-left: auto; }
+
+/* --- Rewards and costs ----------------------------------------------------
+ * One flat list of label/value pairs put a charge against the crew in the same
+ * shape as a prize. Rewards lead with the figure; costs are a quieter line
+ * below, and the fatigue charge reads as a debit. */
+.mission-rewards { display: flex; flex-wrap: wrap; gap: 7px; margin: auto 0 0; padding-top: 15px; }
+.mission-reward-cell { display: grid; flex: 1 1 auto; gap: 1px; min-width: 62px; padding: 6px 9px; border: 1px solid rgba(88,142,181,0.26); background: rgba(8,18,33,0.42); }
+.mission-reward-cell b { color: #eaf4f8; font: 700 0.92rem/1.1 'Cinzel', serif; }
+.mission-reward-cell small { color: #97adbc; font-size: 0.55rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.mission-reward-cell.is-credits b { color: #f0d591; }
+.mission-costs { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 7px; }
+.mission-costs small { color: #7f93a4; font-size: 0.52rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-costs span { color: #a9bdcb; font-size: 0.66rem; font-weight: 600; }
+.mission-costs span.is-fatigue { color: #e0a894; }
+
+/* --- Fit ------------------------------------------------------------------
+ * Whether this roster is equipped for this operation. Three states, coloured
+ * by verdict rather than by tier -- the tier says how hard it is, this says
+ * whether you are ready for it, and they are different questions. */
+.mission-fit { --fit-tone: 158,219,168; display: grid; gap: 4px; margin-top: 11px; padding: 8px 10px; border: 1px solid rgba(var(--fit-tone), 0.34); background: rgba(8,18,33,0.42); cursor: help; }
+.mission-fit.is-under { --fit-tone: 224,168,148; }
+.mission-fit.is-ready { --fit-tone: 158,219,168; }
+.mission-fit.is-over { --fit-tone: 126,203,223; }
+.mission-fit-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.mission-fit-head strong { color: rgb(var(--fit-tone)); font-size: 0.66rem; font-weight: 700; letter-spacing: .05em; }
+.mission-fit-head span { flex: none; color: #9db3c2; font-size: 0.6rem; font-weight: 700; }
+.mission-fit-track { display: block; overflow: hidden; height: 5px; border: 1px solid rgba(var(--fit-tone), 0.3); background: rgba(6,15,28,0.6); }
+.mission-fit-track i { display: block; height: 100%; background: rgb(var(--fit-tone)); }
+
+/* --- Structure ------------------------------------------------------------
+ * min-height: 290px padded short cards with nothing to make a grid of unequal
+ * content line up. A real column does it honestly: the description takes the
+ * slack and the button is always the last row. */
+.mission-definition-card { min-height: 0; }
+.mission-definition-card > .btn { margin-top: 13px; }

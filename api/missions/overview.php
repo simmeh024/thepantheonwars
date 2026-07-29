@@ -182,7 +182,7 @@ try {
          ORDER BY mission.sort_order ASC, mission.id ASC'
     );
     $missionsStmt->execute();
-    $worldMissions = array_map(static function ($row) use ($claimedCounts, $fatigueReady, $lastCrewByMission) {
+    $worldMissions = array_map(static function ($row) use ($claimedCounts, $fatigueReady, $lastCrewByMission, $crew) {
         foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls', 'watermark_opacity', 'contract_tier', 'recommended_item_level', 'reward_item_level_min', 'reward_item_level_max'] as $field) $row[$field] = (int)$row[$field];
         // Re-validated on the way out, not only on the way in: this reaches the
         // browser as a CSS url(), so a row edited straight in the database must
@@ -203,6 +203,11 @@ try {
         // Ids only. The launch screen resolves them against the roster it
         // already has, and silently skips anyone since retired or deployed.
         $row['last_crew_ids'] = $lastCrewByMission[(int)$row['id']] ?? [];
+        /* How the roster measures against this operation's recommendation.
+         * Resolved here, where the crew and the mission are both in hand, so
+         * the card never has to re-derive it. */
+        $row['fit'] = pw_missions_crew_fit_for_mission($crew, $row);
+        $row['tier_band'] = pw_missions_contract_tier_band((int)($row['contract_tier'] ?? 1));
         return $row;
     }, $missionsStmt->fetchAll());
 
@@ -223,7 +228,7 @@ try {
     $publicFields = ['id', 'world_key', 'name', 'slug', 'description', 'mission_type', 'duration_seconds',
         'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'base_success_percent', 'loot_rolls',
         'contract_tier', 'recommended_item_level', 'reward_item_level_min', 'reward_item_level_max', 'featured_slots',
-        'watermark_url', 'watermark_opacity', 'fatigue_cost', 'last_crew_ids'];
+        'watermark_url', 'watermark_opacity', 'fatigue_cost', 'last_crew_ids', 'fit', 'tier_band'];
     $slots = [];
     foreach (pw_missions_build_campaign_tracks($missionsById) as $chain) {
         $progress = pw_missions_track_progress($chain, $claimedCounts);
