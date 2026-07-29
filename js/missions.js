@@ -2,7 +2,7 @@
   'use strict';
 
   var state = { data: null, serverOffset: 0, launchMission: null, launchProjection: null, launchPenaltyAck: false, rivalApproach: '',
-    loadoutCrewId: null, loadoutSlot: null, loadoutAutoRunning: false, crewPage: 1, refreshQueued: false, feedSlot: null, missionActionBusy: 0,
+    loadoutCrewId: null, loadoutSlot: null, loadoutAutoRunning: false, crewPage: 1, refreshQueued: false, feedSlot: null, missionActionBusy: 0, rollSuspense: null,
     /* When the current payload was received. Fatigue arrives already caught up
      * to that instant, so the page ages it forward from here rather than
      * polling the server for a value it can derive. */
@@ -1638,12 +1638,103 @@
     var flavour = won
       ? (margin <= 5 ? 'A narrow success.' : 'Comfortably inside the odds.')
       : (margin <= 5 ? 'Missed by a fraction.' : 'Well outside the odds.');
-    return '<p class="mission-result-roll ' + (won ? 'is-won' : 'is-lost') + '">'
+    /* The true values are written into the markup and also carried as data
+     * attributes. The suspense sequence below reads them back to restore the
+     * settled state, so the DOM is authoritative and an interrupted or
+     * never-started animation leaves the real roll on screen. */
+    return '<p class="mission-result-roll ' + (won ? 'is-won' : 'is-lost') + '"'
+      + ' data-roll="' + Math.max(0, Math.min(100, roll)) + '" data-chance="' + Math.max(0, Math.min(100, chance)) + '">'
       + '<span>Roll</span><strong>' + fmt(roll) + ' against ' + fmt(chance) + '%</strong>'
       + '<em>' + escapeHtml(flavour) + '</em>'
       + '<span class="mission-result-roll-track" aria-hidden="true">'
       + '<i class="mission-result-roll-fill" style="width:' + Math.max(0, Math.min(100, chance)) + '%"></i>'
       + '<i class="mission-result-roll-marker" style="left:' + Math.max(0, Math.min(100, roll)) + '%"></i></span></p>';
+  }
+
+  /* ----------------------------------------------------------------------
+   * The roll.
+   *
+   * The debrief used to open with the verdict already written across it, so
+   * the number underneath was a receipt rather than a moment. The operation is
+   * a percentage roll and the player never got to watch it land.
+   *
+   * Three rules govern this, in order of importance:
+   *
+   * 1. Nothing is decided here. claim.php rolled and paid before this modal
+   *    existed; this only withholds a result the player already owns. The
+   *    withheld state is therefore always temporary and never depends on a
+   *    frame arriving -- the sequence runs on timers, not requestAnimationFrame,
+   *    because a backgrounded or non-compositing tab still fires timers and
+   *    would otherwise leave the debrief concealed forever.
+   * 2. finish() is idempotent and reached from four directions: the settle
+   *    timer, an independent safety timer, closing the modal, and a second
+   *    result arriving. Whichever gets there first restores the truth.
+   * 3. Under prefers-reduced-motion it does not run at all, and the modal opens
+   *    exactly as it did before -- there is no shortened version of "not
+   *    knowing yet" worth having.
+   * -------------------------------------------------------------------- */
+  var ROLL_SUSPENSE_MS = 1500;
+
+  function rollSuspenseFinish() {
+    if (!state.rollSuspense) return;
+    var run = state.rollSuspense;
+    state.rollSuspense = null;
+    window.clearInterval(run.tick);
+    window.clearTimeout(run.settle);
+    window.clearTimeout(run.safety);
+    if (run.strong) run.strong.textContent = run.finalText;
+    if (run.marker) run.marker.style.left = run.finalLeft;
+    if (resultInner) {
+      resultInner.classList.remove('is-rolling');
+      resultInner.removeAttribute('aria-busy');
+      resultInner.classList.add('is-roll-settled');
+      /* The settle flash is decoration on an already-correct state, so it is
+       * removed on a timer of its own and nothing depends on it. */
+      window.setTimeout(function () { resultInner.classList.remove('is-roll-settled'); }, 900);
+    }
+  }
+
+  function runRollSuspense() {
+    rollSuspenseFinish();
+    if (!resultInner || !resultBody) return;
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var block = resultBody.querySelector('.mission-result-roll[data-roll]');
+    if (!block) return;
+    var strong = block.querySelector('strong');
+    var marker = block.querySelector('.mission-result-roll-marker');
+    if (!strong) return;
+    var chance = Number(block.getAttribute('data-chance'));
+    if (!isFinite(chance)) return;
+
+    var run = {
+      strong: strong,
+      marker: marker,
+      finalText: strong.textContent,
+      finalLeft: marker ? marker.style.left : '',
+      startedAt: Date.now()
+    };
+    state.rollSuspense = run;
+    resultInner.classList.add('is-rolling');
+    resultInner.setAttribute('aria-busy', 'true');
+
+    /* Decelerating: the cycle slows as it runs, so the last few numbers read as
+     * the wheel coming to rest rather than as a cut. Each frame is its own
+     * timeout rather than a fixed interval, which is what allows that. */
+    function step() {
+      if (state.rollSuspense !== run) return;
+      var elapsed = Date.now() - run.startedAt;
+      if (elapsed >= ROLL_SUSPENSE_MS) { rollSuspenseFinish(); return; }
+      var value = Math.random() * 100;
+      strong.textContent = fmt(value) + ' against ' + fmt(chance) + '%';
+      if (marker) marker.style.left = value.toFixed(2) + '%';
+      var progress = elapsed / ROLL_SUSPENSE_MS;
+      run.tick = window.setTimeout(step, 45 + progress * progress * 190);
+    }
+    step();
+    /* Independent of the stepping above: if a step is ever missed the debrief
+     * still opens. Deliberately generous, since it is a backstop and not the
+     * thing that normally ends the sequence. */
+    run.safety = window.setTimeout(rollSuspenseFinish, ROLL_SUSPENSE_MS + 600);
   }
 
   /* On a loss, what would have moved the number. The three levers that
@@ -1969,8 +2060,14 @@
     }
     tickCountdowns();
     if (typeof resultModal.showModal === 'function') resultModal.showModal(); else resultModal.setAttribute('open', '');
+    runRollSuspense();
   }
-  function closeResult() { if (resultModal.open && typeof resultModal.close === 'function') resultModal.close(); else resultModal.removeAttribute('open'); }
+  function closeResult() {
+    /* Settle first. Closing mid-roll must not leave the concealing class on a
+       modal that is about to be reopened by the next claim. */
+    rollSuspenseFinish();
+    if (resultModal.open && typeof resultModal.close === 'function') resultModal.close(); else resultModal.removeAttribute('open');
+  }
 
   function claimSummary(result) {
     if (result.succeeded === false) {

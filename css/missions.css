@@ -1801,3 +1801,48 @@
  * slack and the button is always the last row. */
 .mission-definition-card { min-height: 0; }
 .mission-definition-card > .btn { margin-top: 13px; }
+
+/* ==========================================================================
+ * The roll.
+ *
+ * The debrief opened with the verdict already written across it, so the number
+ * underneath was a receipt rather than a moment. While .is-rolling is set the
+ * outcome is withheld and only the roll is on screen; the class is added and
+ * removed by JS on timers, never by an animation, so a tab that is not
+ * compositing still reaches the settled state.
+ *
+ * Everything here is a visibility and colour treatment on content that is
+ * already in the DOM and already correct. Nothing below decides anything, and
+ * removing the class alone restores the finished debrief.
+ * ========================================================================== */
+
+/* Everything except the roll itself. Written as "every child but this one"
+ * rather than as a list of block names, deliberately: the debrief gains blocks
+ * (standing, weather, rival, salvage) and a list would eventually miss one and
+ * leak the verdict. visibility rather than display, so the modal does not
+ * resize under the reader when the outcome arrives. */
+.mission-result-inner.is-rolling .mission-result-body > *:not(.mission-result-roll) { visibility: hidden; }
+.mission-result-inner.is-rolling .mission-launch-actions { visibility: hidden; }
+/* The won/lost colouring is the loudest tell of all, so the block reads
+ * neutral until it settles -- the border and the figure both. */
+.mission-result-inner.is-rolling .mission-result-roll { border-color: rgba(126,227,232,0.55) !important; box-shadow: 0 0 22px rgba(110,225,233,0.14); }
+.mission-result-inner.is-rolling .mission-result-roll strong { color: #d8ecf2 !important; font-variant-numeric: tabular-nums; }
+.mission-result-inner.is-rolling .mission-result-roll em { opacity: 0; }
+.mission-result-inner.is-rolling .mission-result-roll-marker { transition: none; }
+/* Tabular figures while cycling, so the number does not jitter its own width. */
+.mission-result-roll strong { font-variant-numeric: tabular-nums; }
+
+/* The settle. A single pass on an already-correct state -- if this never runs,
+ * the debrief is simply there, which is what it was before. */
+.mission-result-inner.is-roll-settled .mission-result-roll { animation: mission-roll-settle .55s ease-out; }
+.mission-result-inner.is-roll-settled h2 { animation: mission-roll-verdict .45s ease-out; }
+@keyframes mission-roll-settle {
+  0% { transform: scale(1.03); box-shadow: 0 0 30px rgba(255,255,255,0.22); }
+  100% { transform: none; box-shadow: none; }
+}
+@keyframes mission-roll-verdict { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .mission-result-inner.is-roll-settled .mission-result-roll,
+  .mission-result-inner.is-roll-settled h2 { animation: none; }
+}
