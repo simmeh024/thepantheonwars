@@ -3208,10 +3208,45 @@
       + escapeHtml(focus.label + ' improves ' + focus.benefit + ' for this role.') + '</small></span>';
   }
 
+  /* A role lock is the one requirement this crew member can never satisfy --
+   * a level rises and a spare copy frees up, but a role does not change. */
+  function loadoutRoleLocked(crew, item) {
+    return !!(item && item.required_role && item.required_role !== crew.role);
+  }
+
+  /* A count and the roles it belongs to, never the items themselves: the point
+   * is to say the inventory is larger than this list, not to advertise gear
+   * this crew member cannot wear. */
+  function loadoutOffRoleMarkup(crew, entries) {
+    if (!entries || !entries.length) return '';
+    var byRole = {};
+    var order = [];
+    entries.forEach(function (entry) {
+      var role = String(entry.item.required_role);
+      if (byRole[role] === undefined) { byRole[role] = 0; order.push(role); }
+      byRole[role] += 1;
+    });
+    order.sort();
+    var pills = order.map(function (role) {
+      return '<span class="mission-loadout-offrole-pill"><strong>' + byRole[role] + '</strong>'
+        + escapeHtml(role) + (byRole[role] === 1 ? ' item' : ' items') + '</span>';
+    }).join('');
+    return '<div class="mission-loadout-offrole"><span class="mission-loadout-offrole-label">Hidden · locked to another role</span>'
+      + '<span class="mission-loadout-offrole-pills">' + pills + '</span>'
+      + '<small>' + escapeHtml('A ' + crew.role + ' cannot fit these.') + '</small></div>';
+  }
+
   function renderLoadoutOptions(crew) {
     var slotKey = state.loadoutSlot;
     loadoutPickerHead.textContent = 'Inventory · ' + slotLabel(slotKey).toLowerCase();
     var candidates = loadoutCandidates(crew, slotKey);
+    /* Equipment locked to another role can never be fitted here, however the
+     * rest of the requirements land, so it is not a choice -- it is noise in a
+     * list of choices. A level lock or an in-use copy stays visible, because
+     * both are states this crew member can actually reach. What is withheld is
+     * still counted below, or the list would look thinner than the inventory is. */
+    var offRole = candidates.filter(function (entry) { return loadoutRoleLocked(crew, entry.item); });
+    candidates = candidates.filter(function (entry) { return !loadoutRoleLocked(crew, entry.item); });
     var current = crew.gear && crew.gear[slotKey] ? crew.gear[slotKey] : null;
     var recommended = bestLoadoutCandidate(crew, slotKey);
     var rows = candidates.map(function (entry) {
@@ -3238,7 +3273,8 @@
         + '<span class="mission-loadout-option-copy"><strong>Remove ' + escapeHtml(current.name) + '</strong>'
         + '<small>Leave this slot empty. The item stays in your inventory.</small></span></button>'
       : '')
-      + (rows || '<p class="missions-empty">Nothing in your inventory fits this slot yet.</p>');
+      + (rows || '<p class="missions-empty">Nothing in your inventory fits this slot yet.</p>')
+      + loadoutOffRoleMarkup(crew, offRole);
     loadoutDeltaBox.innerHTML = loadoutBaselineMarkup(crew);
   }
 

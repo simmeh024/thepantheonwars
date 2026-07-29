@@ -77,6 +77,14 @@
 .mission-loadout-option-copy { display: grid; gap: 1px; min-width: 0; }
 .mission-loadout-option strong { overflow: hidden; color: #eef4f8; font-size: 0.8rem; text-overflow: ellipsis; white-space: nowrap; }
 .mission-loadout-option small { color: #9db3c2; font-size: 0.65rem; }
+/* Withheld off-role equipment, as a count. Deliberately not a row in the list
+ * above -- it is not selectable, so it must not look like the things that are. */
+.mission-loadout-offrole { display: grid; gap: 6px; margin-top: 8px; padding: 9px 11px; border: 1px dashed rgba(88,142,181,0.38); background: rgba(8,18,33,0.45); }
+.mission-loadout-offrole-label { color: #8aa4bb; font-size: 0.58rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.mission-loadout-offrole-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+.mission-loadout-offrole-pill { display: inline-flex; align-items: baseline; gap: 5px; padding: 3px 8px; border: 1px solid rgba(88,142,181,0.42); border-radius: 999px; color: #c2d5e0; font-size: 0.68rem; }
+.mission-loadout-offrole-pill strong { color: #eef4f8; font-size: 0.78rem; font-weight: 700; }
+.mission-loadout-offrole small { color: #9db3c2; font-size: 0.65rem; }
 /* Reserved height, so previewing a swap on hover cannot shift the list under
  * the pointer that is doing the previewing. */
 .mission-loadout-delta { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; min-height: 40px; margin-top: 10px; padding: 8px 10px; border: 1px solid rgba(88,142,181,0.3); background: rgba(8,18,33,0.55); }
