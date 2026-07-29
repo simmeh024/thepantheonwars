@@ -724,22 +724,11 @@ function pw_missions_daily_overlord_contract(PDO $db, int $userId, int $rank, ?a
      *
      * 'completed' counts as in flight because it is an unclaimed run: the
      * rewards are still owed and claim.php will settle it. */
-    try {
-        $running = $db->prepare(
-            'SELECT run.mission_definition_id
-             FROM game_player_missions run
-             JOIN game_mission_definitions definition ON definition.id = run.mission_definition_id
-             WHERE run.user_id = ? AND run.status IN ("active", "completed")
-               AND definition.overlord_id IS NOT NULL
-             LIMIT 1'
-        );
-        $running->execute([$userId]);
-        $state['in_flight'] = $running->fetch() !== false;
-    } catch (Throwable $e) {
-        // Same choice as the claimed check above: a failed lookup must not be
-        // the thing that hands out a second concurrent contract.
-        $state['in_flight'] = true;
-    }
+    /* Now any operation at all, not only another contract. Command runs one
+     * at a time, so an ordinary board mission occupies the same slot -- the
+     * separate contracts-only check this replaced would have offered a launch
+     * that start.php then refused. */
+    $state['in_flight'] = pw_missions_active_run($db, $userId) !== null;
 
     $state['contract'] = $contract;
     $state['reason'] = $state['claimed_today'] ? 'claimed_today' : ($state['in_flight'] ? 'in_flight' : '');
@@ -778,7 +767,7 @@ function pw_missions_overlord_contract_daily_block(PDO $db, int $userId, array $
      * to a hidden button -- the same reason the daily selection is recomputed
      * above instead of taking the id the browser sent. */
     if ($state['in_flight']) {
-        return 'A contract is already under way. Collect it before accepting another.';
+        return 'An operation is already under way. Only one can run at a time.';
     }
     if (!$state['contract'] || (int)$state['contract']['id'] !== (int)$mission['id']) {
         return 'That contract is not the one issued to you today.';
@@ -1849,6 +1838,62 @@ function pw_missions_contract_progression(array $mission): array {
         'reward_item_level_max' => $maximum,
         'featured_slots' => pw_missions_featured_slots($mission['featured_slots'] ?? ''),
     ];
+}
+
+/**
+ * The single operation a player may have in flight, or null.
+ *
+ * Command runs one operation at a time. Before this, ordinary board missions
+ * could be stacked without limit and only Overlord contracts were held to one
+ * -- so the roster could be split across five simultaneous runs and no single
+ * launch was a decision about anything.
+ *
+ * "In flight" deliberately includes a run that has finished but not been
+ * claimed. The rewards are still owed and claim.php will settle it, so the slot
+ * is not free; treating it as free would let a player park finished runs and
+ * keep launching, which is the same unbounded stacking through a slower route.
+ *
+ * Returns the run itself rather than a boolean so both the refusal and the card
+ * can name the operation the player is already committed to.
+ */
+function pw_missions_active_run(PDO $db, int $userId): ?array {
+    try {
+        $stmt = $db->prepare(
+            'SELECT run.id, run.status, run.completes_at, definition.name, definition.overlord_id
+             FROM game_player_missions run
+             JOIN game_mission_definitions definition ON definition.id = run.mission_definition_id
+             WHERE run.user_id = ? AND run.status IN ("active", "completed")
+             ORDER BY run.completes_at ASC
+             LIMIT 1'
+        );
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch();
+        if (!$row) return null;
+        $row['id'] = (int)$row['id'];
+        $row['is_contract'] = $row['overlord_id'] !== null;
+        return $row;
+    } catch (Throwable $e) {
+        /* Unreadable means unknown, and unknown must not hand out a second
+         * concurrent run -- the same direction the contract checks already fail
+         * in. A launch refused by a transient database fault is recoverable; a
+         * duplicate run is not. */
+        return ['id' => 0, 'status' => 'active', 'completes_at' => null, 'name' => '', 'overlord_id' => null, 'is_contract' => false];
+    }
+}
+
+/** The refusal start.php gives, or null when the player is free to launch. */
+function pw_missions_single_run_block(PDO $db, int $userId): ?string {
+    $run = pw_missions_active_run($db, $userId);
+    if ($run === null) return null;
+    $name = trim((string)($run['name'] ?? ''));
+    if ($run['status'] === 'completed') {
+        return $name === ''
+            ? 'Collect your completed operation before launching another.'
+            : 'Collect the rewards from ' . $name . ' before launching another operation.';
+    }
+    return $name === ''
+        ? 'An operation is already under way. Only one can run at a time.'
+        : $name . ' is already under way. Only one operation can run at a time.';
 }
 
 /**

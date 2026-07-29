@@ -567,6 +567,12 @@ try {
         'server_time' => $serverTime['value'],
         'player' => $player,
         'overlord_contract' => $overlordContract,
+        /* The one operation the player may have in flight. Sent so the roster
+         * can say what command is committed to rather than offering launches
+         * that start.php would refuse -- a visible-but-blocked control is a UX
+         * bug even where the server is correct. The rule itself lives in
+         * start.php; this is the page telling the truth about it. */
+        'active_run' => pw_missions_active_run($db, $userId),
         'salvage_recovery_contract' => $salvageRecovery,
         'watermark' => pw_missions_watermark_settings(),
         // Null until the dailies migration has been run; the card stays hidden.

@@ -719,7 +719,7 @@
       + '<span class="missions-ops-copy"><small>' + (ready ? 'Awaiting collection' : 'In the field') + '</small>'
       + '<strong>' + escapeHtml(lead.name) + '</strong></span>'
       + '<span class="missions-ops-clock"><strong class="mission-countdown" data-completes-at="' + escapeHtml(lead.completes_at) + '">'
-      + (ready ? 'Complete' : 'Calculating\u2026') + '</strong>'
+      + (ready ? 'Complete' : 'Calculating…') + '</strong>'
       + '<small>' + escapeHtml((lead.crew_names || []).join(' \u00b7 ') || 'Crew deployed') + '</small></span>'
       + (others > 0 ? '<span class="missions-ops-more">+' + others + ' more</span>' : '')
       + action;
@@ -1003,8 +1003,42 @@
    * alphabetical -- the roster is authored in a deliberate order. An offline
    * slot carries no mission_type (the server sends only its bar), so it gets
    * its own group rather than a guessed one. */
+  /* While an operation is in flight the roster is withdrawn rather than shown
+   * with every card refusing to launch. Command runs one at a time, so a wall
+   * of cards that cannot be pressed is a list of choices with no choices in it
+   * -- and this codebase's standing rule is that a control a session cannot use
+   * is hidden, not merely blocked.
+   *
+   * The campaign bars are the deliberate exception: a track is where the player
+   * stands in a chain, not an offer, so it stays readable while they are busy.
+   * The server still refuses any launch that reaches it; this only stops the
+   * page offering one. */
+  function activeRunPanelMarkup(run) {
+    var ready = run.status === 'completed';
+    var name = String(run.name || 'An operation');
+    return '<div class="missions-committed is-' + (ready ? 'ready' : 'running') + '">'
+      + '<span class="eyebrow">' + (ready ? 'Awaiting collection' : 'Command committed') + '</span>'
+      + '<strong>' + escapeHtml(name) + '</strong>'
+      + '<p>' + escapeHtml(ready
+        ? 'Collect the rewards from this operation and the roster reopens.'
+        : 'Only one operation runs at a time. The roster reopens when this crew returns.') + '</p>'
+      + (ready ? '' : '<strong class="mission-countdown missions-committed-clock" data-completes-at="'
+        + escapeHtml(String(run.completes_at || '')) + '">Calculating…</strong>')
+      + '<a class="missions-committed-link" href="#missions-active-list">Go to the operation</a></div>';
+  }
+
   function renderDefinitions(data) {
     var available = availableCrew().length;
+    var activeRun = data.active_run;
+    if (activeRun) {
+      /* A campaign track still tells the player where they are, so the bars are
+         kept and only the launchable cards go. */
+      var tracks = (data.missions || []).filter(function (mission) { return mission.campaign; })
+        .map(function (mission) { return campaignBarMarkup(mission.campaign); }).join('');
+      definitionList.innerHTML = activeRunPanelMarkup(activeRun)
+        + (tracks ? '<div class="missions-committed-tracks">' + tracks + '</div>' : '');
+      return;
+    }
     if (!data.missions.length) { definitionList.innerHTML = '<p class="missions-empty">No Neoh operations are available at the moment.</p>'; return; }
     var order = [];
     var groups = {};
@@ -2866,6 +2900,16 @@
   }
 
   function openLaunch(missionId) {
+    /* Refuses to open rather than only being hidden, the same rule every
+     * create action on this site follows: a stale card left on screen by a
+     * background refresh, or a keyboard path into a button that should have
+     * gone, must not reach a launch screen that start.php will refuse. */
+    if (state.data && state.data.active_run) {
+      setStatus(state.data.active_run.status === 'completed'
+        ? 'Collect your completed operation before launching another.'
+        : 'An operation is already under way. Only one can run at a time.', true);
+      return;
+    }
     var mission = (state.data && state.data.missions || []).find(function (item) { return item.id === Number(missionId); });
     /* A daily contract is deliberately absent from state.data.missions -- it is
      * withdrawn from the ordinary board server-side -- so it is looked up

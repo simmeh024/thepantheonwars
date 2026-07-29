@@ -17,6 +17,13 @@ try {
     $db->beginTransaction();
     pw_missions_grant_starter_crew($db, $userId);
 
+    /* One operation at a time, checked before anything else is read or locked.
+     * This is the real boundary -- the page withholds the launch controls while
+     * a run is in flight, but a stale tab or a hand-made request reaches here,
+     * and the rule has to hold for those too. */
+    $singleRunBlock = pw_missions_single_run_block($db, $userId);
+    if ($singleRunBlock !== null) throw new RuntimeException($singleRunBlock);
+
     $missionStmt = $db->prepare('SELECT * FROM game_mission_definitions WHERE id = ? FOR UPDATE');
     $missionStmt->execute([$missionId]);
     $mission = $missionStmt->fetch();
