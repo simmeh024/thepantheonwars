@@ -20,6 +20,8 @@
   var boardActions = document.getElementById('sweep-board-actions');
   var crewList = document.getElementById('sweep-crew-list');
   var crewCard = document.getElementById('sweep-crew-card');
+  var loadoutCard = document.getElementById('sweep-loadout-card');
+  var loadoutBlocks = document.getElementById('sweep-loadout-blocks');
   var ladder = document.getElementById('sweep-ladder');
   var ladderUp = document.getElementById('sweep-ladder-up');
   var ladderDown = document.getElementById('sweep-ladder-down');
@@ -666,6 +668,42 @@
       + format(current) + '</b><em>' + (maxed ? 'MAXED' : '/ ' + format(maximum)) + '</em></span>';
   }
 
+  /* One block per crew member, linking into that crew member's loadout on
+   * Mission Control. Deliberately a link rather than a modal: gear lives on
+   * that page, and a second equip surface here would be a second copy of the
+   * rules deciding what fits. Every crew member appears, deployed or not --
+   * equipment is worth reviewing before the next sweep as much as during one,
+   * and readiness is what the roster below the board is for. */
+  function renderCrewLoadouts() {
+    if (!loadoutCard || !loadoutBlocks) return;
+    var crew = (state.data && state.data.crew) || [];
+    loadoutCard.hidden = !crew.length;
+    if (!crew.length) { loadoutBlocks.innerHTML = ''; return; }
+    var ordered = crew.slice().sort(function (left, right) {
+      return (Number(right.level) || 0) - (Number(left.level) || 0)
+        || String(left.name).localeCompare(String(right.name));
+    });
+    loadoutBlocks.innerHTML = ordered.map(function (member) {
+      var portrait = safeImage(member.portrait_url);
+      var face = portrait
+        ? '<img src="' + esc(portrait) + '" alt="" loading="lazy" decoding="async" width="34" height="34">'
+        : '<span aria-hidden="true">' + esc(String(member.name || '?').charAt(0)) + '</span>';
+      var level = Math.max(0, Number(member.level) || 0);
+      /* The average-iLvl figure when the server resolved one, the role when it
+         did not -- a block that says nothing under the name reads as a value
+         that failed to load rather than one that was never offered. */
+      var ready = member.item_level_ready && Number(member.item_level_catalogue_slots) > 0;
+      var detail = ready
+        ? 'iLvl ' + String(Math.round(Math.max(0, Number(member.item_level_average) || 0)))
+        : String(member.role || 'Crew');
+      return '<a class="sweep-loadout-block" href="missions.html?loadout=' + encodeURIComponent(member.id) + '"'
+        + ' title="' + esc('Open ' + member.name + '’s loadout in Mission Control') + '">'
+        + '<span class="sweep-loadout-face">' + face + '</span>'
+        + '<span class="sweep-loadout-copy"><strong>' + esc(member.name) + '</strong>'
+        + '<small>' + esc('Lv ' + level + ' · ' + detail) + '</small></span></a>';
+    }).join('');
+  }
+
   function renderCrew() {
     var crew = (state.data && state.data.crew) || [];
     if (!crew.length) { crewList.innerHTML = '<p class="sweep-muted">No crew are available.</p>'; return; }
@@ -988,6 +1026,7 @@
     renderLadder();
     renderBoard();
     renderCrew();
+    renderCrewLoadouts();
   }
 
   /* ---- Actions ---------------------------------------------------------- */

@@ -1182,7 +1182,28 @@
       var freshMission = (data.missions || []).filter(function (item) { return Number(item.id) === Number(state.launchMission.id); })[0];
       if (freshMission) { state.launchMission = freshMission; renderLaunchCrew(); }
     }
+    openRequestedLoadout();
     tickCountdowns();
+  }
+
+  /* missions.html?loadout=<crew id> opens straight into that crew member's
+   * loadout, so a card elsewhere on the site can link to it. Consumed once and
+   * cleared from the URL: a refresh should land on Mission Control, and the
+   * back button should not reopen a modal the player closed. openLoadout()
+   * still refuses a crew member who is deployed or does not exist, so a stale
+   * or hand-typed id simply does nothing. */
+  function openRequestedLoadout() {
+    if (state.loadoutRequestHandled) return;
+    state.loadoutRequestHandled = true;
+    var requested = 0;
+    try {
+      requested = Number(new URLSearchParams(window.location.search).get('loadout')) || 0;
+    } catch (err) { requested = 0; }
+    if (!requested) return;
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+    openLoadout(requested, '');
   }
 
   /* A recovery is useful only when it answers the immediate question: can this
