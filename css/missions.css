@@ -1616,3 +1616,118 @@
  * because the same item can also be read in a dense list. */
 .mission-inventory-list-ilvl { display: none; }.missions-inventory-grid.is-list .mission-inventory-list-head { display: grid; grid-template-columns: minmax(0,1fr) 66px; gap: 8px; padding: 0 11px 3px 50px; color: #7896a6; font: 800 .48rem/1 'Jost', sans-serif; letter-spacing: .12em; text-transform: uppercase; }.missions-inventory-grid.is-list .mission-inventory-list-head span:last-child { text-align: right; }.missions-inventory-grid.is-list .mission-inventory-card { grid-template-columns: 38px minmax(0,1fr) 66px; }.missions-inventory-grid.is-list .mission-inventory-list-ilvl { display: grid; align-self: start; justify-self: end; min-width: 58px; margin-top: 3px; padding: 4px 5px; border: 1px solid rgba(105,146,169,.28); background: rgba(6,15,28,.64); color: #718a9a; font: 800 .56rem/1 'Jost', sans-serif; letter-spacing: .035em; text-align: center; }.missions-inventory-grid.is-list .mission-inventory-list-ilvl.is-gear { border-color: rgba(126,203,158,.6); background: rgba(16,57,39,.56); color: #a9e8bc; }.missions-inventory-grid.is-list .mission-inventory-ilvl { display: none; }
 @media (max-width: 470px) { .missions-inventory-grid.is-list .mission-inventory-card { grid-template-columns: 34px minmax(0,1fr) 58px; }.missions-inventory-grid.is-list .mission-inventory-list-head { grid-template-columns: minmax(0,1fr) 58px; padding-left: 45px; }.missions-inventory-grid.is-list .mission-inventory-list-ilvl { min-width: 52px; font-size: .5rem; } }
+
+/* ==========================================================================
+ * Page weights, world tone, operations bar, launch sequence.
+ *
+ * Before this, every block on the page was the same object: a dark bordered
+ * panel with a teal eyebrow and an h2. Launching an operation and reading last
+ * week's archive looked equally important. Three weights now: the act, the
+ * state, and the ledger.
+ * ========================================================================== */
+
+/* --- World tone -----------------------------------------------------------
+ * --world-accent carries this world's own signal colour, as "R, G, B"
+ * components rather than a finished colour, so one value drives both a solid
+ * edge and a translucent glow. Every rule reads it through a var() fallback,
+ * so a world with no tone looks exactly as the page did before. */
+.missions-page.has-world-tone { background: radial-gradient(circle at 78% 9%, rgba(var(--world-accent), 0.13), transparent 29%), radial-gradient(circle at 12% 52%, rgba(124,79,214,0.14), transparent 37%), #090713; }
+.missions-page.has-world-tone .missions-command-header { position: relative; padding-left: 15px; }
+.missions-page.has-world-tone .missions-command-header::before { content: ''; position: absolute; top: 4px; bottom: 4px; left: 0; width: 2px; background: linear-gradient(180deg, rgba(var(--world-accent), 0.95), rgba(var(--world-accent), 0.06)); box-shadow: 0 0 12px rgba(var(--world-accent), 0.5); }
+/* An accent used directly as text fails AA at the dark end of the palette --
+ * Terek II is rgb(121, 29, 40) and Cerius rgb(204, 72, 80). Text therefore
+ * reads a derived tone lightened 70% toward white, exactly as --overlord-text
+ * already does for the same reason; borders, pips and glows keep the pure
+ * accent, where contrast is not the question being asked. */
+.missions-page { --world-text: color-mix(in srgb, rgb(var(--world-accent, 121, 210, 222)) 30%, #ffffff); }
+.missions-page.has-world-tone .missions-world-label { color: var(--world-text); }
+
+/* --- The act --------------------------------------------------------------
+ * The two sections the page exists for. More room above them, a larger
+ * heading, and the only lit edge on the page -- everything else is quieter by
+ * comparison rather than by being dimmed. */
+.missions-section--act { margin-top: 54px; }
+.missions-section--act > .missions-section-head { position: relative; padding-bottom: 13px; border-bottom: 1px solid rgba(var(--world-accent, 121, 210, 222), 0.28); }
+.missions-section--act > .missions-section-head::after { content: ''; position: absolute; bottom: -1px; left: 0; width: 84px; height: 1px; background: rgba(var(--world-accent, 121, 210, 222), 0.9); box-shadow: 0 0 10px rgba(var(--world-accent, 121, 210, 222), 0.55); }
+.missions-section--act > .missions-section-head h2 { font-size: 1.72rem; }
+.missions-section--act > .missions-section-head .eyebrow { color: var(--world-text); }
+
+/* --- The state ------------------------------------------------------------ */
+.missions-section--state { margin-top: 40px; }
+.missions-section--state > .missions-section-head h2 { font-size: 1.32rem; }
+
+/* --- The ledger -----------------------------------------------------------
+ * Inventory and history: the record of what happened rather than the thing
+ * being done. Collapsed behind their own summary line, and denser inside. */
+.missions-section--ledger { margin-top: 30px; border: 1px solid rgba(88,142,181,0.24); background: rgba(6,15,28,0.36); }
+.missions-ledger-toggle { display: flex; width: 100%; align-items: center; justify-content: space-between; gap: 14px; padding: 13px 16px; border: 0; background: none; color: inherit; cursor: pointer; font: inherit; text-align: left; }
+.missions-ledger-toggle:hover, .missions-ledger-toggle:focus-visible { background: rgba(var(--world-accent, 121, 210, 222), 0.07); outline: none; }
+.missions-ledger-toggle-copy { display: grid; gap: 2px; min-width: 0; }
+.missions-ledger-toggle-copy .eyebrow { margin: 0; color: #79d9df; font-size: 0.56rem; }
+.missions-ledger-toggle-copy strong { color: #eaf4f8; font: 600 1.05rem/1.2 'Cinzel', serif; }
+.missions-ledger-toggle-copy small { color: #9db3c2; font-size: 0.66rem; }
+.missions-ledger-chevron { flex: none; color: #8fb0c4; font-size: 0.8rem; transition: transform .25s ease; }
+.missions-ledger-toggle[aria-expanded="false"] .missions-ledger-chevron { transform: rotate(-90deg); }
+.missions-ledger-body { padding: 0 16px 18px; }
+.missions-ledger-body > .missions-section-head { margin-bottom: 13px; }
+.missions-ledger-body > .missions-section-head h2 { font-size: 1.12rem; }
+
+/* --- Operations bar -------------------------------------------------------
+ * The one thing on the page with a clock. Sticky under the fixed header, so a
+ * running operation stays visible however far the page is scrolled. */
+.missions-ops-bar { position: sticky; z-index: 5; top: 67px; display: flex; align-items: center; gap: 13px; margin-bottom: 18px; padding: 9px 14px; border: 1px solid rgba(var(--world-accent, 121, 210, 222), 0.42); background: linear-gradient(90deg, rgba(10,24,42,0.97), rgba(13,17,38,0.97)); backdrop-filter: blur(6px); }
+.missions-ops-bar[hidden] { display: none; }
+.missions-ops-pip { flex: none; width: 8px; height: 8px; border-radius: 50%; background: rgba(var(--world-accent, 121, 210, 222), 1); box-shadow: 0 0 10px rgba(var(--world-accent, 121, 210, 222), 0.85); }
+.missions-ops-copy { display: grid; gap: 1px; min-width: 0; }
+.missions-ops-copy small { color: #8ba3b4; font-size: 0.54rem; font-weight: 700; letter-spacing: .11em; text-transform: uppercase; }
+.missions-ops-copy strong { overflow: hidden; color: #eaf4f8; font: 600 0.86rem/1.2 'Cinzel', serif; text-overflow: ellipsis; white-space: nowrap; }
+.missions-ops-clock { display: grid; flex: 1; gap: 1px; min-width: 0; text-align: right; }
+.missions-ops-clock strong { color: #d7eaf2; font-size: 0.76rem; font-weight: 700; }
+.missions-ops-clock small { overflow: hidden; color: #8ba3b4; font-size: 0.6rem; text-overflow: ellipsis; white-space: nowrap; }
+.missions-ops-more { flex: none; padding: 3px 8px; border: 1px solid rgba(139,163,180,0.4); color: #b6c8d5; font-size: 0.6rem; font-weight: 700; }
+.missions-ops-link { flex: none; color: var(--world-text); font-size: 0.68rem; font-weight: 700; letter-spacing: .05em; text-decoration: none; }
+.missions-ops-link:hover, .missions-ops-link:focus-visible { text-decoration: underline; }
+.missions-ops-bar .btn { flex: none; padding: 6px 13px; font-size: 0.68rem; }
+/* Finished and unclaimed reads as a different state, not a brighter version of
+ * the same one: it is owed to the player and waiting on them. */
+.missions-ops-bar.is-ready { border-color: rgba(158,219,168,0.6); box-shadow: 0 0 22px rgba(110,207,140,0.16); }
+.missions-ops-bar.is-ready .missions-ops-pip { background: #9edba8; box-shadow: 0 0 12px rgba(158,219,168,0.9); animation: missions-ops-pulse 1.9s ease-in-out infinite; }
+.missions-ops-bar.is-ready .missions-ops-clock strong { color: #9edba8; }
+@keyframes missions-ops-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .55; transform: scale(.82); } }
+
+/* --- Launch sequence ------------------------------------------------------
+ * The launch modal is where the decision is actually made, and it opened like
+ * a settings dialog. Its four parts arrive in the order they are read, so the
+ * projected outcome lands last.
+ *
+ * Every rule here animates opacity and transform only, with no fill mode: the
+ * resting state IS the correct state, and the keyframe merely runs toward it.
+ * A frame that never arrives -- a backgrounded tab, a browser that is not
+ * compositing -- therefore leaves the modal correct rather than invisible.
+ * That is not theoretical; it has been got wrong once on the reputation bar. */
+@keyframes mission-launch-arrive { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: none; } }
+.mission-launch-modal[open] .mission-launch-brief { animation: mission-launch-arrive .34s ease-out .04s; }
+.mission-launch-modal[open] .mission-launch-crew-head,
+.mission-launch-modal[open] .mission-launch-rack { animation: mission-launch-arrive .34s ease-out .12s; }
+.mission-launch-modal[open] .mission-launch-tray-head,
+.mission-launch-modal[open] .mission-launch-crew { animation: mission-launch-arrive .34s ease-out .2s; }
+.mission-launch-modal[open] .mission-launch-projection { animation: mission-launch-arrive .38s ease-out .3s; }
+
+@media (prefers-reduced-motion: reduce) {
+  .missions-ops-bar.is-ready .missions-ops-pip { animation: none; }
+  .missions-ledger-chevron { transition: none; }
+  .mission-launch-modal[open] .mission-launch-brief,
+  .mission-launch-modal[open] .mission-launch-crew-head,
+  .mission-launch-modal[open] .mission-launch-rack,
+  .mission-launch-modal[open] .mission-launch-tray-head,
+  .mission-launch-modal[open] .mission-launch-crew,
+  .mission-launch-modal[open] .mission-launch-projection { animation: none; }
+}
+
+@media (max-width: 900px) {
+  /* The bar is worth its height on a small screen too, but not two lines of
+   * it -- the crew line is the part the card below already carries. */
+  .missions-ops-bar { top: 60px; gap: 9px; padding: 8px 11px; }
+  .missions-ops-clock small, .missions-ops-more { display: none; }
+  .missions-section--act { margin-top: 38px; }
+}

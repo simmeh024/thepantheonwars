@@ -2,7 +2,7 @@
   'use strict';
 
   var state = { data: null, serverOffset: 0, launchMission: null, launchProjection: null, launchPenaltyAck: false, rivalApproach: '',
-    loadoutCrewId: null, loadoutSlot: null, loadoutAutoRunning: false, crewPage: 1, refreshQueued: false, feedSlot: null,
+    loadoutCrewId: null, loadoutSlot: null, loadoutAutoRunning: false, crewPage: 1, refreshQueued: false, feedSlot: null, missionActionBusy: 0,
     /* When the current payload was received. Fatigue arrives already caught up
      * to that instant, so the page ages it forward from here rather than
      * polling the server for a value it can derive. */
@@ -54,6 +54,7 @@
   var launchSort = document.getElementById('mission-launch-sort');
   var launchProjection = document.getElementById('mission-launch-projection');
   var weatherCard = document.getElementById('mission-weather-card');
+  var opsBar = document.getElementById('missions-ops-bar');
   var loadoutModal = document.getElementById('mission-loadout-modal');
   var loadoutTitle = document.getElementById('mission-loadout-title');
   var loadoutCopy = document.getElementById('mission-loadout-copy');
@@ -642,6 +643,152 @@
       + '<div class="mission-rival-race-track is-crew"><span>Your crew</span><span class="mission-rival-progress" role="progressbar" aria-label="Your crew recovery progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(crewProgress) + '" data-race-started-at="' + escapeHtml(mission.started_at || '') + '" data-race-completes-at="' + escapeHtml(mission.completes_at || '') + '"><i style="width:' + crewProgress.toFixed(2) + '%"></i></span></div>'
       + '<div class="mission-rival-race-track is-rival"><span>' + escapeHtml(faction) + '</span><span class="mission-rival-progress" role="progressbar" aria-label="Rival recovery progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + Math.round(rivalProgress) + '" data-race-started-at="' + escapeHtml(mission.started_at || '') + '" data-race-completes-at="' + escapeHtml(mission.rival_completes_at || '') + '"><i style="width:' + rivalProgress.toFixed(2) + '%"></i></span></div>'
       + '<p>' + (approach === 'push' ? 'Push ahead in effect: shorter clock, higher fatigue.' : 'Secure route in effect: normal recovery clock.') + '</p></div>';
+  }
+
+  /* ----------------------------------------------------------------------
+   * Page identity, operations bar, and the ledger sections.
+   * -------------------------------------------------------------------- */
+
+  /* The twelve world signal colours, hand-duplicated from js/worlds.js per this
+   * codebase's no-shared-module convention -- the atlas owns that map because
+   * it must render before any fetch. Keyed by world key rather than by the
+   * atlas's fixed medallion order, which is deliberately not sort order. */
+  var WORLD_TONES = {
+    'neoh': '154, 96, 238',
+    'high-hammer': '184, 111, 66',
+    'cerius': '204, 72, 80',
+    'reanium': '159, 224, 65',
+    'asmecu': '68, 150, 237',
+    'babki-prime': '59, 148, 83',
+    'sed': '166, 36, 57',
+    'geof-v': '158, 175, 193',
+    'beoctica': '225, 232, 241',
+    'terek-ii': '121, 29, 40',
+    'valerium-prime': '218, 176, 76',
+    'vermillia-xi': '210, 142, 72'
+  };
+
+  /* Publish the world's own signal colour once, as components rather than a
+   * finished colour, so one value drives both a solid edge and a translucent
+   * glow -- the --node-accent convention the timeline markers already use.
+   *
+   * Removed rather than blanked when the world is unknown: a custom property
+   * set to '' still counts as set and defeats the var() fallback every consumer
+   * relies on. That is a mistake this codebase has already made once. */
+  function applyWorldTone(data) {
+    var page = document.querySelector('.missions-page') || document.body;
+    var key = String((data.missions && data.missions[0] && data.missions[0].world_key)
+      || (data.active_missions && data.active_missions[0] && data.active_missions[0].world_key) || '');
+    var tone = WORLD_TONES[key];
+    if (!tone) { page.style.removeProperty('--world-accent'); page.classList.remove('has-world-tone'); return; }
+    page.style.setProperty('--world-accent', tone);
+    page.classList.add('has-world-tone');
+  }
+
+  /* The operations bar.
+   *
+   * A running operation is the only thing on this page with a clock, and it was
+   * a card among other cards -- scroll past it and there was no sign anything
+   * was under way. The bar sits under the command header and stays put while
+   * the rest of the page scrolls.
+   *
+   * Deliberately a summary with one action, not a second copy of the active
+   * card: crew, route and the rival race all stay on the card. The action it
+   * carries goes through the same handler the card's own button uses, so there
+   * is exactly one claim path however it is reached. */
+  function renderOpsBar(data) {
+    if (!opsBar) return;
+    var runs = (data.active_missions || []).slice();
+    if (!runs.length) { opsBar.hidden = true; opsBar.innerHTML = ''; return; }
+    /* Anything finished and unclaimed leads, because it is owed to the player
+       and waiting on them; otherwise the run finishing soonest. */
+    var done = runs.filter(function (run) { return run.status === 'completed' || run.is_ready; });
+    var lead = done.length
+      ? done[0]
+      : runs.slice().sort(function (a, b) { return String(a.completes_at).localeCompare(String(b.completes_at)); })[0];
+    var ready = lead.status === 'completed' || lead.is_ready;
+    var others = runs.length - 1;
+    var action = lead.status === 'completed'
+      ? '<button type="button" class="btn btn-solid mission-action" data-action="claim" data-mission-id="' + lead.id + '">Claim rewards</button>'
+      : lead.is_ready
+        ? '<button type="button" class="btn btn-solid mission-action" data-action="complete" data-mission-id="' + lead.id + '">Complete</button>'
+        : '<a class="missions-ops-link" href="#missions-active-list">View</a>';
+    opsBar.hidden = false;
+    opsBar.className = 'missions-ops-bar' + (ready ? ' is-ready' : ' is-running');
+    opsBar.innerHTML = '<span class="missions-ops-pip" aria-hidden="true"></span>'
+      + '<span class="missions-ops-copy"><small>' + (ready ? 'Awaiting collection' : 'In the field') + '</small>'
+      + '<strong>' + escapeHtml(lead.name) + '</strong></span>'
+      + '<span class="missions-ops-clock"><strong class="mission-countdown" data-completes-at="' + escapeHtml(lead.completes_at) + '">'
+      + (ready ? 'Complete' : 'Calculating\u2026') + '</strong>'
+      + '<small>' + escapeHtml((lead.crew_names || []).join(' \u00b7 ') || 'Crew deployed') + '</small></span>'
+      + (others > 0 ? '<span class="missions-ops-more">+' + others + ' more</span>' : '')
+      + action;
+  }
+
+  /* Inventory and history are the ledger of the page rather than the act of it,
+   * so they collapse behind a one-line summary. The state is per-browser and
+   * remembered, because whether the archive is worth having open is a habit
+   * rather than a property of the data. */
+  var LEDGERS = [
+    { key: 'inventory', toggle: 'missions-inventory-toggle', body: 'missions-inventory-body' },
+    { key: 'history', toggle: 'missions-history-toggle', body: 'missions-history-body' }
+  ];
+
+  function ledgerOpen(key) {
+    try {
+      var raw = window.localStorage.getItem('pw_missions_ledgers');
+      var map = raw ? JSON.parse(raw) : null;
+      /* Open by default: a section that hides itself the first time a player
+         sees it is a section they never learn exists. */
+      return !map || map[key] !== false;
+    } catch (err) { return true; }
+  }
+
+  function setLedgerOpen(key, open) {
+    try {
+      var raw = window.localStorage.getItem('pw_missions_ledgers');
+      var map = raw ? JSON.parse(raw) : {};
+      if (!map || typeof map !== 'object') map = {};
+      map[key] = !!open;
+      window.localStorage.setItem('pw_missions_ledgers', JSON.stringify(map));
+    } catch (err) { /* A browser refusing storage still gets a working toggle. */ }
+  }
+
+  function applyLedgerState(entry, open) {
+    var toggle = document.getElementById(entry.toggle);
+    var body = document.getElementById(entry.body);
+    if (!toggle || !body) return;
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    body.hidden = !open;
+  }
+
+  function wireLedgers() {
+    LEDGERS.forEach(function (entry) {
+      var toggle = document.getElementById(entry.toggle);
+      if (!toggle) return;
+      applyLedgerState(entry, ledgerOpen(entry.key));
+      toggle.addEventListener('click', function () {
+        var open = toggle.getAttribute('aria-expanded') !== 'true';
+        setLedgerOpen(entry.key, open);
+        applyLedgerState(entry, open);
+      });
+    });
+  }
+
+  function renderLedgerSummaries(data) {
+    var inventory = document.getElementById('missions-inventory-ledger-summary');
+    if (inventory) {
+      var kinds = (data.loot || []).length;
+      var items = (data.loot || []).reduce(function (total, item) { return total + (Number(item.quantity) || 0); }, 0);
+      inventory.textContent = kinds
+        ? items + ' item' + (items === 1 ? '' : 's') + ' \u00b7 ' + kinds + ' kind' + (kinds === 1 ? '' : 's')
+        : 'Nothing recovered yet';
+    }
+    var history = document.getElementById('missions-history-ledger-summary');
+    if (history) {
+      var runs = (data.history || []).length;
+      history.textContent = runs ? runs + ' recorded operation' + (runs === 1 ? '' : 's') : 'No operations recorded yet';
+    }
   }
 
   function renderActive(data) {
@@ -1255,7 +1402,7 @@
     state.data = data;
     var server = apiDate(data.server_time);
     state.serverOffset = server && !isNaN(server) ? server.getTime() - Date.now() : 0;
-    applyWatermark(data.watermark); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCrewOffers(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderSalvageRecovery(data); renderCrew(data); renderInventory(data); renderHistory(data); renderOverlordContract(data);
+    applyWatermark(data.watermark); applyWorldTone(data); renderOpsBar(data); renderLedgerSummaries(data); renderWeather(data); renderProfile(data); renderDaily(data); renderStats(data); renderCrewOffers(data); renderCommandFeed(data); renderActive(data); renderDefinitions(data); renderSalvageRecovery(data); renderCrew(data); renderInventory(data); renderHistory(data); renderOverlordContract(data);
     /* The launch modal stays open across a background refresh -- equipping gear
      * from a slot's upgrade warning reloads the whole payload underneath it.
      * Re-resolve the mission against the new data and redraw the picker, or it
@@ -2964,21 +3111,48 @@
     launchConfirm.disabled = true; launchConfirm.classList.add('is-busy'); launchError.textContent = '';
     post('/api/missions/start.php', { mission_id: state.launchMission.id, crew_ids: crewIds, rival_approach: state.launchMission.is_contested ? state.rivalApproach : '', csrf: window.PW_AUTH.csrf }).then(function () { closeLaunch(); setStatus('Mission launched. Your crew is now in the field.'); load(); }).catch(function (error) { launchError.textContent = error.message; }).finally(function () { launchConfirm.disabled = false; launchConfirm.classList.remove('is-busy'); });
   });
-  activeList.addEventListener('click', function (event) {
-    var button = event.target.closest('.mission-action'); if (!button) return;
-    var action = button.getAttribute('data-action'); var missionId = Number(button.getAttribute('data-mission-id'));
+  /* One claim path, however it is reached.
+   *
+   * The operations bar puts a second Claim button on screen for the same run as
+   * the active card, so disabling the button that was pressed is no longer
+   * enough -- the other one is still live and would post a second claim for a
+   * run the first is already settling. A module-level busy id blocks any action
+   * on a mission already in flight, and is cleared on both paths. The server
+   * refuses a second claim regardless; this is so the player never sees the
+   * error for something they had no way of knowing they were doing twice. */
+  function runMissionAction(button) {
+    var action = button.getAttribute('data-action');
+    var missionId = Number(button.getAttribute('data-mission-id'));
+    if (!missionId || state.missionActionBusy === missionId) return;
+    state.missionActionBusy = missionId;
     button.disabled = true; button.classList.add('is-busy');
     post('/api/missions/' + action + '.php', { mission_id: missionId, csrf: window.PW_AUTH.csrf }).then(function (result) {
       /* load() clears the status line synchronously before its own fetch
        * resolves, so the summary has to be written after it -- set before, it
        * was wiped in the same tick and no mission action has ever actually
        * reported an outcome there. */
+      state.missionActionBusy = 0;
       load();
       if (action === 'claim' && result.reputation_awarded > 0 && typeof window.refreshAuthNav === 'function') window.refreshAuthNav();
       if (action === 'claim') { setStatus(claimSummary(result), result.succeeded === false); showResult(result); }
       else { setStatus('Mission completed. Rewards are ready to claim.'); }
-    }).catch(function (error) { setStatus(error.message, true); button.disabled = false; button.classList.remove('is-busy'); });
+    }).catch(function (error) {
+      state.missionActionBusy = 0;
+      setStatus(error.message, true); button.disabled = false; button.classList.remove('is-busy');
+    });
+  }
+
+  activeList.addEventListener('click', function (event) {
+    var button = event.target.closest('.mission-action'); if (!button) return;
+    runMissionAction(button);
   });
+  /* The bar is rebuilt on every refresh, so the listener is delegated to the
+   * container rather than bound to a button that will be thrown away. */
+  if (opsBar) opsBar.addEventListener('click', function (event) {
+    var button = event.target.closest('.mission-action'); if (!button) return;
+    runMissionAction(button);
+  });
+  wireLedgers();
   /* Delegated, because the card is rebuilt on every refresh and a listener
    * bound to the button itself would be thrown away with it. */
   if (dailyCard) dailyCard.addEventListener('click', function (event) {
