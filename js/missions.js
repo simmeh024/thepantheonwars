@@ -258,6 +258,56 @@
     return sigil ? sigil.color : '#c9a227';
   }
 
+  /* The standing bar under the affinity card.
+   *
+   * Every figure and every colour comes from the block the server sent. The
+   * stage table lives in PHP because the same table decides what a contract
+   * award is worth, and a bar drawn from a second copy would eventually
+   * disagree with the thing that filled it.
+   *
+   * Absent entirely before the migration: a bar reading zero would be claiming
+   * the player has no standing, when what is true is that standing is not
+   * installed yet. */
+  function overlordStandingMarkup(standing) {
+    if (!standing || !standing.ready) return '';
+    var stages = standing.stages || [];
+    if (stages.length < 2) return '';
+    var max = Math.max(1, Number(standing.max) || 500);
+    var points = Math.max(0, Math.min(max, Number(standing.points) || 0));
+    var percent = (points / max) * 100;
+    var stage = standing.stage || stages[0];
+    var next = standing.next_stage;
+    /* Ticks mark where each stage begins, so the fill can be read against the
+     * ladder rather than as a bare percentage. The first stage starts at zero
+     * and needs no mark -- the left edge of the bar already is it. */
+    var ticks = stages.slice(1).map(function (entry) {
+      var at = (Math.max(0, Number(entry.at) || 0) / max) * 100;
+      return '<span class="mission-standing-tick' + (points >= Number(entry.at) ? ' is-passed' : '')
+        + '" style="left:' + at.toFixed(2) + '%"></span>';
+    }).join('');
+    var labels = stages.map(function (entry, index) {
+      return '<span class="mission-standing-stage' + (index === Number(standing.stage_index) ? ' is-current' : '')
+        + (index < Number(standing.stage_index) ? ' is-earned' : '') + '"'
+        + ' style="--standing-stage:' + escapeHtml(String(entry.color || '#8fa3b5')) + '">'
+        + escapeHtml(entry.label) + '</span>';
+    }).join('');
+    var toNext = next
+      ? Number(standing.points_to_next) + ' to ' + next.label
+      : 'Full standing';
+    /* The arrow is decoration for a figure already written out beside it, so it
+     * is hidden from assistive technology rather than read as a stray caret. */
+    return '<div class="mission-standing" style="--standing-color:' + escapeHtml(String(stage.color || '#8fa3b5')) + '">'
+      + '<div class="mission-standing-head"><span class="mission-standing-rank">' + escapeHtml(stage.label) + '</span>'
+      + '<span class="mission-standing-points">' + points + ' / ' + max + '</span></div>'
+      + '<div class="mission-standing-track" role="img" aria-label="'
+      + escapeHtml('Standing ' + stage.label + ', ' + points + ' of ' + max + ' points. ' + toNext + '.') + '">'
+      + '<span class="mission-standing-fill" style="width:' + percent.toFixed(2) + '%"></span>' + ticks + '</div>'
+      + '<div class="mission-standing-marker"><span class="mission-standing-arrow" aria-hidden="true" style="left:'
+      + percent.toFixed(2) + '%">&and;</span></div>'
+      + '<div class="mission-standing-stages">' + labels + '</div>'
+      + '<small class="mission-standing-next">' + escapeHtml(toNext) + '</small></div>';
+  }
+
   function overlordAffinityMarkup(player) {
     var overlord = player && player.overlord;
     if (!overlord) {
@@ -273,7 +323,11 @@
       + '<span class="mission-profile-affinity-sigil" aria-hidden="true">' + (sigil ? sigil.svg : '&#9670;') + '</span>'
       + '<span class="mission-profile-affinity-copy"><small>Overlord affinity</small>'
       + '<strong>' + escapeHtml(overlord.name) + '</strong>'
-      + (overlord.epithet ? '<em>' + escapeHtml(overlord.epithet) + '</em>' : '') + '</span></a>';
+      + (overlord.epithet ? '<em>' + escapeHtml(overlord.epithet) + '</em>' : '') + '</span>'
+      /* Inside the anchor rather than beside it: every child of the command
+       * card carries an explicit order below 1080px, so a new sibling would
+       * default to order 0 and jump ahead of the avatar. */
+      + overlordStandingMarkup(overlord.standing) + '</a>';
   }
 
   /* The rail card. A minified contract, in its Overlord's colour, or the reason
@@ -1555,6 +1609,24 @@
       ? '<p class="mission-result-affinity' + (affinity.penalty ? ' is-warning' : '') + '">' + escapeHtml(affinityNote) + '</p>'
       : '';
 
+    /* Standing earned by a contract. Without this the bar on the command card
+     * moves with nothing having said why -- the points would arrive from
+     * nowhere. A promotion to a new stage is called out, since that is the part
+     * worth noticing; a full standing says so rather than reporting +0. */
+    var standing = result.overlord_standing;
+    var standingLine = '';
+    if (standing && standing.after) {
+        var promoted = Number(standing.after.stage_index) > Number(standing.before.stage_index);
+        var standingText = standing.awarded > 0
+          ? '+' + standing.awarded + ' standing with your Overlord — ' + standing.after.stage.label
+            + ' (' + standing.after.points + ' / ' + standing.after.max + ').'
+            + (promoted ? ' You have risen to ' + standing.after.stage.label + '.' : '')
+          : 'Your standing with this Overlord is already full at ' + standing.after.stage.label + '.';
+        standingLine = '<p class="mission-result-affinity mission-result-standing' + (promoted ? ' is-promotion' : '') + '"'
+          + ' style="--standing-color:' + escapeHtml(String(standing.after.stage.color || '#8fa3b5')) + '">'
+          + escapeHtml(standingText) + '</p>';
+    }
+
     var extras = '';
     /* A character award is the rarest thing a mission can produce, so it leads
      * the extras rather than sitting under the item list. A roll that hit a
@@ -1640,7 +1712,7 @@
       + rivalMarkup
       + salvageRecoveryMarkup
       + rollMarkup(result)
-      + affinityLine + weatherLine
+      + affinityLine + standingLine + weatherLine
       + '<div class="mission-result-grid">' + grid + '</div>' + extras;
 
     /* The reveal order. Each block carries its own index so the CSS can stagger

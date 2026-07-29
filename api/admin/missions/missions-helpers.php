@@ -139,6 +139,22 @@ function pw_admin_mission_definition_input(array $input): array {
     if ($requiresOverlordClearance && $overlordId === null) {
         pw_error('A blocked-tile clearance can only be enabled on an Overlord contract.');
     }
+    /* What one successful completion of this contract pays into the player's
+     * standing with its Overlord. Bounded by the ladder's own ceiling: a single
+     * contract worth more than the whole track would make the bar meaningless
+     * in one run. Only an Overlord contract may carry one -- standing is the
+     * record of service to a patron, and an ordinary board mission has none. */
+    $standingReady = pw_mission_overlord_standing_ready(pw_db());
+    $standingReward = 0;
+    if ($standingReady) {
+        $standingReward = filter_var($input['overlord_standing_reward'] ?? 0, FILTER_VALIDATE_INT);
+        if ($standingReward === false || $standingReward < 0 || $standingReward > PW_MISSION_OVERLORD_STANDING_MAX) {
+            pw_error('Standing reward must be between 0 and ' . PW_MISSION_OVERLORD_STANDING_MAX . '.');
+        }
+        if ($standingReward > 0 && $overlordId === null) {
+            pw_error('A standing reward can only be set on an Overlord contract.');
+        }
+    }
     $unlocksAfterRaw = trim((string)($input['unlocks_after_mission_id'] ?? ''));
     $unlocksAfterMissionId = null;
     if ($unlocksAfterRaw !== '') {
@@ -157,6 +173,7 @@ function pw_admin_mission_definition_input(array $input): array {
         'is_enabled' => !empty($input['is_enabled']) ? 1 : 0, 'sort_order' => $sortOrder,
         'requires_research_unlock' => !empty($input['requires_research_unlock']) ? 1 : 0,
         'overlord_id' => $overlordId,
+        'overlord_standing_reward' => $standingReward,
         'is_contested' => $isContested,
         'rival_faction_name' => $isContested ? $rivalFaction : null,
         'is_salvage_recovery_contract' => $isSalvageRecovery,

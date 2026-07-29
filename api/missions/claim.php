@@ -19,6 +19,8 @@ try {
     $contestedReady = pw_mission_contested_contracts_ready($db);
     $salvageRecoveryReady = pw_mission_salvage_recovery_contracts_ready($db);
     $progressionReady = pw_mission_contract_progression_ready($db);
+    $standingReady = pw_mission_overlord_standing_ready($db);
+    if ($standingReady) $statsColumns .= ', md.overlord_id, md.overlord_standing_reward';
     if ($creditsReady) $statsColumns .= ', md.credit_reward';
     if ($salvageRecoveryReady) $statsColumns .= ', md.is_salvage_recovery_contract';
     if ($progressionReady) $statsColumns .= ', md.contract_tier, md.recommended_item_level, md.reward_item_level_min, md.reward_item_level_max, md.featured_slots';
@@ -329,6 +331,25 @@ try {
 
     $creditBalance = $creditsReady ? pw_missions_add_credits($db, $userId, $creditsAwarded) : 0;
 
+    /* Standing is paid for the work, so it follows the same rule the other
+     * rewards do: only a successful operation earns it. A contested run that
+     * reached the site but lost the race still succeeded as an operation and
+     * still served the patron, so it is deliberately not reduced alongside the
+     * race rewards -- the crew did what the contract asked.
+     *
+     * The reward is read from the contract's own authored figure; a contract
+     * left at the default zero pays no standing and the block is absent, so
+     * every operation authored before this feature behaves exactly as before. */
+    $standingResult = null;
+    if ($succeeded && $standingReady) {
+        $standingResult = pw_missions_award_overlord_standing(
+            $db,
+            $userId,
+            (int)($mission['overlord_id'] ?? 0),
+            (int)($mission['overlord_standing_reward'] ?? 0)
+        );
+    }
+
     /* Anything the two loot paths below could not fit, so the debrief can say a
      * reward was left behind rather than silently paying less than it showed.
      * Keyed by definition id and summed across both paths. */
@@ -492,6 +513,10 @@ try {
         'credits_total' => $creditBalance,
         'credits_ready' => $creditsReady,
         'rival' => $rival,
+        // What this contract did to the player's standing with its Overlord,
+        // before and after, so the debrief can show the rung it moved rather
+        // than only a number of points.
+        'overlord_standing' => $standingResult,
         'salvage_recovery_contract' => $salvageRecoveryResult,
         'level_ups' => $levelUps,
         'crew_results' => $crewResults,

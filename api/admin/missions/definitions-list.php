@@ -14,6 +14,7 @@ $contestedContractsReady = pw_mission_contested_contracts_ready($db);
 $salvageRecoveryContractsReady = pw_mission_salvage_recovery_contracts_ready($db);
 $overlordClearancesReady = pw_mission_overlord_clearances_ready($db);
 $progressionReady = pw_mission_contract_progression_ready($db);
+$standingReady = pw_mission_overlord_standing_ready($db);
 $rows = $db->query(
     'SELECT mission.id, mission.world_key, mission.name, mission.slug, mission.description, mission.mission_type,
             mission.duration_seconds, mission.min_crew, mission.max_crew, mission.xp_reward, mission.reputation_reward,
@@ -28,6 +29,7 @@ $rows = $db->query(
     ($contestedContractsReady ? ' mission.is_contested, mission.rival_faction_name,' : ' 0 AS is_contested, "" AS rival_faction_name,') .
     ($salvageRecoveryContractsReady ? ' mission.is_salvage_recovery_contract,' : ' 0 AS is_salvage_recovery_contract,') .
     ($overlordClearancesReady ? ' mission.requires_overlord_clearance,' : ' 0 AS requires_overlord_clearance,') .
+    ($standingReady ? ' mission.overlord_standing_reward,' : ' 0 AS overlord_standing_reward,') .
            ' prerequisite.name AS unlocks_after_mission_name, mission.created_at, mission.updated_at
      FROM game_mission_definitions mission
      LEFT JOIN game_mission_definitions prerequisite ON prerequisite.id = mission.unlocks_after_mission_id'
@@ -39,7 +41,7 @@ $rows = $db->query(
      ORDER BY mission.world_key ASC, mission.sort_order ASC, mission.id ASC'
 )->fetchAll();
 $rows = array_map(static function ($row) {
-    foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls', 'watermark_opacity', 'contract_tier', 'recommended_item_level', 'reward_item_level_min', 'reward_item_level_max'] as $field) $row[$field] = (int)$row[$field];
+    foreach (['id', 'duration_seconds', 'min_crew', 'max_crew', 'xp_reward', 'reputation_reward', 'credit_reward', 'sort_order', 'unlocks_after_completion_count', 'base_success_percent', 'loot_rolls', 'watermark_opacity', 'overlord_standing_reward', 'contract_tier', 'recommended_item_level', 'reward_item_level_min', 'reward_item_level_max'] as $field) $row[$field] = (int)$row[$field];
     $row['unlocks_after_mission_id'] = $row['unlocks_after_mission_id'] !== null ? (int)$row['unlocks_after_mission_id'] : null;
     $row['is_enabled'] = (bool)$row['is_enabled'];
     $row['is_campaign_final'] = (bool)$row['is_campaign_final'];
@@ -68,4 +70,4 @@ $overlords = $contractsReady
     ? $db->query('SELECT id, name, epithet FROM overlords ORDER BY sort_order ASC, name ASC')->fetchAll()
     : [];
 $overlords = array_map(static function ($row) { $row['id'] = (int)$row['id']; return $row; }, $overlords);
-pw_json(['ok' => true, 'missions' => $rows, 'campaign_ready' => $campaignReady, 'contracts_ready' => $contractsReady, 'contested_contracts_ready' => $contestedContractsReady, 'salvage_recovery_contracts_ready' => $salvageRecoveryContractsReady, 'overlord_clearances_ready' => $overlordClearancesReady, 'contract_progression_ready' => $progressionReady, 'gear_slots' => array_map(static function ($key, $label) { return ['key' => $key, 'label' => $label]; }, array_keys(pw_missions_gear_slots()), array_values(pw_missions_gear_slots())), 'overlords' => $overlords, 'contract_rank' => PW_MISSION_OVERLORD_CONTRACT_RANK]);
+pw_json(['ok' => true, 'missions' => $rows, 'campaign_ready' => $campaignReady, 'contracts_ready' => $contractsReady, 'contested_contracts_ready' => $contestedContractsReady, 'salvage_recovery_contracts_ready' => $salvageRecoveryContractsReady, 'overlord_clearances_ready' => $overlordClearancesReady, 'overlord_standing_ready' => $standingReady, 'overlord_standing_max' => PW_MISSION_OVERLORD_STANDING_MAX, 'contract_progression_ready' => $progressionReady, 'gear_slots' => array_map(static function ($key, $label) { return ['key' => $key, 'label' => $label]; }, array_keys(pw_missions_gear_slots()), array_values(pw_missions_gear_slots())), 'overlords' => $overlords, 'contract_rank' => PW_MISSION_OVERLORD_CONTRACT_RANK]);

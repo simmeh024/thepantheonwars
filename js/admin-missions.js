@@ -3,7 +3,7 @@
 
   var definitions = [];
   /* Overlord roster and contract readiness, both supplied by definitions-list. */
-  var overlords = [], contractsReady = false, contestedContractsReady = false, salvageRecoveryContractsReady = false, overlordClearancesReady = false, contractProgressionReady = false, contractRank = 10;
+  var overlords = [], standingReady = false, standingMax = 500, contractsReady = false, contestedContractsReady = false, salvageRecoveryContractsReady = false, overlordClearancesReady = false, contractProgressionReady = false, contractRank = 10;
   var missionGearSlots = [];
   var crew = [];
   var gear = [];
@@ -425,7 +425,7 @@
   }
 
   function loadDefinitions() {
-    return request('/api/admin/missions/definitions-list.php').then(function (data) { definitions = data.missions || []; overlords = data.overlords || []; contractsReady = !!data.contracts_ready; contestedContractsReady = !!data.contested_contracts_ready; salvageRecoveryContractsReady = !!data.salvage_recovery_contracts_ready; overlordClearancesReady = !!data.overlord_clearances_ready; contractProgressionReady = !!data.contract_progression_ready; missionGearSlots = data.gear_slots || []; contractRank = Number(data.contract_rank) || 10; renderDefinitions(); refreshMissionCount(); }).catch(function (error) { blank(definitionList, error.message || 'Could not load mission definitions. Run the Missions V0 migration first.'); });
+    return request('/api/admin/missions/definitions-list.php').then(function (data) { definitions = data.missions || []; overlords = data.overlords || []; contractsReady = !!data.contracts_ready; contestedContractsReady = !!data.contested_contracts_ready; salvageRecoveryContractsReady = !!data.salvage_recovery_contracts_ready; overlordClearancesReady = !!data.overlord_clearances_ready; standingReady = !!data.overlord_standing_ready; standingMax = Number(data.overlord_standing_max) || 500; contractProgressionReady = !!data.contract_progression_ready; missionGearSlots = data.gear_slots || []; contractRank = Number(data.contract_rank) || 10; renderDefinitions(); refreshMissionCount(); }).catch(function (error) { blank(definitionList, error.message || 'Could not load mission definitions. Run the Missions V0 migration first.'); });
   }
 
   function loadCrew() {
@@ -553,6 +553,21 @@
     var isContract = contractsReady && overlord.value !== '';
     if (!isContract) toggle.checked = false;
     toggle.disabled = !isContract;
+  }
+
+  /* Standing is service to a patron, so the field is offered only while an
+     Overlord is attached -- and zeroed when one is removed, or a mission
+     converted back to the ordinary board would keep an invisible reward. */
+  function syncMissionStandingField() {
+    var field = document.getElementById('mission-definition-standing-field');
+    var input = document.getElementById('mission-definition-standing-reward');
+    var overlord = document.getElementById('mission-definition-overlord');
+    if (!field || !input || !overlord) return;
+    field.hidden = !standingReady;
+    input.max = String(standingMax);
+    var isContract = contractsReady && overlord.value !== '';
+    if (!isContract) input.value = '0';
+    input.disabled = !isContract;
   }
 
   function featuredMissionSlots() {
@@ -698,6 +713,7 @@
     document.getElementById('mission-definition-rival-faction').value = mission && mission.rival_faction_name ? mission.rival_faction_name : '';
     document.getElementById('mission-definition-salvage-recovery').checked = mission ? !!mission.is_salvage_recovery_contract : false;
     document.getElementById('mission-definition-overlord-clearance').checked = mission ? !!mission.requires_overlord_clearance : false;
+    document.getElementById('mission-definition-standing-reward').value = mission && mission.overlord_standing_reward !== undefined ? mission.overlord_standing_reward : 0;
     populateMissionSuccessionOptions(mission);
     document.getElementById('mission-definition-unlock-completions').value = mission && mission.unlocks_after_mission_id ? mission.unlocks_after_completion_count : 0;
     document.getElementById('mission-definition-campaign-final').checked = mission ? !!mission.is_campaign_final : false;
@@ -718,6 +734,7 @@
     syncMissionContestedFields();
     syncMissionSalvageRecoveryField();
     syncMissionOverlordClearanceField();
+    syncMissionStandingField();
   }
 
   function resetModalMessage(prefix) {
@@ -774,6 +791,7 @@
       rival_faction_name: contestedContractsReady ? document.getElementById('mission-definition-rival-faction').value.trim() : '',
       is_salvage_recovery_contract: salvageRecoveryContractsReady && document.getElementById('mission-definition-salvage-recovery').checked,
       requires_overlord_clearance: overlordClearancesReady && document.getElementById('mission-definition-overlord-clearance').checked,
+      overlord_standing_reward: standingReady ? (Number(document.getElementById('mission-definition-standing-reward').value) || 0) : 0,
       unlocks_after_mission_id: document.getElementById('mission-definition-unlocks-after').value,
       unlocks_after_completion_count: document.getElementById('mission-definition-unlock-completions').value,
       is_campaign_final: document.getElementById('mission-definition-campaign-final').checked,
@@ -973,6 +991,7 @@
   document.getElementById('mission-definition-overlord').addEventListener('change', syncMissionContestedFields);
   document.getElementById('mission-definition-overlord').addEventListener('change', syncMissionSalvageRecoveryField);
   document.getElementById('mission-definition-overlord').addEventListener('change', syncMissionOverlordClearanceField);
+  document.getElementById('mission-definition-overlord').addEventListener('change', syncMissionStandingField);
   document.getElementById('mission-definition-contested').addEventListener('change', syncMissionContestedFields);
   document.getElementById('mission-definition-contested').addEventListener('change', syncMissionSalvageRecoveryField);
   document.getElementById('mission-definition-salvage-recovery').addEventListener('change', syncMissionContestedFields);

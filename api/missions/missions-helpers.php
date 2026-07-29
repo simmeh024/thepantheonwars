@@ -96,6 +96,153 @@ function pw_mission_overlord_contracts_ready(PDO $db): bool {
     return $ready = pw_schema_has($db, 'game_mission_definitions', ['overlord_id']);
 }
 
+/* -------------------------------------------------------------------------
+ * Overlord standing.
+ *
+ * Contracts had no destination: a player who ran one every day for a month
+ * looked exactly like one who ran their first today. Standing is that record --
+ * points earned by completing contracts, climbing a five-stage ladder from
+ * Unproven to Chosen.
+ *
+ * It is stored per Overlord rather than as one figure on the player, so a
+ * future change of patron cannot silently erase the service already given to
+ * the previous one.
+ * ------------------------------------------------------------------------- */
+
+/** The full ladder, and therefore the width of the bar. */
+const PW_MISSION_OVERLORD_STANDING_MAX = 500;
+
+function pw_mission_overlord_standing_ready(PDO $db): bool {
+    static $ready = null;
+    if ($ready !== null) return $ready;
+    if (!pw_mission_overlord_contracts_ready($db)) return $ready = false;
+    if (!pw_schema_has($db, 'game_mission_definitions', ['overlord_standing_reward'])) return $ready = false;
+    return $ready = pw_schema_has($db, 'game_player_overlord_standing', ['user_id', 'overlord_id', 'points']);
+}
+
+/**
+ * The five stages, in order, with the point at which each is reached.
+ *
+ * The gaps widen deliberately (75 / 100 / 150 / 175): the early stages are
+ * there to show the bar responding to a first contract at all, and the last is
+ * meant to be a standing worth having rather than a fifth thing that happens on
+ * the way past. Chosen sits exactly at the ceiling.
+ *
+ * The colours are the same ladder the item tiers already use -- neutral for the
+ * absence of standing, then blue, green, purple, gold -- so a player who has
+ * learned what gold means on a crew card does not have to learn it twice. They
+ * are shipped to the browser with the rest of the block rather than restated in
+ * CSS, for the same reason the role rates are shipped: a retune applied on one
+ * side only would have the bar disagreeing with the award that filled it.
+ */
+function pw_missions_overlord_standing_stages(): array {
+    return [
+        ['key' => 'unproven',   'label' => 'Unproven',   'at' => 0,   'color' => '#8fa3b5'],
+        ['key' => 'recognized', 'label' => 'Recognized', 'at' => 75,  'color' => '#6fb7d8'],
+        ['key' => 'trusted',    'label' => 'Trusted',    'at' => 175, 'color' => '#7ec98a'],
+        ['key' => 'favoured',   'label' => 'Favoured',   'at' => 325, 'color' => '#b98cf0'],
+        ['key' => 'chosen',     'label' => 'Chosen',     'at' => PW_MISSION_OVERLORD_STANDING_MAX, 'color' => '#e8c46a'],
+    ];
+}
+
+/** Index of the highest stage whose threshold the points have reached. */
+function pw_missions_overlord_standing_stage_index(int $points): int {
+    $index = 0;
+    foreach (pw_missions_overlord_standing_stages() as $position => $stage) {
+        if ($points >= (int)$stage['at']) $index = $position;
+    }
+    return $index;
+}
+
+/**
+ * One player's standing with one Overlord, resolved for display.
+ *
+ * Always returns a block rather than null so the card can draw an empty bar:
+ * a player who has never run a contract still has a standing, and it is the
+ * first rung. A missing migration is the one case that returns not-ready, and
+ * the card then hides the bar entirely rather than showing a zero that is
+ * really an unknown.
+ */
+function pw_missions_overlord_standing(PDO $db, int $userId, int $overlordId): array {
+    $stages = pw_missions_overlord_standing_stages();
+    $block = [
+        'ready' => pw_mission_overlord_standing_ready($db),
+        'points' => 0,
+        'max' => PW_MISSION_OVERLORD_STANDING_MAX,
+        'stages' => $stages,
+        'stage_index' => 0,
+        'stage' => $stages[0],
+        'next_stage' => $stages[1],
+        'points_to_next' => (int)$stages[1]['at'],
+    ];
+    if (!$block['ready'] || $overlordId < 1) return $block;
+
+    try {
+        $stmt = $db->prepare('SELECT points FROM game_player_overlord_standing WHERE user_id = ? AND overlord_id = ?');
+        $stmt->execute([$userId, $overlordId]);
+        $points = (int)($stmt->fetchColumn() ?: 0);
+    } catch (Throwable $e) {
+        /* An unreadable standing is reported as unavailable rather than as
+         * zero. A bar that has quietly lost a month of service is worse than a
+         * bar that is briefly absent. */
+        $block['ready'] = false;
+        return $block;
+    }
+
+    return pw_missions_overlord_standing_view($points) + ['ready' => true, 'stages' => $stages];
+}
+
+/** The derived half of the block above, shared with the claim response. */
+function pw_missions_overlord_standing_view(int $points): array {
+    $stages = pw_missions_overlord_standing_stages();
+    $points = max(0, min(PW_MISSION_OVERLORD_STANDING_MAX, $points));
+    $index = pw_missions_overlord_standing_stage_index($points);
+    $next = $stages[$index + 1] ?? null;
+    return [
+        'points' => $points,
+        'max' => PW_MISSION_OVERLORD_STANDING_MAX,
+        'stage_index' => $index,
+        'stage' => $stages[$index],
+        'next_stage' => $next,
+        'points_to_next' => $next === null ? 0 : max(0, (int)$next['at'] - $points),
+    ];
+}
+
+/**
+ * Add standing, clamped to the ceiling, and report what moved.
+ *
+ * The clamp is applied to the stored total rather than to the award, so a
+ * contract paying 40 into a standing of 480 grants 20 and says so -- the
+ * alternative is a debrief promising 40 points that the bar does not show.
+ *
+ * Returns null when there is nothing to record, so a caller can skip the whole
+ * block rather than reporting an award of zero.
+ */
+function pw_missions_award_overlord_standing(PDO $db, int $userId, int $overlordId, int $amount): ?array {
+    if (!pw_mission_overlord_standing_ready($db) || $overlordId < 1 || $amount < 1) return null;
+    try {
+        $read = $db->prepare('SELECT points FROM game_player_overlord_standing WHERE user_id = ? AND overlord_id = ? FOR UPDATE');
+        $read->execute([$userId, $overlordId]);
+        $before = (int)($read->fetchColumn() ?: 0);
+        $after = max(0, min(PW_MISSION_OVERLORD_STANDING_MAX, $before + $amount));
+        if ($after === $before) {
+            /* Already at the ceiling. Still reported, so the debrief can say the
+             * standing is full instead of silently paying nothing. */
+            return ['awarded' => 0, 'before' => pw_missions_overlord_standing_view($before), 'after' => pw_missions_overlord_standing_view($after)];
+        }
+        $write = $db->prepare(
+            'INSERT INTO game_player_overlord_standing (user_id, overlord_id, points) VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE points = VALUES(points)'
+        );
+        $write->execute([$userId, $overlordId, $after]);
+        return ['awarded' => $after - $before, 'before' => pw_missions_overlord_standing_view($before), 'after' => pw_missions_overlord_standing_view($after)];
+    } catch (Throwable $e) {
+        /* Standing is a record of work already rewarded elsewhere, so a failure
+         * here must never take the rest of the claim down with it. */
+        return null;
+    }
+}
+
 /**
  * Contested contracts extend daily Overlord work with a rival recovery team.
  * They deliberately remain additive: before the migration, a contract is the

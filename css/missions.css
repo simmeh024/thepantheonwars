@@ -1033,6 +1033,38 @@
 .mission-profile-affinity-copy strong { overflow: hidden; color: #eef1f6; font-size: 0.78rem; text-overflow: ellipsis; white-space: nowrap; }
 .mission-profile-affinity-copy em { overflow: hidden; color: var(--overlord-text, #e2c76a); font-size: 0.63rem; font-style: normal; text-overflow: ellipsis; white-space: nowrap; }
 /* Unaligned: a prompt rather than a status, so it reads as something to do. */
+/* --- Overlord standing ----------------------------------------------------
+ * A 500-point ladder in five stages under the affinity card. The colour of the
+ * current stage arrives from the server as --standing-color, so the bar, the
+ * rank word and the arrow are always the one tone -- and a retune of the stage
+ * table moves all three without touching this file.
+ *
+ * Spans both columns of the affinity grid rather than sitting beside the
+ * sigil, and lives inside the anchor so it inherits that row's order at the
+ * narrow breakpoint. */
+.mission-standing { display: grid; grid-column: 1 / -1; gap: 3px; margin-top: 9px; }
+.mission-standing-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.mission-standing-rank { color: var(--standing-color, #8fa3b5); font: 700 0.68rem/1 'Cinzel', serif; letter-spacing: .06em; }
+.mission-standing-points { color: #9db3c2; font-size: 0.58rem; font-weight: 700; letter-spacing: .05em; }
+.mission-standing-track { position: relative; overflow: hidden; height: 8px; border: 1px solid rgba(103,152,190,0.34); background: rgba(6,15,28,0.62); }
+.mission-standing-fill { display: block; height: 100%; background: linear-gradient(90deg, color-mix(in srgb, var(--standing-color, #8fa3b5) 55%, transparent), var(--standing-color, #8fa3b5)); box-shadow: 0 0 10px color-mix(in srgb, var(--standing-color, #8fa3b5) 45%, transparent); transition: width .5s ease; }
+/* Stage boundaries, drawn over the fill. A passed tick is dimmer than one still
+ * ahead: behind the fill it is history, ahead of it it is the next target. */
+.mission-standing-tick { position: absolute; top: 0; bottom: 0; width: 1px; background: rgba(220,236,244,0.55); }
+.mission-standing-tick.is-passed { background: rgba(6,15,28,0.5); }
+/* Its own row, so the arrow cannot overlap the track or the labels. */
+.mission-standing-marker { position: relative; height: 9px; }
+.mission-standing-arrow { position: absolute; top: -2px; color: var(--standing-color, #8fa3b5); font-size: 0.72rem; font-weight: 700; line-height: 1; transform: translateX(-50%); }
+.mission-standing-stages { display: flex; justify-content: space-between; gap: 3px; }
+.mission-standing-stage { color: #7f93a4; font-size: 0.47rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.mission-standing-stage.is-earned { color: color-mix(in srgb, var(--standing-stage, #8fa3b5) 62%, #9fb4c4); }
+.mission-standing-stage.is-current { color: var(--standing-stage, #8fa3b5); }
+.mission-standing-next { color: #9db3c2; font-size: 0.57rem; }
+/* The debrief's own standing line, in the stage's colour so the sentence and
+ * the bar it just moved read as the same thing. */
+.mission-result-standing { color: var(--standing-color, #9edba8) !important; }
+.mission-result-standing.is-promotion { padding: 6px 9px; border-left: 2px solid var(--standing-color, #9edba8); background: color-mix(in srgb, var(--standing-color, #9edba8) 12%, transparent); }
+
 .mission-profile-affinity.is-empty { --overlord-accent: #7ee3e8; }
 .mission-profile-affinity.is-empty .mission-profile-affinity-sigil { font: 700 1rem/1 'Cinzel', serif; }
 .mission-profile-affinity.is-empty strong { color: #7ee3e8; font-size: 0.72rem; white-space: normal; }

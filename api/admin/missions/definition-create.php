@@ -41,6 +41,7 @@ if ($progressionReady) {
     $columns['featured_slots'] = $data['featured_slots'];
 }
 if (pw_mission_overlord_contracts_ready($db)) $columns['overlord_id'] = $data['overlord_id'];
+if (pw_mission_overlord_standing_ready($db)) $columns['overlord_standing_reward'] = $data['overlord_standing_reward'];
 if (pw_mission_contested_contracts_ready($db)) {
     $columns['is_contested'] = $data['is_contested'];
     $columns['rival_faction_name'] = $data['rival_faction_name'];
