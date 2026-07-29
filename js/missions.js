@@ -2,7 +2,7 @@
   'use strict';
 
   var state = { data: null, serverOffset: 0, launchMission: null, launchProjection: null, launchPenaltyAck: false, rivalApproach: '',
-    loadoutCrewId: null, loadoutSlot: null, loadoutAutoRunning: false, crewPage: 1, refreshQueued: false, feedSlot: null, missionActionBusy: 0, rollSuspense: null,
+    loadoutCrewId: null, loadoutSlot: null, loadoutAutoRunning: false, crewPage: 1, refreshQueued: false, feedSlot: null, missionActionBusy: 0, rollSuspense: null, launchPage: 1,
     /* When the current payload was received. Fatigue arrives already caught up
      * to that instant, so the page ages it forward from here rather than
      * polling the server for a value it can derive. */
@@ -52,6 +52,8 @@
   var launchFilterRole = document.getElementById('mission-launch-filter-role');
   var launchFilterOpen = document.getElementById('mission-launch-filter-open');
   var launchSort = document.getElementById('mission-launch-sort');
+  var launchSearch = document.getElementById('mission-launch-search');
+  var launchPagination = document.getElementById('mission-launch-pagination');
   var launchProjection = document.getElementById('mission-launch-projection');
   var weatherCard = document.getElementById('mission-weather-card');
   var opsBar = document.getElementById('missions-ops-bar');
@@ -2658,9 +2660,16 @@
     var role = launchFilterRole ? launchFilterRole.value : 'all';
     var openOnly = launchFilterOpen ? launchFilterOpen.checked : false;
     var sort = launchSort ? launchSort.value : 'suited';
+    /* Name or role. Both, because "engineer" is as natural a thing to type as
+       a name and the Role select is a separate control a player may not have
+       noticed -- a search that silently ignores half of what is on the card is
+       worse than no search. */
+    var query = launchSearch ? String(launchSearch.value || '').trim().toLowerCase() : '';
     var filtered = roster.filter(function (member) {
       if (role !== 'all' && member.role !== role) return false;
       if (openOnly && launchEligibility(mission, member)) return false;
+      if (query && String(member.name || '').toLowerCase().indexOf(query) === -1
+        && String(member.role || '').toLowerCase().indexOf(query) === -1) return false;
       return true;
     });
     return filtered.sort(function (a, b) {
@@ -2727,17 +2736,46 @@
       + gearWarningMarkup(member, false) + '</div>';
   }
 
+  /* Six to a page. The tray sits inside a modal that already carries the rack,
+     the filters and the projection, so a roster of any size used to push the
+     figures the player is deciding on off the bottom of it. */
+  var LAUNCH_PAGE_SIZE = 6;
+
+  function renderLaunchPagination(pageCount) {
+    if (!launchPagination) return;
+    if (pageCount <= 1) { launchPagination.hidden = true; launchPagination.innerHTML = ''; return; }
+    launchPagination.hidden = false;
+    launchPagination.innerHTML = '<button type="button" class="missions-crew-page" data-launch-page="previous"'
+      + (state.launchPage === 1 ? ' disabled' : '') + '>Previous</button>'
+      + '<span class="missions-crew-page-status" aria-live="polite">Page ' + state.launchPage + ' of ' + pageCount + '</span>'
+      + '<button type="button" class="missions-crew-page" data-launch-page="next"'
+      + (state.launchPage === pageCount ? ' disabled' : '') + '>Next</button>';
+  }
+
   function renderTray() {
     var mission = state.launchMission;
     if (!mission || !launchCrew) return;
     var roster = trayCrew(mission);
     var openCount = roster.filter(function (member) { return !launchEligibility(mission, member); }).length;
-    launchCrew.innerHTML = roster.length
-      ? roster.map(function (member) { return trayCardMarkup(mission, member); }).join('')
+    /* Clamped rather than reset. Narrowing a search from page 3 to a two-page
+       result should land on the last page that exists, not throw the player
+       back to the top of a list they were reading. */
+    var pageCount = Math.max(1, Math.ceil(roster.length / LAUNCH_PAGE_SIZE));
+    if (state.launchPage > pageCount) state.launchPage = pageCount;
+    if (state.launchPage < 1) state.launchPage = 1;
+    var start = (state.launchPage - 1) * LAUNCH_PAGE_SIZE;
+    var page = roster.slice(start, start + LAUNCH_PAGE_SIZE);
+    launchCrew.innerHTML = page.length
+      ? page.map(function (member) { return trayCardMarkup(mission, member); }).join('')
       : '<p class="missions-empty">No crew members match these filters.</p>';
     if (launchTrayCount) {
-      launchTrayCount.textContent = openCount + ' ready' + (roster.length !== openCount ? ' · ' + (roster.length - openCount) + ' unavailable' : '');
+      /* The counts describe the whole filtered roster, not the visible page --
+         "2 ready" would be a lie about the roster if four more sat on page two. */
+      launchTrayCount.textContent = openCount + ' ready'
+        + (roster.length !== openCount ? ' · ' + (roster.length - openCount) + ' unavailable' : '')
+        + (pageCount > 1 ? ' · showing ' + (start + 1) + '–' + (start + page.length) + ' of ' + roster.length : '');
     }
+    renderLaunchPagination(pageCount);
     if (launchRecommend) launchRecommend.disabled = openCount === 0 || firstEmptySlot() === -1;
   }
 
@@ -2925,6 +2963,10 @@
     }
     if (!mission) return;
     state.launchMission = mission; state.launchPenaltyAck = false; state.rivalApproach = mission.is_contested ? 'secure' : ''; launchError.textContent = '';
+    /* A new operation starts at the top of an unfiltered roster. A search left
+     * over from the last launch would silently hide crew from this one. */
+    state.launchPage = 1;
+    if (launchSearch) launchSearch.value = '';
     // A fresh rack per open. Carrying a selection between operations would put
     // crew into slots chosen against a different mission's affinity and cost.
     state.launchSlots = [];
@@ -3069,9 +3111,35 @@
     });
   }
 
-  if (launchFilterRole) launchFilterRole.addEventListener('change', renderTray);
-  if (launchSort) launchSort.addEventListener('change', renderTray);
-  if (launchFilterOpen) launchFilterOpen.addEventListener('change', renderTray);
+  /* Any change to what the list contains returns to page one: staying on page
+     three of a result that now has one page would show an empty tray, and
+     staying on page three of a different result is a page the player never
+     asked for. Paging itself is the one change that does not reset. */
+  function renderTrayFromFirstPage() { state.launchPage = 1; renderTray(); }
+  if (launchFilterRole) launchFilterRole.addEventListener('change', renderTrayFromFirstPage);
+  if (launchSort) launchSort.addEventListener('change', renderTrayFromFirstPage);
+  if (launchFilterOpen) launchFilterOpen.addEventListener('change', renderTrayFromFirstPage);
+  if (launchSearch) {
+    launchSearch.addEventListener('input', renderTrayFromFirstPage);
+    /* A search field's own clear button fires `search`, not `input`, in some
+       browsers, and Escape inside it should return the full roster rather than
+       close the modal out from under the player. */
+    launchSearch.addEventListener('search', renderTrayFromFirstPage);
+    launchSearch.addEventListener('keydown', function (event) {
+      if (event.key !== 'Escape' || !launchSearch.value) return;
+      event.stopPropagation();
+      event.preventDefault();
+      launchSearch.value = '';
+      renderTrayFromFirstPage();
+    });
+  }
+  if (launchPagination) launchPagination.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-launch-page]');
+    if (!button || button.disabled) return;
+    state.launchPage += button.getAttribute('data-launch-page') === 'next' ? 1 : -1;
+    if (state.launchPage < 1) state.launchPage = 1;
+    renderTray();
+  });
   if (launchRecommend) launchRecommend.addEventListener('click', recommendLaunchCrew);
   if (launchRepeat) launchRepeat.addEventListener('click', repeatLastCrew);
   if (launchRival) launchRival.addEventListener('click', function (event) {

@@ -1871,3 +1871,22 @@
 /* The campaign bars survive the withdrawal: a track is where the player stands
  * in a chain, not an offer, so it stays readable while they are committed. */
 .missions-committed-tracks { display: grid; gap: 10px; margin-top: 16px; }
+
+/* ==========================================================================
+ * Launch tray: search and pagination.
+ *
+ * The tray sits inside a modal that already carries the rack, the filters and
+ * the projection, so a roster of any real size pushed the figures the player
+ * is deciding on off the bottom of it. Six to a page, with a search for
+ * reaching a name directly rather than paging to it.
+ * ========================================================================== */
+.mission-launch-tray-search { flex: 1 1 150px; min-width: 0; }
+.mission-launch-tray-search input { flex: 1; min-width: 0; padding: 5px 8px; border: 1px solid rgba(88,142,181,0.42); background: rgba(6,15,28,0.62); color: #e4f1f5; font: 600 0.68rem 'Jost', sans-serif; letter-spacing: 0; text-transform: none; }
+.mission-launch-tray-search input::placeholder { color: #7f93a4; }
+.mission-launch-tray-search input:hover { border-color: rgba(126,227,232,0.5); }
+.mission-launch-tray-search input:focus { border-color: rgba(126,227,232,0.85); box-shadow: 0 0 0 2px rgba(110,225,233,0.18); outline: none; }
+/* Reuses the roster pager's own buttons and status, so the two lists page in
+ * exactly the same language; only the spacing differs, because this one sits
+ * inside a modal rather than under a full-width section. */
+.mission-launch-pagination { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 12px; }
+.mission-launch-pagination[hidden] { display: none; }
