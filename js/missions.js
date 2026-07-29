@@ -965,7 +965,7 @@
   /* Each entry is one slot: a standalone mission, or a campaign track showing
    * only its current step. The server sends nothing about a sealed operation,
    * so there is no locked-card branch here by design. */
-  function definitionCardMarkup(mission, available) {
+  function definitionCardMarkup(mission, available, committed) {
     var campaign = mission.campaign;
 
     if (mission.is_offline) {
@@ -974,7 +974,9 @@
         + (campaign ? campaignBarMarkup(campaign) : '') + '</article>';
     }
 
-    var canLaunch = available >= mission.min_crew;
+    /* Committed beats every other reason: a card that says "Crew Unavailable"
+       while an operation is running would be pointing at the wrong problem. */
+    var canLaunch = !committed && available >= mission.min_crew;
     var watermark = missionWatermark(mission);
     /* The head carries type, tier and duration across one line. The top-left of
      * every card used to be empty -- the row held only a duration pill pushed
@@ -995,7 +997,7 @@
       + missionFitMarkup(mission)
       + missionRiskMarkup(mission)
       + missionProgressionMarkup(mission)
-      + '<button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + (canLaunch ? 'Select Crew' : 'Crew Unavailable') + '</button>'
+      + '<button type="button" class="btn mission-launch-btn" data-mission-id="' + mission.id + '"' + (canLaunch ? '' : ' disabled') + '>' + (canLaunch ? 'Select Crew' : committed ? 'Operation under way' : 'Crew Unavailable') + '</button>'
       + (campaign ? campaignBarMarkup(campaign) : '') + '</article>';
   }
 
@@ -1015,42 +1017,62 @@
    * stands in a chain, not an offer, so it stays readable while they are busy.
    * The server still refuses any launch that reaches it; this only stops the
    * page offering one. */
-  function activeRunPanelMarkup(run) {
+  /* One line above the roster while a run is in flight, not a panel in place of
+   * it. The rest of the board stays readable -- a player looks at operations to
+   * plan the next one as much as to start one now -- and only the operation
+   * actually running is withdrawn, because it is already on screen in Active
+   * missions directly above and a second copy offering a launch would be the
+   * confusing one.
+   *
+   * The launch buttons on what remains are disabled and say why. This is the
+   * one place on the site where a blocked control is shown rather than hidden,
+   * and it is deliberate: hiding them would empty the board, which is the thing
+   * the note exists to avoid. */
+  function activeRunNoteMarkup(run) {
     var ready = run.status === 'completed';
     var name = String(run.name || 'An operation');
-    return '<div class="missions-committed is-' + (ready ? 'ready' : 'running') + '">'
-      + '<span class="eyebrow">' + (ready ? 'Awaiting collection' : 'Command committed') + '</span>'
-      + '<strong>' + escapeHtml(name) + '</strong>'
-      + '<p>' + escapeHtml(ready
-        ? 'Collect the rewards from this operation and the roster reopens.'
-        : 'Only one operation runs at a time. The roster reopens when this crew returns.') + '</p>'
+    return '<div class="missions-committed-note is-' + (ready ? 'ready' : 'running') + '">'
+      + '<span class="missions-committed-pip" aria-hidden="true"></span>'
+      + '<span class="missions-committed-copy"><strong>' + escapeHtml(name) + '</strong>'
+      + '<small>' + escapeHtml(ready
+        ? 'Collect its rewards to launch another operation.'
+        : 'Only one operation runs at a time.') + '</small></span>'
       + (ready ? '' : '<strong class="mission-countdown missions-committed-clock" data-completes-at="'
         + escapeHtml(String(run.completes_at || '')) + '">Calculating…</strong>')
-      + '<a class="missions-committed-link" href="#missions-active-list">Go to the operation</a></div>';
+      + '<a class="missions-committed-link" href="#missions-active-list">View</a></div>';
   }
 
   function renderDefinitions(data) {
     var available = availableCrew().length;
     var activeRun = data.active_run;
-    if (activeRun) {
-      /* A campaign track still tells the player where they are, so the bars are
-         kept and only the launchable cards go. */
-      var tracks = (data.missions || []).filter(function (mission) { return mission.campaign; })
-        .map(function (mission) { return campaignBarMarkup(mission.campaign); }).join('');
-      definitionList.innerHTML = activeRunPanelMarkup(activeRun)
-        + (tracks ? '<div class="missions-committed-tracks">' + tracks + '</div>' : '');
+    var note = activeRun ? activeRunNoteMarkup(activeRun) : '';
+    /* Only the operation that is running is withdrawn. Its own campaign bar is
+       kept below the note, or a chain would appear to have vanished for as long
+       as the player is running a step of it. */
+    var runningId = activeRun ? Number(activeRun.mission_definition_id) || 0 : 0;
+    var withdrawn = null;
+    var missions = (data.missions || []).filter(function (mission) {
+      if (runningId && Number(mission.id) === runningId) { withdrawn = mission; return false; }
+      return true;
+    });
+    if (withdrawn && withdrawn.campaign) {
+      note += '<div class="missions-committed-tracks">' + campaignBarMarkup(withdrawn.campaign) + '</div>';
+    }
+    if (!missions.length) {
+      definitionList.innerHTML = note + '<p class="missions-empty">'
+        + (activeRun ? 'Every other operation is complete for now.' : 'No Neoh operations are available at the moment.')
+        + '</p>';
       return;
     }
-    if (!data.missions.length) { definitionList.innerHTML = '<p class="missions-empty">No Neoh operations are available at the moment.</p>'; return; }
     var order = [];
     var groups = {};
-    data.missions.forEach(function (mission) {
+    missions.forEach(function (mission) {
       var label = mission.is_offline ? 'Off the roster' : String(mission.mission_type || 'Operations');
       if (!groups[label]) { groups[label] = []; order.push(label); }
       groups[label].push(mission);
     });
-    definitionList.innerHTML = order.map(function (label) {
-      var cards = groups[label].map(function (mission) { return definitionCardMarkup(mission, available); }).join('');
+    definitionList.innerHTML = note + order.map(function (label) {
+      var cards = groups[label].map(function (mission) { return definitionCardMarkup(mission, available, !!activeRun); }).join('');
       return '<details class="mission-type-group" open><summary class="mission-type-group-head">'
         + '<span class="mission-type-group-name">' + escapeHtml(label) + '</span>'
         + '<span class="mission-type-group-count">' + groups[label].length + ' operation' + (groups[label].length === 1 ? '' : 's') + '</span>'

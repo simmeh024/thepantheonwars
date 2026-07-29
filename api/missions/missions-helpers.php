@@ -1859,7 +1859,7 @@ function pw_missions_contract_progression(array $mission): array {
 function pw_missions_active_run(PDO $db, int $userId): ?array {
     try {
         $stmt = $db->prepare(
-            'SELECT run.id, run.status, run.completes_at, definition.name, definition.overlord_id
+            'SELECT run.id, run.mission_definition_id, run.status, run.completes_at, definition.name, definition.overlord_id
              FROM game_player_missions run
              JOIN game_mission_definitions definition ON definition.id = run.mission_definition_id
              WHERE run.user_id = ? AND run.status IN ("active", "completed")
@@ -1870,6 +1870,9 @@ function pw_missions_active_run(PDO $db, int $userId): ?array {
         $row = $stmt->fetch();
         if (!$row) return null;
         $row['id'] = (int)$row['id'];
+        /* Which definition is running, so the roster can withdraw that one card
+         * rather than the whole board. */
+        $row['mission_definition_id'] = (int)$row['mission_definition_id'];
         $row['is_contract'] = $row['overlord_id'] !== null;
         return $row;
     } catch (Throwable $e) {
@@ -1877,7 +1880,7 @@ function pw_missions_active_run(PDO $db, int $userId): ?array {
          * concurrent run -- the same direction the contract checks already fail
          * in. A launch refused by a transient database fault is recoverable; a
          * duplicate run is not. */
-        return ['id' => 0, 'status' => 'active', 'completes_at' => null, 'name' => '', 'overlord_id' => null, 'is_contract' => false];
+        return ['id' => 0, 'mission_definition_id' => 0, 'status' => 'active', 'completes_at' => null, 'name' => '', 'overlord_id' => null, 'is_contract' => false];
     }
 }
 

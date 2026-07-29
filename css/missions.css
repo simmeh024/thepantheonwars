@@ -1850,26 +1850,29 @@
 /* ==========================================================================
  * One operation at a time.
  *
- * While a run is in flight the roster is withdrawn and this stands in its
- * place. A wall of cards that cannot be pressed is a list of choices with no
- * choices in it, and the standing rule on this site is that a control a
- * session cannot use is hidden rather than merely blocked.
+ * A note above the roster rather than a panel in place of it: the board stays
+ * readable, since a player looks at operations to plan the next one as much as
+ * to start one now. Only the operation actually running is withdrawn -- it is
+ * already on screen in Active missions directly above, and a second copy
+ * offering a launch would be the confusing one.
  * ========================================================================== */
-.missions-committed { display: grid; gap: 6px; justify-items: start; padding: 22px 20px; border: 1px solid rgba(var(--world-accent, 121, 210, 222), 0.4); background: linear-gradient(140deg, rgba(12,32,52,0.72), rgba(20,13,44,0.82)); }
-.missions-committed .eyebrow { margin: 0; color: var(--world-text, #79d9df); font-size: 0.58rem; }
-.missions-committed > strong { color: #eef4f8; font: 600 1.18rem/1.25 'Cinzel', serif; }
-.missions-committed p { max-width: 52ch; margin: 0; color: #a9bdcb; font-size: 0.8rem; line-height: 1.55; }
-.missions-committed-clock { margin-top: 2px; color: #d7eaf2; font-size: 0.86rem; font-weight: 700; }
-/* Padded to clear the 24px minimum target size: it is the only way out of this
- * panel, and at its natural line height it measured 19px. */
-.missions-committed-link { display: inline-flex; align-items: center; min-height: 24px; margin-top: 2px; padding: 3px 0; color: var(--world-text, #79d9df); font-size: 0.72rem; font-weight: 700; letter-spacing: .05em; text-decoration: none; }
+.missions-committed-note { display: flex; align-items: center; gap: 11px; margin-bottom: 16px; padding: 9px 13px; border: 1px solid rgba(var(--world-accent, 121, 210, 222), 0.4); background: linear-gradient(90deg, rgba(12,32,52,0.7), rgba(20,13,44,0.7)); }
+.missions-committed-pip { flex: none; width: 7px; height: 7px; border-radius: 50%; background: rgba(var(--world-accent, 121, 210, 222), 1); box-shadow: 0 0 9px rgba(var(--world-accent, 121, 210, 222), 0.8); }
+.missions-committed-copy { display: grid; gap: 1px; min-width: 0; }
+.missions-committed-copy strong { overflow: hidden; color: #eef4f8; font: 600 0.84rem/1.2 'Cinzel', serif; text-overflow: ellipsis; white-space: nowrap; }
+.missions-committed-copy small { color: #a9bdcb; font-size: 0.63rem; }
+.missions-committed-clock { margin-left: auto; color: #d7eaf2; font-size: 0.74rem; font-weight: 700; white-space: nowrap; }
+/* Padded to clear the 24px minimum target size: at its natural line height an
+ * inline link of this size measures under 20px. */
+.missions-committed-link { display: inline-flex; flex: none; align-items: center; min-height: 24px; padding: 3px 0; color: var(--world-text, #79d9df); font-size: 0.7rem; font-weight: 700; letter-spacing: .05em; text-decoration: none; }
 .missions-committed-link:hover, .missions-committed-link:focus-visible { text-decoration: underline; }
-/* Finished and unclaimed is its own state: it is owed to the player and
- * waiting on them, which is a different thing from being busy. */
-.missions-committed.is-ready { border-color: rgba(158,219,168,0.55); }
-.missions-committed.is-ready .eyebrow, .missions-committed.is-ready .missions-committed-link { color: #9edba8; }
-/* The campaign bars survive the withdrawal: a track is where the player stands
- * in a chain, not an offer, so it stays readable while they are committed. */
+/* Finished and unclaimed is its own state: owed to the player rather than busy.
+ * The clock is absent there, so the link takes the free space instead. */
+.missions-committed-note.is-ready { border-color: rgba(158,219,168,0.55); }
+.missions-committed-note.is-ready .missions-committed-pip { background: #9edba8; box-shadow: 0 0 10px rgba(158,219,168,0.85); }
+.missions-committed-note.is-ready .missions-committed-link { margin-left: auto; color: #9edba8; }
+/* The withdrawn operation's own campaign bar, kept so a chain does not appear
+ * to vanish for as long as the player is running a step of it. */
 .missions-committed-tracks { display: grid; gap: 10px; margin-top: 16px; }
 
 /* ==========================================================================
