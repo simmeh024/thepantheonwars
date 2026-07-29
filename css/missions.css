@@ -1893,3 +1893,55 @@
  * inside a modal rather than under a full-width section. */
 .mission-launch-pagination { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 12px; }
 .mission-launch-pagination[hidden] { display: none; }
+
+/* ==========================================================================
+ * Odds, loot and the chain strip.
+ *
+ * The card described the mechanics rather than the decision: "Success 50%
+ * +78% roster" was two numbers glued together with the second unlabelled,
+ * "2 loot rolls" described the dice rather than the prize, and the strip at
+ * the foot of a chain card was an unlabelled graphic.
+ * ========================================================================== */
+
+/* --- Odds -----------------------------------------------------------------
+ * One bar from the operation's own base to where the roster takes it, so what
+ * the crew is worth is visible rather than arithmetic. Toned by the final
+ * figure, since that is the number being decided on. */
+.mission-odds { --odds-tone: 158,219,168; display: grid; gap: 5px; margin-top: 11px; padding: 8px 10px; border: 1px solid rgba(var(--odds-tone), 0.32); background: rgba(8,18,33,0.42); cursor: help; }
+.mission-odds.is-safe { --odds-tone: 158,219,168; }
+.mission-odds.is-fair { --odds-tone: 226,199,106; }
+.mission-odds.is-risky { --odds-tone: 224,168,148; }
+.mission-odds.is-certain { --odds-tone: 126,203,223; cursor: default; }
+.mission-odds-head { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 8px; }
+.mission-odds-head strong { color: rgb(var(--odds-tone)); font-size: 0.78rem; font-weight: 700; }
+.mission-odds-head span { color: #9db3c2; font-size: 0.6rem; font-weight: 600; }
+.mission-odds-track { position: relative; display: block; overflow: hidden; height: 5px; border: 1px solid rgba(var(--odds-tone), 0.28); background: rgba(6,15,28,0.6); }
+/* Two segments rather than one: the base is the operation's, the lighter
+ * length on top is what the crew added, and the join is where the distinction
+ * lives. */
+.mission-odds-base { position: absolute; top: 0; bottom: 0; left: 0; background: rgba(var(--odds-tone), 0.55); }
+.mission-odds-crew { position: absolute; top: 0; bottom: 0; background: rgb(var(--odds-tone)); box-shadow: 0 0 8px rgba(var(--odds-tone), 0.5); }
+
+/* --- Loot -----------------------------------------------------------------
+ * Five pips in the item ladder's own tones, dimmed where the pool cannot reach
+ * that rarity, so the band reads before the words do. */
+.mission-loot { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 9px; margin-top: 7px; padding: 6px 10px; border: 1px solid rgba(88,142,181,0.26); background: rgba(8,18,33,0.35); cursor: help; }
+.mission-loot-count { color: #eaf4f8; font-size: 0.7rem; font-weight: 700; }
+.mission-loot small { color: #9db3c2; font-size: 0.6rem; font-weight: 600; }
+.mission-loot-pips { display: inline-flex; gap: 3px; }
+.mission-loot-pip { --gear-tier: 150,168,186; width: 7px; height: 7px; border: 1px solid rgb(var(--gear-tier)); background: rgb(var(--gear-tier)); }
+.mission-loot-pip.is-common { --gear-tier: 150,168,186; }
+.mission-loot-pip.is-uncommon { --gear-tier: 158,219,168; }
+.mission-loot-pip.is-rare { --gear-tier: 112,204,223; }
+.mission-loot-pip.is-epic { --gear-tier: 205,124,236; }
+.mission-loot-pip.is-legendary { --gear-tier: 233,211,153; }
+/* Absent rarities keep their outline so the ladder still reads as five rungs,
+ * and are hollow rather than dimmed -- opacity would make a legendary pip the
+ * game cannot drop look like a faint one it can. */
+.mission-loot-pip.is-absent { border-color: rgba(139,163,180,0.45); background: none; }
+
+/* --- Chain strip ---------------------------------------------------------- */
+.mission-campaign-strip { display: grid; gap: 4px; margin-top: 12px; }
+.mission-campaign-strip-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.mission-campaign-strip-head small { color: #7f93a4; font-size: 0.52rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.mission-campaign-strip-head b { color: #b6c8d5; font-size: 0.6rem; font-weight: 700; letter-spacing: .04em; }

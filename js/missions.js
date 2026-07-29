@@ -863,27 +863,91 @@
       return '<span class="mission-campaign-block is-' + step.state + '"><i style="width:' + fill + '%"></i></span>';
     }).join('');
     var detail = campaignDetailText(campaign);
-    return '<div class="mission-campaign-track mission-campaign-bar' + (campaign.is_complete ? ' is-complete' : '')
+    /* Labelled, because unlabelled the strip reads as decoration or a loading
+       bar. A word and a position is the whole difference between a graphic and
+       a piece of information. */
+    var position = campaign.is_complete
+      ? 'Complete'
+      : (campaign.steps[campaign.display_index] || campaign.steps[campaign.current_index] || {}).position
+        + ' of ' + campaign.total_steps;
+    return '<div class="mission-campaign-strip">'
+      + '<span class="mission-campaign-strip-head"><small>Chain</small><b>' + escapeHtml(String(position)) + '</b></span>'
+      + '<div class="mission-campaign-track mission-campaign-bar' + (campaign.is_complete ? ' is-complete' : '')
       + (campaign.rolled_back ? ' is-rolled-back' : '') + '" tabindex="0" title="' + escapeHtml(detail)
-      + '" role="img" aria-label="' + escapeHtml(detail.split('\n').join(' ')) + '">' + blocks + '</div>';
+      + '" role="img" aria-label="' + escapeHtml(detail.split('\n').join(' ')) + '">' + blocks + '</div></div>';
   }
 
   /* A mission that can fail must say so before a crew is committed. The base
    * chance comes from the operation; the crew's Strength is added on top, and
    * the server rolls the real figure at claim. */
-  function missionRiskMarkup(mission) {
+  var LOOT_TIER_LADDER = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+
+  /* The odds, as a reading rather than two numbers glued together.
+   *
+   * "Success 50% +78% roster" made the player add the two and hope, and the
+   * second figure was unlabelled. The bar runs from the operation's own base to
+   * where the assigned roster takes it, so what the crew is worth is the part
+   * you can see rather than the part you compute. */
+  function missionOddsMarkup(mission) {
     var base = Number(mission.base_success_percent);
     if (!isFinite(base)) base = 100;
+    if (base >= 100) {
+      return '<div class="mission-odds is-certain"><div class="mission-odds-head"><strong>Guaranteed</strong>'
+        + '<span>No risk of failure</span></div></div>';
+    }
     var bonus = state.data && state.data.roster_effects ? Number(state.data.roster_effects.success_percent) || 0 : 0;
-    var parts = [];
-    if (base < 100) {
-      parts.push('<span class="mission-risk-chance" title="' + escapeHtml('This operation succeeds ' + base + '% of the time before your crew is counted. Strength across the assigned crew adds to that, and the result is rolled when you claim. A failed mission returns your crew with no rewards and does not count towards a campaign unlock.') + '" tabindex="0">Success ' + base + '%'
-        + (bonus > 0 ? ' <em>+' + fmt(bonus) + '% roster</em>' : '') + '</span>');
+    var withCrew = Math.max(0, Math.min(100, base + bonus));
+    var tone = withCrew >= 90 ? 'is-safe' : withCrew >= 65 ? 'is-fair' : 'is-risky';
+    var detail = 'This operation succeeds ' + fmt(base) + '% of the time before your crew is counted.'
+      + (bonus > 0 ? ' Strength across your roster takes it to ' + fmt(withCrew) + '%.' : '')
+      + ' The roll happens when you claim. A failure returns your crew with no rewards.';
+    return '<div class="mission-odds ' + tone + '" title="' + escapeHtml(detail) + '" tabindex="0">'
+      + '<div class="mission-odds-head"><strong>' + fmt(withCrew) + '% success</strong>'
+      + '<span>' + (bonus > 0 ? fmt(base) + '% base · +' + fmt(bonus) + '% your crew' : 'Base odds, no crew bonus yet') + '</span></div>'
+      + '<span class="mission-odds-track" role="img" aria-label="' + escapeHtml(detail) + '">'
+      + '<i class="mission-odds-base" style="width:' + base.toFixed(2) + '%"></i>'
+      + (bonus > 0 ? '<i class="mission-odds-crew" style="left:' + base.toFixed(2) + '%;width:'
+        + Math.max(0, withCrew - base).toFixed(2) + '%"></i>' : '') + '</span></div>';
+  }
+
+  /* What the rolls can actually produce.
+   *
+   * "2 loot rolls" describes the dice, not the prize, and read identically
+   * whether the pool was all common salvage or reached legendary. The rarities
+   * and item levels come from the server, which filters the same world pool
+   * through the same progression band the roll itself uses -- the browser is
+   * not deciding what is reachable. */
+  function missionLootMarkup(mission) {
+    var rolls = Math.max(0, Number(mission.loot_rolls) || 0);
+    if (rolls < 1) return '';
+    var preview = mission.loot_preview;
+    var count = rolls + ' item' + (rolls === 1 ? '' : 's');
+    if (!preview || !preview.ready || !(preview.tiers || []).length) {
+      /* No preview resolved -- say what is certain and nothing more. */
+      return '<div class="mission-loot"><span class="mission-loot-count">' + count + '</span>'
+        + '<small>Recovered on success</small></div>';
     }
-    if (Number(mission.loot_rolls) > 0) {
-      parts.push('<span class="mission-risk-loot" title="' + escapeHtml('Recovers ' + mission.loot_rolls + ' item' + (mission.loot_rolls === 1 ? '' : 's') + ' on success. Cunning adds extra draws and Science can promote a drop to a higher tier.') + '" tabindex="0">' + mission.loot_rolls + ' loot roll' + (mission.loot_rolls === 1 ? '' : 's') + '</span>');
-    }
-    return parts.length ? '<p class="mission-risk">' + parts.join('') + '</p>' : '';
+    var tiers = preview.tiers;
+    var pips = LOOT_TIER_LADDER.map(function (tier) {
+      var present = tiers.indexOf(tier) !== -1;
+      return '<i class="mission-loot-pip is-' + tier + (present ? '' : ' is-absent') + '"></i>';
+    }).join('');
+    var band = tiers.length === 1
+      ? tiers[0].charAt(0).toUpperCase() + tiers[0].slice(1)
+      : tiers[0].charAt(0).toUpperCase() + tiers[0].slice(1) + '–' + tiers[tiers.length - 1].charAt(0).toUpperCase() + tiers[tiers.length - 1].slice(1);
+    var levels = Number(preview.item_level_min) > 0 && Number(preview.item_level_max) > 0
+      ? ' · iLvl ' + preview.item_level_min + '–' + preview.item_level_max : '';
+    var detail = count + ' recovered on success, drawn from a pool of ' + band.toLowerCase() + ' rarity'
+      + (levels ? ' at item levels ' + preview.item_level_min + ' to ' + preview.item_level_max : '')
+      + '. Cunning adds extra draws and Science can promote a drop one tier.';
+    return '<div class="mission-loot" title="' + escapeHtml(detail) + '" tabindex="0">'
+      + '<span class="mission-loot-count">' + count + '</span>'
+      + '<span class="mission-loot-pips" role="img" aria-label="' + escapeHtml(band + ' rarity') + '">' + pips + '</span>'
+      + '<small>' + escapeHtml(band + levels) + '</small></div>';
+  }
+
+  function missionRiskMarkup(mission) {
+    return missionOddsMarkup(mission) + missionLootMarkup(mission);
   }
 
   /* A compact progression brief gives players the why behind a contract's

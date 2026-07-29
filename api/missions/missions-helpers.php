@@ -1972,6 +1972,72 @@ function pw_missions_contract_tier_band(int $tier): int {
     return (int)min(5, ceil($tier / 2));
 }
 
+/**
+ * What an operation's loot rolls can actually produce.
+ *
+ * The card said "2 loot rolls", which is engine vocabulary: it describes the
+ * dice rather than the prize, and it is the same phrase whether the pool is all
+ * common salvage or reaches legendary. This resolves the rarities and item
+ * levels genuinely reachable, so the reward is a thing rather than a count.
+ *
+ * The pool is read once per world per request and filtered per mission in PHP,
+ * so a board of twenty operations costs one query rather than twenty. Drawn
+ * from the same world pool and the same progression filter
+ * pw_missions_roll_loot() uses, so the preview describes exactly the rolls it
+ * sits beside -- items granted by a linked loot table are a separate mechanism
+ * with their own entries and are deliberately not folded in here, or the band
+ * would promise rarities these rolls cannot produce.
+ */
+function pw_missions_loot_preview(PDO $db, string $worldKey, array $mission): array {
+    static $pools = [];
+    $preview = ['ready' => false, 'rolls' => max(0, (int)($mission['loot_rolls'] ?? 0)), 'tiers' => [], 'item_level_min' => 0, 'item_level_max' => 0];
+    if ($preview['rolls'] < 1) return $preview;
+
+    if (!array_key_exists($worldKey, $pools)) {
+        $pools[$worldKey] = null;
+        try {
+            $levels = pw_mission_item_levels_ready($db) ? ', item_level' : ', 0 AS item_level';
+            $slot = pw_mission_gear_ready($db) ? ', slot' : ', "" AS slot';
+            $stmt = $db->prepare('SELECT tier' . $slot . $levels . ' FROM game_loot_definitions WHERE world_key = ? AND is_enabled = 1');
+            $stmt->execute([$worldKey]);
+            $pools[$worldKey] = $stmt->fetchAll();
+        } catch (Throwable $e) {
+            /* An unreadable pool means no preview rather than a wrong one: the
+             * rolls line simply falls back to what it said before. */
+            $pools[$worldKey] = null;
+        }
+    }
+    $pool = $pools[$worldKey];
+    if (!$pool) return $preview;
+
+    $progression = pw_missions_contract_progression($mission);
+    $order = ['common' => 1, 'uncommon' => 2, 'rare' => 3, 'epic' => 4, 'legendary' => 5];
+    $seen = [];
+    $min = 0;
+    $max = 0;
+    foreach ($pool as $item) {
+        if (!pw_missions_contract_gear_is_eligible($item, $progression)) continue;
+        $tier = strtolower(trim((string)($item['tier'] ?? '')));
+        if (isset($order[$tier])) $seen[$tier] = true;
+        $level = max(0, (int)($item['item_level'] ?? 0));
+        /* Only wearable items carry an item level; salvage and stims sit at
+         * zero and would drag a band's floor down to it. */
+        if ($level > 0) {
+            if ($min === 0 || $level < $min) $min = $level;
+            if ($level > $max) $max = $level;
+        }
+    }
+    if (!$seen) return $preview;
+
+    $tiers = array_keys($seen);
+    usort($tiers, static function ($a, $b) use ($order) { return $order[$a] <=> $order[$b]; });
+    $preview['ready'] = true;
+    $preview['tiers'] = $tiers;
+    $preview['item_level_min'] = $min;
+    $preview['item_level_max'] = $max;
+    return $preview;
+}
+
 /** Progression bands govern wearable gear only; salvage, stims and crew stay authored per table. */
 function pw_missions_contract_gear_is_eligible(array $gear, array $progression): bool {
     $slot = strtolower(trim((string)($gear['slot'] ?? $gear['gear_slot'] ?? '')));
