@@ -496,6 +496,10 @@
       }).join('') + '</div>';
   }
 
+  /* How many rungs the ladder shows at once. Odd, so the current sector has a
+   * real middle to sit in; the pager steps through the same window. */
+  var LADDER_VISIBLE = 5;
+
   function ladderRankColor(value) {
     var color = String(value || '');
     return /^#[0-9a-f]{3,8}$/i.test(color) ? color : '#7ee3e8';
@@ -516,26 +520,33 @@
     }
     var signature = rows.map(function (row) { return row.rank_number; }).join(',') + ':' + currentIndex;
     if (state.ladderSignature !== signature) {
-      /* Opening the page always anchors the commander's current sector at the
-         top. The two rungs after it are a deliberate, legible preview rather
+      /* Opening the page centres the commander's current sector: two rungs of
+         where they came from, two of what is ahead. Where you stand reads as a
+         position on a ladder rather than the top of one, which the previous
+         anchor-at-the-top window could not show. Deliberately computed rather
          than a scroll position the browser happens to remember. */
       state.ladderSignature = signature;
-      state.ladderStart = currentIndex;
+      state.ladderStart = currentIndex - Math.floor(LADDER_VISIBLE / 2);
     }
-    /* A short ladder stays short at its end: do not backfill with older
-       sectors, because the current unlocked sector must remain the first
-       visible rung even when it has fewer than two sectors ahead of it. */
-    var maxStart = Math.max(0, rows.length - 1);
+    /* The window keeps its full height at both ends: near the top it backfills
+       forwards, near the bottom backwards, so the ladder never renders short of
+       LADDER_VISIBLE rungs while that many sectors exist. The current sector
+       then simply sits off-centre, which is the truth about where it is. */
+    var maxStart = Math.max(0, rows.length - LADDER_VISIBLE);
     var start = Math.max(0, Math.min(maxStart, Number(state.ladderStart) || 0));
     state.ladderStart = start;
     if (ladderUp) ladderUp.disabled = start <= 0;
     if (ladderDown) ladderDown.disabled = start >= maxStart;
-    ladder.innerHTML = rows.slice(start, start + 3).map(function (row, visibleIndex) {
+    ladder.innerHTML = rows.slice(start, start + LADDER_VISIBLE).map(function (row, visibleIndex) {
       var rowIndex = start + visibleIndex;
       var cls = row.is_current ? 'is-current' : (row.unlocked ? 'is-earned' : 'is-sealed');
+      /* Tone falls away from the current rung in both directions now that it is
+         centred, or the two sectors behind would out-shout the one you are on. */
       var distance = rowIndex - currentIndex;
       if (distance === 1) cls += ' is-next-one';
       if (distance === 2) cls += ' is-next-two';
+      if (distance === -1) cls += ' is-prev-one';
+      if (distance <= -2) cls += ' is-prev-two';
       /* The manifest is not named. What a sector pays is the thing worth
          finding out by sweeping it, and printing the loot table's name turned
          the ladder into a contents list. The board shape is the useful part
@@ -557,7 +568,7 @@
     var rows = (state.data && state.data.ladder) || [];
     if (!rows.length) return;
     if (state.ladderStart === null) renderLadder();
-    var maxStart = Math.max(0, rows.length - 1);
+    var maxStart = Math.max(0, rows.length - LADDER_VISIBLE);
     state.ladderStart = Math.max(0, Math.min(maxStart, Number(state.ladderStart) + direction));
     renderLadder();
   }

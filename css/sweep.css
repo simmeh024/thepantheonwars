@@ -311,6 +311,11 @@ button.sweep-cell.is-scanning { border-color: #f0d891; color: #fff0c2; animation
 .sweep-rung.is-sealed .sweep-rung-mark { border-style: dashed; }
 .sweep-rung.is-next-one { --rank-tone: color-mix(in srgb, var(--rank-color) 62%, #101a2c); }
 .sweep-rung.is-next-two { --rank-tone: color-mix(in srgb, var(--rank-color) 38%, #101a2c); }
+/* The same fall-off behind the current rung as ahead of it. Without this the
+ * two earned sectors above would read at full strength and the centred rung
+ * would stop being the thing the eye lands on. */
+.sweep-rung.is-prev-one { --rank-tone: color-mix(in srgb, var(--rank-color) 62%, #101a2c); }
+.sweep-rung.is-prev-two { --rank-tone: color-mix(in srgb, var(--rank-color) 38%, #101a2c); }
 
 /* --- Crew loadout blocks --------------------------------------------------
  * A departure board out of this page, not a control surface: every block is a
