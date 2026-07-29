@@ -66,7 +66,13 @@
 .mission-loadout-slot:nth-child(7) { grid-column: 1 / -1; grid-template-columns: auto auto auto; justify-items: start; align-items: center; gap: 4px 9px; }
 .mission-loadout-picker { min-width: 0; }
 .mission-loadout-picker-head { margin: 0 0 8px !important; color: #79d9df !important; font-size: 0.58rem !important; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
-.mission-loadout-options { display: grid; gap: 6px; max-height: min(40vh, 320px); overflow-y: auto; }
+/* No cap and no scroller of its own: the slot grid beside it is taller than
+ * this list in every ordinary case, so the column had a scrollbar over unused
+ * space. The dialog itself still scrolls if an inventory ever outgrows it. */
+.mission-loadout-options { display: grid; gap: 6px; }
+/* The crew badge sits on the modal title line, so it needs the alignment the
+ * card version gets from its own grid row. */
+.mission-loadout-modal h2 .crew-item-level { margin: 0 0 0 10px; vertical-align: 4px; }
 .mission-loadout-option { display: grid; grid-template-columns: 34px minmax(0, 1fr); align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid rgba(103,152,190,0.36); background: rgba(6,15,28,0.42); color: rgb(var(--gear-tier)); cursor: pointer; font: inherit; text-align: left; }
 .mission-loadout-option:hover:not(:disabled), .mission-loadout-option:focus-visible { border-color: rgba(126,227,232,0.7); }
 .mission-loadout-option.is-equipped { border-color: rgba(158,219,168,0.6); box-shadow: inset 3px 0 rgba(110,207,140,0.8); }

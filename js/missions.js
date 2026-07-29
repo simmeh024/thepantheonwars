@@ -3293,7 +3293,10 @@
   function renderLoadout() {
     var crew = loadoutCrew();
     if (!crew || !loadoutModal) return;
-    loadoutTitle.textContent = crew.name;
+    /* The same average-iLvl badge the crew card carries, next to the name --
+     * every equip decision in this modal moves that number, so it belongs on
+     * the screen where the decision is made rather than only on the card. */
+    loadoutTitle.innerHTML = escapeHtml(crew.name) + crewItemLevelMarkup(crew);
     var bonus = gearBonusText(crew.gear_bonus);
     loadoutCopy.textContent = crew.role + ' · Level ' + crew.level
       + (bonus ? ' · equipment is worth ' + bonus : ' · carrying nothing yet');
