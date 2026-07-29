@@ -102,7 +102,7 @@ try {
     /* Recomputed here from the crew that actually went out, this operation's own
      * type and those conditions -- never from anything the client sends, and
      * never read back from a reward figure stored at launch. */
-    $effects = $statsReady ? pw_missions_crew_effects($crew, (string)$mission['mission_type'], $launchWeather) : [
+    $effects = $statsReady ? pw_missions_crew_effects($crew, (string)$mission['mission_type'], $launchWeather, (int)($mission['contract_tier'] ?? 1)) : [
         'duration_percent' => 0.0, 'duration_penalty_percent' => 0.0, 'xp_percent' => 0.0,
         'reputation_flat' => 0, 'reputation_percent' => 0.0, 'credit_percent' => 0.0,
         'success_percent' => 0.0, 'loot_percent' => 0.0, 'upgrade_percent' => 0.0,

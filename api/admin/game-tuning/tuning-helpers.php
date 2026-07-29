@@ -190,7 +190,11 @@ function pw_tuning_simulate_point(PDO $db, array $definition, array $mission, in
     $missionType = (string)$mission['mission_type'];
     // No weather: a tuning baseline is the mission's own numbers. Today's
     // forecast would make every reading depend on the date it was taken.
-    $effects = pw_missions_crew_effects($crew, $missionType, null);
+    /* The tier the crew is measured against. A tuning baseline that ignored it
+     * would understate every high-tier operation, which is the exact drift this
+     * page exists to catch. */
+    $contractTier = (int)($mission['contract_tier'] ?? 1);
+    $effects = pw_missions_crew_effects($crew, $missionType, null, $contractTier);
 
     $speed = min(90.0, (float)$effects['duration_percent'] + (float)$research['mission_speed_percent']);
     $durationEffects = array_merge($effects, ['duration_percent' => $speed]);

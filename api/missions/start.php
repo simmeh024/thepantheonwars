@@ -139,7 +139,7 @@ try {
      * boundary, and the forecast deliberately turns over with the date. */
     $weather = pw_missions_world_weather($db, (string)$mission['world_key']);
     $effects = $statsReady
-        ? pw_missions_crew_effects($selectedCrew, (string)$mission['mission_type'], $weather)
+        ? pw_missions_crew_effects($selectedCrew, (string)$mission['mission_type'], $weather, (int)($mission['contract_tier'] ?? 1))
         : ['duration_percent' => 0.0, 'duration_penalty_percent' => 0.0, 'success_percent' => 0.0];
     /* Called unconditionally: the helper returns zeroed defaults when the
      * Research Facility has not been migrated, and it is also where a running

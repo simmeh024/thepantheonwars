@@ -1047,10 +1047,19 @@
      * to the right -- while the tier it now names was printed as a sentence
      * further down. */
     var tier = Number(mission.contract_tier) || 1;
+    /* How much of a roster this tier lets through. Shown on the chip rather
+     * than left to be discovered from a projection that came out lower than
+     * expected -- a difficulty that is felt but never stated reads as the game
+     * miscounting. */
+    var resistance = tierResistance(mission);
     return '<article class="mission-definition-card is-' + missionTierBand(mission)
       + (campaign ? ' has-campaign' : '') + watermark.className + '"' + watermark.style + '>'
       + '<div class="mission-card-top"><span class="mission-card-type">' + escapeHtml(mission.mission_type || 'Operation') + '</span>'
-      + '<span class="mission-card-tier" title="' + escapeHtml('Tier ' + tier + ' contract') + '">T' + tier + '</span>'
+      + '<span class="mission-card-tier' + (resistance < 1 ? ' has-resistance' : '') + '" title="'
+      + escapeHtml('Tier ' + tier + ' contract. Your crew’s stats count for '
+        + Math.round(resistance * 100) + '% here'
+        + (resistance < 1 ? ' — higher tiers resist a roster, so levels and equipment are how you push through.' : '.'))
+      + '">T' + tier + (resistance < 1 ? '<em>' + Math.round(resistance * 100) + '%</em>' : '') + '</span>'
       + '<span class="mission-duration">' + missionDuration(mission.duration_seconds) + '</span></div>'
       + '<h3>' + escapeHtml(mission.name) + '</h3><p>' + escapeHtml(mission.description) + '</p>'
       + (campaign ? '' : '<p class="mission-unlock-state is-base">Available immediately</p>')
@@ -2349,6 +2358,10 @@
    * the server recomputes every figure at launch and again at claim, and is the
    * only thing that decides an outcome. */
   function projectLaunch(mission, crew) {
+    /* How much of this crew's stats the operation's tier lets through. Resolved
+     * once here, where the maths is, rather than in the wrapper that only
+     * resolves which crew are assigned. */
+    var resist = tierResistance(mission);
     var rule = affinityRule(mission.mission_type);
     var affinity = { credit_percent: 0, xp_percent: 0, reputation_percent: 0, duration_percent: 0, upgrade_percent: 0, success_percent: 0 };
     var matched = 0;
@@ -2383,7 +2396,7 @@
     var penaltyDuration = (penalty ? Number(rule.penalty.duration_percent) || 0 : 0) + weatherDuration;
     var penaltySuccess = (penalty ? Number(rule.penalty.success_percent) || 0 : 0) + weatherSuccess;
     durationPercent = Math.min(90, durationPercent + affinity.duration_percent + researchSpeed);
-    xpPercent += (totals.charisma * 0.5) + affinity.xp_percent + researchXp;
+    xpPercent += (totals.charisma * statRate('charisma') * resist) + affinity.xp_percent + researchXp;
 
     var baseSeconds = Number(mission.duration_seconds) || 0;
     var seconds = Math.round(baseSeconds * (1 - (durationPercent / 100)) * (1 + (penaltyDuration / 100)));
@@ -2411,7 +2424,7 @@
       penalty_success_percent: penaltySuccess,
       duration_seconds: projectedDuration,
       base_duration_seconds: baseSeconds,
-      success_percent: Math.max(5, Math.min(100, Math.round(baseSuccess + (totals.strength * 0.5) + affinity.success_percent - penaltySuccess))),
+      success_percent: Math.max(5, Math.min(100, Math.round(baseSuccess + (totals.strength * statRate('strength') * resist) + affinity.success_percent - penaltySuccess))),
       base_success_percent: baseSuccess,
       credits: projectedCredits,
       base_credits: Number(mission.credit_reward) || 0,
@@ -2420,8 +2433,8 @@
       xp: projectedXp,
       base_xp: Number(mission.xp_reward) || 0,
       rival_approach: contestApproach,
-      loot_percent: totals.cunning * 1.0,
-      upgrade_percent: Math.min(95, Math.max(0, Math.min(95, (totals.science * 1.5) + affinity.upgrade_percent) - weatherUpgrade) + researchLuck)
+      loot_percent: totals.cunning * statRate('cunning') * resist,
+      upgrade_percent: Math.min(95, Math.max(0, Math.min(95, (totals.science * statRate('science') * resist) + affinity.upgrade_percent) - weatherUpgrade) + researchLuck)
     };
   }
 
@@ -2930,6 +2943,30 @@
    * or null for the committed selection. Runs the real projectLaunch() over a
    * hypothetical rack rather than approximating, so the previewed numbers are
    * the numbers you get. */
+  /* The per-point stat rates and the tier resistance both come from the server
+   * with the payload, for the same reason role_rates do: this projection is a
+   * deliberate second implementation of the claim maths so the launch screen
+   * responds without a round trip, and a retune applied on one side only would
+   * have it promising odds the claim does not pay. The literals are a
+   * pre-first-response fallback and nothing more. */
+  var STAT_RATE_FALLBACK = { strength: 0.15, cunning: 1, science: 1.5, charisma: 0.5 };
+
+  function statRate(stat) {
+    var rates = state.data && state.data.stat_rates;
+    var value = rates ? Number(rates[stat]) : NaN;
+    return isFinite(value) ? value : STAT_RATE_FALLBACK[stat];
+  }
+
+  /* How much of what the crew brings actually lands at this operation's tier.
+   * Absent or unreadable means full effect, which is tier 1 -- a missing figure
+   * must never invent a penalty the server is not applying. */
+  function tierResistance(mission) {
+    var table = state.data && state.data.tier_resistance;
+    var tier = Math.max(1, Number(mission && mission.contract_tier) || 1);
+    var value = table ? Number(table[tier]) : NaN;
+    return isFinite(value) && value > 0 ? value : 1;
+  }
+
   function projectionFor(mission, preview) {
     var ids = (state.launchSlots || []).slice();
     if (preview && preview.crewId != null) {

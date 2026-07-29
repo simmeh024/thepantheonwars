@@ -594,6 +594,24 @@ try {
         'crew' => $crew,
         'crew_capacity' => ['ready' => $crewCapacityReady, 'used' => $crewCapacityUsed, 'capacity' => $crewCapacity, 'offers' => $pendingCrewOffers],
         'roster_effects' => $rosterEffects,
+        /* The per-point stat rates and the whole tier-resistance ladder. The
+         * launch screen re-implements the projection maths deliberately, so it
+         * is handed the numbers rather than restating them -- a retune applied
+         * on one side only would have it promising odds the claim does not pay,
+         * the same reason role_rates are shipped. */
+        'stat_rates' => [
+            'strength' => PW_MISSION_STRENGTH_SUCCESS_PER_POINT,
+            'cunning' => PW_MISSION_CUNNING_LOOT_PER_POINT,
+            'science' => PW_MISSION_SCIENCE_UPGRADE_PER_POINT,
+            'charisma' => PW_MISSION_CHARISMA_XP_PER_POINT,
+        ],
+        'tier_resistance' => (static function (): array {
+            $table = [];
+            for ($tier = 1; $tier <= PW_MISSION_MAX_CONTRACT_TIER; $tier++) {
+                $table[$tier] = pw_missions_tier_resistance($tier);
+            }
+            return $table;
+        })(),
         /* The affinity matrix, so the launch screen can label each crew member
          * for the operation being launched and project the result. The rates
          * live on the server; the browser only ever displays them, and every

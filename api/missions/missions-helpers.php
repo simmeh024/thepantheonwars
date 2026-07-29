@@ -1537,7 +1537,47 @@ function pw_missions_role_rates(): array {
  * projection, Game Tuning's stat reference -- had to restate them and could
  * drift. Named here so every description is generated from the same number the
  * engine multiplies by. */
-const PW_MISSION_STRENGTH_SUCCESS_PER_POINT = 0.5;
+/* Halved twice over. Strength is summed across the whole assigned crew and each
+ * member is capped at PW_MISSION_MAX_GEAR_STAT, so at 0.5 a four-strong crew at
+ * 45 Strength was worth +90 percentage points and everything on the board
+ * succeeded outright. The clamp at 100 was doing the balancing, which meant a
+ * 50% operation and an 80% one were the same operation. */
+const PW_MISSION_STRENGTH_SUCCESS_PER_POINT = 0.15;
+
+/* -------------------------------------------------------------------------
+ * Contract tier resistance.
+ *
+ * A tier used to be a label on a reward band and nothing else: a tier-9
+ * contract met the same crew contribution as a tier-1 one, so pushing higher
+ * was free. Every stat the crew brings is now scaled by the tier it is brought
+ * against -- success, loot, promotion and XP alike -- so the same roster is
+ * plainly less effective the deeper it goes.
+ *
+ * The curve is 1 / (1 + (tier - 1) * 0.18), which is hyperbolic rather than
+ * linear on purpose: it never reaches zero, so a stat is never worthless and
+ * there is no tier at which gear stops mattering. What it does is raise the
+ * price of the same effect --
+ *
+ *   T1 100%   T2  85%   T3  74%   T4  65%   T5  58%
+ *   T6  53%   T7  48%   T8  44%   T9  41%   T10 38%
+ *
+ * -- so holding a tier-1 crew's effectiveness at tier 10 costs roughly 2.6x
+ * the stats. That is the whole loop: the tier pushes back, and levels and gear
+ * are how you push through it, which is what makes an endgame roster worth
+ * building rather than a box already ticked.
+ *
+ * Deliberately applied to the crew's own contribution only. Field grade,
+ * affinity and the weather feed the same pools, and resisting those would have
+ * a high tier quietly soften its own storm penalty -- the opposite of the
+ * intent.
+ * ------------------------------------------------------------------------- */
+const PW_MISSION_TIER_RESISTANCE_STEP = 0.18;
+const PW_MISSION_TIER_RESISTANCE_FLOOR = 0.30;
+
+function pw_missions_tier_resistance(int $tier): float {
+    $tier = max(1, min(PW_MISSION_MAX_CONTRACT_TIER, $tier));
+    return round(max(PW_MISSION_TIER_RESISTANCE_FLOOR, 1 / (1 + (($tier - 1) * PW_MISSION_TIER_RESISTANCE_STEP))), 4);
+}
 const PW_MISSION_CUNNING_LOOT_PER_POINT = 1.0;
 const PW_MISSION_SCIENCE_UPGRADE_PER_POINT = 1.5;
 const PW_MISSION_CHARISMA_XP_PER_POINT = 0.5;
@@ -2587,7 +2627,12 @@ function pw_missions_stat_rates(): array {
  *        the run at claim. Omitted wherever there is no operation in context,
  *        for the same reason as $missionType.
  */
-function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?array $weather = null): array {
+function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?array $weather = null, int $contractTier = 1): array {
+    /* How much of what this crew brings actually lands, given the tier it is
+     * brought against. Defaults to 1 (tier 1, full effect), so the per-member
+     * preview on the roster -- which has no mission in hand -- reads exactly as
+     * it did before. */
+    $resist = pw_missions_tier_resistance($contractTier);
     $totals = ['strength' => 0, 'cunning' => 0, 'science' => 0, 'charisma' => 0];
     $durationPercent = 0.0;
     $xpPercent = 0.0;
@@ -2615,7 +2660,7 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?arr
     }
 
     // Charisma adds to the same XP pool the Pathfinder role bonus feeds.
-    $xpPercent += $totals['charisma'] * PW_MISSION_CHARISMA_XP_PER_POINT;
+    $xpPercent += $totals['charisma'] * PW_MISSION_CHARISMA_XP_PER_POINT * $resist;
 
     /* Affinity is added to the same pools the stats and role bonuses feed, so
      * every consumer downstream keeps reading one figure per effect rather than
@@ -2653,14 +2698,18 @@ function pw_missions_crew_effects(array $crew, ?string $missionType = null, ?arr
         // Field Grade joins the same success pool as Strength but has no
         // player-facing breakdown; it is the intentional hidden edge between
         // otherwise matching pieces of equipment.
-        'success_percent' => round(($totals['strength'] * PW_MISSION_STRENGTH_SUCCESS_PER_POINT) + $fieldGradeSuccessPercent + $affinity['success_percent']
+        'success_percent' => round(($totals['strength'] * PW_MISSION_STRENGTH_SUCCESS_PER_POINT * $resist) + $fieldGradeSuccessPercent + $affinity['success_percent']
             - $affinity['penalty_success_percent'] - $conditions['success_percent'], 2),
-        'loot_percent' => round($totals['cunning'] * PW_MISSION_CUNNING_LOOT_PER_POINT, 2),
+        'loot_percent' => round($totals['cunning'] * PW_MISSION_CUNNING_LOOT_PER_POINT * $resist, 2),
         // The storm's toll on the promotion roll comes off after the cap, and is
         // floored at zero: a storm can take the whole bonus away, never turn it
         // into a penalty on a crew that had none to begin with.
-        'upgrade_percent' => round(max(0.0, min(95.0, ($totals['science'] * PW_MISSION_SCIENCE_UPGRADE_PER_POINT) + $affinity['upgrade_percent']) - $conditions['upgrade_percent']), 2),
+        'upgrade_percent' => round(max(0.0, min(95.0, ($totals['science'] * PW_MISSION_SCIENCE_UPGRADE_PER_POINT * $resist) + $affinity['upgrade_percent']) - $conditions['upgrade_percent']), 2),
         'stat_totals' => $totals,
+        /* Reported rather than left implicit: the card and the launch screen
+         * both have to be able to say why the same crew is worth less here. */
+        'contract_tier' => max(1, min(PW_MISSION_MAX_CONTRACT_TIER, $contractTier)),
+        'tier_resistance' => $resist,
         'affinity' => $affinity,
         'weather' => $conditions,
     ];

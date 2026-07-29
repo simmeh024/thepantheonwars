@@ -1764,6 +1764,8 @@
  * the row held a single duration pill pushed to the right. */
 .mission-definition-card .mission-card-top { justify-content: flex-start; gap: 7px; margin-bottom: 11px; }
 .mission-card-type { overflow: hidden; color: #9db3c2; font-size: 0.56rem; font-weight: 700; letter-spacing: .12em; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+.mission-card-tier em { margin-left: 4px; font-size: 0.52rem; font-style: normal; font-weight: 700; opacity: .82; }
+.mission-card-tier.has-resistance { border-style: dashed; }
 .mission-card-tier { flex: none; padding: 2px 7px; border: 1px solid rgba(var(--gear-tier, 130,150,170), 0.62); color: rgb(var(--gear-tier, 190,205,218)); cursor: help; font: 700 0.6rem/1.35 'Cinzel', serif; letter-spacing: .04em; }
 .mission-definition-card .mission-duration { margin-left: auto; }
 
