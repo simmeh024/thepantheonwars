@@ -1897,3 +1897,141 @@ footer.site-footer::before {
   .hero-content h1, .hero-scroll-cue-chevron, .prophecy-sigil-ring-spin { animation: none; }
   .hero-content h1 { filter: none; opacity: 1; }
 }
+
+/* ---------------- QOL: copy-link, keyboard shortcuts ---------------- */
+/* Site-wide chrome, so it lives here rather than in content.css: the copy
+   button is emitted by three different lore renderers and the shortcut panel
+   is reachable from every public page. Defined here once for the same reason
+   the auth modal is -- there is no build step to deduplicate a second copy. */
+
+/* .sr-only is defined per-bundle in this codebase (community.css, missions.css)
+   because the public bundle imports neither. This is the shared definition the
+   copy-link announcer relies on; the values match the existing ones exactly. */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+
+.pw-copy-link {
+  position: relative; display: inline-grid; place-items: center;
+  /* 26px rather than the 24px minimum, so the target still clears it once the
+     1px border is taken off the inside. */
+  width: 26px; height: 26px; flex: 0 0 26px; padding: 0;
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: transparent; color: var(--qol-quiet); cursor: pointer;
+  opacity: 0; transition: opacity var(--transition-base), color var(--transition-base), border-color var(--transition-base);
+}
+.pw-copy-link svg { width: 14px; height: 14px; }
+/* Revealed on hover over the row that owns it, but always present for a
+   keyboard reader -- an affordance only a mouse can find is not one. */
+.pw-copy-link:focus-visible,
+*:hover > .pw-copy-link,
+*:hover > * > .pw-copy-link { opacity: 1; }
+.pw-copy-link:hover { color: var(--gold-bright); border-color: var(--gold-dim); }
+.pw-copy-link-flash {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  color: var(--status-success); opacity: 0; transition: opacity var(--transition-fast);
+}
+.pw-copy-link-flash svg { width: 14px; height: 14px; }
+.pw-copy-link.is-copied { opacity: 1; border-color: var(--status-success); }
+.pw-copy-link.is-copied svg:first-of-type { opacity: 0; }
+.pw-copy-link.is-copied .pw-copy-link-flash { opacity: 1; }
+.pw-copy-link.is-copy-failed { opacity: 1; color: var(--status-critical); border-color: var(--status-critical); }
+@media (hover: none) { .pw-copy-link { opacity: 1; } }
+
+/* Highlighted row under j/k. An outline rather than a background change, so a
+   row that already carries a state colour (pinned, unread, trending) keeps it. */
+.is-kbd-active { outline: 2px solid var(--gold-bright); outline-offset: -2px; }
+
+.pw-kbd-help {
+  position: fixed; inset: 0; z-index: 10040;
+  display: grid; place-items: center; padding: 20px;
+  background: rgba(5,3,10,0.78);
+}
+.pw-kbd-help[hidden] { display: none; }
+.pw-kbd-help-card {
+  position: relative; width: min(440px, 100%); padding: 26px 28px;
+  border: 1px solid var(--border); border-radius: var(--radius-md);
+  background: linear-gradient(150deg, var(--panel-2), var(--panel));
+  box-shadow: var(--shadow-modal);
+}
+.pw-kbd-help-close {
+  position: absolute; top: 10px; right: 12px; width: 30px; height: 30px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: transparent; color: var(--text-dim); font-size: 1.2rem; line-height: 1; cursor: pointer;
+}
+.pw-kbd-help-close:hover { border-color: var(--gold); color: var(--gold-bright); }
+.pw-kbd-help-kicker { display: block; color: var(--status-info); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.15em; text-transform: uppercase; }
+.pw-kbd-help-card h2 { margin: 4px 0 18px; color: var(--text); font-size: 1.25rem; }
+.pw-kbd-help-card dl { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; margin: 0; }
+.pw-kbd-help-card dt { display: flex; gap: 5px; }
+.pw-kbd-help-card dd { margin: 0; color: var(--text-dim); font-size: 0.82rem; line-height: 1.45; }
+.pw-kbd-help-card kbd {
+  display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding: 0 6px;
+  border: 1px solid var(--border); border-bottom-width: 2px; border-radius: var(--radius-sm);
+  background: var(--bg-alt); color: var(--gold-bright); font: 600 0.72rem/1 'Jost', sans-serif;
+}
+.pw-kbd-help-note { margin: 18px 0 0; color: var(--qol-quiet); font-size: 0.74rem; }
+
+/* ---------------- QOL: breadcrumb trail ---------------- */
+/* Used by the World Record, an Overlord profile and a News article -- all
+   three deep-linked surfaces. Shared here so the three cannot drift apart. */
+.pw-breadcrumb { margin: 0 0 1.4rem; }
+.pw-breadcrumb ol {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+  margin: 0; padding: 0; list-style: none;
+}
+.pw-crumb { display: inline-flex; font-size: 0.74rem; letter-spacing: 0.06em; }
+.pw-crumb a { color: var(--text-dim); text-decoration: none; transition: color var(--transition-fast); }
+.pw-crumb a:hover, .pw-crumb a:focus-visible { color: var(--gold-bright); }
+.pw-crumb span[aria-current] {
+  color: var(--text); font-weight: 500;
+  /* A long article title would otherwise wrap the trail into a paragraph. */
+  max-width: 46ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.pw-crumb-sep { color: var(--qol-quiet); font-size: 0.8rem; line-height: 1; }
+@media (max-width: 560px) {
+  .pw-breadcrumb { margin-bottom: 1rem; }
+  .pw-crumb span[aria-current] { max-width: 22ch; }
+}
+
+/* ---------------- QOL: per-type mute in the bell dropdown ---------------- */
+/* The dropdown row is now wrapped so a mute control can sit beside it -- the
+   row is an <a>, so the control cannot be inside it. The wrapper takes over
+   the row-to-row spacing the adjacent-sibling rule above used to apply, which
+   no longer matches now that .notif-row elements are not siblings. */
+.notif-row-wrap { position: relative; }
+.notif-dropdown-list .notif-row-wrap + .notif-row-wrap { margin-top: 6px; }
+.notif-mute-btn {
+  position: absolute; top: 6px; right: 6px;
+  display: grid; place-items: center; width: 26px; height: 26px; padding: 0;
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: rgba(10,7,21,0.7); color: var(--qol-quiet); cursor: pointer;
+  opacity: 0; transition: opacity var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.notif-mute-btn svg { width: 14px; height: 14px; }
+/* Present for a keyboard reader at all times; revealed on pointer hover. An
+   affordance only a mouse can find is not one. */
+.notif-row-wrap:hover .notif-mute-btn, .notif-mute-btn:focus-visible { opacity: 1; }
+.notif-mute-btn:hover { color: var(--gold-bright); border-color: var(--gold-dim); }
+.notif-mute-btn.is-failed { opacity: 1; color: var(--status-critical); border-color: var(--status-critical); }
+@media (hover: none) { .notif-mute-btn { opacity: 1; } }
+.notif-muted-note {
+  display: flex; align-items: center; gap: 10px; margin: 0; padding: 11px 12px;
+  border: 1px dashed var(--border); border-radius: var(--radius-sm);
+  color: var(--qol-quiet); font-size: 0.76rem; line-height: 1.4;
+}
+.notif-muted-note b { color: var(--text-dim); font-weight: 500; }
+.notif-unmute-btn {
+  margin-left: auto; flex-shrink: 0; padding: 4px 10px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: transparent; color: var(--gold-bright); font: 600 0.7rem/1.4 'Jost', sans-serif;
+  letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer;
+}
+.notif-unmute-btn:hover { border-color: var(--gold); }
+.notif-unmute-btn:disabled { opacity: 0.5; cursor: default; }
+
+/* One quiet-text tone for everything added in the QOL pass.
+   --text-faint (#7a6b9e) measures 4.20:1 on this site's own panel background
+   -- under AA. That token is used site-wide and changing it is a separate
+   decision (CLAUDE.md records the same reading for --text-dim in the admin
+   console), so new surfaces get their own value rather than inheriting a
+   known-failing one. Measured at 6.64:1 against rgb(10,7,21). */
+:root { --qol-quiet: #9b8dc4; }

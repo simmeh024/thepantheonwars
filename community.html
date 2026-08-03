@@ -23,7 +23,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=317">
+<link rel="stylesheet" href="css/community-bundle.css?v=318">
 </head>
 <body>
 
@@ -178,6 +178,10 @@
               <button type="button" class="btn btn-solid auth-trigger" data-tab="register">Create an Account</button>
               <button type="button" class="btn auth-trigger" data-tab="login">Log In</button>
             </div>
+
+            <!-- Populated by renderNewReplyBanner() once the reply feed and
+                 this member's previous seen marker are both known. -->
+            <div id="topic-new-replies" class="topic-new-replies" hidden></div>
 
             <div id="community-feed"></div>
 
@@ -438,8 +442,8 @@
   </div>
 </div>
 
-<script src="js/main.js?v=20"></script>
-<script src="js/members.js?v=43"></script>
+<script src="js/main.js?v=21"></script>
+<script src="js/members.js?v=44"></script>
 <script>
 (function () {
   // Delegated so spoiler controls created from safe BBCode markup do not need
@@ -589,6 +593,7 @@
   var body = document.getElementById('community-body');
   var errorEl = document.getElementById('community-error');
   var feed = document.getElementById('community-feed');
+  var newRepliesEl = document.getElementById('topic-new-replies');
   var emptyEl = document.getElementById('community-empty');
 
   var leaderboardList = document.getElementById('leaderboard-list');
@@ -1392,6 +1397,101 @@
     return !isNaN(latestMs) && latestMs > seen;
   }
 
+  /* ---------- "New replies since your last visit" ----------
+     forum_topic_seen has recorded a per-topic marker since the unread-dot
+     feature shipped, and nothing has ever used it for more than a dot. It is
+     enough to say exactly how many replies arrived while the reader was away
+     and to put them one click from the top of a long thread.
+
+     visitBaselineMs is the marker as it stood when this visit began. null
+     means "no useful baseline" -- a first visit, a signed-out reader with no
+     stored value, or a topic whose marker predates the migration. In every one
+     of those cases no banner is shown, because on a first visit every reply is
+     new, which tells the reader nothing they did not already know. */
+  var visitBaselineMs = null;
+  var visitBaselinePending = false;
+  /* markTopicSeen() writes localStorage unconditionally but only reaches the
+     server when a session and CSRF token exist. On a deep link neither does
+     yet, so the cross-device marker would silently never be written for the
+     most common way of arriving at a topic. Retried once the session lands. */
+  var markedSeenWithoutSession = false;
+  /* The reply list as last rendered, plus which topic the reader dismissed the
+     banner for. Both exist for the same reason as markedSeenWithoutSession: on
+     a deep link the banner is first drawn before session-check has answered,
+     so PW_AUTH.user is still null and the reader's own replies cannot be told
+     apart from anyone else's. The banner is therefore drawn again once the
+     session lands -- unless it has since been dismissed, which must not be
+     undone by a redraw the reader did not ask for. */
+  var lastFeedComments = null;
+  var bannerDismissedForTopic = null;
+
+  function parseUtcMs(iso) {
+    if (!iso) return null;
+    var ms = new Date(String(iso).replace(' ', 'T') + 'Z').getTime();
+    return isNaN(ms) ? null : ms;
+  }
+
+  function localSeenMs(topicId) {
+    var seen = loadSeenStore().topics[topicId];
+    return seen || null;
+  }
+
+  function renderNewReplyBanner(comments) {
+    if (!newRepliesEl) return;
+    newRepliesEl.hidden = true;
+    newRepliesEl.innerHTML = '';
+    if (bannerDismissedForTopic === currentTopicId) return;
+    if (!visitBaselineMs || !comments || !comments.length) return;
+
+    var myId = (window.PW_AUTH.user && window.PW_AUTH.user.id) || null;
+    var fresh = comments.filter(function (c) {
+      var ms = parseUtcMs(c.created_at);
+      // Own replies are excluded: posting in a thread and being told on the
+      // next visit that there is something new, which turns out to be your own
+      // post, is worse than no banner at all.
+      return ms !== null && ms > visitBaselineMs && String(c.user_id) !== String(myId);
+    });
+    if (!fresh.length) return;
+
+    // The comment list is flat and ordered oldest-first by the endpoint, but
+    // the banner must not depend on that -- it jumps to the earliest new
+    // reply, so take the minimum rather than the first element.
+    var earliest = fresh.reduce(function (best, c) {
+      return parseUtcMs(c.created_at) < parseUtcMs(best.created_at) ? c : best;
+    }, fresh[0]);
+
+    var count = fresh.length;
+    newRepliesEl.innerHTML =
+      '<span class="topic-new-replies-mark" aria-hidden="true"></span>' +
+      '<span class="topic-new-replies-text">' +
+        '<b>' + count + '</b> new ' + (count === 1 ? 'reply' : 'replies') + ' since your last visit' +
+      '</span>' +
+      '<button type="button" class="topic-new-replies-jump" data-jump-comment="' + earliest.id + '">' +
+        'Jump to first new reply' +
+      '</button>' +
+      '<button type="button" class="topic-new-replies-dismiss" aria-label="Dismiss">&times;</button>';
+    newRepliesEl.hidden = false;
+  }
+
+  if (newRepliesEl) {
+    newRepliesEl.addEventListener('click', function (e) {
+      if (e.target.closest('.topic-new-replies-dismiss')) {
+        newRepliesEl.hidden = true;
+        bannerDismissedForTopic = currentTopicId;
+        return;
+      }
+      var jump = e.target.closest('[data-jump-comment]');
+      if (!jump) return;
+      var target = document.getElementById('comment-' + jump.getAttribute('data-jump-comment'));
+      if (!target) return;
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Reuses the highlight the ?comment= deep link already uses, so arriving
+      // at a reply looks the same however you got there.
+      target.classList.add('comment-highlight');
+      setTimeout(function () { target.classList.remove('comment-highlight'); }, 2600);
+    });
+  }
+
   function isTopicUnread(id, lastActivityIso, serverSeenAt) {
     if (!lastActivityIso) return false;
     if (window.PW_AUTH.loggedIn && serverSeenAt !== undefined) {
@@ -2156,9 +2256,17 @@
     if (currentTopicId) saveReplyDraft(currentTopicId, body.value.trim());
     if (boardSlug) currentBoard = boardSlug;
     currentTopicId = topicId;
+    /* Read the previous seen marker BEFORE the visit is recorded, and defer
+       recording it until loadTopicDetail() has answered. markTopicSeen() used
+       to run right here, which overwrote the very value needed to work out
+       what is new -- the reader's own arrival erased the record of when they
+       were last here. */
+    visitBaselineMs = localSeenMs(topicId);
+    visitBaselinePending = true;
+    lastFeedComments = null;
+    bannerDismissedForTopic = null;
     showView('detail');
     loadTopicDetail();
-    markTopicSeen(topicId);
     body.value = getReplyDraft(topicId) || '';
   }
 
@@ -2171,6 +2279,25 @@
         currentBoard = data.topic.board;
         currentTopicIsPinned = data.topic.is_pinned;
         currentTopicIsLocked = data.topic.is_locked;
+        /* Only on the first load of a visit. This function is also re-run
+           after a pin/lock/edit, and adopting a marker that has since been
+           updated by this very visit would silently clear the banner while
+           the reader was still looking at it. */
+        if (visitBaselinePending) {
+          visitBaselinePending = false;
+          /* Adopt the server marker whenever there IS one -- deliberately not
+             gated on PW_AUTH.loggedIn. A topic is most often reached from a
+             notification deep link, and initDeepLink() runs before
+             session-check has answered, so a loggedIn test here is false for
+             exactly the arrival this feature exists to serve. seen_at is only
+             ever populated for the account that asked for it, so its presence
+             is itself the proof. A null falls through to the localStorage
+             value captured in goToTopic(), which is what a signed-out reader
+             has. */
+          if (data.topic.seen_at) visitBaselineMs = parseUtcMs(data.topic.seen_at);
+          markTopicSeen(currentTopicId);
+          markedSeenWithoutSession = !window.PW_AUTH.loggedIn;
+        }
         topicOpEl.appendChild(buildTopicOp(data.topic));
         syncGate();
         syncLockedNotice();
@@ -3329,6 +3456,7 @@
         feed.innerHTML = '';
         if (!data.ok || !data.comments || !data.comments.length) {
           emptyEl.hidden = false;
+          if (newRepliesEl) newRepliesEl.hidden = true;
           return;
         }
         emptyEl.hidden = true;
@@ -3341,6 +3469,9 @@
         (byParent.root || []).forEach(function (c) {
           feed.appendChild(buildThread(c, byParent, null));
         });
+        // After the threads exist, so the jump target is already in the DOM.
+        lastFeedComments = data.comments;
+        renderNewReplyBanner(data.comments);
         if (pendingDeepLinkCommentId) {
           var targetId = pendingDeepLinkCommentId;
           pendingDeepLinkCommentId = null;
@@ -3363,6 +3494,13 @@
   }
 
   document.addEventListener('pw-auth-ready', function () {
+    if (currentTopicId && markedSeenWithoutSession && window.PW_AUTH.loggedIn) {
+      markedSeenWithoutSession = false;
+      markTopicSeen(currentTopicId);
+    }
+    // The reader's own id is only known now, and it is what separates "someone
+    // replied" from "you replied".
+    if (currentTopicId && lastFeedComments) renderNewReplyBanner(lastFeedComments);
     if (currentTopicId) { syncGate(); syncLockedNotice(); }
     if (currentBoard && currentTopicId === null && !listView.hidden) syncTopicListGate();
     if (!bookmarksView.hidden) loadBookmarks();

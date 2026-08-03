@@ -26,20 +26,189 @@ function wireWorldInteractions() {
     var lightbox = document.getElementById(btn.getAttribute('data-lightbox'));
     if (!lightbox) return;
     btn.dataset.wired = '1';
-    btn.addEventListener('click', function () { lightbox.hidden = false; });
+    btn.addEventListener('click', function () {
+      lightbox.hidden = false;
+      // Remembered so focus can be handed back on close; a map opened from a
+      // thumbnail must not drop a keyboard reader at the top of the document.
+      lightbox.pwReturnFocus = btn;
+      if (lightbox.pwZoomReset) lightbox.pwZoomReset();
+    });
   });
-  document.querySelectorAll('.map-lightbox').forEach(function (lightbox) {
-    if (lightbox.dataset.wired) return;
-    lightbox.dataset.wired = '1';
-    var close = function () { lightbox.hidden = true; };
-    lightbox.querySelector('.map-lightbox-close').addEventListener('click', close);
-    lightbox.querySelector('.map-lightbox-backdrop').addEventListener('click', close);
+  document.querySelectorAll('.map-lightbox').forEach(wireMapLightbox);
+}
+window.wireWorldInteractions = wireWorldInteractions;
+
+/* ---------------------------------------------------------------------------
+   Map lightbox: zoom and pan
+
+   The world maps and district art are drawn at a detail level the 90vh frame
+   cannot show -- at fit size the place names on a city cross-section are
+   simply too small to read on a laptop. Opening the map already existed; this
+   adds the part that makes opening it worth doing.
+
+   Deliberately built here rather than in js/world-detail.js: the same
+   .map-lightbox markup is emitted by the World Record renderer and can be
+   used by any static page, and wireWorldInteractions() is already the
+   re-callable hook that late-injected markup goes through.
+
+   The controls are created in JS rather than added to the markup for the same
+   reason the header weather widget is: there is more than one producer of this
+   block, and none of them should have to carry a copy of the button row.
+--------------------------------------------------------------------------- */
+
+var MAP_ZOOM_MIN = 1;
+var MAP_ZOOM_MAX = 6;
+var MAP_ZOOM_STEP = 0.35;
+
+function wireMapLightbox(lightbox) {
+  if (lightbox.dataset.wired) return;
+  lightbox.dataset.wired = '1';
+
+  var inner = lightbox.querySelector('.map-lightbox-inner');
+  var img = inner && inner.querySelector('img');
+  var closeBtn = lightbox.querySelector('.map-lightbox-close');
+  var backdrop = lightbox.querySelector('.map-lightbox-backdrop');
+
+  function close() {
+    lightbox.hidden = true;
+    reset();
+    var returnTo = lightbox.pwReturnFocus;
+    lightbox.pwReturnFocus = null;
+    if (returnTo && document.contains(returnTo)) returnTo.focus();
+  }
+  if (closeBtn) closeBtn.addEventListener('click', close);
+  if (backdrop) backdrop.addEventListener('click', close);
+
+  // No image means there is nothing to zoom; the plain open/close lightbox
+  // above is still perfectly usable, so bail out rather than building a
+  // control bar for controls that would do nothing.
+  if (!inner || !img) {
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && !lightbox.hidden) close();
     });
+    return;
+  }
+
+  inner.classList.add('is-zoomable');
+
+  var scale = 1;
+  var tx = 0;
+  var ty = 0;
+
+  var controls = document.createElement('div');
+  controls.className = 'map-lightbox-controls';
+  controls.innerHTML =
+    '<button type="button" class="map-zoom-btn" data-map-zoom="out" aria-label="Zoom out">&minus;</button>' +
+    '<span class="map-zoom-level" role="status" aria-live="polite">100%</span>' +
+    '<button type="button" class="map-zoom-btn" data-map-zoom="in" aria-label="Zoom in">+</button>' +
+    '<button type="button" class="map-zoom-btn map-zoom-reset" data-map-zoom="reset">Reset</button>';
+  lightbox.appendChild(controls);
+  var levelEl = controls.querySelector('.map-zoom-level');
+
+  /* Pan is clamped so the image can never be dragged clear of its own frame.
+     At scale 1 the allowance is zero, which is what makes a fully zoomed-out
+     map sit still instead of sliding around under the pointer. */
+  function clamp() {
+    var box = inner.getBoundingClientRect();
+    var maxX = Math.max(0, (box.width * (scale - 1)) / 2);
+    var maxY = Math.max(0, (box.height * (scale - 1)) / 2);
+    tx = Math.max(-maxX, Math.min(maxX, tx));
+    ty = Math.max(-maxY, Math.min(maxY, ty));
+  }
+
+  function apply() {
+    clamp();
+    img.style.transform = 'translate(' + tx.toFixed(1) + 'px, ' + ty.toFixed(1) + 'px) scale(' + scale.toFixed(3) + ')';
+    inner.classList.toggle('is-zoomed', scale > 1.001);
+    levelEl.textContent = Math.round(scale * 100) + '%';
+    var atMin = scale <= MAP_ZOOM_MIN + 0.001;
+    var atMax = scale >= MAP_ZOOM_MAX - 0.001;
+    controls.querySelector('[data-map-zoom="out"]').disabled = atMin;
+    controls.querySelector('[data-map-zoom="in"]').disabled = atMax;
+    controls.querySelector('[data-map-zoom="reset"]').disabled = atMin && !tx && !ty;
+  }
+
+  function reset() {
+    scale = 1; tx = 0; ty = 0;
+    apply();
+  }
+  lightbox.pwZoomReset = reset;
+
+  /* Zooming toward a point rather than the centre. Without the origin term,
+     zooming in on a corner of a district map walks the thing you were looking
+     at straight out of frame, which is the whole reason to zoom at all. */
+  function zoomAt(nextScale, clientX, clientY) {
+    var previous = scale;
+    scale = Math.max(MAP_ZOOM_MIN, Math.min(MAP_ZOOM_MAX, nextScale));
+    if (scale === previous) { apply(); return; }
+    var box = inner.getBoundingClientRect();
+    var originX = (clientX == null ? box.left + box.width / 2 : clientX) - (box.left + box.width / 2);
+    var originY = (clientY == null ? box.top + box.height / 2 : clientY) - (box.top + box.height / 2);
+    var ratio = scale / previous;
+    tx = originX - (originX - tx) * ratio;
+    ty = originY - (originY - ty) * ratio;
+    if (scale <= MAP_ZOOM_MIN + 0.001) { tx = 0; ty = 0; }
+    apply();
+  }
+
+  controls.addEventListener('click', function (event) {
+    var btn = event.target.closest('[data-map-zoom]');
+    if (!btn) return;
+    var action = btn.getAttribute('data-map-zoom');
+    if (action === 'reset') { reset(); return; }
+    zoomAt(scale + (action === 'in' ? MAP_ZOOM_STEP : -MAP_ZOOM_STEP) * scale, null, null);
   });
+
+  inner.addEventListener('wheel', function (event) {
+    event.preventDefault();
+    zoomAt(scale * (event.deltaY < 0 ? 1.12 : 1 / 1.12), event.clientX, event.clientY);
+  }, { passive: false });
+
+  inner.addEventListener('dblclick', function (event) {
+    if (scale > 1.001) reset();
+    else zoomAt(2.5, event.clientX, event.clientY);
+  });
+
+  var dragging = false;
+  var startX = 0, startY = 0, startTx = 0, startTy = 0;
+  inner.addEventListener('pointerdown', function (event) {
+    if (scale <= 1.001 || event.button !== 0) return;
+    dragging = true;
+    startX = event.clientX; startY = event.clientY;
+    startTx = tx; startTy = ty;
+    inner.classList.add('is-panning');
+    inner.setPointerCapture(event.pointerId);
+  });
+  inner.addEventListener('pointermove', function (event) {
+    if (!dragging) return;
+    tx = startTx + (event.clientX - startX);
+    ty = startTy + (event.clientY - startY);
+    apply();
+  });
+  function endPan(event) {
+    if (!dragging) return;
+    dragging = false;
+    inner.classList.remove('is-panning');
+    if (event && inner.hasPointerCapture && inner.hasPointerCapture(event.pointerId)) {
+      inner.releasePointerCapture(event.pointerId);
+    }
+  }
+  inner.addEventListener('pointerup', endPan);
+  inner.addEventListener('pointercancel', endPan);
+
+  document.addEventListener('keydown', function (e) {
+    if (lightbox.hidden) return;
+    if (e.key === 'Escape') { close(); return; }
+    // The zoom keys are only claimed while a map is actually open, so they
+    // never compete with typing anywhere else on the page.
+    if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomAt(scale + MAP_ZOOM_STEP * scale, null, null); }
+    else if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomAt(scale - MAP_ZOOM_STEP * scale, null, null); }
+    else if (e.key === '0') { e.preventDefault(); reset(); }
+  });
+
+  window.addEventListener('resize', function () { if (!lightbox.hidden) apply(); });
+  apply();
 }
-window.wireWorldInteractions = wireWorldInteractions;
 
 function initMain() {
   // Public navigation polish: mark the actual route (including dropdown
@@ -296,7 +465,302 @@ function initMain() {
     });
   });
 
+  initCopyLinks();
+  initKeyboardShortcuts();
   initWeatherWidget();
+}
+
+/* ---------------------------------------------------------------------------
+   Copy-link affordance for lore anchors
+
+   A World Record district, a Timeline event and a Known Figures record are all
+   individually addressable, and none of them had a way to get at that address:
+   the URL bar showed the page, never the part of it being read. This is the
+   missing half of a deep link that already worked.
+
+   Delegated from the document rather than wired per element, because every
+   surface that emits one of these builds its markup after DOMContentLoaded --
+   the World Record renders from a fetch, the Timeline from another, and Known
+   Figures from a third. A delegated handler covers all of them with no
+   re-wiring hook and no ordering rule to remember.
+--------------------------------------------------------------------------- */
+
+var COPY_LINK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg>';
+var COPY_DONE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>';
+
+/* Emits the button every producer uses, so the glyph, the class and the
+   accessible name cannot drift between the three pages that render one.
+   `target` is either a bare '#fragment' or a full path with one. */
+function pwCopyLinkButton(target, label) {
+  var safe = String(target == null ? '' : target)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  var safeLabel = String(label == null ? '' : label)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  return '<button type="button" class="pw-copy-link" data-copy-link="' + safe + '"' +
+    ' title="Copy link to ' + safeLabel + '" aria-label="Copy link to ' + safeLabel + '">' +
+    COPY_LINK_ICON + '<span class="pw-copy-link-flash" aria-hidden="true">' + COPY_DONE_ICON + '</span>' +
+    '</button>';
+}
+window.pwCopyLinkButton = pwCopyLinkButton;
+
+function pwWriteClipboard(text) {
+  if (navigator.clipboard && window.isSecureContext) {
+    return navigator.clipboard.writeText(text);
+  }
+  // execCommand is deprecated but is still the only path on a page served
+  // over plain HTTP, which is what a local preview of this site is.
+  return new Promise(function (resolve, reject) {
+    var field = document.createElement('textarea');
+    field.value = text;
+    field.setAttribute('readonly', '');
+    field.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+    document.body.appendChild(field);
+    field.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(field);
+    if (ok) resolve(); else reject(new Error('copy failed'));
+  });
+}
+
+function initCopyLinks() {
+  var announcer = null;
+  function announce(message) {
+    if (!announcer) {
+      announcer = document.createElement('span');
+      announcer.className = 'sr-only';
+      announcer.setAttribute('role', 'status');
+      announcer.setAttribute('aria-live', 'polite');
+      document.body.appendChild(announcer);
+    }
+    // Cleared first so an identical second message is still announced.
+    announcer.textContent = '';
+    window.setTimeout(function () { announcer.textContent = message; }, 30);
+  }
+
+  document.addEventListener('click', function (event) {
+    var btn = event.target.closest && event.target.closest('[data-copy-link]');
+    if (!btn) return;
+    event.preventDefault();
+    // A copy button often sits inside a larger control (a district's own
+    // expand toggle). Copying a link must not also open the thing.
+    event.stopPropagation();
+    var target = btn.getAttribute('data-copy-link') || '';
+    var url = target.charAt(0) === '#'
+      ? location.origin + location.pathname + location.search + target
+      : new URL(target, location.href).href;
+    pwWriteClipboard(url).then(function () {
+      btn.classList.add('is-copied');
+      announce('Link copied to clipboard.');
+      window.setTimeout(function () { btn.classList.remove('is-copied'); }, 1600);
+    }).catch(function () {
+      // Nothing was copied, so say so rather than flashing a tick that lies.
+      btn.classList.add('is-copy-failed');
+      announce('Could not copy the link. Copy it from the address bar instead.');
+      window.setTimeout(function () { btn.classList.remove('is-copy-failed'); }, 2200);
+    });
+  });
+}
+
+/* ---------------------------------------------------------------------------
+   Breadcrumb trail
+
+   world.html?slug=, overlord.html?slug= and news-post.html?slug= are all
+   arrived at directly, from a shared link, a notification or a search result.
+   Landing on one gave a reader no route into the rest of the site except the
+   browser's own Back button -- which, on a first visit from an external link,
+   goes nowhere useful at all. The World Record had a single "return to the
+   atlas" line; this generalises that into a real trail and gives the other two
+   the same treatment.
+
+   Built here rather than per page so the three cannot drift, and rendered from
+   JS because the name of the final crumb is only known once the record it
+   describes has been fetched.
+--------------------------------------------------------------------------- */
+
+function pwBreadcrumbHtml(trail) {
+  function esc(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  var crumbs = (trail || []).map(function (crumb, index) {
+    var last = index === (trail.length - 1);
+    // The final crumb is the page you are on, so it is text rather than a link
+    // to itself, and carries aria-current for a screen reader.
+    var body = (crumb.href && !last)
+      ? '<a href="' + esc(crumb.href) + '">' + esc(crumb.label) + '</a>'
+      : '<span aria-current="page">' + esc(crumb.label) + '</span>';
+    return '<li class="pw-crumb">' + body + '</li>';
+  }).join('<li class="pw-crumb-sep" aria-hidden="true">&rsaquo;</li>');
+  return '<nav class="pw-breadcrumb" aria-label="Breadcrumb"><ol>' + crumbs + '</ol></nav>';
+}
+window.pwBreadcrumbHtml = pwBreadcrumbHtml;
+
+/* ---------------------------------------------------------------------------
+   Keyboard shortcuts
+
+   Site-wide and deliberately small: `/` to search, j/k to walk a list, Enter
+   to open, left/right for pagination, `?` for the list of them.
+
+   Items are resolved from the DOM at keypress time rather than registered by
+   each page. Every list on this site is built from a fetch after load -- the
+   forum's topic rows, the news feed, the book grid -- so anything that had to
+   be registered up front would silently cover none of them, and re-registering
+   after each render is a hook every future list would have to remember.
+--------------------------------------------------------------------------- */
+
+var KBD_ITEM_SELECTOR = '[data-kbd-item], .topic-row, .board-row, .book-row, .post-card, .figure-scene, .member-card';
+var KBD_SEARCH_SELECTOR = '[data-kbd-search], input[type="search"]';
+
+function initKeyboardShortcuts() {
+  var activeItem = null;
+  var helpPanel = null;
+
+  function isTypingTarget(el) {
+    if (!el) return false;
+    if (el.isContentEditable) return true;
+    var tag = el.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+  }
+
+  function isVisible(el) {
+    // offsetParent is null for a display:none element and for anything inside
+    // one, which is exactly what has to be skipped: the forum keeps all five
+    // of its views in the DOM and only shows one.
+    return !!(el.offsetParent || el.getClientRects().length);
+  }
+
+  function items() {
+    return Array.prototype.filter.call(document.querySelectorAll(KBD_ITEM_SELECTOR), isVisible);
+  }
+
+  function highlight(list, index) {
+    list.forEach(function (el) { el.classList.remove('is-kbd-active'); });
+    var next = list[index];
+    if (!next) return;
+    next.classList.add('is-kbd-active');
+    activeItem = next;
+    next.scrollIntoView({ block: 'center' });
+  }
+
+  function move(delta) {
+    var list = items();
+    if (!list.length) return false;
+    var current = activeItem ? list.indexOf(activeItem) : -1;
+    var next = current === -1
+      ? (delta > 0 ? 0 : list.length - 1)
+      : Math.max(0, Math.min(list.length - 1, current + delta));
+    highlight(list, next);
+    return true;
+  }
+
+  /* A row on this site is sometimes a link and sometimes a plain div with a
+     click handler (the forum's own topic rows are the latter). Prefer a real
+     link when there is one, since that keeps modifier-click and the status bar
+     working, and fall back to clicking the row itself. */
+  function activate() {
+    if (!activeItem || !document.contains(activeItem)) return false;
+    var link = activeItem.matches('a[href]') ? activeItem : activeItem.querySelector('a[href]');
+    if (link) { link.click(); return true; }
+    activeItem.click();
+    return true;
+  }
+
+  function focusSearch() {
+    var field = Array.prototype.filter.call(document.querySelectorAll(KBD_SEARCH_SELECTOR), isVisible)[0];
+    if (!field) return false;
+    field.focus();
+    field.select();
+    return true;
+  }
+
+  function paginate(direction) {
+    var selector = direction < 0
+      ? '[data-kbd-prev], a[rel="prev"], .history-page-prev, .map-lightbox-nav.is-prev'
+      : '[data-kbd-next], a[rel="next"], .history-page-next, .map-lightbox-nav.is-next';
+    var control = Array.prototype.filter.call(document.querySelectorAll(selector), isVisible)[0];
+    if (!control || control.disabled) return false;
+    control.click();
+    return true;
+  }
+
+  function buildHelp() {
+    var panel = document.createElement('div');
+    panel.className = 'pw-kbd-help';
+    panel.id = 'pw-kbd-help';
+    panel.hidden = true;
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'false');
+    panel.setAttribute('aria-label', 'Keyboard shortcuts');
+    panel.innerHTML =
+      '<div class="pw-kbd-help-card">' +
+        '<button type="button" class="pw-kbd-help-close" aria-label="Close keyboard shortcuts">&times;</button>' +
+        '<span class="pw-kbd-help-kicker">Keyboard</span>' +
+        '<h2>Shortcuts</h2>' +
+        '<dl>' +
+          '<dt><kbd>j</kbd> <kbd>k</kbd></dt><dd>Move down / up the list on this page</dd>' +
+          '<dt><kbd>Enter</kbd></dt><dd>Open the highlighted entry</dd>' +
+          '<dt><kbd>/</kbd></dt><dd>Jump to the search field</dd>' +
+          '<dt><kbd>&larr;</kbd> <kbd>&rarr;</kbd></dt><dd>Previous / next page</dd>' +
+          '<dt><kbd>?</kbd></dt><dd>Show or hide this list</dd>' +
+          '<dt><kbd>Esc</kbd></dt><dd>Close a panel, map or menu</dd>' +
+        '</dl>' +
+        '<p class="pw-kbd-help-note">Shortcuts stand down while you are typing.</p>' +
+      '</div>';
+    document.body.appendChild(panel);
+    panel.querySelector('.pw-kbd-help-close').addEventListener('click', function () { toggleHelp(false); });
+    panel.addEventListener('click', function (event) {
+      if (event.target === panel) toggleHelp(false);
+    });
+    return panel;
+  }
+
+  var helpReturnFocus = null;
+  function toggleHelp(next) {
+    helpPanel = helpPanel || buildHelp();
+    var show = next === undefined ? helpPanel.hidden : next;
+    if (show) helpReturnFocus = document.activeElement;
+    helpPanel.hidden = !show;
+    if (show) helpPanel.querySelector('.pw-kbd-help-close').focus();
+    else if (helpReturnFocus && document.contains(helpReturnFocus)) helpReturnFocus.focus();
+  }
+
+  document.addEventListener('keydown', function (event) {
+    if (event.ctrlKey || event.metaKey || event.altKey) return;
+    if (event.key === 'Escape' && helpPanel && !helpPanel.hidden) {
+      event.preventDefault();
+      toggleHelp(false);
+      return;
+    }
+    // Typing wins outright. `/` inside a search box has to stay a slash, and
+    // `j` has to stay a letter.
+    if (isTypingTarget(event.target)) return;
+    // A map, a modal or the auth dialog owns the keyboard while it is open;
+    // each already has its own Escape handling and its own controls.
+    if (document.querySelector('.map-lightbox:not([hidden]), .auth-modal:not([hidden]), .pw-rankup-modal:not([hidden])')) return;
+
+    var handled = false;
+    switch (event.key) {
+      case 'j': handled = move(1); break;
+      case 'k': handled = move(-1); break;
+      case 'Enter': handled = activate(); break;
+      case '/': handled = focusSearch(); break;
+      case 'ArrowLeft': handled = paginate(-1); break;
+      case 'ArrowRight': handled = paginate(1); break;
+      case '?': toggleHelp(); handled = true; break;
+      default: return;
+    }
+    if (handled) event.preventDefault();
+  });
+
+  // A rebuilt list drops the element that was highlighted, so forget it
+  // rather than leaving j/k anchored to a node no longer in the document.
+  document.addEventListener('click', function () {
+    if (activeItem && !document.contains(activeItem)) activeItem = null;
+  }, true);
 }
 
 /* ---------------------------------------------------------------------------

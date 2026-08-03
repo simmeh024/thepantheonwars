@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/public.css?v=315">
+<link rel="stylesheet" href="css/public.css?v=317">
 </head>
 <body>
 
@@ -100,6 +100,7 @@
 
     <section>
       <div class="container about-body">
+        <div id="overlord-breadcrumb"></div>
         <p id="overlord-bio-1"></p>
         <p id="overlord-bio-2"></p>
         <p id="overlord-bio-3"></p>
@@ -189,8 +190,8 @@
   </div>
 </footer>
 
-<script src="js/main.js?v=20"></script>
-<script src="js/members.js?v=43"></script>
+<script src="js/main.js?v=21"></script>
+<script src="js/members.js?v=44"></script>
 <script src="js/vendor/gsap-3.15.0.min.js"></script>
 <script>
 (function () {
@@ -388,6 +389,20 @@
         document.getElementById('overlord-portrait-img').src = ov.portrait_image_url || '';
         document.getElementById('overlord-portrait-img').alt = ov.name;
         document.getElementById('overlord-name').textContent = ov.name;
+        /* This page is reached from a shared link, the roster carousel, a
+           World Record's overlord tag, and the quiz result -- three of those
+           four leave a first-time visitor with no route onward except the
+           browser's Back button, which on an external referral goes nowhere
+           useful. Rendered here rather than in the static markup because the
+           final crumb is the record's own name, known only once it loads. */
+        var breadcrumbSlot = document.getElementById('overlord-breadcrumb');
+        if (breadcrumbSlot && window.pwBreadcrumbHtml) {
+          breadcrumbSlot.innerHTML = window.pwBreadcrumbHtml([
+            { label: 'Home', href: 'index.html' },
+            { label: 'The Overlords', href: 'overlords.html' },
+            { label: ov.name }
+          ]);
+        }
         document.getElementById('overlord-epithet').textContent = ov.epithet || '';
         document.getElementById('overlord-domain-tag').textContent = ov.world ? ('Overlord of ' + ov.world.name) : '';
         applyPersonalization(ov);

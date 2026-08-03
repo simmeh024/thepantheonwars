@@ -140,6 +140,31 @@ function initNotifications() {
     }
   }
 
+  /* Types a member may switch off straight from the bell.
+   *
+   * Deliberately narrower than the preferences table, and matched exactly by
+   * the allowlist in api/notification-prefs/set-type.php -- that endpoint is
+   * what actually enforces this, since a control that is merely not drawn is
+   * not a restriction. `warning_issued` is a moderation notice rather than a
+   * subscription, and `direct_message` has no preference column at all.
+   *
+   * The label is the sentence the confirmation uses, so it has to read as a
+   * category ("likes on your posts") rather than as the column name. */
+  var MUTABLE_TYPES = {
+    like: 'likes on your posts',
+    mention: 'mentions of you',
+    quote: 'quotes of your posts',
+    report_resolved: 'report outcomes',
+    world_available: 'new world announcements',
+    news_published: 'news transmissions',
+    topic_reply: 'replies in topics you watch',
+    icon_unlocked: 'resonance icon unlocks',
+    new_device_login: 'new sign-in alerts',
+    weather_alert: 'severe weather alerts',
+    mission_ready: 'mission completions'
+  };
+  var MUTE_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-9.3-5M6.3 6.3A6 6 0 0 0 6 8c0 7-3 9-3 9h13"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/><path d="M3 3l18 18"/></svg>';
+
   function renderList(entries) {
     if (!entries.length) {
       listEl.innerHTML = '<div class="notif-empty notif-empty--icon">' + EMPTY_ICON + '<span>No notifications yet.</span></div>';
@@ -149,17 +174,75 @@ function initNotifications() {
       var id = String(n.id);
       var isNew = hasRenderedEntries && !renderedEntryIds[id];
       renderedEntryIds[id] = true;
-      return '<a class="notif-row' + (n.is_read ? '' : ' notif-row-unread') + (isNew ? ' notif-row-is-new' : '') + '" href="' + escapeHtml(notificationLink(n)) + '" data-id="' + n.id + '">' +
-        '<span class="notif-row-dot"></span>' +
-        '<span class="notif-row-icon">' + (TYPE_ICONS[n.type] || '') + '</span>' +
-        '<span class="notif-row-body">' +
-          '<span class="notif-row-text">' + notificationText(n) + '</span>' +
-          '<span class="notif-row-time">' + fmtRelativeTime(n.created_at) + '</span>' +
-        '</span>' +
-      '</a>';
+      var label = MUTABLE_TYPES[n.type];
+      // A sibling of the row, never a child: the row is an <a>, and a button
+      // inside an anchor is invalid markup that browsers unnest -- which would
+      // put the control outside the row entirely.
+      var mute = label
+        ? '<button type="button" class="notif-mute-btn" data-mute-type="' + escapeHtml(n.type) + '"' +
+          ' title="Stop notifying me about ' + escapeHtml(label) + '"' +
+          ' aria-label="Stop notifying me about ' + escapeHtml(label) + '">' + MUTE_ICON + '</button>'
+        : '';
+      return '<div class="notif-row-wrap">' +
+        '<a class="notif-row' + (n.is_read ? '' : ' notif-row-unread') + (isNew ? ' notif-row-is-new' : '') + '" href="' + escapeHtml(notificationLink(n)) + '" data-id="' + n.id + '">' +
+          '<span class="notif-row-dot"></span>' +
+          '<span class="notif-row-icon">' + (TYPE_ICONS[n.type] || '') + '</span>' +
+          '<span class="notif-row-body">' +
+            '<span class="notif-row-text">' + notificationText(n) + '</span>' +
+            '<span class="notif-row-time">' + fmtRelativeTime(n.created_at) + '</span>' +
+          '</span>' +
+        '</a>' + mute +
+      '</div>';
     }).join('');
     hasRenderedEntries = true;
   }
+
+  /* Muting replaces the row it was fired from with a confirmation carrying an
+     Undo, rather than silently removing it. Turning off a whole category from
+     a one-click control is easy to do by accident, and Profile Settings is a
+     long way to go to find out which of twelve toggles just changed. */
+  function setTypeEnabled(type, enabled) {
+    return fetch('/api/notification-prefs/set-type.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ csrf: window.PW_AUTH.csrf, type: type, enabled: enabled })
+    }).then(function (r) { return r.json(); });
+  }
+
+  listEl.addEventListener('click', function (e) {
+    var muteBtn = e.target.closest('.notif-mute-btn');
+    if (muteBtn) {
+      e.preventDefault();
+      var type = muteBtn.getAttribute('data-mute-type');
+      var wrap = muteBtn.closest('.notif-row-wrap');
+      muteBtn.disabled = true;
+      setTypeEnabled(type, false).then(function (data) {
+        if (!data || !data.ok) throw new Error('failed');
+        wrap.classList.add('is-muted');
+        wrap.innerHTML = '<p class="notif-muted-note" role="status">' +
+          'Muted <b>' + escapeHtml(MUTABLE_TYPES[type] || type) + '</b>.' +
+          '<button type="button" class="notif-unmute-btn" data-unmute-type="' + escapeHtml(type) + '">Undo</button>' +
+          '</p>';
+      }).catch(function () {
+        muteBtn.disabled = false;
+        muteBtn.classList.add('is-failed');
+        window.setTimeout(function () { muteBtn.classList.remove('is-failed'); }, 2000);
+      });
+      return;
+    }
+    var undoBtn = e.target.closest('.notif-unmute-btn');
+    if (undoBtn) {
+      e.preventDefault();
+      undoBtn.disabled = true;
+      setTypeEnabled(undoBtn.getAttribute('data-unmute-type'), true).then(function (data) {
+        if (!data || !data.ok) throw new Error('failed');
+        // Redrawn from the server rather than restored from the DOM copy that
+        // was thrown away, so the row is whatever is actually current.
+        loadDropdown();
+      }).catch(function () { undoBtn.disabled = false; });
+    }
+  });
 
   function pulseBadge() {
     badgeEl.classList.remove('notif-badge-pulse');

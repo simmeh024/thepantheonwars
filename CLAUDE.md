@@ -619,6 +619,134 @@ at that time.
 
 ## Recent history (most recent first)
 
+- **Eight public-side quality-of-life additions.** **No migration.** Two new
+  endpoints (`api/home-resume.php`, `api/notification-prefs/set-type.php`),
+  one new script (`js/home-resume.js`), and three shared helpers added to
+  `js/main.js` -- which is the right home for them because it is already the
+  site-wide script and already exposes `wireWorldInteractions()` as the
+  re-callable hook that late-injected markup goes through.
+  1. **Homepage "jump back in" strip.** A returning member's unread topics,
+     ready operations, unlocked protocols, unread messages and current book
+     were all in the database and none of it reached the page they land on.
+     `api/home-resume.php` answers it in one bounded request -- every query a
+     COUNT or a LIMIT 1, every section independently guarded, and **counts
+     never contents**, so it repeats none of the visibility rules those
+     surfaces already enforce. It deliberately does **not** call
+     `api/missions/overview.php`, which settles runs and grants starter crew:
+     right for the missions page, far too much for a strip of links. The
+     research count comes from `pw_research_unlockable_node_ids()` rather than
+     a second copy of that rule. **A member with nothing waiting sees nothing**
+     -- a row reading "0 unread, 0 operations" turns an empty state into a row
+     of failures. Loaded through index.html's existing deferred-enhancement
+     block so it cannot touch the hero's render budget.
+  2. **Copy-link controls on lore anchors** (`pwCopyLinkButton()` +
+     a delegated handler). World Record districts, Timeline events and Known
+     Figures records were all individually addressable and none of them said
+     so. Delegated from the document rather than wired per element, because
+     all three build their markup after a fetch.
+     **The district control lives inside the opened panel, not in its header
+     row, and that was a measured decision.** The header row is a `<button>`,
+     so the control must be a sibling -- and making that row a flex container
+     widened every district from 271px to 313px at 375px, because
+     `.city-stack` sizes its column to max-content, pushing the whole
+     cross-section past the frame. Taking it out of flow fixed the width but
+     left it colliding with the expand affordance below 640px, where
+     `.layer-tag` is `display: none` and that affordance no longer sits at the
+     right edge. The panel has neither problem and reads better anyway.
+     **A collapsed panel is clipped, not removed** -- its contents stay
+     focusable. That never mattered because nothing in a panel was focusable
+     before; this control is the first thing that is, so
+     `.city-layer:not(.open) .layer-share { visibility: hidden }` keeps a
+     keyboard reader from tabbing through every closed district.
+  3. **Per-type notification mute in the bell dropdown.**
+     `api/notification-prefs/set-type.php` is a **new endpoint on purpose**:
+     `save.php` takes the whole preference set and treats every missing key as
+     off, which is correct for the twelve-checkbox form and catastrophic for a
+     one-field caller -- muting one type through it would have silently
+     disabled every other type. The allowlist is narrower than the table:
+     `warning_issued` is a moderation notice and `direct_message` has no
+     column, and **the endpoint is what enforces that**, not the hidden
+     button. Muting replaces the row with a confirmation carrying an Undo,
+     since a one-click way to switch off a whole category is easy to hit by
+     accident and Profile Settings is a long way to go to find out which of
+     twelve toggles just moved.
+  4. **"N new replies since your last visit"** in a topic, with a jump to the
+     first of them. `forum_topic_seen` has carried the marker since the
+     unread-dot shipped and nothing ever used it for more than a dot.
+     **`markTopicSeen()` used to run inside `goToTopic()`, which overwrote the
+     very value needed** -- the reader's own arrival erased the record of when
+     they were last there; it is now deferred until `topics/get.php` has
+     answered with the prior marker (a new guarded `seen_at` field).
+     **Two timing bugs found by running the real page, not by reading it:** a
+     topic is most often reached from a notification deep link, and
+     `initDeepLink()` runs before session-check answers -- so gating on
+     `PW_AUTH.loggedIn` was false for exactly the arrival this serves, and
+     `PW_AUTH.user.id` was still null so the reader's own replies could not be
+     excluded and the count read 3 instead of 2. The marker is now adopted on
+     its presence rather than on a session flag, the banner is redrawn once
+     the session lands, and a dismissal is remembered so that redraw cannot
+     resurrect it. Own replies are excluded: being told there is something new
+     which turns out to be your own post is worse than no banner. **No banner
+     on a first visit** -- every reply is new then, which says nothing.
+  5. **Keyboard shortcuts** (`j`/`k`, Enter, `/`, arrows for pagination, `?`
+     for the list). Items are resolved from the DOM at keypress time rather
+     than registered per page: every list on this site is built from a fetch,
+     so anything registered up front would cover none of them. Stands down
+     entirely while typing, under a modifier, and while a map or modal owns
+     the keyboard.
+  6. **Breadcrumb trail** on `world.html`, `overlord.html` and
+     `news-post.html` -- the three surfaces arrived at directly, where the
+     browser's Back button goes nowhere useful on an external referral. The
+     World Record's existing atlas link is **kept alongside** it: orienting a
+     reader on arrival and giving them a route back into the map are different
+     jobs.
+  7. **Map lightbox zoom and pan** -- wheel, buttons, double-click, drag, and
+     `+`/`-`/`0`. Zoom is toward the pointer rather than the centre, or
+     zooming a corner of a district map walks the thing you were looking at
+     out of frame. Pan is clamped so the image can never be dragged clear of
+     its own box. Controls are built in JS for the same reason the header
+     weather widget is: more than one producer emits this markup.
+  8. **Public profile "at a glance" row** -- standing, books finished,
+     operations claimed, posts, and a four-tier achievement count.
+     `missions_completed` counts `claimed_at`, not status: a run at
+     `completed` is one whose timer expired, which the cron sets whether or
+     not the player came back for it. A tile is **omitted when the thing it
+     counts does not apply** rather than shown at zero -- someone who has
+     never opened the missions page has not "completed 0 operations".
+  **A contrast trap worth remembering:** `--text-faint` (#7a6b9e) measures
+  **4.20:1** on this site's own panel background -- under AA. It is used
+  site-wide and changing it is a separate decision (the same reading is
+  already recorded for `--text-dim` in the admin console), so everything added
+  here uses a new `--qol-quiet` (#9b8dc4, 6.64:1) rather than inheriting a
+  known-failing token. Worst reading across all new surfaces is 6.64:1 and
+  nothing dims by opacity.
+  **Verification notes.** No node and no PHP CLI in this sandbox; the
+  brace/paren walkers were calibrated against committed files first, including
+  `api/admin/missions/missions-helpers.php`, which the naive regex checker
+  falsely fails. Behaviour was checked against **the real pages with only
+  `fetch` stubbed** -- 40 assertions on the shared helpers, 15 on the World
+  Record, 15 on the Timeline, 12 on the bell, 20 on the profile, and the forum
+  banner driven through its own deep-link path. **Three fixture bugs cost real
+  time and are worth recognising again:** a harness whose checks ran before
+  `DOMContentLoaded` read a DOM `main.js` had not touched yet, which is
+  indistinguishable from the feature being broken; an assertion matched
+  `translate(0.0px, 0.0px)` as a string when the browser normalises that to
+  `0px` on read-back; and a cache-buster appended *after* a `#fragment` turned
+  `district-12` into `district-12&bust=...`, which the opener correctly
+  refused. **The district width regression was only caught by measuring the
+  committed page and the modified one side by side in identical frames** -- it
+  is invisible at desktop width and looks like nothing at all by eye.
+  `components.css?v=218` / `content.css?v=275` / `community.css?v=220` /
+  `public.css?v=317` / `community-bundle.css?v=318` / `admin-bundle.css?v=333`
+  / `home-mobile-rest.css?v=6` / `main.js?v=21` / `members.js?v=44` /
+  `notifications.js?v=16` / `world-detail.js?v=16` / `timeline.js?v=2` /
+  `known-figures.js?v=7` / `news-post.js?v=16` / `home-resume.js?v=1`.
+  **Mobile homepage note:** `index.html` serves `public.css` only at
+  `(min-width: 781px)`, so shared chrome added to `components.css` does not
+  exist on a phone's homepage -- the resume strip and the bell's new row
+  wrapper are repeated in `home-mobile-rest.css`/`home-mobile.css`. Change one,
+  change both.
+
 - **Crew and Gear Management were slow to open; two causes, neither of them the
   database.** No migration. Reported as the pages taking a long time to load,
   after a separate report that their rarity/category filters "were not working"

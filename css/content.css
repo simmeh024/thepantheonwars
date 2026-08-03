@@ -989,6 +989,32 @@
 }
 .map-lightbox-close:hover { border-color: var(--gold); color: var(--gold-bright); }
 
+/* Zoom and pan. The frame keeps the size it always had; only what happens
+   inside it changes, so a map that is never zoomed looks exactly as before.
+   overflow switches from auto to hidden because the image is now moved by a
+   transform rather than by a scrollbar -- a scrollbar cannot express a scale. */
+.map-lightbox-inner.is-zoomable { overflow: hidden; touch-action: none; cursor: zoom-in; }
+.map-lightbox-inner.is-zoomable img { transform-origin: center center; will-change: transform; }
+.map-lightbox-inner.is-zoomed { cursor: grab; }
+.map-lightbox-inner.is-panning { cursor: grabbing; }
+.map-lightbox-controls {
+  position: absolute; z-index: 10; left: 50%; bottom: 22px; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 6px; padding: 6px;
+  border: 1px solid var(--gold-dim); border-radius: var(--radius-pill);
+  background: rgba(12,8,24,0.92); box-shadow: var(--shadow-popover);
+}
+.map-zoom-btn {
+  min-width: 32px; height: 32px; padding: 0 10px;
+  border: 1px solid var(--border); border-radius: var(--radius-pill);
+  background: var(--panel); color: var(--text);
+  font: 600 0.82rem/1 'Jost', sans-serif; cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+.map-zoom-btn:hover:not(:disabled) { border-color: var(--gold); color: var(--gold-bright); }
+.map-zoom-btn:disabled { opacity: 0.4; cursor: default; }
+.map-zoom-level { min-width: 48px; color: var(--text-dim); font-size: 0.74rem; text-align: center; font-variant-numeric: tabular-nums; }
+@media (max-width: 560px) { .map-lightbox-controls { bottom: 12px; } .map-zoom-reset { display: none; } }
+
 .city-cross-section { display: flex; gap: 22px; align-items: stretch; }
 .city-ruler {
   width: 26px; flex-shrink: 0;
@@ -1008,6 +1034,26 @@
 
 .city-layer { border: 1px solid var(--border); background: var(--panel); overflow: hidden; }
 .city-layer.restricted { border-color: #4a2050; }
+/* A district arrived at by a shared link marks itself briefly, so the reader
+   can see which of eight rows the link actually pointed at. */
+.city-layer.is-linked { box-shadow: inset 0 0 0 1px var(--gold-bright), 0 0 22px rgba(236,201,135,0.2); }
+@media (prefers-reduced-motion: no-preference) { .city-layer { transition: box-shadow 0.3s ease; } }
+
+/* The district's share row, at the foot of its opened panel. See the note in
+   js/world-detail.js's layerHtml() for why it is here and not in the header
+   row -- a flex row up there widened every district by 42px, because
+   .city-stack sizes the column to max-content. The panel is already inside
+   that column, so this adds nothing to it. */
+.layer-share { display: flex; align-items: center; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-soft); }
+/* A collapsed panel is clipped by overflow, not removed -- its contents are
+   still rendered and still focusable. That never mattered before because
+   nothing inside a panel was focusable; this control is the first thing that
+   is, so a keyboard reader would otherwise tab into every closed district in
+   turn. visibility:hidden takes it out of the tab order and the accessibility
+   tree, and the .open rule puts it back. */
+.city-layer:not(.open) .layer-share { visibility: hidden; }
+.layer-share .pw-copy-link { opacity: 1; }
+.layer-share-label { color: var(--qol-quiet); font-size: 0.72rem; letter-spacing: 0.03em; }
 
 .layer-toggle {
   width: 100%;
@@ -4481,6 +4527,10 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
 }
 .figure-eyebrow { display: block; margin-bottom: 0.3rem; color: var(--gold-bright); font-size: 0.68rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; }
 .figure-name { margin: 0 0 0.35rem; font-family: 'Cinzel', serif; font-size: clamp(1.6rem, 3vw, 2.3rem); color: var(--text); }
+/* The copy control sits inside the heading, so it must not inherit the
+   heading's clamp() size. Aligned to the baseline rather than centred: on a
+   two-line name, centring parks it in the middle of the block. */
+.figure-name .pw-copy-link { vertical-align: 0.28em; margin-left: 10px; font-size: 1rem; }
 .figure-status { display: block; margin-bottom: 1.1rem; color: var(--text-faint); font-size: 0.74rem; letter-spacing: 0.04em; }
 .figure-body { color: var(--text-dim); font-size: 0.95rem; line-height: 1.7; }
 .figure-quote { margin: 1.4rem 0 1.2rem; }
@@ -4635,6 +4685,15 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
 .timeline-panel-title { margin: 7px 0 4px; color: var(--text); font: 600 1rem/1.3 'Cinzel', serif; }
 .timeline-panel-date { display: block; margin-bottom: 9px; color: var(--gold-dim); font: 600 0.68rem/1 'Jost', sans-serif; letter-spacing: 0.1em; }
 .timeline-panel-text { margin: 0; color: var(--text-dim); font-size: 0.8rem; line-height: 1.55; }
+/* Copy-link row inside the panel. The panel is pointer-events:none until it
+   opens (see .timeline-panel above), so this is only ever reachable while the
+   panel is actually on screen -- which is also why the panel now survives the
+   pointer leaving its marker. */
+.timeline-panel-link { display: flex; justify-content: flex-end; margin-top: 10px; }
+.timeline-panel-link .pw-copy-link { opacity: 1; }
+/* A marker reached by a shared ?event= link says so, rather than leaving the
+   reader to work out which of twenty markers the link meant. */
+.timeline-node.is-linked .timeline-node-dot { box-shadow: 0 0 0 3px rgba(236,201,135,0.5), 0 0 16px rgba(236,201,135,0.6); }
 
 /* Vertical on mobile: same DOM, the rail becomes a column and the spine a
    left-hand rule. The panel goes static so it can never sit off-screen. */
@@ -4772,3 +4831,48 @@ body.throne-profile-handoff #overlord-content.is-portal-revealed { animation: th
 .world-weather-hour.is-night .world-weather-hour-time { color: var(--wx-muted); }
 /* The current hour keeps its gold treatment even at night. */
 .world-weather-hour.is-night.is-now { background: linear-gradient(180deg, rgba(210, 169, 84, 0.08), rgba(88, 45, 155, 0.14)); }
+
+/* ---------------- QOL: homepage "jump back in" strip ---------------- */
+/* Sits between the hero and the first content section, and only ever renders
+   for a signed-in visitor who has something waiting -- see js/home-resume.js
+   for why an empty state is deliberately absent rather than shown at zero. */
+.home-resume { padding: 34px 0 6px; }
+.home-resume[hidden] { display: none; }
+.home-resume-head { margin-bottom: 16px; }
+.home-resume-kicker { display: block; color: var(--status-info); font-size: 0.64rem; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; }
+.home-resume-head h2 { margin: 5px 0 0; font-family: 'Cinzel', serif; font-size: clamp(1.2rem, 2.4vw, 1.6rem); color: var(--text); }
+.home-resume-cards {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 12px;
+}
+.home-resume-card {
+  display: flex; flex-direction: column; gap: 3px;
+  padding: 15px 17px; border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+  border-left: 2px solid var(--resume-accent, var(--purple-bright));
+  background: linear-gradient(120deg, rgba(124,79,214,0.09), rgba(255,255,255,0.015));
+  text-decoration: none;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast), transform var(--transition-fast);
+}
+.home-resume-card:hover, .home-resume-card:focus-visible {
+  border-color: rgba(162,121,236,0.4); border-left-color: var(--resume-accent, var(--purple-bright));
+  background: linear-gradient(120deg, rgba(124,79,214,0.16), rgba(255,255,255,0.03));
+  transform: translateY(-2px);
+}
+.home-resume-card-value { color: var(--text); font-family: 'Cinzel', serif; font-size: 1.35rem; line-height: 1.15; }
+.home-resume-card-label { color: var(--gold-bright); font-size: 0.66rem; letter-spacing: 0.11em; text-transform: uppercase; }
+.home-resume-card-detail { color: var(--qol-quiet); font-size: 0.76rem; line-height: 1.4; }
+/* One tone per kind of waiting work, reusing the colour each destination
+   already carries elsewhere on the site rather than inventing a fifth palette. */
+.home-resume-card--reading { --resume-accent: var(--gold); }
+.home-resume-card--forum { --resume-accent: var(--purple-bright); }
+.home-resume-card--missions { --resume-accent: var(--status-info); }
+.home-resume-card--research { --resume-accent: #9fe041; }
+.home-resume-card--messages { --resume-accent: #4496ed; }
+
+@media (prefers-reduced-motion: no-preference) {
+  /* Arrival is a one-off stagger on load. The cards are at their final state
+     without it -- the animation only supplies the entrance, so a frame that
+     never arrives (a backgrounded tab) still leaves the strip correct. */
+  .home-resume-card { animation: home-resume-arrive 0.44s ease-out backwards; animation-delay: calc(var(--resume-index, 0) * 70ms); }
+}
+@keyframes home-resume-arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 560px) { .home-resume { padding-top: 24px; } }

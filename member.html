@@ -15,7 +15,7 @@
 <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
 <link rel="icon" href="favicon.ico">
-<link rel="stylesheet" href="css/community-bundle.css?v=317">
+<link rel="stylesheet" href="css/community-bundle.css?v=318">
 </head>
 <body>
 
@@ -94,6 +94,11 @@
             </div>
           </div>
         </div>
+
+        <!-- Populated by renderGlance(). Kept hidden until it has content so
+             a profile whose optional game/achievement tables are absent shows
+             nothing rather than an empty shell. -->
+        <section class="member-glance" id="member-glance" hidden aria-label="Standing at a glance"></section>
 
         <p class="lore-status" id="member-meta">
           <span id="member-joined"></span>
@@ -201,8 +206,8 @@
   </div>
 </footer>
 
-<script src="js/main.js?v=20"></script>
-<script src="js/members.js?v=43"></script>
+<script src="js/main.js?v=21"></script>
+<script src="js/members.js?v=44"></script>
 <script>
 (function () {
   // Delegated so spoiler controls created from safe BBCode markup do not need
@@ -318,6 +323,93 @@
     container.innerHTML = icon.svg;
   }
 
+  /* ---------- Standing at a glance ----------
+     Everything below already existed on this page or in its response and was
+     only ever readable by scrolling: the rank lived in a bar with no words on
+     it, the reading total was buried in a pill that mostly says something
+     else, and the mission and achievement figures were not shown at all. This
+     is a summary row, not a new source of truth -- every number here is also
+     stated in full further down the page or on the Reputation page.
+
+     A tile is omitted when the thing it counts does not apply (no missions
+     table, no achievements, no books recorded), rather than shown at zero: a
+     member who has never opened the missions page has not "completed 0
+     operations", they have simply not played. The whole row hides when
+     nothing survives that rule. */
+  function renderGlance(m) {
+    var host = document.getElementById('member-glance');
+    if (!host) return;
+    var tiles = [];
+
+    var rep = m.reputation || {};
+    if (rep.level_name) {
+      tiles.push({
+        label: 'Standing',
+        value: rep.level_name,
+        detail: (Number(rep.points) || 0).toLocaleString() + ' rep',
+        accent: rep.level_color || null,
+        href: 'reputation.html'
+      });
+    }
+
+    if (Number(m.books_total) > 0) {
+      tiles.push({
+        label: 'Books finished',
+        value: String(Number(m.books_finished_count) || 0) + ' / ' + Number(m.books_total),
+        detail: (Number(m.books_finished_count) || 0) >= Number(m.books_total) ? 'Saga complete' : 'of the saga',
+        href: 'books.html'
+      });
+    }
+
+    if (Number(m.missions_completed) > 0) {
+      tiles.push({
+        label: 'Operations',
+        value: Number(m.missions_completed).toLocaleString(),
+        detail: 'claimed'
+      });
+    }
+
+    tiles.push({
+      label: 'Posts',
+      value: (Number(m.post_count) || 0).toLocaleString(),
+      detail: 'in the Nexus'
+    });
+
+    var tierHtml = '';
+    var tiers = m.achievement_tiers || [];
+    var anyUnlocked = tiers.some(function (t) { return Number(t.unlocked) > 0; });
+    if (tiers.length && anyUnlocked) {
+      tierHtml = '<div class="member-glance-tiers" aria-label="Achievements by tier">' +
+        tiers.map(function (t) {
+          return '<span class="member-glance-tier tier-' + escapeHtml(t.tier) +
+            (Number(t.unlocked) === Number(t.total) && Number(t.total) > 0 ? ' is-complete' : '') + '">' +
+            '<b>' + Number(t.unlocked) + '<i>/' + Number(t.total) + '</i></b>' +
+            '<span>' + escapeHtml(capitalize(t.tier)) + '</span>' +
+          '</span>';
+        }).join('') +
+      '</div>';
+    }
+
+    if (!tiles.length && !tierHtml) { host.hidden = true; return; }
+
+    host.innerHTML =
+      '<div class="member-glance-stats">' +
+        tiles.map(function (tile) {
+          // A tile with a destination is a link; one without is plain text
+          // rather than a link that goes nowhere.
+          var inner =
+            '<span class="member-glance-value">' + escapeHtml(tile.value) + '</span>' +
+            '<span class="member-glance-label">' + escapeHtml(tile.label) + '</span>' +
+            '<span class="member-glance-detail">' + escapeHtml(tile.detail) + '</span>';
+          var style = tile.accent ? ' style="--glance-accent:' + escapeHtml(tile.accent) + '"' : '';
+          return tile.href
+            ? '<a class="member-glance-stat"' + style + ' href="' + escapeHtml(tile.href) + '">' + inner + '</a>'
+            : '<div class="member-glance-stat"' + style + '>' + inner + '</div>';
+        }).join('') +
+      '</div>' + tierHtml;
+    host.hidden = false;
+  }
+
   function renderReputationBar(container, rep) {
     if (!rep) { container.hidden = true; return; }
     container.hidden = false;
@@ -422,6 +514,8 @@
         avatarWrap.appendChild(avatarPresence);
 
         document.getElementById('member-joined').textContent = 'Joined ' + fmtDate(m.created_at);
+
+        renderGlance(m);
 
         var crewPower = m.crew_power || {};
         var crewPowerEl = document.getElementById('member-crew-power');

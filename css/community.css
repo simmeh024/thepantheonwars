@@ -2432,3 +2432,86 @@
   .topic-poll-result-pct { grid-area: pct; }
   .topic-poll-result-bar-track { grid-area: bar; }
 }
+
+/* ---------------- QOL: new replies since your last visit ---------------- */
+/* Sits directly above the reply feed. forum_topic_seen has carried the marker
+   this reads since the unread-dot feature shipped; nothing had ever used it
+   for more than a dot on a list row. */
+.topic-new-replies {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  margin: 0 0 18px; padding: 11px 14px;
+  border: 1px solid rgba(162,121,236,0.34); border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, rgba(124,79,214,0.15), rgba(124,79,214,0.04));
+}
+.topic-new-replies[hidden] { display: none; }
+.topic-new-replies-mark {
+  flex: 0 0 8px; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--purple-bright); box-shadow: 0 0 10px var(--glow);
+}
+.topic-new-replies-text { color: var(--text-dim); font-size: 0.84rem; }
+.topic-new-replies-text b { color: var(--gold-bright); font-weight: 600; }
+.topic-new-replies-jump {
+  margin-left: auto; padding: 6px 13px;
+  border: 1px solid var(--gold-dim); border-radius: var(--radius-sm);
+  background: transparent; color: var(--gold-bright);
+  font: 600 0.72rem/1.4 'Jost', sans-serif; letter-spacing: 0.07em; text-transform: uppercase;
+  cursor: pointer; transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+.topic-new-replies-jump:hover { border-color: var(--gold); background: rgba(236,201,135,0.1); }
+.topic-new-replies-dismiss {
+  flex: 0 0 26px; width: 26px; height: 26px; padding: 0;
+  border: 1px solid transparent; border-radius: var(--radius-sm);
+  background: transparent; color: var(--qol-quiet); font-size: 1.1rem; line-height: 1; cursor: pointer;
+}
+.topic-new-replies-dismiss:hover { border-color: var(--border); color: var(--text); }
+@media (max-width: 560px) {
+  /* The jump control is the point of the banner, so it takes the full width
+     rather than being squeezed onto the end of a wrapped sentence. */
+  .topic-new-replies-jump { margin-left: 0; width: 100%; order: 3; }
+  .topic-new-replies-dismiss { margin-left: auto; }
+}
+
+/* ---------------- QOL: public profile "at a glance" row ---------------- */
+/* A summary of figures that already existed elsewhere on this page or in its
+   response. --glance-accent carries the member's own administrator-authored
+   rank colour onto the standing tile, the same value the reputation bar and
+   square already use, so a member's rank changes colour here as they climb. */
+.member-glance { margin: 0 0 22px; }
+.member-glance[hidden] { display: none; }
+.member-glance-stats {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(118px, 1fr)); gap: 10px;
+}
+.member-glance-stat {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: 12px 14px; border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.02); text-decoration: none;
+  border-left: 2px solid var(--glance-accent, var(--purple-bright));
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
+}
+a.member-glance-stat:hover { background: rgba(124,79,214,0.1); border-color: rgba(162,121,236,0.36); border-left-color: var(--glance-accent, var(--purple-bright)); }
+.member-glance-value { color: var(--text); font-family: 'Cinzel', serif; font-size: 1.05rem; line-height: 1.2; }
+.member-glance-label { color: var(--text-dim); font-size: 0.66rem; letter-spacing: 0.11em; text-transform: uppercase; }
+.member-glance-detail { color: var(--qol-quiet); font-size: 0.72rem; }
+
+/* Tier standing. Always all four in fixed order when any are unlocked -- an
+   omitted tier reads as one that does not exist rather than one still to
+   reach, the same rule the Reputation page's own tier row follows. */
+.member-glance-tiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+.member-glance-tier {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 8px 4px; border: 1px solid var(--border-soft); border-radius: var(--radius-sm);
+  background: rgba(255,255,255,0.015);
+}
+.member-glance-tier b { color: var(--tier-tone, var(--text)); font-size: 0.9rem; font-weight: 600; }
+.member-glance-tier b i { color: var(--qol-quiet); font-style: normal; font-size: 0.72rem; font-weight: 400; }
+.member-glance-tier span { color: var(--qol-quiet); font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; }
+/* One tone per tier, matching the achievement plaques on the Reputation page
+   rather than introducing a second palette for the same four words. */
+.member-glance-tier.tier-bronze { --tier-tone: #c98a52; }
+.member-glance-tier.tier-silver { --tier-tone: #c3cad6; }
+.member-glance-tier.tier-gold { --tier-tone: var(--gold-bright); }
+.member-glance-tier.tier-prismatic { --tier-tone: #d9a7f5; }
+.member-glance-tier.is-complete { border-color: var(--tier-tone); }
+@media (max-width: 440px) {
+  .member-glance-tiers { grid-template-columns: repeat(2, 1fr); }
+}

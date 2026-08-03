@@ -669,6 +669,22 @@
 
     var article = document.createElement('article');
     article.className = 'news-detail-article ' + (post.author_type === 'bh4' ? 'is-bh4' : 'is-member');
+
+    /* An article is almost always arrived at directly -- a news_published
+       notification, a Reddit share, a Related Development card -- so it needs
+       a way back into the feed it belongs to. Inserted before the article
+       rather than after the banner, so it sits with the content it describes
+       and moves with it on narrow screens. */
+    if (window.pwBreadcrumbHtml) {
+      var crumbs = document.createElement('div');
+      crumbs.innerHTML = window.pwBreadcrumbHtml([
+        { label: 'Home', href: 'index.html' },
+        { label: 'News', href: 'news.html' },
+        { label: post.title }
+      ]);
+      articleHost.appendChild(crumbs.firstChild);
+    }
+
     var meta = document.createElement('div');
     meta.className = 'news-detail-meta';
     var date = document.createElement('span');

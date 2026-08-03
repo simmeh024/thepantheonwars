@@ -80,6 +80,31 @@ if ($currentId !== null) {
     $subscriptionMode = $watchRow ? (!empty($watchRow['delivery_mode']) ? $watchRow['delivery_mode'] : 'instant') : null;
 }
 
+/**
+ * When this member last opened this topic, so the client can say how many
+ * replies have arrived since and offer to jump to the first of them.
+ *
+ * Read here rather than taken from the topic-list response the reader clicked
+ * through from, because a topic is also reached directly: a notification, a
+ * bookmark, a ?topic= deep link from Topic Reports. Those paths never saw a
+ * list row and so never had a seen marker to carry.
+ *
+ * Guarded: the forum_topic_seen table arrives with a migration that may be
+ * applied after this code deploys, and a missing "how many are new" figure
+ * must degrade to not showing the banner, never to a broken topic page.
+ */
+$seenAt = null;
+if ($currentId !== null) {
+    try {
+        $seenStmt = $db->prepare('SELECT seen_at FROM forum_topic_seen WHERE topic_id = ? AND user_id = ?');
+        $seenStmt->execute([$id, $currentId]);
+        $seenRow = $seenStmt->fetch();
+        $seenAt = $seenRow ? $seenRow['seen_at'] : null;
+    } catch (PDOException $e) {
+        $seenAt = null;
+    }
+}
+
 $canEditOwn = $currentId !== null
     && $currentId === (int)$topic['user_id']
     && (time() - strtotime($topic['created_at'])) <= 30 * 60;
@@ -151,6 +176,7 @@ pw_json([
         'bookmarked' => $bookmarked,
         'watched' => $watched,
         'subscription_mode' => $subscriptionMode,
+        'seen_at' => $seenAt,
         'poll' => $poll,
     ],
 ]);

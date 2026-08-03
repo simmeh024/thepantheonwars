@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', function () {
       : '';
 
     return (
-      '<section class="figure-scene" data-figure="' + escapeHtml(figure.slug) + '" data-motif="' + motif + '" aria-labelledby="figure-' + escapeHtml(figure.slug) + '-name" style="' + style + '">' +
+      '<section class="figure-scene" id="figure-' + escapeHtml(figure.slug) + '" data-figure="' + escapeHtml(figure.slug) + '" data-motif="' + motif + '" aria-labelledby="figure-' + escapeHtml(figure.slug) + '-name" style="' + style + '">' +
         '<div class="figure-scene-bg" style="background-image: url(\'' + imgUrl + '\');"></div>' +
         veilHtml +
         '<div class="container figure-scene-inner' + (reverse ? ' figure-scene-inner--reverse' : '') + '">' +
@@ -75,7 +75,13 @@ document.addEventListener('DOMContentLoaded', function () {
           '</div>' +
           '<div class="figure-content">' +
             '<span class="figure-eyebrow">' + escapeHtml(figure.eyebrow) + '</span>' +
-            '<h2 class="figure-name" id="figure-' + escapeHtml(figure.slug) + '-name">' + escapeHtml(figure.name) + '</h2>' +
+            '<h2 class="figure-name" id="figure-' + escapeHtml(figure.slug) + '-name">' + escapeHtml(figure.name) +
+              // Each record is its own scene on a single long page, so it has
+              // always been addressable and never said so. Keyed by the
+              // administrator-authored slug, which is what the API already
+              // returns and what an admin URL would use.
+              (window.pwCopyLinkButton ? window.pwCopyLinkButton('#figure-' + escapeHtml(figure.slug), figure.name) : '') +
+            '</h2>' +
             statusHtml +
             body1Html +
             body2Html +
@@ -268,6 +274,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
   }
 
+  /* The scenes are fetched, so by the time this markup exists the browser has
+     long since given up on resolving the fragment itself. Done after
+     wireScenes() so the ScrollTrigger reveal is already set up: its own
+     onRefresh handles a scene that starts inside its trigger zone, which is
+     exactly the case a deep link creates. */
+  function scrollToLinkedFigure() {
+    var hash = String(window.location.hash || '').replace(/^#/, '');
+    if (!hash) return;
+    var target = document.getElementById(hash);
+    if (!target || !target.classList.contains('figure-scene')) return;
+    requestAnimationFrame(function () {
+      target.scrollIntoView({ block: 'start' });
+    });
+  }
+
+  window.addEventListener('hashchange', scrollToLinkedFigure);
+
   fetch('/api/known-figures.php', { credentials: 'same-origin' })
     .then(function (r) { return r.json(); })
     .then(function (data) {
@@ -278,6 +301,7 @@ document.addEventListener('DOMContentLoaded', function () {
       }
       chronicleEl.innerHTML = figures.map(renderScene).join('');
       wireScenes();
+      scrollToLinkedFigure();
     })
     .catch(function () {
       chronicleEl.innerHTML = '<div class="container" style="padding: 4rem 0; text-align: center;"><p class="lede">Could not load Known Figures right now. Please try again later.</p></div>';

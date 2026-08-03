@@ -17,6 +17,21 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  /* A World Record is reached far more often from a shared link or the header
+     weather pill than from the atlas itself, so the existing single "return to
+     the atlas" line was the only route anywhere -- and it named one
+     destination. The trail is kept alongside it rather than replacing it: the
+     atlas link sits at the foot of the reader's eye path back into the map,
+     which is a different job from orienting them on arrival. */
+  function worldBreadcrumb(name) {
+    if (!window.pwBreadcrumbHtml) return '';
+    return window.pwBreadcrumbHtml([
+      { label: 'Home', href: 'index.html' },
+      { label: 'The Worlds', href: 'worlds.html' },
+      { label: name }
+    ]);
+  }
+
   function setDocumentTitle(world) {
     document.title = world.name + ' — World Record — The Pantheon Wars';
   }
@@ -642,13 +657,43 @@ document.addEventListener('DOMContentLoaded', function () {
     '</div>';
   }
 
+  /* A district is individually addressable as world.html?slug=X#district-<id>.
+     The id comes from world_layers.id rather than from the name, so an
+     editorial rename in World Control cannot break a link somebody shared.
+     openDistrictFromHash() below is the other half of this. */
+  function layerAnchorId(layer) {
+    return 'district-' + (layer && layer.id != null ? layer.id : '');
+  }
+
   function layerHtml(layer, index, isVertical) {
     var sublocations = (layer.sublocations || []).map(function (label) {
       return '<span class="sublocation-tag">' + escapeHtml(label) + '</span>';
     }).join('');
     var landmarks = (layer.landmarks || []).map(landmarkHtml).join('');
     var indexLabel = String(index + 1).padStart(2, '0');
-    return '<div class="' + (isVertical ? 'city-layer' : 'city-layer harbor-district') + ' world-layer-tint--' + escapeHtml(layer.tint_key || 'gold') + '">' +
+    /* The copy control lives inside the district's own panel, not in its
+       header row. Two reasons, one of them measured:
+
+       The header row is a <button>, so the control cannot be a child of it,
+       and adding a sibling beside it made the row a flex container -- whose
+       max-content width .city-stack then sized the whole column to, widening
+       every district from 271px to 313px at a 375px viewport and pushing the
+       cross-section past the frame. Taking it out of flow fixed the width but
+       left it colliding with the expand affordance below 640px, where
+       .layer-tag is display:none and the affordance no longer sits at the
+       right edge. The panel has neither problem: it is already inside the
+       column and contributes no new intrinsic width.
+
+       It also reads better. A reader wants the link to a district after
+       opening and reading it, not while scanning a list of closed rows. */
+    var copyBtn = window.pwCopyLinkButton
+      ? '<div class="layer-share">' +
+          window.pwCopyLinkButton('#' + layerAnchorId(layer), layer.name || 'this district') +
+          '<span class="layer-share-label">Copy link to ' + escapeHtml(layer.name) + '</span>' +
+        '</div>'
+      : '';
+    return '<div class="' + (isVertical ? 'city-layer' : 'city-layer harbor-district') + ' world-layer-tint--' + escapeHtml(layer.tint_key || 'gold') + '"' +
+      ' id="' + escapeHtml(layerAnchorId(layer)) + '">' +
       '<button type="button" class="layer-toggle" aria-expanded="false">' +
         '<span class="layer-idx">' + indexLabel + '</span>' +
         '<span class="layer-name">' + escapeHtml(layer.name) + '</span>' +
@@ -661,6 +706,7 @@ document.addEventListener('DOMContentLoaded', function () {
         quoteHtml(layer.quote_text, layer.quote_cite) +
         (sublocations ? '<div class="layer-sublocations">' + sublocations + '</div>' : '') +
         landmarks +
+        copyBtn +
       '</div></div></div>' +
     '</div>';
   }
@@ -699,7 +745,8 @@ document.addEventListener('DOMContentLoaded', function () {
       crossSection = '<div class="harbor-wrap" style="margin-top: 3rem;">' + mapHtml(world, false) +
         '<div class="harbor-cross-section"><div class="harbor-row">' + layers + '</div></div>' + distant + '</div>';
     }
-    return '<a class="world-record-backlink" href="worlds.html">← Return to the Twelve Worlds atlas</a>' +
+    return worldBreadcrumb(world.name) +
+      '<a class="world-record-backlink" href="worlds.html">← Return to the Twelve Worlds atlas</a>' +
       '<div class="world-record-overview"><div class="world-record-overview-copy">' + head +
         (world.intro_paragraph_1 ? '<p class="world-record-intro">' + escapeHtml(world.intro_paragraph_1) + '</p>' : '') +
         (world.intro_paragraph_2 ? '<p class="world-record-intro">' + escapeHtml(world.intro_paragraph_2) + '</p>' : '') +
@@ -708,10 +755,35 @@ document.addEventListener('DOMContentLoaded', function () {
       '<div class="map-lightbox" id="world-record-map-lightbox" hidden><div class="map-lightbox-backdrop"></div><button type="button" class="map-lightbox-close" aria-label="Close map">&times;</button><div class="map-lightbox-inner"><img src="' + escapeHtml(world.map_full_image_url) + '" alt="Full map of ' + escapeHtml(world.name) + '" decoding="async"></div></div>';
   }
 
+  /* Opens and scrolls to the district a shared link names.
+     The browser's own fragment handling cannot do this: the record is fetched,
+     so at the moment the hash would normally be resolved the element does not
+     exist yet -- and even once it does, the panel is collapsed, so landing on
+     it would show a closed row with no indication that it is the thing that
+     was linked to. */
+  function openDistrictFromHash() {
+    var hash = String(window.location.hash || '').replace(/^#/, '');
+    if (!/^district-\d+$/.test(hash)) return;
+    var target = document.getElementById(hash);
+    if (!target) return;
+    target.classList.add('open');
+    var toggle = target.querySelector('.layer-toggle');
+    if (toggle) toggle.setAttribute('aria-expanded', 'true');
+    // After a frame, so the panel's own grid-rows transition has a starting
+    // point to animate from and the scroll lands on its opened height.
+    requestAnimationFrame(function () {
+      target.scrollIntoView({ block: 'center' });
+      target.classList.add('is-linked');
+      window.setTimeout(function () { target.classList.remove('is-linked'); }, 2600);
+    });
+  }
+
+  window.addEventListener('hashchange', openDistrictFromHash);
+
   function showError(message) {
     if (title) title.textContent = 'World Record Unavailable';
     if (lede) lede.textContent = message;
-    if (content) content.innerHTML = '<a class="world-record-backlink" href="worlds.html">← Return to the Twelve Worlds atlas</a><div class="world-record-placeholder">The requested record could not be retrieved. Return to the atlas and choose another available world.</div>';
+    if (content) content.innerHTML = worldBreadcrumb('World Record') + '<a class="world-record-backlink" href="worlds.html">← Return to the Twelve Worlds atlas</a><div class="world-record-placeholder">The requested record could not be retrieved. Return to the atlas and choose another available world.</div>';
   }
 
   if (!slug) {
@@ -741,12 +813,13 @@ document.addEventListener('DOMContentLoaded', function () {
         status.classList.toggle('is-locked', world.status !== 'available');
       }
       if (world.status !== 'available') {
-        if (content) content.innerHTML = '<a class="world-record-backlink" href="worlds.html">← Return to the Twelve Worlds atlas</a><div class="world-record-placeholder"><strong>MISSING INFORMATION.</strong><br>' + escapeHtml(world.name) + ' remains sealed in the lore archive. This field record will open when World Control clears the lock.</div>';
+        if (content) content.innerHTML = worldBreadcrumb(world.name) + '<a class="world-record-backlink" href="worlds.html">← Return to the Twelve Worlds atlas</a><div class="world-record-placeholder"><strong>MISSING INFORMATION.</strong><br>' + escapeHtml(world.name) + ' remains sealed in the lore archive. This field record will open when World Control clears the lock.</div>';
         return;
       }
       if (content) content.innerHTML = detailHtml(world);
       recordLoreDiscovery(world.id);
       if (window.wireWorldInteractions) window.wireWorldInteractions();
+      openDistrictFromHash();
       weatherRequest.then(function (weatherData) { renderWorldWeather(weatherData, slug, world.name); });
     })
     .catch(function () { showError('The archive could not load this world record right now.'); });

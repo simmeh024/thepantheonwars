@@ -86,16 +86,76 @@ document.addEventListener('DOMContentLoaded', function () {
     panel.style.top = top + 'px';
   }
 
+  /* The panel used to close the instant the pointer left its marker, which
+     made anything inside it unreachable -- you could not select the text, and
+     a control in it could never be clicked, because moving toward it dismissed
+     it. Closing is now deferred by a beat and cancelled if the pointer lands
+     on the panel itself, which is what makes the copy control below usable. */
+  var closeTimer = null;
+  var pointerInPanel = false;
+  // Set only by openLinkedEvent(); see the note there.
+  var linkPinned = false;
+
+  function cancelPendingClose() {
+    if (closeTimer) { window.clearTimeout(closeTimer); closeTimer = null; }
+  }
+
+  function requestClose() {
+    cancelPendingClose();
+    if (linkPinned) return;
+    closeTimer = window.setTimeout(function () {
+      closeTimer = null;
+      if (!pointerInPanel) closePanel();
+    }, 220);
+  }
+
+  panel.addEventListener('mouseenter', function () { pointerInPanel = true; cancelPendingClose(); });
+  panel.addEventListener('mouseleave', function () { pointerInPanel = false; requestClose(); });
+  // Focus moving into the panel (tabbing to the copy control) counts the same
+  // as the pointer being on it -- otherwise a keyboard reader loses the panel
+  // at the moment they reach for the control inside it.
+  panel.addEventListener('focusin', function () { pointerInPanel = true; cancelPendingClose(); });
+  panel.addEventListener('focusout', function (e) {
+    if (panel.contains(e.relatedTarget)) return;
+    pointerInPanel = false;
+    requestClose();
+  });
+
   function closePanel() {
+    cancelPendingClose();
+    pointerInPanel = false;
     panel.classList.remove('is-open');
     panel.hidden = true;
     if (activeNode) activeNode.setAttribute('aria-expanded', 'false');
     activeNode = null;
   }
 
+  /* An event is addressable as timeline.html?event=<id>. A query parameter,
+     not a fragment: the rail is a horizontally scrolled strip rather than a
+     document anchor, so letting the browser resolve a #hash would fight the
+     scroll this file performs itself. The id comes from timeline_events.id,
+     which a locked event also carries -- a sealed record still has a position,
+     which is the only thing about it the server sends. */
+  function renderPanelLink(event) {
+    var slot = panel.querySelector('.timeline-panel-link');
+    if (!slot) return;
+    slot.innerHTML = window.pwCopyLinkButton
+      ? window.pwCopyLinkButton('timeline.html?event=' + encodeURIComponent(event.id),
+          event.locked ? 'this sealed record' : (event.title || 'this event'))
+      : '';
+  }
+
   function openPanel(node, event) {
+    cancelPendingClose();
     activeNode = node;
     node.setAttribute('aria-expanded', 'true');
+    renderPanelLink(event);
+    // Reflected in the address bar as well, so the URL always describes what
+    // is actually on screen and the copy control is a convenience rather than
+    // the only route to the link.
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState({}, '', location.pathname + '?event=' + encodeURIComponent(event.id));
+    }
     panel.style.borderColor = 'rgba(' + (event.locked ? '150, 150, 165' : hexToRgbParts(event.accent_color)) + ', 0.5)';
 
     if (event.locked) {
@@ -182,19 +242,21 @@ document.addEventListener('DOMContentLoaded', function () {
         '</span>';
     }
 
-    function open() { openPanel(node, event); }
+    // Any marker the reader opens themselves releases the link pin, so a
+    // deep-linked panel does not stay stuck open for the rest of the session.
+    function open() { linkPinned = false; openPanel(node, event); }
 
     // Pointer devices reveal on hover; touch devices need an explicit tap,
     // and a second tap closes it again.
     if (!isCoarse) {
       node.addEventListener('mouseenter', open);
       node.addEventListener('mouseleave', function () {
-        if (activeNode === node) closePanel();
+        if (activeNode === node) requestClose();
       });
     }
     node.addEventListener('focus', open);
     node.addEventListener('blur', function () {
-      if (activeNode === node) closePanel();
+      if (activeNode === node) requestClose();
     });
     node.addEventListener('click', function (e) {
       e.preventDefault();
@@ -213,11 +275,16 @@ document.addEventListener('DOMContentLoaded', function () {
       return;
     }
 
+    var nodesByEventId = {};
     events.forEach(function (event, i) {
-      rail.appendChild(buildNode(event, i));
+      var node = buildNode(event, i);
+      nodesByEventId[event.id] = { node: node, event: event };
+      rail.appendChild(node);
     });
 
     if (hintEl) hintEl.hidden = false;
+
+    openLinkedEvent(nodesByEventId);
 
     // Progress reflects how much of the record this visitor can actually read.
     if (progressEl && data.total_count) {
@@ -232,6 +299,38 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     startMotion();
+  }
+
+  /* Opens the event a shared ?event= link names, and brings it into view.
+     Scrolled with scrollLeft rather than scrollIntoView because the rail is
+     its own horizontal scroller: scrollIntoView would also move the page,
+     which on the desktop layout jumps past the rail entirely. The vertical
+     layout under 780px is a normal column, so it uses the page scroll. */
+  function openLinkedEvent(nodesByEventId) {
+    var wanted = new URLSearchParams(window.location.search).get('event');
+    if (!wanted) return;
+    var match = nodesByEventId[wanted];
+    if (!match) return;
+    /* Opened synchronously. Only the scroll waits for a frame: a tab that is
+       not compositing never delivers one, and a shared link must still land on
+       an open record rather than on a closed rail. Same rule the reputation
+       bar follows -- never depend on an animation frame for something to be
+       right, only for how it arrives. */
+    match.node.classList.add('is-linked');
+    openPanel(match.node, match.event);
+    // Held open rather than dismissed on the first stray pointer move: someone
+    // arriving from a link came for this record, and closing it before they
+    // have read it would make the link pointless. Released as soon as they
+    // open any marker themselves, or press Escape. Set synchronously for the
+    // same reason the panel is opened synchronously.
+    linkPinned = true;
+    requestAnimationFrame(function () {
+      if (window.matchMedia('(max-width: 780px)').matches) {
+        match.node.scrollIntoView({ block: 'center' });
+      } else {
+        rail.scrollLeft = match.node.offsetLeft - (rail.clientWidth / 2) + (match.node.offsetWidth / 2);
+      }
+    });
   }
 
   // --------------------------------------------------------------- motion
@@ -307,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function () {
   window.addEventListener('resize', reposition);
   window.addEventListener('scroll', reposition, { passive: true });
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && activeNode) { activeNode.blur(); closePanel(); }
+    if (e.key === 'Escape' && activeNode) { linkPinned = false; activeNode.blur(); closePanel(); }
   });
 
   // ----------------------------------------------------------------- load

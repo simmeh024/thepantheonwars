@@ -113,6 +113,64 @@ $stmt = $db->prepare(
 $stmt->execute([$id, $id]);
 $recentPosts = $stmt->fetchAll();
 
+/**
+ * Operations this member has actually finished and collected.
+ *
+ * Counted on claimed_at rather than status: a run sitting at 'completed' is
+ * one whose timer expired, which the five-minute cron sets whether or not the
+ * player ever came back for it. Claiming is the act that finished it.
+ *
+ * Guarded like the reading shelf above -- the missions tables are optional
+ * against an older database, and a public profile must not 500 because a game
+ * feature has not been migrated.
+ */
+$missionsCompleted = 0;
+try {
+    $missionStmt = $db->prepare('SELECT COUNT(*) FROM game_player_missions WHERE user_id = ? AND claimed_at IS NOT NULL');
+    $missionStmt->execute([$id]);
+    $missionsCompleted = (int)$missionStmt->fetchColumn();
+} catch (PDOException $e) {
+    // migration_missions_v0.sql may not have been applied.
+}
+
+/**
+ * How far up the material this member has climbed, as a count per tier.
+ *
+ * Deliberately a count and not a list: the full achievement grid is the
+ * Reputation page's job, and this is a four-number summary meant to be read at
+ * a glance beside the rank. The four tiers are emitted in fixed order and
+ * always all four, even at zero -- an omitted tier would read as one that does
+ * not exist rather than one still to reach, which is the same rule the
+ * Reputation page's own tier row follows.
+ *
+ * Totals come from the catalogue rather than the database, so a tier whose
+ * achievements this member has none of still reports its real denominator.
+ */
+$tierOrder = ['bronze', 'silver', 'gold', 'prismatic'];
+$tierCounts = [];
+foreach ($tierOrder as $tier) {
+    $tierCounts[$tier] = ['tier' => $tier, 'unlocked' => 0, 'total' => 0];
+}
+$catalogByKey = [];
+foreach (pw_reputation_achievement_catalog() as $achievement) {
+    $catalogByKey[$achievement['key']] = $achievement;
+    $tier = strtolower((string)$achievement['tier']);
+    if (isset($tierCounts[$tier])) $tierCounts[$tier]['total']++;
+}
+try {
+    $unlockedStmt = $db->prepare('SELECT achievement_key FROM user_reputation_achievements WHERE user_id = ?');
+    $unlockedStmt->execute([$id]);
+    foreach ($unlockedStmt->fetchAll() as $row) {
+        $achievement = $catalogByKey[$row['achievement_key']] ?? null;
+        if (!$achievement) continue;
+        $tier = strtolower((string)$achievement['tier']);
+        if (isset($tierCounts[$tier])) $tierCounts[$tier]['unlocked']++;
+    }
+} catch (PDOException $e) {
+    // Achievements stay at zero rather than removing the row entirely: the
+    // tiers still exist and are still something to reach.
+}
+
 $showcase = [];
 try {
     $showcaseStmt = $db->prepare('SELECT achievement_key FROM user_reputation_achievement_showcase WHERE user_id = ? ORDER BY position ASC, id ASC');
@@ -155,6 +213,8 @@ pw_json([
         'books_finished_count' => $booksFinishedCount,
         'books_total' => $booksTotal,
         'crew_power' => $crewPower,
+        'missions_completed' => $missionsCompleted,
+        'achievement_tiers' => array_values($tierCounts),
         'achievement_showcase' => $showcase,
     ],
     'recentPosts' => array_map(function ($r) {
